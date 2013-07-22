@@ -15,11 +15,16 @@ void main()
 
   vec3 lightColor = vec3(1, 1, 1);
   vec3 ambientColor = vec3(1, 1, 1);
-  
-  float ambientAmount = 0.05;
-  float cosTheta = clamp(dot(VextexNormal, vec3(-1, -0.5, 0)), 0, 1);
 
-  color = MaterialSpecularColor * (0.05 * cosTheta / 5)
+  vec3 lightPosition = vec3(-1, -0.5, 0);
+
+  // Ambient
+  float ambientAmount = 0.05;
+
+  // Diffuse
+  float cosTheta = clamp(dot(VextexNormal, lightPosition), 0, 1);
+
+  color = MaterialSpecularColor * lightColor * 0.05
 	  + MaterialDiffuseColor * ambientColor * ambientAmount
 	  + MaterialDiffuseColor * lightColor * cosTheta;
 }

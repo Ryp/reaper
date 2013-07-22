@@ -12,4 +12,4 @@ Dependencies:
 
 ## Issues
 
-* Please report issues here: [Issue tracker](https://bitbucket.org/Ryp/reapergl/issues/new)
+* Please report issues here: [Issue tracker](https://github.com/Ryp/ReaperGL/issues/new)
