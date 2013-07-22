@@ -1,0 +1,7 @@
+*#*.bak
+*.pdf
+*.o
+*~
+*.kdev4
+log
+reaper
