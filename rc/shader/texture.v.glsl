@@ -6,7 +6,6 @@ layout(location = 2) in vec3 VertexNormal_modelspace;
 
 uniform mat4 MVP;
 uniform mat4 MV;
-uniform mat4 M;
 uniform mat4 V;
 
 uniform vec3 LighPosition_worldspace;
