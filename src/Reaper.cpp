@@ -107,11 +107,11 @@ void Reaper::run()
 			textureSpecular[Level].data());
   }
 
-  glm::vec3 LightPosition(3.0f, 3.0f, 3.0f);
+  glm::vec3 LightPosition(0.0f, 0.5f, 2.0f);
   glm::mat4 Projection = glm::perspective(45.0f, 4.0f / 3.0f, 0.1f, 100.0f);
   glm::mat4 View       = glm::mat4(1.0f);
   glm::mat4 Model      = glm::scale(glm::mat4(1.0f), glm::vec3(1.2f));
-  glm::mat4 MV        = View * Model;
+  glm::mat4 MV         = View * Model;
   glm::mat4 MVP        = Projection * MV;
 
   GLuint vertexbuffer;
@@ -144,6 +144,9 @@ void Reaper::run()
 
     glUniformMatrix4fv(shader.getUniformLocation("MVP"), 1, GL_FALSE, &MVP[0][0]);
     glUniformMatrix4fv(shader.getUniformLocation("MV"), 1, GL_FALSE, &MV[0][0]);
+    glUniformMatrix4fv(shader.getUniformLocation("M"), 1, GL_FALSE, &Model[0][0]);
+    glUniformMatrix4fv(shader.getUniformLocation("V"), 1, GL_FALSE, &View[0][0]);
+    glUniform3fv(shader.getUniformLocation("LighPosition_worldspace"), 1, &LightPosition[0]);
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, textureID);
