@@ -1,27 +1,27 @@
-#ifndef SHADER_HH
-#define SHADER_HH
+#ifndef SHADERPROGRAM_HH
+#define SHADERPROGRAM_HH
 
-#include <iostream>
 #include <string>
 #include <map>
 
 #include "GLHeaders.hpp"
+#include "ShaderObject.hh"
 
-class Shader
+class ShaderProgram
 {
 public:
-  Shader(const std::string& vertex, const std::string& fragment);
-  virtual ~Shader();
+  ShaderProgram();
+  ~ShaderProgram();
 
 public:
   GLuint	getHandle() const;
   GLuint	getAttribLocation(const std::string& name) const;
   GLuint	getUniformLocation(const std::string& name) const;
   void		use() const;
-
-public:
-  static GLuint	compileShader(const std::string& file, GLenum type);
-  static GLuint	loadShader(const std::string& vertex, const std::string& fragment);
+  void		debugPrintLocations();
+  void		attach(const ShaderObject& object);
+  void		detach(const ShaderObject& object);
+  void		link();
 
 private:
   void		retrieveLocations();
@@ -32,4 +32,4 @@ private:
   GLuint			_handle;
 };
 
-#endif // SHADER_HH
+#endif // SHADERPROGRAM_HH

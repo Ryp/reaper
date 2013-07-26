@@ -6,7 +6,7 @@
 
 #include "Reaper.hh"
 #include "GLHeaders.hpp"
-#include "Shader/Shader.hh"
+#include "Shader/ShaderProgram.hh"
 #include "Model/ModelLoader.hh"
 #include "Exceptions/ReaperException.hpp"
 
@@ -25,7 +25,14 @@ void Reaper::run()
   ModelLoader loader;
   Model* teapot = loader.load("rc/model/cylinder.obj");
 
-  Shader shader("rc/shader/texture.v.glsl", "rc/shader/texture.f.glsl");
+  ShaderProgram shader;
+  ShaderObject vs("rc/shader/texture.v.glsl", GL_VERTEX_SHADER);
+  ShaderObject fs("rc/shader/texture.f.glsl", GL_FRAGMENT_SHADER);/*
+  ShaderObject gs("rc/shader/texture.g.glsl", GL_GEOMETRY_SHADER);*/
+  shader.attach(vs);
+  shader.attach(fs);/*
+  shader.attach(gs);*/
+  shader.link();
 
   gli::texture2D texture(gli::loadStorageDDS("rc/texture/bricks_diffuse.dds"));
   if (texture.empty())
@@ -144,7 +151,6 @@ void Reaper::run()
 
     glUniformMatrix4fv(shader.getUniformLocation("MVP"), 1, GL_FALSE, &MVP[0][0]);
     glUniformMatrix4fv(shader.getUniformLocation("MV"), 1, GL_FALSE, &MV[0][0]);
-    glUniformMatrix4fv(shader.getUniformLocation("M"), 1, GL_FALSE, &Model[0][0]);
     glUniformMatrix4fv(shader.getUniformLocation("V"), 1, GL_FALSE, &View[0][0]);
     glUniform3fv(shader.getUniformLocation("LighPosition_worldspace"), 1, &LightPosition[0]);
 

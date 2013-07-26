@@ -21,7 +21,8 @@ SRC		=	src/main.cpp				\
 			src/Reaper.cpp				\
 			src/Model/Model.cpp			\
  			src/Model/ModelLoader.cpp		\
-			src/Shader/Shader.cpp
+			src/Shader/ShaderProgram.cpp		\
+			src/Shader/ShaderObject.cpp
 # 			src/Joystick/AController.cpp		\
 # 			src/Joystick/SixAxis.cpp
 
