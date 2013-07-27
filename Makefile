@@ -4,6 +4,8 @@ CXX		=	g++
 
 CXXFLAGS	+=	-Wall -Wextra -ansi -pedantic -std=c++11
 
+IWDIR		=	./include
+
 LDFLAGS		+=	$(LIBS) $(LPATH)
 
 LIBS		=	-lglfw -lGLEW -lGL
@@ -34,7 +36,7 @@ $(TARGET):		$(OBJ)
 all:			$(TARGET)
 
 %.o:			%.cpp
-			$(CXX) $(CXXFLAGS) $(IPATH) -c $< -o $@
+			$(CXX) $(CXXFLAGS) $(IPATH) -isystem $(IWDIR) -c $< -o $@
 
 clean:
 			@$(RM) $(OBJ)
