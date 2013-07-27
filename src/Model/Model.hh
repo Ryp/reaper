@@ -4,7 +4,6 @@
 #include <vector>
 
 #include <glm/glm.hpp>
-#include <glm/core/type.hpp>
 
 #include "GLHeaders.hpp"
 

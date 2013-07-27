@@ -53,8 +53,8 @@ namespace glm
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 8.8 Integer Functions</a>
 	template <typename genUType>
 	GLM_FUNC_DECL genUType uaddCarry(
-		genUType const & x,
-		genUType const & y,
+		genUType const & x, 
+		genUType const & y, 
 		genUType & carry);
 
 	/// Subtracts the 32-bit unsigned integer y from x, returning
@@ -67,8 +67,8 @@ namespace glm
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 8.8 Integer Functions</a>
 	template <typename genUType>
 	GLM_FUNC_DECL genUType usubBorrow(
-		genUType const & x,
-		genUType const & y,
+		genUType const & x, 
+		genUType const & y, 
 		genUType & borrow);
 		
 	/// Multiplies 32-bit integers x and y, producing a 64-bit
@@ -81,9 +81,9 @@ namespace glm
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 8.8 Integer Functions</a>
 	template <typename genUType>
 	GLM_FUNC_DECL void umulExtended(
-		genUType const & x,
-		genUType const & y,
-		genUType & msb,
+		genUType const & x, 
+		genUType const & y, 
+		genUType & msb, 
 		genUType & lsb);
 		
 	/// Multiplies 32-bit integers x and y, producing a 64-bit
@@ -96,9 +96,9 @@ namespace glm
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 8.8 Integer Functions</a>
 	template <typename genIType>
 	GLM_FUNC_DECL void imulExtended(
-		genIType const & x,
-		genIType const & y,
-		genIType & msb,
+		genIType const & x, 
+		genIType const & y, 
+		genIType & msb, 
 		genIType & lsb);
 
 	/// Extracts bits [offset, offset + bits - 1] from value,
@@ -118,8 +118,8 @@ namespace glm
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 8.8 Integer Functions</a>
 	template <typename genIUType>
 	GLM_FUNC_DECL genIUType bitfieldExtract(
-		genIUType const & Value,
-		int const & Offset,
+		genIUType const & Value, 
+		int const & Offset, 
 		int const & Bits);
 
 	/// Returns the insertion the bits least-significant bits of insert into base.
@@ -138,9 +138,9 @@ namespace glm
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 8.8 Integer Functions</a>
 	template <typename genIUType>
 	GLM_FUNC_DECL genIUType bitfieldInsert(
-		genIUType const & Base,
-		genIUType const & Insert,
-		int const & Offset,
+		genIUType const & Base, 
+		genIUType const & Insert, 
+		int const & Offset, 
 		int const & Bits);
 
 	/// Returns the reversal of the bits of value. 

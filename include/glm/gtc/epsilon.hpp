@@ -54,9 +54,7 @@ namespace glm
 	/// @addtogroup gtc_epsilon
 	/// @{
 
-	/// Returns the component-wise comparison of |x - y| < epsilon.
-	/// True if this expression is satisfied.
-	///
+	/// Returns the component-wise compare of |x - y| < epsilon.
 	/// @see gtc_epsilon
 	template <typename genType>
 	typename genType::boolType epsilonEqual(
@@ -64,9 +62,7 @@ namespace glm
 		genType const & y,
 		typename genType::value_type const & epsilon);
 
-	/// Returns the component-wise comparison of |x - y| < epsilon.
-	/// True if this expression is satisfied.
-	///
+	/// Returns the component-wise compare of |x - y| < epsilon.
 	/// @see gtc_epsilon
 	template <typename genType> 
 	typename genType::boolType epsilonEqual(
@@ -74,9 +70,7 @@ namespace glm
 		genType const & y, 
 		genType const & epsilon);
 
-	/// Returns the component-wise comparison of |x - y| < epsilon.
-	/// True if this expression is not satisfied.
-	///
+	/// Returns the component-wise compare of |x - y| < epsilon.
 	/// @see gtc_epsilon
 	template <typename genType>
 	typename genType::boolType epsilonNotEqual(
@@ -84,9 +78,7 @@ namespace glm
 		genType const & y,
 		typename genType::value_type const & epsilon);
 
-	/// Returns the component-wise comparison of |x - y| >= epsilon.
-	/// True if this expression is not satisfied.
-	///
+	/// Returns the component-wise compare of |x - y| >= epsilon.
 	/// @see gtc_epsilon
 	template <typename genType>
 	typename genType::boolType epsilonNotEqual(

@@ -8,10 +8,10 @@
 /// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 /// copies of the Software, and to permit persons to whom the Software is
 /// furnished to do so, subject to the following conditions:
-///
+/// 
 /// The above copyright notice and this permission notice shall be included in
 /// all copies or substantial portions of the Software.
-///
+/// 
 /// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 /// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 /// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -21,24 +21,23 @@
 /// THE SOFTWARE.
 ///
 /// @ref core
-/// @file glm/core/precision.hpp
-/// @date 2013-04-01 / 2013-04-01
+/// @file glm/core/type_size.hpp
+/// @date 2008-10-05 / 2011-06-15
 /// @author Christophe Riccio
 ///////////////////////////////////////////////////////////////////////////////////
 
-#ifndef GLM_CORE_PRECISION_INCLUDED
-#define GLM_CORE_PRECISION_INCLUDED
+#ifndef glm_core_type_size
+#define glm_core_type_size
 
-namespace glm
+#include <cstdlib>
+
+namespace glm{
+namespace detail
 {
-	enum precision
-	{
-		highp,
-		mediump,
-		lowp
-	};
+	//typedef std::size_t size_t;
+	typedef int sizeType;
+
+}//namespace detail
 }//namespace glm
 
-#define defaultp		highp
-
-#endif//GLM_CORE_PRECISION_INCLUDED
+#endif//glm_core_type_size

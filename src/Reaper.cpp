@@ -27,11 +27,13 @@ void Reaper::run()
 
   ShaderProgram shader;
   ShaderObject vs("rc/shader/texture.v.glsl", GL_VERTEX_SHADER);
-  ShaderObject fs("rc/shader/texture.f.glsl", GL_FRAGMENT_SHADER);/*
-  ShaderObject gs("rc/shader/texture.g.glsl", GL_GEOMETRY_SHADER);*/
+  ShaderObject fs("rc/shader/texture.f.glsl", GL_FRAGMENT_SHADER);
   shader.attach(vs);
-  shader.attach(fs);/*
-  shader.attach(gs);*/
+  shader.attach(fs);
+
+  ShaderObject gs("rc/shader/texture.g.glsl", GL_GEOMETRY_SHADER);
+  shader.attach(gs);
+
   shader.link();
 
   gli::texture2D texture(gli::loadStorageDDS("rc/texture/bricks_diffuse.dds"));

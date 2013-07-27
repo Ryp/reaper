@@ -28,89 +28,89 @@
 
 namespace glm
 {
-	template <typename T, precision P, template <typename, precision> class vecType>
+	template <typename T, template <typename> class vecType>
 	GLM_FUNC_QUALIFIER T swizzle
 	(
-		vecType<T, P> const & v,
+		vecType<T> const & v,
 		comp x
 	)
 	{
-		assert(int(x) < int(vecType<T, P>::value_size));
+		assert(int(x) < int(vecType<T>::value_size));
 		return v[x];
 	}
 
-	template <typename T, precision P, template <typename, precision> class vecType>
-	GLM_FUNC_QUALIFIER detail::tvec2<T, P> swizzle
+	template <typename T, template <typename> class vecType>
+	GLM_FUNC_QUALIFIER detail::tvec2<T> swizzle
 	(
-		vecType<T, P> const & v,
+		vecType<T> const & v,
 		comp x, comp y
 	)
 	{
-		return detail::tvec2<T, P>(
+		return detail::tvec2<T>(
 			v[x],
 			v[y]);
 	}
 
-	template <typename T, precision P, template <typename, precision> class vecType>
-	GLM_FUNC_QUALIFIER detail::tvec3<T, P> swizzle
+	template <typename T, template <typename> class vecType>
+	GLM_FUNC_QUALIFIER detail::tvec3<T> swizzle
 	(
-		vecType<T, P> const & v,
+		vecType<T> const & v,
 		comp x, comp y, comp z
 	)
 	{
-		return detail::tvec3<T, P>(
+		return detail::tvec3<T>(
 			v[x],
 			v[y],
 			v[z]);
 	}
 
-	template <typename T, precision P, template <typename, precision> class vecType>
-	GLM_FUNC_QUALIFIER detail::tvec4<T, P> swizzle
+	template <typename T, template <typename> class vecType>
+	GLM_FUNC_QUALIFIER detail::tvec4<T> swizzle
 	(
-		vecType<T, P> const & v,
+		vecType<T> const & v,
 		comp x, comp y, comp z, comp w
 	)
 	{
-		return detail::tvec4<T, P>(v[x], v[y], v[z], v[w]);
+		return detail::tvec4<T>(v[x], v[y],	v[z], v[w]);
 	}
 
-	template <typename T, precision P>
+	template <typename T>
 	GLM_FUNC_QUALIFIER T& swizzle
 	(
-		detail::tvec4<T, P> & v,
+		detail::tvec4<T> & v,
 		comp x
 	)
 	{
 		return v[x];
 	}
 
-	template <typename T, precision P>
-	GLM_FUNC_QUALIFIER detail::tref2<T, P> swizzle
+	template <typename T>
+	GLM_FUNC_QUALIFIER detail::tref2<T> swizzle
 	(
-		detail::tvec4<T, P> & v,
+		detail::tvec4<T> & v,
 		comp x, comp y
 	)
 	{
-		return detail::tref2<T, P>(v[x], v[y]);
+		return detail::tref2<T>(v[x], v[y]);
 	}
 
-	template <typename T, precision P>
-	GLM_FUNC_QUALIFIER detail::tref3<T, P> swizzle
+	template <typename T>
+	GLM_FUNC_QUALIFIER detail::tref3<T> swizzle
 	(
-		detail::tvec4<T, P> & v,
+		detail::tvec4<T> & v,
 		comp x, comp y, comp z
 	)
 	{
-		return detail::tref3<T, P>(v[x], v[y], v[z]);
+		return detail::tref3<T>(v[x], v[y],	v[z]);
 	}
 
-	template <typename T, precision P>
-	GLM_FUNC_QUALIFIER detail::tref4<T, P> swizzle
+	template <typename T>
+	GLM_FUNC_QUALIFIER detail::tref4<T> swizzle
 	(
-		detail::tvec4<T, P> & v,
+		detail::tvec4<T> & v,
 		comp x, comp y, comp z, comp w
 	)
 	{
-		return detail::tref4<T, P>(v[x], v[y], v[z], v[w]);
+		return detail::tref4<T>(v[x], v[y],	v[z], v[w]);
 	}
 }//namespace glm

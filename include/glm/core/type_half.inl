@@ -30,6 +30,8 @@
 /// @author Christophe Riccio
 ///////////////////////////////////////////////////////////////////////////////////
 
+#include "_detail.hpp"
+
 namespace glm{
 namespace detail
 {
@@ -57,7 +59,7 @@ namespace detail
 				// Plus or minus zero
 				//
 
-				detail::uif32 result;
+				detail::uif result;
 				result.i = (unsigned int)(s << 31);
 				return result.f;
 			}
@@ -85,7 +87,7 @@ namespace detail
 				// Positive or negative infinity
 				//
 
-				uif32 result;
+				uif result;
 				result.i = (unsigned int)((s << 31) | 0x7f800000);
 				return result.f;
 			}
@@ -95,7 +97,7 @@ namespace detail
 				// Nan -- preserve sign and significand bits
 				//
 
-				uif32 result;
+				uif result;
 				result.i = (unsigned int)((s << 31) | 0x7f800000 | (m << 13));
 				return result.f;
 			}
@@ -112,14 +114,14 @@ namespace detail
 		// Assemble s, e and m.
 		//
 
-		uif32 Result;
+		uif Result;
 		Result.i = (unsigned int)((s << 31) | (e << 23) | m);
 		return Result.f;
 	}
 
 	GLM_FUNC_QUALIFIER hdata toFloat16(float const & f)
 	{
-		uif32 Entry;
+		uif Entry;
 		Entry.f = f;
 		int i = (int)Entry.i;
 

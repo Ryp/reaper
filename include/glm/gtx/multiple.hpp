@@ -51,28 +51,18 @@ namespace glm
 	/// @addtogroup gtx_multiple
 	/// @{
 
-	/// Higher multiple number of Source.
-	///
-	/// @tparam genType Floating-point or integer scalar or vector types.
-	/// @param Source 
-	/// @param Multiple Must be a null or positive value
-	///
-	/// @see gtx_multiple
-	template <typename genType>
+	//! Higher Multiple number of Source.
+	//! From GLM_GTX_multiple extension.
+	template <typename genType> 
 	genType higherMultiple(
-		genType const & Source,
+		genType const & Source, 
 		genType const & Multiple);
 
-	/// Lower multiple number of Source.
-	///
-	/// @tparam genType Floating-point or integer scalar or vector types.
-	/// @param Source 
-	/// @param Multiple Must be a null or positive value
-	///
-	/// @see gtx_multiple
-	template <typename genType>
+	//! Lower Multiple number of Source.
+	//! From GLM_GTX_multiple extension.
+	template <typename genType> 
 	genType lowerMultiple(
-		genType const & Source,
+		genType const & Source, 
 		genType const & Multiple);
 
 	/// @}
