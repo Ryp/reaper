@@ -26,6 +26,7 @@
 /// @author Christophe Riccio
 ///////////////////////////////////////////////////////////////////////////////////
 
+#include <cstdlib>
 #include <ctime>
 #include <cassert>
 
@@ -43,7 +44,7 @@ namespace detail
 		}
 */
 	};
-    
+	
 	template <>
 	GLM_FUNC_QUALIFIER half compute_linearRand::operator()<half> (half const & Min, half const & Max) const
 	{
@@ -61,7 +62,7 @@ namespace detail
 	{
 		return double(std::rand()) / double(RAND_MAX) * (Max - Min) + Min;
 	}
-    
+
 	template <>
 	GLM_FUNC_QUALIFIER long double compute_linearRand::operator()<long double> (long double const & Min, long double const & Max) const
 	{
@@ -104,17 +105,19 @@ namespace detail
 	VECTORIZE_VEC_VEC(gaussRand)
 
 	template <typename T>
-	GLM_FUNC_QUALIFIER detail::tvec2<T> diskRand
+	GLM_FUNC_QUALIFIER detail::tvec2<T, defaultp> diskRand
 	(
 		T const & Radius
 	)
 	{		
-		detail::tvec2<T> Result(T(0));
+		detail::tvec2<T, defaultp> Result(T(0));
 		T LenRadius(T(0));
 		
 		do
 		{
-			Result = linearRand(detail::tvec2<T>(-Radius), detail::tvec2<T>(Radius));
+			Result = linearRand(
+				detail::tvec2<T, defaultp>(-Radius),
+				detail::tvec2<T, defaultp>(Radius));
 			LenRadius = length(Result);
 		}
 		while(LenRadius > Radius);
@@ -123,17 +126,19 @@ namespace detail
 	}
 	
 	template <typename T>
-	GLM_FUNC_QUALIFIER detail::tvec3<T> ballRand
+	GLM_FUNC_QUALIFIER detail::tvec3<T, defaultp> ballRand
 	(
 		T const & Radius
 	)
 	{		
-		detail::tvec3<T> Result(T(0));
+		detail::tvec3<T, defaultp> Result(T(0));
 		T LenRadius(T(0));
 		
 		do
 		{
-			Result = linearRand(detail::tvec3<T>(-Radius), detail::tvec3<T>(Radius));
+			Result = linearRand(
+				detail::tvec3<T, defaultp>(-Radius),
+				detail::tvec3<T, defaultp>(Radius));
 			LenRadius = length(Result);
 		}
 		while(LenRadius > Radius);
@@ -141,18 +146,18 @@ namespace detail
 		return Result;
 	}
 	
-	template <typename T> 
-	GLM_FUNC_QUALIFIER detail::tvec2<T> circularRand
+	template <typename T>
+	GLM_FUNC_QUALIFIER detail::tvec2<T, defaultp> circularRand
 	(
 		T const & Radius
 	)
 	{
 		T a = linearRand(T(0), T(6.283185307179586476925286766559f));
-		return detail::tvec2<T>(cos(a), sin(a)) * Radius;		
+		return detail::tvec2<T, defaultp>(cos(a), sin(a)) * Radius;		
 	}
 	
-	template <typename T> 
-	GLM_FUNC_QUALIFIER detail::tvec3<T> sphericalRand
+	template <typename T>
+	GLM_FUNC_QUALIFIER detail::tvec3<T, defaultp> sphericalRand
 	(
 		T const & Radius
 	)
@@ -165,6 +170,6 @@ namespace detail
 		T x = r * cos(a);
 		T y = r * sin(a);
 	
-		return detail::tvec3<T>(x, y, z) * Radius;	
+		return detail::tvec3<T, defaultp>(x, y, z) * Radius;	
 	}
 }//namespace glm

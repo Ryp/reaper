@@ -2,7 +2,7 @@ TARGET		=	reaper
 
 CXX		=	g++
 
-CXXFLAGS	+=	-Wall -Wextra -ansi -pedantic -std=c++11
+CXXFLAGS	+=	-Wall -Wextra -ansi -pedantic -std=c++11 -Wshadow
 
 IWDIR		=	./include
 
