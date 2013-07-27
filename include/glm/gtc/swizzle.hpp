@@ -51,54 +51,54 @@ namespace glm
 	/// @addtogroup gtc_swizzle
 	/// @{
 
-	template <typename T, precision P, template <typename, precision> class vecType>
+	template <typename T, template <typename> class vecType>
 	T const & swizzle(	
-		vecType<T, P> const & v,
+		vecType<T> const & v,
 		comp x);
 
-	template <typename T, precision P, template <typename, precision> class vecType>
-	detail::tvec2<T, P> const & swizzle(
-		vecType<T, P> const & v,
+	template <typename T, template <typename> class vecType>
+	detail::tvec2<T> const & swizzle(
+		vecType<T> const & v,
 		comp x, comp y);
 
-	template <typename T, precision P, template <typename, precision> class vecType>
-	detail::tvec3<T, P> const & swizzle(
-		vecType<T, P> const & v,
+	template <typename T, template <typename> class vecType>
+	detail::tvec3<T> const & swizzle(
+		vecType<T> const & v,
 		comp x, comp y, comp z);
 
-	template <typename T, precision P, template <typename, precision> class vecType>
-	detail::tvec4<T, P> const & swizzle(
-		vecType<T, P> const & v,
+	template <typename T, template <typename> class vecType>
+	detail::tvec4<T> const & swizzle(
+		vecType<T> const & v,
 		comp x, comp y, comp z, comp w);
 
-	template <typename T, precision P, template <typename, precision> class vecType>
+	template <typename T, template <typename> class vecType>
 	T & swizzle(
-		vecType<T, P> & v,
+		vecType<T> & v,
 		comp x);
 
-	template <typename T, precision P, template <typename, precision> class vecType>
-	detail::tref2<T, P> swizzle(
-		vecType<T, P> & v,
+	template <typename T, template <typename> class vecType>
+	detail::tref2<T> swizzle(
+		vecType<T> & v,
 		comp x, comp y);
 
-	template <typename T, precision P, template <typename, precision> class vecType>
-	detail::tref3<T, P> swizzle(
-		vecType<T, P> & v,
+	template <typename T, template <typename> class vecType>
+	detail::tref3<T> swizzle(
+		vecType<T> & v,
 		comp x, comp y, comp z);
 
-	template <typename T, precision P, template <typename, precision> class vecType>
-	detail::tref4<T, P> swizzle(
-		vecType<T, P> & v,
+	template <typename T, template <typename> class vecType>
+	detail::tref4<T> swizzle(
+		vecType<T> & v,
 		comp x, comp y, comp z, comp w);
 
-#	define static_swizzle1_const(TYPE, SIZE)											\
-		template <comp x>																\
-		GLM_FUNC_QUALIFIER TYPE swizzle(detail::tvec##SIZE<TYPE, defaultp> const & v)	\
+#	define static_swizzle1_const(TYPE, SIZE)							\
+		template <comp x>										\
+		GLM_FUNC_QUALIFIER TYPE swizzle(detail::tvec##SIZE<TYPE> const & v)	\
 		{return v[x];}											
 																
-#	define static_swizzle1_ref(TYPE, SIZE)												\
-		template <comp x>																\
-		GLM_FUNC_QUALIFIER TYPE& swizzle(detail::tvec##SIZE<TYPE, defaultp> & v)		\
+#	define static_swizzle1_ref(TYPE, SIZE)									\
+		template <comp x>													\
+		GLM_FUNC_QUALIFIER TYPE& swizzle(detail::tvec##SIZE<TYPE> & v)		\
 		{return v[x];}
 
 	static_swizzle1_ref(detail::float16, 2)
@@ -155,21 +155,18 @@ namespace glm
 
 #	define static_swizzle2_const(TYPE, SIZE)									\
 		template <comp x, comp y>												\
-		GLM_FUNC_QUALIFIER detail::tvec2<TYPE, defaultp> swizzle(				\
-			detail::tvec##SIZE<TYPE, defaultp> const & v)						\
-		{return detail::tvec2<TYPE, defaultp>(v[x], v[y]);}
+		GLM_FUNC_QUALIFIER detail::tvec2<TYPE> swizzle(detail::tvec##SIZE<TYPE> const & v)	\
+		{return detail::tvec2<TYPE>(v[x], v[y]);}
 
 #	define static_swizzle3_const(TYPE, SIZE)									\
 		template <comp x, comp y, comp z>										\
-		GLM_FUNC_QUALIFIER detail::tvec3<TYPE, defaultp> swizzle(				\
-			detail::tvec##SIZE<TYPE, defaultp> const & v)						\
-		{return detail::tvec3<TYPE, defaultp>(v[x], v[y], v[z]);}
+		GLM_FUNC_QUALIFIER detail::tvec3<TYPE> swizzle(detail::tvec##SIZE<TYPE> const & v)	\
+		{return detail::tvec3<TYPE>(v[x], v[y], v[z]);}
 
 #	define static_swizzle4_const(TYPE, SIZE)									\
 		template <comp x, comp y, comp z, comp w>								\
-		GLM_FUNC_QUALIFIER detail::tvec4<TYPE, defaultp> swizzle(				\
-			detail::tvec##SIZE<TYPE, defaultp> const & v)						\
-		{return detail::tvec4<TYPE, defaultp>(v[x], v[y], v[z], v[w]);}
+		GLM_FUNC_QUALIFIER detail::tvec4<TYPE> swizzle(detail::tvec##SIZE<TYPE> const & v)	\
+		{return detail::tvec4<TYPE>(v[x], v[y], v[z], v[w]);}
 
 
 	static_swizzle2_const(glm::f16, 2)
@@ -280,23 +277,20 @@ namespace glm
 	static_swizzle4_const(glm::u64, 3)
 	static_swizzle4_const(glm::u64, 4)
 
-#	define static_swizzle2_ref(TYPE, SIZE)									\
-		template <glm::comp x, glm::comp y>									\
-		GLM_FUNC_QUALIFIER glm::detail::tref2<TYPE, defaultp> swizzle(		\
-			detail::tvec##SIZE<TYPE, defaultp> & v)							\
-		{return glm::detail::tref2<TYPE, defaultp>(v[x], v[y]);}	
+#	define static_swizzle2_ref(TYPE, SIZE) \
+		template <glm::comp x, glm::comp y> \
+		GLM_FUNC_QUALIFIER glm::detail::tref2<TYPE> swizzle(detail::tvec##SIZE<TYPE> & v) \
+		{return glm::detail::tref2<TYPE>(v[x], v[y]);}	
 
-#	define static_swizzle3_ref(TYPE, SIZE)									\
-		template <glm::comp x, glm::comp y, glm::comp z>					\
-		GLM_FUNC_QUALIFIER glm::detail::tref3<TYPE, defaultp> swizzle(		\
-			detail::tvec##SIZE<TYPE, defaultp> & v)							\
-		{return glm::detail::tref3<TYPE, defaultp>(v[x], v[y], v[z]);}	
+#	define static_swizzle3_ref(TYPE, SIZE) \
+		template <glm::comp x, glm::comp y, glm::comp z> \
+		GLM_FUNC_QUALIFIER glm::detail::tref3<TYPE> swizzle(detail::tvec##SIZE<TYPE> & v) \
+		{return glm::detail::tref3<TYPE>(v[x], v[y], v[z]);}	
 
-#	define static_swizzle4_ref(TYPE, SIZE)									\
-		template <glm::comp x, glm::comp y, glm::comp z, glm::comp w>		\
-		GLM_FUNC_QUALIFIER glm::detail::tref4<TYPE, defaultp> swizzle(		\
-			detail::tvec##SIZE<TYPE, defaultp> & v)							\
-		{return glm::detail::tref4<TYPE, defaultp>(v[x], v[y], v[z], v[w]);}	
+#	define static_swizzle4_ref(TYPE, SIZE) \
+		template <glm::comp x, glm::comp y, glm::comp z, glm::comp w> \
+		GLM_FUNC_QUALIFIER glm::detail::tref4<TYPE> swizzle(detail::tvec##SIZE<TYPE> & v) \
+		{return glm::detail::tref4<TYPE>(v[x], v[y], v[z], v[w]);}	
 
 	static_swizzle2_ref(glm::f16, 2)
 	static_swizzle2_ref(glm::f16, 3)

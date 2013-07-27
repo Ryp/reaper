@@ -54,14 +54,14 @@ namespace glm
 	//! Build a cross product matrix.
 	//! From GLM_GTX_matrix_cross_product extension.
 	template <typename T> 
-	detail::tmat3x3<T, P> matrixCross3(
-		detail::tvec3<T, P> const & x);
+	detail::tmat3x3<T> matrixCross3(
+		detail::tvec3<T> const & x);
 		
 	//! Build a cross product matrix.
 	//! From GLM_GTX_matrix_cross_product extension.
 	template <typename T> 
-	detail::tmat4x4<T, P> matrixCross4(
-		detail::tvec3<T, P> const & x);
+	detail::tmat4x4<T> matrixCross4(
+		detail::tvec3<T> const & x);
 
 	/// @}
 }//namespace glm

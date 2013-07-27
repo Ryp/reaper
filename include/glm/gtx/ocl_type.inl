@@ -20,51 +20,8 @@
 /// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 /// THE SOFTWARE.
 ///
-/// @ref core
-/// @file glm/core/dummy.cpp
-/// @date 2011-01-19 / 2011-06-15
+/// @ref gtx_ocl_type
+/// @file glm/gtx/ocl_type.inl
+/// @date 2013-03-16 / 2013-03-16
 /// @author Christophe Riccio
-///
-/// GLM is a header only library. There is nothing to compile. 
-/// dummy.cpp exist only a wordaround for CMake file.
 ///////////////////////////////////////////////////////////////////////////////////
-
-#define GLM_MESSAGES
-#include "../glm.hpp"
-/*
-#if(GLM_ARCH & GLM_ARCH_SSE2)
-struct float4
-{
-	union
-	{
-		struct {float r, g, b, a;};
-		struct {float s, t, p, q;};
-		struct {float x, y, z, w;};
-		__m128 data;
-	};
-};
-
-int test_simd()
-{
-	float4 f;
-
-
-
-	return 0;
-}
-
-#endif//GLM_ARCH
-*/
-int main()
-{
-	glm::mat4 A(1.0f);
-	glm::vec4 B(1.0f);
-	glm::vec4 C = A * B;
-	
-/*
-#	if(GLM_ARCH & GLM_ARCH_SSE2)
-		test_simd();
-#	endif
-*/
-	return 0;
-}

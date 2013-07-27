@@ -54,14 +54,14 @@ namespace glm
 	template <typename genType> 
 	typename genType::row_type row(
 		genType const & m, 
-		typename genType::size_type const & index);
+		int index);
 
 	/// Set a specific row to a matrix.
 	/// @see gtc_matrix_access
 	template <typename genType> 
 	genType row(
 		genType const & m, 
-		typename genType::size_type const & index, 
+		int index, 
 		typename genType::row_type const & x);
 
 	/// Get a specific column of a matrix.
@@ -69,14 +69,14 @@ namespace glm
 	template <typename genType> 
 	typename genType::col_type column(
 		genType const & m, 
-		typename genType::size_type const & index);
+		int index);
 
-	/// Set a specific column to a matrix.
-	/// @see gtc_matrix_access
+	 /// Set a specific column to a matrix.
+	 /// @see gtc_matrix_access
 	template <typename genType> 
 	genType column(
 		genType const & m, 
-		typename genType::size_type const & index, 
+		int index, 
 		typename genType::col_type const & x);
 
 	/// @}

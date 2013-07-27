@@ -41,30 +41,39 @@ namespace glm
 		return sqrt(sqr);
 	}
 
-	template <typename T, precision P>
-	GLM_FUNC_QUALIFIER T length(detail::tvec2<T, P> const & v)
+	template <typename T>
+	GLM_FUNC_QUALIFIER typename detail::tvec2<T>::value_type length
+	(
+		detail::tvec2<T> const & v
+	)
 	{
 		GLM_STATIC_ASSERT(detail::type<T>::is_float, "'length' only accept floating-point inputs");
 
-		typename detail::tvec2<T, P>::value_type sqr = v.x * v.x + v.y * v.y;
+		typename detail::tvec2<T>::value_type sqr = v.x * v.x + v.y * v.y;
 		return sqrt(sqr);
 	}
 
-	template <typename T, precision P>
-	GLM_FUNC_QUALIFIER T length(detail::tvec3<T, P> const & v)
+	template <typename T>
+	GLM_FUNC_QUALIFIER typename detail::tvec3<T>::value_type length
+	(
+		detail::tvec3<T> const & v
+	)
 	{
 		GLM_STATIC_ASSERT(detail::type<T>::is_float, "'length' only accept floating-point inputs");
 
-		typename detail::tvec3<T, P>::value_type sqr = v.x * v.x + v.y * v.y + v.z * v.z;
+		typename detail::tvec3<T>::value_type sqr = v.x * v.x + v.y * v.y + v.z * v.z;
 		return sqrt(sqr);
 	}
 
-	template <typename T, precision P>
-	GLM_FUNC_QUALIFIER T length(detail::tvec4<T, P> const & v)
+	template <typename T>
+	GLM_FUNC_QUALIFIER typename detail::tvec4<T>::value_type length
+	(
+		detail::tvec4<T> const & v
+	)
 	{
 		GLM_STATIC_ASSERT(detail::type<T>::is_float, "'length' only accept floating-point inputs");
 
-		typename detail::tvec4<T, P>::value_type sqr = v.x * v.x + v.y * v.y + v.z * v.z + v.w * v.w;
+		typename detail::tvec4<T>::value_type sqr = v.x * v.x + v.y * v.y + v.z * v.z + v.w * v.w;
 		return sqrt(sqr);
 	}
 
@@ -72,7 +81,7 @@ namespace glm
 	template <typename genType>
 	GLM_FUNC_QUALIFIER genType distance
 	(
-		genType const & p0,
+		genType const & p0, 
 		genType const & p1
 	)
 	{
@@ -80,12 +89,12 @@ namespace glm
 
 		return length(p1 - p0);
 	}
-
-	template <typename T, precision P>
-	GLM_FUNC_QUALIFIER typename detail::tvec2<T, P>::value_type distance
+ 
+	template <typename T>
+	GLM_FUNC_QUALIFIER typename detail::tvec2<T>::value_type distance
 	(
-		detail::tvec2<T, P> const & p0,
-		detail::tvec2<T, P> const & p1
+		detail::tvec2<T> const & p0,
+		detail::tvec2<T> const & p1
 	)
 	{
 		GLM_STATIC_ASSERT(detail::type<T>::is_float, "'distance' only accept floating-point inputs");
@@ -93,11 +102,11 @@ namespace glm
 		return length(p1 - p0);
 	}
 
-	template <typename T, precision P>
-	GLM_FUNC_QUALIFIER typename detail::tvec3<T, P>::value_type distance
+	template <typename T>
+	GLM_FUNC_QUALIFIER typename detail::tvec3<T>::value_type distance
 	(
-		detail::tvec3<T, P> const & p0,
-		detail::tvec3<T, P> const & p1
+		detail::tvec3<T> const & p0,
+		detail::tvec3<T> const & p1
 	)
 	{
 		GLM_STATIC_ASSERT(detail::type<T>::is_float, "'distance' only accept floating-point inputs");
@@ -105,11 +114,11 @@ namespace glm
 		return length(p1 - p0);
 	}
 
-	template <typename T, precision P>
-	GLM_FUNC_QUALIFIER typename detail::tvec4<T, P>::value_type distance
+	template <typename T>
+	GLM_FUNC_QUALIFIER typename detail::tvec4<T>::value_type distance
 	(
-		detail::tvec4<T, P> const & p0,
-		detail::tvec4<T, P> const & p1
+		detail::tvec4<T> const & p0,
+		detail::tvec4<T> const & p1
 	)
 	{
 		GLM_STATIC_ASSERT(detail::type<T>::is_float, "'distance' only accept floating-point inputs");
@@ -121,7 +130,7 @@ namespace glm
 	template <typename genType>
 	GLM_FUNC_QUALIFIER genType dot
 	(
-		genType const & x,
+		genType const & x, 
 		genType const & y
 	)
 	{
@@ -130,11 +139,11 @@ namespace glm
 		return x * y;
 	}
 
-	template <typename T, precision P>
-	GLM_FUNC_QUALIFIER typename detail::tvec2<T, P>::value_type dot
+	template <typename T>
+	GLM_FUNC_QUALIFIER typename detail::tvec2<T>::value_type dot
 	(
-		detail::tvec2<T, P> const & x,
-		detail::tvec2<T, P> const & y
+		detail::tvec2<T> const & x, 
+		detail::tvec2<T> const & y
 	)
 	{
 		GLM_STATIC_ASSERT(detail::type<T>::is_float, "'dot' only accept floating-point inputs");
@@ -142,11 +151,11 @@ namespace glm
 		return x.x * y.x + x.y * y.y;
 	}
 
-	template <typename T, precision P>
+	template <typename T>
 	GLM_FUNC_QUALIFIER T dot
 	(
-		detail::tvec3<T, P> const & x,
-		detail::tvec3<T, P> const & y
+		detail::tvec3<T> const & x, 
+		detail::tvec3<T> const & y
 	)
 	{
 		GLM_STATIC_ASSERT(detail::type<T>::is_float, "'dot' only accept floating-point inputs");
@@ -170,11 +179,11 @@ namespace glm
 		return Result;
 	}
 */
-	template <typename T, precision P>
+	template <typename T>
 	GLM_FUNC_QUALIFIER T dot
 	(
-		detail::tvec4<T, P> const & x,
-		detail::tvec4<T, P> const & y
+		detail::tvec4<T> const & x, 
+		detail::tvec4<T> const & y
 	)
 	{
 		GLM_STATIC_ASSERT(detail::type<T>::is_float, "'dot' only accept floating-point inputs");
@@ -183,16 +192,16 @@ namespace glm
 	}
 
 	// cross
-	template <typename T, precision P>
-	GLM_FUNC_QUALIFIER detail::tvec3<T, P> cross
+	template <typename T>
+	GLM_FUNC_QUALIFIER detail::tvec3<T> cross
 	(
-		detail::tvec3<T, P> const & x,
-		detail::tvec3<T, P> const & y
+		detail::tvec3<T> const & x, 
+		detail::tvec3<T> const & y
 	)
 	{
 		GLM_STATIC_ASSERT(detail::type<T>::is_float, "'cross' only accept floating-point inputs");
 
-		return detail::tvec3<T, P>(
+		return detail::tvec3<T>(
 			x.y * y.z - y.y * x.z,
 			x.z * y.x - y.z * x.x,
 			x.x * y.y - y.x * x.y);
@@ -211,39 +220,39 @@ namespace glm
 	}
 
 	// According to issue 10 GLSL 1.10 specification, if length(x) == 0 then result is undefine and generate an error
-	template <typename T, precision P>
-	GLM_FUNC_QUALIFIER detail::tvec2<T, P> normalize
+	template <typename T>
+	GLM_FUNC_QUALIFIER detail::tvec2<T> normalize
 	(
-		detail::tvec2<T, P> const & x
+		detail::tvec2<T> const & x
 	)
 	{
 		GLM_STATIC_ASSERT(detail::type<T>::is_float, "'normalize' only accept floating-point inputs");
 		
-		typename detail::tvec2<T, P>::value_type sqr = x.x * x.x + x.y * x.y;
+		typename detail::tvec2<T>::value_type sqr = x.x * x.x + x.y * x.y;
 		return x * inversesqrt(sqr);
 	}
 
-	template <typename T, precision P>
-	GLM_FUNC_QUALIFIER detail::tvec3<T, P> normalize
+	template <typename T>
+	GLM_FUNC_QUALIFIER detail::tvec3<T> normalize
 	(
-		detail::tvec3<T, P> const & x
+		detail::tvec3<T> const & x
 	)
 	{
 		GLM_STATIC_ASSERT(detail::type<T>::is_float, "'normalize' only accept floating-point inputs");
 
-		typename detail::tvec3<T, P>::value_type sqr = x.x * x.x + x.y * x.y + x.z * x.z;
+		typename detail::tvec3<T>::value_type sqr = x.x * x.x + x.y * x.y + x.z * x.z;
 		return x * inversesqrt(sqr);
 	}
 
-	template <typename T, precision P>
-	GLM_FUNC_QUALIFIER detail::tvec4<T, P> normalize
+	template <typename T>
+	GLM_FUNC_QUALIFIER detail::tvec4<T> normalize
 	(
-		detail::tvec4<T, P> const & x
+		detail::tvec4<T> const & x
 	)
 	{
 		GLM_STATIC_ASSERT(detail::type<T>::is_float, "'normalize' only accept floating-point inputs");
 		
-		typename detail::tvec4<T, P>::value_type sqr = x.x * x.x + x.y * x.y + x.z * x.z + x.w * x.w;
+		typename detail::tvec4<T>::value_type sqr = x.x * x.x + x.y * x.y + x.z * x.z + x.w * x.w;
 		return x * inversesqrt(sqr);
 	}
 
@@ -251,8 +260,8 @@ namespace glm
 	template <typename genType>
 	GLM_FUNC_QUALIFIER genType faceforward
 	(
-		genType const & N,
-		genType const & I,
+		genType const & N, 
+		genType const & I, 
 		genType const & Nref
 	)
 	{
@@ -263,7 +272,7 @@ namespace glm
 	template <typename genType>
 	GLM_FUNC_QUALIFIER genType reflect
 	(
-		genType const & I,
+		genType const & I, 
 		genType const & N
 	)
 	{
@@ -274,8 +283,8 @@ namespace glm
 	template <typename genType>
 	GLM_FUNC_QUALIFIER genType refract
 	(
-		genType const & I,
-		genType const & N,
+		genType const & I, 
+		genType const & N, 
 		genType const & eta
 	)
 	{
@@ -293,8 +302,8 @@ namespace glm
 	template <typename genType>
 	GLM_FUNC_QUALIFIER genType refract
 	(
-		genType const & I,
-		genType const & N,
+		genType const & I, 
+		genType const & N, 
 		typename genType::value_type const & eta
 	)
 	{
