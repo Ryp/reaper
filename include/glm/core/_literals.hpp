@@ -21,23 +21,31 @@
 /// THE SOFTWARE.
 ///
 /// @ref core
-/// @file glm/core/type_size.hpp
-/// @date 2008-10-05 / 2011-06-15
+/// @file glm/core/_literals.hpp
+/// @date 2013-05-06 / 2013-05-06
 /// @author Christophe Riccio
 ///////////////////////////////////////////////////////////////////////////////////
 
-#ifndef glm_core_type_size
-#define glm_core_type_size
+#ifndef glm_core_literals
+#define glm_core_literals
 
-#include <cstdlib>
-
-namespace glm{
-namespace detail
+namespace glm
 {
-	//typedef std::size_t size_t;
-	typedef int sizeType;
+#define GLM_CXX11_USER_LITERALS
+#ifdef GLM_CXX11_USER_LITERALS
+/*
+	GLM_FUNC_QUALIFIER detail::half operator "" _h(long double const s)
+	{
+		return detail::half(s);
+	}
 
-}//namespace detail
+	GLM_FUNC_QUALIFIER float operator "" _f(long double const s)
+	{
+		return static_cast<float>(s);
+	}
+*/
+#endif//GLM_CXX11_USER_LITERALS
+
 }//namespace glm
 
-#endif//glm_core_type_size
+#endif//glm_core_literals

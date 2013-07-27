@@ -29,11 +29,20 @@
 #ifndef glm_core_type_float
 #define glm_core_type_float
 
-#include "type_half.hpp"
 #include "setup.hpp"
 
-namespace glm
+namespace glm{
+namespace detail
 {
+	class half;
+	
+	typedef half				float16;
+	typedef float				float32;
+	typedef double				float64;
+}//namespace detail
+
+	typedef detail::half half;
+	
 #ifdef GLM_USE_HALF_SCALAR
 	typedef detail::half		lowp_float_t;
 #else//GLM_USE_HALF_SCALAR
@@ -57,7 +66,7 @@ namespace glm
 	/// 
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.1.4 Floats</a>
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.7.2 Precision Qualifier</a>
-	typedef mediump_float_t     mediump_float;
+	typedef mediump_float_t		mediump_float;
 
 	/// High precision floating-point numbers.
 	/// There is no guarantee on the actual precision.
@@ -67,18 +76,125 @@ namespace glm
 	typedef highp_float_t		highp_float;
 
 #if(!defined(GLM_PRECISION_HIGHP_FLOAT) && !defined(GLM_PRECISION_MEDIUMP_FLOAT) && !defined(GLM_PRECISION_LOWP_FLOAT))
-	typedef mediump_float				float_t;
+	typedef mediump_float		float_t;
 #elif(defined(GLM_PRECISION_HIGHP_FLOAT) && !defined(GLM_PRECISION_MEDIUMP_FLOAT) && !defined(GLM_PRECISION_LOWP_FLOAT))
-	typedef highp_float                  float_t;
+	typedef highp_float			float_t;
 #elif(!defined(GLM_PRECISION_HIGHP_FLOAT) && defined(GLM_PRECISION_MEDIUMP_FLOAT) && !defined(GLM_PRECISION_LOWP_FLOAT))
-	typedef mediump_float				float_t;
+	typedef mediump_float		float_t;
 #elif(!defined(GLM_PRECISION_HIGHP_FLOAT) && !defined(GLM_PRECISION_MEDIUMP_FLOAT) && defined(GLM_PRECISION_LOWP_FLOAT))
-	typedef lowp_float					float_t;
+	typedef lowp_float			float_t;
 #else
 #	error "GLM error: multiple default precision requested for floating-point types"
 #endif
 
+	typedef half				float16;
+	typedef float				float32;
+	typedef double				float64;
+
 	/// @}
+
+namespace detail
+{
+	//////////////////
+	// float
+	
+	template <typename T>
+	struct is_float
+	{
+		enum is_float_enum
+		{
+			_YES = 0,
+			_NO = 1
+		};
+	};
+	
+	#define GLM_DETAIL_IS_FLOAT(T)	\
+	template <>					\
+	struct is_float<T>			\
+	{							\
+		enum is_float_enum		\
+		{						\
+			_YES = 1,			\
+			_NO = 0				\
+		};						\
+	}
+	
+	////////////////////
+	// Mark half to be flaot
+	GLM_DETAIL_IS_FLOAT(half);
+	GLM_DETAIL_IS_FLOAT(float);
+	GLM_DETAIL_IS_FLOAT(double);
+	GLM_DETAIL_IS_FLOAT(long double);
+
+	template <>
+	struct float_or_int_trait<float16>
+	{
+		enum{ID = float_or_int_value::GLM_FLOAT};
+	};
+
+	template <>
+	struct float_or_int_trait<float32>
+	{
+		enum{ID = float_or_int_value::GLM_FLOAT};
+	};
+
+	template <>
+	struct float_or_int_trait<float64>
+	{
+		enum{ID = float_or_int_value::GLM_FLOAT};
+	};
+	
+	union uif32
+	{
+		GLM_FUNC_QUALIFIER uif32() :
+		i(0)
+		{}
+		
+		GLM_FUNC_QUALIFIER uif32(float f) :
+		f(f)
+		{}
+		
+		GLM_FUNC_QUALIFIER uif32(uint32 i) :
+		i(i)
+		{}
+		
+		float f;
+		uint32 i;
+	};
+	
+	union uif64
+	{
+		GLM_FUNC_QUALIFIER uif64() :
+		i(0)
+		{}
+		
+		GLM_FUNC_QUALIFIER uif64(double f) :
+		f(f)
+		{}
+		
+		GLM_FUNC_QUALIFIER uif64(uint64 i) :
+		i(i)
+		{}
+		
+		double f;
+		uint64 i;
+	};
+		
+	//////////////////
+	// type
+		
+	template <typename T>
+	struct type
+	{
+		enum type_enum
+		{
+			is_float = is_float<T>::_YES,
+			is_int = is_int<T>::_YES,
+			is_uint = is_uint<T>::_YES,
+			is_bool = is_bool<T>::_YES
+		};
+	};
+}//namespace detail
 }//namespace glm
 
 #endif//glm_core_type_float

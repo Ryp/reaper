@@ -29,54 +29,46 @@
 #ifndef glm_core_type_gentype2
 #define glm_core_type_gentype2
 
+#include "../fwd.hpp"
 #include "type_vec.hpp"
-#include "type_float.hpp"
-#include "type_int.hpp"
-#include "type_size.hpp"
 #include "_swizzle.hpp"
 
 namespace glm{
 namespace detail
 {
-	template <typename T> struct tref2;
-	template <typename T> struct tref3;
-	template <typename T> struct tref4;
-	template <typename T> struct tvec3;
-	template <typename T> struct tvec4;
-
-	template <typename T>
+	template <typename T, precision P>
 	struct tvec2
 	{
-		enum ctor{null};
+		enum ctor{_null};
 
 		typedef T value_type;
 		typedef std::size_t size_type;
-		typedef tvec2<T> type;
-		typedef tvec2<bool> bool_type;
+		typedef tvec2<T, P> type;
+		typedef tvec2<bool, P> bool_type;
 
 		GLM_FUNC_DECL GLM_CONSTEXPR size_type length() const;
 
 		//////////////////////////////////////
 		// Data
 
-#	if(GLM_COMPONENT == GLM_COMPONENT_CXX11)
+#	if(GLM_COMPONENT == GLM_COMPONENT_CXXMS)
 		union 
 		{
 #		if(defined(GLM_SWIZZLE))
-			_GLM_SWIZZLE2_2_MEMBERS(value_type, glm::detail::tvec2<value_type>, x, y)
-			_GLM_SWIZZLE2_2_MEMBERS(value_type, glm::detail::tvec2<value_type>, r, g)
-			_GLM_SWIZZLE2_2_MEMBERS(value_type, glm::detail::tvec2<value_type>, s, t)
-			_GLM_SWIZZLE2_3_MEMBERS(value_type, glm::detail::tvec3<value_type>, x, y)
-			_GLM_SWIZZLE2_3_MEMBERS(value_type, glm::detail::tvec3<value_type>, r, g)
-			_GLM_SWIZZLE2_3_MEMBERS(value_type, glm::detail::tvec3<value_type>, s, t)
-			_GLM_SWIZZLE2_4_MEMBERS(value_type, glm::detail::tvec4<value_type>, x, y)
-			_GLM_SWIZZLE2_4_MEMBERS(value_type, glm::detail::tvec4<value_type>, r, g)
-			_GLM_SWIZZLE2_4_MEMBERS(value_type, glm::detail::tvec4<value_type>, s, t)
+			_GLM_SWIZZLE2_2_MEMBERS(T, P, tvec2, x, y)
+			_GLM_SWIZZLE2_2_MEMBERS(T, P, tvec2, r, g)
+			_GLM_SWIZZLE2_2_MEMBERS(T, P, tvec2, s, t)
+			_GLM_SWIZZLE2_3_MEMBERS(T, P, tvec3, x, y)
+			_GLM_SWIZZLE2_3_MEMBERS(T, P, tvec3, r, g)
+			_GLM_SWIZZLE2_3_MEMBERS(T, P, tvec3, s, t)
+			_GLM_SWIZZLE2_4_MEMBERS(T, P, tvec4, x, y)
+			_GLM_SWIZZLE2_4_MEMBERS(T, P, tvec4, r, g)
+			_GLM_SWIZZLE2_4_MEMBERS(T, P, tvec4, s, t)
 #		endif//(defined(GLM_SWIZZLE))
 
-			struct{value_type r, g;};
-			struct{value_type s, t;};
-			struct{value_type x, y;};
+			struct {value_type r, g;};
+			struct {value_type s, t;};
+			struct {value_type x, y;};
 		};
 #	elif(GLM_COMPONENT == GLM_COMPONENT_CXX98)
 		union {value_type x, r, s;};
@@ -84,16 +76,16 @@ namespace detail
 
 #		if(defined(GLM_SWIZZLE))
 			// Defines all he swizzle operator as functions
-			GLM_SWIZZLE_GEN_REF_FROM_VEC2(value_type, detail::tvec2, detail::tref2)
-			GLM_SWIZZLE_GEN_VEC_FROM_VEC2(value_type, detail::tvec2, detail::tvec2, detail::tvec3, detail::tvec4)
+			GLM_SWIZZLE_GEN_REF_FROM_VEC2(value_type, P, detail::tvec2, detail::tref2)
+			GLM_SWIZZLE_GEN_VEC_FROM_VEC2(value_type, P, detail::tvec2, detail::tvec2, detail::tvec3, detail::tvec4)
 #		endif//(defined(GLM_SWIZZLE))
 #	else //(GLM_COMPONENT == GLM_COMPONENT_ONLY_XYZW)
 		value_type x, y;
 
 #		if(defined(GLM_SWIZZLE))
 			// Defines all he swizzle operator as functions
-			GLM_SWIZZLE_GEN_REF2_FROM_VEC2_SWIZZLE(value_type, detail::tvec2, detail::tref2, x, y)
-			GLM_SWIZZLE_GEN_VEC_FROM_VEC2_COMP(value_type, detail::tvec2, detail::tvec2, detail::tvec3, detail::tvec4, x, y)
+			GLM_SWIZZLE_GEN_REF2_FROM_VEC2_SWIZZLE(value_type, P, detail::tvec2, detail::tref2, x, y)
+			GLM_SWIZZLE_GEN_VEC_FROM_VEC2_COMP(value_type, P, detail::tvec2, detail::tvec2, detail::tvec3, detail::tvec4, x, y)
 #		endif//(defined(GLM_SWIZZLE))
 #	endif//GLM_COMPONENT
 
@@ -107,7 +99,7 @@ namespace detail
 		// Implicit basic constructors
 
 		GLM_FUNC_DECL tvec2();
-		GLM_FUNC_DECL tvec2(tvec2<T> const & v);
+		GLM_FUNC_DECL tvec2(tvec2<T, P> const & v);
 
 		//////////////////////////////////////
 		// Explicit basic constructors
@@ -117,16 +109,16 @@ namespace detail
 		GLM_FUNC_DECL explicit tvec2(
 			value_type const & s);
 		GLM_FUNC_DECL explicit tvec2(
-			value_type const & s1, 
+			value_type const & s1,
 			value_type const & s2);
 
 		//////////////////////////////////////
 		// Swizzle constructors
 
-		GLM_FUNC_DECL tvec2(tref2<T> const & r);
+		GLM_FUNC_DECL tvec2(tref2<T, P> const & r);
 
 		template <int E0, int E1>
-		GLM_FUNC_DECL tvec2(const glm::detail::swizzle<2,T,tvec2<T>,E0,E1,-1,-2>& that)
+		GLM_FUNC_DECL tvec2(_swizzle<2,T, P, tvec2<T, P>, E0, E1,-1,-2> const & that)
 		{
 			*this = that();
 		}
@@ -135,103 +127,107 @@ namespace detail
 		// Convertion constructors
 
 		//! Explicit converions (From section 5.4.1 Conversion and scalar constructors of GLSL 1.30.08 specification)
-		template <typename U> 
+		template <typename U>
 		GLM_FUNC_DECL explicit tvec2(
 			U const & x);
 		//! Explicit converions (From section 5.4.1 Conversion and scalar constructors of GLSL 1.30.08 specification)
-		template <typename U, typename V> 
+		template <typename U, typename V>
 		GLM_FUNC_DECL explicit tvec2(
-			U const & x, 
+			U const & x,
 			V const & y);
 
 		//////////////////////////////////////
 		// Convertion vector constructors
 
 		//! Explicit conversions (From section 5.4.1 Conversion and scalar constructors of GLSL 1.30.08 specification)
-		template <typename U> 
-		GLM_FUNC_DECL explicit tvec2(tvec2<U> const & v);
+		template <typename U, precision Q>
+		GLM_FUNC_DECL explicit tvec2(tvec2<U, Q> const & v);
 		//! Explicit conversions (From section 5.4.1 Conversion and scalar constructors of GLSL 1.30.08 specification)
-		template <typename U> 
-		GLM_FUNC_DECL explicit tvec2(tvec3<U> const & v);
+		template <typename U, precision Q>
+		GLM_FUNC_DECL explicit tvec2(tvec3<U, Q> const & v);
 		//! Explicit conversions (From section 5.4.1 Conversion and scalar constructors of GLSL 1.30.08 specification)
-		template <typename U> 
-		GLM_FUNC_DECL explicit tvec2(tvec4<U> const & v);
+		template <typename U, precision Q>
+		GLM_FUNC_DECL explicit tvec2(tvec4<U, Q> const & v);
 
 		//////////////////////////////////////
 		// Unary arithmetic operators
 
-		GLM_FUNC_DECL tvec2<T> & operator= (tvec2<T> const & v);
+		GLM_FUNC_DECL tvec2<T, P> & operator= (tvec2<T, P> const & v);
 		template <typename U> 
-		GLM_FUNC_DECL tvec2<T> & operator= (tvec2<U> const & v);
+		GLM_FUNC_DECL tvec2<T, P> & operator= (tvec2<U, P> const & v);
 
 		template <typename U> 
-		GLM_FUNC_DECL tvec2<T> & operator+=(U const & s);
+		GLM_FUNC_DECL tvec2<T, P> & operator+=(U const & s);
 		template <typename U> 
-		GLM_FUNC_DECL tvec2<T> & operator+=(tvec2<U> const & v);
+		GLM_FUNC_DECL tvec2<T, P> & operator+=(tvec2<U, P> const & v);
 		template <typename U> 
-		GLM_FUNC_DECL tvec2<T> & operator-=(U const & s);
+		GLM_FUNC_DECL tvec2<T, P> & operator-=(U const & s);
 		template <typename U> 
-		GLM_FUNC_DECL tvec2<T> & operator-=(tvec2<U> const & v);
+		GLM_FUNC_DECL tvec2<T, P> & operator-=(tvec2<U, P> const & v);
 		template <typename U> 
-		GLM_FUNC_DECL tvec2<T> & operator*=(U const & s);
+		GLM_FUNC_DECL tvec2<T, P> & operator*=(U const & s);
 		template <typename U> 
-		GLM_FUNC_DECL tvec2<T> & operator*=(tvec2<U> const & v);
+		GLM_FUNC_DECL tvec2<T, P> & operator*=(tvec2<U, P> const & v);
 		template <typename U> 
-		GLM_FUNC_DECL tvec2<T> & operator/=(U const & s);
+		GLM_FUNC_DECL tvec2<T, P> & operator/=(U const & s);
 		template <typename U> 
-		GLM_FUNC_DECL tvec2<T> & operator/=(tvec2<U> const & v);
-		GLM_FUNC_DECL tvec2<T> & operator++();
-		GLM_FUNC_DECL tvec2<T> & operator--();
+		GLM_FUNC_DECL tvec2<T, P> & operator/=(tvec2<U, P> const & v);
+
+		//////////////////////////////////////
+		// Increment and decrement operators
+
+		GLM_FUNC_DECL tvec2<T, P> & operator++();
+		GLM_FUNC_DECL tvec2<T, P> & operator--();
+		GLM_FUNC_DECL tvec2<T, P> operator++(int);
+		GLM_FUNC_DECL tvec2<T, P> operator--(int);
 
 		//////////////////////////////////////
 		// Unary bit operators
 
 		template <typename U> 
-		GLM_FUNC_DECL tvec2<T> & operator%= (U const & s);
+		GLM_FUNC_DECL tvec2<T, P> & operator%= (U const & s);
 		template <typename U> 
-		GLM_FUNC_DECL tvec2<T> & operator%= (tvec2<U> const & v);
+		GLM_FUNC_DECL tvec2<T, P> & operator%= (tvec2<U, P> const & v);
 		template <typename U> 
-		GLM_FUNC_DECL tvec2<T> & operator&= (U const & s);
+		GLM_FUNC_DECL tvec2<T, P> & operator&= (U const & s);
 		template <typename U> 
-		GLM_FUNC_DECL tvec2<T> & operator&= (tvec2<U> const & v);
+		GLM_FUNC_DECL tvec2<T, P> & operator&= (tvec2<U, P> const & v);
 		template <typename U> 
-		GLM_FUNC_DECL tvec2<T> & operator|= (U const & s);
+		GLM_FUNC_DECL tvec2<T, P> & operator|= (U const & s);
 		template <typename U> 
-		GLM_FUNC_DECL tvec2<T> & operator|= (tvec2<U> const & v);
+		GLM_FUNC_DECL tvec2<T, P> & operator|= (tvec2<U, P> const & v);
 		template <typename U> 
-		GLM_FUNC_DECL tvec2<T> & operator^= (U const & s);
+		GLM_FUNC_DECL tvec2<T, P> & operator^= (U const & s);
 		template <typename U> 
-		GLM_FUNC_DECL tvec2<T> & operator^= (tvec2<U> const & v);
+		GLM_FUNC_DECL tvec2<T, P> & operator^= (tvec2<U, P> const & v);
 		template <typename U> 
-		GLM_FUNC_DECL tvec2<T> & operator<<=(U const & s);
+		GLM_FUNC_DECL tvec2<T, P> & operator<<=(U const & s);
 		template <typename U> 
-		GLM_FUNC_DECL tvec2<T> & operator<<=(tvec2<U> const & v);
+		GLM_FUNC_DECL tvec2<T, P> & operator<<=(tvec2<U, P> const & v);
 		template <typename U> 
-		GLM_FUNC_DECL tvec2<T> & operator>>=(U const & s);
+		GLM_FUNC_DECL tvec2<T, P> & operator>>=(U const & s);
 		template <typename U> 
-		GLM_FUNC_DECL tvec2<T> & operator>>=(tvec2<U> const & v);
+		GLM_FUNC_DECL tvec2<T, P> & operator>>=(tvec2<U, P> const & v);
 
 		//////////////////////////////////////
 		// Swizzle operators
 
 		GLM_FUNC_DECL value_type swizzle(comp X) const;
-		GLM_FUNC_DECL tvec2<T> swizzle(comp X, comp Y) const;
-		GLM_FUNC_DECL tvec3<T> swizzle(comp X, comp Y, comp Z) const;
-		GLM_FUNC_DECL tvec4<T> swizzle(comp X, comp Y, comp Z, comp W) const;
-		GLM_FUNC_DECL tref2<T> swizzle(comp X, comp Y);
+		GLM_FUNC_DECL tvec2<T, P> swizzle(comp X, comp Y) const;
+		GLM_FUNC_DECL tvec3<T, P> swizzle(comp X, comp Y, comp Z) const;
+		GLM_FUNC_DECL tvec4<T, P> swizzle(comp X, comp Y, comp Z, comp W) const;
+		GLM_FUNC_DECL tref2<T, P> swizzle(comp X, comp Y);
 	};
 
-	template <typename T>
+	template <typename T, precision P>
 	struct tref2
 	{
 		GLM_FUNC_DECL tref2(T & x, T & y);
-		GLM_FUNC_DECL tref2(tref2<T> const & r);
-		GLM_FUNC_DECL explicit tref2(tvec2<T> const & v);
-
-		GLM_FUNC_DECL tref2<T> & operator= (tref2<T> const & r);
-		GLM_FUNC_DECL tref2<T> & operator= (tvec2<T> const & v);
-
-		GLM_FUNC_DECL tvec2<T> operator() ();
+		GLM_FUNC_DECL tref2(tref2<T, P> const & r);
+		GLM_FUNC_DECL explicit tref2(tvec2<T, P> const & v);
+		GLM_FUNC_DECL tref2<T, P> & operator= (tref2<T, P> const & r);
+		GLM_FUNC_DECL tref2<T, P> & operator= (tvec2<T, P> const & v);
+		GLM_FUNC_DECL tvec2<T, P> operator() ();
 
 		T & x;
 		T & y;
@@ -239,75 +235,103 @@ namespace detail
 
 	GLM_DETAIL_IS_VECTOR(tvec2);
 
-} //namespace detail
+	template <typename T, precision P>
+	GLM_FUNC_DECL tvec2<T, P> operator+(tvec2<T, P> const & v, T const & s);
 
-	/// @addtogroup core_precision
-	/// @{
+	template <typename T, precision P>
+	GLM_FUNC_DECL tvec2<T, P> operator+(T const & s, tvec2<T, P> const & v);
 
-	/// 2 components vector of high precision floating-point numbers. 
-	/// There is no guarantee on the actual precision.
-	/// 
-	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.1.5 Vectors</a>
-	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.7.2 Precision Qualifier</a>
-	typedef detail::tvec2<highp_float>		highp_vec2;
+	template <typename T, precision P>
+	GLM_FUNC_DECL tvec2<T, P> operator+(tvec2<T, P> const & v1, tvec2<T, P> const & v2);
 
-	/// 2 components vector of medium precision floating-point numbers. 
-	/// There is no guarantee on the actual precision.
-	/// 
-	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.1.5 Vectors</a>
-	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.7.2 Precision Qualifier</a>
-	typedef detail::tvec2<mediump_float>	mediump_vec2;
+	template <typename T, precision P>
+	GLM_FUNC_DECL tvec2<T, P> operator-(tvec2<T, P> const & v, T const & s);
 
-	/// 2 components vector of low precision floating-point numbers. 
-	/// There is no guarantee on the actual precision.
-	/// 
-	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.1.5 Vectors</a>
-	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.7.2 Precision Qualifier</a>
-	typedef detail::tvec2<lowp_float>		lowp_vec2;
+	template <typename T, precision P>
+	GLM_FUNC_DECL tvec2<T, P> operator-(T const & s, tvec2<T, P> const & v);
 
-	/// 2 components vector of high precision signed integer numbers. 
-	/// There is no guarantee on the actual precision.
-	/// 
-	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.1.5 Vectors</a>
-	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.7.2 Precision Qualifier</a>
-	typedef detail::tvec2<highp_int>		highp_ivec2;
+	template <typename T, precision P>
+	GLM_FUNC_DECL tvec2<T, P> operator-	(tvec2<T, P> const & v1, tvec2<T, P> const & v2);
 
-	/// 2 components vector of medium precision signed integer numbers. 
-	/// There is no guarantee on the actual precision.
-	/// 
-	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.1.5 Vectors</a>
-	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.7.2 Precision Qualifier</a>
-	typedef detail::tvec2<mediump_int>		mediump_ivec2;
+	template <typename T, precision P>
+	GLM_FUNC_DECL tvec2<T, P> operator*(tvec2<T, P> const & v, T const & s);
 
-	/// 2 components vector of low precision signed integer numbers.
-	/// There is no guarantee on the actual precision.
-	/// 
-	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.1.5 Vectors</a>
-	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.7.2 Precision Qualifier</a>
-	typedef detail::tvec2<lowp_int>			lowp_ivec2;
-	
-	/// 2 components vector of high precision unsigned integer numbers. 
-	/// There is no guarantee on the actual precision.
-	/// 
-	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.1.5 Vectors</a>
-	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.7.2 Precision Qualifier</a>
-	typedef detail::tvec2<highp_uint>		highp_uvec2;
+	template <typename T, precision P>
+	GLM_FUNC_DECL tvec2<T, P> operator*(T const & s, tvec2<T, P> const & v);
 
-	/// 2 components vector of medium precision unsigned integer numbers. 
-	/// There is no guarantee on the actual precision.
-	/// 
-	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.1.5 Vectors</a>
-	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.7.2 Precision Qualifier</a>
-	typedef detail::tvec2<mediump_uint>		mediump_uvec2;
+	template <typename T, precision P>
+	GLM_FUNC_DECL tvec2<T, P> operator*(tvec2<T, P> const & v1, tvec2<T, P> const & v2);
 
-	/// 2 components vector of low precision unsigned integer numbers.
-	/// There is no guarantee on the actual precision.
-	/// 
-	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.1.5 Vectors</a>
-	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 4.7.2 Precision Qualifier</a>
-	typedef detail::tvec2<lowp_uint>		lowp_uvec2;
+	template <typename T, precision P>
+	GLM_FUNC_DECL tvec2<T, P> operator/(tvec2<T, P> const & v, T const & s);
 
-	/// @}
+	template <typename T, precision P>
+	GLM_FUNC_DECL tvec2<T, P> operator/(T const & s, tvec2<T, P> const & v);
+
+	template <typename T, precision P>
+	GLM_FUNC_DECL tvec2<T, P> operator/(tvec2<T, P> const & v1, tvec2<T, P> const & v2);
+
+	template <typename T, precision P>
+	GLM_FUNC_DECL tvec2<T, P> operator-(tvec2<T, P> const & v);
+
+	template <typename T, precision P>
+	GLM_FUNC_DECL tvec2<T, P> operator%(tvec2<T, P> const & v, T const & s);
+
+	template <typename T, precision P>
+	GLM_FUNC_DECL tvec2<T, P> operator%(T const & s, tvec2<T, P> const & v);
+
+	template <typename T, precision P>
+	GLM_FUNC_DECL tvec2<T, P> operator%(tvec2<T, P> const & v1, tvec2<T, P> const & v2);
+
+	template <typename T, precision P>
+	GLM_FUNC_DECL tvec2<T, P> operator&(tvec2<T, P> const & v, T const & s);
+
+	template <typename T, precision P>
+	GLM_FUNC_DECL tvec2<T, P> operator&(T const & s, tvec2<T, P> const & v);
+
+	template <typename T, precision P>
+	GLM_FUNC_DECL tvec2<T, P> operator&(tvec2<T, P> const & v1, tvec2<T, P> const & v2);
+
+	template <typename T, precision P>
+	GLM_FUNC_DECL tvec2<T, P> operator|(tvec2<T, P> const & v, T const & s);
+
+	template <typename T, precision P>
+	GLM_FUNC_DECL tvec2<T, P> operator|(T const & s, tvec2<T, P> const & v);
+
+	template <typename T, precision P>
+	GLM_FUNC_DECL tvec2<T, P> operator|(tvec2<T, P> const & v1, tvec2<T, P> const & v2);
+
+	template <typename T, precision P>
+	GLM_FUNC_DECL tvec2<T, P> operator^(tvec2<T, P> const & v, T const & s);
+
+	template <typename T, precision P>
+	GLM_FUNC_DECL tvec2<T, P> operator^(T const & s, tvec2<T, P> const & v);
+
+	template <typename T, precision P>
+	GLM_FUNC_DECL tvec2<T, P> operator^(tvec2<T, P> const & v1, tvec2<T, P> const & v2);
+
+	template <typename T, precision P>
+	GLM_FUNC_DECL tvec2<T, P> operator<<(tvec2<T, P> const & v, T const & s);
+
+	template <typename T, precision P>
+	GLM_FUNC_DECL tvec2<T, P> operator<<(T const & s, tvec2<T, P> const & v);
+
+	template <typename T, precision P>
+	GLM_FUNC_DECL tvec2<T, P> operator<<(tvec2<T, P> const & v1, tvec2<T, P> const & v2);
+
+	template <typename T, precision P>
+	GLM_FUNC_DECL tvec2<T, P> operator>>(tvec2<T, P> const & v, T const & s);
+
+	template <typename T, precision P>
+	GLM_FUNC_DECL tvec2<T, P> operator>>(T const & s, tvec2<T, P> const & v);
+
+	template <typename T, precision P>
+	GLM_FUNC_DECL tvec2<T, P> operator>>(tvec2<T, P> const & v1, tvec2<T, P> const & v2);
+
+	template <typename T, precision P>
+	GLM_FUNC_DECL tvec2<T, P> operator~(tvec2<T, P> const & v);
+
+}//namespace detail
 }//namespace glm
 
 #ifndef GLM_EXTERNAL_TEMPLATE

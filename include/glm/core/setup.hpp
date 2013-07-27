@@ -22,21 +22,23 @@
 ///
 /// @ref core
 /// @file glm/core/setup.hpp
-/// @date 2006-11-13 / 2011-06-15
+/// @date 2006-11-13 / 2013-03-30
 /// @author Christophe Riccio
 ///////////////////////////////////////////////////////////////////////////////////
 
-#ifndef glm_setup
-#define glm_setup
+#ifndef GLM_SETUP_INCLUDED
+#define GLM_SETUP_INCLUDED
+
+#include <cassert>
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 // Version
 
-#define GLM_VERSION					94
+#define GLM_VERSION					95
 #define GLM_VERSION_MAJOR			0
 #define GLM_VERSION_MINOR			9
-#define GLM_VERSION_PATCH			4
-#define GLM_VERSION_REVISION		3
+#define GLM_VERSION_PATCH			5
+#define GLM_VERSION_REVISION		0
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 // Platform
@@ -371,6 +373,8 @@
 #		pragma message("GLM: Clang compiler detected")
 #	elif(GLM_COMPILER & GLM_COMPILER_LLVM_GCC)
 #		pragma message("GLM: LLVM GCC compiler detected")
+#	elif(GLM_COMPILER & GLM_COMPILER_INTEL)
+#		pragma message("GLM: Intel Compiler detected")
 #	elif(GLM_COMPILER & GLM_COMPILER_GCC)
 #		if(GLM_COMPILER == GLM_COMPILER_GCC_LLVM)
 #			pragma message("GLM: LLVM GCC compiler detected")
@@ -417,13 +421,21 @@
 
 // User defines: GLM_FORCE_CXX98
 
-#define GLM_LANG_CXX			(0 << 0)
-#define GLM_LANG_CXX98			((1 << 1) | GLM_LANG_CXX)
-#define GLM_LANG_CXX03			((1 << 2) | GLM_LANG_CXX98)
-#define GLM_LANG_CXX0X			((1 << 3) | GLM_LANG_CXX03)
-#define GLM_LANG_CXX11			((1 << 4) | GLM_LANG_CXX0X)
-#define GLM_LANG_CXXMS			(1 << 5)
-#define GLM_LANG_CXXGNU			(1 << 6)
+#define GLM_LANG_CXX_FLAG			(1 << 0)
+#define GLM_LANG_CXX98_FLAG			(1 << 1)
+#define GLM_LANG_CXX03_FLAG			(1 << 2)
+#define GLM_LANG_CXX0X_FLAG			(1 << 3)
+#define GLM_LANG_CXX11_FLAG			(1 << 4)
+#define GLM_LANG_CXXMS_FLAG			(1 << 5)
+#define GLM_LANG_CXXGNU_FLAG		(1 << 6)
+
+#define GLM_LANG_CXX			GLM_LANG_CXX_FLAG
+#define GLM_LANG_CXX98			(GLM_LANG_CXX | GLM_LANG_CXX98_FLAG)
+#define GLM_LANG_CXX03			(GLM_LANG_CXX98 | GLM_LANG_CXX03_FLAG)
+#define GLM_LANG_CXX0X			(GLM_LANG_CXX03 | GLM_LANG_CXX0X_FLAG)
+#define GLM_LANG_CXX11			(GLM_LANG_CXX0X | GLM_LANG_CXX11_FLAG)
+#define GLM_LANG_CXXMS			GLM_LANG_CXXMS_FLAG
+#define GLM_LANG_CXXGNU			GLM_LANG_CXXGNU_FLAG
 
 #if(defined(GLM_FORCE_CXX11))
 #	define GLM_LANG GLM_LANG_CXX11
@@ -434,16 +446,45 @@
 #else
 #	if(__cplusplus >= 201103L)
 #		define GLM_LANG GLM_LANG_CXX11
-#	elif(((GLM_COMPILER & GLM_COMPILER_GCC) == GLM_COMPILER_GCC) && defined(__GXX_EXPERIMENTAL_CXX0X__)) 
-#		define GLM_LANG GLM_LANG_CXX0X
-#	elif(((GLM_COMPILER & GLM_COMPILER_VC) == GLM_COMPILER_VC) && defined(_MSC_EXTENSIONS))
-#		define GLM_LANG GLM_LANG_CXXMS
-#	elif(((GLM_COMPILER & GLM_COMPILER_VC) == GLM_COMPILER_VC) && !defined(_MSC_EXTENSIONS))
-#		if(GLM_COMPILER == GLM_COMPILER_VC2010)
+//  -std=c++0x or -std=gnu++0x
+#	elif((GLM_COMPILER & GLM_COMPILER_GCC) == GLM_COMPILER_GCC)
+#		if defined(__GXX_EXPERIMENTAL_CXX0X__)
 #			define GLM_LANG GLM_LANG_CXX0X
 #		else
 #			define GLM_LANG GLM_LANG_CXX98
-#		endif//(GLM_COMPILER == GLM_COMPILER_VC2010)
+#		endif
+#	elif(GLM_COMPILER & GLM_COMPILER_VC)
+#		if(defined(_MSC_EXTENSIONS))
+#			if(GLM_COMPILER >= GLM_COMPILER_VC2012)
+#				define GLM_LANG (GLM_LANG_CXX11 | GLM_LANG_CXXMS_FLAG)
+#			elif(GLM_COMPILER >= GLM_COMPILER_VC2010)
+#				define GLM_LANG (GLM_LANG_CXX0X | GLM_LANG_CXXMS_FLAG)
+#			else
+#				define GLM_LANG (GLM_LANG_CXX98 | GLM_LANG_CXXMS_FLAG)
+#			endif
+#		else
+#			if(GLM_COMPILER >= GLM_COMPILER_VC2012)
+#				define GLM_LANG GLM_LANG_CXX11
+#			elif(GLM_COMPILER >= GLM_COMPILER_VC2010)
+#				define GLM_LANG GLM_LANG_CXX0X
+#			else
+#				define GLM_LANG GLM_LANG_CXX98
+#			endif
+#		endif
+#	elif(GLM_COMPILER & GLM_COMPILER_INTEL)
+#		if(defined(_MSC_EXTENSIONS))
+#			if(GLM_COMPILER >= GLM_COMPILER_INTEL13_0)
+#				define GLM_LANG (GLM_LANG_CXX0X | GLM_LANG_CXXMS_FLAG)
+#			else
+#				define GLM_LANG (GLM_LANG_CXX98 | GLM_LANG_CXXMS_FLAG)
+#			endif
+#		else
+#			if(GLM_COMPILER >= GLM_COMPILER_INTEL13_0)
+#				define GLM_LANG (GLM_LANG_CXX0X)
+#			else
+#				define GLM_LANG (GLM_LANG_CXX98)
+#			endif
+#		endif
 #	elif(__cplusplus >= 199711L)
 #		define GLM_LANG GLM_LANG_CXX98
 #	else
@@ -453,18 +494,18 @@
 
 #if(defined(GLM_MESSAGES) && !defined(GLM_MESSAGE_LANG_DISPLAYED))
 #	define GLM_MESSAGE_LANG_DISPLAYED
-#	if(GLM_LANG == GLM_LANG_CXX98)
-#		pragma message("GLM: C++98")
-#	elif(GLM_LANG == GLM_LANG_CXX03)
-#		pragma message("GLM: C++03")
-#	elif(GLM_LANG == GLM_LANG_CXX0X)
-#		pragma message("GLM: C++0x")
-#	elif(GLM_LANG == GLM_LANG_CXX11)
+#	if(GLM_LANG & GLM_LANG_CXXGNU_FLAG)
+#		pragma message("GLM: C++ with language extensions")
+#	elif(GLM_LANG & GLM_LANG_CXXMS_FLAG)
+#		pragma message("GLM: C++ with language extensions")
+#	elif(GLM_LANG & GLM_LANG_CXX11_FLAG)
 #		pragma message("GLM: C++11")
-#	elif(GLM_LANG == GLM_LANG_CXXGNU)
-#		pragma message("GLM: C++ with GNU language extensions")
-#	elif(GLM_LANG == GLM_LANG_CXXMS)
-#		pragma message("GLM: C++ with VC language extensions")
+#	elif(GLM_LANG & GLM_LANG_CXX0X_FLAG)
+#		pragma message("GLM: C++0x")
+#	elif(GLM_LANG & GLM_LANG_CXX03_FLAG)
+#		pragma message("GLM: C++03")
+#	elif(GLM_LANG & GLM_LANG_CXX98_FLAG)
+#		pragma message("GLM: C++98")
 #	else
 #		pragma message("GLM: C++ language undetected")
 #	endif//GLM_MODEL
@@ -539,7 +580,7 @@
 // that windows.h (and maybe other headers) will silently include intrin.h, which of course causes problems.
 // To fix, we just explicitly include intrin.h here.
 #if defined(__MINGW32__) && (GLM_ARCH != GLM_ARCH_PURE)
-#   include <intrin.h>
+#	include <intrin.h>
 #endif
 
 //#if(GLM_ARCH != GLM_ARCH_PURE)
@@ -581,16 +622,13 @@
 // Support check macros
 
 #define GLM_SUPPORT_ANONYMOUS_UNION() \
-	((GLM_LANG & GLM_LANG_CXX98) == GLM_LANG_CXX98)
-
-//#define GLM_SUPPORT_ANONYMOUS_UNION_OF_STRUCTURE() <backslash>
-//	(((GLM_LANG & GLM_LANG_CXX11) == GLM_LANG_CXX11) || ((GLM_COMPILER & GLM_COMPILER_VC) && (GLM_LANG & GLM_LANG_CXXMS) == GLM_LANG_CXXMS) || ((GLM_COMPILER & GLM_COMPILER_GCC) && (GLM_LANG == GLM_LANG_CXX0X)))
+	(GLM_LANG & GLM_LANG_CXX98_FLAG)
 
 #define GLM_SUPPORT_ANONYMOUS_UNION_OF_STRUCTURE() \
-	(((GLM_LANG & GLM_LANG_CXX11) == GLM_LANG_CXX11) || ((GLM_COMPILER & GLM_COMPILER_VC) && ((GLM_LANG & GLM_LANG_CXXMS) == GLM_LANG_CXXMS)) || ((GLM_LANG == GLM_LANG_CXX0X) == GLM_LANG_CXX0X))
+	((GLM_LANG & GLM_LANG_CXXMS_FLAG) && (GLM_COMPILER & GLM_COMPILER_VC))
 
 #define GLM_SUPPORT_SWIZZLE_OPERATOR() \
-	(/*defined(GLM_SWIZZLE) && */GLM_SUPPORT_ANONYMOUS_UNION_OF_STRUCTURE())
+	(defined(GLM_SWIZZLE) && GLM_SUPPORT_ANONYMOUS_UNION_OF_STRUCTURE())
 
 #define GLM_SUPPORT_SWIZZLE_FUNCTION() defined(GLM_SWIZZLE)
 
@@ -600,10 +638,10 @@
 //#define GLM_FORCE_ONLY_XYZW
 #define GLM_COMPONENT_ONLY_XYZW				0 // To disable multiple vector component names access.
 #define GLM_COMPONENT_CXX98					1 //  
-#define GLM_COMPONENT_CXX11					2 // To use anonymous union to provide multiple component names access for class valType. Visual C++ only.
+#define GLM_COMPONENT_CXXMS					2 // To use anonymous union to provide multiple component names access for class valType. Visual C++ only.
 
 #if(GLM_SUPPORT_ANONYMOUS_UNION_OF_STRUCTURE() && !defined(GLM_FORCE_ONLY_XYZW))
-#	define GLM_COMPONENT GLM_COMPONENT_CXX11
+#	define GLM_COMPONENT GLM_COMPONENT_CXXMS
 #elif(GLM_SUPPORT_ANONYMOUS_UNION() && !defined(GLM_FORCE_ONLY_XYZW))
 #	define GLM_COMPONENT GLM_COMPONENT_CXX98
 #else
@@ -616,7 +654,7 @@
 #		pragma message("GLM: x,y,z,w; r,g,b,a; s,t,p,q component names except of half based vector types")
 #	elif(GLM_COMPONENT == GLM_COMPONENT_ONLY_XYZW)
 #		pragma message("GLM: x,y,z,w component names for all vector types")
-#	elif(GLM_COMPONENT == GLM_COMPONENT_CXX11)
+#	elif(GLM_COMPONENT == GLM_COMPONENT_CXXMS)
 #		pragma message("GLM: x,y,z,w; r,g,b,a; s,t,p,q component names for all vector types")
 #	else
 #		error "GLM: GLM_COMPONENT value unknown"
@@ -631,7 +669,7 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 // Static assert
 
-#if(GLM_LANG == GLM_LANG_CXX0X)
+#if((GLM_LANG & GLM_LANG_CXX0X) == GLM_LANG_CXX0X)
 #	define GLM_STATIC_ASSERT(x, message) static_assert(x, message)
 #elif(defined(BOOST_STATIC_ASSERT))
 #	define GLM_STATIC_ASSERT(x, message) BOOST_STATIC_ASSERT(x)
@@ -694,4 +732,48 @@
 #	endif
 #endif//GLM_MESSAGE
 
-#endif//glm_setup
+///////////////////////////////////////////////////////////////////////////////////////////////////
+// Qualifiers
+
+#if((GLM_COMPILER & GLM_COMPILER_VC) && (GLM_COMPILER >= GLM_COMPILER_VC2005))
+#	define GLM_DEPRECATED __declspec(deprecated)
+#	define GLM_ALIGN(x) __declspec(align(x))
+#	define GLM_ALIGNED_STRUCT(x) __declspec(align(x)) struct
+#	define GLM_RESTRICT __declspec(restrict)
+#	define GLM_RESTRICT_VAR __restrict
+#	define GLM_CONSTEXPR
+#elif(GLM_COMPILER & GLM_COMPILER_INTEL)
+#	define GLM_DEPRECATED
+#	define GLM_ALIGN(x) __declspec(align(x))
+#	define GLM_ALIGNED_STRUCT(x) __declspec(align(x)) struct
+#	define GLM_RESTRICT
+#	define GLM_RESTRICT_VAR __restrict
+#	define GLM_CONSTEXPR
+#elif(((GLM_COMPILER & (GLM_COMPILER_GCC | GLM_COMPILER_LLVM_GCC)) && (GLM_COMPILER >= GLM_COMPILER_GCC31)) || (GLM_COMPILER & GLM_COMPILER_CLANG))
+#	define GLM_DEPRECATED __attribute__((__deprecated__))
+#	define GLM_ALIGN(x) __attribute__((aligned(x)))
+#	define GLM_ALIGNED_STRUCT(x) struct __attribute__((aligned(x)))
+#	if(GLM_COMPILER >= GLM_COMPILER_GCC33)
+#		define GLM_RESTRICT __restrict__
+#		define GLM_RESTRICT_VAR __restrict__
+#	else
+#		define GLM_RESTRICT
+#		define GLM_RESTRICT_VAR
+#	endif
+#	define GLM_RESTRICT __restrict__
+#	define GLM_RESTRICT_VAR __restrict__
+#	if((GLM_COMPILER >= GLM_COMPILER_GCC47) && ((GLM_LANG & GLM_LANG_CXX0X) == GLM_LANG_CXX0X))
+#		define GLM_CONSTEXPR constexpr
+#	else
+#		define GLM_CONSTEXPR
+#	endif
+#else
+#	define GLM_DEPRECATED
+#	define GLM_ALIGN
+#	define GLM_ALIGNED_STRUCT(x)
+#	define GLM_RESTRICT
+#	define GLM_RESTRICT_VAR
+#	define GLM_CONSTEXPR
+#endif//GLM_COMPILER
+
+#endif//GLM_SETUP_INCLUDED
