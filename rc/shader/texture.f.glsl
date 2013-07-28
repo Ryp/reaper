@@ -2,7 +2,9 @@
 
 uniform sampler2D TexSampler;
 uniform sampler2D TexSpecularSampler;
-uniform sampler2D TexNormalSampler;
+
+uniform vec3 WireframeColor;
+uniform int WireframeThickness;
 
 in GS_FS_VERTEX
 {
@@ -10,6 +12,7 @@ in GS_FS_VERTEX
   vec3 VextexNormal_cameraspace;
   vec3 EyeDirection_cameraspace;
   vec3 LightDirection_cameraspace;
+  noperspective vec3 EgdeDistance;
 } vertexIn;
 
 out vec3 color;
@@ -36,4 +39,8 @@ void main()
   color = MaterialSpecularColor * lightColor * pow(cosAlpha, 6)
 	  + MaterialDiffuseColor * ambientColor * ambientAmount
 	  + MaterialDiffuseColor * lightColor * cosTheta;
+
+  float d = min(min(vertexIn.EgdeDistance.x, vertexIn.EgdeDistance.y), vertexIn.EgdeDistance.z);
+  float mixVal = smoothstep(WireframeThickness - 1, WireframeThickness + 1, d);
+  color = mix(WireframeColor, color, mixVal);
 }

@@ -2,7 +2,10 @@
 #include "GLContext.hh"
 #include "Exceptions/GLContextException.hpp"
 
-GLContext::GLContext() {}
+GLContext::GLContext()
+  : _window(nullptr),
+    _windowSize(0)
+{}
 
 GLContext::~GLContext() {}
 
@@ -18,7 +21,7 @@ void GLContext::create(int width, int height, bool fullscreen)
     destroy();
     throw (GLContextException("Failed to open GLFW window"));
   }
-
+  _windowSize = Vect2u(width, height);
   glfwMakeContextCurrent(_window);
 
   // FIXME Needed for core profile (may generate GLenum error)
@@ -27,6 +30,11 @@ void GLContext::create(int width, int height, bool fullscreen)
   if (glewInit() != GLEW_OK)
     throw (GLContextException("Failed to initialize GLEW"));
   glfwSwapInterval(1);
+}
+
+const Vect2u& GLContext::getWindowSize() const
+{
+  return (_windowSize);
 }
 
 bool GLContext::isOpen()
