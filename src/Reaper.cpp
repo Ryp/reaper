@@ -23,7 +23,7 @@ void Reaper::run()
   glDepthFunc(GL_LESS);
 
   ModelLoader loader;
-  Model* teapot = loader.load("rc/model/cylinder.obj");
+  Model* teapot = loader.load("rc/model/suzanne.obj");
 
   ShaderProgram shader;
   ShaderObject vs("rc/shader/texture.v.glsl", GL_VERTEX_SHADER);
@@ -118,7 +118,7 @@ void Reaper::run()
   glm::vec3 LightPosition(0.0f, 0.5f, 2.0f);
   glm::mat4 Projection = glm::perspective<float>(45.0f, _context.getWindowSize().ratio(), 0.1f, 100.0f);
   glm::mat4 View       = glm::mat4(1.0f);
-  glm::mat4 Model      = glm::scale(glm::mat4(1.0f), glm::vec3(1.2f));
+  glm::mat4 Model      = glm::scale(glm::mat4(1.0f), glm::vec3(1.0f));
   glm::mat4 MV         = View * Model;
   glm::mat4 MVP        = Projection * MV;
   glm::mat4 Viewport   = glm::translate(glm::scale(glm::mat4(1.0f), glm::vec3(_context.getWindowSize()[0] / 2.0f, _context.getWindowSize()[1] / 2.0f, 1.0f)), glm::vec3(1.0f, 1.0f, 0.0f));

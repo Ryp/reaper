@@ -20,13 +20,13 @@ out VS_GS_VERTEX
 
 void main()
 {
-  vec3 VextexPosition_cameraspace = vec3(MV * vec4(VertexPosition_modelspace, 1));
+  vec3 VextexPosition_cameraspace = (MV * vec4(VertexPosition_modelspace, 1)).xyz;
 
-  vec3 LightPosition_cameraspace = vec3(V * vec4(LighPosition_worldspace, 1));
+  vec3 LightPosition_cameraspace = (V * vec4(LighPosition_worldspace, 1)).xyz;
   vertexOut.LightDirection_cameraspace = LightPosition_cameraspace - VextexPosition_cameraspace;
   vertexOut.EyeDirection_cameraspace = - VextexPosition_cameraspace;
 
   gl_Position = MVP * vec4(VertexPosition_modelspace, 1);
   vertexOut.UV = VertexUV_modelspace;
-  vertexOut.VextexNormal_cameraspace = vec3(MV * vec4(normalize(VertexNormal_modelspace), 0.5));
+  vertexOut.VextexNormal_cameraspace = (MV * vec4(normalize(VertexNormal_modelspace), 0)).xyz;
 }
