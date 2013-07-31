@@ -36,7 +36,7 @@ void ReaperCore::run()
   try
   {
     Reaper prgm(_glContext);
-    _glContext.create();
+    _glContext.create(800, 800);
     prgm.run();
     _glContext.destroy();
     t = std::time(nullptr);
