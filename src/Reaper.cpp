@@ -2,6 +2,9 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/transform.hpp>
 
+/* FIXME */
+#include <iostream>
+
 #include <gli/gli.hpp>
 
 #include "Reaper.hh"
@@ -23,17 +26,25 @@ void Reaper::run()
   glDepthFunc(GL_LESS);
 
   ModelLoader loader;
-  Model* teapot = loader.load("rc/model/suzanne.obj");
+  Model* teapot = loader.load("rc/model/cylinder.obj");
 
   ShaderProgram shader;
   ShaderObject vs("rc/shader/texture.v.glsl", GL_VERTEX_SHADER);
   ShaderObject fs("rc/shader/texture.f.glsl", GL_FRAGMENT_SHADER);
   ShaderObject gs("rc/shader/texture.g.glsl", GL_GEOMETRY_SHADER);
+//   ShaderObject tc("rc/shader/texture.tc.glsl", GL_TESS_CONTROL_SHADER);
+//   ShaderObject te("rc/shader/texture.te.glsl", GL_TESS_EVALUATION_SHADER);
   shader.attach(vs);
   shader.attach(fs);
   shader.attach(gs);
+//   shader.attach(tc);
+//   shader.attach(te);
 
   shader.link();
+
+//   int count = 0;
+//   glGetIntegerv(GL_MAX_PATCH_VERTICES, &count);
+//   std::cout << "MaxPatchVertices=" << count << std::endl;
 
   gli::texture2D texture(gli::loadStorageDDS("rc/texture/bricks_diffuse.dds"));
   if (texture.empty())

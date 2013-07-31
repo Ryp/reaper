@@ -36,9 +36,9 @@ void main()
   vec3 R = reflect(-normalize(vertexIn.LightDirection_cameraspace), normalize(vertexIn.VextexNormal_cameraspace));
   float cosAlpha = clamp(dot(E, R), 0, 1);
 
-  color = MaterialSpecularColor * lightColor * pow(cosAlpha, 6)
-	  + MaterialDiffuseColor * ambientColor * ambientAmount
-	  + MaterialDiffuseColor * lightColor * cosTheta;
+  color = MaterialSpecularColor * lightColor * pow(cosAlpha, 6) +
+	  MaterialDiffuseColor * ambientColor * ambientAmount +
+	  MaterialDiffuseColor * lightColor * cosTheta;
 
   //Wireframe color test
   float d = min(min(vertexIn.EgdeDistance.x, vertexIn.EgdeDistance.y), vertexIn.EgdeDistance.z);
