@@ -20,6 +20,7 @@ RM		=	rm -f
 SRC		=	src/main.cpp				\
 			src/Debug.cpp				\
 			src/GLContext.cpp			\
+			src/GLErrorLogger.cpp			\
 			src/ReaperCore.cpp			\
 			src/Reaper.cpp				\
 			src/Model/Model.cpp			\
