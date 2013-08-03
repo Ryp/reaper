@@ -1,7 +1,7 @@
 #version 420 core
 
 layout(location = 0) in vec3 vertexPosition_modelspace;
-layout(location = 1) in vec3 vertexNormal;
+layout(location = 2) in vec3 vertexNormal;
 
 out vec3 fragmentColor;
 
@@ -9,11 +9,7 @@ uniform mat4 MVP;
 
 void main()
 {
-  vec4 v = MVP * vec4(vertexPosition_modelspace, 1);
-  gl_Position = v;
-  gl_Position.x *= 1;
-  gl_Position.y *= 1.3;
-  gl_Position.z *= 1;
+  gl_Position = MVP * vec4(vertexPosition_modelspace, 1);
 
   fragmentColor.r = dot(MVP * normalize(vec4(vertexNormal, 1)), vec4(1, 0, 0, 1)) / 6;
   fragmentColor.g = dot(MVP * normalize(vec4(vertexNormal, 1)), vec4(0, -1, 0, 1)) / 10;

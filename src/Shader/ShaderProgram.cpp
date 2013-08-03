@@ -29,7 +29,7 @@ GLuint ShaderProgram::getAttribLocation(const std::string& name) const
   if ((it = _attribs.find(name)) != _attribs.end())
     return (it->second);
   std::cerr << "Shader attribute \'" << name << "\' does not exist" << std::endl;
-  return (0);
+  return (-1);
 }
 
 GLuint ShaderProgram::getUniformLocation(const std::string& name) const
@@ -39,7 +39,7 @@ GLuint ShaderProgram::getUniformLocation(const std::string& name) const
   if ((it = _uniforms.find(name)) != _uniforms.end())
     return (it->second);
   std::cerr << "Shader uniform \'" << name << "\' does not exist" << std::endl;
-  return (0);
+  return (-1);
 }
 
 

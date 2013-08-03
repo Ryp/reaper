@@ -14,7 +14,8 @@
 #include "Exceptions/ReaperException.hpp"
 
 Reaper::Reaper(GLContext& context)
-  : _context(context)
+  : _context(context),
+    _errorLogger(std::clog)
 {}
 
 Reaper::~Reaper() {}
@@ -26,25 +27,26 @@ void Reaper::run()
   glDepthFunc(GL_LESS);
 
   ModelLoader loader;
-  Model* teapot = loader.load("rc/model/cylinder.obj");
+  Model* model = loader.load("rc/model/icosahedron.obj");
 
   ShaderProgram shader;
-  ShaderObject vs("rc/shader/texture.v.glsl", GL_VERTEX_SHADER);
-  ShaderObject fs("rc/shader/texture.f.glsl", GL_FRAGMENT_SHADER);
-  ShaderObject gs("rc/shader/texture.g.glsl", GL_GEOMETRY_SHADER);
-//   ShaderObject tc("rc/shader/texture.tc.glsl", GL_TESS_CONTROL_SHADER);
-//   ShaderObject te("rc/shader/texture.te.glsl", GL_TESS_EVALUATION_SHADER);
+  ShaderObject vs("rc/shader/tesselation.v.glsl", GL_VERTEX_SHADER);
+  ShaderObject fs("rc/shader/tesselation.f.glsl", GL_FRAGMENT_SHADER);
+  ShaderObject gs("rc/shader/tesselation.g.glsl", GL_GEOMETRY_SHADER);
+  ShaderObject tc("rc/shader/tesselation.tc.glsl", GL_TESS_CONTROL_SHADER);
+  ShaderObject te("rc/shader/tesselation.te.glsl", GL_TESS_EVALUATION_SHADER);
   shader.attach(vs);
   shader.attach(fs);
   shader.attach(gs);
-//   shader.attach(tc);
-//   shader.attach(te);
-
+  shader.attach(tc);
+  shader.attach(te);
   shader.link();
 
-//   int count = 0;
-//   glGetIntegerv(GL_MAX_PATCH_VERTICES, &count);
-//   std::cout << "MaxPatchVertices=" << count << std::endl;
+//   ShaderObject vs("rc/shader/colorSimple.v.glsl", GL_VERTEX_SHADER);
+//   ShaderObject fs("rc/shader/colorSimple.f.glsl", GL_FRAGMENT_SHADER);
+//   shader.attach(vs);
+//   shader.attach(fs);
+//   shader.link();
 
   gli::texture2D texture(gli::loadStorageDDS("rc/texture/bricks_diffuse.dds"));
   if (texture.empty())
@@ -127,7 +129,7 @@ void Reaper::run()
   }
 
   glm::vec3 LightPosition(0.0f, 0.5f, 2.0f);
-  glm::mat4 Projection = glm::perspective<float>(45.0f, _context.getWindowSize().ratio(), 0.1f, 100.0f);
+  glm::mat4 Projection = glm::perspective(45.0f, static_cast<float>(_context.getWindowSize().ratio()), 0.1f, 100.0f);
   glm::mat4 View       = glm::mat4(1.0f);
   glm::mat4 Model      = glm::scale(glm::mat4(1.0f), glm::vec3(1.0f));
   glm::mat4 MV         = View * Model;
@@ -137,20 +139,23 @@ void Reaper::run()
   glm::vec3 WireframeColor(0.5f, 0.5f, 0.5f);
   int WireframeThickness = 0;
 
+  GLfloat TessLevelInner = 1.0f;
+  GLfloat TessLevelOuter = 1.0f;
+
   GLuint vertexbuffer;
   glGenBuffers(1, &vertexbuffer);
   glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
-  glBufferData(GL_ARRAY_BUFFER, teapot->getVertexBufferSize(), teapot->getVertexBuffer(), GL_STATIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, model->getVertexBufferSize(), model->getVertexBuffer(), GL_STATIC_DRAW);
 
-  GLuint uvbuffer;
-  glGenBuffers(1, &uvbuffer);
-  glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
-  glBufferData(GL_ARRAY_BUFFER, teapot->getUVBufferSize(), teapot->getUVBuffer(), GL_STATIC_DRAW);
+//   GLuint uvbuffer;
+//   glGenBuffers(1, &uvbuffer);
+//   glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
+//   glBufferData(GL_ARRAY_BUFFER, model->getUVBufferSize(), model->getUVBuffer(), GL_STATIC_DRAW);
 
-  GLuint normalbuffer;
-  glGenBuffers(1, &normalbuffer);
-  glBindBuffer(GL_ARRAY_BUFFER, normalbuffer);
-  glBufferData(GL_ARRAY_BUFFER, teapot->getNormalBufferSize(), teapot->getNormalBuffer(), GL_STATIC_DRAW);
+//   GLuint normalbuffer;
+//   glGenBuffers(1, &normalbuffer);
+//   glBindBuffer(GL_ARRAY_BUFFER, normalbuffer);
+//   glBufferData(GL_ARRAY_BUFFER, model->getNormalBufferSize(), model->getNormalBuffer(), GL_STATIC_DRAW);
 
   while (_context.isOpen())
   {
@@ -159,28 +164,31 @@ void Reaper::run()
     shader.use();
 
     Model = glm::rotate(Model, 0.3f, glm::vec3(0, 1, 0));
-    View = glm::lookAt(glm::vec3(4,3,3),
-		      glm::vec3(0,1,0),
-		      glm::vec3(0,1,0));
+    View = glm::lookAt(glm::vec3(2, 2, 2),
+		      glm::vec3(0, 0, 0),
+		      glm::vec3(0, 1, 0));
     MV = View * Model;
     MVP = Projection * MV;
 
     glUniformMatrix4fv(shader.getUniformLocation("MVP"), 1, GL_FALSE, &MVP[0][0]);
     glUniformMatrix4fv(shader.getUniformLocation("MV"), 1, GL_FALSE, &MV[0][0]);
-    glUniformMatrix4fv(shader.getUniformLocation("V"), 1, GL_FALSE, &View[0][0]);
-    glUniformMatrix4fv(shader.getUniformLocation("ViewportMatrix"), 1, GL_FALSE, &Viewport[0][0]);
-    glUniform3fv(shader.getUniformLocation("LighPosition_worldspace"), 1, &LightPosition[0]);
+//     glUniformMatrix4fv(shader.getUniformLocation("V"), 1, GL_FALSE, &View[0][0]);
+//     glUniformMatrix4fv(shader.getUniformLocation("ViewportMatrix"), 1, GL_FALSE, &Viewport[0][0]);
+    glUniform3fv(shader.getUniformLocation("LightPosition_worldspace"), 1, &LightPosition[0]);
 
-    glUniform3fv(shader.getUniformLocation("WireframeColor"), 1, &WireframeColor[0]);
-    glUniform1i(shader.getUniformLocation("WireframeThickness"), WireframeThickness);
+//     glUniform3fv(shader.getUniformLocation("WireframeColor"), 1, &WireframeColor[0]);
+//     glUniform1i(shader.getUniformLocation("WireframeThickness"), WireframeThickness);
 
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, textureID);
-    glUniform1i(shader.getUniformLocation("TexSampler"), 0);
+    glUniform1f(shader.getUniformLocation("TessLevelInner"), TessLevelInner);
+    glUniform1f(shader.getUniformLocation("TessLevelOuter"), TessLevelOuter);
 
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, textureSpecularID);
-    glUniform1i(shader.getUniformLocation("TexSpecularSampler"), 1);
+//     glActiveTexture(GL_TEXTURE0);
+//     glBindTexture(GL_TEXTURE_2D, textureID);
+//     glUniform1i(shader.getUniformLocation("TexSampler"), 0);
+//
+//     glActiveTexture(GL_TEXTURE1);
+//     glBindTexture(GL_TEXTURE_2D, textureSpecularID);
+//     glUniform1i(shader.getUniformLocation("TexSpecularSampler"), 1);
 
     // 1rst attribute buffer : vertices
     glEnableVertexAttribArray(0);
@@ -193,6 +201,7 @@ void Reaper::run()
       0,                  // stride
       (void*)0            // array buffer offset
     );
+/*
     // 2nd attribute buffer : UVs
     glEnableVertexAttribArray(1);
     glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
@@ -203,8 +212,8 @@ void Reaper::run()
       GL_FALSE,                         // normalized?
       0,                                // stride
       (void*)0                          // array buffer offset
-    );
-
+    );*/
+/*
     // 3rd attribute buffer : normals
     glEnableVertexAttribArray(2);
     glBindBuffer(GL_ARRAY_BUFFER, normalbuffer);
@@ -215,17 +224,22 @@ void Reaper::run()
       GL_FALSE,                         // normalized?
       0,                                // stride
       (void*)0                          // array buffer offset
-    );
+    );*/
 
-    glDrawArrays(GL_TRIANGLES, 0, teapot->getTriangleCount() * 3);
+    glPatchParameteri(GL_PATCH_VERTICES, 3);
+    glDrawArrays(GL_PATCHES, 0, model->getTriangleCount() * 3);
 
     glDisableVertexAttribArray(0);
-    glDisableVertexAttribArray(1);
-    glDisableVertexAttribArray(2);
+//     glDisableVertexAttribArray(1);
+//     glDisableVertexAttribArray(2);
+
+    _errorLogger();
 
     _context.swapBuffers();
     glfwPollEvents();
   }
   // Cleanup VBO
   glDeleteBuffers(1, &vertexbuffer);
+//   glDeleteBuffers(1, &uvbuffer);
+//   glDeleteBuffers(1, &normalbuffer);
 }

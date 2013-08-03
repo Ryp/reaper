@@ -2,6 +2,7 @@
 #define REAPER_HH
 
 #include "GLContext.hh"
+#include "GLErrorLogger.hpp"
 
 class Reaper
 {
@@ -14,6 +15,7 @@ public:
 
 private:
   GLContext&	_context;
+  GLErrorLogger _errorLogger;
 };
 
 #endif // REAPER_HH
