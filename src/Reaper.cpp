@@ -134,13 +134,13 @@ void Reaper::run()
   glm::mat4 Model      = glm::scale(glm::mat4(1.0f), glm::vec3(1.0f));
   glm::mat4 MV         = View * Model;
   glm::mat4 MVP        = Projection * MV;
-  glm::mat4 Viewport   = glm::translate(glm::scale(glm::mat4(1.0f), glm::vec3(_context.getWindowSize()[0] / 2.0f, _context.getWindowSize()[1] / 2.0f, 1.0f)), glm::vec3(1.0f, 1.0f, 0.0f));
+//   glm::mat4 Viewport   = glm::translate(glm::scale(glm::mat4(1.0f), glm::vec3(_context.getWindowSize()[0] / 2.0f, _context.getWindowSize()[1] / 2.0f, 1.0f)), glm::vec3(1.0f, 1.0f, 0.0f));
 
   glm::vec3 WireframeColor(0.5f, 0.5f, 0.5f);
-  int WireframeThickness = 0;
+//   int WireframeThickness = 0;
 
-  GLfloat TessLevelInner = 1.0f;
-  GLfloat TessLevelOuter = 1.0f;
+  GLfloat TessLevelInner = 2.0f;
+  GLfloat TessLevelOuter = 2.0f;
 
   GLuint vertexbuffer;
   glGenBuffers(1, &vertexbuffer);

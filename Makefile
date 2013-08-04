@@ -6,6 +6,8 @@ CXXFLAGS	+=	-Wall -Wextra -ansi -pedantic -std=c++11 -Wshadow
 
 IWDIR		=	./include
 
+LD		=	g++
+
 LDFLAGS		+=	$(LIBS) $(LPATH)
 
 LIBS		=	-lglfw -lGLEW -lGL
@@ -33,7 +35,7 @@ SRC		=	src/main.cpp				\
 OBJ		=	$(SRC:.cpp=.o)
 
 $(TARGET):		$(OBJ)
-			$(CXX) $(LDFLAGS) $(OBJ) -o $(TARGET)
+			$(LD) $(LDFLAGS) $(OBJ) -o $(TARGET)
 
 all:			$(TARGET)
 
