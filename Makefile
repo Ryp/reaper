@@ -28,9 +28,9 @@ SRC		=	src/main.cpp				\
 			src/Model/Model.cpp			\
  			src/Model/ModelLoader.cpp		\
 			src/Shader/ShaderProgram.cpp		\
-			src/Shader/ShaderObject.cpp
-# 			src/Joystick/AController.cpp		\
-# 			src/Joystick/SixAxis.cpp
+			src/Shader/ShaderObject.cpp		\
+			src/Joystick/AController.cpp		\
+			src/Joystick/SixAxis.cpp
 
 OBJ		=	$(SRC:.cpp=.o)
 

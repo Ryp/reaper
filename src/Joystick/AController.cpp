@@ -1,19 +1,51 @@
 #include "AController.hh"
 
-AController::AController() {}
+AController::AController(int buttons, int axes)
+  : _buttons(buttons),
+    _axes(axes)
+{}
 
 AController::~AController() {}
 
-float AController::getRotation(int axis) const
-{
-  return (_rotation[axis]);
-}
-
 void AController::reset()
 {
-  for (int i = 0; i < 3; ++i)
+  for (std::vector<Button>::iterator it = _buttons.begin(); it != _buttons.end(); it++)
   {
-    _linear[i] = 0.0f;
-    _rotation[i] = 0.0f;
+    (*it).held = false;
+    (*it).new_held = false;
+    (*it).pressed = false;
+    (*it).released = false;
   }
+  for (std::vector<Axe>::iterator it = _axes.begin(); it != _axes.end(); it++)
+    (*it) = 0;
+}
+
+void AController::update()
+{
+  for (std::vector<Button>::iterator it = _buttons.begin(); it != _buttons.end(); it++)
+  {
+    (*it).pressed = !(*it).held && (*it).new_held;
+    (*it).released = (*it).held && !(*it).new_held;
+    (*it).held = (*it).new_held;
+  }
+}
+
+bool AController::isHeld(unsigned int idx) const
+{
+  return (_buttons[idx].held);
+}
+
+bool AController::isPressed(unsigned int idx) const
+{
+  return (_buttons[idx].pressed);
+}
+
+bool AController::isReleased(unsigned int idx) const
+{
+  return (_buttons[idx].released);
+}
+
+float AController::getAxe(unsigned int idx) const
+{
+  return (_axes[idx]);
 }

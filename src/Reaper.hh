@@ -3,6 +3,7 @@
 
 #include "GLContext.hh"
 #include "GLErrorLogger.hpp"
+#include "Joystick/SixAxis.hh"
 
 class Reaper
 {
@@ -16,6 +17,7 @@ public:
 private:
   GLContext&	_context;
   GLErrorLogger _errorLogger;
+  SixAxis	_controller;
 };
 
 #endif // REAPER_HH

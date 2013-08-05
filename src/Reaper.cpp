@@ -15,7 +15,8 @@
 
 Reaper::Reaper(GLContext& context)
   : _context(context),
-    _errorLogger(std::clog)
+    _errorLogger(std::clog),
+    _controller("/dev/input/js1")
 {}
 
 Reaper::~Reaper() {}
@@ -41,6 +42,13 @@ void Reaper::run()
   shader.attach(tc);
   shader.attach(te);
   shader.link();
+
+  ShaderProgram post;
+  ShaderObject pvs("rc/shader/post.v.glsl", GL_VERTEX_SHADER);
+  ShaderObject pfs("rc/shader/post.f.glsl", GL_FRAGMENT_SHADER);
+  post.attach(pvs);
+  post.attach(pfs);
+  post.link();
 
 //   ShaderObject vs("rc/shader/colorSimple.v.glsl", GL_VERTEX_SHADER);
 //   ShaderObject fs("rc/shader/colorSimple.f.glsl", GL_FRAGMENT_SHADER);
@@ -142,6 +150,52 @@ void Reaper::run()
   GLfloat TessLevelInner = 2.0f;
   GLfloat TessLevelOuter = 2.0f;
 
+  //FRAME BUFFER SPECIFIC
+  GLuint quad_VertexArrayID;
+  glGenVertexArrays(1, &quad_VertexArrayID);
+  glBindVertexArray(quad_VertexArrayID);
+
+  static const GLfloat g_quad_vertex_buffer_data[] = {
+    -1.0f, -1.0f, 0.0f,
+    1.0f, -1.0f, 0.0f,
+    -1.0f,  1.0f, 0.0f,
+    -1.0f,  1.0f, 0.0f,
+    1.0f, -1.0f, 0.0f,
+    1.0f,  1.0f, 0.0f,
+  };
+
+  GLuint quad_vertexbuffer;
+  glGenBuffers(1, &quad_vertexbuffer);
+  glBindBuffer(GL_ARRAY_BUFFER, quad_vertexbuffer);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(g_quad_vertex_buffer_data), g_quad_vertex_buffer_data, GL_STATIC_DRAW);
+
+  GLuint FramebufferName;
+  glGenFramebuffers(1, &FramebufferName);
+  glBindFramebuffer(GL_FRAMEBUFFER, FramebufferName);
+
+  GLuint renderedTexture;
+  glGenTextures(1, &renderedTexture);
+  glBindTexture(GL_TEXTURE_2D, renderedTexture);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, _context.getWindowSize()[0], _context.getWindowSize()[1], 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+  GLuint depthrenderbuffer;
+  glGenRenderbuffers(1, &depthrenderbuffer);
+  glBindRenderbuffer(GL_RENDERBUFFER, depthrenderbuffer);
+  glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, _context.getWindowSize()[0], _context.getWindowSize()[1]);
+  glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthrenderbuffer);
+
+  glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, renderedTexture, 0);
+
+  GLenum DrawBuffers[1] = {GL_COLOR_ATTACHMENT0};
+  glDrawBuffers(1, DrawBuffers); // "1" is the size of DrawBuffers
+
+  if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+    throw (ReaperException("bad framebuffer"));
+
   GLuint vertexbuffer;
   glGenBuffers(1, &vertexbuffer);
   glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
@@ -157,8 +211,23 @@ void Reaper::run()
 //   glBindBuffer(GL_ARRAY_BUFFER, normalbuffer);
 //   glBufferData(GL_ARRAY_BUFFER, model->getNormalBufferSize(), model->getNormalBuffer(), GL_STATIC_DRAW);
 
+
   while (_context.isOpen())
   {
+    _controller.update();
+
+    if (_controller.isPressed(SixAxis::Cross))
+      ++TessLevelInner;
+    else if (_controller.isPressed(SixAxis::Circle))
+      --TessLevelInner;
+    if (_controller.isPressed(SixAxis::Triangle))
+      ++TessLevelOuter;
+    else if (_controller.isPressed(SixAxis::Square))
+      --TessLevelOuter;
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glViewport(0, 0, _context.getWindowSize()[0], _context.getWindowSize()[1]);
+
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     shader.use();
@@ -232,7 +301,32 @@ void Reaper::run()
     glDisableVertexAttribArray(0);
 //     glDisableVertexAttribArray(1);
 //     glDisableVertexAttribArray(2);
+/*
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glViewport(0, 0, _context.getWindowSize()[0], _context.getWindowSize()[1]);
 
+    post.use();
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, renderedTexture);
+    glUniform1i(post.getUniformLocation("renderedTexture"), 0);
+
+    glEnableVertexAttribArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, quad_vertexbuffer);
+    glVertexAttribPointer(
+      0,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
+      3,                  // size
+      GL_FLOAT,           // type
+      GL_FALSE,           // normalized?
+      0,                  // stride
+      (void*)0            // array buffer offset
+    );
+
+    // Draw the triangles !
+    glDrawArrays(GL_TRIANGLES, 0, 6); // 2*3 indices starting at 0 -> 2 triangles
+
+    glDisableVertexAttribArray(0);
+*/
     _errorLogger();
 
     _context.swapBuffers();

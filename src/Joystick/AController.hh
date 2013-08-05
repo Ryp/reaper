@@ -1,24 +1,38 @@
 #ifndef ACONTROLLER_HH
 #define ACONTROLLER_HH
 
+#include <vector>
+
 class AController
 {
 public:
-  AController();
+  AController(int buttons, int axes);
   virtual ~AController();
 
 public:
-  virtual void	update() = 0;
-
-public:
-  float		getRotation(int axis) const;
+  virtual void	update();
 
 public:
   void		reset();
 
+public:
+  bool		isHeld(unsigned idx) const;
+  bool		isPressed(unsigned idx) const;
+  bool		isReleased(unsigned idx) const;
+  float		getAxe(unsigned idx) const;
+
 protected:
-  float		_rotation[3];
-  float		_linear[3];
+  typedef struct {
+      bool held;
+      bool new_held;
+      bool pressed;
+      bool released;
+  } Button;
+  typedef float Axe;
+
+protected:
+  std::vector<Button>	_buttons;
+  std::vector<Axe>	_axes;
 };
 
 #endif // ACONTROLLER_HH
