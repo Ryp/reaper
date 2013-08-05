@@ -1,11 +1,13 @@
-#version 420
+#version 420 core
 
-uniform sampler2D fbo_texture;
+uniform sampler2D renderedTexture;
 uniform float offset;
-varying vec2 f_texcoord;
 
-void main(void) {
-  vec2 texcoord = f_texcoord;
-  texcoord.x += sin(texcoord.y * 4*2*3.14159 + offset) / 1000;
-  gl_FragColor = texture2D(fbo_texture, texcoord);
+in vec2 f_texcoord;
+
+out vec3 color;
+
+void main()
+{
+  color = texture(renderedTexture, f_texcoord).xyz;
 }

@@ -107,7 +107,7 @@ void ShaderProgram::retrieveLocations()
     location = glGetAttribLocation(_handle, name);
     _attribs[name] = location;
   }
-  delete name;
+  delete[] name;
   glGetProgramiv(_handle, GL_ACTIVE_UNIFORM_MAX_LENGTH, &maxLen);
   glGetProgramiv(_handle, GL_ACTIVE_UNIFORMS, &n);
   name = new GLchar[maxLen];
@@ -117,5 +117,5 @@ void ShaderProgram::retrieveLocations()
     location = glGetUniformLocation(_handle, name);
     _uniforms[name] = location;
   }
-  delete name;
+  delete[] name;
 }

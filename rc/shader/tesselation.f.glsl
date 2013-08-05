@@ -1,10 +1,11 @@
 #version 420 core
 
-out vec4 FragColor;
 in vec3 gFacetNormal;
 in vec3 gTriDistance;
 in vec3 gPatchDistance;
 in float gPrimitive;
+
+layout(location = 0) out vec4 FragColor;
 
 uniform vec3 LightPosition_worldspace;
 uniform vec3 DiffuseMaterial;

@@ -11,6 +11,7 @@
 #include "Exceptions/ControllerException.hpp"
 
 SixAxis::SixAxis(const std::string& device)
+  : AController(19, 27)
 {
   if ((_fd = open(device.c_str(), O_RDONLY | O_NONBLOCK)) == -1)
     throw (ControllerException("could not open device name: " + std::string(strerror(errno))));
@@ -34,22 +35,14 @@ void SixAxis::update()
     event.type &= ~JS_EVENT_INIT;
     if (event.type == JS_EVENT_AXIS)
     {
-      if (event.number == 25)
-	;
-      else
+      if (event.number != 25)
       {
-	printf("Axis Id=%i Val=%i\n", event.number, event.value);
-	if (event.number == 26)
-	  _axisX = static_cast<int>(event.value);
-	else if (event.number == 24)
-	  _axisZ = static_cast<int>(event.value);
+	//printf("Axis Id=%i Val=%i\n", event.number, event.value);
       }
+      _axes[event.number] = static_cast<float>(event.value) / static_cast<float>(AxisAbsoluteResolution);
     }
-    if (event.type == JS_EVENT_BUTTON)
-    {
-      printf("Button Id=%i Val=%i\n", event.number, event.value);
-    }
+    else if (event.type == JS_EVENT_BUTTON)
+      _buttons[event.number].new_held = event.value != 0;
   }
-  _rotation[1] += (static_cast<float>(_axisX) / AxisAbsoluteResolution) * 8.0f;
-  _rotation[2] += (static_cast<float>(_axisZ) / AxisAbsoluteResolution) * - 8.0f;
+  AController::update();
 }
