@@ -1,4 +1,4 @@
-#include "AController.hh"
+#include "AController.hpp"
 
 AController::AController(int buttons, int axes)
   : _buttons(buttons),
@@ -45,7 +45,7 @@ bool AController::isReleased(unsigned int idx) const
   return (_buttons[idx].released);
 }
 
-float AController::getAxe(unsigned int idx) const
+float AController::getAxis(unsigned int idx) const
 {
   return (_axes[idx]);
 }

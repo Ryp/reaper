@@ -1,5 +1,5 @@
-#ifndef ACONTROLLER_HH
-#define ACONTROLLER_HH
+#ifndef ACONTROLLER_HPP
+#define ACONTROLLER_HPP
 
 #include <vector>
 
@@ -19,7 +19,7 @@ public:
   bool		isHeld(unsigned idx) const;
   bool		isPressed(unsigned idx) const;
   bool		isReleased(unsigned idx) const;
-  float		getAxe(unsigned idx) const;
+  float		getAxis(unsigned idx) const;
 
 protected:
   typedef struct {
@@ -35,4 +35,4 @@ protected:
   std::vector<Axe>	_axes;
 };
 
-#endif // ACONTROLLER_HH
+#endif // ACONTROLLER_HPP
