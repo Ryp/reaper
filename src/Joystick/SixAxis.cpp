@@ -5,16 +5,20 @@
 #include <cstdint>
 #include <cstring>
 
-#include <iostream>
-
-#include "SixAxis.hh"
+#include "SixAxis.hpp"
 #include "Exceptions/ControllerException.hpp"
 
 SixAxis::SixAxis(const std::string& device)
-  : AController(19, 27)
+  : AController(TotalButtonsNumber, TotalAxesNumber)
 {
+  char deviceName[256];
+
   if ((_fd = open(device.c_str(), O_RDONLY | O_NONBLOCK)) == -1)
-    throw (ControllerException("could not open device name: " + std::string(strerror(errno))));
+    throw (ControllerException("could not open device: " + std::string(strerror(errno))));
+  if (ioctl(_fd, JSIOCGNAME(256), deviceName) == -1)
+    throw (ControllerException("could not retrieve device name: " + std::string(strerror(errno))));
+  if (std::string("Sony PLAYSTATION(R)3 Controller") != deviceName)
+    throw (ControllerException("not a playstation 3 controller"));
   update();
   AController::reset();
 }
@@ -34,13 +38,7 @@ void SixAxis::update()
   {
     event.type &= ~JS_EVENT_INIT;
     if (event.type == JS_EVENT_AXIS)
-    {
-      if (event.number != 25)
-      {
-	//printf("Axis Id=%i Val=%i\n", event.number, event.value);
-      }
       _axes[event.number] = static_cast<float>(event.value) / static_cast<float>(AxisAbsoluteResolution);
-    }
     else if (event.type == JS_EVENT_BUTTON)
       _buttons[event.number].new_held = event.value != 0;
   }

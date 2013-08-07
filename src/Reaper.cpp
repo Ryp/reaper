@@ -16,13 +16,17 @@
 Reaper::Reaper(GLContext& context)
   : _context(context),
     _errorLogger(std::clog),
-    _controller("/dev/input/js1")
+    _controller("/dev/input/js0"),
+    _camera(glm::vec3(-3, 0, 0))
 {}
 
 Reaper::~Reaper() {}
 
 void Reaper::run()
 {
+
+  std::cout << "K=" << SixAxis::Home << std::endl;
+
   glEnable(GL_DEPTH_TEST);
   glEnable(GL_CULL_FACE);
   glDepthFunc(GL_LESS);
@@ -211,19 +215,21 @@ void Reaper::run()
 //   glBindBuffer(GL_ARRAY_BUFFER, normalbuffer);
 //   glBufferData(GL_ARRAY_BUFFER, model->getNormalBufferSize(), model->getNormalBuffer(), GL_STATIC_DRAW);
 
-
   while (_context.isOpen())
   {
     _controller.update();
+    _camera.update();
 
-    if (_controller.isPressed(SixAxis::Cross))
+    if (_controller.isPressed(SixAxis::Buttons::Cross))
       ++TessLevelInner;
-    else if (_controller.isPressed(SixAxis::Circle))
+    else if (_controller.isPressed(SixAxis::Buttons::Circle))
       --TessLevelInner;
-    if (_controller.isPressed(SixAxis::Triangle))
+    if (_controller.isPressed(SixAxis::Buttons::Triangle))
       ++TessLevelOuter;
-    else if (_controller.isPressed(SixAxis::Square))
+    else if (_controller.isPressed(SixAxis::Buttons::Square))
       --TessLevelOuter;
+    if (_controller.isHeld(SixAxis::Buttons::Start))
+      break;
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glViewport(0, 0, _context.getWindowSize()[0], _context.getWindowSize()[1]);
@@ -233,9 +239,7 @@ void Reaper::run()
     shader.use();
 
     Model = glm::rotate(Model, 0.3f, glm::vec3(0, 1, 0));
-    View = glm::lookAt(glm::vec3(2, 2, 2),
-		      glm::vec3(0, 0, 0),
-		      glm::vec3(0, 1, 0));
+    View = _camera.getViewMatrix();
     MV = View * Model;
     MVP = Projection * MV;
 
