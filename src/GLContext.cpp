@@ -30,6 +30,7 @@ void GLContext::create(int width, int height, bool fullscreen)
   if (glewInit() != GLEW_OK)
     throw (GLContextException("Failed to initialize GLEW"));
   glfwSwapInterval(1);
+  glfwSetInputMode(_window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
 }
 
 const Vect2u& GLContext::getWindowSize() const

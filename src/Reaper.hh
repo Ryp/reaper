@@ -13,7 +13,7 @@ public:
   virtual ~Reaper();
 
 public:
-  void run();
+  void		run();
 
 private:
   GLContext&	_context;

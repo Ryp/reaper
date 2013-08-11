@@ -2,7 +2,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/transform.hpp>
 
-/* FIXME */
+/* FIXME iostream - Debug only */
 #include <iostream>
 
 #include <gli/gli.hpp>
@@ -16,7 +16,7 @@
 Reaper::Reaper(GLContext& context)
   : _context(context),
     _errorLogger(std::clog),
-    _controller("/dev/input/js0"),
+    _controller("/dev/input/js1"),
     _camera(glm::vec3(-3, 0, 0))
 {}
 
@@ -24,9 +24,6 @@ Reaper::~Reaper() {}
 
 void Reaper::run()
 {
-
-  std::cout << "K=" << SixAxis::Home << std::endl;
-
   glEnable(GL_DEPTH_TEST);
   glEnable(GL_CULL_FACE);
   glDepthFunc(GL_LESS);
@@ -218,7 +215,13 @@ void Reaper::run()
   while (_context.isOpen())
   {
     _controller.update();
-    _camera.update();
+
+
+    if (_controller.isPressed(SixAxis::Buttons::Select))
+      _camera.reset();
+    _camera.move(_controller.getAxis(SixAxis::LeftAnalogY) / -10.0f, _controller.getAxis(SixAxis::LeftAnalogX) / -10.0f, 0.0f);
+    _camera.rotate(_controller.getAxis(SixAxis::RightAnalogX) / 10.0f, _controller.getAxis(SixAxis::RightAnalogY) / -10.0f);
+    _camera.update(Camera::Spherical);
 
     if (_controller.isPressed(SixAxis::Buttons::Cross))
       ++TessLevelInner;
@@ -237,8 +240,7 @@ void Reaper::run()
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     shader.use();
-
-    Model = glm::rotate(Model, 0.3f, glm::vec3(0, 1, 0));
+    Model = glm::mat4(1.0f);
     View = _camera.getViewMatrix();
     MV = View * Model;
     MVP = Projection * MV;
@@ -332,7 +334,6 @@ void Reaper::run()
     glDisableVertexAttribArray(0);
 */
     _errorLogger();
-
     _context.swapBuffers();
     glfwPollEvents();
   }
