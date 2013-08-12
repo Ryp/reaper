@@ -67,6 +67,7 @@ public:
   static const int AxisAbsoluteResolution = (2 << 14) - 1;
   static const int TotalButtonsNumber = 19;
   static const int TotalAxesNumber = 27;
+  static const float AxisDeadzone;
 
 public:
   SixAxis(const std::string& device);

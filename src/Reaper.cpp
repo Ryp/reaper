@@ -176,6 +176,7 @@ void Reaper::run()
 
   GLuint renderedTexture;
   glGenTextures(1, &renderedTexture);
+  glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, renderedTexture);
   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, _context.getWindowSize()[0], _context.getWindowSize()[1], 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -183,19 +184,20 @@ void Reaper::run()
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-  GLuint depthrenderbuffer;
-  glGenRenderbuffers(1, &depthrenderbuffer);
-  glBindRenderbuffer(GL_RENDERBUFFER, depthrenderbuffer);
+  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, renderedTexture, 0);
+
+  GLuint depthBuffer;
+  glGenRenderbuffers(1, &depthBuffer);
+  glBindRenderbuffer(GL_RENDERBUFFER, depthBuffer);
   glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, _context.getWindowSize()[0], _context.getWindowSize()[1]);
-  glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthrenderbuffer);
+  glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthBuffer);
 
-  glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, renderedTexture, 0);
-
-  GLenum DrawBuffers[1] = {GL_COLOR_ATTACHMENT0};
-  glDrawBuffers(1, DrawBuffers); // "1" is the size of DrawBuffers
+  GLenum DrawBuffers[] = {GL_COLOR_ATTACHMENT0};
+  glDrawBuffers(1, DrawBuffers);
 
   if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
     throw (ReaperException("bad framebuffer"));
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
   GLuint vertexbuffer;
   glGenBuffers(1, &vertexbuffer);
@@ -234,7 +236,7 @@ void Reaper::run()
     if (_controller.isHeld(SixAxis::Buttons::Start))
       break;
 
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glBindFramebuffer(GL_FRAMEBUFFER, FramebufferName);
     glViewport(0, 0, _context.getWindowSize()[0], _context.getWindowSize()[1]);
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -307,15 +309,17 @@ void Reaper::run()
     glDisableVertexAttribArray(0);
 //     glDisableVertexAttribArray(1);
 //     glDisableVertexAttribArray(2);
-/*
+
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glViewport(0, 0, _context.getWindowSize()[0], _context.getWindowSize()[1]);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     post.use();
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, renderedTexture);
     glUniform1i(post.getUniformLocation("renderedTexture"), 0);
+    glUniform1f(post.getUniformLocation("time"), _context.getTime());
 
     glEnableVertexAttribArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, quad_vertexbuffer);
@@ -332,7 +336,7 @@ void Reaper::run()
     glDrawArrays(GL_TRIANGLES, 0, 6); // 2*3 indices starting at 0 -> 2 triangles
 
     glDisableVertexAttribArray(0);
-*/
+
     _errorLogger();
     _context.swapBuffers();
     glfwPollEvents();
