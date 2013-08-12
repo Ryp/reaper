@@ -20,6 +20,7 @@ public:
   void		swapBuffers();
   void		destroy();
   const Vect2u&	getWindowSize() const;
+  double	getTime() const;
 
 public:
   void printLog(bool full);

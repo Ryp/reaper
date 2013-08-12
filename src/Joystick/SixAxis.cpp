@@ -3,10 +3,13 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <cstdint>
+#include <cmath>
 #include <cstring>
 
 #include "SixAxis.hpp"
 #include "Exceptions/ControllerException.hpp"
+
+const float SixAxis::AxisDeadzone = 0.12f;
 
 SixAxis::SixAxis(const std::string& device)
   : AController(TotalButtonsNumber, TotalAxesNumber)
@@ -32,13 +35,17 @@ SixAxis::~SixAxis()
 void SixAxis::update()
 {
   int			ret;
+  float			val;
   struct js_event	event;
 
   while ((ret = read(_fd, static_cast<void*>(&event), sizeof(event))) != -1)
   {
     event.type &= ~JS_EVENT_INIT;
     if (event.type == JS_EVENT_AXIS)
-      _axes[event.number] = static_cast<float>(event.value) / static_cast<float>(AxisAbsoluteResolution);
+    {
+      val = static_cast<float>(event.value) / static_cast<float>(AxisAbsoluteResolution);
+      _axes[event.number] = ((fabs(val) < AxisDeadzone) ? (0.0f) : (val));
+    }
     else if (event.type == JS_EVENT_BUTTON)
       _buttons[event.number].new_held = event.value != 0;
   }

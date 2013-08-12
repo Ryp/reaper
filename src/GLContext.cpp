@@ -38,6 +38,11 @@ const Vect2u& GLContext::getWindowSize() const
   return (_windowSize);
 }
 
+double GLContext::getTime() const
+{
+  return (glfwGetTime());
+}
+
 bool GLContext::isOpen()
 {
   return (!glfwWindowShouldClose(_window));
