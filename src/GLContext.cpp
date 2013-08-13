@@ -33,16 +33,6 @@ void GLContext::create(int width, int height, bool fullscreen)
   glfwSetInputMode(_window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
 }
 
-const Vect2u& GLContext::getWindowSize() const
-{
-  return (_windowSize);
-}
-
-double GLContext::getTime() const
-{
-  return (glfwGetTime());
-}
-
 bool GLContext::isOpen()
 {
   return (!glfwWindowShouldClose(_window));
@@ -58,6 +48,38 @@ void GLContext::destroy()
   if (_window)
     glfwDestroyWindow(_window);
   glfwTerminate();
+}
+
+const Vect2u& GLContext::getWindowSize() const
+{
+  return (_windowSize);
+}
+
+double GLContext::getTime() const
+{
+  return (glfwGetTime());
+}
+
+Vect2u GLContext::getCursorPosition() const
+{
+  double v[2];
+  glfwGetCursorPos(_window, &(v[0]), &(v[1]));
+  return (Vect2u(v[0], v[1]));
+}
+
+void GLContext::setCursorPosition(const Vect2u& position)
+{
+  glfwSetCursorPos(_window, position[0], position[1]);
+}
+
+void GLContext::centerCursor()
+{
+  setCursorPosition(_windowSize / 2);
+}
+
+void GLContext::setTitle(const std::string& title)
+{
+  glfwSetWindowTitle(_window, title.c_str());
 }
 
 void GLContext::printLog(bool full)

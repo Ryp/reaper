@@ -3,6 +3,7 @@
 
 #include "GLContext.hh"
 #include "GLErrorLogger.hpp"
+#include "Renderer/PostProcessor.hpp"
 #include "Joystick/SixAxis.hpp"
 #include "Camera/Camera.hpp"
 
@@ -17,7 +18,8 @@ public:
 
 private:
   GLContext&	_context;
-  GLErrorLogger _errorLogger;
+  GLErrorLogger	_errorLogger;
+  PostProcessor	_postProcessor;
   SixAxis	_controller;
   Camera	_camera;
 };

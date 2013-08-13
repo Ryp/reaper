@@ -35,8 +35,8 @@ void ReaperCore::run()
   _logFile << "Log started on " << std::ctime(&t);
   try
   {
-    Reaper prgm(_glContext);
     _glContext.create(1280, 720);
+    Reaper prgm(_glContext);
     prgm.run();
     _glContext.destroy();
     t = std::time(nullptr);

@@ -9,13 +9,14 @@ AController::~AController() {}
 
 void AController::reset()
 {
+  Button b;
+
+  b.held = false;
+  b.new_held = false;
+  b.pressed = false;
+  b.released = false;
   for (std::vector<Button>::iterator it = _buttons.begin(); it != _buttons.end(); it++)
-  {
-    (*it).held = false;
-    (*it).new_held = false;
-    (*it).pressed = false;
-    (*it).released = false;
-  }
+    *it = b;
   for (std::vector<Axe>::iterator it = _axes.begin(); it != _axes.end(); it++)
     (*it) = 0;
 }

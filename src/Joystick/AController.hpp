@@ -23,10 +23,10 @@ public:
 
 protected:
   typedef struct {
-      bool held;
-      bool new_held;
-      bool pressed;
-      bool released;
+    bool held;
+    bool new_held;
+    bool pressed;
+    bool released;
   } Button;
   typedef float Axe;
 
