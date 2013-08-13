@@ -97,7 +97,8 @@ public:
   {
     Vec tmp(*this);
 
-    tmp.scale(1 / coeff);
+    for (unsigned i = 0; i < size; ++i)
+      tmp._vector[i] /= coeff;
     return (tmp);
   }
 
@@ -215,8 +216,10 @@ public:
 typedef Vector4<float> Vect4f;
 typedef Vector3<int> Vect3i;
 typedef Vector3<float> Vect3f;
+typedef Vector3<double> Vect3d;
 typedef Vector2<unsigned int> Vect2u;
 typedef Vector2<int> Vect2i;
 typedef Vector2<float> Vect2f;
+typedef Vector2<double> Vect2d;
 
 #endif // VECTOR_HPP

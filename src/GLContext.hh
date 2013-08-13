@@ -3,6 +3,7 @@
 
 #include "GLHeaders.hpp"
 #include "Vector.hpp"
+#include <string>
 
 class GLContext
 {
@@ -21,9 +22,13 @@ public:
   void		destroy();
   const Vect2u&	getWindowSize() const;
   double	getTime() const;
+  Vect2u	getCursorPosition() const;
+  void		setCursorPosition(const Vect2u& position);
+  void		centerCursor();
+  void		setTitle(const std::string& title);
 
 public:
-  void printLog(bool full);
+  void		printLog(bool full);
 
 private:
   GLFWwindow*	_window;

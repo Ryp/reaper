@@ -25,6 +25,7 @@ SRC		=	src/main.cpp				\
 			src/GLErrorLogger.cpp			\
 			src/ReaperCore.cpp			\
 			src/Reaper.cpp				\
+			src/Renderer/PostProcessor.cpp		\
 			src/Camera/Camera.cpp			\
 			src/Model/Model.cpp			\
  			src/Model/ModelLoader.cpp		\
