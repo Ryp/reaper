@@ -4,9 +4,13 @@ ReaperGL is a small C++ Engine project based on OpenGL 3.0 and later.
 
 ## Install
 
-No instructions yet.
+mkdir build
+cd build
+cmake -DCMAKE_INSTALL_PREFIX=$PWD/install ..
+make install
 
 Dependencies:
+- C++11
 - Glfw 3.0
 - Glew 1.9.0
 
