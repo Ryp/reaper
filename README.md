@@ -12,7 +12,7 @@ make install
 Dependencies:
 - C++11
 - Glfw 3.0
-- Glew 1.9.0
+- glbinding
 
 ## Issues
 
