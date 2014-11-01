@@ -10,17 +10,17 @@
 class ModelLoader
 {
 public:
-  ModelLoader();
-  ~ModelLoader();
+    ModelLoader();
+    ~ModelLoader();
 
 public:
-  Model*	load(std::string filename);
+    Model*    load(std::string filename);
 
 private:
-  Model*	loadOBJ(std::ifstream& src);
+    Model*    loadOBJ(std::ifstream& src);
 
 private:
-  std::map<std::string, Model* (ModelLoader::*)(std::ifstream&)> _parsers;
+    std::map<std::string, Model* (ModelLoader::*)(std::ifstream&)> _parsers;
 };
 
 #endif // MODELLOADER_HH
