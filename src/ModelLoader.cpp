@@ -92,7 +92,7 @@ Model* ModelLoader::loadOBJ(std::ifstream& src)
                 }
                 indexes.push_back(vIdx);
             }
-            if (ss.str() != "")
+            /*if (ss.str() != "")
             {
                 vIdx[1] = vIdx[2];
                 ss >> line;
@@ -114,7 +114,7 @@ Model* ModelLoader::loadOBJ(std::ifstream& src)
                         line = "";
                 }
                 indexes.push_back(vIdx);
-            }
+            }*/
         }
     }
     model->_hasUVs = !(uvs.empty());

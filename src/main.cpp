@@ -13,6 +13,7 @@ using namespace gl;
 #include <mogl/framebuffer.hpp>
 #include <mogl/renderbuffer.hpp>
 #include <mogl/buffer/bufferobject.hpp>
+#include <mogl/queryobject.hpp>
 
 #define GLM_FORCE_RADIANS
 #include <glm/gtc/matrix_transform.hpp>
@@ -51,7 +52,7 @@ static void loadSimpleShader(mogl::ShaderProgram& shader, const std::string& ver
 
 void    pcf_test(GLContext& ctx, SixAxis& controller)
 {
-    float                       time;
+    float                       frameTime;
     Camera                      cam(glm::vec3(0.0, 3.0, -5.0));
     mogl::ShaderProgram         shader;
     mogl::ShaderProgram         postshader;
@@ -66,6 +67,13 @@ void    pcf_test(GLContext& ctx, SixAxis& controller)
     mogl::RenderBufferObject    postDepthBuffer;
     ModelLoader                 loader;
     Model*                      model = loader.load("rc/model/suzanne.obj");
+    mogl::QueryObject           timeQuery(GL_TIME_ELAPSED);
+    glm::mat4                   biasMatrix(
+                                    0.5, 0.0, 0.0, 0.0,
+                                    0.0, 0.5, 0.0, 0.0,
+                                    0.0, 0.0, 0.5, 0.0,
+                                    0.5, 0.5, 0.5, 1.0
+                                );
 
     loadSimpleShader(depthpassshader, "rc/shader/depth_pass.vert", "rc/shader/depth_pass.frag");
     loadSimpleShader(shader, "rc/shader/shadow.vert", "rc/shader/shadow.frag");
@@ -156,16 +164,11 @@ void    pcf_test(GLContext& ctx, SixAxis& controller)
         glm::mat4           depthViewMatrix = glm::lookAt(lightInvDir, glm::vec3(0,0,0), glm::vec3(0,1,0));
         glm::mat4           depthModelMatrix = glm::mat4(1.0);
         glm::mat4           depthMVP = depthProjectionMatrix * depthViewMatrix * depthModelMatrix;
+        glm::mat4           depthBiasMVP = biasMatrix * depthMVP;
 
-        glm::mat4 biasMatrix(
-            0.5, 0.0, 0.0, 0.0,
-            0.0, 0.5, 0.0, 0.0,
-            0.0, 0.0, 0.5, 0.0,
-            0.5, 0.5, 0.5, 1.0
-        );
-        glm::mat4 depthBiasMVP = biasMatrix*depthMVP;
+        frameTime = ctx.getTime();
+        timeQuery.begin();
 
-        time = ctx.getTime();
         //Depth buffer pass
         depthFrameBuffer.bind(mogl::FrameBuffer::Target::FrameBuffer);
         glViewport(0, 0, 1024, 1024);
@@ -229,9 +232,12 @@ void    pcf_test(GLContext& ctx, SixAxis& controller)
         glDrawArrays(GL_TRIANGLES, 0, 6);
         glDisableVertexAttribArray(0);
 
+        timeQuery.end();
+        double glms = static_cast<double>(timeQuery.getResult<GLuint>(GL_QUERY_RESULT)) * 0.0000001;
+
         ctx.swapBuffers();
-        time = ctx.getTime() - time;
-        ctx.setTitle(std::to_string(time * 1000.0f) + " ms " + std::to_string(ctx.getWindowSize().x) + "x"  + std::to_string(ctx.getWindowSize().y));
+        frameTime = ctx.getTime() - frameTime;
+        ctx.setTitle(std::to_string(frameTime * 1000.0f) + " ms / " + std::to_string(glms) + " ms " + std::to_string(ctx.getWindowSize().x) + "x"  + std::to_string(ctx.getWindowSize().y));
     }
 }
 
@@ -242,6 +248,7 @@ int main(int /*ac*/, char** /*av*/)
         SixAxis     controller("/dev/input/js0");
 
         ctx.create(1600, 900, false);
+        ctx.printLog(false);
         pcf_test(ctx, controller);
     }
     catch (const std::runtime_error& e) {
