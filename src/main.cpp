@@ -66,7 +66,7 @@ void    pcf_test(GLContext& ctx, SixAxis& controller)
     mogl::TextureObject         depthTexture(GL_TEXTURE_2D);
     mogl::RenderBufferObject    postDepthBuffer;
     ModelLoader                 loader;
-    Model*                      model = loader.load("rc/model/suzanne.obj");
+    Model*                      model = loader.load("rc/model/teapot.obj");
     mogl::QueryObject           timeQuery(GL_TIME_ELAPSED);
     glm::mat4                   biasMatrix(
                                     0.5, 0.0, 0.0, 0.0,
@@ -143,8 +143,11 @@ void    pcf_test(GLContext& ctx, SixAxis& controller)
     if (!mogl::FrameBuffer::isComplete(mogl::FrameBuffer::Target::FrameBuffer))
         throw (std::runtime_error("bad framebuffer"));
 
+    frameTime = 0.0f;
     while (ctx.isOpen())
     {
+        frameTime = ctx.getTime();
+
         controller.update();
         if (controller.isHeld(SixAxis::Buttons::Start))
             break;
@@ -156,7 +159,7 @@ void    pcf_test(GLContext& ctx, SixAxis& controller)
 
         glm::mat4           Projection  = glm::perspective(45.0f, static_cast<float>(ctx.getWindowSize().x) / static_cast<float>(ctx.getWindowSize().y), 0.1f, 100.0f);
         glm::mat4           View        = cam.getViewMatrix();
-        glm::mat4           Model       = glm::mat4(1.0f);
+        glm::mat4           Model       = glm::rotate(glm::mat4(1.0f), static_cast<float>(frameTime), glm::vec3(0.0, 1.0, 0.0));
         glm::mat4           MV          = View * Model;
         glm::mat4           MVP         = Projection * MV;
         glm::vec3           lightInvDir = glm::vec3(0.5f,2,2);
@@ -166,7 +169,6 @@ void    pcf_test(GLContext& ctx, SixAxis& controller)
         glm::mat4           depthMVP = depthProjectionMatrix * depthViewMatrix * depthModelMatrix;
         glm::mat4           depthBiasMVP = biasMatrix * depthMVP;
 
-        frameTime = ctx.getTime();
         timeQuery.begin();
 
         //Depth buffer pass
