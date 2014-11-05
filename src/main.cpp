@@ -75,9 +75,10 @@ void    pcf_test(GLContext& ctx, SixAxis& controller)
                                     0.5, 0.5, 0.5, 1.0
                                 );
 
+    model->debugDump();
     loadSimpleShader(depthpassshader, "rc/shader/depth_pass.vert", "rc/shader/depth_pass.frag");
     loadSimpleShader(shader, "rc/shader/shadow.vert", "rc/shader/shadow.frag");
-    loadSimpleShader(postshader, "rc/shader/post/passthrough.vert", "rc/shader/post/post.frag");
+    loadSimpleShader(postshader, "rc/shader/post/passthrough.vert", "rc/shader/post/fxaa.frag");
 
     depthpassshader.printDebug();
     shader.printDebug();
@@ -143,7 +144,6 @@ void    pcf_test(GLContext& ctx, SixAxis& controller)
     if (!mogl::FrameBuffer::isComplete(mogl::FrameBuffer::Target::FrameBuffer))
         throw (std::runtime_error("bad framebuffer"));
 
-    frameTime = 0.0f;
     while (ctx.isOpen())
     {
         frameTime = ctx.getTime();
@@ -159,13 +159,26 @@ void    pcf_test(GLContext& ctx, SixAxis& controller)
 
         glm::mat4           Projection  = glm::perspective(45.0f, static_cast<float>(ctx.getWindowSize().x) / static_cast<float>(ctx.getWindowSize().y), 0.1f, 100.0f);
         glm::mat4           View        = cam.getViewMatrix();
-        glm::mat4           Model       = glm::rotate(glm::mat4(1.0f), static_cast<float>(frameTime), glm::vec3(0.0, 1.0, 0.0));
+        glm::mat4           Model       = glm::mat4(1.0);
+//         glm::mat4           Model       = glm::rotate(
+//                                                 glm::rotate(
+//                                                     glm::scale(
+//                                                         glm::mat4(1.0f),
+//                                                         glm::vec3(0.005f, 0.005f, 0.005f)
+//                                                         glm::vec3(1.0, 1.0, 1.0)
+//                                                     ),
+//                                                     -static_cast<float>(M_PI_2),
+//                                                     glm::vec3(1.0, 0.0, 0.0)
+//                                                 ),
+//                                                 static_cast<float>(frameTime),
+//                                                 glm::vec3(0.0, 0.0, 1.0)
+//                                                 );
         glm::mat4           MV          = View * Model;
         glm::mat4           MVP         = Projection * MV;
         glm::vec3           lightInvDir = glm::vec3(0.5f,2,2);
         glm::mat4           depthProjectionMatrix = glm::ortho<float>(-10,10,-10,10,-10,20);
         glm::mat4           depthViewMatrix = glm::lookAt(lightInvDir, glm::vec3(0,0,0), glm::vec3(0,1,0));
-        glm::mat4           depthModelMatrix = glm::mat4(1.0);
+        glm::mat4           depthModelMatrix = Model;
         glm::mat4           depthMVP = depthProjectionMatrix * depthViewMatrix * depthModelMatrix;
         glm::mat4           depthBiasMVP = biasMatrix * depthMVP;
 
@@ -225,7 +238,7 @@ void    pcf_test(GLContext& ctx, SixAxis& controller)
         frameTexture.bind();
 
         postshader.setUniform<GLint>("renderedTexture", 0);
-        postshader.setUniform<GLfloat>("time", ctx.getTime());
+        postshader.setUniform<GLfloat>("frameBufSize", ctx.getWindowSize().x, ctx.getWindowSize().y);
 
         glEnableVertexAttribArray(0);
         quadBuffer.bind();
