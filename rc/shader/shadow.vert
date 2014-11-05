@@ -8,8 +8,10 @@ out vec4 ShadowCoord;
 out vec3 vertexNormal_cameraspace;
 out vec3 lightDirection_cameraspace;
 out vec3 eyeDirection_cameraspace;
+out vec3 vertexPosition_worldspace;
 
 uniform mat4 V;
+uniform mat4 M;
 uniform mat4 MV;
 uniform mat4 MVP;
 uniform mat4 DepthBiasMVP;
@@ -19,6 +21,8 @@ uniform vec3 lightInvDirection_worldspace;
 void main()
 {
     gl_Position = MVP * vec4(vertexPosition_modelspace, 1);
+
+    vertexPosition_worldspace = (M * vec4(vertexPosition_modelspace, 0)).xyz;
 
     // Same, but with the light's view matrix
     ShadowCoord = DepthBiasMVP * vec4(vertexPosition_modelspace, 1);

@@ -160,19 +160,6 @@ void    pcf_test(GLContext& ctx, SixAxis& controller)
         glm::mat4           Projection  = glm::perspective(45.0f, static_cast<float>(ctx.getWindowSize().x) / static_cast<float>(ctx.getWindowSize().y), 0.1f, 100.0f);
         glm::mat4           View        = cam.getViewMatrix();
         glm::mat4           Model       = glm::mat4(1.0);
-//         glm::mat4           Model       = glm::rotate(
-//                                                 glm::rotate(
-//                                                     glm::scale(
-//                                                         glm::mat4(1.0f),
-//                                                         glm::vec3(0.005f, 0.005f, 0.005f)
-//                                                         glm::vec3(1.0, 1.0, 1.0)
-//                                                     ),
-//                                                     -static_cast<float>(M_PI_2),
-//                                                     glm::vec3(1.0, 0.0, 0.0)
-//                                                 ),
-//                                                 static_cast<float>(frameTime),
-//                                                 glm::vec3(0.0, 0.0, 1.0)
-//                                                 );
         glm::mat4           MV          = View * Model;
         glm::mat4           MVP         = Projection * MV;
         glm::vec3           lightInvDir = glm::vec3(0.5f,2,2);
@@ -211,6 +198,7 @@ void    pcf_test(GLContext& ctx, SixAxis& controller)
         shader.setUniformMatrixPtr<4>("DepthBiasMVP", &depthBiasMVP[0][0]);
         shader.setUniformMatrixPtr<4>("MV", &MV[0][0]);
         shader.setUniformMatrixPtr<4>("V", &View[0][0]);
+        shader.setUniformMatrixPtr<4>("M", &Model[0][0]);
         shader.setUniformPtr<3>("lightInvDirection_worldspace", &lightInvDir[0]);
 
         glActiveTexture(GL_TEXTURE0);
