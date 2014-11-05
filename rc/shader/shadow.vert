@@ -26,7 +26,7 @@ void main()
     lightDirection_cameraspace = (V * vec4(lightInvDirection_worldspace, 0)).xyz;
     eyeDirection_cameraspace = vec3(0, 0, 0) - (MV * vec4(vertexPosition_modelspace, 1)).xyz;
 
-    vertexNormal_cameraspace = (MV * vec4(vertexNormal_modelspace,0)).xyz;
+    vertexNormal_cameraspace = (MV * vec4(vertexNormal_modelspace, 0)).xyz;
 
     fragmentColor = vertexNormal_modelspace;
 }

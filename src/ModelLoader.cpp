@@ -40,7 +40,6 @@ Model* ModelLoader::loadOBJ(std::ifstream& src)
 {
     Model*                  model = new Model;
     std::string             line;
-    std::stringstream       ss;
     glm::vec3               tmpVec3;
     glm::vec2               tmpVec2;
     glm::uvec3              vIdx;
@@ -51,8 +50,7 @@ Model* ModelLoader::loadOBJ(std::ifstream& src)
 
     while (std::getline(src, line))
     {
-        ss.clear();
-        ss.str(line);
+        std::istringstream      ss(line);
         ss >> line;
         if (line == "v")
         {
@@ -61,6 +59,7 @@ Model* ModelLoader::loadOBJ(std::ifstream& src)
         }
         else if (line == "vn")
         {
+
             ss >> tmpVec3[0] >> tmpVec3[1] >> tmpVec3[2];
             normals.push_back(tmpVec3);
         }
