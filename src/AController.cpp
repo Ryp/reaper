@@ -9,26 +9,12 @@ AController::~AController() {}
 
 void AController::reset()
 {
-    Button b;
+    Button b({false, false, false, false});
 
-    b.held = false;
-    b.new_held = false;
-    b.pressed = false;
-    b.released = false;
     for (auto& button : _buttons)
         button = b;
     for (auto& axe : _axes)
-        axe = 0;
-}
-
-void AController::update()
-{
-    for (auto& button : _buttons)
-    {
-        button.pressed = !button.held && button.new_held;
-        button.released = button.held && !button.new_held;
-        button.held = button.new_held;
-    }
+        axe = 0.0f;
 }
 
 bool AController::isHeld(unsigned int idx) const
@@ -49,4 +35,14 @@ bool AController::isReleased(unsigned int idx) const
 float AController::getAxis(unsigned int idx) const
 {
     return (_axes[idx]);
+}
+
+void AController::update()
+{
+    for (auto& button : _buttons)
+    {
+        button.pressed = !button.held && button.new_held;
+        button.released = button.held && !button.new_held;
+        button.held = button.new_held;
+    }
 }
