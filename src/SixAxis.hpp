@@ -77,7 +77,12 @@ public:
     virtual void update() override;
 
 private:
-    int _fd;
+    bool    connect();
+
+private:
+    std::string _device;
+    bool        _connected;
+    int         _fd;
 };
 
 #endif // SIXAXIS_HPP

@@ -45,9 +45,9 @@ void Camera::setDirection(const glm::vec3& direction)
 
 void Camera::setRotation(float yaw, float pitch)
 {
-    yaw = fmod(yaw, M_PI * 2.0f);
-    pitch = fmod(pitch + M_PI_2, M_PI) - M_PI_2;
-    _direction = glm::vec3(cos(yaw) * cos(pitch), sin(pitch), sin(yaw) * cos(pitch));
+    _yaw = fmod(yaw, M_PI * 2.0f);
+    _pitch = fmod(pitch + M_PI_2, M_PI) - M_PI_2;
+    _direction = glm::vec3(cos(_yaw) * cos(_pitch), sin(_pitch), sin(_yaw) * cos(_pitch));
 }
 
 void Camera::rotate(float yaw, float pitch)

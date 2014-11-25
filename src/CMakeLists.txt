@@ -13,7 +13,7 @@ set(REAPER_SRCS
 find_package(MoGL REQUIRED)
 find_package(OpenGL REQUIRED)
 find_package(glfw REQUIRED)
-#find_package(glbinding REQUIRED)
+find_package(glbinding REQUIRED)
 
 add_executable(${REAPER_BIN} ${REAPER_SRCS})
 
@@ -30,13 +30,13 @@ target_include_directories(${REAPER_BIN} PUBLIC
 
 #External includes dirs (won't show warnings)
 target_include_directories(${REAPER_BIN} SYSTEM PUBLIC
-    ${OPENGL_INCLUDE_DIR}
-    ${GLFW_INCLUDE_DIR}
+    ${OPENGL_INCLUDE_DIRS}
+    ${GLFW_INCLUDE_DIRS}
+    ${MOGL_INCLUDE_DIRS}
     ${GLBINDING_INCLUDES})
 
 #Libraries
 target_link_libraries(${REAPER_BIN}
     ${OPENGL_LIBRARIES}
     ${GLFW_LIBRARY}
-    glbinding #Dirty fix
     ${GLBINDING_LIBRARIES})
