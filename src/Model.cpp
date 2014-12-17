@@ -2,6 +2,7 @@
 
 /* FIXME */
 #include <iostream>
+#include <glm/geometric.hpp>
 
 Model::Model()
 :   _isIndexed(false),
@@ -47,7 +48,19 @@ void Model::computeTangents()
 
 void Model::computeNormalsSimple()
 {
+    int trianglesNo = getTriangleCount();
 
+    _normals.resize(_vertices.size());
+    for (int i = 0; i < trianglesNo; ++i)
+    {
+        glm::vec3   a = _vertices[i * 3 + 1] - _vertices[i * 3 + 0];
+        glm::vec3   b = _vertices[i * 3 + 2] - _vertices[i * 3 + 0];
+        glm::vec3   n = glm::normalize(glm::cross(a, b));
+
+        _normals[i * 3 + 0] = n;
+        _normals[i * 3 + 1] = n;
+        _normals[i * 3 + 2] = n;
+    }
 }
 
 const void* Model::getVertexBuffer() const

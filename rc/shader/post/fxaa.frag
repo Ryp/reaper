@@ -5,6 +5,8 @@ uniform vec2 frameBufSize;
 
 in vec2 UV;
 
+layout (location = 0) out vec3 color;
+
 void main(void)
 {
   float FXAA_SPAN_MAX = 8.0;
@@ -50,8 +52,8 @@ void main(void)
   float lumaB = dot(rgbB, luma);
 
   if((lumaB < lumaMin) || (lumaB > lumaMax)){
-	  gl_FragColor.xyz=rgbA;
+	  color.xyz=rgbA;
   }else{
-	  gl_FragColor.xyz=rgbB;
+	  color.xyz=rgbB;
   }
 }

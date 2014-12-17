@@ -25,12 +25,12 @@ public:
   glm::mat4&	getViewMatrix();
 
 public:
-  void	setDirection(const glm::vec3& direction);
-  void	setRotation(float yaw, float pitch);
-  void	rotate(float yaw, float pitch);
-  void	setPosition(const glm::vec3& position);
-  void	translate(const glm::vec3& v);
-  void	move(float front, float lateral, float up);
+  void	            setDirection(const glm::vec3& direction);
+  void	            setRotation(float yaw, float pitch);
+  void	            rotate(float yaw, float pitch);
+  void	            setPosition(const glm::vec3& position);
+  void	            translate(const glm::vec3& v);
+  void	            move(float front, float lateral, float up);
 
 protected:
   glm::mat4	_viewMatrix;

@@ -3,6 +3,8 @@ set(REAPER_BIN reaper)
 set(REAPER_SRCS
     glcontext.cpp
     main.cpp
+    spline.cpp
+    shaderhelper.cpp
     AController.cpp
     Camera.cpp
     SixAxis.cpp
@@ -11,6 +13,7 @@ set(REAPER_SRCS
 )
 
 find_package(MoGL REQUIRED)
+add_definitions(-DMOGL_DEBUG)
 find_package(OpenGL REQUIRED)
 find_package(glfw REQUIRED)
 find_package(glbinding REQUIRED)

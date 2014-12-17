@@ -146,5 +146,7 @@ Model* ModelLoader::loadOBJ(std::ifstream& src)
         if (model->_hasNormals)
             model->_normals.push_back(normals[indexes[i][2]]);
     }
+    if (!model->_hasNormals)
+        model->computeNormalsSimple();
     return (model);
 }
