@@ -27,6 +27,7 @@ void GLContext::create(unsigned int width, unsigned int height, bool fullscreen)
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 4);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, 1);
+    glfwSetErrorCallback([] (int e, const char* str) { std::cout << "GLFW Context error (" << e << "): " << str << std::endl; });
     GLFWmonitor* monitor;
     if (!(monitor = glfwGetPrimaryMonitor()))
         throw (std::runtime_error("Failed to retrieve primary monitor"));

@@ -1,6 +1,6 @@
 # ReaperGL
 
-ReaperGL is a small C++ Engine project based on OpenGL 3.0 and later.
+ReaperGL is a small C++ Engine project based on OpenGL 4.4 and later.
 
 ## Install
 
