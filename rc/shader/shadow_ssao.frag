@@ -11,6 +11,8 @@ out vec3 color;
 
 uniform mat4 MVP;
 uniform vec2 frameBufSize;
+uniform float farPlane;
+uniform float nearPlane;
 uniform sampler2DShadow shadowMap;
 uniform sampler2D       depthBuffer;
 
@@ -42,12 +44,11 @@ float random(vec3 seed, int i){
 
 float ssao(vec2 pixel_projspace)
 {
-    vec2 pixel_screenspace = (pixel_projspace * 0.5 + 1.0) * frameBufSize;
+    vec2 uv = pixel_projspace * 0.5 + 0.5;
+    float depth = texture(depthBuffer, uv).r;
 
-    float z = texture2D(depthBuffer, pixel_screenspace).r * 2.0 - 1.0;
-
-
-    return z;
+    depth = (depth - nearPlane) / (farPlane - nearPlane);
+    return depth;
 }
 
 void main()
@@ -75,11 +76,9 @@ void main()
         int index = int(16.0 * random(floor(vertexPosition_worldspace * 1000.0), i)) % 16;
         visibility -= 0.25 * (1.0-texture(shadowMap, vec3(ShadowCoord.xy + poissonDisk[index] * spread,  (ShadowCoord.z-bias) / ShadowCoord.w) ));
     }
-    float ssao_level = ssao((MVP * vec4(vertexPosition_worldspace, 0.0)).xy);
+    float ssao_level = ssao(gl_FragCoord.xy / frameBufSize);
 //     float visibility = texture(shadowMap, vec3(ShadowCoord.xy, (ShadowCoord.z - bias) / ShadowCoord.w));
-
-    color = MaterialAmbientColor * ssao_level;
-//     color = MaterialAmbientColor * ssao_level +
-//             MaterialDiffuseColor * lightColor * visibility * lightPower * cosTheta +
-//             MaterialSpecularColor * lightColor * visibility * lightPower * pow(cosAlpha, 5);
+    color = (MaterialAmbientColor +
+            MaterialDiffuseColor * lightColor * visibility * lightPower * cosTheta +
+            MaterialSpecularColor * lightColor * visibility * lightPower * pow(cosAlpha, 5)) * ssao_level;
 }

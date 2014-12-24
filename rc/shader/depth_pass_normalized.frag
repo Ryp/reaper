@@ -1,16 +1,10 @@
 #version 440 core
 
-in vec3 vertexNormal_worldspace;
+in vec3 vertexNormal_clipspace;
 
-out vec3 color;
-
-uniform float farPlane;
-uniform float nearPlane;
+layout(location = 0) out vec3 color;
 
 void main()
 {
-    float linearDepth = 1.0 / gl_FragCoord.w;
-
-    gl_FragDepth = (linearDepth - nearPlane) / (farPlane - nearPlane);
-    color = normalize(vertexNormal_worldspace);
+    color = normalize(vertexNormal_clipspace) * 0.5 + 0.5;
 }

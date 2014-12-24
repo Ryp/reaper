@@ -32,5 +32,5 @@ void main()
 
     vertexNormal_cameraspace = (MV * vec4(vertexNormal_modelspace, 0)).xyz;
 
-    fragmentColor = normalize((M * vec4(vertexNormal_modelspace, 0))).xyz;
+    fragmentColor = normalize((M * vec4(vertexNormal_modelspace, 0))).xyz * 0.5 + 0.5;
 }
