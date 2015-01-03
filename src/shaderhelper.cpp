@@ -1,6 +1,7 @@
 #include "shaderhelper.hpp"
 
 #include <fstream>
+#include <iostream>
 
 void ShaderHelper::loadSimpleShader(mogl::ShaderProgram& shader, const std::string& vertexFile, const std::string& fragmentFile)
 {
@@ -10,13 +11,13 @@ void ShaderHelper::loadSimpleShader(mogl::ShaderProgram& shader, const std::stri
     mogl::ShaderObject  fragment(fsFile, mogl::ShaderObject::ShaderType::FragmentShader);
 
     if (!vertex.compile())
-        throw(std::runtime_error(vertex.getLog()));
+        std::cerr << "Vertex shader " << vertexFile << std::endl << vertex.getLog() << std::endl;
     if (!fragment.compile())
-        throw(std::runtime_error(fragment.getLog()));
+        std::cerr << "Fragment shader" << fragmentFile << std::endl << fragment.getLog() << std::endl;
 
     shader.attach(vertex);
     shader.attach(fragment);
 
     if (!shader.link())
-        throw(std::runtime_error(vertexFile + " " + shader.getLog()));
+        std::cerr << "Program " << std::endl << shader.getLog() << std::endl;
 }

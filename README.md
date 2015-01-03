@@ -11,7 +11,7 @@ make install
 
 Dependencies:
 - C++11
-- Glfw 3.0
+- GLFW 3+
 - glbinding
 
 ## Issues

@@ -15,10 +15,10 @@ set(REAPER_SRCS
 find_package(moGL NO_MODULE REQUIRED)
 
 add_definitions(-DMOGL_DEBUG)
+
 find_package(OpenGL REQUIRED)
 find_package(glfw REQUIRED)
 find_package(glbinding REQUIRED)
-
 
 add_executable(${REAPER_BIN} ${REAPER_SRCS})
 

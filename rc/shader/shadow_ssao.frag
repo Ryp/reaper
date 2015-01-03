@@ -5,16 +5,13 @@ in vec4 ShadowCoord;
 in vec3 vertexNormal_cameraspace;
 in vec3 lightDirection_cameraspace;
 in vec3 eyeDirection_cameraspace;
-in vec3 vertexPosition_worldspace;
+in vec4 vertexPosition_clipspace;
 
 out vec3 color;
 
 uniform mat4 MVP;
-uniform vec2 frameBufSize;
-uniform float farPlane;
-uniform float nearPlane;
 uniform sampler2DShadow shadowMap;
-uniform sampler2D       depthBuffer;
+uniform sampler2DShadow depthBuffer;
 
 vec2 poissonDisk[16] = vec2[](
    vec2(-0.94201624, -0.39906216),
@@ -42,13 +39,16 @@ float random(vec3 seed, int i){
     return fract(sin(dot_product) * 43758.5453);
 }
 
-float ssao(vec2 pixel_projspace)
+float ssao(vec4 pixel_clipspace)
 {
-    vec2 uv = pixel_projspace * 0.5 + 0.5;
-    float depth = texture(depthBuffer, uv).r;
-
-    depth = (depth - nearPlane) / (farPlane - nearPlane);
-    return depth;
+    vec4 uv = pixel_clipspace/* * 0.5 + 0.5*/;
+    float depth = 0;
+    depth += textureProjOffset(depthBuffer, uv, ivec2(1, 1));
+    depth += textureProjOffset(depthBuffer, uv, ivec2(1, -1));
+    depth += textureProjOffset(depthBuffer, uv, ivec2(-1, 1));
+    depth += textureProjOffset(depthBuffer, uv, ivec2(-1, -1));
+    depth *= 0.1;
+    return 1.0 - depth;
 }
 
 void main()
@@ -66,19 +66,27 @@ void main()
     vec3    r = reflect(-l, n);
     float   cosAlpha = clamp(dot(e, r), 0, 1);
 
-    float bias = 0.005 * tan(acos(cosTheta));
-    bias = clamp(bias, 0.0, 0.01);
+    //SSAO
+    float ssao_level = ssao(vertexPosition_clipspace);
 
     // Sample neighbors
-    float visibility = 1.0;
-    float spread = 0.001;
-    for (int i = 0; i < 4; i++) {
-        int index = int(16.0 * random(floor(vertexPosition_worldspace * 1000.0), i)) % 16;
-        visibility -= 0.25 * (1.0-texture(shadowMap, vec3(ShadowCoord.xy + poissonDisk[index] * spread,  (ShadowCoord.z-bias) / ShadowCoord.w) ));
-    }
-    float ssao_level = ssao(gl_FragCoord.xy / frameBufSize);
-//     float visibility = texture(shadowMap, vec3(ShadowCoord.xy, (ShadowCoord.z - bias) / ShadowCoord.w));
+    float shadow = 0.0;
+    shadow += textureProjOffset(shadowMap, ShadowCoord, ivec2(1, 1));
+    shadow += textureProjOffset(shadowMap, ShadowCoord, ivec2(1, -1));
+    shadow += textureProjOffset(shadowMap, ShadowCoord, ivec2(-1, 1));
+    shadow += textureProjOffset(shadowMap, ShadowCoord, ivec2(-1, -1));
+    shadow *= 0.1;
+
+//     float bias = 0.005 * tan(acos(cosTheta));
+//     bias = clamp(bias, 0.0, 0.01);
+//     float spread = 0.001;
+//     for (int i = 0; i < 4; i++)
+//     {
+//         int index = int(16.0 * random(floor(vertexPosition_worldspace * 1000.0), i)) % 16;
+//         shadow -= 0.25 * (1.0 - textureProj(shadowMap, ShadowCoord.xy + poissonDisk[index] * spread,  (ShadowCoord.z-bias) / ShadowCoord.w)));
+//     }
+
     color = (MaterialAmbientColor +
-            MaterialDiffuseColor * lightColor * visibility * lightPower * cosTheta +
-            MaterialSpecularColor * lightColor * visibility * lightPower * pow(cosAlpha, 5)) * ssao_level;
+            MaterialDiffuseColor * lightColor * shadow * lightPower * cosTheta +
+            MaterialSpecularColor * lightColor * shadow * lightPower * pow(cosAlpha, 5))/* * ssao_level*/;
 }
