@@ -1,6 +1,5 @@
 #include <vector>
 #include <sstream>
-#include <iostream>
 #include <cctype>
 #include <algorithm>
 #include <string.h>
@@ -75,11 +74,9 @@ Model* ModelLoader::loadOBJ(std::ifstream& src)
             for (int i = 0; i < 3; ++i)
             {
                 ss >> line;
-//                 std::cout << "Parsing token: " << line << std::endl;
                 for (int j = 0; j < 3; ++j)
                 {
                     val = line.substr(0, line.find_first_of('/'));
-//                     std::cout << "val=" << line << std::endl;
                     if (!val.empty())
                         vIdx[j] = abs(std::stoul(val)) - 1;
                     else
@@ -91,20 +88,14 @@ Model* ModelLoader::loadOBJ(std::ifstream& src)
                 }
                 indexes.push_back(vIdx);
             }
-            /*if (ss.str() != "")
+            ss >> line;
+            if (!line.empty())
             {
-                vIdx[1] = vIdx[2];
-                ss >> line;
-                std::cout << "Parsing token: " << line << std::endl;
                 for (int j = 0; j < 3; ++j)
                 {
                     val = line.substr(0, line.find_first_of('/'));
-                    std::cout << "val=" << line << std::endl;
                     if (!val.empty())
-                    {
-                        std::cout << "stoul(" << val << ')' << std::endl;
                         vIdx[j] = abs(std::stoul(val)) - 1;
-                    }
                     else
                         vIdx[j] = 0;
                     if ((pos = line.find_first_of('/')) != std::string::npos)
@@ -112,8 +103,10 @@ Model* ModelLoader::loadOBJ(std::ifstream& src)
                     else
                         line = "";
                 }
+                indexes.push_back(indexes[indexes.size() - 3]);
+                indexes.push_back(indexes[indexes.size() - 2]);
                 indexes.push_back(vIdx);
-            }*/
+            }
         }
     }
     model->_hasUVs = !(uvs.empty());
@@ -135,7 +128,7 @@ Model* ModelLoader::loadOBJ(std::ifstream& src)
                 indexes[i + 1] = indexes[i + 2];
                 indexes[i + 2] = t;
             }
-            std::clog << "Model has been reverted" << std::endl;
+            // Model has been reverted
         }
     }
     for (unsigned i = 0; i < indexes.size(); ++i)

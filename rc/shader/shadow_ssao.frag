@@ -10,8 +10,10 @@ in vec4 vertexPosition_clipspace;
 out vec3 color;
 
 uniform mat4 MVP;
-uniform sampler2DShadow shadowMap;
-uniform sampler2DShadow depthBuffer;
+uniform mat4 DepthBias;
+uniform sampler2DShadow shadowMapTex;
+uniform sampler2DShadow depthBufferTex;
+// uniform sampler2DShadow noiseTex;
 
 vec2 poissonDisk[16] = vec2[](
    vec2(-0.94201624, -0.39906216),
@@ -41,14 +43,19 @@ float random(vec3 seed, int i){
 
 float ssao(vec4 pixel_clipspace)
 {
-    vec4 uv = pixel_clipspace/* * 0.5 + 0.5*/;
-    float depth = 0;
-    depth += textureProjOffset(depthBuffer, uv, ivec2(1, 1));
-    depth += textureProjOffset(depthBuffer, uv, ivec2(1, -1));
-    depth += textureProjOffset(depthBuffer, uv, ivec2(-1, 1));
-    depth += textureProjOffset(depthBuffer, uv, ivec2(-1, -1));
-    depth *= 0.1;
-    return 1.0 - depth;
+    vec4 uv = DepthBias * pixel_clipspace;
+    float occlusion = 0;
+
+    occlusion += textureProjOffset(depthBufferTex, uv, ivec2(1, 1));
+    occlusion += textureProjOffset(depthBufferTex, uv, ivec2(1, -1));
+    occlusion += textureProjOffset(depthBufferTex, uv, ivec2(-1, 1));
+    occlusion += textureProjOffset(depthBufferTex, uv, ivec2(-1, -1));
+    occlusion += textureProjOffset(depthBufferTex, uv, ivec2(2, 2));
+    occlusion += textureProjOffset(depthBufferTex, uv, ivec2(2, -2));
+    occlusion += textureProjOffset(depthBufferTex, uv, ivec2(-2, 2));
+    occlusion += textureProjOffset(depthBufferTex, uv, ivec2(-2, -2));
+    occlusion /= 8;
+    return occlusion;
 }
 
 void main()
@@ -71,22 +78,17 @@ void main()
 
     // Sample neighbors
     float shadow = 0.0;
-    shadow += textureProjOffset(shadowMap, ShadowCoord, ivec2(1, 1));
-    shadow += textureProjOffset(shadowMap, ShadowCoord, ivec2(1, -1));
-    shadow += textureProjOffset(shadowMap, ShadowCoord, ivec2(-1, 1));
-    shadow += textureProjOffset(shadowMap, ShadowCoord, ivec2(-1, -1));
-    shadow *= 0.1;
+    shadow += textureProjOffset(shadowMapTex, ShadowCoord, ivec2(1, 1));
+    shadow += textureProjOffset(shadowMapTex, ShadowCoord, ivec2(1, -1));
+    shadow += textureProjOffset(shadowMapTex, ShadowCoord, ivec2(-1, 1));
+    shadow += textureProjOffset(shadowMapTex, ShadowCoord, ivec2(-1, -1));
+    shadow *= 0.25;
 
-//     float bias = 0.005 * tan(acos(cosTheta));
-//     bias = clamp(bias, 0.0, 0.01);
-//     float spread = 0.001;
-//     for (int i = 0; i < 4; i++)
-//     {
-//         int index = int(16.0 * random(floor(vertexPosition_worldspace * 1000.0), i)) % 16;
-//         shadow -= 0.25 * (1.0 - textureProj(shadowMap, ShadowCoord.xy + poissonDisk[index] * spread,  (ShadowCoord.z-bias) / ShadowCoord.w)));
-//     }
+    shadow = shadow * 0.6 + 0.4; // Rescaling
 
-    color = (MaterialAmbientColor +
+    shadow *= ssao_level;
+
+    color = MaterialAmbientColor +
             MaterialDiffuseColor * lightColor * shadow * lightPower * cosTheta +
-            MaterialSpecularColor * lightColor * shadow * lightPower * pow(cosAlpha, 5))/* * ssao_level*/;
+            MaterialSpecularColor * lightColor * shadow * lightPower * pow(cosAlpha, 5);
 }
