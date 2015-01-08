@@ -5,6 +5,7 @@ set(REAPER_SRCS
     main.cpp
     spline.cpp
     shaderhelper.cpp
+    imageloader.cpp
     AController.cpp
     Camera.cpp
     SixAxis.cpp
