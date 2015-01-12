@@ -33,9 +33,9 @@ void Model::debugDump()
 std::size_t Model::getTriangleCount() const
 {
     if (_isIndexed)
-        return (_indexes.size());
+        return _indexes.size();
     else
-        return (_vertices.size() / 3);
+        return _vertices.size() / 3;
 }
 
 void Model::computeTangents()
@@ -65,60 +65,60 @@ void Model::computeNormalsSimple()
 
 const void* Model::getVertexBuffer() const
 {
-    return (&_vertices[0]);
+    return &_vertices[0];
 }
 
 std::size_t Model::getVertexBufferSize() const
 {
-    return (_vertices.size() * sizeof(_vertices[0][0]) * 3);
+    return _vertices.size() * sizeof(_vertices[0]);
 }
 
 const void* Model::getUVBuffer() const
 {
-    return (&_uvs[0]);
+    return &_uvs[0];
 }
 
 std::size_t Model::getUVBufferSize() const
 {
-    return (_uvs.size() * sizeof(_uvs[0][0]) * 2);
+    return _uvs.size() * sizeof(_uvs[0]);
 }
 
 const void* Model::getNormalBuffer() const
 {
-    return (&_normals[0]);
+    return &_normals[0];
 }
 
 std::size_t Model::getNormalBufferSize() const
 {
-    return (_normals.size() * sizeof(_normals[0][0]) * 3);
+    return _normals.size() * sizeof(_normals[0]);
 }
 
 const void* Model::getIndexBuffer() const
 {
-    return (&_indexes[0]);
+    return &_indexes[0];
 }
 
 std::size_t Model::getIndexBufferSize() const
 {
-    return (_indexes.size() * sizeof(_indexes[0]));
+    return _indexes.size() * sizeof(_indexes[0]);
 }
 
 const void* Model::getTangentBuffer() const
 {
-    return (&_tangents[0]);
+    return &_tangents[0];
 }
 
 std::size_t Model::getTangentBufferSize() const
 {
-    return (_tangents.size() * sizeof(_tangents[0][0]) * 3);
+    return _tangents.size() * sizeof(_tangents[0]);
 }
 
 const void* Model::getBitangentBuffer() const
 {
-    return (&_bitangents[0]);
+    return &_bitangents[0];
 }
 
 std::size_t Model::getBitangentBufferSize() const
 {
-    return (_bitangents.size() * sizeof(_bitangents[0][0]) * 3);
+    return _bitangents.size() * sizeof(_bitangents[0]);
 }

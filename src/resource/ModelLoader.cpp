@@ -65,6 +65,7 @@ Model* ModelLoader::loadOBJ(std::ifstream& src)
         else if (line == "vt")
         {
             ss >> tmpVec2[0] >> tmpVec2[1];
+            tmpVec2[1] = 1.0 - tmpVec2[1]; // Revert V coordinate
             uvs.push_back(tmpVec2);
         }
         else if (line == "f")
@@ -138,6 +139,7 @@ Model* ModelLoader::loadOBJ(std::ifstream& src)
             model->_uvs.push_back(uvs[indexes[i][1]]);
         if (model->_hasNormals)
             model->_normals.push_back(normals[indexes[i][2]]);
+        model->_indexes.push_back(i);
     }
     if (!model->_hasNormals)
         model->computeNormalsSimple();

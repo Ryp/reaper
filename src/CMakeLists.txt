@@ -1,16 +1,18 @@
 set(REAPER_BIN reaper)
 
 set(REAPER_SRCS
-    glcontext.cpp
     main.cpp
-    spline.cpp
-    shaderhelper.cpp
-    imageloader.cpp
-    AController.cpp
     Camera.cpp
-    SixAxis.cpp
-    Model.cpp
-    ModelLoader.cpp
+    glcontext.cpp
+    input/AController.cpp
+    input/SixAxis.cpp
+    math/spline.cpp
+    pipeline/mesh.cpp
+    resource/imageloader.cpp
+    resource/Model.cpp
+    resource/ModelLoader.cpp
+    resource/resourcemanager.cpp
+    resource/shaderhelper.cpp
 )
 
 find_package(moGL NO_MODULE REQUIRED)
