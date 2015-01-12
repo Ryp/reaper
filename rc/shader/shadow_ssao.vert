@@ -1,8 +1,10 @@
 #version 440 core
 
-in vec3 vertexPosition_modelspace;
-in vec3 vertexNormal_modelspace;
+layout(location = 0) in vec3 vertexPosition_modelspace;
+layout(location = 1) in vec3 vertexNormal_modelspace;
+layout(location = 2) in vec2 vertexUV;
 
+out vec2 UV;
 out vec3 fragmentColor;
 out vec4 ShadowCoord;
 out vec3 vertexNormal_cameraspace;
@@ -32,4 +34,5 @@ void main()
     vertexNormal_cameraspace = (MV * vec4(vertexNormal_modelspace, 0)).xyz;
 
     fragmentColor = normalize((M * vec4(vertexNormal_modelspace, 0))).xyz * 0.5 + 0.5;
+    UV = vertexUV;
 }

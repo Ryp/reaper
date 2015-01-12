@@ -21,28 +21,71 @@ using namespace gl;
 #include <glm/gtc/random.hpp>
 #include <glm/gtx/compatibility.hpp>
 
-#include "ModelLoader.hh"
-#include "SixAxis.hpp"
+#include "input/SixAxis.hpp"
 #include "Camera.hpp"
-#include "spline.hpp"
-#include "shaderhelper.hpp"
-#include "imageloader.hpp"
+#include "math/spline.hpp"
+#include "resource/shaderhelper.hpp"
+#include "resource/imageloader.hpp"
+#include "resource/resourcemanager.hpp"
+#include "pipeline/mesh.hpp"
+
+void    debugCallback(GLenum /*source*/, GLenum type, GLuint id, GLenum severity,
+                      GLsizei /*length*/, const GLchar *message, const void */*userParam*/)
+{
+    std::cout << "DEBUG message: "<< message << std::endl;
+    std::cout << "type: ";
+    switch (type) {
+        case GL_DEBUG_TYPE_ERROR:
+            std::cout << "ERROR";
+            break;
+        case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:
+            std::cout << "DEPRECATED_BEHAVIOR";
+            break;
+        case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:
+            std::cout << "UNDEFINED_BEHAVIOR";
+            break;
+        case GL_DEBUG_TYPE_PORTABILITY:
+            std::cout << "PORTABILITY";
+            break;
+        case GL_DEBUG_TYPE_PERFORMANCE:
+            std::cout << "PERFORMANCE";
+            break;
+        case GL_DEBUG_TYPE_OTHER:
+            std::cout << "OTHER";
+            break;
+        default:
+            break;
+    }
+    std::cout << " id: " << id << std::cout << " severity: ";
+    switch (severity){
+        case GL_DEBUG_SEVERITY_LOW:
+            std::cout << "LOW";
+            break;
+        case GL_DEBUG_SEVERITY_MEDIUM:
+            std::cout << "MEDIUM";
+            break;
+        case GL_DEBUG_SEVERITY_HIGH:
+            std::cout << "HIGH";
+            break;
+        default:
+            break;
+    }
+    std::cout << std::endl;
+}
 
 void    hdr_test(GLContext& ctx, SixAxis& controller)
 {
+    ResourceManager             resourceMgr("rc");
     float                       frameTime;
     Camera                      cam(glm::vec3(-5.0, 3.0, 0.0));
-    ModelLoader                 loader;
-    Model*                      model = loader.load("rc/model/sibenik.obj");
-    Model*                      quad = loader.load("rc/model/quad.obj");
+    mogl::VertexArrayObject     vao;
+    Model*                      quad = resourceMgr.getModel("model/quad.obj");
+    Mesh                        mesh(resourceMgr.getModel("model/ship.obj"));
     mogl::ShaderProgram         shader;
     mogl::ShaderProgram         postshader;
     mogl::ShaderProgram         normdepthpassshader;
     mogl::ShaderProgram         depthpassshader;
-    mogl::VertexArrayObject     vao;
     mogl::BufferObject          quadBuffer(GL_ARRAY_BUFFER);
-    mogl::BufferObject          teapotVBuffer(GL_ARRAY_BUFFER);
-    mogl::BufferObject          teapotNBuffer(GL_ARRAY_BUFFER);
     mogl::FrameBufferObject     postFrameBuffer;
     mogl::FrameBufferObject     shadowDepthFrameBuffer;
     mogl::FrameBufferObject     screenDepthFrameBuffer;
@@ -62,7 +105,6 @@ void    hdr_test(GLContext& ctx, SixAxis& controller)
         0.5, 0.5, 0.5, 1.0
     );
 
-    model->debugDump();
     ShaderHelper::loadSimpleShader(depthpassshader, "rc/shader/depth_pass.vert", "rc/shader/depth_pass.frag");
     ShaderHelper::loadSimpleShader(normdepthpassshader, "rc/shader/depth_pass_normalized.vert", "rc/shader/depth_pass_normalized.frag");
     ShaderHelper::loadSimpleShader(shader, "rc/shader/shadow_ssao.vert", "rc/shader/shadow_ssao.frag");
@@ -150,16 +192,14 @@ void    hdr_test(GLContext& ctx, SixAxis& controller)
 
     vao.bind();
 
+    mesh.init();
+
     quadBuffer.bind();
     quadBuffer.setData(quad->getVertexBufferSize(), quad->getVertexBuffer(), GL_STATIC_DRAW);
-    teapotVBuffer.bind();
-    teapotVBuffer.setData(model->getVertexBufferSize(), model->getVertexBuffer(), GL_STATIC_DRAW);
-    teapotNBuffer.bind();
-    teapotNBuffer.setData(model->getNormalBufferSize(), model->getNormalBuffer(), GL_STATIC_DRAW);
 
     mogl::setActiveTexture(GL_TEXTURE0);
     noiseTexture.bind();
-    ImageLoader::loadDDS("rc/texture/noise.dds", noiseTexture);
+    ImageLoader::loadDDS("rc/texture/ship.dds", noiseTexture);
 
     int ssaoKernelSize = 32;
     glm::fvec3* kernel = new(std::nothrow) glm::fvec3[ssaoKernelSize];
@@ -177,7 +217,9 @@ void    hdr_test(GLContext& ctx, SixAxis& controller)
     mogl::enable(GL_DEPTH_TEST);
     mogl::enable(GL_CULL_FACE);
     glDepthFunc(GL_LESS);
-    glClearColor(0.5f, 0.0f, 0.5f, 0.0f);
+//     glClearColor(0.5f, 0.0f, 0.5f, 0.0f);
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+    std::cout << "Init complete" << std::endl;
 
     while (ctx.isOpen())
     {
@@ -197,8 +239,9 @@ void    hdr_test(GLContext& ctx, SixAxis& controller)
         float       farPlane    = 1000.0f;
         glm::mat4   Projection  = glm::perspective(45.0f, static_cast<float>(ctx.getWindowSize().x) / static_cast<float>(ctx.getWindowSize().y), nearPlane, farPlane);
         glm::mat4   View        = cam.getViewMatrix();
-        glm::mat4   Model       = glm::translate(glm::scale(glm::mat4(1.0), glm::vec3(3.0)), glm::vec3(0.0, 12.0, 0.0));
+//         glm::mat4   Model       = glm::translate(glm::scale(glm::mat4(1.0), glm::vec3(3.0)), glm::vec3(0.0, 12.0, 0.0));
 //         glm::mat4   Model       = glm::mat4(1.0);
+        glm::mat4   Model       = glm::scale(glm::mat4(1.0), glm::vec3(0.1));
         glm::mat4   MV          = View * Model;
         glm::mat4   MVP         = Projection * MV;
         glm::vec3   lightInvDir = glm::vec3(0.5f,2,2);
@@ -215,19 +258,11 @@ void    hdr_test(GLContext& ctx, SixAxis& controller)
         mogl::setViewport(0, 0, shadowMapResolution, shadowMapResolution);
         mogl::setCullFace(GL_BACK);
         mogl::enable(GL_POLYGON_OFFSET_FILL);
-        float amount = controller.getAxis(SixAxis::R2Pressure) * (controller.getAxis(SixAxis::Axes::L2Pressure) * 0.5 + 0.5) * 10.0f;
         glPolygonOffset(5.0f, 4.0f);
         glClear(GL_DEPTH_BUFFER_BIT);
-
         depthpassshader.use();
         depthpassshader.setUniformMatrixPtr<4>("MVP", &depthMVP[0][0]);
-
-        teapotVBuffer.bind();
-        depthpassshader.setVertexAttribPointer("vertexPosition_modelspace", 3, GL_FLOAT);
-
-        glEnableVertexAttribArray(0);
-        glDrawArrays(GL_TRIANGLES, 0, model->getTriangleCount() * 3);
-        glDisableVertexAttribArray(0);
+        mesh.draw(depthpassshader, Mesh::Vertex);
 
         // Fullscreen depth buffer
         screenDepthFrameBuffer.bind(mogl::FrameBuffer::Target::FrameBuffer);
@@ -235,20 +270,9 @@ void    hdr_test(GLContext& ctx, SixAxis& controller)
         mogl::setCullFace(GL_BACK);
         mogl::disable(GL_POLYGON_OFFSET_FILL);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
         normdepthpassshader.use();
         normdepthpassshader.setUniformMatrixPtr<4>("MVP", &MVP[0][0]);
-
-        teapotVBuffer.bind();
-        normdepthpassshader.setVertexAttribPointer("vertexPosition_modelspace", 3, GL_FLOAT);
-        teapotNBuffer.bind();
-        normdepthpassshader.setVertexAttribPointer("vertexNormal_modelspace", 3, GL_FLOAT);
-
-        glEnableVertexAttribArray(0);
-        glEnableVertexAttribArray(1);
-        glDrawArrays(GL_TRIANGLES, 0, model->getTriangleCount() * 3);
-        glDisableVertexAttribArray(0);
-        glDisableVertexAttribArray(1);
+        mesh.draw(normdepthpassshader, Mesh::Vertex | Mesh::Normal);
 
         //Render shading with shadow map + ssao
         postFrameBuffer.bind(mogl::FrameBuffer::Target::FrameBuffer);
@@ -268,25 +292,14 @@ void    hdr_test(GLContext& ctx, SixAxis& controller)
         mogl::setActiveTexture(GL_TEXTURE0);
         shadowDepthTexture.bind();
         shader.setUniform<GLint>("shadowMapTex", 0);
-
         mogl::setActiveTexture(GL_TEXTURE1);
         screenDepthTexture.bind();
         shader.setUniform<GLint>("depthBufferTex", 1);
-
         mogl::setActiveTexture(GL_TEXTURE2);
         noiseTexture.bind();
-//         shader.setUniform<GLint>("noiseTex", 2);
+        shader.setUniform<GLint>("noiseTex", 2);
 
-        teapotVBuffer.bind();
-        shader.setVertexAttribPointer("vertexPosition_modelspace", 3, GL_FLOAT);
-        teapotNBuffer.bind();
-        shader.setVertexAttribPointer("vertexNormal_modelspace", 3, GL_FLOAT);
-
-        glEnableVertexAttribArray(0);
-        glEnableVertexAttribArray(1);
-        glDrawArrays(GL_TRIANGLES, 0, model->getTriangleCount() * 3);
-        glDisableVertexAttribArray(1);
-        glDisableVertexAttribArray(0);
+        mesh.draw(shader, Mesh::Vertex | Mesh::Normal | Mesh::UV);
 
         //Apply post-process effects
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -318,7 +331,7 @@ void    hdr_test(GLContext& ctx, SixAxis& controller)
 
         ctx.swapBuffers();
         frameTime = ctx.getTime() - frameTime;
-        ctx.setTitle("A=" + std::to_string(amount) + "Full frame " + std::to_string(frameTime * 1000.0f) + " ms / gpu frame " + std::to_string(glms) + " ms " + std::to_string(ctx.getWindowSize().x) + "x"  + std::to_string(ctx.getWindowSize().y));
+        ctx.setTitle("Total " + std::to_string(frameTime * 1000.0f) + " ms / GPU " + std::to_string(glms) + " ms " + std::to_string(ctx.getWindowSize().x) + "x"  + std::to_string(ctx.getWindowSize().y));
     }
     delete kernel;
 }
@@ -329,8 +342,11 @@ int main(int /*ac*/, char** /*av*/)
         GLContext   ctx;
         SixAxis     controller("/dev/input/js0");
 
-        ctx.create(1600, 900, false);
-        ctx.printLog(false);
+        ctx.create(1600, 900, false, true);
+        glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+        glDebugMessageCallback(debugCallback, nullptr);
+        GLuint unusedIds = 0;
+        glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, &unusedIds, GL_TRUE);
         hdr_test(ctx, controller);
     }
     catch (const std::runtime_error& e) {

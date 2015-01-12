@@ -1,5 +1,6 @@
 #version 440 core
 
+in vec2 UV;
 in vec3 fragmentColor;
 in vec4 ShadowCoord;
 in vec3 vertexNormal_cameraspace;
@@ -13,7 +14,7 @@ uniform mat4 MVP;
 uniform mat4 DepthBias;
 uniform sampler2DShadow shadowMapTex;
 uniform sampler2DShadow depthBufferTex;
-// uniform sampler2DShadow noiseTex;
+uniform sampler2D       noiseTex;
 
 vec2 poissonDisk[16] = vec2[](
    vec2(-0.94201624, -0.39906216),
@@ -63,8 +64,8 @@ void main()
     // Light emission properties
     vec3    lightColor = vec3(1,1,1);
     float   lightPower = 1.0;
-    vec3    MaterialDiffuseColor = fragmentColor;
-    vec3    MaterialAmbientColor = fragmentColor * vec3(0.2, 0.2, 0.2);
+    vec3    MaterialDiffuseColor = texture2D(noiseTex, UV).rgb + fragmentColor * 0.01;
+    vec3    MaterialAmbientColor = texture2D(noiseTex, UV).rgb * vec3(0.2, 0.2, 0.2);
     vec3    MaterialSpecularColor = vec3(1.0, 1.0, 1.0);
     vec3    n = normalize(vertexNormal_cameraspace);
     vec3    l = normalize(lightDirection_cameraspace);
@@ -84,9 +85,9 @@ void main()
     shadow += textureProjOffset(shadowMapTex, ShadowCoord, ivec2(-1, -1));
     shadow *= 0.25;
 
-    shadow = shadow * 0.6 + 0.4; // Rescaling
+    shadow = shadow * 0.8 + 0.2; // Rescaling
 
-    shadow *= ssao_level;
+//     shadow *= ssao_level;
 
     color = MaterialAmbientColor +
             MaterialDiffuseColor * lightColor * shadow * lightPower * cosTheta +

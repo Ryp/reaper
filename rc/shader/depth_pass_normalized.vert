@@ -1,7 +1,7 @@
 #version 440 core
 
-in vec3 vertexPosition_modelspace;
-in vec3 vertexNormal_modelspace;
+layout(location = 0) in vec3 vertexPosition_modelspace;
+layout(location = 1) in vec3 vertexNormal_modelspace;
 
 out vec3 vertexNormal_clipspace;
 
