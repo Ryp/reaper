@@ -38,7 +38,7 @@ void ImageLoader::loadDDS(const std::string& file, mogl::TextureObject& texture)
     for (gli::texture2D::size_type Level = 0; Level < gliTexture.levels(); ++Level)
     {
         if (gli::is_compressed(gliTexture.format()))
-            glCompressedTexSubImage2D(GL_TEXTURE_2D,
+            glCompressedTextureSubImage2D(texture.getHandle(),
                                       GLint(Level),
                                       0, 0,
                                       GLsizei(gliTexture[Level].dimensions().x),
@@ -47,7 +47,7 @@ void ImageLoader::loadDDS(const std::string& file, mogl::TextureObject& texture)
                                       GLsizei(gliTexture[Level].size()),
                                       gliTexture[Level].data());
             else
-                glTexSubImage2D(GL_TEXTURE_2D,
+                glTextureSubImage2D(texture.getHandle(),
                                 GLint(Level),
                                 0, 0,
                                 GLsizei(gliTexture[Level].dimensions().x),
