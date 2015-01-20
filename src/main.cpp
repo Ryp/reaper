@@ -13,7 +13,6 @@ using namespace gl;
 #include <mogl/buffer/bufferobject.hpp>
 #include <mogl/buffer/vertexarrayobject.hpp>
 #include <mogl/queryobject.hpp>
-#include <mogl/debug.hpp>
 #include <mogl/states/states.hpp>
 
 #define GLM_FORCE_RADIANS
@@ -115,21 +114,19 @@ void    hdr_test(GLContext& ctx, SixAxis& controller)
 
     // Frame buffer for post processing
     try {
-        postFrameBuffer.bind(mogl::FrameBuffer::Target::FrameBuffer);
-        frameTexture.bind(0);
         frameTexture.setImage2D(0, static_cast<GLint>(GL_RGB16F), ctx.getWindowSize().x, ctx.getWindowSize().y, 0, GL_RGB, GL_HALF_FLOAT, 0);
         frameTexture.setParameter(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         frameTexture.setParameter(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         frameTexture.setParameter(GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         frameTexture.setParameter(GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        mogl::FrameBuffer::setTexture2D(mogl::FrameBuffer::Target::FrameBuffer, mogl::FrameBuffer::Attachment::Color0, frameTexture);
-        postDepthBuffer.bind();
-        postDepthBuffer.setStorage(GL_DEPTH_COMPONENT, ctx.getWindowSize().x, ctx.getWindowSize().y);
-        mogl::FrameBuffer::setRenderBuffer(mogl::FrameBuffer::Target::FrameBuffer, mogl::FrameBuffer::Attachment::Depth, postDepthBuffer);
 
-        GLenum DrawBuffers[] = {GL_COLOR_ATTACHMENT0};
-        glDrawBuffers(1, DrawBuffers); MOGL_ASSERT_GLSTATE();
-        if (!mogl::FrameBuffer::isComplete(mogl::FrameBuffer::Target::FrameBuffer))
+        postDepthBuffer.setStorage(GL_DEPTH_COMPONENT, ctx.getWindowSize().x, ctx.getWindowSize().y);
+
+        frameTexture.bind(0);
+        postFrameBuffer.setTexture(GL_COLOR_ATTACHMENT0, frameTexture);
+        postFrameBuffer.setRenderBuffer(GL_DEPTH_ATTACHMENT, postDepthBuffer);
+        postFrameBuffer.setDrawBuffer(GL_COLOR_ATTACHMENT0);
+        if (!postFrameBuffer.isComplete(GL_FRAMEBUFFER))
             throw (std::runtime_error("bad framebuffer"));
     }
     catch (const std::runtime_error& e) {
@@ -139,8 +136,6 @@ void    hdr_test(GLContext& ctx, SixAxis& controller)
     // Frame buffer for the shadow map
     try {
         GLfloat   border[] = {1.0f, 0.0f, 0.0f, 0.0f};
-        shadowDepthFrameBuffer.bind(mogl::FrameBuffer::Target::FrameBuffer);
-        shadowTexture.bind(0);
         shadowTexture.setImage2D(0, static_cast<GLint>(GL_DEPTH_COMPONENT), shadowMapResolution, shadowMapResolution, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, 0);
         shadowTexture.setParameter(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         shadowTexture.setParameter(GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -149,10 +144,11 @@ void    hdr_test(GLContext& ctx, SixAxis& controller)
         shadowTexture.setParameter(GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
         shadowTexture.setParameter(GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
         shadowTexture.setParameterPtr(GL_TEXTURE_BORDER_COLOR, border);
-        mogl::FrameBuffer::setTexture(mogl::FrameBuffer::Target::FrameBuffer, mogl::FrameBuffer::Attachment::Depth, shadowTexture);
 
-        glDrawBuffer(GL_NONE); MOGL_ASSERT_GLSTATE();
-        if (!mogl::FrameBuffer::isComplete(mogl::FrameBuffer::Target::FrameBuffer))
+        shadowTexture.bind(0);
+        shadowDepthFrameBuffer.setTexture(GL_DEPTH_ATTACHMENT, shadowTexture);
+        shadowDepthFrameBuffer.setDrawBuffer(GL_NONE);
+        if (!shadowDepthFrameBuffer.isComplete(GL_FRAMEBUFFER))
             throw (std::runtime_error("bad framebuffer"));
     }
     catch (const std::runtime_error& e) {
@@ -161,13 +157,10 @@ void    hdr_test(GLContext& ctx, SixAxis& controller)
 
     // Frame buffer for the normals / depth
     try {
-        screenDepthFrameBuffer.bind(mogl::FrameBuffer::Target::FrameBuffer);
-        screenNormalTexture.bind(0);
         screenNormalTexture.setImage2D(0, static_cast<GLint>(GL_RGB), ctx.getWindowSize().x, ctx.getWindowSize().y, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
         screenNormalTexture.setParameter(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         screenNormalTexture.setParameter(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        mogl::FrameBuffer::setTexture2D(mogl::FrameBuffer::Target::FrameBuffer, mogl::FrameBuffer::Attachment::Color0, screenNormalTexture);
-        screenDepthTexture.bind(1);
+
         screenDepthTexture.setImage2D(0, static_cast<GLint>(GL_DEPTH_COMPONENT24), ctx.getWindowSize().x, ctx.getWindowSize().y, 0, GL_DEPTH_COMPONENT, GL_FLOAT, 0);
         screenDepthTexture.setParameter(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         screenDepthTexture.setParameter(GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -175,11 +168,13 @@ void    hdr_test(GLContext& ctx, SixAxis& controller)
         screenDepthTexture.setParameter(GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         screenDepthTexture.setParameter(GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
         screenDepthTexture.setParameter(GL_TEXTURE_COMPARE_FUNC, GL_LESS);
-        mogl::FrameBuffer::setTexture2D(mogl::FrameBuffer::Target::FrameBuffer, mogl::FrameBuffer::Attachment::Depth, screenDepthTexture);
 
-        GLenum DrawBuffers[] = {GL_COLOR_ATTACHMENT0};
-        glDrawBuffers(1, DrawBuffers); MOGL_ASSERT_GLSTATE();
-        if (!mogl::FrameBuffer::isComplete(mogl::FrameBuffer::Target::FrameBuffer))
+        screenNormalTexture.bind(0);
+        screenDepthFrameBuffer.setTexture(GL_COLOR_ATTACHMENT0, screenNormalTexture);
+        screenDepthTexture.bind(1);
+        screenDepthFrameBuffer.setTexture(GL_DEPTH_ATTACHMENT, screenDepthTexture);
+        screenDepthFrameBuffer.setDrawBuffer(GL_COLOR_ATTACHMENT0);
+        if (!screenDepthFrameBuffer.isComplete(GL_FRAMEBUFFER))
             throw (std::runtime_error("bad framebuffer"));
     }
     catch (const std::runtime_error& e) {
@@ -248,7 +243,7 @@ void    hdr_test(GLContext& ctx, SixAxis& controller)
         timeQuery.begin();
 
         // Shadow depth buffer pass
-        shadowDepthFrameBuffer.bind(mogl::FrameBuffer::Target::FrameBuffer);
+        shadowDepthFrameBuffer.bind(GL_FRAMEBUFFER);
         mogl::setViewport(0, 0, shadowMapResolution, shadowMapResolution);
         mogl::setCullFace(GL_BACK);
         mogl::enable(GL_POLYGON_OFFSET_FILL);
@@ -259,7 +254,7 @@ void    hdr_test(GLContext& ctx, SixAxis& controller)
         mesh.draw(depthpassshader, Mesh::Vertex);
 
         // Fullscreen depth buffer
-        screenDepthFrameBuffer.bind(mogl::FrameBuffer::Target::FrameBuffer);
+        screenDepthFrameBuffer.bind(GL_FRAMEBUFFER);
         mogl::setViewport(0, 0, ctx.getWindowSize().x, ctx.getWindowSize().y);
         mogl::setCullFace(GL_BACK);
         mogl::disable(GL_POLYGON_OFFSET_FILL);
@@ -269,10 +264,14 @@ void    hdr_test(GLContext& ctx, SixAxis& controller)
         mesh.draw(normdepthpassshader, Mesh::Vertex | Mesh::Normal);
 
         //Render shading with shadow map + ssao
-        postFrameBuffer.bind(mogl::FrameBuffer::Target::FrameBuffer);
+        postFrameBuffer.bind(GL_FRAMEBUFFER);
         mogl::setViewport(0, 0, ctx.getWindowSize().x, ctx.getWindowSize().y);
         mogl::setCullFace(GL_BACK);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        GLfloat clearColor[] = { 0.0f, 0.0f, 0.5, 0.0f };
+        GLfloat clearDepth[] = { 1.0f };
+        postFrameBuffer.clear(GL_COLOR, 0, clearColor);
+        postFrameBuffer.clear(GL_DEPTH, 0, clearDepth);
 
         shader.use();
         shader.setUniformMatrixPtr<4>("MVP", &MVP[0][0]);
@@ -300,7 +299,6 @@ void    hdr_test(GLContext& ctx, SixAxis& controller)
         postshader.use();
 
         frameTexture.bind(0);
-
         postshader.setUniform<GLint>("renderedTexture", 0);
         postshader.setUniform<GLfloat>("frameBufSize", ctx.getWindowSize().x, ctx.getWindowSize().y);
 //         postshader.setUniformSubroutine(mogl::ShaderObject::ShaderType::FragmentShader, "tonemapSelector", "notonemap");
