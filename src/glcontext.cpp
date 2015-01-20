@@ -19,12 +19,12 @@ GLContext::GLContext()
     _windowSize({0, 0})
 {}
 
-void GLContext::create(unsigned int width, unsigned int height, bool fullscreen, bool debug)
+void GLContext::create(unsigned int width, unsigned int height, unsigned int major, unsigned int minor, bool fullscreen, bool debug)
 {
     if (!glfwInit())
         throw (std::runtime_error("Failed to initialize GLFW"));
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 4);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, major);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, minor);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     if (debug)
         glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, 1);

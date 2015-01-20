@@ -87,7 +87,7 @@ void main()
 
     shadow = shadow * 0.8 + 0.2; // Rescaling
 
-//     shadow *= ssao_level;
+    shadow *= ssao_level;
 
     color = MaterialAmbientColor +
             MaterialDiffuseColor * lightColor * shadow * lightPower * cosTheta +

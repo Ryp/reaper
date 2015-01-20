@@ -16,7 +16,7 @@ public:
     GLContext();
 
 public:
-    void    create(unsigned int width, unsigned int height, bool fullscreen = false, bool debug = false);
+    void    create(unsigned int width, unsigned int height, unsigned int major, unsigned int minor, bool fullscreen = false, bool debug = false);
     void    destroy(); // Call this only when closing manually
     bool    isOpen();
     void    swapBuffers();
