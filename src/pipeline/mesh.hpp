@@ -14,7 +14,8 @@
 #include <glm/detail/type_mat4x4.hpp>
 
 #include "gl.hpp"
-#include <mogl/buffer/bufferobject.hpp>
+
+#include <mogl/buffer/buffer.hpp>
 #include <mogl/shader/shaderprogram.hpp>
 
 class Model;
@@ -37,18 +38,18 @@ public:
 
 public:
     void                init();
-    void                draw(mogl::ShaderProgram& shader, unsigned int mask);
+    void                draw(mogl::ShaderProgram& program, unsigned int mask);
     const glm::mat4&    getModelMatrix() const;
     void                setModelMatrix(const glm::mat4& transformation);
 
 public:
-    Model*              _model;
-    mogl::BufferObject  _vertexBuffer;
-    mogl::BufferObject  _normalBuffer;
-    mogl::BufferObject  _uvBuffer;
-    mogl::BufferObject  _elementBuffer;
-    glm::mat4           _modelMatrix;
-    GLsizei             _indexesNo;
+    Model*          _model;
+    mogl::Buffer    _vertexBuffer;
+    mogl::Buffer    _normalBuffer;
+    mogl::Buffer    _uvBuffer;
+    mogl::Buffer    _elementBuffer;
+    glm::mat4       _modelMatrix;
+    GLsizei         _indexesNo;
 };
 
 #endif // REAPER_MESH_INCLUDED

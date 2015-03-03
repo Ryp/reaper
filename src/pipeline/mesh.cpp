@@ -24,37 +24,64 @@ Mesh::Mesh(Model* model)
 void Mesh::init()
 {
     _model->debugDump();
-    _vertexBuffer.bind();
     _vertexBuffer.setData(_model->getVertexBufferSize(), _model->getVertexBuffer(), GL_STATIC_DRAW);
-    _normalBuffer.bind();
     _normalBuffer.setData(_model->getNormalBufferSize(), _model->getNormalBuffer(), GL_STATIC_DRAW);
-    _uvBuffer.bind();
     _uvBuffer.setData(_model->getUVBufferSize(), _model->getUVBuffer(), GL_STATIC_DRAW);
-    _elementBuffer.bind();
     _elementBuffer.setData(_model->getIndexBufferSize(), _model->getIndexBuffer(), GL_STATIC_DRAW);
 }
 
-void Mesh::draw(mogl::ShaderProgram& shader, unsigned int mask)
+void Mesh::draw(mogl::ShaderProgram& program, unsigned int mask)
 {
+//     vao.bind();
+//     if (mask & Mesh::Vertex)
+//     {
+//         vao.enableAttrib(0);
+//         vao.setVertexBuffer(0, _vertexBuffer.getHandle(), 0, 0);
+//         vao.setAttribFormat(0, 3, GL_FLOAT, GL_FALSE, 12);
+//         vao.setAttribBinding(0, 0);
+//     }
+//     if (mask & Mesh::Normal)
+//     {
+//         vao.enableAttrib(1);
+//         vao.setVertexBuffer(1, _normalBuffer.getHandle(), 0, 0);
+//         vao.setAttribFormat(1, 3, GL_FLOAT, GL_FALSE, 12);
+//         vao.setAttribBinding(1, 1);
+//     }
+//     if (mask & Mesh::UV)
+//     {
+//         vao.enableAttrib(2);
+//         vao.setVertexBuffer(2, _uvBuffer.getHandle(), 0, 0);
+//         vao.setAttribFormat(2, 2, GL_FLOAT, GL_FALSE, 8);
+//         vao.setAttribBinding(2, 2);
+//     }
+//     vao.setElementBuffer(_elementBuffer.getHandle());
+//
+//     glDrawElements(GL_TRIANGLES, _indexesNo, GL_UNSIGNED_INT, nullptr);
+//
+//     vao.disableAttrib(0);
+//     vao.disableAttrib(1);
+//     vao.disableAttrib(2);
+
     if (mask & Mesh::Vertex)
     {
         glEnableVertexAttribArray(0);
         _vertexBuffer.bind();
-        shader.setVertexAttribPointer(0, 3, GL_FLOAT);
+        program.setVertexAttribPointer(0, 3, GL_FLOAT);
     }
     if (mask & Mesh::Normal)
     {
         glEnableVertexAttribArray(1);
         _normalBuffer.bind();
-        shader.setVertexAttribPointer(1, 3, GL_FLOAT);
+        program.setVertexAttribPointer(1, 3, GL_FLOAT);
     }
     if (mask & Mesh::UV)
     {
         glEnableVertexAttribArray(2);
         _uvBuffer.bind();
-        shader.setVertexAttribPointer(2, 2, GL_FLOAT);
+        program.setVertexAttribPointer(2, 2, GL_FLOAT);
     }
     _elementBuffer.bind();
+
     glDrawElements(GL_TRIANGLES, _indexesNo, GL_UNSIGNED_INT, nullptr);
 
     glDisableVertexAttribArray(0);

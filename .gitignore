@@ -3,3 +3,4 @@ build
 
 #Ryp custom
 *.kdev4*
+.idea

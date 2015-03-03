@@ -6,13 +6,13 @@ using namespace gl;
 #include "glcontext.hpp"
 
 #include <mogl/exception/moglexception.hpp>
-#include <mogl/shader.hpp>
-#include <mogl/texture.hpp>
-#include <mogl/framebuffer.hpp>
-#include <mogl/renderbuffer.hpp>
-#include <mogl/buffer/bufferobject.hpp>
-#include <mogl/buffer/vertexarrayobject.hpp>
-#include <mogl/queryobject.hpp>
+#include <mogl/shader/shaderprogram.hpp>
+#include <mogl/texture/texture.hpp>
+#include <mogl/framebuffer/framebuffer.hpp>
+#include <mogl/renderbuffer/renderbuffer.hpp>
+#include <mogl/buffer/buffer.hpp>
+#include <mogl/buffer/vertexarray.hpp>
+#include <mogl/sync/query.hpp>
 #include <mogl/states/states.hpp>
 
 #define GLM_FORCE_RADIANS
@@ -74,30 +74,32 @@ void    debugCallback(GLenum /*source*/, GLenum type, GLuint id, GLenum severity
 
 void    hdr_test(GLContext& ctx, SixAxis& controller)
 {
-    ResourceManager             resourceMgr("rc");
-    float                       frameTime;
-    Camera                      cam(glm::vec3(-5.0, 3.0, 0.0));
-    mogl::VertexArrayObject     vao;
-    Model*                      quad = resourceMgr.getModel("model/quad.obj");
-    Mesh                        mesh(resourceMgr.getModel("model/ship.obj"));
-    mogl::ShaderProgram         shader;
-    mogl::ShaderProgram         postshader;
-    mogl::ShaderProgram         normdepthpassshader;
-    mogl::ShaderProgram         depthpassshader;
-    mogl::BufferObject          quadBuffer(GL_ARRAY_BUFFER);
-    mogl::FrameBufferObject     postFrameBuffer;
-    mogl::FrameBufferObject     shadowDepthFrameBuffer;
-    mogl::FrameBufferObject     screenDepthFrameBuffer;
-    mogl::TextureObject         frameTexture(GL_TEXTURE_2D);
-    mogl::TextureObject         shadowTexture(GL_TEXTURE_2D);
-    mogl::TextureObject         screenDepthTexture(GL_TEXTURE_2D);
-    mogl::TextureObject         screenNormalTexture(GL_TEXTURE_2D);
-    mogl::TextureObject         noiseTexture(GL_TEXTURE_2D);
-    mogl::RenderBufferObject    postDepthBuffer;
-    mogl::QueryObject           timeQuery(GL_TIME_ELAPSED);
-    float                       shadowMapResolution = 4096;
-    glm::vec3                   translation;
-    glm::mat4                   biasMatrix(
+    ResourceManager     resourceMgr("rc");
+    float               frameTime;
+    Camera              cam(glm::vec3(-5.0, 3.0, 0.0));
+    mogl::VertexArray   vao;
+    Model*              quad = resourceMgr.getModel("model/quad.obj");
+    Mesh                mesh(resourceMgr.getModel("model/ship.obj"));
+    mogl::ShaderProgram shader;
+    mogl::ShaderProgram postshader;
+    mogl::ShaderProgram normdepthpassshader;
+    mogl::ShaderProgram depthpassshader;
+    mogl::Buffer        quadBuffer(GL_ARRAY_BUFFER);
+    mogl::FrameBuffer   postFrameBuffer;
+    mogl::FrameBuffer   shadowDepthFrameBuffer;
+    mogl::FrameBuffer   screenDepthFrameBuffer;
+    mogl::Texture       frameTexture(GL_TEXTURE_2D);
+    mogl::Texture       shadowTexture(GL_TEXTURE_2D);
+    mogl::Texture       screenDepthTexture(GL_TEXTURE_2D);
+    mogl::Texture       screenNormalTexture(GL_TEXTURE_2D);
+    mogl::Texture       noiseTexture(GL_TEXTURE_2D);
+    mogl::RenderBuffer  postDepthBuffer;
+    mogl::Query         timeQuery(GL_TIME_ELAPSED);
+    mogl::Query         polyQuery(GL_PRIMITIVES_GENERATED);
+    mogl::Query         samplesQuery(GL_SAMPLES_PASSED);
+    float               shadowMapResolution = 4096;
+    glm::vec3           translation;
+    glm::mat4           biasMatrix(
         0.5, 0.0, 0.0, 0.0,
         0.0, 0.5, 0.0, 0.0,
         0.0, 0.0, 0.5, 0.0,
@@ -115,10 +117,10 @@ void    hdr_test(GLContext& ctx, SixAxis& controller)
     // Frame buffer for post processing
     try {
         frameTexture.setImage2D(0, static_cast<GLint>(GL_RGB16F), ctx.getWindowSize().x, ctx.getWindowSize().y, 0, GL_RGB, GL_HALF_FLOAT, 0);
-        frameTexture.setParameter(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        frameTexture.setParameter(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        frameTexture.setParameter(GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        frameTexture.setParameter(GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        frameTexture.set(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        frameTexture.set(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        frameTexture.set(GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        frameTexture.set(GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
         postDepthBuffer.setStorage(GL_DEPTH_COMPONENT, ctx.getWindowSize().x, ctx.getWindowSize().y);
 
@@ -137,13 +139,13 @@ void    hdr_test(GLContext& ctx, SixAxis& controller)
     try {
         GLfloat   border[] = {1.0f, 0.0f, 0.0f, 0.0f};
         shadowTexture.setImage2D(0, static_cast<GLint>(GL_DEPTH_COMPONENT), shadowMapResolution, shadowMapResolution, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, 0);
-        shadowTexture.setParameter(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        shadowTexture.setParameter(GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        shadowTexture.setParameter(GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-        shadowTexture.setParameter(GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-        shadowTexture.setParameter(GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
-        shadowTexture.setParameter(GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
-        shadowTexture.setParameterPtr(GL_TEXTURE_BORDER_COLOR, border);
+        shadowTexture.set(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        shadowTexture.set(GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        shadowTexture.set(GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+        shadowTexture.set(GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+        shadowTexture.set(GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
+        shadowTexture.set(GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+        shadowTexture.set(GL_TEXTURE_BORDER_COLOR, border);
 
         shadowTexture.bind(0);
         shadowDepthFrameBuffer.setTexture(GL_DEPTH_ATTACHMENT, shadowTexture);
@@ -158,16 +160,16 @@ void    hdr_test(GLContext& ctx, SixAxis& controller)
     // Frame buffer for the normals / depth
     try {
         screenNormalTexture.setImage2D(0, static_cast<GLint>(GL_RGB), ctx.getWindowSize().x, ctx.getWindowSize().y, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
-        screenNormalTexture.setParameter(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        screenNormalTexture.setParameter(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        screenNormalTexture.set(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        screenNormalTexture.set(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
         screenDepthTexture.setImage2D(0, static_cast<GLint>(GL_DEPTH_COMPONENT24), ctx.getWindowSize().x, ctx.getWindowSize().y, 0, GL_DEPTH_COMPONENT, GL_FLOAT, 0);
-        screenDepthTexture.setParameter(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        screenDepthTexture.setParameter(GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        screenDepthTexture.setParameter(GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        screenDepthTexture.setParameter(GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        screenDepthTexture.setParameter(GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
-        screenDepthTexture.setParameter(GL_TEXTURE_COMPARE_FUNC, GL_LESS);
+        screenDepthTexture.set(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        screenDepthTexture.set(GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        screenDepthTexture.set(GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        screenDepthTexture.set(GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        screenDepthTexture.set(GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+        screenDepthTexture.set(GL_TEXTURE_COMPARE_FUNC, GL_LESS);
 
         screenNormalTexture.bind(0);
         screenDepthFrameBuffer.setTexture(GL_COLOR_ATTACHMENT0, screenNormalTexture);
@@ -196,8 +198,8 @@ void    hdr_test(GLContext& ctx, SixAxis& controller)
     for (int i = 0; i < ssaoKernelSize; ++i) {
         kernel[i] = glm::fvec3(
             glm::linearRand(-1.0f, 1.0f),
-                               glm::linearRand(-1.0f, 1.0f),
-                               glm::linearRand(0.0f, 1.0f)
+            glm::linearRand(-1.0f, 1.0f),
+            glm::linearRand(0.0f, 1.0f)
         );
         kernel[i] = glm::normalize(kernel[i]);
         float scale = (float)i / (float)ssaoKernelSize;
@@ -207,9 +209,6 @@ void    hdr_test(GLContext& ctx, SixAxis& controller)
     mogl::enable(GL_DEPTH_TEST);
     mogl::enable(GL_CULL_FACE);
     glDepthFunc(GL_LESS);
-//     glClearColor(0.5f, 0.0f, 0.5f, 0.0f);
-    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-
     while (ctx.isOpen())
     {
         frameTime = ctx.getTime();
@@ -229,8 +228,8 @@ void    hdr_test(GLContext& ctx, SixAxis& controller)
         glm::mat4   Projection  = glm::perspective(45.0f, static_cast<float>(ctx.getWindowSize().x) / static_cast<float>(ctx.getWindowSize().y), nearPlane, farPlane);
         glm::mat4   View        = cam.getViewMatrix();
 //         glm::mat4   Model       = glm::translate(glm::scale(glm::mat4(1.0), glm::vec3(3.0)), glm::vec3(0.0, 12.0, 0.0));
-//         glm::mat4   Model       = glm::mat4(1.0);
-        glm::mat4   Model       = glm::scale(glm::mat4(1.0), glm::vec3(0.1));
+        glm::mat4   Model       = glm::mat4(1.0);
+//         glm::mat4   Model       = glm::scale(glm::mat4(1.0), glm::vec3(0.1));
         glm::mat4   MV          = View * Model;
         glm::mat4   MVP         = Projection * MV;
         glm::vec3   lightInvDir = glm::vec3(0.5f,2,2);
@@ -241,6 +240,8 @@ void    hdr_test(GLContext& ctx, SixAxis& controller)
         glm::mat4   depthBiasMVP = biasMatrix * depthMVP;
 
         timeQuery.begin();
+        polyQuery.begin();
+        samplesQuery.begin();
 
         // Shadow depth buffer pass
         shadowDepthFrameBuffer.bind(GL_FRAMEBUFFER);
@@ -268,9 +269,8 @@ void    hdr_test(GLContext& ctx, SixAxis& controller)
         mogl::setViewport(0, 0, ctx.getWindowSize().x, ctx.getWindowSize().y);
         mogl::setCullFace(GL_BACK);
 
-        GLfloat clearColor[] = { 0.0f, 0.0f, 0.5, 0.0f };
         GLfloat clearDepth[] = { 1.0f };
-        postFrameBuffer.clear(GL_COLOR, 0, clearColor);
+        postFrameBuffer.clear(GL_COLOR, 0, &glm::vec4(1.0f, 1.0f, 0.0f, 0.0f)[0]);
         postFrameBuffer.clear(GL_DEPTH, 0, clearDepth);
 
         shader.use();
@@ -315,11 +315,16 @@ void    hdr_test(GLContext& ctx, SixAxis& controller)
         glDisableVertexAttribArray(0);
 
         timeQuery.end();
-        double glms = static_cast<double>(timeQuery.getResult<GLuint>(GL_QUERY_RESULT)) * 0.000001;
+        polyQuery.end();
+        samplesQuery.end();
+
+        double glms = static_cast<double>(timeQuery.get<GLuint>(GL_QUERY_RESULT)) * 0.000001;
+        unsigned int poly = polyQuery.get<GLuint>(GL_QUERY_RESULT);
+        unsigned int samples = samplesQuery.get<GLuint>(GL_QUERY_RESULT);
 
         ctx.swapBuffers();
         frameTime = ctx.getTime() - frameTime;
-        ctx.setTitle("Total " + std::to_string(frameTime * 1000.0f) + " ms / GPU " + std::to_string(glms) + " ms " + std::to_string(ctx.getWindowSize().x) + "x"  + std::to_string(ctx.getWindowSize().y));
+        ctx.setTitle(std::to_string(samples) + " Samples " + std::to_string(poly) + " Primitives | Total " + std::to_string(frameTime * 1000.0f) + " ms / GPU " + std::to_string(glms) + " ms " + std::to_string(ctx.getWindowSize().x) + "x"  + std::to_string(ctx.getWindowSize().y));
     }
     delete kernel;
 }

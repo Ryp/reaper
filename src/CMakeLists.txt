@@ -16,12 +16,10 @@ set(REAPER_SRCS
 )
 
 find_package(moGL NO_MODULE REQUIRED)
-
-add_definitions(-DMOGL_DEBUG)
-
 find_package(OpenGL REQUIRED)
 find_package(glbinding REQUIRED)
-find_library(glfw3 REQUIRED)
+find_package(PkgConfig REQUIRED)
+pkg_search_module(GLFW REQUIRED glfw3)
 
 add_executable(${REAPER_BIN} ${REAPER_SRCS})
 
@@ -46,5 +44,5 @@ target_include_directories(${REAPER_BIN} SYSTEM PUBLIC
 #Libraries
 target_link_libraries(${REAPER_BIN}
     ${OPENGL_LIBRARIES}
-    ${GLFW_LIBRARY}
+    ${GLFW_LIBRARIES}
     ${GLBINDING_LIBRARIES})
