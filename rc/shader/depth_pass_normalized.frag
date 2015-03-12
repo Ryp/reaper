@@ -1,4 +1,4 @@
-#version 440 core
+#version 450 core
 
 in vec3 vertexNormal_clipspace;
 

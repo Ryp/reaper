@@ -1,4 +1,4 @@
-#version 420
+#version 450 core
 
 uniform sampler2D renderedTexture;
 uniform vec2 frameBufSize;

@@ -1,4 +1,4 @@
-#version 440 core
+#version 450 core
 
 in vec2 UV;
 in vec3 fragmentColor;
@@ -17,7 +17,7 @@ uniform sampler2DShadow depthBufferTex;
 uniform sampler2D       noiseTex;
 
 vec2 poissonDisk[16] = vec2[](
-   vec2(-0.94201624, -0.39906216),
+   vec2(-0.9450 core1624, -0.39906216),
    vec2(0.94558609, -0.76890725),
    vec2(-0.094184101, -0.92938870),
    vec2(0.34495938, 0.29387760),
@@ -26,7 +26,7 @@ vec2 poissonDisk[16] = vec2[](
    vec2(-0.38277543, 0.27676845),
    vec2(0.97484398, 0.75648379),
    vec2(0.44323325, -0.97511554),
-   vec2(0.53742981, -0.47373420),
+   vec2(0.53742981, -0.47373450 core),
    vec2(-0.26496911, -0.41893023),
    vec2(0.79197514, 0.19090188),
    vec2(-0.24188840, 0.99706507),
@@ -62,8 +62,8 @@ float ssao(vec4 pixel_clipspace)
 void main()
 {
     // Light emission properties
-    vec3    lightColor = vec3(1,1,1);
-    float   lightPower = 1.0;
+    vec3    lightColor = vec3(1,1,0);
+    float   lightPower = 100;
     vec3    MaterialDiffuseColor = texture2D(noiseTex, UV).rgb + fragmentColor * 0.01;
     vec3    MaterialAmbientColor = texture2D(noiseTex, UV).rgb * vec3(0.2, 0.2, 0.2);
     vec3    MaterialSpecularColor = vec3(1.0, 1.0, 1.0);

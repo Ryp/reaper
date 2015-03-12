@@ -2,6 +2,7 @@ set(REAPER_BIN reaper)
 
 set(REAPER_SRCS
     main.cpp
+    deps/sb6object.cpp
     Camera.cpp
     glcontext.cpp
     input/AController.cpp
