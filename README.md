@@ -1,6 +1,6 @@
 # ReaperGL
 
-ReaperGL is a small C++ Engine project based on OpenGL 4.5 and later.
+ReaperGL is a small C++14 Engine project based on OpenGL 4.5 and later.
 
 ## Install
 
@@ -10,7 +10,7 @@ cmake -DCMAKE_INSTALL_PREFIX=$PWD/install ..
 make install
 
 Dependencies:
-- C++11
+- C++14
 - GLFW 3.1+
 - glbinding
 - [moGL](https://github.com/Ryp/moGL)
