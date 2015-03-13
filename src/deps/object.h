@@ -29,16 +29,15 @@
 
 #include "sb6mfile.h"
 
-#ifndef SB6M_FILETYPES_ONLY
+#include <mogl/buffer/vertexarray.hpp>
+#include <mogl/buffer/buffer.hpp>
 
-namespace sb6
-{
+#ifndef SB6M_FILETYPES_ONLY
 
 class object
 {
 public:
     object();
-    ~object();
 
     inline void render(unsigned int instance_count = 1,
                        unsigned int base_instance = 0)
@@ -65,14 +64,13 @@ public:
     }
 
     unsigned int get_sub_object_count() const           { return num_sub_objects; }
-    GLuint       get_vao() const                        { return vao; }
     void load(const char * filename);
     void free();
 
 private:
-    GLuint                  vertex_buffer;
+    mogl::Buffer            vertex_buffer;
     GLuint                  index_buffer;
-    GLuint                  vao;
+    mogl::VertexArray       vao;
     GLuint                  num_indices;
     GLuint                  index_type;
 
@@ -81,8 +79,6 @@ private:
     unsigned int            num_sub_objects;
     SB6M_SUB_OBJECT_DECL    sub_object[MAX_SUB_OBJECTS];
 };
-
-}
 
 #endif /* SB6M_FILETYPES_ONLY */
 

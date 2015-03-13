@@ -2,15 +2,12 @@
 #include <stdexcept>
 
 #include <glbinding/gl/gl.h>
-#include <glbinding/ContextInfo.h>
-#include <glbinding/Version.h>
 #include <glbinding/Binding.h>
 
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 
 using namespace gl;
-using namespace glbinding;
 
 #include "glcontext.hpp"
 
@@ -42,7 +39,7 @@ void GLContext::create(unsigned int width, unsigned int height, unsigned int maj
     _windowSize = {width, height};
     makeCurrent();
 
-    Binding::initialize(true);
+    glbinding::Binding::initialize(true);
 
     glfwSwapInterval(1); // NOTE Drivers may ignore this
     glfwSetInputMode(_window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
@@ -50,7 +47,7 @@ void GLContext::create(unsigned int width, unsigned int height, unsigned int maj
 
 bool GLContext::isOpen()
 {
-    return (!glfwWindowShouldClose(_window));
+    return !glfwWindowShouldClose(_window);
 }
 
 void GLContext::swapBuffers()
@@ -73,12 +70,12 @@ void GLContext::destroy()
 
 const Vect2u& GLContext::getWindowSize() const
 {
-    return (_windowSize);
+    return _windowSize;
 }
 
 double GLContext::getTime() const
 {
-    return (glfwGetTime());
+    return glfwGetTime();
 }
 
 Vect2u GLContext::getCursorPosition() const
@@ -86,7 +83,7 @@ Vect2u GLContext::getCursorPosition() const
     double  v[2];
 
     glfwGetCursorPos(_window, &(v[0]), &(v[1]));
-    return (Vect2u{static_cast<unsigned int>(v[0]), static_cast<unsigned int>(v[1])});
+    return Vect2u{static_cast<unsigned int>(v[0]), static_cast<unsigned int>(v[1])};
 }
 
 void GLContext::setCursorPosition(const Vect2u& position)

@@ -296,7 +296,7 @@ void    bloom_test(GLContext& ctx, SixAxis& /*controller*/)
     bool        show_prefilter(false);
     float       bloom_thresh_min(0.8f);
     float       bloom_thresh_max(1.2f);
-    sb6::object object;
+    object      object;
 
     struct
     {

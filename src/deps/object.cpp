@@ -21,28 +21,15 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-#define _CRT_SECURE_NO_WARNINGS 1
-
 #include "pipeline/gl.hpp"
 #include "object.h"
 
 #include <stdio.h>
 
-namespace sb6
-{
-
 object::object()
-    : vertex_buffer(0),
-      index_buffer(0),
-      vao(0)
-{
-
-}
-
-object::~object()
-{
-
-}
+:   vertex_buffer(GL_ARRAY_BUFFER),
+    index_buffer(0)
+{}
 
 void object::load(const char * filename)
 {
@@ -64,10 +51,10 @@ void object::load(const char * filename)
     SB6M_HEADER * header = (SB6M_HEADER *)ptr;
     ptr += header->size;
 
-    SB6M_VERTEX_ATTRIB_CHUNK * vertex_attrib_chunk = NULL;
-    SB6M_CHUNK_VERTEX_DATA * vertex_data_chunk = NULL;
-    SB6M_CHUNK_INDEX_DATA * index_data_chunk = NULL;
-    SB6M_CHUNK_SUB_OBJECT_LIST * sub_object_chunk = NULL;
+    SB6M_VERTEX_ATTRIB_CHUNK * vertex_attrib_chunk = nullptr;
+    SB6M_CHUNK_VERTEX_DATA * vertex_data_chunk = nullptr;
+    SB6M_CHUNK_INDEX_DATA * index_data_chunk = nullptr;
+    SB6M_CHUNK_SUB_OBJECT_LIST * sub_object_chunk = nullptr;
 
     unsigned int i;
     for (i = 0; i < header->num_chunks; i++)
@@ -95,7 +82,7 @@ void object::load(const char * filename)
 
 // failed:
 
-    if (sub_object_chunk != NULL)
+    if (sub_object_chunk != nullptr)
     {
         if (sub_object_chunk->count > MAX_SUB_OBJECTS)
         {
@@ -116,12 +103,10 @@ void object::load(const char * filename)
         num_sub_objects = 1;
     }
 
-    glGenBuffers(1, &vertex_buffer);
-    glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
-    glBufferData(GL_ARRAY_BUFFER, vertex_data_chunk->data_size, data + vertex_data_chunk->data_offset, GL_STATIC_DRAW);
+    vertex_buffer.bind();
+    vertex_buffer.setData(vertex_data_chunk->data_size, data + vertex_data_chunk->data_offset, GL_STATIC_DRAW);
 
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
+    vao.bind();
 
     for (i = 0; i < vertex_attrib_chunk->attrib_count; i++)
     {
@@ -135,7 +120,7 @@ void object::load(const char * filename)
         glEnableVertexAttribArray(i);
     }
 
-    if (index_data_chunk != NULL)
+    if (index_data_chunk != nullptr)
     {
         glGenBuffers(1, &index_buffer);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer);
@@ -160,19 +145,15 @@ void object::load(const char * filename)
 
 void object::free()
 {
-    glDeleteVertexArrays(1, &vao);
-    glDeleteBuffers(1, &vertex_buffer);
     glDeleteBuffers(1, &index_buffer);
 
-    vao = 0;
-    vertex_buffer = 0;
     index_buffer = 0;
     num_indices = 0;
 }
 
 void object::render_sub_object(unsigned int object_index, unsigned int instance_count, unsigned int base_instance)
 {
-    glBindVertexArray(vao);
+    vao.bind();
 
 #if defined (__APPLE__)
 
@@ -210,6 +191,4 @@ void object::render_sub_object(unsigned int object_index, unsigned int instance_
                                            base_instance);
     }
 #endif
-}
-
 }
