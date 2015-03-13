@@ -5,10 +5,11 @@
 
 class GLFWwindow;
 
-typedef struct {
+struct Vect2u {
     unsigned int x;
     unsigned int y;
-} Vect2u;
+    Vect2u(unsigned int x_, unsigned int y_) : x(x_), y(y_) {}
+};
 
 class GLContext
 {
@@ -31,8 +32,8 @@ public:
     void            setTitle(const std::string& title);
 
 private:
-    GLFWwindow*   _window;
-    Vect2u        _windowSize;
+    GLFWwindow* _window;
+    Vect2u      _windowSize;
 };
 
 #endif // GLCONTEXT_INCLUDED
