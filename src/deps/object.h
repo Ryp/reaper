@@ -69,7 +69,7 @@ public:
 
 private:
     mogl::Buffer            vertex_buffer;
-    GLuint                  index_buffer;
+    mogl::Buffer            index_buffer;
     mogl::VertexArray       vao;
     GLuint                  num_indices;
     GLuint                  index_type;
