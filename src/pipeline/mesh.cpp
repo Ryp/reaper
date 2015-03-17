@@ -30,7 +30,7 @@ void Mesh::init()
     _elementBuffer.setData(_model->getIndexBufferSize(), _model->getIndexBuffer(), GL_STATIC_DRAW);
 }
 
-void Mesh::draw(mogl::ShaderProgram& program, unsigned int mask)
+void Mesh::draw(mogl::ShaderProgram& program, unsigned int mask, unsigned int instances)
 {
 //     vao.bind();
 //     if (mask & Mesh::Vertex)
@@ -82,7 +82,10 @@ void Mesh::draw(mogl::ShaderProgram& program, unsigned int mask)
     }
     _elementBuffer.bind();
 
-    glDrawElements(GL_TRIANGLES, _indexesNo, GL_UNSIGNED_INT, nullptr);
+    if (instances)
+        glDrawElementsInstanced(GL_TRIANGLES, _indexesNo, GL_UNSIGNED_INT, nullptr, instances);
+    else
+        glDrawElements(GL_TRIANGLES, _indexesNo, GL_UNSIGNED_INT, nullptr);
 
     glDisableVertexAttribArray(0);
     glDisableVertexAttribArray(1);

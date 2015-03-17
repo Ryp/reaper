@@ -10,7 +10,6 @@ cmake -DCMAKE_INSTALL_PREFIX=$PWD/install ..
 make install
 
 Dependencies:
-- C++14
 - GLFW 3.1+
 - glbinding
 - [moGL](https://github.com/Ryp/moGL)
