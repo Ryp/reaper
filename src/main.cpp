@@ -28,8 +28,6 @@ using namespace gl;
 #include "resource/resourcemanager.hpp"
 #include "pipeline/mesh.hpp"
 
-#include <deps/object.h> // FIXME remove
-
 void    hdr_test(GLContext& ctx, SixAxis& controller)
 {
     ResourceManager     resourceMgr("rc");
@@ -288,6 +286,8 @@ void    bloom_test(GLContext& ctx, SixAxis& /*controller*/)
     mogl::VertexArray   vao;
     mogl::Buffer        ubo_transform(GL_UNIFORM_BUFFER);
     mogl::Buffer        ubo_material(GL_UNIFORM_BUFFER);
+    ResourceManager     resourceMgr("rc");
+    Mesh                mesh(resourceMgr.getModel("model/sphere.obj"));
     float       exposure(1.0f);
     bool        paused(false);
     float       bloom_factor(1.0f);
@@ -296,7 +296,7 @@ void    bloom_test(GLContext& ctx, SixAxis& /*controller*/)
     bool        show_prefilter(false);
     float       bloom_thresh_min(0.8f);
     float       bloom_thresh_max(1.2f);
-    object      object;
+    const int   sphereCount = 32;
 
     struct
     {
@@ -316,8 +316,7 @@ void    bloom_test(GLContext& ctx, SixAxis& /*controller*/)
     enum
     {
         MAX_SCENE_WIDTH     = 2048,
-        MAX_SCENE_HEIGHT    = 2048,
-        SPHERE_COUNT        = 32,
+        MAX_SCENE_HEIGHT    = 2048
     };
 
     static const GLenum buffers[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
@@ -333,7 +332,6 @@ void    bloom_test(GLContext& ctx, SixAxis& /*controller*/)
     uniforms.resolve.exposure = program_resolve.getUniformLocation("exposure");
     uniforms.resolve.bloom_factor = program_resolve.getUniformLocation("bloom_factor");
     uniforms.resolve.scene_factor = program_resolve.getUniformLocation("scene_factor");
-
 
     tex_scene.setStorage2D(1, GL_RGBA16F, MAX_SCENE_WIDTH, MAX_SCENE_HEIGHT);
     tex_brightpass.setStorage2D(1, GL_RGBA16F, MAX_SCENE_WIDTH, MAX_SCENE_HEIGHT);
@@ -357,10 +355,10 @@ void    bloom_test(GLContext& ctx, SixAxis& /*controller*/)
     tex_lut.set(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     tex_lut.set(GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 
-    object.load("rc/model/sphere.sbm");
+    mesh.init();
 
     ubo_transform.bind();
-    glBufferData(GL_UNIFORM_BUFFER, (2 + SPHERE_COUNT) * sizeof(glm::mat4), NULL, GL_DYNAMIC_DRAW);
+    glBufferData(GL_UNIFORM_BUFFER, (2 + sphereCount) * sizeof(glm::mat4), NULL, GL_DYNAMIC_DRAW);
 
     struct material
     {
@@ -373,11 +371,11 @@ void    bloom_test(GLContext& ctx, SixAxis& /*controller*/)
     };
 
     ubo_material.bind();
-    glBufferData(GL_UNIFORM_BUFFER, SPHERE_COUNT * sizeof(material), NULL, GL_STATIC_DRAW);
+    glBufferData(GL_UNIFORM_BUFFER, sphereCount * sizeof(material), NULL, GL_STATIC_DRAW);
 
-    material * m = (material *)glMapBufferRange(GL_UNIFORM_BUFFER, 0, SPHERE_COUNT * sizeof(material), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+    material * m = (material *)glMapBufferRange(GL_UNIFORM_BUFFER, 0, sphereCount * sizeof(material), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
     float ambient = 0.002f;
-    for (int i = 0; i < SPHERE_COUNT; ++i)
+    for (int i = 0; i < sphereCount; ++i)
     {
         float fi = 3.14159267f * (float)i / 8.0f;
         m[i].diffuse_color  = glm::vec3(sinf(fi) * 0.5f + 0.5f, sinf(fi + 1.345f) * 0.5f + 0.5f, sinf(fi + 2.567f) * 0.5f + 0.5f);
@@ -418,11 +416,11 @@ void    bloom_test(GLContext& ctx, SixAxis& /*controller*/)
         {
             glm::mat4 mat_proj;
             glm::mat4 mat_view;
-            glm::mat4 mat_model[SPHERE_COUNT];
+            glm::mat4 mat_model[sphereCount];
         } * transforms = (transforms_t *)glMapBufferRange(GL_UNIFORM_BUFFER, 0, sizeof(transforms_t), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
         transforms->mat_proj = glm::perspective(70.0f, (float)ctx.getWindowSize().x / (float)ctx.getWindowSize().y, 1.0f, 1000.0f);
         transforms->mat_view = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -20.0f));
-        for (i = 0; i < SPHERE_COUNT; i++)
+        for (i = 0; i < sphereCount; i++)
         {
             float fi = 3.141592f * (float)i / 16.0f;
             // float r = cosf(fi * 0.25f) * 0.4f + 1.0f;
@@ -435,7 +433,7 @@ void    bloom_test(GLContext& ctx, SixAxis& /*controller*/)
         glUniform1f(uniforms.scene.bloom_thresh_min, bloom_thresh_min);
         glUniform1f(uniforms.scene.bloom_thresh_max, bloom_thresh_max);
 
-        object.render(SPHERE_COUNT);
+        mesh.draw(program_render, Mesh::Vertex | Mesh::Normal, sphereCount);
 
         mogl::disable(GL_DEPTH_TEST);
 

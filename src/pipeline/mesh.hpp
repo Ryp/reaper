@@ -38,7 +38,8 @@ public:
 
 public:
     void                init();
-    void                draw(mogl::ShaderProgram& program, unsigned int mask);
+    void                draw(mogl::ShaderProgram& program, unsigned int mask,
+                             unsigned int instances = 0);
     const glm::mat4&    getModelMatrix() const;
     void                setModelMatrix(const glm::mat4& transformation);
 
