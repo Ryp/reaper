@@ -245,11 +245,11 @@ void    hdr_test(GLContext& ctx, SixAxis& controller)
         postshader.setUniform<GLint>("renderedTexture", 0);
 //         postshader.setUniform<GLfloat>("frameBufSize", ctx.getWindowSize().x, ctx.getWindowSize().y);
         if (controller.isHeld(SixAxis::Buttons::Circle))
-            postshader.setUniformSubroutine(mogl::Shader::Type::FragmentShader, "tonemapSelector", "uncharted2tonemap");
+            postshader.setUniformSubroutine(GL_FRAGMENT_SHADER, "tonemapSelector", "uncharted2tonemap");
         else if (controller.isHeld(SixAxis::Buttons::Square))
-            postshader.setUniformSubroutine(mogl::Shader::Type::FragmentShader, "tonemapSelector", "reinhardtonemap");
+            postshader.setUniformSubroutine(GL_FRAGMENT_SHADER, "tonemapSelector", "reinhardtonemap");
         else
-            postshader.setUniformSubroutine(mogl::Shader::Type::FragmentShader, "tonemapSelector", "notonemap");
+            postshader.setUniformSubroutine(GL_FRAGMENT_SHADER, "tonemapSelector", "notonemap");
 
         quadBuffer.bind();
         postshader.setVertexAttribPointer("v_coord", 3, GL_FLOAT);

@@ -28,7 +28,7 @@
 
 object::object()
 :   vertex_buffer(GL_ARRAY_BUFFER),
-    index_buffer(0)
+    index_buffer(GL_ELEMENT_ARRAY_BUFFER)
 {}
 
 void object::load(const char * filename)
@@ -85,15 +85,9 @@ void object::load(const char * filename)
     if (sub_object_chunk != nullptr)
     {
         if (sub_object_chunk->count > MAX_SUB_OBJECTS)
-        {
             sub_object_chunk->count = MAX_SUB_OBJECTS;
-        }
-
         for (i = 0; i < sub_object_chunk->count; i++)
-        {
             sub_object[i] = sub_object_chunk->sub_object[i];
-        }
-
         num_sub_objects = sub_object_chunk->count;
     }
     else
@@ -122,10 +116,8 @@ void object::load(const char * filename)
 
     if (index_data_chunk != nullptr)
     {
-        glGenBuffers(1, &index_buffer);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-                     index_data_chunk->index_count * (index_data_chunk->index_type == GL_UNSIGNED_SHORT ? sizeof(GLushort) : sizeof(GLubyte)),
+        index_buffer.bind(); //
+        index_buffer.setData(index_data_chunk->index_count * (index_data_chunk->index_type == GL_UNSIGNED_SHORT ? sizeof(GLushort) : sizeof(GLubyte)),
                      data + index_data_chunk->index_data_offset, GL_STATIC_DRAW);
         num_indices = index_data_chunk->index_count;
         index_type = index_data_chunk->index_type;
@@ -145,50 +137,24 @@ void object::load(const char * filename)
 
 void object::free()
 {
-    glDeleteBuffers(1, &index_buffer);
-
-    index_buffer = 0;
     num_indices = 0;
 }
 
 void object::render_sub_object(unsigned int object_index, unsigned int instance_count, unsigned int base_instance)
 {
     vao.bind();
-
-#if defined (__APPLE__)
-
-    if (index_buffer != 0)
-    {
-        glDrawElementsInstanced(GL_TRIANGLES,
-                                num_indices,
-                                index_type,
-                                0,
-                                instance_count);
-    }
-    else
-    {
-        glDrawArraysInstanced(GL_TRIANGLES,
-                              sub_object[object_index].first,
-                              sub_object[object_index].count,
-                              instance_count);
-    }
-#else
-    if (index_buffer != 0)
-    {
+//     if (index_buffer.getHandle() != 0)
+    if (false)
         glDrawElementsInstancedBaseInstance(GL_TRIANGLES,
                                             num_indices,
                                             static_cast<GLenum>(index_type),
                                             0,
                                             instance_count,
                                             base_instance);
-    }
     else
-    {
         glDrawArraysInstancedBaseInstance(GL_TRIANGLES,
                                            sub_object[object_index].first,
                                            sub_object[object_index].count,
                                            instance_count,
                                            base_instance);
-    }
-#endif
 }
