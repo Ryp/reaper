@@ -14,10 +14,6 @@
 
 Mesh::Mesh(Model* model)
 :   _model(model),
-    _vertexBuffer(GL_ARRAY_BUFFER),
-    _normalBuffer(GL_ARRAY_BUFFER),
-    _uvBuffer(GL_ARRAY_BUFFER),
-    _elementBuffer(GL_ELEMENT_ARRAY_BUFFER),
     _indexesNo(_model->getIndexBufferSize())
 {}
 

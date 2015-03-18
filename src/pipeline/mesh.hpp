@@ -15,8 +15,9 @@
 
 #include "gl.hpp"
 
-#include <mogl/buffer/buffer.hpp>
-#include <mogl/shader/shaderprogram.hpp>
+#include <mogl/object/buffer/arraybuffer.hpp>
+#include <mogl/object/buffer/elementarraybuffer.hpp>
+#include <mogl/object/shader/shaderprogram.hpp>
 
 class Model;
 
@@ -44,13 +45,13 @@ public:
     void                setModelMatrix(const glm::mat4& transformation);
 
 public:
-    Model*          _model;
-    mogl::Buffer    _vertexBuffer;
-    mogl::Buffer    _normalBuffer;
-    mogl::Buffer    _uvBuffer;
-    mogl::Buffer    _elementBuffer;
-    glm::mat4       _modelMatrix;
-    GLsizei         _indexesNo;
+    Model*      _model;
+    mogl::VBO   _vertexBuffer;
+    mogl::VBO   _normalBuffer;
+    mogl::VBO   _uvBuffer;
+    mogl::EBO   _elementBuffer;
+    glm::mat4   _modelMatrix;
+    GLsizei     _indexesNo;
 };
 
 #endif // REAPER_MESH_INCLUDED
