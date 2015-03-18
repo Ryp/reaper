@@ -14,7 +14,7 @@
 
 using namespace gl;
 
-#include <mogl/texture/texture.hpp>
+#include <mogl/object/texture.hpp>
 
 #include <gli/gli.hpp>
 #include <gli/core/load_dds.hpp>

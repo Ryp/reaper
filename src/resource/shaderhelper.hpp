@@ -4,7 +4,7 @@
 #include <glbinding/gl/gl.h>
 using namespace gl;
 
-#include <mogl/shader/shaderprogram.hpp>
+#include <mogl/object/shader/shaderprogram.hpp>
 
 class ShaderHelper
 {
