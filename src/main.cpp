@@ -6,14 +6,16 @@ using namespace gl;
 #include "glcontext.hpp"
 
 #include <mogl/exception/moglexception.hpp>
-#include <mogl/shader/shaderprogram.hpp>
-#include <mogl/texture/texture.hpp>
-#include <mogl/framebuffer/framebuffer.hpp>
-#include <mogl/renderbuffer/renderbuffer.hpp>
-#include <mogl/buffer/buffer.hpp>
-#include <mogl/buffer/vertexarray.hpp>
-#include <mogl/sync/query.hpp>
-#include <mogl/states/states.hpp>
+#include <mogl/object/shader/shaderprogram.hpp>
+#include <mogl/object/texture.hpp>
+#include <mogl/object/framebuffer.hpp>
+#include <mogl/object/renderbuffer.hpp>
+#include <mogl/object/buffer/arraybuffer.hpp>
+#include <mogl/object/buffer/elementarraybuffer.hpp>
+#include <mogl/object/buffer/uniformbuffer.hpp>
+#include <mogl/object/vertexarray.hpp>
+#include <mogl/object/query.hpp>
+#include <mogl/function/states.hpp>
 
 #define GLM_FORCE_RADIANS
 #include <glm/gtc/matrix_transform.hpp>
@@ -33,14 +35,14 @@ void    hdr_test(GLContext& ctx, SixAxis& controller)
     ResourceManager     resourceMgr("rc");
     float               frameTime;
     Camera              cam(glm::vec3(-5.0, 3.0, 0.0));
-    mogl::VertexArray   vao;
+    mogl::VAO           vao;
     Model*              quad = resourceMgr.getModel("model/quad.obj");
     Mesh                mesh(resourceMgr.getModel("model/sphere.obj"));
     mogl::ShaderProgram shader;
     mogl::ShaderProgram postshader;
     mogl::ShaderProgram normdepthpassshader;
     mogl::ShaderProgram depthpassshader;
-    mogl::Buffer        quadBuffer(GL_ARRAY_BUFFER);
+    mogl::VBO           quadBuffer;
     mogl::FrameBuffer   postFrameBuffer;
     mogl::FrameBuffer   shadowDepthFrameBuffer;
     mogl::FrameBuffer   screenDepthFrameBuffer;
@@ -271,7 +273,7 @@ void    hdr_test(GLContext& ctx, SixAxis& controller)
     delete kernel;
 }
 
-void    bloom_test(GLContext& ctx, SixAxis& /*controller*/)
+void    bloom_test(GLContext& ctx, SixAxis& controller)
 {
     mogl::FrameBuffer   render_fbo;
     mogl::FrameBuffer   filter_fbo[2];
@@ -283,9 +285,9 @@ void    bloom_test(GLContext& ctx, SixAxis& /*controller*/)
     mogl::ShaderProgram program_render;
     mogl::ShaderProgram program_filter;
     mogl::ShaderProgram program_resolve;
-    mogl::VertexArray   vao;
-    mogl::Buffer        ubo_transform(GL_UNIFORM_BUFFER);
-    mogl::Buffer        ubo_material(GL_UNIFORM_BUFFER);
+    mogl::VAO           vao;
+    mogl::UniformBuffer ubo_transform;
+    mogl::UniformBuffer ubo_material;
     ResourceManager     resourceMgr("rc");
     Mesh                mesh(resourceMgr.getModel("model/sphere.obj"));
     float       exposure(1.0f);
@@ -313,10 +315,14 @@ void    bloom_test(GLContext& ctx, SixAxis& /*controller*/)
         } resolve;
     } uniforms;
 
-    enum
+    struct material
     {
-        MAX_SCENE_WIDTH     = 2048,
-        MAX_SCENE_HEIGHT    = 2048
+        glm::vec3     diffuse_color;
+        unsigned int    : 32;           // pad
+        glm::vec3     specular_color;
+        float           specular_power;
+        glm::vec3     ambient_color;
+        unsigned int    : 32;           // pad
     };
 
     static const GLenum buffers[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
@@ -333,9 +339,9 @@ void    bloom_test(GLContext& ctx, SixAxis& /*controller*/)
     uniforms.resolve.bloom_factor = program_resolve.getUniformLocation("bloom_factor");
     uniforms.resolve.scene_factor = program_resolve.getUniformLocation("scene_factor");
 
-    tex_scene.setStorage2D(1, GL_RGBA16F, MAX_SCENE_WIDTH, MAX_SCENE_HEIGHT);
-    tex_brightpass.setStorage2D(1, GL_RGBA16F, MAX_SCENE_WIDTH, MAX_SCENE_HEIGHT);
-    tex_depth.setStorage2D(1, GL_DEPTH_COMPONENT32F, MAX_SCENE_WIDTH, MAX_SCENE_HEIGHT);
+    tex_scene.setStorage2D(1, GL_RGBA16F, ctx.getWindowSize().x, ctx.getWindowSize().y);
+    tex_brightpass.setStorage2D(1, GL_RGBA16F, ctx.getWindowSize().x, ctx.getWindowSize().y);
+    tex_depth.setStorage2D(1, GL_DEPTH_COMPONENT32F, ctx.getWindowSize().x, ctx.getWindowSize().y);
     render_fbo.setTexture(GL_COLOR_ATTACHMENT0, tex_scene, 0);
     render_fbo.setTexture(GL_COLOR_ATTACHMENT1, tex_brightpass, 0);
     render_fbo.setTexture(GL_DEPTH_ATTACHMENT, tex_depth, 0);
@@ -343,7 +349,7 @@ void    bloom_test(GLContext& ctx, SixAxis& /*controller*/)
 
     for (int i = 0; i < 2; ++i)
     {
-        tex_filter[i].setStorage2D(1, GL_RGBA16F, i ? MAX_SCENE_WIDTH : MAX_SCENE_HEIGHT, i ? MAX_SCENE_HEIGHT : MAX_SCENE_WIDTH);
+        tex_filter[i].setStorage2D(1, GL_RGBA16F, (i ? ctx.getWindowSize().x : ctx.getWindowSize().y), (i ? ctx.getWindowSize().y : ctx.getWindowSize().x));
         filter_fbo[i].setTexture(GL_COLOR_ATTACHMENT0, tex_filter[i], 0);
         filter_fbo[i].setDrawBuffers(1, buffers);
     }
@@ -357,23 +363,10 @@ void    bloom_test(GLContext& ctx, SixAxis& /*controller*/)
 
     mesh.init();
 
-    ubo_transform.bind();
-    glBufferData(GL_UNIFORM_BUFFER, (2 + sphereCount) * sizeof(glm::mat4), NULL, GL_DYNAMIC_DRAW);
+    ubo_transform.setData((2 + sphereCount) * sizeof(glm::mat4), NULL, GL_DYNAMIC_DRAW);
 
-    struct material
-    {
-        glm::vec3     diffuse_color;
-        unsigned int    : 32;           // pad
-        glm::vec3     specular_color;
-        float           specular_power;
-        glm::vec3     ambient_color;
-        unsigned int    : 32;           // pad
-    };
-
-    ubo_material.bind();
-    glBufferData(GL_UNIFORM_BUFFER, sphereCount * sizeof(material), NULL, GL_STATIC_DRAW);
-
-    material * m = (material *)glMapBufferRange(GL_UNIFORM_BUFFER, 0, sphereCount * sizeof(material), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+    ubo_material.setData(sphereCount * sizeof(material), NULL, GL_STATIC_DRAW);
+    material* m = (material*)ubo_material.mapRange(0, sphereCount * sizeof(material), static_cast<GLbitfield>(GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT));
     float ambient = 0.002f;
     for (int i = 0; i < sphereCount; ++i)
     {
@@ -384,7 +377,7 @@ void    bloom_test(GLContext& ctx, SixAxis& /*controller*/)
         m[i].ambient_color  = glm::vec3(ambient * 0.025f);
         ambient *= 1.5f;
     }
-    glUnmapBuffer(GL_UNIFORM_BUFFER);
+    ubo_material.unmap();
     do
     {
         float currentTime = ctx.getTime();
@@ -394,12 +387,16 @@ void    bloom_test(GLContext& ctx, SixAxis& /*controller*/)
         static double last_time = 0.0;
         static double total_time = 0.0;
 
+        controller.update();
+        if (controller.isPressed(SixAxis::Buttons::Cross))
+            paused = !paused;
+
         if (!paused)
             total_time += (currentTime - last_time);
         last_time = currentTime;
         float t = (float)total_time;
 
-        glViewport(0, 0, ctx.getWindowSize().x, ctx.getWindowSize().y);
+        mogl::setViewport(0, 0, ctx.getWindowSize().x, ctx.getWindowSize().y);
 
         render_fbo.bind(GL_FRAMEBUFFER);
         render_fbo.clear(GL_COLOR, 0, black);
@@ -411,13 +408,13 @@ void    bloom_test(GLContext& ctx, SixAxis& /*controller*/)
 
         program_render.use();
 
-        glBindBufferBase(GL_UNIFORM_BUFFER, 0, ubo_transform.getHandle());
+        ubo_transform.bindBufferBase(0);
         struct transforms_t
         {
             glm::mat4 mat_proj;
             glm::mat4 mat_view;
             glm::mat4 mat_model[sphereCount];
-        } * transforms = (transforms_t *)glMapBufferRange(GL_UNIFORM_BUFFER, 0, sizeof(transforms_t), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+        } * transforms = (transforms_t *)ubo_transform.mapRange(0, sizeof(transforms_t), static_cast<GLbitfield>(GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT));
         transforms->mat_proj = glm::perspective(70.0f, (float)ctx.getWindowSize().x / (float)ctx.getWindowSize().y, 1.0f, 1000.0f);
         transforms->mat_view = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -20.0f));
         for (i = 0; i < sphereCount; i++)
@@ -427,8 +424,9 @@ void    bloom_test(GLContext& ctx, SixAxis& /*controller*/)
             float r = (i & 2) ? 0.6f : 1.5f;
             transforms->mat_model[i] = glm::translate(glm::mat4(1.0f), glm::vec3(cosf(t + fi) * 5.0f * r, sinf(t + fi * 4.0f) * 4.0f, sinf(t + fi) * 5.0f * r));
         }
-        glUnmapBuffer(GL_UNIFORM_BUFFER);
-        glBindBufferBase(GL_UNIFORM_BUFFER, 1, ubo_material.getHandle());
+        ubo_transform.unmap();
+
+        ubo_material.bindBufferBase(1);
 
         glUniform1f(uniforms.scene.bloom_thresh_min, bloom_thresh_min);
         glUniform1f(uniforms.scene.bloom_thresh_max, bloom_thresh_max);
@@ -444,14 +442,14 @@ void    bloom_test(GLContext& ctx, SixAxis& /*controller*/)
         filter_fbo[0].bind(GL_FRAMEBUFFER);
 
         tex_brightpass.bind(0);
-        glViewport(0, 0, ctx.getWindowSize().y, ctx.getWindowSize().x);
+        mogl::setViewport(0, 0, ctx.getWindowSize().y, ctx.getWindowSize().x);
 
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
         filter_fbo[1].bind(GL_FRAMEBUFFER);
 
         tex_filter[0].bind(0);
-        glViewport(0, 0, ctx.getWindowSize().x, ctx.getWindowSize().y);
+        mogl::setViewport(0, 0, ctx.getWindowSize().x, ctx.getWindowSize().y);
 
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
