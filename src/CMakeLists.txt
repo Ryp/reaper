@@ -4,8 +4,11 @@ set(REAPER_SRCS
     main.cpp
     Camera.cpp
     glcontext.cpp
+    unixfilewatcher.cpp
     input/AController.cpp
     input/SixAxis.cpp
+    imgui/imgui.cpp
+    imgui/imgui_impl_glfw_gl3.cpp
     math/spline.cpp
     pipeline/mesh.cpp
     resource/imageloader.cpp

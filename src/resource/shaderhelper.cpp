@@ -7,12 +7,12 @@ void ShaderHelper::loadSimpleShader(mogl::ShaderProgram& shader, const std::stri
 {
     std::ifstream   vsFile(vertexFile);
     std::ifstream   fsFile(fragmentFile);
-    mogl::Shader    vertex(vsFile, GL_VERTEX_SHADER);
-    mogl::Shader    fragment(fsFile, GL_FRAGMENT_SHADER);
+    mogl::Shader    vertex(GL_VERTEX_SHADER);
+    mogl::Shader    fragment(GL_FRAGMENT_SHADER);
 
-    if (!vertex.compile())
+    if (!vertex.compile(vsFile))
         std::cerr << "Vertex shader " << vertexFile << std::endl << vertex.getLog() << std::endl;
-    if (!fragment.compile())
+    if (!fragment.compile(fsFile))
         std::cerr << "Fragment shader" << fragmentFile << std::endl << fragment.getLog() << std::endl;
 
     shader.attach(vertex);

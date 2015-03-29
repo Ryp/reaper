@@ -10,6 +10,8 @@
 using namespace gl;
 
 #include "glcontext.hpp"
+#include "imgui/imgui.h"
+#include "imgui/imgui_impl_glfw_gl3.h"
 
 GLContext::GLContext()
 :   _window(nullptr),
@@ -27,6 +29,7 @@ void GLContext::create(unsigned int width, unsigned int height, unsigned int maj
         glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, 1);
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, 1);
     glfwWindowHint(GLFW_RESIZABLE, 0);
+    glfwSwapInterval(1);
     glfwSetErrorCallback([] (int e, const char* str) { std::cout << "GLFW Context error (" << e << "): " << str << std::endl; });
     GLFWmonitor* monitor;
     if (!(monitor = glfwGetPrimaryMonitor()))
@@ -40,9 +43,10 @@ void GLContext::create(unsigned int width, unsigned int height, unsigned int maj
     makeCurrent();
 
     glbinding::Binding::initialize(true);
+    ImGui_ImplGlfwGL3_Init(_window, true);
 
     glfwSwapInterval(1); // NOTE Drivers may ignore this
-    glfwSetInputMode(_window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+//     glfwSetInputMode(_window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
 }
 
 bool GLContext::isOpen()
@@ -66,6 +70,7 @@ void GLContext::destroy()
     if (_window)
         glfwDestroyWindow(_window);
     glfwTerminate();
+    ImGui_ImplGlfwGL3_Shutdown();
 }
 
 const Vect2u& GLContext::getWindowSize() const
