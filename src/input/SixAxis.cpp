@@ -15,26 +15,20 @@ SixAxis::SixAxis(const std::string& device)
 :   AController(TotalButtonsNumber,
                 TotalAxesNumber),
     _device(device),
-    _connected(connect())
+    _connected(connect()),
+    _fd(0)
 {
     AController::reset();
 }
 
-SixAxis::~SixAxis()
-{
-    if (_connected && (close(_fd) == -1))
-        throw (std::runtime_error("could not close controller fd" + std::string(strerror(errno))));
-}
-
 void SixAxis::update()
 {
-    int             ret;
     float           val;
     struct js_event event;
 
     if (!_connected)
         return;
-    while ((ret = read(_fd, static_cast<void*>(&event), sizeof(event))) != -1)
+    while (read(_fd, static_cast<void*>(&event), sizeof(event)) != -1)
     {
         event.type &= ~JS_EVENT_INIT;
         if (event.type == JS_EVENT_AXIS)
@@ -46,6 +40,12 @@ void SixAxis::update()
             _buttons[event.number].new_held = event.value != 0;
     }
     AController::update();
+}
+
+void SixAxis::destroy()
+{
+    if (_connected && (close(_fd) == -1))
+        throw (std::runtime_error("could not close controller fd" + std::string(strerror(errno))));
 }
 
 bool SixAxis::connect()

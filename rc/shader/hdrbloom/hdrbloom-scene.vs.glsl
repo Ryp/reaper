@@ -2,12 +2,14 @@
 
 layout (location = 0) in vec4 position;
 layout (location = 1) in vec3 normal;
+layout (location = 2) in vec2 vertexUV;
 
 out VS_OUT
 {
     vec3 N;
     vec3 L;
     vec3 V;
+    vec2 UV;
     flat int material_index;
 } vs_out;
 
@@ -39,6 +41,7 @@ void main(void)
 
     // Pass material index
     vs_out.material_index = gl_InstanceID;
+    vs_out.UV = vertexUV;
 
     // Calculate the clip-space position of each vertex
     gl_Position = transforms.mat_proj * P;

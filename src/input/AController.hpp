@@ -18,6 +18,7 @@ public:
 
 protected:
     virtual void  update();
+    virtual void destroy() = 0;
 
 protected:
     typedef struct {

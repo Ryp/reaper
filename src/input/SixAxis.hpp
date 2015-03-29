@@ -71,10 +71,11 @@ public:
 
 public:
     SixAxis(const std::string& device);
-    virtual ~SixAxis();
+    virtual ~SixAxis() = default;
 
 public:
     virtual void update() override;
+    virtual void destroy() override;
 
 private:
     bool    connect();

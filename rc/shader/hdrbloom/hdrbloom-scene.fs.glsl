@@ -1,4 +1,3 @@
-
 #version 450 core
 
 layout (location = 0) out vec4 color0;
@@ -9,12 +8,15 @@ in VS_OUT
     vec3 N;
     vec3 L;
     vec3 V;
+    vec2 UV;
     flat int material_index;
 } fs_in;
 
 // Material properties
 uniform float bloom_thresh_min = 0.8;
 uniform float bloom_thresh_max = 1.2;
+
+uniform sampler2D envmap;
 
 struct material_t
 {
@@ -50,7 +52,7 @@ void main(void)
     vec3 color = ambient + diffuse + specular;
 
     // Write final color to the framebuffer
-    color0 = vec4(color, 1.0);
+    color0 = vec4(color, 1.0) * texture2D(envmap, fs_in.UV);
 
     // Calculate luminance
     float Y = dot(color, vec3(0.299, 0.587, 0.144));
