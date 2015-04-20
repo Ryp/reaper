@@ -1,7 +1,9 @@
 #include <glbinding/gl/gl.h>
 #include <glbinding/Binding.h>
+#include <glbinding/Meta.h>
 
 using namespace gl;
+using glbinding::Meta;
 
 #include "glcontext.hpp"
 
@@ -33,6 +35,14 @@ using namespace gl;
 #include "unixfilewatcher.hpp"
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_glfw_gl3.h"
+
+static void assertExtensionPresent(GLextension extension)
+{
+    if (!Meta::stringsByGL())
+        throw (std::runtime_error("You're fucked."));
+    if (!Meta::extensions().count(extension))
+        throw (std::runtime_error(Meta::getString(extension) + " extension is not supported"));
+}
 
 void    hdr_test(GLContext& ctx, SixAxis& controller)
 {
@@ -143,10 +153,10 @@ void    hdr_test(GLContext& ctx, SixAxis& controller)
     glm::fvec3* kernel = new(std::nothrow) glm::fvec3[ssaoKernelSize];
     for (int i = 0; i < ssaoKernelSize; ++i) {
         kernel[i] = glm::fvec3(
-            glm::linearRand(-1.0f, 1.0f),
-            glm::linearRand(-1.0f, 1.0f),
-            glm::linearRand(0.0f, 1.0f)
-        );
+                        glm::linearRand(-1.0f, 1.0f),
+                        glm::linearRand(-1.0f, 1.0f),
+                        glm::linearRand(0.0f, 1.0f)
+                    );
         kernel[i] = glm::normalize(kernel[i]);
         float scale = (float)i / (float)ssaoKernelSize;
         kernel[i] *= glm::lerp(0.1f, 1.0f, scale * scale);
@@ -244,7 +254,8 @@ void    hdr_test(GLContext& ctx, SixAxis& controller)
 
         postshader.use();
 
-        frameTexture.bind(0);
+
+
         postshader.setUniform<GLint>("renderedTexture", 0);
 //         postshader.setUniform<GLfloat>("frameBufSize", ctx.getWindowSize().x, ctx.getWindowSize().y);
         if (controller.isHeld(SixAxis::Buttons::Circle))
@@ -294,13 +305,19 @@ void    bloom_test(GLContext& ctx, SixAxis& controller)
     mogl::VAO           vao;
     mogl::UniformBuffer ubo_transform;
     mogl::UniformBuffer ubo_material;
+    mogl::Query         timeQuery(GL_TIME_ELAPSED);
     ResourceManager     resourceMgr("rc");
     Mesh                mesh(resourceMgr.getModel("model/sphere.obj"));
     float       exposure(1.0f);
     bool        paused(false);
-    float       bloom_thresh_min(0.8f);
-    float       bloom_thresh_max(1.2f);
-    const int   sphereCount = 32;
+    bool        bloom(false);
+    float       bloom_thresh_min(2.4f);
+    float       bloom_thresh_max(10.0f);
+    const int   sphereN = 7;
+    const int   sphereTotal = sphereN * sphereN;
+    float       fovAngle = 70.0f;
+    glm::vec3           lightPos(0.0f, 0.0f, -10.0f);
+    float               lightIntensity(4.0f);
 
     struct
     {
@@ -323,9 +340,22 @@ void    bloom_test(GLContext& ctx, SixAxis& controller)
         float           specular_power;
         glm::vec3       ambient_color;
         unsigned int    : 32;
+        glm::vec3       albedo;
+        float           fresnel;
+        float           roughness;
+        unsigned int    : 32;
+        unsigned int    : 32;
+        unsigned int    : 32;
     };
 
-    ImageLoader::loadDDS("rc/texture/envmap/lobby.dds", sphereTex);
+    GLfloat maxAnisotropy = mogl::get<GLfloat>(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT);
+
+    std::cout << "MaxAnisotropy=" << maxAnisotropy << std::endl;
+
+    ImageLoader::loadDDS("rc/texture/envmap/lobby_mip.dds", sphereTex);
+    sphereTex.set(GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    sphereTex.set(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    sphereTex.set(GL_TEXTURE_MAX_ANISOTROPY_EXT, maxAnisotropy);
 
     static const GLenum buffers[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
     static const GLfloat exposureLUT[20]   = { 11.0f, 6.0f, 3.2f, 2.8f, 2.2f, 1.90f, 1.80f, 1.80f, 1.70f, 1.70f,  1.60f, 1.60f, 1.50f, 1.50f, 1.40f, 1.40f, 1.30f, 1.20f, 1.10f, 1.00f };
@@ -342,7 +372,7 @@ void    bloom_test(GLContext& ctx, SixAxis& controller)
 
     tex_scene.setStorage2D(1, GL_RGBA16F, ctx.getWindowSize().x, ctx.getWindowSize().y);
     tex_brightpass.setStorage2D(11, GL_RGBA16F, ctx.getWindowSize().x, ctx.getWindowSize().y);
-    tex_brightpass.set(GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
+//     tex_brightpass.set(GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
     tex_brightpass.generateMipmap();
     tex_depth.setStorage2D(1, GL_DEPTH_COMPONENT32F, ctx.getWindowSize().x, ctx.getWindowSize().y);
     render_fbo.setTexture(GL_COLOR_ATTACHMENT0, tex_scene, 0);
@@ -366,36 +396,37 @@ void    bloom_test(GLContext& ctx, SixAxis& controller)
 
     mesh.init();
 
-    ubo_transform.setData((2 + sphereCount) * sizeof(glm::mat4), nullptr, GL_DYNAMIC_DRAW);
-
-    ubo_material.setData(sphereCount * sizeof(material), nullptr, GL_STATIC_DRAW);
-    material* m = static_cast<material*>(ubo_material.mapRange(0, sphereCount * sizeof(material), static_cast<GLbitfield>(GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT)));
+    ubo_transform.setData((2 + sphereTotal) * sizeof(glm::mat4), nullptr, GL_DYNAMIC_DRAW);
+    ubo_material.setData(sphereTotal * sizeof(material), nullptr, GL_STATIC_DRAW);
+    material* m = static_cast<material*>(ubo_material.mapRange(0, sphereTotal * sizeof(material), static_cast<GLbitfield>(GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT)));
     float ambient = 0.002f;
-    for (int i = 0; i < sphereCount; ++i)
+    for (int i = 0; i < sphereN; ++i)
     {
-        float fi = 3.14159267f * (float)i / 8.0f;
-        m[i].diffuse_color  = glm::vec3(sinf(fi) * 0.5f + 0.5f, sinf(fi + 1.345f) * 0.5f + 0.5f, sinf(fi + 2.567f) * 0.5f + 0.5f);
-        m[i].specular_color = glm::vec3(2.8f, 2.8f, 2.9f);
-        m[i].specular_power = 30.0f;
-        m[i].ambient_color  = glm::vec3(ambient * 0.025f);
-        ambient *= 1.5f;
+        for (int j = 0; j < sphereN; ++j)
+        {
+            int index = i * sphereN + j;
+            float fi = 3.14159267f * (float)i / 8.0f;
+            m[index].diffuse_color  = glm::vec3(sinf(fi) * 0.5f + 0.5f, sinf(fi + 1.345f) * 0.5f + 0.5f, sinf(fi + 2.567f) * 0.5f + 0.5f);
+            m[index].specular_color = glm::vec3(2.8f, 2.8f, 2.9f);
+            m[index].specular_power = 30.0f;
+            m[index].ambient_color  = glm::vec3(ambient * 0.025f);
+            m[index].albedo         = m[index].diffuse_color;
+            m[index].fresnel        = static_cast<float>(i) / static_cast<float>(sphereN - 1);
+            m[index].roughness      = static_cast<float>(i) / static_cast<float>(sphereN - 1);
+            ambient *= 1.02f;
+        }
     }
     ubo_material.unmap();
-
-    bool show_test_window = true;
-    bool show_another_window = false;
-    ImVec4 clear_color = ImColor(114, 144, 154);
 
     mogl::enable(GL_CULL_FACE);
     mogl::setCullFace(GL_BACK);
     glDepthFunc(GL_LESS);
     do
     {
-        float currentTime = ctx.getTime();
-        static float t = 0.0f;
         static const GLfloat black[] = { 0.0f, 0.0f, 0.0f, 1.0f };
         static const GLfloat one = 1.0f;
 
+        timeQuery.begin();
         ImGuiIO& io = ImGui::GetIO();
         ImGui_ImplGlfwGL3_NewFrame();
 
@@ -403,16 +434,13 @@ void    bloom_test(GLContext& ctx, SixAxis& controller)
         if (controller.isPressed(SixAxis::Buttons::Cross))
             paused = !paused;
 
-        if (!paused)
-            t = currentTime * 0.05f;
-
         mogl::setViewport(0, 0, ctx.getWindowSize().x, ctx.getWindowSize().y);
         render_fbo.bind(GL_FRAMEBUFFER);
         render_fbo.clear(GL_COLOR, 0, black);
         render_fbo.clear(GL_COLOR, 1, black);
         render_fbo.clear(GL_DEPTH, 0, &one);
 
-        glm::mat4   Projection = glm::perspective(70.0f, (float)ctx.getWindowSize().x / (float)ctx.getWindowSize().y, 1.0f, 100.0f);
+        glm::mat4   Projection = glm::perspective(glm::radians(fovAngle), (float)ctx.getWindowSize().x / (float)ctx.getWindowSize().y, 1.0f, 100.0f);
         glm::mat4   Model = glm::scale(glm::mat4(1.0f), glm::vec3(50.0f, 50.0f, 50.0f));
         glm::mat4   MP = Projection * Model;
 
@@ -438,16 +466,17 @@ void    bloom_test(GLContext& ctx, SixAxis& controller)
         {
             glm::mat4 mat_proj;
             glm::mat4 mat_view;
-            glm::mat4 mat_model[sphereCount];
+            glm::mat4 mat_model[sphereTotal];
         } * transforms = static_cast<transforms_t*>(ubo_transform.mapRange(0, sizeof(transforms_t), static_cast<GLbitfield>(GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT)));
-        transforms->mat_proj = glm::perspective(70.0f, (float)ctx.getWindowSize().x / (float)ctx.getWindowSize().y, 1.0f, 1000.0f);
-        transforms->mat_view = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -20.0f));
-        for (int i = 0; i < sphereCount; i++)
+        transforms->mat_proj = glm::perspective(glm::radians(fovAngle), (float)ctx.getWindowSize().x / (float)ctx.getWindowSize().y, 1.0f, 1000.0f);
+        transforms->mat_view = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -10.0f));
+        for (int i = 0; i < sphereN; ++i)
         {
-            float fi = 3.141592f * (float)i / 16.0f;
-            // float r = cosf(fi * 0.25f) * 0.4f + 1.0f;
-            float r = (i & 2) ? 0.6f : 1.5f;
-            transforms->mat_model[i] = glm::translate(glm::mat4(1.0f), glm::vec3(cosf(t + fi) * 5.0f * r, sinf(t + fi * 4.0f) * 4.0f, sinf(t + fi) * 5.0f * r));
+            for (int j = 0; j < sphereN; ++j)
+            {
+                int index = i * sphereN + j;
+                transforms->mat_model[index] = glm::translate(glm::mat4(1.0f), glm::vec3((j - sphereN / 2) * 3.0f, -2.0f, -10.0f + i * 3.0f));
+            }
         }
         ubo_transform.unmap();
 
@@ -458,8 +487,13 @@ void    bloom_test(GLContext& ctx, SixAxis& controller)
         glUniform1f(uniforms.scene.bloom_thresh_min, bloom_thresh_min);
         glUniform1f(uniforms.scene.bloom_thresh_max, bloom_thresh_max);
         program_render.setUniform("envmap", 0);
+        program_render.setUniformPtr<3>("light_pos", &lightPos[0]);
+        program_render.setUniform("light_power", lightIntensity);
 
-        mesh.draw(program_render, Mesh::Vertex | Mesh::Normal | Mesh::UV, sphereCount);
+        mesh.draw(program_render, Mesh::Vertex | Mesh::Normal | Mesh::UV, sphereTotal);
+
+        if (!bloom)
+            render_fbo.clear(GL_COLOR, 1, black);
 
         mogl::disable(GL_DEPTH_TEST);
 
@@ -491,32 +525,27 @@ void    bloom_test(GLContext& ctx, SixAxis& controller)
 
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
-        // 1. Show a simple window
-        // Tip: if we don't call ImGui::Begin()/ImGui::End() the widgets appears in a window automatically called "Debug"
-        {
-            static float f;
-            ImGui::Text("Hello, world!");
-            ImGui::SliderFloat("float", &f, 0.0f, 1.0f);
-            ImGui::ColorEdit3("clear color", (float*)&clear_color);
-            if (ImGui::Button("Test Window")) show_test_window ^= 1;
-            if (ImGui::Button("Another Window")) show_another_window ^= 1;
-        }
+        timeQuery.end();
 
-        // 2. Show another simple window, this time using an explicit Begin/End pair
-        if (show_another_window)
+        ImGui::Begin("ReaperGL");
+        ImGui::Text("frameTime=%.4f ms", static_cast<double>(timeQuery.get<GLuint>(GL_QUERY_RESULT)) * 0.000001);
+        if (ImGui::CollapsingHeader("Camera"))
         {
-            ImGui::SetNextWindowSize(ImVec2(200,100), ImGuiSetCond_FirstUseEver);
-            ImGui::Begin("Another Window", &show_another_window);
-            ImGui::Text("Hello");
-            ImGui::End();
+            ImGui::SliderFloat("fovAngle", &fovAngle, 30.0f, 160.0f);
         }
-
-        // 3. Show the ImGui test window. Most of the sample code is in ImGui::ShowTestWindow()
-        if (show_test_window)
+        if (ImGui::CollapsingHeader("Bloom"))
         {
-            ImGui::SetNextWindowPos(ImVec2(650, 20), ImGuiSetCond_FirstUseEver);
-            ImGui::ShowTestWindow(&show_test_window);
+            ImGui::Checkbox("Enable", &bloom);
+            ImGui::SliderFloat("bloom_thresh_min", &bloom_thresh_min, 0.0f, 10.0f);
+            ImGui::SliderFloat("bloom_thresh_max", &bloom_thresh_max, 0.0f, 10.0f);
+            ImGui::SliderFloat("exposure", &exposure, 0.0f, 10.0f);
         }
+        if (ImGui::CollapsingHeader("Light"))
+        {
+            ImGui::SliderFloat3("light", &lightPos[0], -10.0f, 10.0f);
+            ImGui::SliderFloat("intensity", &lightIntensity, 0.0f, 25.0f);
+        }
+        ImGui::End();
 
         // Rendering
         glViewport(0, 0, (int)io.DisplaySize.x, (int)io.DisplaySize.y);
@@ -528,12 +557,17 @@ void    bloom_test(GLContext& ctx, SixAxis& controller)
 
 int main(int /*ac*/, char** /*av*/)
 {
-    auto debugCallback = [] (GLenum, GLenum, GLuint, GLenum, GLsizei, const GLchar *message, const void *) { std::cout << "GL: " << message << std::endl; };
+    auto debugCallback = [] (GLenum, GLenum, GLuint, GLenum, GLsizei, const GLchar *message, const void *) {
+        std::cout << "GL: " << message << std::endl;
+    };
     try {
         GLContext   ctx;
         SixAxis     controller("/dev/input/js0");
 
         ctx.create(1600, 900, 4, 5, false, true);
+
+        assertExtensionPresent(GLextension::GL_EXT_texture_filter_anisotropic);
+
         glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
         glDebugMessageCallback(debugCallback, nullptr);
         GLuint unusedIds = 0;

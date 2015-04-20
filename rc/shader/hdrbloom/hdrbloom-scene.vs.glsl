@@ -11,10 +11,12 @@ out VS_OUT
     vec3 V;
     vec2 UV;
     flat int material_index;
+    float intensity;
 } vs_out;
 
 // Position of light
-uniform vec3 light_pos = vec3(100.0, 100.0, 100.0);
+uniform vec3    light_pos;
+uniform float   light_power;
 
 layout (binding = 0, std140) uniform TRANSFORM_BLOCK
 {
@@ -35,7 +37,10 @@ void main(void)
 
     // Calculate light vector
     vs_out.L = light_pos - P.xyz;
-
+    
+    float ld = length(vs_out.L);
+    vs_out.intensity = light_power / (ld * ld);
+    
     // Calculate view vector
     vs_out.V = -P.xyz;
 
