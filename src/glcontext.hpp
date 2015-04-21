@@ -20,6 +20,7 @@ public:
     void    create(unsigned int width, unsigned int height, unsigned int major, unsigned int minor, bool fullscreen = false, bool debug = false);
     void    destroy(); // Call this only when closing manually
     bool    isOpen();
+    bool    isExtensionSupported(const std::string& extension) const;
     void    swapBuffers();
     void    makeCurrent();
 

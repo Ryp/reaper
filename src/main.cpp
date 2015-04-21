@@ -1,9 +1,7 @@
 #include <glbinding/gl/gl.h>
 #include <glbinding/Binding.h>
-#include <glbinding/Meta.h>
 
 using namespace gl;
-using glbinding::Meta;
 
 #include "glcontext.hpp"
 
@@ -35,14 +33,6 @@ using glbinding::Meta;
 #include "unixfilewatcher.hpp"
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_glfw_gl3.h"
-
-static void assertExtensionPresent(GLextension extension)
-{
-    if (!Meta::stringsByGL())
-        throw (std::runtime_error("You're fucked."));
-    if (!Meta::extensions().count(extension))
-        throw (std::runtime_error(Meta::getString(extension) + " extension is not supported"));
-}
 
 void    hdr_test(GLContext& ctx, SixAxis& controller)
 {
@@ -308,16 +298,18 @@ void    bloom_test(GLContext& ctx, SixAxis& controller)
     mogl::Query         timeQuery(GL_TIME_ELAPSED);
     ResourceManager     resourceMgr("rc");
     Mesh                mesh(resourceMgr.getModel("model/sphere.obj"));
-    float       exposure(1.0f);
-    bool        paused(false);
-    bool        bloom(false);
-    float       bloom_thresh_min(2.4f);
-    float       bloom_thresh_max(10.0f);
-    const int   sphereN = 7;
-    const int   sphereTotal = sphereN * sphereN;
-    float       fovAngle = 70.0f;
-    glm::vec3           lightPos(0.0f, 0.0f, -10.0f);
-    float               lightIntensity(4.0f);
+    Mesh                sphere(resourceMgr.getModel("model/sphere.obj"));
+    float               exposure(1.0f);
+    bool                bloom(false);
+    float               bloom_thresh_min(2.4f);
+    float               bloom_thresh_max(10.0f);
+    const int           meshN = 7;
+    const int           meshTotal = meshN * meshN;
+    float               fovAngle = 55.0f;
+    glm::vec3           lightPos(0.0f, 7.0f, 0.0f);
+    float               lightIntensity(200.0f);
+    
+    assert(ctx.isExtensionSupported("GL_EXT_texture_filter_anisotropic"));
 
     struct
     {
@@ -334,12 +326,6 @@ void    bloom_test(GLContext& ctx, SixAxis& controller)
 
     struct material
     {
-        glm::vec3       diffuse_color;
-        unsigned int    : 32;
-        glm::vec3       specular_color;
-        float           specular_power;
-        glm::vec3       ambient_color;
-        unsigned int    : 32;
         glm::vec3       albedo;
         float           fresnel;
         float           roughness;
@@ -395,25 +381,19 @@ void    bloom_test(GLContext& ctx, SixAxis& controller)
     tex_lut.set(GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 
     mesh.init();
+    sphere.init();
 
-    ubo_transform.setData((2 + sphereTotal) * sizeof(glm::mat4), nullptr, GL_DYNAMIC_DRAW);
-    ubo_material.setData(sphereTotal * sizeof(material), nullptr, GL_STATIC_DRAW);
-    material* m = static_cast<material*>(ubo_material.mapRange(0, sphereTotal * sizeof(material), static_cast<GLbitfield>(GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT)));
-    float ambient = 0.002f;
-    for (int i = 0; i < sphereN; ++i)
+    ubo_transform.setData((2 + meshTotal) * sizeof(glm::mat4), nullptr, GL_DYNAMIC_DRAW);
+    ubo_material.setData(meshTotal * sizeof(material), nullptr, GL_STATIC_DRAW);
+    material* m = static_cast<material*>(ubo_material.mapRange(0, meshTotal * sizeof(material), static_cast<GLbitfield>(GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT)));
+    for (int i = 0; i < meshN; ++i)
     {
-        for (int j = 0; j < sphereN; ++j)
+        for (int j = 0; j < meshN; ++j)
         {
-            int index = i * sphereN + j;
-            float fi = 3.14159267f * (float)i / 8.0f;
-            m[index].diffuse_color  = glm::vec3(sinf(fi) * 0.5f + 0.5f, sinf(fi + 1.345f) * 0.5f + 0.5f, sinf(fi + 2.567f) * 0.5f + 0.5f);
-            m[index].specular_color = glm::vec3(2.8f, 2.8f, 2.9f);
-            m[index].specular_power = 30.0f;
-            m[index].ambient_color  = glm::vec3(ambient * 0.025f);
-            m[index].albedo         = m[index].diffuse_color;
-            m[index].fresnel        = static_cast<float>(i) / static_cast<float>(sphereN - 1);
-            m[index].roughness      = static_cast<float>(i) / static_cast<float>(sphereN - 1);
-            ambient *= 1.02f;
+            int index = i * meshN + j;
+            m[index].fresnel        = static_cast<float>(j + 1) / static_cast<float>(meshN);
+            m[index].roughness      = static_cast<float>(i + 1) / static_cast<float>(meshN);
+            m[index].albedo         = glm::vec3(1.0f - m[index].roughness, 1.0f - m[index].fresnel, m[index].roughness);
         }
     }
     ubo_material.unmap();
@@ -431,8 +411,6 @@ void    bloom_test(GLContext& ctx, SixAxis& controller)
         ImGui_ImplGlfwGL3_NewFrame();
 
         controller.update();
-        if (controller.isPressed(SixAxis::Buttons::Cross))
-            paused = !paused;
 
         mogl::setViewport(0, 0, ctx.getWindowSize().x, ctx.getWindowSize().y);
         render_fbo.bind(GL_FRAMEBUFFER);
@@ -442,7 +420,8 @@ void    bloom_test(GLContext& ctx, SixAxis& controller)
 
         glm::mat4   Projection = glm::perspective(glm::radians(fovAngle), (float)ctx.getWindowSize().x / (float)ctx.getWindowSize().y, 1.0f, 100.0f);
         glm::mat4   Model = glm::scale(glm::mat4(1.0f), glm::vec3(50.0f, 50.0f, 50.0f));
-        glm::mat4   MP = Projection * Model;
+        glm::mat4   View = glm::lookAt(glm::vec3(-8.0f, 6.0f, -8.0f), glm::vec3(0.0f, -4.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+        glm::mat4   MVP = Projection * View * Model;
 
         mogl::disable(GL_DEPTH_TEST);
         program_envmap.use();
@@ -450,10 +429,10 @@ void    bloom_test(GLContext& ctx, SixAxis& controller)
 
         sphereTex.bind(0);
         program_envmap.setUniform("envmap", 0);
-        program_envmap.setUniformMatrixPtr<4>("MP", &MP[0][0]);
+        program_envmap.setUniformMatrixPtr<4>("MVP", &MVP[0][0]);
 
         mogl::setCullFace(GL_FRONT);
-        mesh.draw(program_envmap, Mesh::Vertex | Mesh::UV);
+        sphere.draw(program_envmap, Mesh::Vertex | Mesh::UV);
         mogl::setCullFace(GL_BACK);
 
         mogl::enable(GL_DEPTH_TEST);
@@ -466,16 +445,16 @@ void    bloom_test(GLContext& ctx, SixAxis& controller)
         {
             glm::mat4 mat_proj;
             glm::mat4 mat_view;
-            glm::mat4 mat_model[sphereTotal];
+            glm::mat4 mat_model[meshTotal];
         } * transforms = static_cast<transforms_t*>(ubo_transform.mapRange(0, sizeof(transforms_t), static_cast<GLbitfield>(GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT)));
-        transforms->mat_proj = glm::perspective(glm::radians(fovAngle), (float)ctx.getWindowSize().x / (float)ctx.getWindowSize().y, 1.0f, 1000.0f);
-        transforms->mat_view = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -10.0f));
-        for (int i = 0; i < sphereN; ++i)
+        transforms->mat_proj = Projection;
+        transforms->mat_view = View;
+        for (int i = 0; i < meshN; ++i)
         {
-            for (int j = 0; j < sphereN; ++j)
+            for (int j = 0; j < meshN; ++j)
             {
-                int index = i * sphereN + j;
-                transforms->mat_model[index] = glm::translate(glm::mat4(1.0f), glm::vec3((j - sphereN / 2) * 3.0f, -2.0f, -10.0f + i * 3.0f));
+                int index = i * meshN + j;
+                transforms->mat_model[index] = glm::rotate(glm::translate(glm::mat4(1.0f), glm::vec3((j - meshN / 2) * 2.0f, 0.0f, (i - meshN / 2) * 2.0f)), static_cast<float>(M_PI) * -0.25f, glm::vec3(0.0f, 1.0f, 0.0f));
             }
         }
         ubo_transform.unmap();
@@ -490,7 +469,7 @@ void    bloom_test(GLContext& ctx, SixAxis& controller)
         program_render.setUniformPtr<3>("light_pos", &lightPos[0]);
         program_render.setUniform("light_power", lightIntensity);
 
-        mesh.draw(program_render, Mesh::Vertex | Mesh::Normal | Mesh::UV, sphereTotal);
+        mesh.draw(program_render, Mesh::Vertex | Mesh::Normal | Mesh::UV, meshTotal);
 
         if (!bloom)
             render_fbo.clear(GL_COLOR, 1, black);
@@ -529,21 +508,22 @@ void    bloom_test(GLContext& ctx, SixAxis& controller)
 
         ImGui::Begin("ReaperGL");
         ImGui::Text("frameTime=%.4f ms", static_cast<double>(timeQuery.get<GLuint>(GL_QUERY_RESULT)) * 0.000001);
+//         ImGui::PlotHistogram("frameTime", );
         if (ImGui::CollapsingHeader("Camera"))
         {
-            ImGui::SliderFloat("fovAngle", &fovAngle, 30.0f, 160.0f);
+            ImGui::SliderFloat("fovAngle", &fovAngle, 5.0f, 170.0f);
         }
         if (ImGui::CollapsingHeader("Bloom"))
         {
             ImGui::Checkbox("Enable", &bloom);
-            ImGui::SliderFloat("bloom_thresh_min", &bloom_thresh_min, 0.0f, 10.0f);
-            ImGui::SliderFloat("bloom_thresh_max", &bloom_thresh_max, 0.0f, 10.0f);
+            ImGui::SliderFloat("bloom_thresh_min", &bloom_thresh_min, 0.0f, 1000.0f);
+            ImGui::SliderFloat("bloom_thresh_max", &bloom_thresh_max, 0.0f, 1000.0f);
             ImGui::SliderFloat("exposure", &exposure, 0.0f, 10.0f);
         }
         if (ImGui::CollapsingHeader("Light"))
         {
-            ImGui::SliderFloat3("light", &lightPos[0], -10.0f, 10.0f);
-            ImGui::SliderFloat("intensity", &lightIntensity, 0.0f, 25.0f);
+            ImGui::SliderFloat3("light", &lightPos[0], -20.0f, 20.0f);
+            ImGui::SliderFloat("intensity", &lightIntensity, 0.0f, 1000.0f);
         }
         ImGui::End();
 
@@ -565,8 +545,6 @@ int main(int /*ac*/, char** /*av*/)
         SixAxis     controller("/dev/input/js0");
 
         ctx.create(1600, 900, 4, 5, false, true);
-
-        assertExtensionPresent(GLextension::GL_EXT_texture_filter_anisotropic);
 
         glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
         glDebugMessageCallback(debugCallback, nullptr);
