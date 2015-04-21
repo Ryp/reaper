@@ -54,6 +54,11 @@ bool GLContext::isOpen()
     return !glfwWindowShouldClose(_window);
 }
 
+bool GLContext::isExtensionSupported(const std::string& extension) const
+{
+    return glfwExtensionSupported(extension.c_str()) > 0;
+}
+
 void GLContext::swapBuffers()
 {
     glfwSwapBuffers(_window);

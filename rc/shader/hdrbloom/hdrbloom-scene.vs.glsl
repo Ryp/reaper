@@ -36,7 +36,7 @@ void main(void)
     vs_out.N = mat3(mat_mv) * normal;
 
     // Calculate light vector
-    vs_out.L = light_pos - P.xyz;
+    vs_out.L = (transforms.mat_view * vec4(light_pos, 1.0)).xyz - P.xyz;
     
     float ld = length(vs_out.L);
     vs_out.intensity = light_power / (ld * ld);
