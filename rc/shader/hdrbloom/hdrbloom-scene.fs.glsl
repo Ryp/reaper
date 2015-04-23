@@ -34,6 +34,8 @@ layout (binding = 1, std140) uniform MATERIAL_BLOCK
     material_t  material[32];
 } materials;
 
+// Cook-Torrance BRDF
+
 // D() Normal Distribution Functions (NDF)
 // GGX (Trowbridge-Reitz)
 float D(float dotNH, float alpha)

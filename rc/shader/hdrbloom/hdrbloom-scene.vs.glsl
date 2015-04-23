@@ -11,7 +11,7 @@ out VS_OUT
     vec3 V;
     vec2 UV;
     flat int material_index;
-    float intensity;
+    float intensity; // Does not need to be computed per-fragment
 } vs_out;
 
 // Position of light

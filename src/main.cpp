@@ -281,8 +281,11 @@ void    bloom_test(GLContext& ctx, SixAxis& controller)
 {
     UnixFileWatcher     ufw;
     mogl::FrameBuffer   render_fbo;
+    mogl::FrameBuffer   blur1_render_fbo;
+    mogl::FrameBuffer   blur2_render_fbo;
     mogl::FrameBuffer   filter_fbo[2];
     mogl::Texture       tex_scene(GL_TEXTURE_2D);
+    mogl::Texture       tex_back_scene(GL_TEXTURE_2D);
     mogl::Texture       tex_brightpass(GL_TEXTURE_2D);
     mogl::Texture       tex_depth(GL_TEXTURE_2D);
     mogl::Texture       tex_lut(GL_TEXTURE_1D);
@@ -292,6 +295,7 @@ void    bloom_test(GLContext& ctx, SixAxis& controller)
     mogl::ShaderProgram program_render;
     mogl::ShaderProgram program_filter;
     mogl::ShaderProgram program_resolve;
+    mogl::ShaderProgram program_blur;
     mogl::VAO           vao;
     mogl::UniformBuffer ubo_transform;
     mogl::UniformBuffer ubo_material;
@@ -301,6 +305,7 @@ void    bloom_test(GLContext& ctx, SixAxis& controller)
     Mesh                sphere(resourceMgr.getModel("model/sphere.obj"));
     float               exposure(1.0f);
     bool                bloom(false);
+    bool                blurImage(true);
     float               bloom_thresh_min(2.4f);
     float               bloom_thresh_max(10.0f);
     const int           meshN = 7;
@@ -356,16 +361,37 @@ void    bloom_test(GLContext& ctx, SixAxis& controller)
     ShaderHelper::loadSimpleShader(program_resolve, "rc/shader/hdrbloom/hdrbloom-resolve.vs.glsl", "rc/shader/hdrbloom/hdrbloom-resolve.fs.glsl");
     uniforms.resolve.exposure = program_resolve.getUniformLocation("exposure");
 
+    ShaderHelper::loadSimpleShader(program_blur, "rc/shader/gaussian_blur.vert", "rc/shader/gaussian_blur.frag");
+    program_blur.printDebug();
+
     tex_scene.setStorage2D(1, GL_RGBA16F, ctx.getWindowSize().x, ctx.getWindowSize().y);
+    tex_scene.set(GL_TEXTURE_MIN_FILTER, GL_LINEAR); // For blur pass
+    tex_scene.set(GL_TEXTURE_MAG_FILTER, GL_LINEAR); // For blur pass
+    tex_scene.set(GL_TEXTURE_WRAP_S, GL_MIRROR_CLAMP_TO_EDGE); // For blur pass
+    tex_scene.set(GL_TEXTURE_WRAP_T, GL_MIRROR_CLAMP_TO_EDGE); // For blur pass
     tex_brightpass.setStorage2D(11, GL_RGBA16F, ctx.getWindowSize().x, ctx.getWindowSize().y);
-//     tex_brightpass.set(GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
     tex_brightpass.generateMipmap();
     tex_depth.setStorage2D(1, GL_DEPTH_COMPONENT32F, ctx.getWindowSize().x, ctx.getWindowSize().y);
     render_fbo.setTexture(GL_COLOR_ATTACHMENT0, tex_scene, 0);
     render_fbo.setTexture(GL_COLOR_ATTACHMENT1, tex_brightpass, 0);
     render_fbo.setTexture(GL_DEPTH_ATTACHMENT, tex_depth, 0);
     render_fbo.setDrawBuffers(2, buffers);
+    if (!render_fbo.isComplete(GL_FRAMEBUFFER))
+        throw std::runtime_error("Buffer incomplete");
 
+    tex_back_scene.setStorage2D(1, GL_RGBA16F, ctx.getWindowSize().x, ctx.getWindowSize().y);
+    tex_back_scene.set(GL_TEXTURE_MIN_FILTER, GL_LINEAR); // For blur pass
+    tex_back_scene.set(GL_TEXTURE_MAG_FILTER, GL_LINEAR); // For blur pass
+    tex_back_scene.set(GL_TEXTURE_WRAP_S, GL_MIRROR_CLAMP_TO_EDGE); // For blur pass
+    tex_back_scene.set(GL_TEXTURE_WRAP_T, GL_MIRROR_CLAMP_TO_EDGE); // For blur pass
+
+    blur1_render_fbo.setTexture(GL_COLOR_ATTACHMENT0, tex_back_scene, 0);
+    if (!blur1_render_fbo.isComplete(GL_FRAMEBUFFER))
+        throw std::runtime_error("Back buffer incomplete");
+    blur2_render_fbo.setTexture(GL_COLOR_ATTACHMENT0, tex_scene, 0);
+    if (!blur2_render_fbo.isComplete(GL_FRAMEBUFFER))
+        throw std::runtime_error("Back buffer incomplete");
+    
     for (int i = 0; i < 2; ++i)
     {
         tex_filter[i].setStorage2D(1, GL_RGBA16F, (i ? ctx.getWindowSize().x : ctx.getWindowSize().y), (i ? ctx.getWindowSize().y : ctx.getWindowSize().x));
@@ -476,6 +502,30 @@ void    bloom_test(GLContext& ctx, SixAxis& controller)
 
         mogl::disable(GL_DEPTH_TEST);
 
+        if (blurImage)
+        {
+            for (int i = 0; i < 6; ++i)
+            {
+            ///////////////////////
+            blur1_render_fbo.bind(GL_FRAMEBUFFER);
+            blur1_render_fbo.clear(GL_COLOR, 0, black);
+            tex_scene.bind(0);
+            program_blur.use();
+            program_blur.setUniform<GLfloat>("imageSize", ctx.getWindowSize().x, ctx.getWindowSize().y);
+
+            program_blur.setUniformSubroutine(GL_FRAGMENT_SHADER, "blurSelector", "blurV");
+            glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+            
+            blur2_render_fbo.bind(GL_FRAMEBUFFER);
+            blur2_render_fbo.clear(GL_COLOR, 0, black);
+            
+            program_blur.setUniformSubroutine(GL_FRAGMENT_SHADER, "blurSelector", "blurH");
+            tex_back_scene.bind(0);
+            glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);        
+            ///////////////////////
+            }
+        }
+        
         program_filter.use();
 
         vao.bind();
@@ -513,12 +563,13 @@ void    bloom_test(GLContext& ctx, SixAxis& controller)
         {
             ImGui::SliderFloat("fovAngle", &fovAngle, 5.0f, 170.0f);
         }
-        if (ImGui::CollapsingHeader("Bloom"))
+        if (ImGui::CollapsingHeader("PostFX"))
         {
-            ImGui::Checkbox("Enable", &bloom);
+            ImGui::Checkbox("Bloom", &bloom);
             ImGui::SliderFloat("bloom_thresh_min", &bloom_thresh_min, 0.0f, 1000.0f);
             ImGui::SliderFloat("bloom_thresh_max", &bloom_thresh_max, 0.0f, 1000.0f);
             ImGui::SliderFloat("exposure", &exposure, 0.0f, 10.0f);
+            ImGui::Checkbox("Blur", &blurImage);
         }
         if (ImGui::CollapsingHeader("Light"))
         {
@@ -537,8 +588,12 @@ void    bloom_test(GLContext& ctx, SixAxis& controller)
 
 int main(int /*ac*/, char** /*av*/)
 {
-    auto debugCallback = [] (GLenum, GLenum, GLuint, GLenum, GLsizei, const GLchar *message, const void *) {
-        std::cout << "GL: " << message << std::endl;
+    auto debugCallback = [] (GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei, const GLchar *message, const void *) {
+        std::cout << "source=" << source;
+        std::cout << " type=" << type;
+        std::cout << " id=" << id;
+        std::cout << " severity=" << severity;
+        std::cout << " message=" << message << std::endl;
     };
     try {
         GLContext   ctx;
