@@ -18,9 +18,12 @@ set(REAPER_SRCS
     resource/shaderhelper.cpp
 )
 
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
+
 find_package(moGL NO_MODULE REQUIRED)
 find_package(OpenGL REQUIRED)
 find_package(glbinding REQUIRED)
+find_package(OpenEXR REQUIRED)
 find_package(PkgConfig REQUIRED)
 pkg_search_module(GLFW REQUIRED glfw3)
 
@@ -44,10 +47,12 @@ target_include_directories(${REAPER_BIN} SYSTEM PUBLIC
     ${OPENGL_INCLUDE_DIRS}
     ${GLFW_INCLUDE_DIRS}
     ${MOGL_INCLUDE_DIRS}
-    ${GLBINDING_INCLUDES})
+    ${GLBINDING_INCLUDES}
+    ${OPENEXR_INCLUDE_DIRS})
 
 #Libraries
 target_link_libraries(${REAPER_BIN}
     ${OPENGL_LIBRARIES}
     ${GLFW_LIBRARIES}
-    ${GLBINDING_LIBRARIES})
+    ${GLBINDING_LIBRARIES}
+    ${OPENEXR_LIBRARIES})

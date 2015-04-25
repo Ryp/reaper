@@ -19,6 +19,8 @@ using namespace gl;
 #include <gli/gli.hpp>
 #include <gli/core/load_dds.hpp>
 
+#include <ImfRgbaFile.h>
+
 void ImageLoader::loadDDS(const std::string& file, mogl::Texture& texture)
 {
     gli::texture2D gliTexture(gli::load_dds(file.c_str()));
@@ -54,4 +56,27 @@ void ImageLoader::loadDDS(const std::string& file, mogl::Texture& texture)
                                 gliTexture[Level].data()
             );
     }
+}
+
+void ImageLoader::loadEXR(const std::string& file, mogl::Texture& texture)
+{
+    Imf::Rgba*          pixelBuffer;
+    Imf::RgbaInputFile  in(file.c_str());
+    Imath::Box2i        win = in.dataWindow();
+    Imath::V2i          dim(win.max.x - win.min.x + 1, win.max.y - win.min.y + 1);
+
+    pixelBuffer = new Imf::Rgba[dim.x * dim.y];
+
+    int dx = win.min.x;
+    int dy = win.min.y;
+
+    in.setFrameBuffer(pixelBuffer - dx - dy * dim.x, 1, dim.x);
+    in.readPixels(win.min.y, win.max.y);
+    texture.set(GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    texture.set(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    texture.set(GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    texture.set(GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    mogl::setPixelStore(GL_UNPACK_ALIGNMENT, 1);
+    texture.setStorage2D(1, GL_RGBA16F, dim.x, dim.y);
+    texture.setSubImage2D(0, 0, 0, dim.x, dim.y, GL_RGBA, GL_HALF_FLOAT, pixelBuffer);
 }
