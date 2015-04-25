@@ -490,11 +490,10 @@ void    bloom_test(GLContext& ctx, SixAxis& controller)
 
         ubo_material.bindBufferBase(1);
 
-        sphereTex.bind(0);
-
+        envMapHDR.bind(0);
         glUniform1f(uniforms.scene.bloom_thresh_min, bloom_thresh_min);
         glUniform1f(uniforms.scene.bloom_thresh_max, bloom_thresh_max);
-//         program_render.setUniform("envmap", 0);
+        program_render.setUniform("envmap", 0);
         program_render.setUniformPtr<3>("light_pos", &lightPos[0]);
         program_render.setUniform("light_power", lightIntensity);
 

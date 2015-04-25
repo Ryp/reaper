@@ -6,6 +6,7 @@ layout (location = 2) in vec2 vertexUV;
 
 out VS_OUT
 {
+    vec3 N_world;
     vec3 N;
     vec3 L;
     vec3 V;
@@ -32,6 +33,9 @@ void main(void)
     // Calculate view-space coordinate
     vec4 P = mat_mv * position;
 
+    
+    vs_out.N_world = mat3(transforms.mat_model[gl_InstanceID]) * normal;
+    
     // Calculate normal in view-space
     vs_out.N = mat3(mat_mv) * normal;
 

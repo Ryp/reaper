@@ -5,6 +5,7 @@ layout (location = 1) out vec4 color1;
 
 in VS_OUT
 {
+    vec3 N_world;
     vec3 N;
     vec3 L;
     vec3 V;
@@ -26,13 +27,18 @@ struct material_t
     float   roughness;
 };
 
-uniform const float pi = 3.14159;
-uniform const float invPi = 1.0 / pi;
+const float pi = 3.14159;
+const float invPi = 1.0 / pi;
 
 layout (binding = 1, std140) uniform MATERIAL_BLOCK
 {
     material_t  material[32];
 } materials;
+
+vec2 toSphericalProj(vec3 dir)
+{
+    return vec2(atan(dir.z, dir.x) * 0.5 * invPi + 0.5, acos(dir.y) * invPi);
+}
 
 // Cook-Torrance BRDF
 
@@ -62,6 +68,7 @@ float G1(float dotProd, float k)
 
 void main(void)
 {
+    vec3 Nenv = normalize(fs_in.N_world);
     vec3 N = normalize(fs_in.N);
     vec3 L = normalize(fs_in.L);
     vec3 V = normalize(fs_in.V);
@@ -77,10 +84,10 @@ void main(void)
     float alpha = m.roughness * m.roughness; // remap roughness
     
     // Lambertian Diffuse
-    float diffuse = dotNL * invPi;
+    float diffuse = dotNL / pi;
     
     // UE4 Specular
-    float specular = dotNL * F(dotVH, m.fresnel) * D(dotNH, alpha) * G1(dotNL, alpha * 0.5) * G1(dotLH, alpha * 0.5);
+    float specular = dotNL * F(dotVH, m.fresnel) * D(dotNH, alpha) * G1(dotNL, alpha * 0.5) * G1(dotLH, alpha * 0.5) * 0.25;
 
     // FIXME
     // Hotness remap
@@ -91,7 +98,7 @@ void main(void)
 //     color = color * textureLod(envmap, fs_in.UV, 2.5).xyz;
 
     // Write final color to the framebuffer
-    color0 = vec4(color, 1.0);
+    color0 = vec4(color, 1.0) * texture(envmap, toSphericalProj(Nenv));
 
     // Calculate luminance
     float Y = dot(color, vec3(0.299, 0.587, 0.144));
