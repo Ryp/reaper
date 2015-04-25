@@ -10,10 +10,10 @@ cmake -DCMAKE_INSTALL_PREFIX=$PWD/install ..
 make install
 
 Dependencies:
-- GLFW 3.1+
-- glbinding
-- [moGL](https://github.com/Ryp/moGL)
+- [GLFW](github.com/glfw/glfw) 3.1+
+- [glbinding](github.com/hpicgs/glbinding)
+- [moGL](github.com/Ryp/moGL)
 
 ## Issues
 
-* Please report issues here: [Issue tracker](https://github.com/Ryp/ReaperGL/issues/new)
+* Please report issues here: [Issue tracker](github.com/Ryp/ReaperGL/issues)

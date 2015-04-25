@@ -291,6 +291,7 @@ void    bloom_test(GLContext& ctx, SixAxis& controller)
     mogl::Texture       tex_lut(GL_TEXTURE_1D);
     mogl::Texture       tex_filter[2] = {GL_TEXTURE_2D, GL_TEXTURE_2D};
     mogl::Texture       sphereTex(GL_TEXTURE_2D);
+    mogl::Texture       envMapHDR(GL_TEXTURE_2D);
     mogl::ShaderProgram program_envmap;
     mogl::ShaderProgram program_render;
     mogl::ShaderProgram program_filter;
@@ -305,7 +306,7 @@ void    bloom_test(GLContext& ctx, SixAxis& controller)
     Mesh                sphere(resourceMgr.getModel("model/sphere.obj"));
     float               exposure(1.0f);
     bool                bloom(false);
-    bool                blurImage(true);
+    bool                blurImage(false);
     float               bloom_thresh_min(2.4f);
     float               bloom_thresh_max(10.0f);
     const int           meshN = 7;
@@ -344,6 +345,7 @@ void    bloom_test(GLContext& ctx, SixAxis& controller)
     std::cout << "MaxAnisotropy=" << maxAnisotropy << std::endl;
 
     ImageLoader::loadDDS("rc/texture/envmap/lobby_mip.dds", sphereTex);
+    ImageLoader::loadEXR("rc/texture/envmap/envmap.exr", envMapHDR);
     sphereTex.set(GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
     sphereTex.set(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     sphereTex.set(GL_TEXTURE_MAX_ANISOTROPY_EXT, maxAnisotropy);
@@ -363,12 +365,13 @@ void    bloom_test(GLContext& ctx, SixAxis& controller)
 
     ShaderHelper::loadSimpleShader(program_blur, "rc/shader/gaussian_blur.vert", "rc/shader/gaussian_blur.frag");
     program_blur.printDebug();
-
+    
     tex_scene.setStorage2D(1, GL_RGBA16F, ctx.getWindowSize().x, ctx.getWindowSize().y);
     tex_scene.set(GL_TEXTURE_MIN_FILTER, GL_LINEAR); // For blur pass
     tex_scene.set(GL_TEXTURE_MAG_FILTER, GL_LINEAR); // For blur pass
     tex_scene.set(GL_TEXTURE_WRAP_S, GL_MIRROR_CLAMP_TO_EDGE); // For blur pass
     tex_scene.set(GL_TEXTURE_WRAP_T, GL_MIRROR_CLAMP_TO_EDGE); // For blur pass
+    
     tex_brightpass.setStorage2D(11, GL_RGBA16F, ctx.getWindowSize().x, ctx.getWindowSize().y);
     tex_brightpass.generateMipmap();
     tex_depth.setStorage2D(1, GL_DEPTH_COMPONENT32F, ctx.getWindowSize().x, ctx.getWindowSize().y);
@@ -453,7 +456,7 @@ void    bloom_test(GLContext& ctx, SixAxis& controller)
         program_envmap.use();
         vao.bind();
 
-        sphereTex.bind(0);
+        envMapHDR.bind(0);
         program_envmap.setUniform("envmap", 0);
         program_envmap.setUniformMatrixPtr<4>("MVP", &MVP[0][0]);
 
@@ -491,7 +494,7 @@ void    bloom_test(GLContext& ctx, SixAxis& controller)
 
         glUniform1f(uniforms.scene.bloom_thresh_min, bloom_thresh_min);
         glUniform1f(uniforms.scene.bloom_thresh_max, bloom_thresh_max);
-        program_render.setUniform("envmap", 0);
+//         program_render.setUniform("envmap", 0);
         program_render.setUniformPtr<3>("light_pos", &lightPos[0]);
         program_render.setUniform("light_power", lightIntensity);
 
@@ -506,23 +509,21 @@ void    bloom_test(GLContext& ctx, SixAxis& controller)
         {
             for (int i = 0; i < 6; ++i)
             {
-            ///////////////////////
-            blur1_render_fbo.bind(GL_FRAMEBUFFER);
-            blur1_render_fbo.clear(GL_COLOR, 0, black);
-            tex_scene.bind(0);
-            program_blur.use();
-            program_blur.setUniform<GLfloat>("imageSize", ctx.getWindowSize().x, ctx.getWindowSize().y);
+                blur1_render_fbo.bind(GL_FRAMEBUFFER);
+                blur1_render_fbo.clear(GL_COLOR, 0, black);
+                tex_scene.bind(0);
+                program_blur.use();
+                program_blur.setUniform<GLfloat>("imageSize", ctx.getWindowSize().x, ctx.getWindowSize().y);
 
-            program_blur.setUniformSubroutine(GL_FRAGMENT_SHADER, "blurSelector", "blurV");
-            glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-            
-            blur2_render_fbo.bind(GL_FRAMEBUFFER);
-            blur2_render_fbo.clear(GL_COLOR, 0, black);
-            
-            program_blur.setUniformSubroutine(GL_FRAGMENT_SHADER, "blurSelector", "blurH");
-            tex_back_scene.bind(0);
-            glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);        
-            ///////////////////////
+                program_blur.setUniformSubroutine(GL_FRAGMENT_SHADER, "blurSelector", "blurV");
+                glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+                
+                blur2_render_fbo.bind(GL_FRAMEBUFFER);
+                blur2_render_fbo.clear(GL_COLOR, 0, black);
+                
+                program_blur.setUniformSubroutine(GL_FRAGMENT_SHADER, "blurSelector", "blurH");
+                tex_back_scene.bind(0);
+                glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
             }
         }
         
@@ -588,11 +589,7 @@ void    bloom_test(GLContext& ctx, SixAxis& controller)
 
 int main(int /*ac*/, char** /*av*/)
 {
-    auto debugCallback = [] (GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei, const GLchar *message, const void *) {
-        std::cout << "source=" << source;
-        std::cout << " type=" << type;
-        std::cout << " id=" << id;
-        std::cout << " severity=" << severity;
+    auto debugCallback = [] (GLenum, GLenum, GLuint, GLenum, GLsizei, const GLchar *message, const void *) {
         std::cout << " message=" << message << std::endl;
     };
     try {
