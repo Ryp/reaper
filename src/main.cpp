@@ -461,7 +461,7 @@ void    bloom_test(GLContext& ctx, SixAxis& controller)
         program_envmap.setUniformMatrixPtr<4>("MVP", &MVP[0][0]);
 
         mogl::setCullFace(GL_FRONT);
-        sphere.draw(program_envmap, Mesh::Vertex | Mesh::UV);
+        sphere.draw(program_envmap, Mesh::Vertex | Mesh::Normal);
         mogl::setCullFace(GL_BACK);
 
         mogl::enable(GL_DEPTH_TEST);

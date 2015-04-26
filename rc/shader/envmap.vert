@@ -1,14 +1,14 @@
 #version 450 core
 
 layout (location = 0) in vec4 position;
-layout (location = 2) in vec2 vertexUV;
+layout (location = 1) in vec3 normal;
 
-out vec2 UV;
+out vec3 n;
 
 uniform mat4 MVP;
 
 void main(void)
 {
-    UV = vertexUV;
+    n = normal;
     gl_Position = MVP * position;
 }
