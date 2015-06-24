@@ -90,7 +90,6 @@ void main(void)
     float specular = dotNL * F(dotVH, m.fresnel) * D(dotNH, alpha) * G1(dotNL, alpha * 0.5) * G1(dotLH, alpha * 0.5) * 0.25;
 
     // FIXME
-    // Hotness remap
     // /4 ?
     
     // Add ambient, diffuse and specular to find final color
@@ -98,7 +97,7 @@ void main(void)
 //     color = color * textureLod(envmap, fs_in.UV, 2.5).xyz;
 
     // Write final color to the framebuffer
-    color0 = /*vec4(color, 1.0) * */texture(envmap, toSphericalProj(Nenv));
+    color0 = vec4(color, 1.0)/* * texture(envmap, toSphericalProj(Nenv))*/;
 
     // Calculate luminance
     float Y = dot(color, vec3(0.299, 0.587, 0.144));

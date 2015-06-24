@@ -3,7 +3,7 @@
 
 using namespace gl;
 
-#include "glcontext.hpp"
+#include "pipeline/glcontext.hpp"
 
 #include <mogl/exception/moglexception.hpp>
 #include <mogl/object/shader/shaderprogram.hpp>
@@ -33,6 +33,7 @@ using namespace gl;
 #include "unixfilewatcher.hpp"
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_glfw_gl3.h"
+#include "filesystem/path.hpp"
 
 void    hdr_test(GLContext& ctx, SixAxis& controller)
 {
@@ -314,7 +315,7 @@ void    bloom_test(GLContext& ctx, SixAxis& controller)
     float               fovAngle = 55.0f;
     glm::vec3           lightPos(0.0f, 7.0f, 0.0f);
     float               lightIntensity(200.0f);
-    
+
     assert(ctx.isExtensionSupported("GL_EXT_texture_filter_anisotropic"));
 
     struct
@@ -345,7 +346,7 @@ void    bloom_test(GLContext& ctx, SixAxis& controller)
     std::cout << "MaxAnisotropy=" << maxAnisotropy << std::endl;
 
     ImageLoader::loadDDS("rc/texture/envmap/lobby_mip.dds", sphereTex);
-    ImageLoader::loadEXR("rc/texture/envmap/envmap.exr", envMapHDR);
+    ImageLoader::loadEXR("rc/texture/envmap/StageEnvLatLong.exr", envMapHDR);
     sphereTex.set(GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
     sphereTex.set(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     sphereTex.set(GL_TEXTURE_MAX_ANISOTROPY_EXT, maxAnisotropy);
@@ -365,13 +366,13 @@ void    bloom_test(GLContext& ctx, SixAxis& controller)
 
     ShaderHelper::loadSimpleShader(program_blur, "rc/shader/gaussian_blur.vert", "rc/shader/gaussian_blur.frag");
     program_blur.printDebug();
-    
+
     tex_scene.setStorage2D(1, GL_RGBA16F, ctx.getWindowSize().x, ctx.getWindowSize().y);
     tex_scene.set(GL_TEXTURE_MIN_FILTER, GL_LINEAR); // For blur pass
     tex_scene.set(GL_TEXTURE_MAG_FILTER, GL_LINEAR); // For blur pass
     tex_scene.set(GL_TEXTURE_WRAP_S, GL_MIRROR_CLAMP_TO_EDGE); // For blur pass
     tex_scene.set(GL_TEXTURE_WRAP_T, GL_MIRROR_CLAMP_TO_EDGE); // For blur pass
-    
+
     tex_brightpass.setStorage2D(11, GL_RGBA16F, ctx.getWindowSize().x, ctx.getWindowSize().y);
     tex_brightpass.generateMipmap();
     tex_depth.setStorage2D(1, GL_DEPTH_COMPONENT32F, ctx.getWindowSize().x, ctx.getWindowSize().y);
@@ -394,7 +395,7 @@ void    bloom_test(GLContext& ctx, SixAxis& controller)
     blur2_render_fbo.setTexture(GL_COLOR_ATTACHMENT0, tex_scene, 0);
     if (!blur2_render_fbo.isComplete(GL_FRAMEBUFFER))
         throw std::runtime_error("Back buffer incomplete");
-    
+
     for (int i = 0; i < 2; ++i)
     {
         tex_filter[i].setStorage2D(1, GL_RGBA16F, (i ? ctx.getWindowSize().x : ctx.getWindowSize().y), (i ? ctx.getWindowSize().y : ctx.getWindowSize().x));
@@ -506,26 +507,23 @@ void    bloom_test(GLContext& ctx, SixAxis& controller)
 
         if (blurImage)
         {
-            for (int i = 0; i < 6; ++i)
-            {
-                blur1_render_fbo.bind(GL_FRAMEBUFFER);
-                blur1_render_fbo.clear(GL_COLOR, 0, black);
-                tex_scene.bind(0);
-                program_blur.use();
-                program_blur.setUniform<GLfloat>("imageSize", ctx.getWindowSize().x, ctx.getWindowSize().y);
+            blur1_render_fbo.bind(GL_FRAMEBUFFER);
+            blur1_render_fbo.clear(GL_COLOR, 0, black);
+            tex_scene.bind(0);
+            program_blur.use();
+            program_blur.setUniform<GLfloat>("imageSize", ctx.getWindowSize().x, ctx.getWindowSize().y);
 
-                program_blur.setUniformSubroutine(GL_FRAGMENT_SHADER, "blurSelector", "blurV");
-                glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-                
-                blur2_render_fbo.bind(GL_FRAMEBUFFER);
-                blur2_render_fbo.clear(GL_COLOR, 0, black);
-                
-                program_blur.setUniformSubroutine(GL_FRAGMENT_SHADER, "blurSelector", "blurH");
-                tex_back_scene.bind(0);
-                glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-            }
+            program_blur.setUniformSubroutine(GL_FRAGMENT_SHADER, "blurSelector", "blurV");
+            glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+            blur2_render_fbo.bind(GL_FRAMEBUFFER);
+            blur2_render_fbo.clear(GL_COLOR, 0, black);
+
+            program_blur.setUniformSubroutine(GL_FRAGMENT_SHADER, "blurSelector", "blurH");
+            tex_back_scene.bind(0);
+            glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
         }
-        
+
         program_filter.use();
 
         vao.bind();
@@ -586,7 +584,7 @@ void    bloom_test(GLContext& ctx, SixAxis& controller)
     } while(ctx.isOpen());
 }
 
-int main(int /*ac*/, char** /*av*/)
+int main(int /*ac*/, char** av)
 {
     auto debugCallback = [] (GLenum, GLenum, GLuint, GLenum, GLsizei, const GLchar *message, const void *) {
         std::cout << " message=" << message << std::endl;
@@ -594,7 +592,7 @@ int main(int /*ac*/, char** /*av*/)
     try {
         GLContext   ctx;
         SixAxis     controller("/dev/input/js0");
-
+        std::string path = reaper::getExecutablePath(av[0]);
         ctx.create(1600, 900, 4, 5, false, true);
 
         glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
