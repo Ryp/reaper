@@ -49,7 +49,7 @@ Model* ModelLoader::loadOBJ(std::ifstream& src)
 
     while (std::getline(src, line))
     {
-        std::istringstream      ss(line);
+        std::istringstream ss(line);
         ss >> line;
         if (line == "v")
         {
