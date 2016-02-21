@@ -38,7 +38,6 @@ inline void AssertImpl(bool condition, const char* file, const char* func, int l
 
     if (!message.empty())
         std::cerr << "ASSERT MESSAGE" << std::endl << message;
-    std::abort();
 }
 
 #define Assert1(condition) AssertImpl(condition, __FILE__, __FUNCTION__, __LINE__)
