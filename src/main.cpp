@@ -39,9 +39,9 @@
 #include "imgui/imgui_impl_glfw_gl3.h"
 #include "filesystem/path.hpp"
 
-void    hdr_test(GLContext& ctx, SixAxis& controller)
+void    hdr_test(GLContext& ctx, SixAxis& controller, const std::string& rcPath)
 {
-    ResourceManager     resourceMgr("rc");
+    ResourceManager     resourceMgr(rcPath);
     float               frameTime;
     Camera              cam(glm::vec3(-5.0, 3.0, 0.0));
     mogl::VAO           vao;
@@ -73,11 +73,11 @@ void    hdr_test(GLContext& ctx, SixAxis& controller)
         0.5, 0.5, 0.5, 1.0
     );
 
-    ShaderHelper::loadSimpleShader(depthpassshader, "rc/shader/depth_pass.vert", "rc/shader/depth_pass.frag");
-    ShaderHelper::loadSimpleShader(normdepthpassshader, "rc/shader/depth_pass_normalized.vert", "rc/shader/depth_pass_normalized.frag");
-    ShaderHelper::loadSimpleShader(shader, "rc/shader/shadow_ssao.vert", "rc/shader/shadow_ssao.frag");
-    ShaderHelper::loadSimpleShader(postshader, "rc/shader/post/passthrough.vert", "rc/shader/post/tonemapping.frag");
-//     loadSimpleShader(postshader, "rc/shader/post/passthrough.vert", "rc/shader/post/tonemapping.frag");
+    ShaderHelper::loadSimpleShader(depthpassshader, rcPath + "shader/depth_pass.vert", rcPath + "shader/depth_pass.frag");
+    ShaderHelper::loadSimpleShader(normdepthpassshader, rcPath + "shader/depth_pass_normalized.vert", rcPath + "shader/depth_pass_normalized.frag");
+    ShaderHelper::loadSimpleShader(shader, rcPath + "shader/shadow_ssao.vert", rcPath + "shader/shadow_ssao.frag");
+    ShaderHelper::loadSimpleShader(postshader, rcPath + "shader/post/passthrough.vert", rcPath + "shader/post/tonemapping.frag");
+//     loadSimpleShader(postshader, rcPath + "shader/post/passthrough.vert", rcPath + "shader/post/tonemapping.frag");
 
     depthpassshader.printDebug();
     normdepthpassshader.printDebug();
@@ -144,7 +144,7 @@ void    hdr_test(GLContext& ctx, SixAxis& controller)
     quadBuffer.bind();
     quadBuffer.setData(quad->getVertexBufferSize(), quad->getVertexBuffer(), GL_STATIC_DRAW);
 
-    ImageLoader::loadDDS("rc/texture/default.dds", modelTexture);
+    ImageLoader::loadDDS(rcPath + "texture/default.dds", modelTexture);
 
     int ssaoKernelSize = 32;
     glm::fvec3* kernel = new(std::nothrow) glm::fvec3[ssaoKernelSize];
@@ -284,7 +284,7 @@ void    hdr_test(GLContext& ctx, SixAxis& controller)
     delete kernel;
 }
 
-void    bloom_test(GLContext& ctx, SixAxis& controller, const std::string& path)
+void    bloom_test(GLContext& ctx, SixAxis& controller, const std::string& rcPath)
 {
     UnixFileWatcher     ufw;
     mogl::FrameBuffer   render_fbo;
@@ -315,7 +315,7 @@ void    bloom_test(GLContext& ctx, SixAxis& controller, const std::string& path)
     mogl::UniformBuffer ubo_transform;
     mogl::UniformBuffer ubo_material;
     mogl::Query         timeQuery(GL_TIME_ELAPSED);
-    ResourceManager     resourceMgr(path + "rc");
+    ResourceManager     resourceMgr(rcPath);
     Mesh                mesh(resourceMgr.getModel("model/sphere.obj"));
     Mesh                sphere(resourceMgr.getModel("model/sphere.obj"));
     float               exposure(1.0f);
@@ -360,11 +360,11 @@ void    bloom_test(GLContext& ctx, SixAxis& controller, const std::string& path)
 
     std::cout << "MaxAnisotropy=" << maxAnisotropy << std::endl;
 
-    ImageLoader::loadDDS3D(path + "rc/texture/lut/color_grading_contrast.dds", tex_3d_lut);
-    ImageLoader::loadDDS(path + "rc/texture/lut/color_grading_contrast.dds", tex_2d_lut);
-    ImageLoader::loadDDS(path + "rc/texture/metal_normal.dds", bumpMap);
-    ImageLoader::loadDDS(path + "rc/texture/envmap/lobby_mip.dds", sphereTex);
-    ImageLoader::loadEXR(path + "rc/texture/envmap/StageEnvLatLong.exr", envMapHDR);
+    ImageLoader::loadDDS3D(rcPath + "texture/lut/color_grading_contrast.dds", tex_3d_lut);
+    ImageLoader::loadDDS(rcPath + "texture/lut/color_grading_contrast.dds", tex_2d_lut);
+    ImageLoader::loadDDS(rcPath + "texture/metal_normal.dds", bumpMap);
+    ImageLoader::loadDDS(rcPath + "texture/envmap/lobby_mip.dds", sphereTex);
+    ImageLoader::loadEXR(rcPath + "texture/envmap/StageEnvLatLong.exr", envMapHDR);
 
     tex_3d_lut.set(GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     tex_3d_lut.set(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -387,18 +387,18 @@ void    bloom_test(GLContext& ctx, SixAxis& controller, const std::string& path)
 
     vao.bind();
 
-    ShaderHelper::loadSimpleShader(program_envmap, path + "rc/shader/envmap.vert", path + "rc/shader/envmap.frag");
-    ShaderHelper::loadSimpleShader(program_render, path + "rc/shader/hdrbloom/hdrbloom-scene.vs.glsl", path + "rc/shader/hdrbloom/hdrbloom-scene.fs.glsl");
+    ShaderHelper::loadSimpleShader(program_envmap, rcPath + "shader/envmap.vert", rcPath + "shader/envmap.frag");
+    ShaderHelper::loadSimpleShader(program_render, rcPath + "shader/hdrbloom/hdrbloom-scene.vs.glsl", rcPath + "shader/hdrbloom/hdrbloom-scene.fs.glsl");
     uniforms.scene.bloom_thresh_min = program_render.getUniformLocation("bloom_thresh_min");
     uniforms.scene.bloom_thresh_max = program_render.getUniformLocation("bloom_thresh_max");
-    ShaderHelper::loadSimpleShader(program_filter, path + "rc/shader/hdrbloom/hdrbloom-filter.vs.glsl", path + "rc/shader/hdrbloom/hdrbloom-filter.fs.glsl");
-    ShaderHelper::loadSimpleShader(program_resolve, path + "rc/shader/hdrbloom/hdrbloom-resolve.vs.glsl", path + "rc/shader/hdrbloom/hdrbloom-resolve.fs.glsl");
+    ShaderHelper::loadSimpleShader(program_filter, rcPath + "shader/hdrbloom/hdrbloom-filter.vs.glsl", rcPath + "shader/hdrbloom/hdrbloom-filter.fs.glsl");
+    ShaderHelper::loadSimpleShader(program_resolve, rcPath + "shader/hdrbloom/hdrbloom-resolve.vs.glsl", rcPath + "shader/hdrbloom/hdrbloom-resolve.fs.glsl");
     uniforms.resolve.exposure = program_resolve.getUniformLocation("exposure");
 
-    ShaderHelper::loadSimpleShader(program_blur, path + "rc/shader/gaussian_blur.vert", path + "rc/shader/gaussian_blur.frag");
-//     ShaderHelper::loadSimpleShader(program_post, path + "rc/shader/post/passthrough2.vert", path + "rc/shader/post/chromatic_aberrations.frag");
-//     ShaderHelper::loadSimpleShader(program_post, path + "rc/shader/post/passthrough2.vert", path + "rc/shader/post/color_grading.frag");
-    ShaderHelper::loadSimpleShader(program_post, path + "rc/shader/post/passthrough2.vert", path + "rc/shader/post/color_grading2d.frag");
+    ShaderHelper::loadSimpleShader(program_blur, rcPath + "shader/gaussian_blur.vert", rcPath + "shader/gaussian_blur.frag");
+    //     ShaderHelper::loadSimpleShader(program_post, rcPath + "shader/post/passthrough2.vert", rcPath + "shader/post/chromatic_aberrations.frag");
+    //     ShaderHelper::loadSimpleShader(program_post, rcPath + "shader/post/passthrough2.vert", rcPath + "shader/post/color_grading.frag");
+    ShaderHelper::loadSimpleShader(program_post, rcPath + "shader/post/passthrough2.vert", rcPath + "shader/post/color_grading2d.frag");
 
     depth_post.setStorage(GL_DEPTH_COMPONENT, ctx.getWindowSize().x, ctx.getWindowSize().y);
     for (int i = 0; i < 2; ++i)
@@ -676,7 +676,7 @@ int main(int /*ac*/, char** av)
         glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, GL_TRUE);
         glDebugMessageControl(GL_DEBUG_SOURCE_API, GL_DEBUG_TYPE_OTHER, GL_DONT_CARE, 1, &usedIds, GL_FALSE);
 
-        bloom_test(ctx, controller, reaper::getExecutablePath(av[0]) + "../../");
+        bloom_test(ctx, controller, reaper::getExecutablePath(av[0]) + "../rc/");
         controller.destroy();
     }
     catch (const std::runtime_error& e) {
