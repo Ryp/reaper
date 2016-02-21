@@ -315,6 +315,7 @@ void    bloom_test(GLContext& ctx, SixAxis& controller, const std::string& rcPat
     mogl::UniformBuffer ubo_transform;
     mogl::UniformBuffer ubo_material;
     mogl::Query         timeQuery(GL_TIME_ELAPSED);
+    Camera              camera;
     ResourceManager     resourceMgr(rcPath);
     Mesh                mesh(resourceMgr.getModel("model/sphere.obj"));
     Mesh                sphere(resourceMgr.getModel("model/sphere.obj"));
@@ -474,7 +475,10 @@ void    bloom_test(GLContext& ctx, SixAxis& controller, const std::string& rcPat
     }
     ubo_material.unmap();
 
-    mogl::enable(GL_CULL_FACE);
+    camera.setPosition(glm::vec3(-8.0f, 6.0f, -8.0f));
+    camera.setRotation(glm::quarter_pi<float>(), -glm::quarter_pi<float>() * 0.95f);
+    camera.update(Camera::Spherical);
+
     mogl::setCullFace(GL_BACK);
     glDepthFunc(GL_LESS);
     do
@@ -482,11 +486,21 @@ void    bloom_test(GLContext& ctx, SixAxis& controller, const std::string& rcPat
         static const GLfloat black[] = { 0.0f, 0.0f, 0.0f, 1.0f };
         static const GLfloat one = 1.0f;
 
+        mogl::enable(GL_CULL_FACE);
+        Assert(mogl::isEnabled(GL_CULL_FACE));
         timeQuery.begin();
         ImGuiIO& io = ImGui::GetIO();
         ImGui_ImplGlfwGL3_NewFrame();
 
         controller.update();
+        if (controller.isHeld(SixAxis::Buttons::Start))
+            break;
+        float speedup = 1.0 + (controller.getAxis(SixAxis::Axes::L2Pressure) * 0.5 + 0.5) * 10.0f;
+        camera.move(controller.getAxis(SixAxis::LeftAnalogY) * speedup / -10.0f, controller.getAxis(SixAxis::LeftAnalogX) * speedup / -10.0f, 0.0f);
+        camera.rotate(controller.getAxis(SixAxis::RightAnalogX) / 10.0f, controller.getAxis(SixAxis::RightAnalogY) / -10.0f);
+        if (controller.isPressed(SixAxis::Buttons::Select))
+            camera.reset();
+        camera.update(Camera::Spherical);
 
         mogl::setViewport(0, 0, ctx.getWindowSize().x, ctx.getWindowSize().y);
         render_fbo.bind(GL_FRAMEBUFFER);
@@ -494,9 +508,10 @@ void    bloom_test(GLContext& ctx, SixAxis& controller, const std::string& rcPat
         render_fbo.clear(GL_COLOR, 1, black);
         render_fbo.clear(GL_DEPTH, 0, &one);
 
-        glm::mat4   Projection = glm::perspective(glm::radians(fovAngle), (float)ctx.getWindowSize().x / (float)ctx.getWindowSize().y, 1.0f, 100.0f);
+        glm::mat4   Projection = glm::perspective(glm::radians(fovAngle), (float)ctx.getWindowSize().x / (float)ctx.getWindowSize().y, 0.1f, 100.0f);
         glm::mat4   Model = glm::scale(glm::mat4(1.0f), glm::vec3(50.0f, 50.0f, 50.0f));
-        glm::mat4   View = glm::lookAt(glm::vec3(-8.0f, 6.0f, -8.0f), glm::vec3(0.0f, -4.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+//         glm::mat4   View = glm::lookAt(glm::vec3(-8.0f, 6.0f, -8.0f), glm::vec3(0.0f, -4.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+        glm::mat4   View = camera.getViewMatrix();
         glm::mat4   MVP = Projection * View * Model;
 
         mogl::disable(GL_DEPTH_TEST);
@@ -506,7 +521,6 @@ void    bloom_test(GLContext& ctx, SixAxis& controller, const std::string& rcPat
         envMapHDR.bind(0);
         program_envmap.setUniform("envmap", 0);
         program_envmap.setUniformMatrixPtr<4>("MVP", &MVP[0][0]);
-
         mogl::setCullFace(GL_FRONT);
         sphere.draw(program_envmap, Mesh::Vertex | Mesh::Normal);
         mogl::setCullFace(GL_BACK);
