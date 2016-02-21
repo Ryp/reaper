@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 /// ReaperGL
 ///
-/// Copyright (c) 2015 Thibault Schueller
+/// Copyright (c) 2016 Thibault Schueller
 ///
 /// @file main.cpp
 /// @author Thibault Schueller <ryp.sqrt@gmail.com>
@@ -683,8 +683,8 @@ int main(int /*ac*/, char** av)
         glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, GL_TRUE);
         glDebugMessageControl(GL_DEBUG_SOURCE_API, GL_DEBUG_TYPE_OTHER, GL_DONT_CARE, 1, &usedIds, GL_FALSE);
 
-//         bloom_test(ctx, controller, reaper::getExecutablePath(av[0]) + "../rc/");
-        hdr_test(ctx, controller, reaper::getExecutablePath(av[0]) + "../rc/");
+        bloom_test(ctx, controller, reaper::getExecutablePath(av[0]) + "../rc/");
+//         hdr_test(ctx, controller, reaper::getExecutablePath(av[0]) + "../rc/");
         controller.destroy();
     }
     catch (const std::runtime_error& e) {

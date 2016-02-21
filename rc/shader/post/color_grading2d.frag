@@ -10,6 +10,7 @@ out vec4 fragColor;
 
 vec3 color_grade2(in vec3 colorInput, in sampler2D lut, in float lutResolution)
 {
+    colorInput = clamp(colorInput, 0.0, 1.0);
     float width = lutResolution;
     float sliceSize = 1.0 / width;              // space of 1 slice
     float slicePixelSize = sliceSize / width;           // space of 1 pixel

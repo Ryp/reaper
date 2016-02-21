@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 /// ReaperGL
 ///
-/// Copyright (c) 2015 Thibault Schueller
+/// Copyright (c) 2016 Thibault Schueller
 ///
 /// @file imageloader.hpp
 /// @author Thibault Schueller <ryp.sqrt@gmail.com>
