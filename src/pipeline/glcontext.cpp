@@ -1,15 +1,14 @@
+#include "glcontext.hpp"
+
 #include <iostream>
 #include <stdexcept>
+#include <cstring>
 
-#include <glbinding/gl/gl.h>
 #include <glbinding/Binding.h>
 
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 
-using namespace gl;
-
-#include "glcontext.hpp"
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_glfw_gl3.h"
 
@@ -54,9 +53,26 @@ bool GLContext::isOpen()
     return !glfwWindowShouldClose(_window);
 }
 
+static bool check_gl_extension(const std::string& extension)
+{
+    std::string str;
+    GLint       n, i;
+
+    glGetIntegerv(GL_NUM_EXTENSIONS, &n);
+    for (i = 0; i < n; ++i)
+    {
+        const char* se = reinterpret_cast<const char*>(glGetStringi(GL_EXTENSIONS, i));
+
+        if (!std::strcmp(se, extension.c_str()))
+            return true;
+    }
+    return false;
+}
+
 bool GLContext::isExtensionSupported(const std::string& extension) const
 {
-    return glfwExtensionSupported(extension.c_str()) > 0;
+    // glfwExtensionSupported
+    return check_gl_extension(extension);
 }
 
 void GLContext::swapBuffers()

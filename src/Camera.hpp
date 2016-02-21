@@ -13,7 +13,7 @@ public:
     static const float PitchDeadzone;
 
 public:
-    Camera(const glm::vec3& position = glm::vec3(0), const glm::vec3& direction = glm::vec3(1, 0, 0), float yaw = 0.0f, float pitch = 0.0f);
+    Camera(const glm::vec3& position = glm::vec3(), const glm::vec3& direction = glm::vec3(1, 0, 0), float yaw = 0.0f, float pitch = 0.0f);
     virtual ~Camera();
 
 public:

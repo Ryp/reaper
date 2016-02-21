@@ -10,6 +10,8 @@ in VS_OUT
     vec3 L;
     vec3 V;
     vec2 UV;
+    vec3 tangt;
+    vec3 bitgt;
     flat int material_index;
     float intensity;
 } fs_in;
@@ -19,6 +21,7 @@ uniform float bloom_thresh_min;
 uniform float bloom_thresh_max;
 
 uniform sampler2D envmap;
+uniform sampler2D normal_tex;
 
 struct material_t
 {
@@ -73,25 +76,29 @@ void main(void)
     vec3 L = normalize(fs_in.L);
     vec3 V = normalize(fs_in.V);
     vec3 H = normalize(V + L);
-    
+
+    // Fix normal from bump map
+    N = mat3(fs_in.N, -fs_in.bitgt, fs_in.tangt) * (texture(normal_tex, fs_in.UV).xyz * 2.0 - 1.0);
+    N = normalize(N);
+
     float dotNL = max(dot(N, L), 0.0);
     float dotNH = max(dot(N, H), 0.0);
     float dotVH = max(dot(V, H), 0.0);
     float dotLH = max(dot(L, H), 0.0);
-    
+
     material_t m = materials.material[fs_in.material_index];
-    
+
     float alpha = m.roughness * m.roughness; // remap roughness
-    
+
     // Lambertian Diffuse
     float diffuse = dotNL / pi;
-    
+
     // UE4 Specular
     float specular = dotNL * F(dotVH, m.fresnel) * D(dotNH, alpha) * G1(dotNL, alpha * 0.5) * G1(dotLH, alpha * 0.5) * 0.25;
 
     // FIXME
     // /4 ?
-    
+
     // Add ambient, diffuse and specular to find final color
     vec3 color = m.albedo * (diffuse + specular) * fs_in.intensity;
 //     color = color * textureLod(envmap, fs_in.UV, 2.5).xyz;

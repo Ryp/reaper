@@ -27,7 +27,8 @@ public:
     enum DrawMode : unsigned int {
         Vertex  = 0x01,
         Normal  = 0x02,
-        UV      = 0x04
+        UV      = 0x04,
+        Tangent = 0x08
     };
 
 public:
@@ -49,6 +50,8 @@ public:
     mogl::VBO   _vertexBuffer;
     mogl::VBO   _normalBuffer;
     mogl::VBO   _uvBuffer;
+    mogl::VBO   _tanBuffer;
+    mogl::VBO   _bitanBuffer;
     mogl::EBO   _elementBuffer;
     glm::mat4   _modelMatrix;
     GLsizei     _indexesNo;
