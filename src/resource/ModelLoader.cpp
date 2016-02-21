@@ -4,13 +4,18 @@
 #include <algorithm>
 #include <string.h>
 
-#include "ModelLoader.hh"
+#include <assimp/Importer.hpp>
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
 
 #include <glm/geometric.hpp>
 
+#include "ModelLoader.hh"
+
 ModelLoader::ModelLoader()
 {
-    _parsers["obj"] = &ModelLoader::loadOBJ;
+    //     _parsers["obj"] = &ModelLoader::loadOBJCustom;
+    _parsers["obj"] = &ModelLoader::loadOBJAssimp;
 }
 
 ModelLoader::~ModelLoader() {}
@@ -35,7 +40,64 @@ Model* ModelLoader::load(std::string filename)
     return (model);
 }
 
-Model* ModelLoader::loadOBJ(std::ifstream& src)
+static inline glm::vec3 to_glm3(aiVector3D& v)
+{
+    return glm::vec3(v.x, v.y, v.z);
+}
+
+static inline glm::vec2 to_glm2(aiVector3D& v)
+{
+    return glm::vec2(v.x, v.y);
+}
+
+Model* ModelLoader::loadOBJAssimp(std::ifstream& src)
+{
+    Model*              model = new Model;
+    Assimp::Importer    importer;
+    std::string         content(std::istreambuf_iterator<char>(static_cast<std::istream&>(src)), std::istreambuf_iterator<char>());
+    const aiScene*      scene;
+    aiMesh*             mesh = nullptr;
+    unsigned int        flags = aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenSmoothNormals | aiProcess_CalcTangentSpace;
+
+    scene = importer.ReadFileFromMemory(content.c_str(), content.size(), flags);
+    if (!scene || scene->mFlags == AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
+        throw std::runtime_error(std::string("loadOBJAssimp::") + importer.GetErrorString());
+
+    // Only support simplistic scene structures
+    if (!scene->HasMeshes())
+        throw std::runtime_error("loadOBJAssimp::no mesh found");
+    mesh = scene->mMeshes[0];
+
+    model->_vertices.reserve(mesh->mNumVertices);
+    model->_normals.reserve(mesh->mNumVertices);
+    model->_tangents.reserve(mesh->mNumVertices);
+    model->_bitangents.reserve(mesh->mNumVertices);
+    model->_uvs.reserve(mesh->mNumVertices);
+    for (std::size_t i = 0; i < mesh->mNumVertices; ++i)
+    {
+        model->_vertices.push_back(to_glm3(mesh->mVertices[i]));
+        model->_normals.push_back(to_glm3(mesh->mNormals[i]));
+        if (mesh->mTangents)
+            model->_tangents.push_back(to_glm3(mesh->mTangents[i]));
+        if (mesh->mBitangents)
+            model->_bitangents.push_back(to_glm3(mesh->mBitangents[i]));
+        if (mesh->mTextureCoords[0])
+            model->_uvs.push_back(to_glm2(mesh->mTextureCoords[0][i]));
+        else
+            model->_uvs.push_back(glm::vec2(0.0f, 0.0f));
+    }
+    model->_hasNormals = mesh->mNormals != nullptr;
+    model->_hasUVs = mesh->mTextureCoords[0] != nullptr;
+    for (std::size_t i = 0; i < mesh->mNumFaces; ++i)
+    {
+        aiFace face = mesh->mFaces[i];
+        for(std::size_t j = 0; j < face.mNumIndices; ++j)
+            model->_indexes.push_back(face.mIndices[j]);
+    }
+    return model;
+}
+
+Model* ModelLoader::loadOBJCustom(std::ifstream& src)
 {
     Model*                  model = new Model;
     std::string             line;

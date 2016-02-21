@@ -19,10 +19,12 @@ Mesh::Mesh(Model* model)
 
 void Mesh::init()
 {
-    _model->debugDump();
+//     _model->debugDump();
     _vertexBuffer.setData(_model->getVertexBufferSize(), _model->getVertexBuffer(), GL_STATIC_DRAW);
     _normalBuffer.setData(_model->getNormalBufferSize(), _model->getNormalBuffer(), GL_STATIC_DRAW);
     _uvBuffer.setData(_model->getUVBufferSize(), _model->getUVBuffer(), GL_STATIC_DRAW);
+    _tanBuffer.setData(_model->getTangentBufferSize(), _model->getTangentBuffer(), GL_STATIC_DRAW);
+    _bitanBuffer.setData(_model->getBitangentBufferSize(), _model->getBitangentBuffer(), GL_STATIC_DRAW);
     _elementBuffer.setData(_model->getIndexBufferSize(), _model->getIndexBuffer(), GL_STATIC_DRAW);
 }
 
@@ -76,6 +78,15 @@ void Mesh::draw(mogl::ShaderProgram& program, unsigned int mask, unsigned int in
         _uvBuffer.bind();
         program.setVertexAttribPointer(2, 2, GL_FLOAT);
     }
+    if (mask & Mesh::Tangent)
+    {
+        glEnableVertexAttribArray(3);
+        glEnableVertexAttribArray(4);
+        _tanBuffer.bind();
+        program.setVertexAttribPointer(3, 3, GL_FLOAT);
+        _bitanBuffer.bind();
+        program.setVertexAttribPointer(4, 3, GL_FLOAT);
+    }
     _elementBuffer.bind();
 
     if (instances)
@@ -86,6 +97,8 @@ void Mesh::draw(mogl::ShaderProgram& program, unsigned int mask, unsigned int in
     glDisableVertexAttribArray(0);
     glDisableVertexAttribArray(1);
     glDisableVertexAttribArray(2);
+    glDisableVertexAttribArray(3);
+    glDisableVertexAttribArray(4);
 }
 
 const glm::mat4& Mesh::getModelMatrix() const

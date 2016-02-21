@@ -20,6 +20,7 @@ class ImageLoader
 
 public:
     static void loadDDS(const std::string& file, mogl::Texture& texture);
+    static void loadDDS3D(const std::string& file, mogl::Texture& texture);
     static void loadEXR(const std::string& file, mogl::Texture& texture);
 };
 

@@ -1,7 +1,11 @@
-#include <glbinding/gl/gl.h>
-#include <glbinding/Binding.h>
-
-using namespace gl;
+////////////////////////////////////////////////////////////////////////////////
+/// ReaperGL
+///
+/// Copyright (c) 2015 Thibault Schueller
+///
+/// @file main.cpp
+/// @author Thibault Schueller <ryp.sqrt@gmail.com>
+////////////////////////////////////////////////////////////////////////////////
 
 #include "pipeline/glcontext.hpp"
 
@@ -17,7 +21,7 @@ using namespace gl;
 #include <mogl/object/query.hpp>
 #include <mogl/function/states.hpp>
 
-#define GLM_FORCE_RADIANS
+#define GLM_FORCE_RADIANS // NOTE remove this when switching to glm 0.9.6
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/random.hpp>
 #include <glm/gtx/compatibility.hpp>
@@ -75,6 +79,8 @@ void    hdr_test(GLContext& ctx, SixAxis& controller)
     ShaderHelper::loadSimpleShader(postshader, "rc/shader/post/passthrough.vert", "rc/shader/post/tonemapping.frag");
 //     loadSimpleShader(postshader, "rc/shader/post/passthrough.vert", "rc/shader/post/tonemapping.frag");
 
+    depthpassshader.printDebug();
+    normdepthpassshader.printDebug();
     shader.printDebug();
 
     // Frame buffer for post processing
@@ -278,13 +284,14 @@ void    hdr_test(GLContext& ctx, SixAxis& controller)
     delete kernel;
 }
 
-void    bloom_test(GLContext& ctx, SixAxis& controller)
+void    bloom_test(GLContext& ctx, SixAxis& controller, const std::string& path)
 {
     UnixFileWatcher     ufw;
     mogl::FrameBuffer   render_fbo;
     mogl::FrameBuffer   blur1_render_fbo;
     mogl::FrameBuffer   blur2_render_fbo;
     mogl::FrameBuffer   filter_fbo[2];
+    mogl::FrameBuffer   post_fbo[2];
     mogl::Texture       tex_scene(GL_TEXTURE_2D);
     mogl::Texture       tex_back_scene(GL_TEXTURE_2D);
     mogl::Texture       tex_brightpass(GL_TEXTURE_2D);
@@ -292,31 +299,39 @@ void    bloom_test(GLContext& ctx, SixAxis& controller)
     mogl::Texture       tex_lut(GL_TEXTURE_1D);
     mogl::Texture       tex_filter[2] = {GL_TEXTURE_2D, GL_TEXTURE_2D};
     mogl::Texture       sphereTex(GL_TEXTURE_2D);
+    mogl::Texture       bumpMap(GL_TEXTURE_2D);
     mogl::Texture       envMapHDR(GL_TEXTURE_2D);
+    mogl::Texture       tex_post[2] = {GL_TEXTURE_2D, GL_TEXTURE_2D};
+    mogl::Texture       tex_3d_lut(GL_TEXTURE_3D);
+    mogl::Texture       tex_2d_lut(GL_TEXTURE_2D);
+    mogl::RenderBuffer  depth_post;
     mogl::ShaderProgram program_envmap;
     mogl::ShaderProgram program_render;
     mogl::ShaderProgram program_filter;
     mogl::ShaderProgram program_resolve;
     mogl::ShaderProgram program_blur;
+    mogl::ShaderProgram program_post;
     mogl::VAO           vao;
     mogl::UniformBuffer ubo_transform;
     mogl::UniformBuffer ubo_material;
     mogl::Query         timeQuery(GL_TIME_ELAPSED);
-    ResourceManager     resourceMgr("rc");
+    ResourceManager     resourceMgr(path + "rc");
     Mesh                mesh(resourceMgr.getModel("model/sphere.obj"));
     Mesh                sphere(resourceMgr.getModel("model/sphere.obj"));
     float               exposure(1.0f);
+    float               fx_force(1.0f);
     bool                bloom(false);
+    bool                post_process(true);
     bool                blurImage(false);
-    float               bloom_thresh_min(2.4f);
-    float               bloom_thresh_max(10.0f);
+    float               bloom_thresh_min(0.0f);
+    float               bloom_thresh_max(1.5f);
     const int           meshN = 7;
     const int           meshTotal = meshN * meshN;
     float               fovAngle = 55.0f;
-    glm::vec3           lightPos(0.0f, 7.0f, 0.0f);
+    glm::vec3           lightPos(0.0f, 5.5f, 0.0f);
     float               lightIntensity(200.0f);
 
-    assert(ctx.isExtensionSupported("GL_EXT_texture_filter_anisotropic"));
+    Assert(ctx.isExtensionSupported("GL_EXT_texture_filter_anisotropic"));
 
     struct
     {
@@ -345,27 +360,61 @@ void    bloom_test(GLContext& ctx, SixAxis& controller)
 
     std::cout << "MaxAnisotropy=" << maxAnisotropy << std::endl;
 
-    ImageLoader::loadDDS("rc/texture/envmap/lobby_mip.dds", sphereTex);
-    ImageLoader::loadEXR("rc/texture/envmap/StageEnvLatLong.exr", envMapHDR);
+    ImageLoader::loadDDS3D(path + "rc/texture/lut/color_grading_contrast.dds", tex_3d_lut);
+    ImageLoader::loadDDS(path + "rc/texture/lut/color_grading_contrast.dds", tex_2d_lut);
+    ImageLoader::loadDDS(path + "rc/texture/metal_normal.dds", bumpMap);
+    ImageLoader::loadDDS(path + "rc/texture/envmap/lobby_mip.dds", sphereTex);
+    ImageLoader::loadEXR(path + "rc/texture/envmap/StageEnvLatLong.exr", envMapHDR);
+
+    tex_3d_lut.set(GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    tex_3d_lut.set(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    tex_3d_lut.set(GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    tex_3d_lut.set(GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    tex_3d_lut.set(GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    tex_2d_lut.set(GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    tex_2d_lut.set(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    tex_2d_lut.set(GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    tex_2d_lut.set(GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     sphereTex.set(GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
     sphereTex.set(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     sphereTex.set(GL_TEXTURE_MAX_ANISOTROPY_EXT, maxAnisotropy);
+    bumpMap.set(GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR); // Linear filtering on a normal map ~
+    bumpMap.set(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    bumpMap.set(GL_TEXTURE_MAX_ANISOTROPY_EXT, maxAnisotropy);
 
     static const GLenum buffers[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
     static const GLfloat exposureLUT[20]   = { 11.0f, 6.0f, 3.2f, 2.8f, 2.2f, 1.90f, 1.80f, 1.80f, 1.70f, 1.70f,  1.60f, 1.60f, 1.50f, 1.50f, 1.40f, 1.40f, 1.30f, 1.20f, 1.10f, 1.00f };
 
     vao.bind();
 
-    ShaderHelper::loadSimpleShader(program_envmap, "rc/shader/envmap.vert", "rc/shader/envmap.frag");
-    ShaderHelper::loadSimpleShader(program_render, "rc/shader/hdrbloom/hdrbloom-scene.vs.glsl", "rc/shader/hdrbloom/hdrbloom-scene.fs.glsl");
+    ShaderHelper::loadSimpleShader(program_envmap, path + "rc/shader/envmap.vert", path + "rc/shader/envmap.frag");
+    ShaderHelper::loadSimpleShader(program_render, path + "rc/shader/hdrbloom/hdrbloom-scene.vs.glsl", path + "rc/shader/hdrbloom/hdrbloom-scene.fs.glsl");
     uniforms.scene.bloom_thresh_min = program_render.getUniformLocation("bloom_thresh_min");
     uniforms.scene.bloom_thresh_max = program_render.getUniformLocation("bloom_thresh_max");
-    ShaderHelper::loadSimpleShader(program_filter, "rc/shader/hdrbloom/hdrbloom-filter.vs.glsl", "rc/shader/hdrbloom/hdrbloom-filter.fs.glsl");
-    ShaderHelper::loadSimpleShader(program_resolve, "rc/shader/hdrbloom/hdrbloom-resolve.vs.glsl", "rc/shader/hdrbloom/hdrbloom-resolve.fs.glsl");
+    ShaderHelper::loadSimpleShader(program_filter, path + "rc/shader/hdrbloom/hdrbloom-filter.vs.glsl", path + "rc/shader/hdrbloom/hdrbloom-filter.fs.glsl");
+    ShaderHelper::loadSimpleShader(program_resolve, path + "rc/shader/hdrbloom/hdrbloom-resolve.vs.glsl", path + "rc/shader/hdrbloom/hdrbloom-resolve.fs.glsl");
     uniforms.resolve.exposure = program_resolve.getUniformLocation("exposure");
 
-    ShaderHelper::loadSimpleShader(program_blur, "rc/shader/gaussian_blur.vert", "rc/shader/gaussian_blur.frag");
-    program_blur.printDebug();
+    ShaderHelper::loadSimpleShader(program_blur, path + "rc/shader/gaussian_blur.vert", path + "rc/shader/gaussian_blur.frag");
+//     ShaderHelper::loadSimpleShader(program_post, path + "rc/shader/post/passthrough2.vert", path + "rc/shader/post/chromatic_aberrations.frag");
+//     ShaderHelper::loadSimpleShader(program_post, path + "rc/shader/post/passthrough2.vert", path + "rc/shader/post/color_grading.frag");
+    ShaderHelper::loadSimpleShader(program_post, path + "rc/shader/post/passthrough2.vert", path + "rc/shader/post/color_grading2d.frag");
+
+    depth_post.setStorage(GL_DEPTH_COMPONENT, ctx.getWindowSize().x, ctx.getWindowSize().y);
+    for (int i = 0; i < 2; ++i)
+    {
+        tex_post[i].setStorage2D(1, GL_RGB8, ctx.getWindowSize().x, ctx.getWindowSize().y);
+        tex_post[i].set(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        tex_post[i].set(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        tex_post[i].set(GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        tex_post[i].set(GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+        tex_post[i].bind(0);
+        post_fbo[i].setTexture(GL_COLOR_ATTACHMENT0, tex_post[i]);
+        post_fbo[i].setRenderBuffer(GL_DEPTH_ATTACHMENT, depth_post);
+        post_fbo[i].setDrawBuffer(GL_COLOR_ATTACHMENT0);
+        Assert(post_fbo[i].isComplete(GL_FRAMEBUFFER));
+    }
 
     tex_scene.setStorage2D(1, GL_RGBA16F, ctx.getWindowSize().x, ctx.getWindowSize().y);
     tex_scene.set(GL_TEXTURE_MIN_FILTER, GL_LINEAR); // For blur pass
@@ -380,8 +429,7 @@ void    bloom_test(GLContext& ctx, SixAxis& controller)
     render_fbo.setTexture(GL_COLOR_ATTACHMENT1, tex_brightpass, 0);
     render_fbo.setTexture(GL_DEPTH_ATTACHMENT, tex_depth, 0);
     render_fbo.setDrawBuffers(2, buffers);
-    if (!render_fbo.isComplete(GL_FRAMEBUFFER))
-        throw std::runtime_error("Buffer incomplete");
+    Assert(render_fbo.isComplete(GL_FRAMEBUFFER));
 
     tex_back_scene.setStorage2D(1, GL_RGBA16F, ctx.getWindowSize().x, ctx.getWindowSize().y);
     tex_back_scene.set(GL_TEXTURE_MIN_FILTER, GL_LINEAR); // For blur pass
@@ -390,11 +438,9 @@ void    bloom_test(GLContext& ctx, SixAxis& controller)
     tex_back_scene.set(GL_TEXTURE_WRAP_T, GL_MIRROR_CLAMP_TO_EDGE); // For blur pass
 
     blur1_render_fbo.setTexture(GL_COLOR_ATTACHMENT0, tex_back_scene, 0);
-    if (!blur1_render_fbo.isComplete(GL_FRAMEBUFFER))
-        throw std::runtime_error("Back buffer incomplete");
     blur2_render_fbo.setTexture(GL_COLOR_ATTACHMENT0, tex_scene, 0);
-    if (!blur2_render_fbo.isComplete(GL_FRAMEBUFFER))
-        throw std::runtime_error("Back buffer incomplete");
+    Assert(blur1_render_fbo.isComplete(GL_FRAMEBUFFER));
+    Assert(blur2_render_fbo.isComplete(GL_FRAMEBUFFER));
 
     for (int i = 0; i < 2; ++i)
     {
@@ -492,13 +538,15 @@ void    bloom_test(GLContext& ctx, SixAxis& controller)
         ubo_material.bindBufferBase(1);
 
         envMapHDR.bind(0);
+        bumpMap.bind(1);
         glUniform1f(uniforms.scene.bloom_thresh_min, bloom_thresh_min);
         glUniform1f(uniforms.scene.bloom_thresh_max, bloom_thresh_max);
-        program_render.setUniform("envmap", 0);
+//         program_render.setUniform("envmap", 0);
+        program_render.setUniform("normal_tex", 1);
         program_render.setUniformPtr<3>("light_pos", &lightPos[0]);
         program_render.setUniform("light_power", lightIntensity);
 
-        mesh.draw(program_render, Mesh::Vertex | Mesh::Normal | Mesh::UV, meshTotal);
+        mesh.draw(program_render, Mesh::Vertex | Mesh::Normal | Mesh::UV | Mesh::Tangent, meshTotal);
 
         if (!bloom)
             render_fbo.clear(GL_COLOR, 1, black);
@@ -542,15 +590,40 @@ void    bloom_test(GLContext& ctx, SixAxis& controller)
 
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
-        program_resolve.use();
+        {
+            if (post_process)
+            {
+                post_fbo[0].bind(GL_FRAMEBUFFER);
+                post_fbo[0].clear(GL_COLOR, 0, black);
+                post_fbo[0].clear(GL_DEPTH, 0, &one);
+            }
+            else
+                glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-        glUniform1f(uniforms.resolve.exposure, exposure);
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+            program_resolve.use();
 
-        tex_scene.bind(0);
-        tex_filter[1].bind(1);
+            glUniform1f(uniforms.resolve.exposure, exposure);
 
-        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+            tex_scene.bind(0);
+            tex_filter[1].bind(1);
+
+            glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        }
+
+        if (post_process)
+        {
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+            program_post.use();
+            program_post.setUniform<GLfloat>("imageSize", ctx.getWindowSize().x, ctx.getWindowSize().y);
+//             program_post.setUniform("amount", glm::exp(fx_force) - 1.0f);
+            program_post.setUniform("lutSize", 16.0f);
+
+            tex_post[0].bind(0);
+            tex_2d_lut.bind(1);
+
+            glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        }
 
         timeQuery.end();
 
@@ -564,10 +637,12 @@ void    bloom_test(GLContext& ctx, SixAxis& controller)
         if (ImGui::CollapsingHeader("PostFX"))
         {
             ImGui::Checkbox("Bloom", &bloom);
-            ImGui::SliderFloat("bloom_thresh_min", &bloom_thresh_min, 0.0f, 1000.0f);
-            ImGui::SliderFloat("bloom_thresh_max", &bloom_thresh_max, 0.0f, 1000.0f);
+            ImGui::SliderFloat("bloom_thresh_min", &bloom_thresh_min, 0.0f, 5.0f);
+            ImGui::SliderFloat("bloom_thresh_max", &bloom_thresh_max, 0.0f, 5.0f);
             ImGui::SliderFloat("exposure", &exposure, 0.0f, 10.0f);
             ImGui::Checkbox("Blur", &blurImage);
+            ImGui::Checkbox("Post_FX", &post_process);
+            ImGui::SliderFloat("FX force", &fx_force, 0.0f, 2.0f);
         }
         if (ImGui::CollapsingHeader("Light"))
         {
@@ -587,20 +662,21 @@ void    bloom_test(GLContext& ctx, SixAxis& controller)
 int main(int /*ac*/, char** av)
 {
     auto debugCallback = [] (GLenum, GLenum, GLuint, GLenum, GLsizei, const GLchar *message, const void *) {
-        std::cout << " message=" << message << std::endl;
+        std::cout << "glCallback: " << message << std::endl;
     };
     try {
         GLContext   ctx;
         SixAxis     controller("/dev/input/js0");
-        std::string path = reaper::getExecutablePath(av[0]);
         ctx.create(1600, 900, 4, 5, false, true);
 
         glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+
+        GLuint usedIds = 131185;
         glDebugMessageCallback(debugCallback, nullptr);
-        GLuint unusedIds = 0;
-        glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, &unusedIds, GL_TRUE);
-//         hdr_test(ctx, controller);
-        bloom_test(ctx, controller);
+        glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, GL_TRUE);
+        glDebugMessageControl(GL_DEBUG_SOURCE_API, GL_DEBUG_TYPE_OTHER, GL_DONT_CARE, 1, &usedIds, GL_FALSE);
+
+        bloom_test(ctx, controller, reaper::getExecutablePath(av[0]) + "../../");
         controller.destroy();
     }
     catch (const std::runtime_error& e) {

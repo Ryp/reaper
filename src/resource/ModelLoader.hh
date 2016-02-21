@@ -17,7 +17,8 @@ public:
     Model*    load(std::string filename);
 
 private:
-    Model*    loadOBJ(std::ifstream& src);
+    Model*    loadOBJAssimp(std::ifstream& src);
+    Model*    loadOBJCustom(std::ifstream& src);
 
 private:
     std::map<std::string, Model* (ModelLoader::*)(std::ifstream&)> _parsers;
