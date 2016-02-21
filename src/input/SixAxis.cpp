@@ -1,13 +1,13 @@
-#include <linux/joystick.h>
-#include <sys/ioctl.h>
-#include <fcntl.h>
-#include <unistd.h>
+#include "SixAxis.hpp"
+
 #include <cstdint>
 #include <cmath>
 #include <cstring>
-#include <stdexcept>
 
-#include "SixAxis.hpp"
+#include <sys/ioctl.h>
+#include <linux/joystick.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 const float SixAxis::AxisDeadzone = 0.12f;
 
@@ -15,8 +15,7 @@ SixAxis::SixAxis(const std::string& device)
 :   AController(TotalButtonsNumber,
                 TotalAxesNumber),
     _device(device),
-    _connected(connect()),
-    _fd(0)
+    _connected(connect())
 {
     AController::reset();
 }
@@ -52,16 +51,11 @@ bool SixAxis::connect()
 {
     char    deviceName[256];
 
-    if ((_fd = open(_device.c_str(), O_RDONLY | O_NONBLOCK)) == -1)
-        return (false);
-//         throw (std::runtime_error("could not open device: " + std::string(strerror(errno))));
-    if (ioctl(_fd, JSIOCGNAME(256), deviceName) == -1)
-        return (false);
-//         throw (std::runtime_error("could not retrieve device name: " + std::string(strerror(errno))));
-    if (std::string("Sony PLAYSTATION(R)3 Controller") != deviceName)
-        return (false);
-//         throw (std::runtime_error("not a playstation 3 controller"));
+    _fd = open(_device.c_str(), O_RDONLY | O_NONBLOCK);
+    Assert(_fd != -1, "could not open device: " + std::string(strerror(errno)));
+    Assert(ioctl(_fd, JSIOCGNAME(256), deviceName) != -1, "could not retrieve device name: " + std::string(strerror(errno)));
+    Assert(std::string("Sony PLAYSTATION(R)3 Controller") == deviceName, "not a playstation 3 controller");
     update();
     AController::reset();
-    return (true);
+    return true;
 }
