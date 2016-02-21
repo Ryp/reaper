@@ -16,6 +16,7 @@ uniform sampler2DShadow shadowMapTex;
 uniform sampler2DShadow depthBufferTex;
 uniform sampler2D       noiseTex;
 
+// For PCF shadows
 vec2 poissonDisk[16] = vec2[](
    vec2(-0.94201624, -0.39906216),
    vec2(0.94558609, -0.76890725),
@@ -63,7 +64,7 @@ void main()
 {
     // Light emission properties
     vec3    lightColor = vec3(1,1,0);
-    float   lightPower = 100;
+    float   lightPower = 1;
     vec3    MaterialDiffuseColor = texture2D(noiseTex, UV).rgb + fragmentColor * 0.01;
     vec3    MaterialAmbientColor = texture2D(noiseTex, UV).rgb * vec3(0.2, 0.2, 0.2);
     vec3    MaterialSpecularColor = vec3(1.0, 1.0, 1.0);

@@ -21,7 +21,7 @@
 #include <mogl/object/query.hpp>
 #include <mogl/function/states.hpp>
 
-#define GLM_FORCE_RADIANS // NOTE remove this when switching to glm 0.9.6
+#define GLM_FORCE_RADIANS // NOTE remove this when switching to glm 0.9.6 or above
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/random.hpp>
 #include <glm/gtx/compatibility.hpp>
@@ -46,7 +46,7 @@ void    hdr_test(GLContext& ctx, SixAxis& controller, const std::string& rcPath)
     Camera              cam(glm::vec3(-5.0, 3.0, 0.0));
     mogl::VAO           vao;
     Model*              quad = resourceMgr.getModel("model/quad.obj");
-    Mesh                mesh(resourceMgr.getModel("model/sphere.obj"));
+    Mesh                mesh(resourceMgr.getModel("model/sibenik_bare.obj"));
     mogl::ShaderProgram shader;
     mogl::ShaderProgram postshader;
     mogl::ShaderProgram normdepthpassshader;
@@ -77,11 +77,6 @@ void    hdr_test(GLContext& ctx, SixAxis& controller, const std::string& rcPath)
     ShaderHelper::loadSimpleShader(normdepthpassshader, rcPath + "shader/depth_pass_normalized.vert", rcPath + "shader/depth_pass_normalized.frag");
     ShaderHelper::loadSimpleShader(shader, rcPath + "shader/shadow_ssao.vert", rcPath + "shader/shadow_ssao.frag");
     ShaderHelper::loadSimpleShader(postshader, rcPath + "shader/post/passthrough.vert", rcPath + "shader/post/tonemapping.frag");
-//     loadSimpleShader(postshader, rcPath + "shader/post/passthrough.vert", rcPath + "shader/post/tonemapping.frag");
-
-    depthpassshader.printDebug();
-    normdepthpassshader.printDebug();
-    shader.printDebug();
 
     // Frame buffer for post processing
     frameTexture.setStorage2D(1, GL_RGB16F, ctx.getWindowSize().x, ctx.getWindowSize().y);
@@ -96,8 +91,7 @@ void    hdr_test(GLContext& ctx, SixAxis& controller, const std::string& rcPath)
     postFrameBuffer.setTexture(GL_COLOR_ATTACHMENT0, frameTexture);
     postFrameBuffer.setRenderBuffer(GL_DEPTH_ATTACHMENT, postDepthBuffer);
     postFrameBuffer.setDrawBuffer(GL_COLOR_ATTACHMENT0);
-    if (!postFrameBuffer.isComplete(GL_FRAMEBUFFER))
-        throw (std::runtime_error("bad framebuffer"));
+    Assert(postFrameBuffer.isComplete(GL_FRAMEBUFFER));
 
     // Frame buffer for the shadow map
     GLfloat   border[] = {1.0f, 0.0f, 0.0f, 0.0f};
@@ -113,11 +107,10 @@ void    hdr_test(GLContext& ctx, SixAxis& controller, const std::string& rcPath)
     shadowTexture.bind(0);
     shadowDepthFrameBuffer.setTexture(GL_DEPTH_ATTACHMENT, shadowTexture);
     shadowDepthFrameBuffer.setDrawBuffer(GL_NONE);
-    if (!shadowDepthFrameBuffer.isComplete(GL_FRAMEBUFFER))
-        throw (std::runtime_error("bad framebuffer"));
+    Assert(shadowDepthFrameBuffer.isComplete(GL_FRAMEBUFFER));
 
     // Frame buffer for the normals / depth
-    screenNormalTexture.setStorage2D(1, GL_RGB8UI, ctx.getWindowSize().x, ctx.getWindowSize().y);
+    screenNormalTexture.setStorage2D(1, GL_RGB8, ctx.getWindowSize().x, ctx.getWindowSize().y);
     screenNormalTexture.set(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     screenNormalTexture.set(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
@@ -130,12 +123,11 @@ void    hdr_test(GLContext& ctx, SixAxis& controller, const std::string& rcPath)
     screenDepthTexture.set(GL_TEXTURE_COMPARE_FUNC, GL_LESS);
 
     screenNormalTexture.bind(0);
-    screenDepthFrameBuffer.setTexture(GL_COLOR_ATTACHMENT0, screenNormalTexture);
     screenDepthTexture.bind(1);
+    screenDepthFrameBuffer.setTexture(GL_COLOR_ATTACHMENT0, screenNormalTexture);
     screenDepthFrameBuffer.setTexture(GL_DEPTH_ATTACHMENT, screenDepthTexture);
     screenDepthFrameBuffer.setDrawBuffer(GL_COLOR_ATTACHMENT0);
-    if (!screenDepthFrameBuffer.isComplete(GL_FRAMEBUFFER))
-        throw (std::runtime_error("bad framebuffer"));
+    Assert(screenDepthFrameBuffer.isComplete(GL_FRAMEBUFFER));
 
     vao.bind();
 
@@ -160,7 +152,6 @@ void    hdr_test(GLContext& ctx, SixAxis& controller, const std::string& rcPath)
     }
 
     mogl::enable(GL_DEPTH_TEST);
-    mogl::enable(GL_CULL_FACE);
     glDepthFunc(GL_LESS);
     while (ctx.isOpen())
     {
@@ -191,6 +182,9 @@ void    hdr_test(GLContext& ctx, SixAxis& controller, const std::string& rcPath)
         glm::mat4   depthModelMatrix = Model;
         glm::mat4   depthMVP = depthProjectionMatrix * depthViewMatrix * depthModelMatrix;
         glm::mat4   depthBiasMVP = biasMatrix * depthMVP;
+
+        mogl::enable(GL_CULL_FACE);
+        Assert(mogl::isEnabled(GL_CULL_FACE));
 
         timeQuery.begin();
         polyQuery.begin();
@@ -251,8 +245,7 @@ void    hdr_test(GLContext& ctx, SixAxis& controller, const std::string& rcPath)
 
         postshader.use();
 
-
-
+        frameTexture.bind(0);
         postshader.setUniform<GLint>("renderedTexture", 0);
 //         postshader.setUniform<GLfloat>("frameBufSize", ctx.getWindowSize().x, ctx.getWindowSize().y);
         if (controller.isHeld(SixAxis::Buttons::Circle))
@@ -286,7 +279,6 @@ void    hdr_test(GLContext& ctx, SixAxis& controller, const std::string& rcPath)
 
 void    bloom_test(GLContext& ctx, SixAxis& controller, const std::string& rcPath)
 {
-    UnixFileWatcher     ufw;
     mogl::FrameBuffer   render_fbo;
     mogl::FrameBuffer   blur1_render_fbo;
     mogl::FrameBuffer   blur2_render_fbo;
@@ -677,6 +669,7 @@ int main(int /*ac*/, char** av)
 {
     auto debugCallback = [] (GLenum, GLenum, GLuint, GLenum, GLsizei, const GLchar *message, const void *) {
         std::cout << "glCallback: " << message << std::endl;
+//         Assert(false, std::string("glCallback: ") + message);
     };
     try {
         GLContext   ctx;
@@ -690,7 +683,8 @@ int main(int /*ac*/, char** av)
         glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, GL_TRUE);
         glDebugMessageControl(GL_DEBUG_SOURCE_API, GL_DEBUG_TYPE_OTHER, GL_DONT_CARE, 1, &usedIds, GL_FALSE);
 
-        bloom_test(ctx, controller, reaper::getExecutablePath(av[0]) + "../rc/");
+//         bloom_test(ctx, controller, reaper::getExecutablePath(av[0]) + "../rc/");
+        hdr_test(ctx, controller, reaper::getExecutablePath(av[0]) + "../rc/");
         controller.destroy();
     }
     catch (const std::runtime_error& e) {
