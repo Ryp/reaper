@@ -5,9 +5,9 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "mesh.hpp"
+#include "Mesh.h"
 
-#include "renderer/resource/Model.hh"
+#include "renderer/resource/Model.h"
 
 Mesh::Mesh(Model* model)
 :   _model(model),

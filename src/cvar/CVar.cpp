@@ -5,7 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "cvar.hpp"
+#include "CVar.h"
 
 #include <iostream>
 

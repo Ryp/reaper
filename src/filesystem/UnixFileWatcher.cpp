@@ -23,7 +23,7 @@
  * \brief UnixFileWatcher class implementation
  */
 
-#include "unixfilewatcher.hpp"
+#include "UnixFileWatcher.h"
 
 extern "C" {
 #include <sys/inotify.h>

@@ -11,7 +11,7 @@
 #include <unordered_map>
 #include <string>
 
-#include "ModelLoader.hh"
+#include "ModelLoader.h"
 
 class ResourceManager
 {

@@ -5,7 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "imageloader.hpp"
+#include "ImageLoader.h"
 
 #include <glbinding/gl/gl.h>
 #include <glbinding/Binding.h>

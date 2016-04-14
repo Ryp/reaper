@@ -5,7 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "Model.hh"
+#include "Model.h"
 
 /* FIXME */
 #include <iostream>

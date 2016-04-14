@@ -10,7 +10,7 @@
 
 #include <glm/detail/type_mat4x4.hpp>
 
-#include "gl.hpp"
+#include "renderer/pipeline/OpenGL.h"
 
 #include <mogl/object/buffer/arraybuffer.hpp>
 #include <mogl/object/buffer/elementarraybuffer.hpp>
