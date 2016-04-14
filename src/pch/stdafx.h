@@ -1,7 +1,19 @@
-#ifndef STDAFX_INCLUDED
-#define STDAFX_INCLUDED
+////////////////////////////////////////////////////////////////////////////////
+/// ReaperGL
+///
+/// Copyright (c) 2016 Thibault Schueller
+/// This file is distributed under the MIT License
+////////////////////////////////////////////////////////////////////////////////
+
+#ifndef REAPER_STDAFX_INCLUDED
+#define REAPER_STDAFX_INCLUDED
+
+#define GLM_FORCE_RADIANS // NOTE remove this when switching to glm 0.9.6 or above
 
 #include "core/Assert.h"
-#include "pipeline/gl.hpp"
+#include "core/Platform.h"
+#include "core/Types.h"
+#include "core/memory/Allocator.h"
+#include "renderer/pipeline/gl.hpp"
 
-#endif // STDAFX_INCLUDED
+#endif // REAPER_STDAFX_INCLUDED

@@ -7,8 +7,7 @@
 /// @author Thibault Schueller <ryp.sqrt@gmail.com>
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "pipeline/glcontext.hpp"
-
+#include "renderer/pipeline/glcontext.hpp"
 #include <mogl/exception/moglexception.hpp>
 #include <mogl/object/shader/shaderprogram.hpp>
 #include <mogl/object/texture.hpp>
@@ -21,28 +20,86 @@
 #include <mogl/object/query.hpp>
 #include <mogl/function/states.hpp>
 
-#define GLM_FORCE_RADIANS // NOTE remove this when switching to glm 0.9.6 or above
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/random.hpp>
 #include <glm/gtx/compatibility.hpp>
 
-#include "input/SixAxis.hpp"
-#include "Camera.hpp"
-#include "math/spline.hpp"
-#include "resource/shaderhelper.hpp"
-#include "resource/imageloader.hpp"
-#include "resource/resourcemanager.hpp"
-#include "pipeline/mesh.hpp"
-
-#include "unixfilewatcher.hpp"
+#include "core/memory/LinearAllocator.h"
+#include "core/memory/StackAllocator.h"
+#include "core/memory/CacheLine.h"
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_glfw_gl3.h"
 #include "filesystem/path.hpp"
+#include "filesystem/unixfilewatcher.hpp"
+#include "input/SixAxisController.h"
+#include "math/spline.hpp"
 
-void    hdr_test(GLContext& ctx, SixAxis& controller, const std::string& rcPath)
+#include "renderer/Camera.hpp"
+#include "renderer/resource/shaderhelper.hpp"
+#include "renderer/resource/imageloader.hpp"
+#include "renderer/resource/resourcemanager.hpp"
+#include "renderer/pipeline/mesh.hpp"
+
+#include "game/WorldUpdater.h"
+#include "game/pathing/CostMap.h"
+
+// static void test1()
+// {
+//     auto a = new Camera();
+//     auto b = new Camera;
+//     auto c = new Camera[5];
+//
+//     delete[] c;
+//     delete b;
+//     delete a;
+// }
+
+// static void test2()
+// {
+//     StackAllocator  sa(1000);
+//     Camera*         a = nullptr;
+//     Camera*         b = nullptr;
+//
+//     a = static_cast<Camera*>(sa.alloc(sizeof(Camera)));
+//     std::cout << "alloc=(" << sizeof(Camera) << ")=" << a << std::endl;
+//
+//     auto mk = sa.getMarker();
+//
+//     b = static_cast<Camera*>(sa.alloc(sizeof(Camera)));
+//     std::cout << "alloc=(" << sizeof(Camera) << ")=" << b << std::endl;
+//
+//     sa.freeToMarker(mk);
+//
+//     b = static_cast<Camera*>(sa.alloc(sizeof(Camera)));
+//     std::cout << "alloc=(" << sizeof(Camera) << ")=" << b << std::endl;
+// }
+
+// static void test3()
+// {
+//     int costMapSize = 100;
+//     CostMap map = createCostMap(costMapSize);
+//
+//     std::cout << "cost[0][0]=" << static_cast<u16>(map.costs[0]);
+//
+//     destroyCostMap(map);
+// }
+
+static void game_test()
+{
+    WorldUpdater    wu;
+
+    wu.load();
+    for (int i = 0; i < 100; ++i)
+        wu.updateModules(0.16f);
+
+//     test1();
+//     test2();
+//     test3();
+}
+
+static void hdr_test(GLContext& ctx, SixAxisController & controller, const std::string& rcPath)
 {
     ResourceManager     resourceMgr(rcPath);
-    float               frameTime;
     Camera              cam(glm::vec3(-5.0, 3.0, 0.0));
     mogl::VAO           vao;
     Model*              quad = resourceMgr.getModel("model/quad.obj");
@@ -60,11 +117,15 @@ void    hdr_test(GLContext& ctx, SixAxis& controller, const std::string& rcPath)
     mogl::Texture       screenDepthTexture(GL_TEXTURE_2D);
     mogl::Texture       screenNormalTexture(GL_TEXTURE_2D);
     mogl::Texture       modelTexture(GL_TEXTURE_2D);
+    mogl::Texture       noiseTex(GL_TEXTURE_2D);
     mogl::RenderBuffer  postDepthBuffer;
     mogl::Query         timeQuery(GL_TIME_ELAPSED);
     mogl::Query         polyQuery(GL_PRIMITIVES_GENERATED);
     mogl::Query         samplesQuery(GL_SAMPLES_PASSED);
     float               shadowMapResolution = 4096;
+    float               ssaoRadius = 3.0f;
+    float               ssaoPower = 1.0f;
+    float               fovAngle = 70.0f;
     glm::vec3           translation;
     glm::mat4           biasMatrix(
         0.5, 0.0, 0.0, 0.0,
@@ -77,6 +138,8 @@ void    hdr_test(GLContext& ctx, SixAxis& controller, const std::string& rcPath)
     ShaderHelper::loadSimpleShader(normdepthpassshader, rcPath + "shader/depth_pass_normalized.vert", rcPath + "shader/depth_pass_normalized.frag");
     ShaderHelper::loadSimpleShader(shader, rcPath + "shader/shadow_ssao.vert", rcPath + "shader/shadow_ssao.frag");
     ShaderHelper::loadSimpleShader(postshader, rcPath + "shader/post/passthrough.vert", rcPath + "shader/post/tonemapping.frag");
+
+    ImageLoader::loadDDS(rcPath + "texture/noise.dds", noiseTex);
 
     // Frame buffer for post processing
     frameTexture.setStorage2D(1, GL_RGB16F, ctx.getWindowSize().x, ctx.getWindowSize().y);
@@ -144,7 +207,7 @@ void    hdr_test(GLContext& ctx, SixAxis& controller, const std::string& rcPath)
         kernel[i] = glm::fvec3(
                         glm::linearRand(-1.0f, 1.0f),
                         glm::linearRand(-1.0f, 1.0f),
-                        glm::linearRand(0.0f, 1.0f)
+                        glm::linearRand(-1.0f, 1.0f)
                     );
         kernel[i] = glm::normalize(kernel[i]);
         float scale = (float)i / (float)ssaoKernelSize;
@@ -152,24 +215,29 @@ void    hdr_test(GLContext& ctx, SixAxis& controller, const std::string& rcPath)
     }
 
     mogl::enable(GL_DEPTH_TEST);
+    mogl::setCullFace(GL_BACK);
     glDepthFunc(GL_LESS);
-    while (ctx.isOpen())
-    {
-        frameTime = ctx.getTime();
+
+    do {
+        mogl::enable(GL_CULL_FACE);
+        Assert(mogl::isEnabled(GL_CULL_FACE));
+//         ImGuiIO& io = ImGui::GetIO();
+//         ImGui_ImplGlfwGL3_NewFrame();
 
         controller.update();
-        if (controller.isHeld(SixAxis::Buttons::Start))
+        if (controller.isHeld(SixAxisController::Buttons::Start))
             break;
-        float speedup = 1.0 + (controller.getAxis(SixAxis::Axes::L2Pressure) * 0.5 + 0.5) * 10.0f;
-        cam.move(controller.getAxis(SixAxis::LeftAnalogY) * speedup / -10.0f, controller.getAxis(SixAxis::LeftAnalogX) * speedup / -10.0f, 0.0f);
-        cam.rotate(controller.getAxis(SixAxis::RightAnalogX) / 10.0f, controller.getAxis(SixAxis::RightAnalogY) / -10.0f);
+        float speedup = 1.0 + (controller.getAxis(SixAxisController::Axes::L2Pressure) * 0.5 + 0.5) * 10.0f;
+        cam.move(controller.getAxis(SixAxisController::LeftAnalogY) * speedup / -10.0f, controller.getAxis(SixAxisController::LeftAnalogX) * speedup / -10.0f, 0.0f);
+        cam.rotate(controller.getAxis(SixAxisController::RightAnalogX) / 10.0f, controller.getAxis(SixAxisController::RightAnalogY) / -10.0f);
         cam.update(Camera::Spherical);
-        if (controller.isPressed(SixAxis::Buttons::Select))
+        if (controller.isPressed(SixAxisController::Buttons::Select))
             cam.reset();
 
         float       nearPlane   = 0.1f;
         float       farPlane    = 1000.0f;
-        glm::mat4   Projection  = glm::perspective(45.0f, static_cast<float>(ctx.getWindowSize().x) / static_cast<float>(ctx.getWindowSize().y), nearPlane, farPlane);
+        float       aspectRatio = static_cast<float>(ctx.getWindowSize().x) / static_cast<float>(ctx.getWindowSize().y);
+        glm::mat4   Projection  = glm::perspective(fovAngle, aspectRatio, nearPlane, farPlane);
         glm::mat4   View        = cam.getViewMatrix();
 //         glm::mat4   Model       = glm::translate(glm::scale(glm::mat4(1.0), glm::vec3(3.0)), glm::vec3(0.0, 12.0, 0.0));
         glm::mat4   Model       = glm::mat4(1.0);
@@ -183,9 +251,6 @@ void    hdr_test(GLContext& ctx, SixAxis& controller, const std::string& rcPath)
         glm::mat4   depthMVP = depthProjectionMatrix * depthViewMatrix * depthModelMatrix;
         glm::mat4   depthBiasMVP = biasMatrix * depthMVP;
 
-        mogl::enable(GL_CULL_FACE);
-        Assert(mogl::isEnabled(GL_CULL_FACE));
-
         timeQuery.begin();
         polyQuery.begin();
         samplesQuery.begin();
@@ -198,6 +263,7 @@ void    hdr_test(GLContext& ctx, SixAxis& controller, const std::string& rcPath)
         glPolygonOffset(5.0f, 4.0f);
         glClear(GL_DEPTH_BUFFER_BIT);
         depthpassshader.use();
+        vao.bind();
         depthpassshader.setUniformMatrixPtr<4>("MVP", &depthMVP[0][0]);
         mesh.draw(depthpassshader, Mesh::Vertex);
 
@@ -208,6 +274,7 @@ void    hdr_test(GLContext& ctx, SixAxis& controller, const std::string& rcPath)
         mogl::disable(GL_POLYGON_OFFSET_FILL);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         normdepthpassshader.use();
+        vao.bind();
         normdepthpassshader.setUniformMatrixPtr<4>("MVP", &MVP[0][0]);
         mesh.draw(normdepthpassshader, Mesh::Vertex | Mesh::Normal);
 
@@ -221,6 +288,8 @@ void    hdr_test(GLContext& ctx, SixAxis& controller, const std::string& rcPath)
         postFrameBuffer.clear(GL_DEPTH, 0, clearDepth);
 
         shader.use();
+        vao.bind();
+
         shader.setUniformMatrixPtr<4>("MVP", &MVP[0][0]);
         shader.setUniformMatrixPtr<4>("DepthBiasMVP", &depthBiasMVP[0][0]);
 //         shader.setUniformMatrixPtr<4>("DepthBias", &biasMatrix[0][0]);
@@ -229,12 +298,24 @@ void    hdr_test(GLContext& ctx, SixAxis& controller, const std::string& rcPath)
         shader.setUniformMatrixPtr<4>("M", &Model[0][0]);
         shader.setUniformPtr<3>("lightInvDirection_worldspace", &lightInvDir[0]);
 
+        // SSAO
+        shader.setUniformMatrixPtr<4>("P", &Projection[0][0]);
+        shader.setUniform("kernelSize", ssaoKernelSize);
+        shader.setUniform("radius", ssaoRadius);
+        shader.setUniform("power", ssaoPower);
+        shader.setUniform("tanHalfFov", glm::tan(fovAngle * 0.5f));
+        shader.setUniform("aspectRatio", aspectRatio);
+        shader.setUniformPtr<3>("kernelOffsets", &kernel[0][0], ssaoKernelSize);
+        shader.setUniform<GLfloat>("frameBufSize", ctx.getWindowSize().x, ctx.getWindowSize().y);
+
         shadowTexture.bind(0);
         shader.setUniform<GLint>("shadowMapTex", 0);
         screenDepthTexture.bind(1);
         shader.setUniform<GLint>("depthBufferTex", 1);
         modelTexture.bind(2);
-        shader.setUniform<GLint>("noiseTex", 2);
+        shader.setUniform<GLint>("materialTex", 2);
+        noiseTex.bind(3);
+        shader.setUniform<GLint>("noiseTex", 3);
 
         mesh.draw(shader, Mesh::Vertex | Mesh::Normal | Mesh::UV);
 
@@ -244,21 +325,22 @@ void    hdr_test(GLContext& ctx, SixAxis& controller, const std::string& rcPath)
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         postshader.use();
+        vao.bind();
 
         frameTexture.bind(0);
         postshader.setUniform<GLint>("renderedTexture", 0);
 //         postshader.setUniform<GLfloat>("frameBufSize", ctx.getWindowSize().x, ctx.getWindowSize().y);
-        if (controller.isHeld(SixAxis::Buttons::Circle))
+        if (controller.isHeld(SixAxisController::Buttons::Circle))
             postshader.setUniformSubroutine(GL_FRAGMENT_SHADER, "tonemapSelector", "uncharted2tonemap");
-        else if (controller.isHeld(SixAxis::Buttons::Square))
+        else if (controller.isHeld(SixAxisController::Buttons::Square))
             postshader.setUniformSubroutine(GL_FRAGMENT_SHADER, "tonemapSelector", "reinhardtonemap");
         else
             postshader.setUniformSubroutine(GL_FRAGMENT_SHADER, "tonemapSelector", "notonemap");
 
         quadBuffer.bind();
-        postshader.setVertexAttribPointer("v_coord", 3, GL_FLOAT);
 
         glEnableVertexAttribArray(0);
+        postshader.setVertexAttribPointer(0, 3, GL_FLOAT);
         glDrawArrays(GL_TRIANGLES, 0, quad->getTriangleCount() * 3);
         glDisableVertexAttribArray(0);
 
@@ -266,18 +348,19 @@ void    hdr_test(GLContext& ctx, SixAxis& controller, const std::string& rcPath)
         polyQuery.end();
         samplesQuery.end();
 
-        double glms = static_cast<double>(timeQuery.get<GLuint>(GL_QUERY_RESULT)) * 0.000001;
-        unsigned int poly = polyQuery.get<GLuint>(GL_QUERY_RESULT);
-        unsigned int samples = samplesQuery.get<GLuint>(GL_QUERY_RESULT);
-
+//         ImGui::Begin("ReaperGL");
+//         if (ImGui::CollapsingHeader("SSAO"))
+//             ImGui::SliderFloat("Radius", &ssaoRadius, 0.0f, 2.0f);
+//         ImGui::End();
+//         // Rendering
+//         glViewport(0, 0, (int)io.DisplaySize.x, (int)io.DisplaySize.y);
+//         ImGui::Render();
         ctx.swapBuffers();
-        frameTime = ctx.getTime() - frameTime;
-        ctx.setTitle(std::to_string(samples) + " Samples " + std::to_string(poly) + " Primitives | Total " + std::to_string(frameTime * 1000.0f) + " ms / GPU " + std::to_string(glms) + " ms " + std::to_string(ctx.getWindowSize().x) + "x"  + std::to_string(ctx.getWindowSize().y));
-    }
-    delete kernel;
+    } while (ctx.isOpen());
+    delete[] kernel;
 }
 
-void    bloom_test(GLContext& ctx, SixAxis& controller, const std::string& rcPath)
+static void bloom_test(GLContext& ctx, SixAxisController & controller, const std::string& rcPath)
 {
     mogl::FrameBuffer   render_fbo;
     mogl::FrameBuffer   blur1_render_fbo;
@@ -485,12 +568,12 @@ void    bloom_test(GLContext& ctx, SixAxis& controller, const std::string& rcPat
         ImGui_ImplGlfwGL3_NewFrame();
 
         controller.update();
-        if (controller.isHeld(SixAxis::Buttons::Start))
+        if (controller.isHeld(SixAxisController::Buttons::Start))
             break;
-        float speedup = 1.0 + (controller.getAxis(SixAxis::Axes::L2Pressure) * 0.5 + 0.5) * 10.0f;
-        camera.move(controller.getAxis(SixAxis::LeftAnalogY) * speedup / -10.0f, controller.getAxis(SixAxis::LeftAnalogX) * speedup / -10.0f, 0.0f);
-        camera.rotate(controller.getAxis(SixAxis::RightAnalogX) / 10.0f, controller.getAxis(SixAxis::RightAnalogY) / -10.0f);
-        if (controller.isPressed(SixAxis::Buttons::Select))
+        float speedup = 1.0 + (controller.getAxis(SixAxisController::Axes::L2Pressure) * 0.5 + 0.5) * 10.0f;
+        camera.move(controller.getAxis(SixAxisController::LeftAnalogY) * speedup / -10.0f, controller.getAxis(SixAxisController::LeftAnalogX) * speedup / -10.0f, 0.0f);
+        camera.rotate(controller.getAxis(SixAxisController::RightAnalogX) / 10.0f, controller.getAxis(SixAxisController::RightAnalogY) / -10.0f);
+        if (controller.isPressed(SixAxisController::Buttons::Select))
             camera.reset();
         camera.update(Camera::Spherical);
 
@@ -667,13 +750,18 @@ void    bloom_test(GLContext& ctx, SixAxis& controller, const std::string& rcPat
 
 int main(int /*ac*/, char** av)
 {
+    Assert(cacheLineSize() == REAPER_CACHELINE_SIZE);
     auto debugCallback = [] (GLenum, GLenum, GLuint, GLenum, GLsizei, const GLchar *message, const void *) {
         std::cout << "glCallback: " << message << std::endl;
 //         Assert(false, std::string("glCallback: ") + message);
     };
+
+    game_test();
+    return 0;
+
     try {
         GLContext   ctx;
-        SixAxis     controller("/dev/input/js0");
+        SixAxisController     controller("/dev/input/js0");
         ctx.create(1600, 900, 4, 5, false, true);
 
         glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
@@ -684,7 +772,7 @@ int main(int /*ac*/, char** av)
         glDebugMessageControl(GL_DEBUG_SOURCE_API, GL_DEBUG_TYPE_OTHER, GL_DONT_CARE, 1, &usedIds, GL_FALSE);
 
         bloom_test(ctx, controller, reaper::getExecutablePath(av[0]) + "../rc/");
-//         hdr_test(ctx, controller, reaper::getExecutablePath(av[0]) + "../rc/");
+        hdr_test(ctx, controller, reaper::getExecutablePath(av[0]) + "../rc/");
         controller.destroy();
     }
     catch (const std::runtime_error& e) {
