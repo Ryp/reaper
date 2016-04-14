@@ -10,7 +10,7 @@
 
 #include "mesh.hpp"
 
-#include "resource/Model.hh"
+#include "renderer/resource/Model.hh"
 
 Mesh::Mesh(Model* model)
 :   _model(model),
