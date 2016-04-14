@@ -47,13 +47,13 @@ set(REAPER_SRCS
     ${CMAKE_SOURCE_DIR}/src/core/memory/StackAllocator.cpp
     ${CMAKE_SOURCE_DIR}/src/core/memory/StackAllocator.h
 
-    ${CMAKE_SOURCE_DIR}/src/cvar/cvar.cpp
-    ${CMAKE_SOURCE_DIR}/src/cvar/cvar.hpp
+    ${CMAKE_SOURCE_DIR}/src/cvar/CVar.cpp
+    ${CMAKE_SOURCE_DIR}/src/cvar/CVar.h
 
-    ${CMAKE_SOURCE_DIR}/src/filesystem/path.cpp
-    ${CMAKE_SOURCE_DIR}/src/filesystem/path.hpp
-    ${CMAKE_SOURCE_DIR}/src/filesystem/unixfilewatcher.cpp
-    ${CMAKE_SOURCE_DIR}/src/filesystem/unixfilewatcher.hpp
+    ${CMAKE_SOURCE_DIR}/src/filesystem/Path.cpp
+    ${CMAKE_SOURCE_DIR}/src/filesystem/Path.h
+    ${CMAKE_SOURCE_DIR}/src/filesystem/UnixFileWatcher.cpp
+    ${CMAKE_SOURCE_DIR}/src/filesystem/UnixFileWatcher.h
 
     ${CMAKE_SOURCE_DIR}/src/game/EntityDescriptor.cpp
     ${CMAKE_SOURCE_DIR}/src/game/EntityDescriptor.h
@@ -88,30 +88,30 @@ set(REAPER_SRCS
     ${CMAKE_SOURCE_DIR}/src/input/SixAxisController.h
 
     ${CMAKE_SOURCE_DIR}/src/math/BasicMath.h
-    ${CMAKE_SOURCE_DIR}/src/math/spline.cpp
-    ${CMAKE_SOURCE_DIR}/src/math/spline.hpp
+    ${CMAKE_SOURCE_DIR}/src/math/Spline.cpp
+    ${CMAKE_SOURCE_DIR}/src/math/Spline.h
 
     ${CMAKE_SOURCE_DIR}/src/pch/stdafx.h
 
     ${CMAKE_SOURCE_DIR}/src/renderer/Camera.cpp
-    ${CMAKE_SOURCE_DIR}/src/renderer/Camera.hpp
+    ${CMAKE_SOURCE_DIR}/src/renderer/Camera.h
 
-    ${CMAKE_SOURCE_DIR}/src/renderer/pipeline/glcontext.cpp
-    ${CMAKE_SOURCE_DIR}/src/renderer/pipeline/glcontext.hpp
-    ${CMAKE_SOURCE_DIR}/src/renderer/pipeline/gl.hpp
-    ${CMAKE_SOURCE_DIR}/src/renderer/pipeline/mesh.cpp
-    ${CMAKE_SOURCE_DIR}/src/renderer/pipeline/mesh.hpp
+    ${CMAKE_SOURCE_DIR}/src/renderer/pipeline/OpenGLContext.cpp
+    ${CMAKE_SOURCE_DIR}/src/renderer/pipeline/OpenGLContext.h
+    ${CMAKE_SOURCE_DIR}/src/renderer/pipeline/OpenGL.h
+    ${CMAKE_SOURCE_DIR}/src/renderer/pipeline/Mesh.cpp
+    ${CMAKE_SOURCE_DIR}/src/renderer/pipeline/Mesh.h
 
-    ${CMAKE_SOURCE_DIR}/src/renderer/resource/imageloader.cpp
-    ${CMAKE_SOURCE_DIR}/src/renderer/resource/imageloader.hpp
+    ${CMAKE_SOURCE_DIR}/src/renderer/resource/ImageLoader.cpp
+    ${CMAKE_SOURCE_DIR}/src/renderer/resource/ImageLoader.h
     ${CMAKE_SOURCE_DIR}/src/renderer/resource/Model.cpp
-    ${CMAKE_SOURCE_DIR}/src/renderer/resource/Model.hh
+    ${CMAKE_SOURCE_DIR}/src/renderer/resource/Model.h
     ${CMAKE_SOURCE_DIR}/src/renderer/resource/ModelLoader.cpp
-    ${CMAKE_SOURCE_DIR}/src/renderer/resource/ModelLoader.hh
-    ${CMAKE_SOURCE_DIR}/src/renderer/resource/resourcemanager.cpp
-    ${CMAKE_SOURCE_DIR}/src/renderer/resource/resourcemanager.hpp
-    ${CMAKE_SOURCE_DIR}/src/renderer/resource/shaderhelper.cpp
-    ${CMAKE_SOURCE_DIR}/src/renderer/resource/shaderhelper.hpp
+    ${CMAKE_SOURCE_DIR}/src/renderer/resource/ModelLoader.h
+    ${CMAKE_SOURCE_DIR}/src/renderer/resource/ResourceManager.cpp
+    ${CMAKE_SOURCE_DIR}/src/renderer/resource/ResourceManager.h
+    ${CMAKE_SOURCE_DIR}/src/renderer/resource/ShaderHelper.cpp
+    ${CMAKE_SOURCE_DIR}/src/renderer/resource/ShaderHelper.h
 )
 
 # Set precompiled header

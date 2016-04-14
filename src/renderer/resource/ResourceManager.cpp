@@ -5,9 +5,9 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "resourcemanager.hpp"
+#include "ResourceManager.h"
 
-#include "Model.hh"
+#include "Model.h"
 
 ResourceManager::ResourceManager(const std::string& path)
 :   _path(path + '/')

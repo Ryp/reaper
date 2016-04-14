@@ -12,7 +12,7 @@
 #include <string>
 #include <map>
 
-#include "Model.hh"
+#include "Model.h"
 
 class ModelLoader
 {

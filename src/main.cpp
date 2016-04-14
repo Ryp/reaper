@@ -4,7 +4,8 @@
 /// Copyright (c) 2015-2016 Thibault Schueller
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "renderer/pipeline/glcontext.hpp"
+#include "renderer/pipeline/OpenGLContext.h"
+
 #include <mogl/exception/moglexception.hpp>
 #include <mogl/object/shader/shaderprogram.hpp>
 #include <mogl/object/texture.hpp>
@@ -26,16 +27,16 @@
 #include "core/memory/CacheLine.h"
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_glfw_gl3.h"
-#include "filesystem/path.hpp"
-#include "filesystem/unixfilewatcher.hpp"
+#include "filesystem/Path.h"
+#include "filesystem/UnixFileWatcher.h"
 #include "input/SixAxisController.h"
-#include "math/spline.hpp"
+#include "math/Spline.h"
 
-#include "renderer/Camera.hpp"
-#include "renderer/resource/shaderhelper.hpp"
-#include "renderer/resource/imageloader.hpp"
-#include "renderer/resource/resourcemanager.hpp"
-#include "renderer/pipeline/mesh.hpp"
+#include "renderer/Camera.h"
+#include "renderer/resource/ShaderHelper.h"
+#include "renderer/resource/ImageLoader.h"
+#include "renderer/resource/ResourceManager.h"
+#include "renderer/pipeline/Mesh.h"
 
 #include "game/WorldUpdater.h"
 #include "game/pathing/CostMap.h"

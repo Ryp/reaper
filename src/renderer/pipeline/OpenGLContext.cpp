@@ -5,7 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "glcontext.hpp"
+#include "OpenGLContext.h"
 
 #include <iostream>
 #include <stdexcept>

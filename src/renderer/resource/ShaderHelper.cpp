@@ -5,7 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "shaderhelper.hpp"
+#include "ShaderHelper.h"
 
 #include <fstream>
 #include <iostream>

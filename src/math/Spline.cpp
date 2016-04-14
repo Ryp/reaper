@@ -5,7 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "spline.hpp"
+#include "Spline.h"
 
 const float Spline::DefaultWeight = 1.0f;
 

@@ -5,7 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "path.hpp"
+#include "Path.h"
 
 std::string reaper::getExecutablePath(const std::string& av0)
 {

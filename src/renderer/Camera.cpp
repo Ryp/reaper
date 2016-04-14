@@ -5,7 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "Camera.hpp"
+#include "Camera.h"
 
 #include <cmath>
 

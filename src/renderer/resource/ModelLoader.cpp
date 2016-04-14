@@ -5,7 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "ModelLoader.hh"
+#include "ModelLoader.h"
 
 #include <vector>
 #include <sstream>
