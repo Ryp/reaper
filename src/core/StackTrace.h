@@ -1,5 +1,12 @@
-#ifndef STACKTRACE_INCLUDED
-#define STACKTRACE_INCLUDED
+////////////////////////////////////////////////////////////////////////////////
+/// ReaperGL
+///
+/// Copyright (c) 2015-2016 Thibault Schueller
+/// This file is distributed under the MIT License
+////////////////////////////////////////////////////////////////////////////////
+
+#ifndef REAPER_STACKTRACE_INCLUDED
+#define REAPER_STACKTRACE_INCLUDED
 
 void printStacktrace();
 
@@ -22,4 +29,4 @@ private:
     std::vector<std::string>   _trace;
 };
 
-#endif // STACKTRACE_INCLUDED
+#endif // REAPER_STACKTRACE_INCLUDED

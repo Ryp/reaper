@@ -1,14 +1,12 @@
 ////////////////////////////////////////////////////////////////////////////////
 /// ReaperGL
 ///
-/// Copyright (c) 2016 Thibault Schueller
-///
-/// @file imageloader.hpp
-/// @author Thibault Schueller <ryp.sqrt@gmail.com>
+/// Copyright (c) 2015-2016 Thibault Schueller
+/// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef IMAGELOADER_INCLUDED
-#define IMAGELOADER_INCLUDED
+#ifndef REAPER_IMAGELOADER_INCLUDED
+#define REAPER_IMAGELOADER_INCLUDED
 
 #include <string>
 
@@ -24,4 +22,4 @@ public:
     static void loadEXR(const std::string& file, mogl::Texture& texture);
 };
 
-#endif // IMAGELOADER_INCLUDED
+#endif // REAPER_IMAGELOADER_INCLUDED

@@ -1,11 +1,8 @@
 ////////////////////////////////////////////////////////////////////////////////
 /// ReaperGL
 ///
-/// Copyright (c) 2016 Thibault Schueller
+/// Copyright (c) 2015-2016 Thibault Schueller
 /// This file is distributed under the MIT License
-///
-/// @file mesh.hpp
-/// @author Thibault Schueller <ryp.sqrt@gmail.com>
 ////////////////////////////////////////////////////////////////////////////////
 
 #ifndef REAPER_MESH_INCLUDED

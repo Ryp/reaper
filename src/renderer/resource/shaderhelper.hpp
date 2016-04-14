@@ -1,5 +1,12 @@
-#ifndef SHADERHELPER_INCLUDED
-#define SHADERHELPER_INCLUDED
+////////////////////////////////////////////////////////////////////////////////
+/// ReaperGL
+///
+/// Copyright (c) 2015-2016 Thibault Schueller
+/// This file is distributed under the MIT License
+////////////////////////////////////////////////////////////////////////////////
+
+#ifndef REAPER_SHADERHELPER_INCLUDED
+#define REAPER_SHADERHELPER_INCLUDED
 
 #include <glbinding/gl/gl.h>
 using namespace gl;
@@ -14,4 +21,4 @@ public:
     static void loadSimpleShader(mogl::ShaderProgram& shader, const std::string& vertexFile, const std::string& fragmentFile);
 };
 
-#endif // SHADERHELPER_INCLUDED
+#endif // REAPER_SHADERHELPER_INCLUDED
