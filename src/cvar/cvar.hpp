@@ -10,11 +10,7 @@
 
 #include <string>
 
-// Same as f(n) = pow(2, n - 1) for ints, with f(0) = 0
-static constexpr int bit(int n)
-{
-    return n ? (1 << (n - 1)) : 0;
-}
+#include "core/BitTricks.h"
 
 namespace reaper
 {
@@ -22,11 +18,11 @@ namespace reaper
     {
     public:
         enum Flag {
-            None    = bit(0),
-            Bool    = bit(1),
-            Int     = bit(2),
-            Float   = bit(3),
-            String  = bit(4)
+            None    = 0,
+            Bool    = bit(0),
+            Int     = bit(1),
+            Float   = bit(2),
+            String  = bit(3)
         };
 
     public:
@@ -37,7 +33,7 @@ namespace reaper
         CVar& operator=(const CVar& other) = delete;
 
     public:
-        
+
 
     private:
         const std::string   _name;

@@ -26,33 +26,42 @@ set(REAPER_BIN reaper)
 set(REAPER_SRCS
     ${CMAKE_SOURCE_DIR}/external/imgui/imgui.cpp
     ${CMAKE_SOURCE_DIR}/external/imgui/imgui_impl_glfw_gl3.cpp
+
     ${CMAKE_SOURCE_DIR}/src/main.cpp
-    ${CMAKE_SOURCE_DIR}/src/pch/stdafx.h
+
     ${CMAKE_SOURCE_DIR}/src/core/Assert.h
+    ${CMAKE_SOURCE_DIR}/src/core/BitTricks.h
     ${CMAKE_SOURCE_DIR}/src/core/Debugger.cpp
     ${CMAKE_SOURCE_DIR}/src/core/Debugger.h
     ${CMAKE_SOURCE_DIR}/src/core/Platform.h
     ${CMAKE_SOURCE_DIR}/src/core/StackTrace.cpp
     ${CMAKE_SOURCE_DIR}/src/core/StackTrace.h
+    ${CMAKE_SOURCE_DIR}/src/core/Types.h
+
     ${CMAKE_SOURCE_DIR}/src/core/memory/Allocator.cpp
     ${CMAKE_SOURCE_DIR}/src/core/memory/Allocator.h
     ${CMAKE_SOURCE_DIR}/src/core/memory/CacheLine.cpp
     ${CMAKE_SOURCE_DIR}/src/core/memory/CacheLine.h
-    ${CMAKE_SOURCE_DIR}/src/core/memory/StackAllocator.cpp
-    ${CMAKE_SOURCE_DIR}/src/core/memory/StackAllocator.h
     ${CMAKE_SOURCE_DIR}/src/core/memory/LinearAllocator.cpp
     ${CMAKE_SOURCE_DIR}/src/core/memory/LinearAllocator.h
+    ${CMAKE_SOURCE_DIR}/src/core/memory/StackAllocator.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/memory/StackAllocator.h
+
     ${CMAKE_SOURCE_DIR}/src/cvar/cvar.cpp
+    ${CMAKE_SOURCE_DIR}/src/cvar/cvar.hpp
+
     ${CMAKE_SOURCE_DIR}/src/filesystem/path.cpp
     ${CMAKE_SOURCE_DIR}/src/filesystem/path.hpp
     ${CMAKE_SOURCE_DIR}/src/filesystem/unixfilewatcher.cpp
     ${CMAKE_SOURCE_DIR}/src/filesystem/unixfilewatcher.hpp
+
     ${CMAKE_SOURCE_DIR}/src/game/EntityDescriptor.cpp
     ${CMAKE_SOURCE_DIR}/src/game/EntityDescriptor.h
     ${CMAKE_SOURCE_DIR}/src/game/ModuleUpdater.cpp
     ${CMAKE_SOURCE_DIR}/src/game/ModuleUpdater.h
     ${CMAKE_SOURCE_DIR}/src/game/WorldUpdater.cpp
     ${CMAKE_SOURCE_DIR}/src/game/WorldUpdater.h
+
     ${CMAKE_SOURCE_DIR}/src/game/module/DamageModule.cpp
     ${CMAKE_SOURCE_DIR}/src/game/module/DamageModule.h
     ${CMAKE_SOURCE_DIR}/src/game/module/MovementModule.cpp
@@ -65,25 +74,44 @@ set(REAPER_SRCS
     ${CMAKE_SOURCE_DIR}/src/game/module/TowerControllerModule.h
     ${CMAKE_SOURCE_DIR}/src/game/module/WeaponModule.cpp
     ${CMAKE_SOURCE_DIR}/src/game/module/WeaponModule.h
-#     ${CMAKE_SOURCE_DIR}/src/game/pathing/CostMap.cpp
-#     ${CMAKE_SOURCE_DIR}/src/game/pathing/CostMap.h
-#     ${CMAKE_SOURCE_DIR}/src/game/pathing/PathFinder.cpp
-#     ${CMAKE_SOURCE_DIR}/src/game/pathing/PathFinder.h
+
     ${CMAKE_SOURCE_DIR}/src/game/pathing/AIPath.cpp
     ${CMAKE_SOURCE_DIR}/src/game/pathing/AIPath.h
+    ${CMAKE_SOURCE_DIR}/src/game/pathing/CostMap.cpp
+    ${CMAKE_SOURCE_DIR}/src/game/pathing/CostMap.h
+#     ${CMAKE_SOURCE_DIR}/src/game/pathing/PathFinder.cpp
+#     ${CMAKE_SOURCE_DIR}/src/game/pathing/PathFinder.h
+
     ${CMAKE_SOURCE_DIR}/src/input/AbstractController.cpp
     ${CMAKE_SOURCE_DIR}/src/input/AbstractController.h
-    ${CMAKE_SOURCE_DIR}/src/input/SixAxisController.h
     ${CMAKE_SOURCE_DIR}/src/input/SixAxisController.cpp
+    ${CMAKE_SOURCE_DIR}/src/input/SixAxisController.h
+
+    ${CMAKE_SOURCE_DIR}/src/math/BasicMath.h
     ${CMAKE_SOURCE_DIR}/src/math/spline.cpp
+    ${CMAKE_SOURCE_DIR}/src/math/spline.hpp
+
+    ${CMAKE_SOURCE_DIR}/src/pch/stdafx.h
+
     ${CMAKE_SOURCE_DIR}/src/renderer/Camera.cpp
+    ${CMAKE_SOURCE_DIR}/src/renderer/Camera.hpp
+
     ${CMAKE_SOURCE_DIR}/src/renderer/pipeline/glcontext.cpp
+    ${CMAKE_SOURCE_DIR}/src/renderer/pipeline/glcontext.hpp
+    ${CMAKE_SOURCE_DIR}/src/renderer/pipeline/gl.hpp
     ${CMAKE_SOURCE_DIR}/src/renderer/pipeline/mesh.cpp
+    ${CMAKE_SOURCE_DIR}/src/renderer/pipeline/mesh.hpp
+
     ${CMAKE_SOURCE_DIR}/src/renderer/resource/imageloader.cpp
+    ${CMAKE_SOURCE_DIR}/src/renderer/resource/imageloader.hpp
     ${CMAKE_SOURCE_DIR}/src/renderer/resource/Model.cpp
+    ${CMAKE_SOURCE_DIR}/src/renderer/resource/Model.hh
     ${CMAKE_SOURCE_DIR}/src/renderer/resource/ModelLoader.cpp
+    ${CMAKE_SOURCE_DIR}/src/renderer/resource/ModelLoader.hh
     ${CMAKE_SOURCE_DIR}/src/renderer/resource/resourcemanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/renderer/resource/resourcemanager.hpp
     ${CMAKE_SOURCE_DIR}/src/renderer/resource/shaderhelper.cpp
+    ${CMAKE_SOURCE_DIR}/src/renderer/resource/shaderhelper.hpp
 )
 
 # Set precompiled header
