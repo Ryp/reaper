@@ -1,9 +1,15 @@
-cmake_minimum_required(VERSION 3.1 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.3 FATAL_ERROR)
 project(Reaper)
+
+# Avoid source tree pollution
+if(CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
+    message(FATAL_ERROR "In-source builds are discouraged. Make a separate folder for building:\nmkdir build; cd build; cmake ..;cd ..\nBefore that, remove the files already created:\nrm -rf CMakeCache.txt CMakeFiles")
+endif()
 
 # Provide custom cmake scripts
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 include(cotire)
+include(ReaperGL)
 
 # Find dependencies
 find_package(moGL NO_MODULE REQUIRED)
@@ -28,35 +34,63 @@ set(REAPER_SRCS
     ${CMAKE_SOURCE_DIR}/src/core/Platform.h
     ${CMAKE_SOURCE_DIR}/src/core/StackTrace.cpp
     ${CMAKE_SOURCE_DIR}/src/core/StackTrace.h
-    ${CMAKE_SOURCE_DIR}/src/Camera.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/memory/Allocator.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/memory/Allocator.h
+    ${CMAKE_SOURCE_DIR}/src/core/memory/CacheLine.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/memory/CacheLine.h
+    ${CMAKE_SOURCE_DIR}/src/core/memory/StackAllocator.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/memory/StackAllocator.h
+    ${CMAKE_SOURCE_DIR}/src/core/memory/LinearAllocator.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/memory/LinearAllocator.h
     ${CMAKE_SOURCE_DIR}/src/cvar/cvar.cpp
-    ${CMAKE_SOURCE_DIR}/src/unixfilewatcher.cpp
     ${CMAKE_SOURCE_DIR}/src/filesystem/path.cpp
-    ${CMAKE_SOURCE_DIR}/src/input/AController.cpp
-    ${CMAKE_SOURCE_DIR}/src/input/SixAxis.cpp
+    ${CMAKE_SOURCE_DIR}/src/filesystem/path.hpp
+    ${CMAKE_SOURCE_DIR}/src/filesystem/unixfilewatcher.cpp
+    ${CMAKE_SOURCE_DIR}/src/filesystem/unixfilewatcher.hpp
+    ${CMAKE_SOURCE_DIR}/src/game/EntityDescriptor.cpp
+    ${CMAKE_SOURCE_DIR}/src/game/EntityDescriptor.h
+    ${CMAKE_SOURCE_DIR}/src/game/ModuleUpdater.cpp
+    ${CMAKE_SOURCE_DIR}/src/game/ModuleUpdater.h
+    ${CMAKE_SOURCE_DIR}/src/game/WorldUpdater.cpp
+    ${CMAKE_SOURCE_DIR}/src/game/WorldUpdater.h
+    ${CMAKE_SOURCE_DIR}/src/game/module/DamageModule.cpp
+    ${CMAKE_SOURCE_DIR}/src/game/module/DamageModule.h
+    ${CMAKE_SOURCE_DIR}/src/game/module/MovementModule.cpp
+    ${CMAKE_SOURCE_DIR}/src/game/module/MovementModule.h
+    ${CMAKE_SOURCE_DIR}/src/game/module/PositionModule.cpp
+    ${CMAKE_SOURCE_DIR}/src/game/module/PositionModule.h
+    ${CMAKE_SOURCE_DIR}/src/game/module/TeamModule.cpp
+    ${CMAKE_SOURCE_DIR}/src/game/module/TeamModule.h
+    ${CMAKE_SOURCE_DIR}/src/game/module/TowerControllerModule.cpp
+    ${CMAKE_SOURCE_DIR}/src/game/module/TowerControllerModule.h
+    ${CMAKE_SOURCE_DIR}/src/game/module/WeaponModule.cpp
+    ${CMAKE_SOURCE_DIR}/src/game/module/WeaponModule.h
+#     ${CMAKE_SOURCE_DIR}/src/game/pathing/CostMap.cpp
+#     ${CMAKE_SOURCE_DIR}/src/game/pathing/CostMap.h
+#     ${CMAKE_SOURCE_DIR}/src/game/pathing/PathFinder.cpp
+#     ${CMAKE_SOURCE_DIR}/src/game/pathing/PathFinder.h
+    ${CMAKE_SOURCE_DIR}/src/game/pathing/AIPath.cpp
+    ${CMAKE_SOURCE_DIR}/src/game/pathing/AIPath.h
+    ${CMAKE_SOURCE_DIR}/src/input/AbstractController.cpp
+    ${CMAKE_SOURCE_DIR}/src/input/AbstractController.h
+    ${CMAKE_SOURCE_DIR}/src/input/SixAxisController.h
+    ${CMAKE_SOURCE_DIR}/src/input/SixAxisController.cpp
     ${CMAKE_SOURCE_DIR}/src/math/spline.cpp
-    ${CMAKE_SOURCE_DIR}/src/pipeline/glcontext.cpp
-    ${CMAKE_SOURCE_DIR}/src/pipeline/mesh.cpp
-    ${CMAKE_SOURCE_DIR}/src/resource/imageloader.cpp
-    ${CMAKE_SOURCE_DIR}/src/resource/Model.cpp
-    ${CMAKE_SOURCE_DIR}/src/resource/ModelLoader.cpp
-    ${CMAKE_SOURCE_DIR}/src/resource/resourcemanager.cpp
-    ${CMAKE_SOURCE_DIR}/src/resource/shaderhelper.cpp
+    ${CMAKE_SOURCE_DIR}/src/renderer/Camera.cpp
+    ${CMAKE_SOURCE_DIR}/src/renderer/pipeline/glcontext.cpp
+    ${CMAKE_SOURCE_DIR}/src/renderer/pipeline/mesh.cpp
+    ${CMAKE_SOURCE_DIR}/src/renderer/resource/imageloader.cpp
+    ${CMAKE_SOURCE_DIR}/src/renderer/resource/Model.cpp
+    ${CMAKE_SOURCE_DIR}/src/renderer/resource/ModelLoader.cpp
+    ${CMAKE_SOURCE_DIR}/src/renderer/resource/resourcemanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/renderer/resource/shaderhelper.cpp
 )
 
 # Set precompiled header
 set(REAPER_PCH ${CMAKE_SOURCE_DIR}/src/pch/stdafx.h)
 
 add_executable(${REAPER_BIN} ${REAPER_SRCS})
-
-#Set compilation flags
-set(REAPER_COMPILE_FLAGS "${CMAKE_CXX_FLAGS}")
-if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
-    set(REAPER_COMPILE_FLAGS "${REAPER_COMPILE_FLAGS} -Wall -Wextra -Wshadow -Wundef")
-endif()
-set_target_properties(${REAPER_BIN} PROPERTIES
-    CXX_STANDARD 14
-    COMPILE_FLAGS "${REAPER_COMPILE_FLAGS}")
+add_custom_build_flags(${REAPER_BIN} "ReaperGL")
 
 #User includes dirs (won't hide warnings)
 target_include_directories(${REAPER_BIN} PUBLIC
@@ -77,10 +111,10 @@ target_include_directories(${REAPER_BIN} SYSTEM PUBLIC
 target_link_libraries(${REAPER_BIN}
     ${OPENGL_LIBRARIES}
     ${GLFW_LIBRARIES}
-    ${GLBINDING_LIBRARIES}
+    ${GLBINDING_LIBRARY_RELEASE}
     ${ASSIMP_LIBRARIES}
     ${LIBUNWIND_LIBRARIES}
-    ${OPENEXR_LIBRARIES} -lpthread)
+    ${OPENEXR_LIBRARIES} -lglbinding -lpthread)
 
 set_target_properties(${REAPER_BIN} PROPERTIES COTIRE_CXX_PREFIX_HEADER_INIT ${REAPER_PCH})
 set_target_properties(${REAPER_BIN} PROPERTIES COTIRE_UNITY_LINK_LIBRARIES_INIT "COPY")
