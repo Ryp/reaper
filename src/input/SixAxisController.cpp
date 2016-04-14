@@ -1,4 +1,11 @@
-#include "SixAxis.hpp"
+////////////////////////////////////////////////////////////////////////////////
+/// ReaperGL
+///
+/// Copyright (c) 2016 Thibault Schueller
+/// This file is distributed under the MIT License
+////////////////////////////////////////////////////////////////////////////////
+
+#include "SixAxisController.h"
 
 #include <cstdint>
 #include <cmath>
@@ -9,18 +16,18 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-const float SixAxis::AxisDeadzone = 0.12f;
+const float SixAxisController::AxisDeadzone = 0.12f;
 
-SixAxis::SixAxis(const std::string& device)
-:   AController(TotalButtonsNumber,
+SixAxisController::SixAxisController(const std::string& device)
+:   AbstractController(TotalButtonsNumber,
                 TotalAxesNumber),
     _device(device),
     _connected(connect())
 {
-    AController::reset();
+    AbstractController::reset();
 }
 
-void SixAxis::update()
+void SixAxisController::update()
 {
     float           val;
     struct js_event event;
@@ -38,24 +45,25 @@ void SixAxis::update()
         else if (event.type == JS_EVENT_BUTTON)
             _buttons[event.number].new_held = event.value != 0;
     }
-    AController::update();
+    AbstractController::update();
 }
 
-void SixAxis::destroy()
+void SixAxisController::destroy()
 {
     if (_connected && (close(_fd) == -1))
-        throw (std::runtime_error("could not close controller fd" + std::string(strerror(errno))));
+        AssertUnreachable();
 }
 
-bool SixAxis::connect()
+bool SixAxisController::connect()
 {
     char    deviceName[256];
 
     _fd = open(_device.c_str(), O_RDONLY | O_NONBLOCK);
-    Assert(_fd != -1, "could not open device: " + std::string(strerror(errno)));
+    if (_fd == -1)
+        return false;
     Assert(ioctl(_fd, JSIOCGNAME(256), deviceName) != -1, "could not retrieve device name: " + std::string(strerror(errno)));
     Assert(std::string("Sony PLAYSTATION(R)3 Controller") == deviceName, "not a playstation 3 controller");
     update();
-    AController::reset();
+    AbstractController::reset();
     return true;
 }

@@ -1,15 +1,23 @@
-#ifndef SIXAXIS_HPP
-#define SIXAXIS_HPP
+////////////////////////////////////////////////////////////////////////////////
+/// ReaperGL
+///
+/// Copyright (c) 2016 Thibault Schueller
+/// This file is distributed under the MIT License
+////////////////////////////////////////////////////////////////////////////////
+
+#ifndef REAPER_SIXAXISCONTROLLER_INCLUDED
+#define REAPER_SIXAXISCONTROLLER_INCLUDED
 
 #include <string>
-#include "AController.hpp"
+
+#include "AbstractController.h"
 
 /*
  * NOTE The axis DPadLeftPressure seems correct but won't generate any event
  * (tested on USB with several controllers)
  */
 
-class SixAxis : public AController
+class SixAxisController : public AbstractController
 {
 public:
     enum Buttons {
@@ -70,15 +78,15 @@ public:
     static const float  AxisDeadzone;
 
 public:
-    SixAxis(const std::string& device);
-    virtual ~SixAxis() = default;
+    SixAxisController(const std::string& device);
+    ~SixAxisController() = default;
 
 public:
     virtual void update() override;
     virtual void destroy() override;
 
 private:
-    bool    connect();
+    bool connect();
 
 private:
     std::string _device;
@@ -86,4 +94,4 @@ private:
     int         _fd;
 };
 
-#endif // SIXAXIS_HPP
+#endif // REAPER_SIXAXISCONTROLLER_INCLUDED
