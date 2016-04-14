@@ -4,8 +4,6 @@
 #include "imgui.h"
 #include "imgui_impl_glfw_gl3.h"
 
-#include "pipeline/gl.hpp"
-
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 
@@ -129,7 +127,7 @@ void ImGui_ImplGlfwGL3_ScrollCallback(GLFWwindow*, double /*xoffset*/, double yo
     g_MouseWheel += (float)yoffset; // Use fractional mouse wheel, 1.0 unit 5 lines.
 }
 
-void ImGui_ImplGlfwGL3_KeyCallback(GLFWwindow*, int key, int, int action, int mods)
+static void ImGui_ImplGlfwGL3_KeyCallback(GLFWwindow*, int key, int, int action, int mods)
 {
     ImGuiIO& io = ImGui::GetIO();
     if (action == GLFW_PRESS)
@@ -148,7 +146,7 @@ void ImGui_ImplGlfwGL3_CharCallback(GLFWwindow*, unsigned int c)
         io.AddInputCharacter((unsigned short)c);
 }
 
-void ImGui_ImplGlfwGL3_CreateFontsTexture()
+static void ImGui_ImplGlfwGL3_CreateFontsTexture()
 {
     ImGuiIO& io = ImGui::GetIO();
 
