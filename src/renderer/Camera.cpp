@@ -1,8 +1,14 @@
+////////////////////////////////////////////////////////////////////////////////
+/// ReaperGL
+///
+/// Copyright (c) 2015-2016 Thibault Schueller
+/// This file is distributed under the MIT License
+////////////////////////////////////////////////////////////////////////////////
+
 #include "Camera.hpp"
 
 #include <cmath>
 
-#define GLM_FORCE_RADIANS
 #include <glm/gtx/transform.hpp>
 
 const float Camera::PitchDeadzone = 0.001f;

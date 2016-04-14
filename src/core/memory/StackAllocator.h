@@ -1,12 +1,12 @@
 ////////////////////////////////////////////////////////////////////////////////
 /// ReaperGL
 ///
-/// Copyright (c) 2016 Thibault Schueller
+/// Copyright (c) 2015-2016 Thibault Schueller
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef STACKALLOCATOR_H
-#define STACKALLOCATOR_H
+#ifndef REAPER_STACKALLOCATOR_INCLUDED
+#define REAPER_STACKALLOCATOR_INCLUDED
 
 #include "Allocator.h"
 
@@ -29,4 +29,4 @@ private:
     std::size_t         _currentMarker;
 };
 
-#endif // STACKALLOCATOR_H
+#endif // REAPER_STACKALLOCATOR_INCLUDED

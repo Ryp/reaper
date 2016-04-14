@@ -1,5 +1,12 @@
-#ifndef CAMERA_HPP
-#define CAMERA_HPP
+////////////////////////////////////////////////////////////////////////////////
+/// ReaperGL
+///
+/// Copyright (c) 2015-2016 Thibault Schueller
+/// This file is distributed under the MIT License
+////////////////////////////////////////////////////////////////////////////////
+
+#ifndef REAPER_CAMERA_INCLUDED
+#define REAPER_CAMERA_INCLUDED
 
 #include <glm/glm.hpp>
 
@@ -39,4 +46,4 @@ protected:
     float       _pitch;
 };
 
-#endif // CAMERA_HPP
+#endif // REAPER_CAMERA_INCLUDED

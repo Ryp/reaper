@@ -1,5 +1,12 @@
-#ifndef GLCONTEXT_INCLUDED
-#define GLCONTEXT_INCLUDED
+////////////////////////////////////////////////////////////////////////////////
+/// ReaperGL
+///
+/// Copyright (c) 2015-2016 Thibault Schueller
+/// This file is distributed under the MIT License
+////////////////////////////////////////////////////////////////////////////////
+
+#ifndef REAPER_GLCONTEXT_INCLUDED
+#define REAPER_GLCONTEXT_INCLUDED
 
 #include <string>
 
@@ -37,4 +44,4 @@ private:
     Vect2u      _windowSize;
 };
 
-#endif // GLCONTEXT_INCLUDED
+#endif // REAPER_GLCONTEXT_INCLUDED

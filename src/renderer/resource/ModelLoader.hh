@@ -1,5 +1,12 @@
-#ifndef MODELLOADER_HH
-#define MODELLOADER_HH
+////////////////////////////////////////////////////////////////////////////////
+/// ReaperGL
+///
+/// Copyright (c) 2015-2016 Thibault Schueller
+/// This file is distributed under the MIT License
+////////////////////////////////////////////////////////////////////////////////
+
+#ifndef REAPER_MODELLOADER_INCLUDED
+#define REAPER_MODELLOADER_INCLUDED
 
 #include <fstream>
 #include <string>
@@ -24,4 +31,4 @@ private:
     std::map<std::string, Model* (ModelLoader::*)(std::ifstream&)> _parsers;
 };
 
-#endif // MODELLOADER_HH
+#endif // REAPER_MODELLOADER_INCLUDED

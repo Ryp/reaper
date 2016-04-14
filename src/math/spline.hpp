@@ -1,5 +1,12 @@
-#ifndef SPLINE_HPP
-#define SPLINE_HPP
+////////////////////////////////////////////////////////////////////////////////
+/// ReaperGL
+///
+/// Copyright (c) 2015-2016 Thibault Schueller
+/// This file is distributed under the MIT License
+////////////////////////////////////////////////////////////////////////////////
+
+#ifndef REAPER_SPLINE_INCLUDED
+#define REAPER_SPLINE_INCLUDED
 
 #include <list>
 #include <vector>
@@ -41,4 +48,4 @@ private:
     std::vector<float>          _knotsVector;
 };
 
-#endif // SPLINE_HPP
+#endif // REAPER_SPLINE_INCLUDED

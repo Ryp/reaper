@@ -1,5 +1,12 @@
-#ifndef MODEL_HH
-#define MODEL_HH
+////////////////////////////////////////////////////////////////////////////////
+/// ReaperGL
+///
+/// Copyright (c) 2015-2016 Thibault Schueller
+/// This file is distributed under the MIT License
+////////////////////////////////////////////////////////////////////////////////
+
+#ifndef REAPER_MODEL_INCLUDED
+#define REAPER_MODEL_INCLUDED
 
 #include <vector>
 
@@ -48,4 +55,4 @@ private:
     std::vector<glm::vec3>    _bitangents;
 };
 
-#endif // MODEL_HH
+#endif // REAPER_MODEL_INCLUDED

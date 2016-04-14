@@ -1,14 +1,12 @@
 ////////////////////////////////////////////////////////////////////////////////
 /// ReaperGL
 ///
-/// Copyright (c) 2016 Thibault Schueller
+/// Copyright (c) 2015-2016 Thibault Schueller
 /// This file is distributed under the MIT License
-///
-/// @file PathFinder.cpp
-/// @author Thibault Schueller <ryp.sqrt@gmail.com>
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "PathFinder.h"
+
 #include <stdio.h>
 
 bool PathFinder::findPath(const CostMap& map, const Index& size, const Index& start, const Index& dest)

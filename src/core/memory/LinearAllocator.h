@@ -1,12 +1,12 @@
 ////////////////////////////////////////////////////////////////////////////////
 /// ReaperGL
 ///
-/// Copyright (c) 2016 Thibault Schueller
+/// Copyright (c) 2015-2016 Thibault Schueller
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef LINEARALLOCATOR_H
-#define LINEARALLOCATOR_H
+#ifndef REAPER_LINEARALLOCATOR_INCLUDED
+#define REAPER_LINEARALLOCATOR_INCLUDED
 
 #include "Allocator.h"
 
@@ -26,4 +26,4 @@ private:
     std::size_t _memSize;
 };
 
-#endif // LINEARALLOCATOR_H
+#endif // REAPER_LINEARALLOCATOR_INCLUDED
