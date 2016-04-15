@@ -14,6 +14,5 @@
 #include "core/Platform.h"
 #include "core/Types.h"
 #include "core/memory/Allocator.h"
-#include "renderer/pipeline/OpenGL.h"
 
 #endif // REAPER_STDAFX_INCLUDED
