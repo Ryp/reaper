@@ -7,10 +7,12 @@
 
 #include "ImageLoader.h"
 
-#include <glbinding/gl/gl.h>
-#include <glbinding/Binding.h>
+// #include <glbinding/gl/gl.h>
+// #include <glbinding/Binding.h>
+//
+// using namespace gl;
 
-using namespace gl;
+#include "api/OpenGL.h"
 
 #include <mogl/object/texture.hpp>
 

@@ -5,13 +5,13 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef REAPER_BITTRICKS_INCLUDED
-#define REAPER_BITTRICKS_INCLUDED
+#ifndef REAPER_VULKANRENDERER_INCLUDED
+#define REAPER_VULKANRENDERER_INCLUDED
 
-// Return integer with bit n set to 1
-static constexpr unsigned int bit(unsigned int n)
-{
-    return 1 << n;
-}
+class VulkanRenderer {
+    VulkanRenderer() = default;
+public:
+    static void run();
+};
 
-#endif // REAPER_BITTRICKS_INCLUDED
+#endif // REAPER_VULKANRENDERER_INCLUDED

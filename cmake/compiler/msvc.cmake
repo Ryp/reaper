@@ -8,6 +8,6 @@ if(MSVC)
         message(FATAL_ERROR "Please add the location of the dependencies folder")
     endif()
 
-    #set(BOOST_ROOT ${REAPERGL_DEPS_LOCATION}/boost CACHE PATH "RakNet location")
+    #set(BOOST_ROOT ${REAPERGL_DEPS_LOCATION}/boost CACHE PATH "boost location")
     #add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 endif()

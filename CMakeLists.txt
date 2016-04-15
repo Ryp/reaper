@@ -33,6 +33,8 @@ set(REAPER_SRCS
     ${CMAKE_SOURCE_DIR}/src/core/BitTricks.h
     ${CMAKE_SOURCE_DIR}/src/core/Debugger.cpp
     ${CMAKE_SOURCE_DIR}/src/core/Debugger.h
+    ${CMAKE_SOURCE_DIR}/src/core/DynamicLibrary.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/DynamicLibrary.h
     ${CMAKE_SOURCE_DIR}/src/core/Platform.h
     ${CMAKE_SOURCE_DIR}/src/core/StackTrace.cpp
     ${CMAKE_SOURCE_DIR}/src/core/StackTrace.h
@@ -96,22 +98,33 @@ set(REAPER_SRCS
     ${CMAKE_SOURCE_DIR}/src/renderer/Camera.cpp
     ${CMAKE_SOURCE_DIR}/src/renderer/Camera.h
 
-    ${CMAKE_SOURCE_DIR}/src/renderer/pipeline/OpenGLContext.cpp
-    ${CMAKE_SOURCE_DIR}/src/renderer/pipeline/OpenGLContext.h
-    ${CMAKE_SOURCE_DIR}/src/renderer/pipeline/OpenGL.h
-    ${CMAKE_SOURCE_DIR}/src/renderer/pipeline/Mesh.cpp
-    ${CMAKE_SOURCE_DIR}/src/renderer/pipeline/Mesh.h
+    ${CMAKE_SOURCE_DIR}/src/renderer/opengl/ImageLoader.cpp
+    ${CMAKE_SOURCE_DIR}/src/renderer/opengl/ImageLoader.h
+    ${CMAKE_SOURCE_DIR}/src/renderer/opengl/Mesh.cpp
+    ${CMAKE_SOURCE_DIR}/src/renderer/opengl/Mesh.h
+    ${CMAKE_SOURCE_DIR}/src/renderer/opengl/OpenGLRenderer.cpp
+    ${CMAKE_SOURCE_DIR}/src/renderer/opengl/OpenGLRenderer.h
+    ${CMAKE_SOURCE_DIR}/src/renderer/opengl/ShaderHelper.cpp
+    ${CMAKE_SOURCE_DIR}/src/renderer/opengl/ShaderHelper.h
 
-    ${CMAKE_SOURCE_DIR}/src/renderer/resource/ImageLoader.cpp
-    ${CMAKE_SOURCE_DIR}/src/renderer/resource/ImageLoader.h
+    ${CMAKE_SOURCE_DIR}/src/renderer/opengl/api/OpenGLContext.cpp
+    ${CMAKE_SOURCE_DIR}/src/renderer/opengl/api/OpenGLContext.h
+    ${CMAKE_SOURCE_DIR}/src/renderer/opengl/api/OpenGL.h
+
     ${CMAKE_SOURCE_DIR}/src/renderer/resource/Model.cpp
     ${CMAKE_SOURCE_DIR}/src/renderer/resource/Model.h
     ${CMAKE_SOURCE_DIR}/src/renderer/resource/ModelLoader.cpp
     ${CMAKE_SOURCE_DIR}/src/renderer/resource/ModelLoader.h
     ${CMAKE_SOURCE_DIR}/src/renderer/resource/ResourceManager.cpp
     ${CMAKE_SOURCE_DIR}/src/renderer/resource/ResourceManager.h
-    ${CMAKE_SOURCE_DIR}/src/renderer/resource/ShaderHelper.cpp
-    ${CMAKE_SOURCE_DIR}/src/renderer/resource/ShaderHelper.h
+
+    ${CMAKE_SOURCE_DIR}/src/renderer/vulkan/VulkanRenderer.cpp
+    ${CMAKE_SOURCE_DIR}/src/renderer/vulkan/VulkanRenderer.h
+
+    ${CMAKE_SOURCE_DIR}/src/renderer/vulkan/api/Vulkan.h
+    ${CMAKE_SOURCE_DIR}/src/renderer/vulkan/api/VulkanFunctions.cpp
+    ${CMAKE_SOURCE_DIR}/src/renderer/vulkan/api/VulkanFunctions.h
+    ${CMAKE_SOURCE_DIR}/src/renderer/vulkan/api/VulkanSymbolHelper.inl
 )
 
 # Set precompiled header
@@ -142,7 +155,7 @@ target_link_libraries(${REAPER_BIN}
     ${GLBINDING_LIBRARY_RELEASE}
     ${ASSIMP_LIBRARIES}
     ${LIBUNWIND_LIBRARIES}
-    ${OPENEXR_LIBRARIES} -lglbinding -lpthread)
+    ${OPENEXR_LIBRARIES} -lglbinding -lpthread -ldl)
 
 set_target_properties(${REAPER_BIN} PROPERTIES COTIRE_CXX_PREFIX_HEADER_INIT ${REAPER_PCH})
 set_target_properties(${REAPER_BIN} PROPERTIES COTIRE_UNITY_LINK_LIBRARIES_INIT "COPY")

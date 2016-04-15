@@ -16,12 +16,12 @@ macro(add_vs_source_tree input_files path_to_strip)
         get_filename_component(PARENT_DIR "${FILE}" PATH)
         # strip absolute path
         string(REGEX REPLACE "^${path_to_strip}" "" GROUP ${PARENT_DIR})
-        # skip src or include or pch
+        # skip src from path
         string(REGEX REPLACE "(\\./)?(src)/?" "" GROUP "${GROUP}")
         # changes /'s to \\'s
         string(REPLACE "/" "\\" GROUP "${GROUP}")
         # group into "Source Files" and "Header Files"
-        if ("${FILE}" MATCHES ".*\\.cpp")
+        if ("${FILE}" MATCHES ".*\\.cpp" OR "${FILE}" MATCHES ".*\\.inl")
             set(GROUP "Source Files\\${GROUP}")
         elseif("${FILE}" MATCHES ".*\\.h" OR "${FILE}" MATCHES ".*\\.hpp")
             set(GROUP "Header Files\\${GROUP}")

@@ -19,6 +19,8 @@
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_glfw_gl3.h"
 
+#include "OpenGL.h"
+
 GLContext::GLContext()
 :   _window(nullptr),
     _windowSize({0, 0})

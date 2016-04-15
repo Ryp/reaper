@@ -7,6 +7,8 @@
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 
+#include "../src/renderer/opengl/api/OpenGL.h"
+
 // Data
 static GLFWwindow*  g_Window = NULL;
 static double       g_Time = 0.0f;
