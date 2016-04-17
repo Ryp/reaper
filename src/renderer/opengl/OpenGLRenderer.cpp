@@ -693,7 +693,11 @@ static void bloom_test(GLContext& ctx, SixAxisController & controller, const std
     } while(ctx.isOpen());
 }
 
-void OpenGLRenderer::run()
+void OpenGLRenderer::startup(Window* /*window*/) {}
+
+void OpenGLRenderer::shutdown() {}
+
+void OpenGLRenderer::render()
 {
     auto debugCallback = [] (GLenum, GLenum, GLuint, GLenum, GLsizei, const GLchar *message, const void *) {
         std::cout << "glCallback: " << message << std::endl;

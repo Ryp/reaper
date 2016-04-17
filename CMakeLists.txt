@@ -11,6 +11,15 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 include(cotire)
 include(ReaperGL)
 
+if (WIN32)
+    set(VK_PLATFORM "VK_USE_PLATFORM_WIN32_KHR")
+elseif(APPLE OR UNIX)
+    set(VK_PLATFORM "VK_USE_PLATFORM_XCB_KHR")
+    find_package(XCB REQUIRED)
+    set(PLATFORM_LIBRARIES ${PLATFORM_LIBRARIES} ${LIBXCB_LIBRARIES} -ldl)
+    set(PLATFORM_INCLUDES ${PLATFORM_INCLUDES} ${LIBXCB_INCLUDE_DIR})
+endif()
+
 # Find dependencies
 find_package(moGL NO_MODULE REQUIRED)
 find_package(OpenGL REQUIRED)
@@ -97,6 +106,8 @@ set(REAPER_SRCS
 
     ${CMAKE_SOURCE_DIR}/src/renderer/Camera.cpp
     ${CMAKE_SOURCE_DIR}/src/renderer/Camera.h
+    ${CMAKE_SOURCE_DIR}/src/renderer/Renderer.cpp
+    ${CMAKE_SOURCE_DIR}/src/renderer/Renderer.h
 
     ${CMAKE_SOURCE_DIR}/src/renderer/opengl/ImageLoader.cpp
     ${CMAKE_SOURCE_DIR}/src/renderer/opengl/ImageLoader.h
@@ -118,6 +129,8 @@ set(REAPER_SRCS
     ${CMAKE_SOURCE_DIR}/src/renderer/resource/ResourceManager.cpp
     ${CMAKE_SOURCE_DIR}/src/renderer/resource/ResourceManager.h
 
+    ${CMAKE_SOURCE_DIR}/src/renderer/vulkan/PresentationSurface.cpp
+    ${CMAKE_SOURCE_DIR}/src/renderer/vulkan/PresentationSurface.h
     ${CMAKE_SOURCE_DIR}/src/renderer/vulkan/VulkanRenderer.cpp
     ${CMAKE_SOURCE_DIR}/src/renderer/vulkan/VulkanRenderer.h
 
@@ -133,6 +146,8 @@ set(REAPER_PCH ${CMAKE_SOURCE_DIR}/src/pch/stdafx.h)
 add_executable(${REAPER_BIN} ${REAPER_SRCS})
 add_custom_build_flags(${REAPER_BIN} "ReaperGL")
 
+set_target_properties(${REAPER_BIN} PROPERTIES COMPILE_DEFINITIONS ${VK_PLATFORM})
+
 #User includes dirs (won't hide warnings)
 target_include_directories(${REAPER_BIN} PUBLIC
     ${CMAKE_SOURCE_DIR}/src)
@@ -146,7 +161,8 @@ target_include_directories(${REAPER_BIN} SYSTEM PUBLIC
     ${GLBINDING_INCLUDES}
     ${ASSIMP_INCLUDE_DIRS}
     ${LIBUNWIND_INCLUDE_DIR}
-    ${OPENEXR_INCLUDE_DIRS})
+    ${OPENEXR_INCLUDE_DIRS}
+    ${PLATFORM_INCLUDES})
 
 #Libraries
 target_link_libraries(${REAPER_BIN}
@@ -155,7 +171,8 @@ target_link_libraries(${REAPER_BIN}
     ${GLBINDING_LIBRARY_RELEASE}
     ${ASSIMP_LIBRARIES}
     ${LIBUNWIND_LIBRARIES}
-    ${OPENEXR_LIBRARIES} -lglbinding -lpthread -ldl)
+    ${OPENEXR_LIBRARIES} -lglbinding -lpthread
+    ${PLATFORM_LIBRARIES})
 
 set_target_properties(${REAPER_BIN} PROPERTIES COTIRE_CXX_PREFIX_HEADER_INIT ${REAPER_PCH})
 set_target_properties(${REAPER_BIN} PROPERTIES COTIRE_UNITY_LINK_LIBRARIES_INIT "COPY")

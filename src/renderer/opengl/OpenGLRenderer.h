@@ -8,10 +8,18 @@
 #ifndef REAPER_OPENGLRENDERER_INCLUDED
 #define REAPER_OPENGLRENDERER_INCLUDED
 
-class OpenGLRenderer {
-    OpenGLRenderer() = default;
+#include "renderer/Renderer.h"
+
+class OpenGLRenderer : public AbstractRenderer
+{
 public:
-    static void run();
+    OpenGLRenderer() = default;
+    ~OpenGLRenderer() = default;
+
+public:
+    void startup(Window* window) override;
+    void shutdown() override;
+    void render() override;
 };
 
 #endif // REAPER_OPENGLRENDERER_INCLUDED

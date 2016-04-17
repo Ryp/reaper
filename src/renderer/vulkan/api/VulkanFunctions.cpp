@@ -17,4 +17,3 @@ namespace vk {
 #include "VulkanSymbolHelper.inl"
 
 }
-
