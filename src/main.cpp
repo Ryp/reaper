@@ -9,8 +9,7 @@
 #include "core/memory/StackAllocator.h"
 #include "core/memory/CacheLine.h"
 
-#include "renderer/vulkan/VulkanRenderer.h"
-#include "renderer/opengl/OpenGLRenderer.h"
+#include "renderer/Renderer.h"
 
 #include "game/WorldUpdater.h"
 #include "game/pathing/CostMap.h"
@@ -69,11 +68,23 @@
 // //     test3();
 // }
 
+#include "renderer/vulkan/PresentationSurface.h"
 
 int main(int /*ac*/, char** /*av*/)
 {
     Assert(cacheLineSize() == REAPER_CACHELINE_SIZE);
 
-    VulkanRenderer::run();
+    Window  window;
+
+    window.Create("Vulkan Test");
+
+    AbstractRenderer* renderer = AbstractRenderer::createRenderer();
+    {
+        renderer->startup(&window);
+        window.renderLoop(renderer);
+        renderer->shutdown();
+    }
+    delete renderer;
+
     return 0;
 }
