@@ -55,36 +55,36 @@
 //     destroyCostMap(map);
 // }
 
-// static void game_test()
-// {
-//     WorldUpdater    wu;
-//
-//     wu.load();
-//     for (int i = 0; i < 100; ++i)
-//         wu.updateModules(0.16f);
-//
-// //     test1();
-// //     test2();
-// //     test3();
-// }
+static void game_test()
+{
+    WorldUpdater    wu;
 
-#include "renderer/vulkan/PresentationSurface.h"
+    wu.load();
+    for (int i = 0; i < 100; ++i)
+        wu.updateModules(0.16f);
+    wu.unload();
+}
+
+// #include "renderer/vulkan/PresentationSurface.h"
+// static void vulkan_test()
+// {
+//     Window  window;
+//
+//     window.Create("Vulkan Test");
+//
+//     AbstractRenderer* renderer = AbstractRenderer::createRenderer();
+//     {
+//         renderer->startup(&window);
+//         window.renderLoop(renderer);
+//         renderer->shutdown();
+//     }
+//     delete renderer;
+// }
 
 int main(int /*ac*/, char** /*av*/)
 {
     Assert(cacheLineSize() == REAPER_CACHELINE_SIZE);
 
-    Window  window;
-
-    window.Create("Vulkan Test");
-
-    AbstractRenderer* renderer = AbstractRenderer::createRenderer();
-    {
-        renderer->startup(&window);
-        window.renderLoop(renderer);
-        renderer->shutdown();
-    }
-    delete renderer;
-
+    game_test();
     return 0;
 }
