@@ -7,29 +7,26 @@
 
 #include "WorldUpdater.h"
 
+#include "map/MapDescriptor.h"
+
 WorldUpdater::WorldUpdater()
 :   _allocator(10000)
-{
-    _teamUpdater = placementNew<TeamUpdater>(_allocator, this);
-    _positionUpdater = placementNew<PositionUpdater>(_allocator, this);
-    _damageUpdater = placementNew<DamageUpdater>(_allocator, this);
-    _movementUpdater = placementNew<MovementUpdater>(_allocator, this);
-    _weaponUpdater = placementNew<WeaponUpdater>(_allocator, this);
-    _towerControllerUpdater = placementNew<TowerControllerUpdater>(_allocator, this);
-}
+,   _mapInfo(_allocator)
+,   _teamUpdater(_allocator, this)
+,   _positionUpdater(_allocator, this)
+,   _damageUpdater(_allocator, this)
+,   _movementUpdater(_allocator, this)
+,   _pathUpdater(_allocator, this, *_mapInfo)
+,   _weaponUpdater(_allocator, this)
+,   _towerControllerUpdater(_allocator, this)
+{}
 
 WorldUpdater::~WorldUpdater()
-{
-    _teamUpdater->~TeamUpdater();
-    _positionUpdater->~PositionUpdater();
-    _damageUpdater->~DamageUpdater();
-    _movementUpdater->~MovementUpdater();
-    _weaponUpdater->~WeaponUpdater();
-    _towerControllerUpdater->~TowerControllerUpdater();
-}
+{}
 
 void WorldUpdater::updateModules(float dt)
 {
+    _pathUpdater->update(dt, _movementUpdater->getModuleAccessor());
     _movementUpdater->update(dt, _positionUpdater->getModuleAccessor());
     _positionUpdater->update(dt);
     _weaponUpdater->update(dt);
@@ -54,43 +51,70 @@ void WorldUpdater::notifyRemoveEntity(EntityId id)
 
 void WorldUpdater::load()
 {
-    TeamModuleDescriptor towerTeamDesc;
-    towerTeamDesc.teamId = 1;
+    {
+        // Load map
+        MapDescriptor mapDesc;
 
-    PositionModuleDescriptor positionDesc;
-    positionDesc.position = glm::vec3(0.f);
-    positionDesc.orientation = glm::vec2(0.f);
+        mapDesc.dimensions = uvec2(8, 8);
 
-    WeaponModuleDescriptor weaponDesc;
-    weaponDesc.damage = 20;
-    weaponDesc.rate = 4.f;
+        MapAccess   access1;
+        MapAccess   access2;
 
-    TowerControllerModuleDescriptor towerControllerDesc;
-    towerControllerDesc.range = 10.f;
-    towerControllerDesc.rotationSpeed = 1.5f;
+        access1.entrance = uvec2(0, 0);
+        access1.exit = uvec2(7, 5);
+        access2.entrance = uvec2(3, 3);
+        access2.exit = uvec2(5, 7);
 
-    TeamModuleDescriptor targetTeamDesc;
-    towerTeamDesc.teamId = 2;
+        mapDesc.accesses.push_back(access1);
+        mapDesc.accesses.push_back(access2);
 
-    PositionModuleDescriptor positionTargetDesc;
-    positionTargetDesc.position = glm::vec3(1.f, 1.f, 1.f);
-    positionTargetDesc.orientation = glm::vec2(0.f);
+        _mapInfo->load(&mapDesc);
+    }
+    {
+        // Load modules
+        TeamModuleDescriptor towerTeamDesc;
+        towerTeamDesc.teamId = 1;
 
-    MovementModuleDescriptor targetMovementDesc;
-    targetMovementDesc.speed = 0.2f;
+        PositionModuleDescriptor positionDesc;
+        positionDesc.position = glm::vec3(0.f);
+        positionDesc.orientation = glm::vec2(0.f);
 
-    DamageModuleDescriptor damageTargetDesc;
-    damageTargetDesc.maxHealth = 500;
+        WeaponModuleDescriptor weaponDesc;
+        weaponDesc.damage = 20;
+        weaponDesc.rate = 4.f;
 
-    _teamUpdater->createModule(1, &towerTeamDesc);
-    _positionUpdater->createModule(1, &positionDesc);
-    _weaponUpdater->createModule(1, &weaponDesc);
-    _towerControllerUpdater->createModule(1, &towerControllerDesc);
+        TowerControllerModuleDescriptor towerControllerDesc;
+        towerControllerDesc.range = 10.f;
+        towerControllerDesc.rotationSpeed = 1.5f;
 
-    _teamUpdater->createModule(2, &targetTeamDesc);
-    _positionUpdater->createModule(2, &positionTargetDesc);
-    _movementUpdater->createModule(2, &targetMovementDesc);
-    _damageUpdater->createModule(2, &damageTargetDesc);
+        TeamModuleDescriptor targetTeamDesc;
+        targetTeamDesc.teamId = 2;
+
+        PositionModuleDescriptor positionTargetDesc;
+        positionTargetDesc.position = glm::vec3(1.f, 1.f, 1.f);
+        positionTargetDesc.orientation = glm::vec2(0.f);
+
+        MovementModuleDescriptor targetMovementDesc;
+        targetMovementDesc.speed = 0.2f;
+
+        DamageModuleDescriptor damageTargetDesc;
+        damageTargetDesc.maxHealth = 500;
+
+        _teamUpdater->createModule(1, &towerTeamDesc);
+        _positionUpdater->createModule(1, &positionDesc);
+        _weaponUpdater->createModule(1, &weaponDesc);
+        _towerControllerUpdater->createModule(1, &towerControllerDesc);
+
+        _teamUpdater->createModule(2, &targetTeamDesc);
+        _positionUpdater->createModule(2, &positionTargetDesc);
+        _movementUpdater->createModule(2, &targetMovementDesc);
+        _damageUpdater->createModule(2, &damageTargetDesc);
+    }
+}
+
+void WorldUpdater::unload()
+{
+    _mapInfo->unload();
 }
 
 void WorldUpdater::removeEntity(EntityId id)
@@ -99,6 +123,7 @@ void WorldUpdater::removeEntity(EntityId id)
     _positionUpdater->removeModule(id);
     _damageUpdater->removeModule(id);
     _movementUpdater->removeModule(id);
+    _pathUpdater->removeModule(id);
     _weaponUpdater->removeModule(id);
     _towerControllerUpdater->removeModule(id);
 }

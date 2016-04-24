@@ -14,11 +14,13 @@
 #include "ModuleUpdater.h"
 
 #include "core/memory/StackAllocator.h"
+#include "core/memory/UniquePtr.h"
 
 #include "module/TeamModule.h"
 #include "module/PositionModule.h"
 #include "module/DamageModule.h"
 #include "module/MovementModule.h"
+#include "module/PathModule.h"
 #include "module/WeaponModule.h"
 #include "module/TowerControllerModule.h"
 
@@ -38,6 +40,7 @@ public:
 public:
     void updateModules(float dt);
     void load();
+    void unload();
     void notifyRemoveEntity(EntityId id);
 
 private:
@@ -48,12 +51,16 @@ private:
     std::queue<EntityId>    _idToRemove;
 
 private:
-    TeamUpdater*            _teamUpdater;
-    PositionUpdater*        _positionUpdater;
-    DamageUpdater*          _damageUpdater;
-    MovementUpdater*        _movementUpdater;
-    WeaponUpdater*          _weaponUpdater;
-    TowerControllerUpdater* _towerControllerUpdater;
+    UniquePtr<MapInfo>  _mapInfo;
+
+private:
+    UniquePtr<TeamUpdater>              _teamUpdater;
+    UniquePtr<PositionUpdater>          _positionUpdater;
+    UniquePtr<DamageUpdater>            _damageUpdater;
+    UniquePtr<MovementUpdater>          _movementUpdater;
+    UniquePtr<PathUpdater>              _pathUpdater;
+    UniquePtr<WeaponUpdater>            _weaponUpdater;
+    UniquePtr<TowerControllerUpdater>   _towerControllerUpdater;
 };
 
 #endif // REAPER_WORLDUPDATER_INCLUDED

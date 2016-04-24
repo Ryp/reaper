@@ -73,10 +73,16 @@ set(REAPER_SRCS
     ${CMAKE_SOURCE_DIR}/src/game/WorldUpdater.cpp
     ${CMAKE_SOURCE_DIR}/src/game/WorldUpdater.h
 
+    ${CMAKE_SOURCE_DIR}/src/game/map/MapDescriptor.h
+    ${CMAKE_SOURCE_DIR}/src/game/map/MapInfo.cpp
+    ${CMAKE_SOURCE_DIR}/src/game/map/MapInfo.h
+
     ${CMAKE_SOURCE_DIR}/src/game/module/DamageModule.cpp
     ${CMAKE_SOURCE_DIR}/src/game/module/DamageModule.h
     ${CMAKE_SOURCE_DIR}/src/game/module/MovementModule.cpp
     ${CMAKE_SOURCE_DIR}/src/game/module/MovementModule.h
+    ${CMAKE_SOURCE_DIR}/src/game/module/PathModule.cpp
+    ${CMAKE_SOURCE_DIR}/src/game/module/PathModule.h
     ${CMAKE_SOURCE_DIR}/src/game/module/PositionModule.cpp
     ${CMAKE_SOURCE_DIR}/src/game/module/PositionModule.h
     ${CMAKE_SOURCE_DIR}/src/game/module/TeamModule.cpp
