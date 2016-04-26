@@ -16,8 +16,9 @@ using TDPath = std::vector<uvec2>;
 
 struct Cell {
     u8 flags;
+    u8 bfs;
 //     u8vec2 pos;
-    Cell() : flags(0)/*, pos(0, 0)*/ {}
+    Cell() : flags(0), bfs(0)/*, pos(0, 0)*/ {}
 };
 
 class CellMap

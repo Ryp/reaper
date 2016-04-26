@@ -1,0 +1,35 @@
+////////////////////////////////////////////////////////////////////////////////
+/// ReaperGL
+///
+/// Copyright (c) 2015-2016 Thibault Schueller
+/// This file is distributed under the MIT License
+////////////////////////////////////////////////////////////////////////////////
+
+#ifndef REAPER_BREADTHFIRSTSEARCH_INCLUDED
+#define REAPER_BREADTHFIRSTSEARCH_INCLUDED
+
+#include "core/BitTricks.h"
+
+#include "game/map/MapInfo.h"
+
+namespace pathing
+{
+    enum class NodeInfo : u8
+    {
+        None = 0,
+        Pathable = bit(1),
+        Visited = bit(2),
+        // Directions
+        PlusX = bit(3),
+        MinusX = bit(4),
+        PlusY = bit(5),
+        MinusY = bit(6)
+    };
+
+    // Compute a basic Breadth First Search without any early exit to make sure
+    // every reachable node is covered.
+    // Don't forget to clear any flags set by a previous call of this function
+    void computeBreadthFirstSearch(uvec2 goal, CellMap& graph);
+}
+
+#endif // REAPER_BREADTHFIRSTSEARCH_INCLUDED
