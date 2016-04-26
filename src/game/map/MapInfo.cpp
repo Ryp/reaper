@@ -29,7 +29,7 @@ void MapInfo::load(MapDescriptor* mapDescriptor)
     for (it.x = 0; it.x < _cells->size.x; ++it.x)
     {
         for (it.y = 0; it.y < _cells->size.y; ++it.y)
-            (*_cells)[it].flags &= CellFlags::Pathable | CellFlags::Constructible;
+            (*_cells)[it].flags = CellFlags::Pathable | CellFlags::Constructible;
     }
 
     for (uint i = 0; i < mapDescriptor->accesses.size(); ++i)

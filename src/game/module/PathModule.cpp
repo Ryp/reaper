@@ -7,6 +7,11 @@
 
 #include "PathModule.h"
 
+#include "core/EnumHelper.h"
+
+#include <iostream>
+
+#include "game/pathing/BreadthFirstSearch.h"
 #include "game/map/MapDescriptor.h"
 
 PathUpdater::PathUpdater(AbstractWorldUpdater* worldUpdater, MapInfo& mapInfo)
@@ -19,13 +24,7 @@ PathUpdater::~PathUpdater()
 
 void PathUpdater::update(float dt, ModuleAccessor<MovementModule> movementModuleAccessor)
 {
-
-    for (auto& it : _modules)
-    {
-        PathModule& moduleInstance = it.second;
-
-
-    }
+    debugPathFinder();
 }
 
 void PathUpdater::createModule(EntityId id, const PathModuleDescriptor* /*descriptor*/)
@@ -54,4 +53,43 @@ void PathUpdater::computeConstructibleFlags()
             map[it].flags &= CellFlags::Constructible;
         }
     }
+}
+
+void PathUpdater::debugPathFinder()
+{
+    CellMap&    map = _mapInfo.getCells();
+    uvec2       it;
+    uvec2       goal(2, 2);
+
+    for (it.x = 0; it.x < map.size.x; ++it.x)
+    {
+        for (it.y = 0; it.y < map.size.y; ++it.y)
+        {
+            if (map[it].flags & CellFlags::Pathable)
+                map[it].bfs = to_underlying(pathing::NodeInfo::Pathable);
+            else
+                map[it].bfs = to_underlying(pathing::NodeInfo::None);
+        }
+    }
+
+    pathing::computeBreadthFirstSearch(goal, map);
+
+    for (it.y = 0; it.y < map.size.y; ++it.y)
+    {
+        for (it.x = 0; it.x < map.size.x; ++it.x)
+        {
+            if (map[it].bfs & to_underlying(pathing::NodeInfo::PlusX))
+                std::cout << '>';
+            else if (map[it].bfs & to_underlying(pathing::NodeInfo::MinusX))
+                std::cout << '<';
+            else if (map[it].bfs & to_underlying(pathing::NodeInfo::PlusY))
+                std::cout << 'v';
+            else if (map[it].bfs & to_underlying(pathing::NodeInfo::MinusY))
+                std::cout << '^';
+            else
+                std::cout << '.';
+        }
+        std::cout << std::endl;
+    }
+    AssertUnreachable();
 }

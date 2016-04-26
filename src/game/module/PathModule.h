@@ -35,6 +35,7 @@ public:
 
 private:
     void computeConstructibleFlags();
+    void debugPathFinder();
 
 private:
     MapInfo&            _mapInfo;

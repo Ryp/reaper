@@ -44,6 +44,7 @@ set(REAPER_SRCS
     ${CMAKE_SOURCE_DIR}/src/core/Debugger.h
     ${CMAKE_SOURCE_DIR}/src/core/DynamicLibrary.cpp
     ${CMAKE_SOURCE_DIR}/src/core/DynamicLibrary.h
+    ${CMAKE_SOURCE_DIR}/src/core/EnumHelper.h
     ${CMAKE_SOURCE_DIR}/src/core/Platform.h
     ${CMAKE_SOURCE_DIR}/src/core/StackTrace.cpp
     ${CMAKE_SOURCE_DIR}/src/core/StackTrace.h
@@ -94,6 +95,8 @@ set(REAPER_SRCS
 
     ${CMAKE_SOURCE_DIR}/src/game/pathing/AIPath.cpp
     ${CMAKE_SOURCE_DIR}/src/game/pathing/AIPath.h
+    ${CMAKE_SOURCE_DIR}/src/game/pathing/BreadthFirstSearch.cpp
+    ${CMAKE_SOURCE_DIR}/src/game/pathing/BreadthFirstSearch.h
     ${CMAKE_SOURCE_DIR}/src/game/pathing/CostMap.cpp
     ${CMAKE_SOURCE_DIR}/src/game/pathing/CostMap.h
 #     ${CMAKE_SOURCE_DIR}/src/game/pathing/PathFinder.cpp
