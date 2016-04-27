@@ -1,0 +1,17 @@
+* text eol=lf
+
+# Sources
+*.cpp text
+*.inl text
+*.hpp text
+*.h text
+
+*.glsl text
+*.frag text
+*.vert text
+
+*.cmake text
+
+# Misc
+*.txt text
+*.md text
