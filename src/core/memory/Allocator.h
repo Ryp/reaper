@@ -10,10 +10,12 @@
 
 #include <cstdint>
 
+#ifdef REAPER_COMPILER_GCC
 // Remove harmless gcc warning
 // warning: redundant redeclaration of 'void* operator new(std::size_t)' in same scope [-Wredundant-decls]
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wredundant-decls"
+#endif
 
 void* operator new(std::size_t size);
 void* operator new[](std::size_t size);
@@ -22,7 +24,9 @@ void operator delete(void* mem, std::size_t) noexcept;
 void operator delete[](void* mem) noexcept;
 void operator delete[](void* mem, std::size_t) noexcept;
 
+#ifdef REAPER_COMPILER_GCC
 #pragma GCC diagnostic pop
+#endif
 
 class AbstractAllocator
 {

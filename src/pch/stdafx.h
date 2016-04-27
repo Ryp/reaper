@@ -11,6 +11,7 @@
 #define GLM_FORCE_RADIANS // NOTE remove this when switching to glm 0.9.6 or above
 
 #include "core/Assert.h"
+#include "core/Compiler.h"
 #include "core/Platform.h"
 #include "core/Types.h"
 #include "core/memory/Allocator.h"
