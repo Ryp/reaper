@@ -17,7 +17,7 @@ struct vec2 {
     vec2(vtype X, vtype Y) : x(X), y(Y) {}
 };
 
-using uvec2 = vec2<uint>;
+using uvec2 = vec2<unsigned int>;
 using u8vec2 = vec2<u8>;
 
 #include "VectorTypes.inl"

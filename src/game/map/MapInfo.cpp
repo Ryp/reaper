@@ -32,7 +32,7 @@ void MapInfo::load(MapDescriptor* mapDescriptor)
             (*_cells)[it].flags = CellFlags::Pathable | CellFlags::Constructible;
     }
 
-    for (uint i = 0; i < mapDescriptor->accesses.size(); ++i)
+    for (unsigned int i = 0; i < mapDescriptor->accesses.size(); ++i)
     {
         const MapAccess& access = mapDescriptor->accesses[i];
 

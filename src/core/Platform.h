@@ -11,6 +11,9 @@
 // Identify the operating system.
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__MINGW32__)
     #define REAPERGL_PLATFORM_WINDOWS
+    #define WIN32_LEAN_AND_MEAN
+    #define NOMINMAX
+    #include <windows.h>
 #elif defined(linux) || defined(__linux) || defined(__linux__)
     #define REAPERGL_PLATFORM_LINUX
 #elif defined(__APPLE__) || defined(__MACH__)

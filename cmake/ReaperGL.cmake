@@ -1,4 +1,5 @@
 include(${CMAKE_SOURCE_DIR}/cmake/compiler/msvc.cmake)
+include(${CMAKE_SOURCE_DIR}/cmake/platform/unix.cmake)
 
 set(CXX_STANDARD_REQUIRED ON)
 
@@ -21,10 +22,10 @@ macro(add_vs_source_tree input_files path_to_strip)
         # changes /'s to \\'s
         string(REPLACE "/" "\\" GROUP "${GROUP}")
         # group into "Source Files" and "Header Files"
-        if ("${FILE}" MATCHES ".*\\.cpp" OR "${FILE}" MATCHES ".*\\.inl")
+        if ("${FILE}" MATCHES ".*\\.cpp" OR "${FILE}" MATCHES ".*\\.inl" OR "${FILE}" MATCHES ".*\\.h" OR "${FILE}" MATCHES ".*\\.hpp")
             set(GROUP "Source Files\\${GROUP}")
-        elseif("${FILE}" MATCHES ".*\\.h" OR "${FILE}" MATCHES ".*\\.hpp")
-            set(GROUP "Header Files\\${GROUP}")
+        #elseif("${FILE}" MATCHES ".*\\.h" OR "${FILE}" MATCHES ".*\\.hpp")
+        #    set(GROUP "Header Files\\${GROUP}")
         else()
             set(GROUP "Other Files\\${GROUP}")
         endif()

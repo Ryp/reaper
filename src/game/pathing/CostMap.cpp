@@ -7,6 +7,8 @@
 
 #include "CostMap.h"
 
+#include <algorithm>
+
 template <typename T>
 T clamp(T value, T lower, T upper)
 {
@@ -54,11 +56,11 @@ void paintCost(CostMap& map, Index position, Brush& brush)
         {
             Index relative = current - position;
 //             float radius2 = brush.radius * brush.radius;
-            const float distance = relative.x * relative.x + relative.y * relative.y;
+            const float distance = static_cast<float>(relative.x * relative.x + relative.y * relative.y);
             const float falloff = 1.f / (1.f + distance);
             const float hardness = 1.f - (1.f / (1.f + brush.hardness * 0.1f));
 
-            map.costs[toKey(current, map.size)] = maximalCost() * hardness * falloff;
+            map.costs[toKey(current, map.size)] = static_cast<CostType>(maximalCost() * hardness * falloff);
         }
     }
 }

@@ -15,8 +15,7 @@
     using LibSym = void*;
 #elif defined(REAPERGL_PLATFORM_WINDOWS)
     using LibHandle = HMODULE;
-    using LibSym = void*;
-    static_assert(false, "check true type for LibSym");
+    using LibSym = FARPROC;
 #endif
 
 namespace dynlib

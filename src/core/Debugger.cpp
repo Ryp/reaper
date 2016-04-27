@@ -10,9 +10,9 @@
 #if defined(REAPERGL_PLATFORM_WINDOWS)
 
 // Does not check for remote debugger
-inline bool isInDebugger()
+bool isInDebugger()
 {
-    return IsDebuggerPresent();
+    return IsDebuggerPresent() == TRUE;
 }
 
 #elif defined(REAPERGL_PLATFORM_LINUX)
