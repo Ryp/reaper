@@ -7,6 +7,8 @@
 
 #include "StackTrace.h"
 
+#if defined(REAPERGL_PLATFORM_LINUX)
+
 #define UNW_LOCAL_ONLY
 #include <libunwind.h>
 #include <cxxabi.h> // This may be invalid on windows
@@ -50,3 +52,12 @@ void printStacktrace()
             std::cerr << " unknown" << std::endl;
     }
 }
+
+#elif defined(REAPERGL_PLATFORM_WINDOWS) || defined(REAPERGL_PLATFORM_MACOSX)
+
+void printStacktrace()
+{
+    AssertUnreachable();
+}
+
+#endif

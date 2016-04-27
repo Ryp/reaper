@@ -21,7 +21,7 @@ namespace pathing
         uvec2 next;
 
         Assert(goal < graph.size, "goal is out of bounds");
-        Assert(graph[goal].bfs & to_underlying(NodeInfo::Pathable), "goal is not pathable");
+        Assert((graph[goal].bfs & to_underlying(NodeInfo::Pathable)) != 0, "goal is not pathable");
 
         frontier.push(goal);
         while (!frontier.empty())

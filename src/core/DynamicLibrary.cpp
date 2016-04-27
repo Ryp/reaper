@@ -50,19 +50,48 @@ namespace dynlib
 
 namespace dynlib
 {
-    LibHandle load(const std::string& /*library*/)
+    static std::string getErrorString()
     {
-        AssertUnreachable();
+        //Get the error message, if any.
+        DWORD errorMessageID = ::GetLastError();
+        if (errorMessageID == 0)
+            return std::string(); //No error message has been recorded
+
+        LPSTR messageBuffer = nullptr;
+        size_t size = FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+            NULL, errorMessageID, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&messageBuffer, 0, NULL);
+
+        std::string message(messageBuffer, size);
+
+        //Free the buffer.
+        LocalFree(messageBuffer);
+
+        return message;
     }
 
-    LibSym getSymbol(LibHandle /*handle*/, const std::string& /*name*/)
+    LibHandle load(const std::string& library)
     {
-        AssertUnreachable();
+        HMODULE handle = nullptr;
+
+        handle = LoadLibrary(library.c_str());
+        Assert(handle != nullptr, getErrorString());
+
+        return handle;
     }
 
-    void close(LibHandle /*handle*/)
+    LibSym getSymbol(LibHandle handle, const std::string& name)
     {
-        AssertUnreachable();
+        FARPROC sym = nullptr;
+
+        sym = GetProcAddress(handle, name.c_str());
+        Assert(sym != nullptr, getErrorString());
+
+        return sym;
+    }
+
+    void close(LibHandle handle)
+    {
+        FreeLibrary(handle);
     }
 }
 

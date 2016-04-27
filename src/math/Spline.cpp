@@ -27,7 +27,7 @@ void Spline::addControlPoint(const glm::vec3& point, float weight)
 void Spline::build()
 {
     _knotsVector = std::vector<float>(_ctPoints.size() + _degree + 1);
-    unsigned int  knots = _knotsVector.size();
+    std::size_t knots = _knotsVector.size();
 
     // Increase surface bounds order
     for (unsigned int i = 0; i <= _degree; ++i)
@@ -37,7 +37,7 @@ void Spline::build()
     }
     // Eval interior knots
     for (unsigned int i = 0; i < (knots - 2 * (_degree - 1) - 3); ++i)
-        _knotsVector[_degree + i] = static_cast<double>(i) / static_cast<double>(knots - 2 * (_degree - 1) - 3);
+        _knotsVector[_degree + i] = static_cast<float>(i) / static_cast<float>(knots - 2 * (_degree - 1) - 3);
 }
 
 glm::vec3 Spline::eval(float t) const
@@ -48,7 +48,7 @@ glm::vec3 Spline::eval(float t) const
 
     for (std::size_t i = 0; i <_ctPoints.size(); ++i)
     {
-        coeff = evalSplinePrimitive(i, _degree, t) * _ctPoints[i].weight;
+        coeff = evalSplinePrimitive(static_cast<unsigned int>(i), _degree, t) * _ctPoints[i].weight;
         result += _ctPoints[i].pos * coeff;
         sum += coeff;
     }

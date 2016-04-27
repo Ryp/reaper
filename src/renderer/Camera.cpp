@@ -7,6 +7,7 @@
 
 #include "Camera.h"
 
+#define _USE_MATH_DEFINES
 #include <cmath>
 
 #include <glm/gtx/transform.hpp>

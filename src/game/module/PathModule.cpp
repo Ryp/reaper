@@ -22,7 +22,7 @@ PathUpdater::PathUpdater(AbstractWorldUpdater* worldUpdater, MapInfo& mapInfo)
 PathUpdater::~PathUpdater()
 {}
 
-void PathUpdater::update(float dt, ModuleAccessor<MovementModule> movementModuleAccessor)
+void PathUpdater::update(float /*dt*/, ModuleAccessor<MovementModule> /*movementModuleAccessor*/)
 {
     debugPathFinder();
 }
