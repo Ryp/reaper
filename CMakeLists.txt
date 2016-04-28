@@ -29,6 +29,7 @@ find_package(assimp REQUIRED)
 find_package(Libunwind REQUIRED)
 find_package(PkgConfig REQUIRED)
 pkg_search_module(GLFW REQUIRED glfw3)
+find_package(Vulkan REQUIRED)
 
 set(REAPER_BIN reaper)
 
@@ -172,6 +173,7 @@ target_include_directories(${REAPER_BIN} SYSTEM PUBLIC
     ${ASSIMP_INCLUDE_DIRS}
     ${LIBUNWIND_INCLUDE_DIR}
     ${OPENEXR_INCLUDE_DIRS}
+    ${VULKAN_INCLUDE_DIR}
     ${REAPER_PLATFORM_INCLUDES})
 
 #Libraries

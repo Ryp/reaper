@@ -1,5 +1,7 @@
 include(${CMAKE_SOURCE_DIR}/cmake/compiler/msvc.cmake)
+
 include(${CMAKE_SOURCE_DIR}/cmake/platform/unix.cmake)
+include(${CMAKE_SOURCE_DIR}/cmake/platform/windows.cmake)
 
 set(CXX_STANDARD_REQUIRED ON)
 

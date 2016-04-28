@@ -1,0 +1,9 @@
+if(WIN32)
+    set(REAPER_PLATFORM_LIBRARIES_WINDOWS "")
+    set(REAPER_PLATFORM_INCLUDES_WINDOWS "")
+
+    set(REAPER_PLATFORM_LIBRARIES ${REAPER_PLATFORM_LIBRARIES_WINDOWS} CACHE PATH "Additional platform-specific libraries")
+    set(REAPER_PLATFORM_INCLUDES ${REAPER_PLATFORM_INCLUDES_WINDOWS} CACHE PATH "Additional platform-specific includes")
+
+    add_definitions(-D_USE_MATH_DEFINES)
+endif()
