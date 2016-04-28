@@ -1,5 +1,6 @@
 if(MSVC)
-    if(MSVC_VERSION LESS 1700)
+    # Visual Studio 2015 or newer
+    if(MSVC_VERSION LESS 1900)
         message(FATAL_ERROR "This version of Visual Studio is not supported")
     endif()
 
