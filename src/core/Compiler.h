@@ -8,7 +8,7 @@
 #ifndef REAPER_COMPILER_INCLUDED
 #define REAPER_COMPILER_INCLUDED
 
-#if defined(__INTEL_COMPILER)
+#if defined(__INTEL_COMPILER) || defined(__ICC)
     #define REAPER_COMPILER_ICC
 #elif defined(__GNUC__)
     #define REAPER_COMPILER_GCC
