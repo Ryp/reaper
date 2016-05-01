@@ -21,6 +21,7 @@ WorldUpdater::WorldUpdater(EntityDb* entityDb)
 ,   _movementUpdater(_allocator, this)
 ,   _pathUpdater(_allocator, this, *_mapInfo)
 ,   _weaponUpdater(_allocator, this)
+,   _waveSpawnerUpdater(_allocator, this)
 ,   _towerControllerUpdater(_allocator, this)
 {
     _modulesCreators["TeamModuleDescriptor"] = _teamUpdater.get();
@@ -29,6 +30,7 @@ WorldUpdater::WorldUpdater(EntityDb* entityDb)
     _modulesCreators["MovementModuleDescriptor"] = _movementUpdater.get();
     _modulesCreators["PathModuleDescriptor"] = _pathUpdater.get();
     _modulesCreators["WeaponModuleDescriptor"] = _weaponUpdater.get();
+    _modulesCreators["WaveSpawnerModuleDescriptor"] = _waveSpawnerUpdater.get();
     _modulesCreators["TowerControllerModuleDescriptor"] = _towerControllerUpdater.get();
 }
 
@@ -37,7 +39,8 @@ WorldUpdater::~WorldUpdater()
 
 void WorldUpdater::updateModules(float dt)
 {
-    _pathUpdater->update(dt, _movementUpdater->getModuleAccessor());
+    _pathUpdater->update(dt, _movementUpdater->getModuleAccessor(),
+                             _positionUpdater->getModuleAccessor());
     _movementUpdater->update(dt, _positionUpdater->getModuleAccessor());
     _positionUpdater->update(dt);
     _weaponUpdater->update(dt);
@@ -46,6 +49,7 @@ void WorldUpdater::updateModules(float dt)
                                         _damageUpdater->getModuleAccessor(),
                                         _teamUpdater->getModuleAccessor());
     _damageUpdater->update(dt);
+    _waveSpawnerUpdater->update(dt);
 
     // Process entity removal
     while (!_idToRemove.empty())
@@ -58,6 +62,16 @@ void WorldUpdater::updateModules(float dt)
 void WorldUpdater::notifyRemoveEntity(EntityId id)
 {
     _idToRemove.push(id);
+}
+
+// NOTE: maybe this should be done at the end of a frame
+void WorldUpdater::notifySpawnEnemy(const std::string& entityName, u32 accessId)
+{
+    EntityId id = createEntity(entityName);
+    ModuleAccessor<PathModule> pathModuleAccessor = _pathUpdater->getModuleAccessor();
+    PathModule* pathModule = pathModuleAccessor[id];
+
+    pathModule->pathId = accessId;
 }
 
 void WorldUpdater::load()
@@ -83,7 +97,7 @@ void WorldUpdater::load()
     }
 
     createEntity("tower");
-    createEntity("enemy");
+    createEntity("waveSpawner");
 }
 
 void WorldUpdater::unload()
@@ -91,7 +105,7 @@ void WorldUpdater::unload()
     _mapInfo->unload();
 }
 
-void WorldUpdater::createEntity(const std::string& entityName)
+EntityId WorldUpdater::createEntity(const std::string& entityName)
 {
     const EntityDescriptor& entityDescriptor = _entityDb->getEntityDescriptor(entityName);
     const EntityId id = _currentId;
@@ -102,6 +116,7 @@ void WorldUpdater::createEntity(const std::string& entityName)
         _modulesCreators.at(moduleDescriptor.first)->createModule(id, moduleDescriptor.second);
     }
     ++_currentId;
+    return id;
 }
 
 void WorldUpdater::removeEntity(EntityId id)
@@ -112,5 +127,6 @@ void WorldUpdater::removeEntity(EntityId id)
     _movementUpdater->removeModule(id);
     _pathUpdater->removeModule(id);
     _weaponUpdater->removeModule(id);
+    _waveSpawnerUpdater->removeModule(id);
     _towerControllerUpdater->removeModule(id);
 }

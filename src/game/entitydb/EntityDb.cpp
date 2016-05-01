@@ -12,6 +12,7 @@
 #include "game/module/DamageModule.h"
 #include "game/module/MovementModule.h"
 #include "game/module/PathModule.h"
+#include "game/module/WaveSpawnerModule.h"
 #include "game/module/WeaponModule.h"
 #include "game/module/TowerControllerModule.h"
 
@@ -77,6 +78,20 @@ void EntityDb::load()
         enemyEntity["MovementModuleDescriptor"] = targetMovementDesc;
         enemyEntity["DamageModuleDescriptor"] = damageTargetDesc;
         _entityDescriptors["enemy"] = enemyEntity;
+    }
+
+    {
+        EntityDescriptor waveEntity;
+
+        WaveSpawnerModuleDescriptor* waveSpawner = placementNew<WaveSpawnerModuleDescriptor>(_allocator);
+        waveSpawner->accessId = 0;
+        waveSpawner->delay = 1.0f;
+        waveSpawner->interval = 2.0f;
+        waveSpawner->unitCount = 10;
+        waveSpawner->unitToSpawn = "enemy";
+
+        waveEntity["WaveSpawnerModuleDescriptor"] = waveSpawner;
+        _entityDescriptors["waveSpawner"] = waveEntity;
     }
 }
 

@@ -22,7 +22,8 @@ PathUpdater::PathUpdater(AbstractWorldUpdater* worldUpdater, MapInfo& mapInfo)
 PathUpdater::~PathUpdater()
 {}
 
-void PathUpdater::update(float /*dt*/, ModuleAccessor<MovementModule> movementModuleAccessor)
+void PathUpdater::update(float /*dt*/, ModuleAccessor<MovementModule> movementModuleAccessor,
+                                       ModuleAccessor<PositionModule> positionModuleAccessor)
 {
     CellMap&    map = _mapInfo.getCells();
 
@@ -52,11 +53,18 @@ void PathUpdater::update(float /*dt*/, ModuleAccessor<MovementModule> movementMo
         auto& pathInstance = it.second;
         const EntityId entityId = it.first;
 
-        pathInstance.path = path;
-
         MovementModule* movementModule = movementModuleAccessor[entityId];
         if (movementModule->path.empty())
+        {
+            uvec2 startPos = path.front();
+            PositionModule* positionModule = positionModuleAccessor[entityId];
+
+            // FIXME apply node spacing and offset
+            positionModule->position = glm::fvec3(startPos.x, startPos.y, 0.f)/* * nodeSpacing*/;
+            pathInstance.path = path;
+
             MovementUpdater::buildAIPath(movementModule, path);
+        }
     }
 
 //     for (it.y = 0; it.y < map.size.y; ++it.y)

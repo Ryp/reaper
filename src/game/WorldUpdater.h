@@ -23,6 +23,7 @@
 #include "module/DamageModule.h"
 #include "module/MovementModule.h"
 #include "module/PathModule.h"
+#include "module/WaveSpawnerModule.h"
 #include "module/WeaponModule.h"
 #include "module/TowerControllerModule.h"
 
@@ -31,6 +32,7 @@ class AbstractWorldUpdater
 public:
     virtual ~AbstractWorldUpdater() {}
     virtual void notifyRemoveEntity(EntityId id) = 0;
+    virtual void notifySpawnEnemy(const std::string& entityName, u32 accessId) = 0;
 };
 
 class EntityDb;
@@ -46,11 +48,13 @@ public:
     void updateModules(float dt);
     void load();
     void unload();
-    void notifyRemoveEntity(EntityId id);
+
+    void notifyRemoveEntity(EntityId id) override;
+    void notifySpawnEnemy(const std::string& entityName, u32 accessId) override;
 
 private:
-    void createEntity(const std::string& entityName);
-    void removeEntity(EntityId id);
+    EntityId    createEntity(const std::string& entityName);
+    void        removeEntity(EntityId id);
 
 private:
     EntityDb*               _entityDb;
@@ -69,6 +73,7 @@ private:
     UniquePtr<MovementUpdater>          _movementUpdater;
     UniquePtr<PathUpdater>              _pathUpdater;
     UniquePtr<WeaponUpdater>            _weaponUpdater;
+    UniquePtr<WaveSpawnerUpdater>       _waveSpawnerUpdater;
     UniquePtr<TowerControllerUpdater>   _towerControllerUpdater;
 };
 
