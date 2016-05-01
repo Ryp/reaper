@@ -7,7 +7,7 @@
 
 #include "CacheLine.h"
 
-#if defined(REAPERGL_PLATFORM_LINUX)
+#if defined(REAPER_PLATFORM_LINUX)
 
 #include <unistd.h>
 
@@ -19,7 +19,7 @@ static size_t cacheLineSizeImpl()
     return static_cast<size_t>(lineSize);
 }
 
-#elif defined(REAPERGL_PLATFORM_MACOSX)
+#elif defined(REAPER_PLATFORM_MACOSX)
 
 #include <sys/sysctl.h>
 
@@ -32,7 +32,7 @@ static size_t cacheLineSizeImpl()
     return lineSize;
 }
 
-#elif defined(REAPERGL_PLATFORM_WINDOWS)
+#elif defined(REAPER_PLATFORM_WINDOWS)
 
 #include <stdlib.h>
 #include <windows.h>

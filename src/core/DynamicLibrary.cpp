@@ -7,7 +7,7 @@
 
 #include "DynamicLibrary.h"
 
-#if defined(REAPERGL_PLATFORM_LINUX) || defined(REAPERGL_PLATFORM_MACOSX)
+#if defined(REAPER_PLATFORM_LINUX) || defined(REAPER_PLATFORM_MACOSX)
 
 #include <dlfcn.h>
 
@@ -46,7 +46,7 @@ namespace dynlib
     }
 }
 
-#elif defined(REAPERGL_PLATFORM_WINDOWS)
+#elif defined(REAPER_PLATFORM_WINDOWS)
 
 namespace dynlib
 {

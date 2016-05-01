@@ -41,6 +41,7 @@ set(REAPER_SRCS
 
     ${CMAKE_SOURCE_DIR}/src/core/Assert.h
     ${CMAKE_SOURCE_DIR}/src/core/BitTricks.h
+    ${CMAKE_SOURCE_DIR}/src/core/Cast.h
     ${CMAKE_SOURCE_DIR}/src/core/Compiler.h
     ${CMAKE_SOURCE_DIR}/src/core/Debugger.cpp
     ${CMAKE_SOURCE_DIR}/src/core/Debugger.h

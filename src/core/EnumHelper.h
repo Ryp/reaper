@@ -13,7 +13,7 @@
 template <typename T>
 constexpr auto to_underlying(T enumValue) noexcept
 {
-    static_assert(std::is_enum<T>(), "this is only valid for enums");
+    static_assert(std::is_enum<T>::value, "this is only valid for enums");
     return static_cast<std::underlying_type_t<T>>(enumValue);
 }
 

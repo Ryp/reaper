@@ -11,9 +11,9 @@
 #define VK_NO_PROTOTYPES
 #include <vulkan/vulkan.h>
 
-#if defined(REAPERGL_PLATFORM_LINUX) || defined(REAPERGL_PLATFORM_MACOSX)
+#if defined(REAPER_PLATFORM_LINUX) || defined(REAPER_PLATFORM_MACOSX)
     #define REAPER_VK_LIB_NAME "libvulkan.so"
-#elif defined(REAPERGL_PLATFORM_WINDOWS)
+#elif defined(REAPER_PLATFORM_WINDOWS)
     #define REAPER_VK_LIB_NAME "vulkan-1.dll"
 #endif
 

@@ -10,10 +10,10 @@
 
 #include <string>
 
-#if defined(REAPERGL_PLATFORM_LINUX) || defined(REAPERGL_PLATFORM_MACOSX)
+#if defined(REAPER_PLATFORM_LINUX) || defined(REAPER_PLATFORM_MACOSX)
     using LibHandle = void*;
     using LibSym = void*;
-#elif defined(REAPERGL_PLATFORM_WINDOWS)
+#elif defined(REAPER_PLATFORM_WINDOWS)
     using LibHandle = HMODULE;
     using LibSym = FARPROC;
 #endif
