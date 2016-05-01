@@ -15,7 +15,7 @@
 #include "TeamModule.h"
 #include "WeaponModule.h"
 
-struct TowerControllerModuleDescriptor {
+struct TowerControllerModuleDescriptor : public ModuleDescriptor {
     f32 rotationSpeed;
     f32 rangeMin;
     f32 rangeMax;
@@ -27,17 +27,17 @@ struct TowerControllerModule {
     f32 rangeMax;
 };
 
-class TowerControllerUpdater : public ModuleUpdater<TowerControllerModule>
+class TowerControllerUpdater : public ModuleUpdater<TowerControllerModule, TowerControllerModuleDescriptor>
 {
 public:
-    TowerControllerUpdater(AbstractWorldUpdater* worldUpdater) : ModuleUpdater<TowerControllerModule>(worldUpdater) {}
+    TowerControllerUpdater(AbstractWorldUpdater* worldUpdater) : ModuleUpdater<TowerControllerModule, TowerControllerModuleDescriptor>(worldUpdater) {}
 
 public:
     void update(float dt, ModuleAccessor<PositionModule> positionModuleAccessor,
                           ModuleAccessor<WeaponModule> weaponModuleAccessor,
                           ModuleAccessor<DamageModule> damageModuleAccessor,
                           ModuleAccessor<TeamModule> teamModuleAccessor);
-    void createModule(EntityId id, TowerControllerModuleDescriptor const* descriptor);
+    void createModule(EntityId id, const TowerControllerModuleDescriptor* descriptor) override;
 };
 
 #endif // REAPER_TOWERCONTROLLERMODULE_INCLUDED

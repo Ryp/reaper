@@ -7,10 +7,13 @@
 
 #include "WorldUpdater.h"
 
+#include "game/entitydb/EntityDb.h"
 #include "map/MapDescriptor.h"
 
-WorldUpdater::WorldUpdater()
-:   _allocator(10000)
+WorldUpdater::WorldUpdater(EntityDb* entityDb)
+:   _entityDb(entityDb)
+,   _currentId(0)
+,   _allocator(10000)
 ,   _mapInfo(_allocator)
 ,   _teamUpdater(_allocator, this)
 ,   _positionUpdater(_allocator, this)
@@ -19,7 +22,15 @@ WorldUpdater::WorldUpdater()
 ,   _pathUpdater(_allocator, this, *_mapInfo)
 ,   _weaponUpdater(_allocator, this)
 ,   _towerControllerUpdater(_allocator, this)
-{}
+{
+    _modulesCreators["TeamModuleDescriptor"] = _teamUpdater.get();
+    _modulesCreators["PositionModuleDescriptor"] = _positionUpdater.get();
+    _modulesCreators["DamageModuleDescriptor"] = _damageUpdater.get();
+    _modulesCreators["MovementModuleDescriptor"] = _movementUpdater.get();
+    _modulesCreators["PathModuleDescriptor"] = _pathUpdater.get();
+    _modulesCreators["WeaponModuleDescriptor"] = _weaponUpdater.get();
+    _modulesCreators["TowerControllerModuleDescriptor"] = _towerControllerUpdater.get();
+}
 
 WorldUpdater::~WorldUpdater()
 {}
@@ -70,51 +81,27 @@ void WorldUpdater::load()
 
         _mapInfo->load(&mapDesc);
     }
-    {
-        // Load modules
-        TeamModuleDescriptor towerTeamDesc;
-        towerTeamDesc.teamId = 1;
 
-        PositionModuleDescriptor positionDesc;
-        positionDesc.position = glm::vec3(0.f);
-        positionDesc.orientation = glm::vec2(0.f);
-
-        WeaponModuleDescriptor weaponDesc;
-        weaponDesc.damage = 20;
-        weaponDesc.rate = 4.f;
-
-        TowerControllerModuleDescriptor towerControllerDesc;
-        towerControllerDesc.range = 10.f;
-        towerControllerDesc.rotationSpeed = 1.5f;
-
-        TeamModuleDescriptor targetTeamDesc;
-        targetTeamDesc.teamId = 2;
-
-        PositionModuleDescriptor positionTargetDesc;
-        positionTargetDesc.position = glm::vec3(1.f, 1.f, 1.f);
-        positionTargetDesc.orientation = glm::vec2(0.f);
-
-        MovementModuleDescriptor targetMovementDesc;
-        targetMovementDesc.speed = 0.2f;
-
-        DamageModuleDescriptor damageTargetDesc;
-        damageTargetDesc.maxHealth = 500;
-
-        _teamUpdater->createModule(1, &towerTeamDesc);
-        _positionUpdater->createModule(1, &positionDesc);
-        _weaponUpdater->createModule(1, &weaponDesc);
-        _towerControllerUpdater->createModule(1, &towerControllerDesc);
-
-        _teamUpdater->createModule(2, &targetTeamDesc);
-        _positionUpdater->createModule(2, &positionTargetDesc);
-        _movementUpdater->createModule(2, &targetMovementDesc);
-        _damageUpdater->createModule(2, &damageTargetDesc);
-    }
+    createEntity("tower");
+    createEntity("enemy");
 }
 
 void WorldUpdater::unload()
 {
     _mapInfo->unload();
+}
+
+void WorldUpdater::createEntity(const std::string& entityName)
+{
+    const EntityDescriptor& entityDescriptor = _entityDb->getEntityDescriptor(entityName);
+    const EntityId id = _currentId;
+
+    for (auto& moduleDescriptor : entityDescriptor)
+    {
+        Assert(_modulesCreators.count(moduleDescriptor.first) > 0);
+        _modulesCreators.at(moduleDescriptor.first)->createModule(id, moduleDescriptor.second);
+    }
+    ++_currentId;
 }
 
 void WorldUpdater::removeEntity(EntityId id)

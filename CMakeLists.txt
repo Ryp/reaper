@@ -70,12 +70,14 @@ set(REAPER_SRCS
     ${CMAKE_SOURCE_DIR}/src/filesystem/UnixFileWatcher.cpp
     ${CMAKE_SOURCE_DIR}/src/filesystem/UnixFileWatcher.h
 
-    ${CMAKE_SOURCE_DIR}/src/game/EntityDescriptor.cpp
     ${CMAKE_SOURCE_DIR}/src/game/EntityDescriptor.h
     ${CMAKE_SOURCE_DIR}/src/game/ModuleUpdater.cpp
     ${CMAKE_SOURCE_DIR}/src/game/ModuleUpdater.h
     ${CMAKE_SOURCE_DIR}/src/game/WorldUpdater.cpp
     ${CMAKE_SOURCE_DIR}/src/game/WorldUpdater.h
+
+    ${CMAKE_SOURCE_DIR}/src/game/entitydb/EntityDb.cpp
+    ${CMAKE_SOURCE_DIR}/src/game/entitydb/EntityDb.h
 
     ${CMAKE_SOURCE_DIR}/src/game/map/MapDescriptor.h
     ${CMAKE_SOURCE_DIR}/src/game/map/MapInfo.cpp

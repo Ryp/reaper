@@ -10,7 +10,7 @@
 
 #include "game/ModuleUpdater.h"
 
-struct DamageModuleDescriptor {
+struct DamageModuleDescriptor : public ModuleDescriptor {
     u32 maxHealth;
 };
 
@@ -20,14 +20,14 @@ struct DamageModule {
     u32 damages;
 };
 
-class DamageUpdater : public ModuleUpdater<DamageModule>
+class DamageUpdater : public ModuleUpdater<DamageModule, DamageModuleDescriptor>
 {
 public:
-    DamageUpdater(AbstractWorldUpdater* worldUpdater) : ModuleUpdater<DamageModule>(worldUpdater) {}
+    DamageUpdater(AbstractWorldUpdater* worldUpdater) : ModuleUpdater<DamageModule, DamageModuleDescriptor>(worldUpdater) {}
 
 public:
     void update(float dt);
-    void createModule(EntityId id, DamageModuleDescriptor const* descriptor);
+    void createModule(EntityId id, const DamageModuleDescriptor* descriptor) override;
 };
 
 #endif // REAPER_DAMAGEMODULE_INCLUDED

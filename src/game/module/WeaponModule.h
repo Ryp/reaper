@@ -10,7 +10,7 @@
 
 #include "game/ModuleUpdater.h"
 
-struct WeaponModuleDescriptor {
+struct WeaponModuleDescriptor : public ModuleDescriptor {
     u32 damage;
     f32 rate;
 };
@@ -21,14 +21,14 @@ struct WeaponModule {
     u32 cooldownMs;
 };
 
-class WeaponUpdater : public ModuleUpdater<WeaponModule>
+class WeaponUpdater : public ModuleUpdater<WeaponModule, WeaponModuleDescriptor>
 {
 public:
-    WeaponUpdater(AbstractWorldUpdater* worldUpdater) : ModuleUpdater<WeaponModule>(worldUpdater) {}
+    WeaponUpdater(AbstractWorldUpdater* worldUpdater) : ModuleUpdater<WeaponModule, WeaponModuleDescriptor>(worldUpdater) {}
 
 public:
     void update(float dt);
-    void createModule(EntityId id, WeaponModuleDescriptor const* descriptor);
+    void createModule(EntityId id, const WeaponModuleDescriptor* descriptor) override;
 };
 
 #endif // REAPER_WEAPONMODULE_INCLUDED

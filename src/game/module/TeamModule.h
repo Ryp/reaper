@@ -10,7 +10,7 @@
 
 #include "game/ModuleUpdater.h"
 
-struct TeamModuleDescriptor {
+struct TeamModuleDescriptor : public ModuleDescriptor {
     u8 teamId;
 };
 
@@ -18,13 +18,13 @@ struct TeamModule {
     u8 teamId;
 };
 
-class TeamUpdater : public ModuleUpdater<TeamModule>
+class TeamUpdater : public ModuleUpdater<TeamModule, TeamModuleDescriptor>
 {
 public:
-    TeamUpdater(AbstractWorldUpdater* worldUpdater) : ModuleUpdater<TeamModule>(worldUpdater) {}
+    TeamUpdater(AbstractWorldUpdater* worldUpdater) : ModuleUpdater<TeamModule, TeamModuleDescriptor>(worldUpdater) {}
 
 public:
-    void createModule(EntityId id, TeamModuleDescriptor const* descriptor);
+    void createModule(EntityId id, const TeamModuleDescriptor* descriptor) override;
 };
 
 #endif // REAPER_TEAMMODULE_INCLUDED

@@ -13,7 +13,7 @@
 
 #include "MovementModule.h"
 
-struct PathModuleDescriptor {
+struct PathModuleDescriptor : public ModuleDescriptor {
 //     u32 placeHolder;
 };
 
@@ -23,7 +23,7 @@ struct PathModule {
     u16 pathSubId;
 };
 
-class PathUpdater : public ModuleUpdater<PathModule>
+class PathUpdater : public ModuleUpdater<PathModule, PathModuleDescriptor>
 {
 public:
     PathUpdater(AbstractWorldUpdater* worldUpdater, MapInfo& mapInfo);
@@ -31,7 +31,7 @@ public:
 
 public:
     void update(float dt, ModuleAccessor<MovementModule> movementModuleAccessor);
-    void createModule(EntityId id, PathModuleDescriptor const* descriptor);
+    void createModule(EntityId id, const PathModuleDescriptor* descriptor) override;
 
 private:
     void computeConstructibleFlags();

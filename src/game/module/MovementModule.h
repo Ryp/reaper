@@ -10,10 +10,11 @@
 
 #include "game/ModuleUpdater.h"
 #include "game/pathing/AIPath.h"
+#include "game/map/MapInfo.h"
 
 #include "PositionModule.h"
 
-struct MovementModuleDescriptor {
+struct MovementModuleDescriptor : public ModuleDescriptor {
     f32 speed;
 };
 
@@ -22,14 +23,17 @@ struct MovementModule {
     AIPath path;
 };
 
-class MovementUpdater : public ModuleUpdater<MovementModule>
+class MovementUpdater : public ModuleUpdater<MovementModule, MovementModuleDescriptor>
 {
 public:
-    MovementUpdater(AbstractWorldUpdater* worldUpdater) : ModuleUpdater<MovementModule>(worldUpdater) {}
+    MovementUpdater(AbstractWorldUpdater* worldUpdater) : ModuleUpdater<MovementModule, MovementModuleDescriptor>(worldUpdater) {}
 
 public:
     void update(float dt, ModuleAccessor<PositionModule> positionModuleAccessor);
-    void createModule(EntityId id, MovementModuleDescriptor const* descriptor);
+    void createModule(EntityId id, const MovementModuleDescriptor* descriptor) override;
+
+public:
+    static void buildAIPath(MovementModule* movementModule, const TDPath& path);
 };
 
 #endif // REAPER_MOVEMENTMODULE_INCLUDED

@@ -11,7 +11,6 @@
 
 #include "renderer/Renderer.h"
 
-#include "game/WorldUpdater.h"
 #include "game/pathing/CostMap.h"
 
 // static void test1()
@@ -55,14 +54,20 @@
 //     destroyCostMap(map);
 // }
 
+#include "game/WorldUpdater.h"
+#include "game/entitydb/EntityDb.h"
+
 static void game_test()
 {
-    WorldUpdater    wu;
+    EntityDb        db;
+    WorldUpdater    wu(&db);
 
+    db.load();
     wu.load();
     for (int i = 0; i < 100; ++i)
         wu.updateModules(0.16f);
     wu.unload();
+    db.unload();
 }
 
 // #include "renderer/vulkan/PresentationSurface.h"
