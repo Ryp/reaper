@@ -10,9 +10,10 @@
 
 #include <map>
 
-class AbstractWorldUpdater;
+#include "core/Cast.h"
+#include "EntityDescriptor.h"
 
-using EntityId = u32;
+class AbstractWorldUpdater;
 
 template <class ModuleType>
 class ModuleAccessor
@@ -38,18 +39,39 @@ private:
     std::map<EntityId, ModuleType>& _modules;
 };
 
-template <class ModuleType>
-class ModuleUpdater
+class AbstractModuleUpdater
+{
+public:
+    virtual ~AbstractModuleUpdater() {}
+    virtual void createModule(EntityId id, const ModuleDescriptor* descriptor) = 0;
+};
+
+template <class ModuleType, class DescriptorType>
+class ModuleUpdater : public AbstractModuleUpdater
 {
 public:
     ModuleUpdater(AbstractWorldUpdater* worldUpdater) : _worldUpdater(worldUpdater) {}
     virtual ~ModuleUpdater() {}
 
 public:
-    ModuleAccessor<ModuleType> getModuleAccessor() { return ModuleAccessor<ModuleType>(_modules); }
-    void removeModule(EntityId id) { if (_modules.count(id) > 0) _modules.erase(id); }
+    ModuleAccessor<ModuleType> getModuleAccessor()
+    {
+        return ModuleAccessor<ModuleType>(_modules);
+    }
+
+    void createModule(EntityId id, const ModuleDescriptor* descriptor) override
+    {
+        createModule(id, checked_cast<const DescriptorType*>(descriptor));
+    }
+
+    void removeModule(EntityId id)
+    {
+        if (_modules.count(id) > 0)
+            _modules.erase(id);
+    }
 
 protected:
+    virtual void createModule(EntityId id, const DescriptorType* descriptor) = 0;
     void addModule(EntityId id, ModuleType& module)
     {
         Assert(_modules.count(id) == 0, "entity id already taken");

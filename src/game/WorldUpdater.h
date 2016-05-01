@@ -8,8 +8,10 @@
 #ifndef REAPER_WORLDUPDATER_INCLUDED
 #define REAPER_WORLDUPDATER_INCLUDED
 
-#include <memory>
+#include <string>
+#include <map>
 #include <queue>
+#include <memory>
 
 #include "ModuleUpdater.h"
 
@@ -31,10 +33,13 @@ public:
     virtual void notifyRemoveEntity(EntityId id) = 0;
 };
 
+class EntityDb;
+
 class WorldUpdater : public AbstractWorldUpdater
 {
+    using ModuleCreators = std::map<std::string, AbstractModuleUpdater*>;
 public:
-    WorldUpdater();
+    WorldUpdater(EntityDb* entityDb);
     ~WorldUpdater();
 
 public:
@@ -44,9 +49,13 @@ public:
     void notifyRemoveEntity(EntityId id);
 
 private:
+    void createEntity(const std::string& entityName);
     void removeEntity(EntityId id);
 
 private:
+    EntityDb*               _entityDb;
+    EntityId                _currentId;
+    ModuleCreators          _modulesCreators;
     StackAllocator          _allocator;
     std::queue<EntityId>    _idToRemove;
 

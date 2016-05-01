@@ -8,10 +8,16 @@
 #ifndef REAPER_ENTITYDESCRIPTOR_INCLUDED
 #define REAPER_ENTITYDESCRIPTOR_INCLUDED
 
-class EntityDescriptor {
-public:
-    EntityDescriptor() = default;
+#include <map>
+#include <string>
 
+struct ModuleDescriptor
+{
+    virtual ~ModuleDescriptor() {}
 };
+
+using EntityDescriptor = std::map<std::string, ModuleDescriptor*>;
+
+using EntityId = u32;
 
 #endif // REAPER_ENTITYDESCRIPTOR_INCLUDED

@@ -15,7 +15,7 @@
 #include "game/map/MapDescriptor.h"
 
 PathUpdater::PathUpdater(AbstractWorldUpdater* worldUpdater, MapInfo& mapInfo)
-:   ModuleUpdater<PathModule>(worldUpdater)
+:   ModuleUpdater<PathModule, PathModuleDescriptor>(worldUpdater)
 ,   _mapInfo(mapInfo)
 {}
 

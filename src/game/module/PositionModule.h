@@ -13,7 +13,7 @@
 
 #include "game/ModuleUpdater.h"
 
-struct PositionModuleDescriptor {
+struct PositionModuleDescriptor : public ModuleDescriptor {
     glm::vec3   position;
     glm::vec2   orientation;
 };
@@ -25,14 +25,14 @@ struct PositionModule {
     glm::vec2   rotationSpeed;
 };
 
-class PositionUpdater : public ModuleUpdater<PositionModule>
+class PositionUpdater : public ModuleUpdater<PositionModule, PositionModuleDescriptor>
 {
 public:
-    PositionUpdater(AbstractWorldUpdater* worldUpdater) : ModuleUpdater<PositionModule>(worldUpdater) {}
+    PositionUpdater(AbstractWorldUpdater* worldUpdater) : ModuleUpdater<PositionModule, PositionModuleDescriptor>(worldUpdater) {}
 
 public:
     void update(float dt);
-    void createModule(EntityId id, PositionModuleDescriptor const* descriptor);
+    void createModule(EntityId id, const PositionModuleDescriptor* descriptor) override;
 };
 
 #endif // REAPER_POSITIONMODULE_INCLUDED
