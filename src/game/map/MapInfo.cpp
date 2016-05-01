@@ -32,6 +32,8 @@ void MapInfo::load(MapDescriptor* mapDescriptor)
             (*_cells)[it].flags = CellFlags::Pathable | CellFlags::Constructible;
     }
 
+    _accesses.resize(mapDescriptor->accesses.size());
+
     for (unsigned int i = 0; i < mapDescriptor->accesses.size(); ++i)
     {
         const MapAccess& access = mapDescriptor->accesses[i];
@@ -42,6 +44,8 @@ void MapInfo::load(MapDescriptor* mapDescriptor)
 
         (*_cells)[access.entrance].flags &= ~CellFlags::Constructible;
         (*_cells)[access.exit].flags &= ~CellFlags::Constructible;
+
+        _accesses[i] = access;
     }
 }
 
@@ -56,4 +60,9 @@ CellMap& MapInfo::getCells()
 {
     Assert(_cells != nullptr);
     return *_cells;
+}
+
+const std::vector<MapAccess>& MapInfo::getMapAccesses() const
+{
+    return _accesses;
 }

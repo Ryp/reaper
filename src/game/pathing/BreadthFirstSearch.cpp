@@ -10,7 +10,6 @@
 #include "core/EnumHelper.h"
 
 #include <queue>
-#include <iostream>
 
 namespace pathing
 {
@@ -23,14 +22,13 @@ namespace pathing
         Assert(goal < graph.size, "goal is out of bounds");
         Assert((graph[goal].bfs & to_underlying(NodeInfo::Pathable)) != 0, "goal is not pathable");
 
+        graph[goal].bfs |= to_underlying(NodeInfo::IsGoal);
+
         frontier.push(goal);
         while (!frontier.empty())
         {
             current = frontier.front();
             frontier.pop();
-
-            std::cout << "Frontier size = " << frontier.size();
-            std::cout << ", Visiting " << current.x << "," << current.y << std::endl;
 
             // Visiting neighbors
             // x - 1
@@ -84,4 +82,31 @@ namespace pathing
         // Remove any direction we set
         graph[goal].bfs &= ~ (to_underlying(NodeInfo::PlusX) | to_underlying(NodeInfo::MinusX) | to_underlying(NodeInfo::PlusY) | to_underlying(NodeInfo::MinusY));
     }
+
+    void buildPathFromBFS(uvec2 start, TDPath& path, const CellMap& graph)
+    {
+        uvec2 current = start;
+
+        Assert(graph[start].bfs & to_underlying(NodeInfo::Visited), "goal unreachable from this start");
+        Assert(path.empty());
+
+        while (!(graph[current].bfs & to_underlying(NodeInfo::IsGoal)))
+        {
+            path.push_back(current);
+
+            if (graph[current].bfs & to_underlying(NodeInfo::PlusX))
+                ++current.x;
+            else if (graph[current].bfs & to_underlying(NodeInfo::MinusX))
+                --current.x;
+            else if (graph[current].bfs & to_underlying(NodeInfo::PlusY))
+                ++current.y;
+            else if (graph[current].bfs & to_underlying(NodeInfo::MinusY))
+                --current.y;
+
+            Assert(current < graph.size);
+        }
+
+        path.push_back(current);
+    }
 }
+

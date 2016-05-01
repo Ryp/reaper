@@ -17,12 +17,14 @@
 
 struct TowerControllerModuleDescriptor {
     f32 rotationSpeed;
-    f32 range;
+    f32 rangeMin;
+    f32 rangeMax;
 };
 
 struct TowerControllerModule {
     f32 rotationSpeed;
-    f32 range;
+    f32 rangeMin;
+    f32 rangeMax;
 };
 
 class TowerControllerUpdater : public ModuleUpdater<TowerControllerModule>
