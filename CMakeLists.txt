@@ -95,6 +95,8 @@ set(REAPER_SRCS
     ${CMAKE_SOURCE_DIR}/src/game/module/TeamModule.h
     ${CMAKE_SOURCE_DIR}/src/game/module/TowerControllerModule.cpp
     ${CMAKE_SOURCE_DIR}/src/game/module/TowerControllerModule.h
+    ${CMAKE_SOURCE_DIR}/src/game/module/WaveSpawnerModule.cpp
+    ${CMAKE_SOURCE_DIR}/src/game/module/WaveSpawnerModule.h
     ${CMAKE_SOURCE_DIR}/src/game/module/WeaponModule.cpp
     ${CMAKE_SOURCE_DIR}/src/game/module/WeaponModule.h
 

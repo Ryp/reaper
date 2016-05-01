@@ -64,8 +64,8 @@ static void game_test()
 
     db.load();
     wu.load();
-    for (int i = 0; i < 100; ++i)
-        wu.updateModules(0.16f);
+    for (int i = 0; i < 200; ++i)
+        wu.updateModules(0.6f);
     wu.unload();
     db.unload();
 }
@@ -93,3 +93,4 @@ int main(int /*ac*/, char** /*av*/)
     game_test();
     return 0;
 }
+

@@ -30,7 +30,8 @@ public:
     ~PathUpdater();
 
 public:
-    void update(float dt, ModuleAccessor<MovementModule> movementModuleAccessor);
+    void update(float dt, ModuleAccessor<MovementModule> movementModuleAccessor,
+                          ModuleAccessor<PositionModule> positionModuleAccessor);
     void createModule(EntityId id, const PathModuleDescriptor* descriptor) override;
 
 private:
