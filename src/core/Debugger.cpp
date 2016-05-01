@@ -7,7 +7,7 @@
 
 #include "Debugger.h"
 
-#if defined(REAPERGL_PLATFORM_WINDOWS)
+#if defined(REAPER_PLATFORM_WINDOWS)
 
 // Does not check for remote debugger
 bool isInDebugger()
@@ -15,7 +15,7 @@ bool isInDebugger()
     return IsDebuggerPresent() == TRUE;
 }
 
-#elif defined(REAPERGL_PLATFORM_LINUX)
+#elif defined(REAPER_PLATFORM_LINUX)
 
 #include <cstdlib>
 #include <sys/stat.h>
@@ -53,7 +53,7 @@ bool isInDebugger()
     return gdbPresent;
 }
 
-#elif defined(REAPERGL_PLATFORM_MACOSX)
+#elif defined(REAPER_PLATFORM_MACOSX)
 
 #include <assert.h>
 #include <stdbool.h>

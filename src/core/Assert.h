@@ -14,17 +14,17 @@
 #include "Platform.h"
 #include "Debugger.h"
 
-#if defined(REAPERGL_PLATFORM_WINDOWS)
+#if defined(REAPER_PLATFORM_WINDOWS)
     #include <intrin.h> // for __debugbreak
 #endif
 
 inline void breakpoint()
 {
-#if defined(REAPERGL_PLATFORM_WINDOWS)
+#if defined(REAPER_PLATFORM_WINDOWS)
     __debugbreak();
-#elif defined(REAPERGL_PLATFORM_LINUX) && defined(REAPERGL_CPU_ARCH_X86)
+#elif defined(REAPER_PLATFORM_LINUX) && defined(REAPER_CPU_ARCH_X86)
     __asm__("int $3");
-#elif defined(REAPERGL_PLATFORM_MACOSX) && defined(REAPERGL_CPU_ARCH_X86)
+#elif defined(REAPER_PLATFORM_MACOSX) && defined(REAPER_CPU_ARCH_X86)
     __asm__("int $3");
 #else
     #error breakpoint() not available!
@@ -68,6 +68,6 @@ inline void AssertImpl(bool condition, const char* file, const char* func, int l
 
 // Actual macros
 #define Assert(...) CALL_OVERLOAD(Assert, __VA_ARGS__)
-#define AssertUnreachable() AssertImpl(false, __FILE__, __FUNCTION__, __LINE__)
+#define AssertUnreachable() AssertImpl(false, __FILE__, __FUNCTION__, __LINE__, "unreachable")
 
 #endif // REAPER_ASSERT_INCLUDED

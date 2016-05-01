@@ -7,7 +7,7 @@
 
 #include "StackTrace.h"
 
-#if defined(REAPERGL_PLATFORM_LINUX)
+#if defined(REAPER_PLATFORM_LINUX)
 
 #define UNW_LOCAL_ONLY
 #include <libunwind.h>
@@ -53,7 +53,7 @@ void printStacktrace()
     }
 }
 
-#elif defined(REAPERGL_PLATFORM_WINDOWS) || defined(REAPERGL_PLATFORM_MACOSX)
+#elif defined(REAPER_PLATFORM_WINDOWS) || defined(REAPER_PLATFORM_MACOSX)
 
 void printStacktrace()
 {
