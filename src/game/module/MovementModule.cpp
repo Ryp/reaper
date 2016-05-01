@@ -47,10 +47,29 @@ void MovementUpdater::createModule(EntityId id, const MovementModuleDescriptor* 
 {
     MovementModule module;
     module.speed = descriptor->speed;
-    module.path.resize(3);
-    module.path[2] = {glm::vec2(1.f, 1.f),  glm::vec2(1.f, 0.f)};
-    module.path[1] = {glm::vec2(1.f, 0.f),  glm::vec2(1.f, -1.f)};
-    module.path[0] = {glm::vec2(1.f, -1.f), glm::vec2(0.f, -1.f)};
 
     addModule(id, module);
+}
+
+void MovementUpdater::buildAIPath(MovementModule* movementModule, const TDPath& path)
+{
+    Assert(!path.empty());
+
+    const float nodeSpacing = 1.f;
+    const glm::vec2 nodeOffset(0.f, 0.f);
+    const std::size_t segmentsNo = path.size() - 1;
+    uvec2 start;
+    uvec2 end;
+
+    movementModule->path.resize(segmentsNo);
+    for (std::size_t i = 0; i < segmentsNo; ++i)
+    {
+        start = path[i];
+        end = path[i + 1];
+
+        movementModule->path[segmentsNo - i - 1] = {
+            nodeOffset + glm::vec2(start.x, start.y) * nodeSpacing,
+            nodeOffset + glm::vec2(end.x, end.y) * nodeSpacing
+        };
+    }
 }

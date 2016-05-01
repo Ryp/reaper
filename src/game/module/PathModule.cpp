@@ -22,9 +22,61 @@ PathUpdater::PathUpdater(AbstractWorldUpdater* worldUpdater, MapInfo& mapInfo)
 PathUpdater::~PathUpdater()
 {}
 
-void PathUpdater::update(float /*dt*/, ModuleAccessor<MovementModule> /*movementModuleAccessor*/)
+void PathUpdater::update(float /*dt*/, ModuleAccessor<MovementModule> movementModuleAccessor)
 {
-    debugPathFinder();
+    CellMap&    map = _mapInfo.getCells();
+
+    {
+        uvec2 it;
+        for (it.x = 0; it.x < map.size.x; ++it.x)
+        {
+            for (it.y = 0; it.y < map.size.y; ++it.y)
+            {
+                if (map[it].flags & CellFlags::Pathable)
+                    map[it].bfs = to_underlying(pathing::NodeInfo::Pathable);
+                else
+                    map[it].bfs = to_underlying(pathing::NodeInfo::None);
+            }
+        }
+    }
+
+    const u32 accessIndex = 0;
+    uvec2 goal = _mapInfo.getMapAccesses()[accessIndex].exit;
+    TDPath path;
+
+    pathing::computeBreadthFirstSearch(goal, map);
+    pathing::buildPathFromBFS(_mapInfo.getMapAccesses()[accessIndex].entrance, path, map);
+
+    for (auto& it : _modules)
+    {
+        auto& pathInstance = it.second;
+        const EntityId entityId = it.first;
+
+        pathInstance.path = path;
+
+        MovementModule* movementModule = movementModuleAccessor[entityId];
+        if (movementModule->path.empty())
+            MovementUpdater::buildAIPath(movementModule, path);
+    }
+
+//     for (it.y = 0; it.y < map.size.y; ++it.y)
+//     {
+//         for (it.x = 0; it.x < map.size.x; ++it.x)
+//         {
+//             if (map[it].bfs & to_underlying(pathing::NodeInfo::PlusX))
+//                 std::cout << '>';
+//             else if (map[it].bfs & to_underlying(pathing::NodeInfo::MinusX))
+//                 std::cout << '<';
+//             else if (map[it].bfs & to_underlying(pathing::NodeInfo::PlusY))
+//                 std::cout << 'v';
+//             else if (map[it].bfs & to_underlying(pathing::NodeInfo::MinusY))
+//                 std::cout << '^';
+//             else
+//                 std::cout << '.';
+//         }
+//         std::cout << std::endl;
+//     }
+//     AssertUnreachable();
 }
 
 void PathUpdater::createModule(EntityId id, const PathModuleDescriptor* /*descriptor*/)
@@ -53,43 +105,4 @@ void PathUpdater::computeConstructibleFlags()
             map[it].flags &= CellFlags::Constructible;
         }
     }
-}
-
-void PathUpdater::debugPathFinder()
-{
-    CellMap&    map = _mapInfo.getCells();
-    uvec2       it;
-    uvec2       goal(2, 2);
-
-    for (it.x = 0; it.x < map.size.x; ++it.x)
-    {
-        for (it.y = 0; it.y < map.size.y; ++it.y)
-        {
-            if (map[it].flags & CellFlags::Pathable)
-                map[it].bfs = to_underlying(pathing::NodeInfo::Pathable);
-            else
-                map[it].bfs = to_underlying(pathing::NodeInfo::None);
-        }
-    }
-
-    pathing::computeBreadthFirstSearch(goal, map);
-
-    for (it.y = 0; it.y < map.size.y; ++it.y)
-    {
-        for (it.x = 0; it.x < map.size.x; ++it.x)
-        {
-            if (map[it].bfs & to_underlying(pathing::NodeInfo::PlusX))
-                std::cout << '>';
-            else if (map[it].bfs & to_underlying(pathing::NodeInfo::MinusX))
-                std::cout << '<';
-            else if (map[it].bfs & to_underlying(pathing::NodeInfo::PlusY))
-                std::cout << 'v';
-            else if (map[it].bfs & to_underlying(pathing::NodeInfo::MinusY))
-                std::cout << '^';
-            else
-                std::cout << '.';
-        }
-        std::cout << std::endl;
-    }
-    AssertUnreachable();
 }

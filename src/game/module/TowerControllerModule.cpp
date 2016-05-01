@@ -38,10 +38,11 @@ void TowerControllerUpdater::update(float dt,
             const EntityId targetId = positionModuleIt.first;
             const glm::vec2 positionDiff = glm::vec2(targetPositionModule->position - towerPositionModule->position);
             const float distanceSq = sqr(positionDiff.x) + sqr(positionDiff.y);
-            const float rangeSq = sqr(moduleInstance.range);
+            const float rangeMinSq = sqr(moduleInstance.rangeMin);
+            const float rangeMaxSq = sqr(moduleInstance.rangeMax);
 
             // Check if target is in range
-            if (distanceSq > rangeSq)
+            if (distanceSq > rangeMaxSq || distanceSq < rangeMinSq)
                 continue;
 
             // Check if target is an enemy
@@ -67,8 +68,12 @@ void TowerControllerUpdater::update(float dt,
 void TowerControllerUpdater::createModule(EntityId id, const TowerControllerModuleDescriptor* descriptor)
 {
     TowerControllerModule module;
-    module.range = descriptor->range;
+    module.rangeMin = descriptor->rangeMin;
+    module.rangeMax = descriptor->rangeMax;
     module.rotationSpeed = descriptor->rotationSpeed;
+
+    Assert(module.rangeMin > 0.f, "minimum range must be strictly positive");
+    Assert(module.rangeMin < module.rangeMax, "maximum range is lower than minimum range");
 
     addModule(id, module);
 }

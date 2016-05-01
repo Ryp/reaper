@@ -23,13 +23,17 @@ namespace pathing
         PlusX = bit(3),
         MinusX = bit(4),
         PlusY = bit(5),
-        MinusY = bit(6)
+        MinusY = bit(6),
+        // Special
+        IsGoal = bit(7)
     };
 
     // Compute a basic Breadth First Search without any early exit to make sure
     // every reachable node is covered.
     // Don't forget to clear any flags set by a previous call of this function
     void computeBreadthFirstSearch(uvec2 goal, CellMap& graph);
+
+    void buildPathFromBFS(uvec2 start, TDPath& path, const CellMap& graph);
 }
 
 #endif // REAPER_BREADTHFIRSTSEARCH_INCLUDED
