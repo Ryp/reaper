@@ -1,0 +1,23 @@
+////////////////////////////////////////////////////////////////////////////////
+/// ReaperGL
+///
+/// Copyright (c) 2015-2016 Thibault Schueller
+/// This file is distributed under the MIT License
+////////////////////////////////////////////////////////////////////////////////
+
+#include "FileLoading.h"
+
+#include <fstream>
+
+std::vector<char> readWholeFile(const std::string& fileName)
+{
+    std::ifstream ifs(fileName.c_str(), std::ios::in | std::ios::binary | std::ios::ate);
+
+    std::ifstream::pos_type fileSize = ifs.tellg();
+    ifs.seekg(0, std::ios::beg);
+
+    std::vector<char> bytes(fileSize);
+    ifs.read(&bytes[0], fileSize);
+
+    return bytes;
+}

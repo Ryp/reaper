@@ -53,6 +53,13 @@ set(REAPER_SRCS
     ${CMAKE_SOURCE_DIR}/src/core/StackTrace.h
     ${CMAKE_SOURCE_DIR}/src/core/Types.h
 
+    ${CMAKE_SOURCE_DIR}/src/core/fs/FileLoading.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/fs/FileLoading.h
+    ${CMAKE_SOURCE_DIR}/src/core/fs/Path.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/fs/Path.h
+    ${CMAKE_SOURCE_DIR}/src/core/fs/UnixFileWatcher.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/fs/UnixFileWatcher.h
+
     ${CMAKE_SOURCE_DIR}/src/core/memory/Allocator.cpp
     ${CMAKE_SOURCE_DIR}/src/core/memory/Allocator.h
     ${CMAKE_SOURCE_DIR}/src/core/memory/CacheLine.cpp
@@ -64,11 +71,6 @@ set(REAPER_SRCS
 
     ${CMAKE_SOURCE_DIR}/src/cvar/CVar.cpp
     ${CMAKE_SOURCE_DIR}/src/cvar/CVar.h
-
-    ${CMAKE_SOURCE_DIR}/src/filesystem/Path.cpp
-    ${CMAKE_SOURCE_DIR}/src/filesystem/Path.h
-    ${CMAKE_SOURCE_DIR}/src/filesystem/UnixFileWatcher.cpp
-    ${CMAKE_SOURCE_DIR}/src/filesystem/UnixFileWatcher.h
 
     ${CMAKE_SOURCE_DIR}/src/game/EntityDescriptor.h
     ${CMAKE_SOURCE_DIR}/src/game/ModuleUpdater.cpp
