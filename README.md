@@ -1,6 +1,9 @@
-# ReaperGL
+# Reaper
 
-ReaperGL is a small C++14 Engine project based on OpenGL 4.5.
+Reaper is a small C++14 Engine to test stuff
+
+Originally for OpenGL, now turning into a Tower Defense game.
+Vulkan might be used for the rendering also.
 
 ## Build
 

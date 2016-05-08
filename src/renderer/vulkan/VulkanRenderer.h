@@ -29,7 +29,9 @@ private:
     void createSemaphores();
     void createSwapChain();
     void createCommandBuffers();
-    void recordCommandBuffers();
+    void createRenderPass();
+    void createFramebuffers();
+    void createPipeline();
 
 private:
     LibHandle           _vulkanLib;
@@ -37,17 +39,27 @@ private:
 private:
     VkInstance          _instance;
     VkPhysicalDevice    _physicalDevice;
-    VkSemaphore         _imageAvailableSemaphore;
-    VkSemaphore         _renderingFinishedSemaphore;
     VkSurfaceKHR        _presentationSurface;
     VkQueue             _presentationQueue;
+    VkQueue             _graphicsQueue;
     VkSwapchainKHR      _swapChain;
+    std::vector<VkImage>_swapChainImages;
+    VkFormat            _swapChainFormat;
     VkDevice            _device;
+    VkPipeline          _pipeline;
+    VkSemaphore         _imageAvailableSemaphore;
+    VkSemaphore         _renderingFinishedSemaphore;
 
 private:
-    VkCommandPool                   _presentCmdPool;
-    std::vector<VkCommandBuffer>    _presentCmdBuffers;
-    uint32_t                        _presentQueueIndex;
+    VkCommandPool                   _gfxCmdPool;
+    std::vector<VkCommandBuffer>    _gfxCmdBuffers;
+    uint32_t                        _gfxQueueIndex;
+    uint32_t                        _prsQueueIndex;
+
+private:
+    VkRenderPass                _renderPass;
+    std::vector<VkFramebuffer>  _framebuffers;
+    std::vector<VkImageView>    _swapChainImageViews;
 };
 
 #endif // REAPER_VULKANRENDERER_INCLUDED

@@ -38,7 +38,7 @@
 #include "renderer/Camera.h"
 #include "renderer/resource/ResourceManager.h"
 
-#include "filesystem/Path.h"
+#include "core/fs/Path.h"
 
 #include "input/SixAxisController.h"
 
