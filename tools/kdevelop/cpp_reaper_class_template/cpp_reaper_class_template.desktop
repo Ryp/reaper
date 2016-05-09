@@ -1,0 +1,17 @@
+[General]
+Name=Class template
+Comment=ReaperGL class template
+Category=C++/Reaper
+Language=C++
+Type=Class
+Files=Header,Implementation
+
+[Header]
+Name=Header
+File=class.h
+OutputFile={{ name }}.h
+
+[Implementation]
+Name=Implementation
+File=class.cpp
+OutputFile={{ name }}.cpp
