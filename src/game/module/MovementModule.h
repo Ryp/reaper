@@ -25,8 +25,9 @@ struct MovementModule {
 
 class MovementUpdater : public ModuleUpdater<MovementModule, MovementModuleDescriptor>
 {
+    using parent_type = ModuleUpdater<MovementModule, MovementModuleDescriptor>;
 public:
-    MovementUpdater(AbstractWorldUpdater* worldUpdater) : ModuleUpdater<MovementModule, MovementModuleDescriptor>(worldUpdater) {}
+    MovementUpdater(AbstractWorldUpdater* worldUpdater) : parent_type(worldUpdater) {}
 
 public:
     void update(float dt, ModuleAccessor<PositionModule> positionModuleAccessor);

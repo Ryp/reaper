@@ -27,8 +27,9 @@ struct PositionModule {
 
 class PositionUpdater : public ModuleUpdater<PositionModule, PositionModuleDescriptor>
 {
+    using parent_type = ModuleUpdater<PositionModule, PositionModuleDescriptor>;
 public:
-    PositionUpdater(AbstractWorldUpdater* worldUpdater) : ModuleUpdater<PositionModule, PositionModuleDescriptor>(worldUpdater) {}
+    PositionUpdater(AbstractWorldUpdater* worldUpdater) : parent_type(worldUpdater) {}
 
 public:
     void update(float dt);

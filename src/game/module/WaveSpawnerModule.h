@@ -29,8 +29,9 @@ struct WaveSpawnerModule {
 
 class WaveSpawnerUpdater : public ModuleUpdater<WaveSpawnerModule, WaveSpawnerModuleDescriptor>
 {
+    using parent_type = ModuleUpdater<WaveSpawnerModule, WaveSpawnerModuleDescriptor>;
 public:
-    WaveSpawnerUpdater(AbstractWorldUpdater* worldUpdater) : ModuleUpdater<WaveSpawnerModule, WaveSpawnerModuleDescriptor>(worldUpdater) {}
+    WaveSpawnerUpdater(AbstractWorldUpdater* worldUpdater) : parent_type(worldUpdater) {}
 
 public:
     void update(float dt);

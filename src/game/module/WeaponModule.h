@@ -23,8 +23,9 @@ struct WeaponModule {
 
 class WeaponUpdater : public ModuleUpdater<WeaponModule, WeaponModuleDescriptor>
 {
+    using parent_type = ModuleUpdater<WeaponModule, WeaponModuleDescriptor>;
 public:
-    WeaponUpdater(AbstractWorldUpdater* worldUpdater) : ModuleUpdater<WeaponModule, WeaponModuleDescriptor>(worldUpdater) {}
+    WeaponUpdater(AbstractWorldUpdater* worldUpdater) : parent_type(worldUpdater) {}
 
 public:
     void update(float dt);
