@@ -9,7 +9,7 @@
 #define REAPER_BITTRICKS_INCLUDED
 
 // Return integer with bit n set to 1
-static constexpr unsigned int bit(unsigned int n)
+constexpr unsigned int bit(unsigned int n)
 {
     return 1 << n;
 }

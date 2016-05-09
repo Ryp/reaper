@@ -39,8 +39,8 @@ void EntityDb::load()
         positionDesc->orientation = glm::vec2(0.f);
 
         WeaponModuleDescriptor* weaponDesc = placementNew<WeaponModuleDescriptor>(_allocator);
-        weaponDesc->damage = 20;
-        weaponDesc->rate = 4.f;
+        weaponDesc->damage = 30;
+        weaponDesc->rate = 20.f;
 
         TowerControllerModuleDescriptor* towerControllerDesc = placementNew<TowerControllerModuleDescriptor>(_allocator);
         towerControllerDesc->rangeMin = 0.1f;
@@ -87,7 +87,7 @@ void EntityDb::load()
         waveSpawner->accessId = 0;
         waveSpawner->delay = 1.0f;
         waveSpawner->interval = 2.0f;
-        waveSpawner->unitCount = 10;
+        waveSpawner->unitCount = 1000;
         waveSpawner->unitToSpawn = "enemy";
 
         waveEntity["WaveSpawnerModuleDescriptor"] = waveSpawner;

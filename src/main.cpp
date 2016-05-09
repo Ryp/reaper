@@ -54,44 +54,44 @@
 //     destroyCostMap(map);
 // }
 
-// #include "game/WorldUpdater.h"
-// #include "game/entitydb/EntityDb.h"
-//
-// static void game_test()
-// {
-//     EntityDb        db;
-//     WorldUpdater    wu(&db);
-//
-//     db.load();
-//     wu.load();
-//     for (int i = 0; i < 200; ++i)
-//         wu.updateModules(0.6f);
-//     wu.unload();
-//     db.unload();
-// }
+#include "game/WorldUpdater.h"
+#include "game/entitydb/EntityDb.h"
 
-#include "renderer/vulkan/PresentationSurface.h"
-static void vulkan_test()
+static void game_test()
 {
-    Window  window;
+    EntityDb        db;
+    WorldUpdater    wu(&db);
 
-    window.Create("Vulkan Test");
-
-    AbstractRenderer* renderer = AbstractRenderer::createRenderer();
-    {
-        renderer->startup(&window);
-        window.renderLoop(renderer);
-        renderer->shutdown();
-    }
-    delete renderer;
+    db.load();
+    wu.load();
+    for (int i = 0; i < 2000; ++i)
+        wu.updateModules(0.15f);
+    wu.unload();
+    db.unload();
 }
+
+// #include "renderer/vulkan/PresentationSurface.h"
+// static void vulkan_test()
+// {
+//     Window  window;
+//
+//     window.Create("Vulkan Test");
+//
+//     AbstractRenderer* renderer = AbstractRenderer::createRenderer();
+//     {
+//         renderer->startup(&window);
+//         window.renderLoop(renderer);
+//         renderer->shutdown();
+//     }
+//     delete renderer;
+// }
 
 int main(int /*ac*/, char** /*av*/)
 {
     Assert(cacheLineSize() == REAPER_CACHELINE_SIZE);
 
-//     game_test();
-    vulkan_test();
+    game_test();
+//     vulkan_test();
     return 0;
 }
 
