@@ -1,0 +1,9 @@
+cmake_minimum_required(VERSION 3.5)
+
+project(templates)
+
+find_package(KDE4 REQUIRED)
+find_package(KDevPlatform REQUIRED)
+
+kdevplatform_add_file_templates(cpp_reaper_class_template)
+kdevplatform_add_file_templates(cpp_reaper_module_template)

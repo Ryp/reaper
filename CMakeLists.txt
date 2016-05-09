@@ -11,6 +11,8 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 include(cotire)
 include(ReaperGL)
 
+option(REAPER_BUILD_KDEV_TEMPLATES "Builds custom templates for kdevelop" OFF)
+
 if (WIN32)
     set(VK_PLATFORM "VK_USE_PLATFORM_WIN32_KHR")
 elseif(APPLE OR UNIX)
@@ -196,3 +198,7 @@ target_link_libraries(${REAPER_BIN}
 set_target_properties(${REAPER_BIN} PROPERTIES COTIRE_CXX_PREFIX_HEADER_INIT ${REAPER_PCH})
 set_target_properties(${REAPER_BIN} PROPERTIES COTIRE_UNITY_LINK_LIBRARIES_INIT "COPY")
 cotire(${REAPER_BIN})
+
+if (REAPER_BUILD_KDEV_TEMPLATES)
+    add_subdirectory(tools/kdevelop)
+endif()
