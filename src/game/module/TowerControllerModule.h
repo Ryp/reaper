@@ -25,12 +25,14 @@ struct TowerControllerModule {
     f32 rotationSpeed;
     f32 rangeMin;
     f32 rangeMax;
+    EntityId activeTargetId;
 };
 
 class TowerControllerUpdater : public ModuleUpdater<TowerControllerModule, TowerControllerModuleDescriptor>
 {
+    using parent_type = ModuleUpdater<TowerControllerModule, TowerControllerModuleDescriptor>;
 public:
-    TowerControllerUpdater(AbstractWorldUpdater* worldUpdater) : ModuleUpdater<TowerControllerModule, TowerControllerModuleDescriptor>(worldUpdater) {}
+    TowerControllerUpdater(AbstractWorldUpdater* worldUpdater) : parent_type(worldUpdater) {}
 
 public:
     void update(float dt, ModuleAccessor<PositionModule> positionModuleAccessor,
@@ -38,6 +40,11 @@ public:
                           ModuleAccessor<DamageModule> damageModuleAccessor,
                           ModuleAccessor<TeamModule> teamModuleAccessor);
     void createModule(EntityId id, const TowerControllerModuleDescriptor* descriptor) override;
+    void removeModule(EntityId id) override;
+
+private:
+    static void fireWeapon(WeaponModule* weaponModule, DamageModule* targetDamageModule);
+    static bool isPositionInRange(const TowerControllerModule& controllerModule, const glm::vec2& relativePosition);
 };
 
 #endif // REAPER_TOWERCONTROLLERMODULE_INCLUDED

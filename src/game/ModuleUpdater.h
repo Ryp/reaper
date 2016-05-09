@@ -64,7 +64,7 @@ public:
         createModule(id, checked_cast<const DescriptorType*>(descriptor));
     }
 
-    void removeModule(EntityId id)
+    virtual void removeModule(EntityId id)
     {
         if (_modules.count(id) > 0)
             _modules.erase(id);

@@ -20,4 +20,9 @@ using EntityDescriptor = std::map<std::string, ModuleDescriptor*>;
 
 using EntityId = u32;
 
-#endif // REAPER_ENTITYDESCRIPTOR_INCLUDED
+constexpr EntityId invalidEId()
+{
+    return EntityId(0);
+}
+
+#endif // REAPER_ENTITYDE SCRIPTOR_INCLUDED
