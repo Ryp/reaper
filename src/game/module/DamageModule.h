@@ -22,8 +22,9 @@ struct DamageModule {
 
 class DamageUpdater : public ModuleUpdater<DamageModule, DamageModuleDescriptor>
 {
+    using parent_type = ModuleUpdater<DamageModule, DamageModuleDescriptor>;
 public:
-    DamageUpdater(AbstractWorldUpdater* worldUpdater) : ModuleUpdater<DamageModule, DamageModuleDescriptor>(worldUpdater) {}
+    DamageUpdater(AbstractWorldUpdater* worldUpdater) : parent_type(worldUpdater) {}
 
 public:
     void update(float dt);

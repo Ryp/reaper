@@ -20,8 +20,9 @@ struct TeamModule {
 
 class TeamUpdater : public ModuleUpdater<TeamModule, TeamModuleDescriptor>
 {
+    using parent_type = ModuleUpdater<TeamModule, TeamModuleDescriptor>;
 public:
-    TeamUpdater(AbstractWorldUpdater* worldUpdater) : ModuleUpdater<TeamModule, TeamModuleDescriptor>(worldUpdater) {}
+    TeamUpdater(AbstractWorldUpdater* worldUpdater) : parent_type(worldUpdater) {}
 
 public:
     void createModule(EntityId id, const TeamModuleDescriptor* descriptor) override;

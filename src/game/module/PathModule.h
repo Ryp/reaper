@@ -25,6 +25,7 @@ struct PathModule {
 
 class PathUpdater : public ModuleUpdater<PathModule, PathModuleDescriptor>
 {
+    using parent_type = ModuleUpdater<PathModule, PathModuleDescriptor>;
 public:
     PathUpdater(AbstractWorldUpdater* worldUpdater, MapInfo& mapInfo);
     ~PathUpdater();
