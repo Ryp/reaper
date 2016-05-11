@@ -91,7 +91,6 @@ void PathUpdater::createModule(EntityId id, const PathModuleDescriptor* /*descri
 {
     PathModule module;
     module.pathId = 0;
-    module.pathSubId = 0;
 
     addModule(id, module);
 }

@@ -87,7 +87,7 @@ namespace pathing
     {
         uvec2 current = start;
 
-        Assert(graph[start].bfs & to_underlying(NodeInfo::Visited), "goal unreachable from this start");
+        Assert((graph[start].bfs & to_underlying(NodeInfo::Visited)) > 0, "goal unreachable from this start");
         Assert(path.empty());
 
         while (!(graph[current].bfs & to_underlying(NodeInfo::IsGoal)))
