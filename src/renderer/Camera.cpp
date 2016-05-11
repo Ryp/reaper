@@ -10,6 +10,7 @@
 #include <cmath>
 
 #include <glm/gtx/transform.hpp>
+#include <glm/gtc/constants.hpp>
 
 const float Camera::PitchDeadzone = 0.001f;
 
@@ -51,21 +52,21 @@ void Camera::setDirection(const glm::vec3& direction)
 
 void Camera::setRotation(float yaw, float pitch)
 {
-    _yaw = fmod(yaw, M_PI * 2.0f);
-    _pitch = fmod(pitch + M_PI_2, M_PI) - M_PI_2;
+    _yaw = fmod(yaw, glm::pi<float>() * 2.0f);
+    _pitch = fmod(pitch + glm::half_pi<float>(), glm::pi<float>()) - glm::half_pi<float>();
     _direction = glm::vec3(cos(_yaw) * cos(_pitch), sin(_pitch), sin(_yaw) * cos(_pitch));
 }
 
 void Camera::rotate(float yaw, float pitch)
 {
     float newPitch = _pitch + pitch;
-    if (newPitch < (-M_PI_2 + PitchDeadzone))
-        _pitch = -M_PI_2 + PitchDeadzone;
-    else if (newPitch > (M_PI_2 - PitchDeadzone))
-        _pitch = M_PI_2 - PitchDeadzone;
+    if (newPitch < (-glm::half_pi<float>() + PitchDeadzone))
+        _pitch = -glm::half_pi<float>() + PitchDeadzone;
+    else if (newPitch > (glm::half_pi<float>() - PitchDeadzone))
+        _pitch = glm::half_pi<float>() - PitchDeadzone;
     else
         _pitch = newPitch;
-    _yaw = fmod(_yaw + yaw, M_PI * 2.0f);
+    _yaw = fmod(_yaw + yaw, glm::pi<float>() * 2.0f);
 }
 
 void Camera::setPosition(const glm::vec3& position)

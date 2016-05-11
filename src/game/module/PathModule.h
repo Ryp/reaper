@@ -19,8 +19,7 @@ struct PathModuleDescriptor : public ModuleDescriptor {
 
 struct PathModule {
     TDPath path;
-    u16 pathId;
-    u16 pathSubId;
+    u32 pathId;
 };
 
 class PathUpdater : public ModuleUpdater<PathModule, PathModuleDescriptor>
