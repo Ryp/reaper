@@ -15,96 +15,123 @@
 
 using namespace vk;
 
-static bool checkExtensionAvailability(const char *extension_name, const std::vector<VkExtensionProperties> &available_extensions)
+namespace
 {
-    for (size_t i = 0; i < available_extensions.size(); ++i)
+    bool checkExtensionAvailability(const char *extension_name, const std::vector<VkExtensionProperties> &available_extensions)
     {
-        if (std::strcmp(available_extensions[i].extensionName, extension_name) == 0)
-            return true;
-    }
-    return false;
-}
-
-static bool checkPhysicalDeviceProperties(VkPhysicalDevice physical_device, VkSurfaceKHR presentationSurface, uint32_t& queue_family_index, uint32_t& selected_present_queue_family_index)
-{
-    uint32_t extensions_count = 0;
-    Assert(vkEnumerateDeviceExtensionProperties(physical_device, nullptr, &extensions_count, nullptr) == VK_SUCCESS);
-    Assert(extensions_count > 0);
-
-    std::vector<VkExtensionProperties> available_extensions(extensions_count);
-    Assert(vkEnumerateDeviceExtensionProperties(physical_device, nullptr, &extensions_count, &available_extensions[0]) == VK_SUCCESS);
-
-    std::vector<const char*> extensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
-    Assert(extensions.size() == 1);
-
-    for(size_t i = 0; i < extensions.size(); ++i)
-        Assert(checkExtensionAvailability(extensions[i], available_extensions));
-
-    VkPhysicalDeviceProperties device_properties;
-    VkPhysicalDeviceFeatures   device_features;
-
-    vkGetPhysicalDeviceProperties(physical_device, &device_properties);
-    vkGetPhysicalDeviceFeatures(physical_device, &device_features);
-
-    uint32_t major_version = VK_VERSION_MAJOR(device_properties.apiVersion);
-//     uint32_t minor_version = VK_VERSION_MINOR(device_properties.apiVersion);
-//     uint32_t patch_version = VK_VERSION_PATCH(device_properties.apiVersion);
-
-    Assert(major_version >= 1);
-    Assert(device_properties.limits.maxImageDimension2D >= 4096);
-
-    uint32_t queue_families_count = 0;
-    vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_families_count, nullptr);
-
-    Assert(queue_families_count > 0, "device doesn't have any queue families");
-    if (queue_families_count == 0)
-        return false;
-
-    std::vector<VkQueueFamilyProperties> queue_family_properties( queue_families_count );
-    std::vector<VkBool32>                queue_present_support( queue_families_count );
-
-    vkGetPhysicalDeviceQueueFamilyProperties( physical_device, &queue_families_count, &queue_family_properties[0] );
-
-    uint32_t graphics_queue_family_index = UINT32_MAX;
-    uint32_t present_queue_family_index = UINT32_MAX;
-
-    for (uint32_t i = 0; i < queue_families_count; ++i)
-    {
-        Assert(vkGetPhysicalDeviceSurfaceSupportKHR(physical_device, i, presentationSurface, &queue_present_support[i]) == VK_SUCCESS);
-
-        if ((queue_family_properties[i].queueCount > 0) &&
-            (queue_family_properties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) )
+        for (size_t i = 0; i < available_extensions.size(); ++i)
         {
-            // Select first queue that supports graphics
-            if( graphics_queue_family_index == UINT32_MAX ) {
-                graphics_queue_family_index = i;
-            }
-
-            // If there is queue that supports both graphics and present - prefer it
-            if( queue_present_support[i] ) {
-                queue_family_index = i;
-                selected_present_queue_family_index = i;
+            if (std::strcmp(available_extensions[i].extensionName, extension_name) == 0)
                 return true;
+        }
+        return false;
+    }
+
+    bool checkLayerAvailability(const char *layer_name, const std::vector<VkLayerProperties> &available_layers)
+    {
+        for (size_t i = 0; i < available_layers.size(); ++i)
+        {
+            if (std::strcmp(available_layers[i].layerName, layer_name) == 0)
+                return true;
+        }
+        return false;
+    }
+
+    bool checkPhysicalDeviceProperties(VkPhysicalDevice physical_device, VkSurfaceKHR presentationSurface, uint32_t& queue_family_index, uint32_t& selected_present_queue_family_index)
+    {
+        uint32_t extensions_count = 0;
+        Assert(vkEnumerateDeviceExtensionProperties(physical_device, nullptr, &extensions_count, nullptr) == VK_SUCCESS);
+        Assert(extensions_count > 0);
+
+        std::vector<VkExtensionProperties> available_extensions(extensions_count);
+        Assert(vkEnumerateDeviceExtensionProperties(physical_device, nullptr, &extensions_count, &available_extensions[0]) == VK_SUCCESS);
+
+        std::vector<const char*> extensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
+        Assert(extensions.size() == 1);
+
+        for(size_t i = 0; i < extensions.size(); ++i)
+            Assert(checkExtensionAvailability(extensions[i], available_extensions));
+
+        VkPhysicalDeviceProperties device_properties;
+        VkPhysicalDeviceFeatures   device_features;
+
+        vkGetPhysicalDeviceProperties(physical_device, &device_properties);
+        vkGetPhysicalDeviceFeatures(physical_device, &device_features);
+
+        uint32_t major_version = VK_VERSION_MAJOR(device_properties.apiVersion);
+    //     uint32_t minor_version = VK_VERSION_MINOR(device_properties.apiVersion);
+    //     uint32_t patch_version = VK_VERSION_PATCH(device_properties.apiVersion);
+
+        Assert(major_version >= 1);
+        Assert(device_properties.limits.maxImageDimension2D >= 4096);
+
+        uint32_t queue_families_count = 0;
+        vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_families_count, nullptr);
+
+        Assert(queue_families_count > 0, "device doesn't have any queue families");
+        if (queue_families_count == 0)
+            return false;
+
+        std::vector<VkQueueFamilyProperties> queue_family_properties( queue_families_count );
+        std::vector<VkBool32>                queue_present_support( queue_families_count );
+
+        vkGetPhysicalDeviceQueueFamilyProperties( physical_device, &queue_families_count, &queue_family_properties[0] );
+
+        uint32_t graphics_queue_family_index = UINT32_MAX;
+        uint32_t present_queue_family_index = UINT32_MAX;
+
+        for (uint32_t i = 0; i < queue_families_count; ++i)
+        {
+            Assert(vkGetPhysicalDeviceSurfaceSupportKHR(physical_device, i, presentationSurface, &queue_present_support[i]) == VK_SUCCESS);
+
+            if ((queue_family_properties[i].queueCount > 0) &&
+                (queue_family_properties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) )
+            {
+                // Select first queue that supports graphics
+                if( graphics_queue_family_index == UINT32_MAX ) {
+                    graphics_queue_family_index = i;
+                }
+
+                // If there is queue that supports both graphics and present - prefer it
+                if( queue_present_support[i] ) {
+                    queue_family_index = i;
+                    selected_present_queue_family_index = i;
+                    return true;
+                }
             }
         }
-    }
 
-    // We don't have queue that supports both graphics and present so we have to use separate queues
-    for (uint32_t i = 0; i < queue_families_count; ++i)
-    {
-        if (queue_present_support[i] == VK_TRUE)
+        // We don't have queue that supports both graphics and present so we have to use separate queues
+        for (uint32_t i = 0; i < queue_families_count; ++i)
         {
-            present_queue_family_index = i;
-            break;
+            if (queue_present_support[i] == VK_TRUE)
+            {
+                present_queue_family_index = i;
+                break;
+            }
         }
+
+        Assert(graphics_queue_family_index != UINT32_MAX);
+        Assert(present_queue_family_index != UINT32_MAX);
+
+        queue_family_index = graphics_queue_family_index;
+        selected_present_queue_family_index = present_queue_family_index;
+        return true;
     }
 
-    Assert(graphics_queue_family_index != UINT32_MAX);
-    Assert(present_queue_family_index != UINT32_MAX);
-
-    queue_family_index = graphics_queue_family_index;
-    selected_present_queue_family_index = present_queue_family_index;
-    return true;
+    VkBool32 debugReportCallback(
+        VkDebugReportFlagsEXT       /*flags*/,
+        VkDebugReportObjectTypeEXT  /*objectType*/,
+        uint64_t                    /*object*/,
+        size_t                      /*location*/,
+        int32_t                     /*messageCode*/,
+        const char*                 /*pLayerPrefix*/,
+        const char*                 pMessage,
+        void*                       /*pUserData*/)
+    {
+        std::cerr << pMessage << std::endl;
+        return VK_FALSE;
+    }
 }
 
 void VulkanRenderer::startup(Window* window)
@@ -121,9 +148,15 @@ void VulkanRenderer::startup(Window* window)
     _device = VK_NULL_HANDLE;
     _pipeline = VK_NULL_HANDLE;
 
+    _debugCallback = VK_NULL_HANDLE;
+
     _gfxCmdPool = VK_NULL_HANDLE;
     _gfxCmdBuffers.clear();
     _gfxQueueIndex = UINT32_MAX;
+
+    _deviceMemory = VK_NULL_HANDLE;
+    _vertexBuffer = VK_NULL_HANDLE;
+    _indexBuffer = VK_NULL_HANDLE;
 
     _renderPass = VK_NULL_HANDLE;
 
@@ -147,11 +180,15 @@ void VulkanRenderer::startup(Window* window)
         VK_KHR_SURFACE_EXTENSION_NAME,
         REAPER_VK_SWAPCHAIN_EXTENSION_NAME
     };
+
     Assert(extensions.size() == 2);
+
+#if defined(REAPER_DEBUG)
+    extensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
+#endif
 
     for(size_t i = 0; i < extensions.size(); ++i)
         Assert(checkExtensionAvailability(extensions[i], available_extensions));
-
 
     VkApplicationInfo application_info = {
         VK_STRUCTURE_TYPE_APPLICATION_INFO, // VkStructureType            sType
@@ -163,13 +200,29 @@ void VulkanRenderer::startup(Window* window)
         REAPER_VK_API_VERSION               // uint32_t                   apiVersion
     };
 
+    std::vector<const char*>  enabledInstanceLayers;
+
+    uint32_t layers_count = 0;
+    Assert(vkEnumerateInstanceLayerProperties(&layers_count, nullptr) == VK_SUCCESS);
+    Assert(layers_count > 0);
+
+    std::vector<VkLayerProperties> available_layers(layers_count);
+    Assert(vkEnumerateInstanceLayerProperties(&layers_count, &available_layers[0]) == VK_SUCCESS);
+
+#if defined(REAPER_DEBUG)
+    enabledInstanceLayers.push_back("VK_LAYER_LUNARG_standard_validation");
+#endif
+
+    for(size_t i = 0; i < enabledInstanceLayers.size(); ++i)
+        Assert(checkLayerAvailability(enabledInstanceLayers[i], available_layers));
+
     VkInstanceCreateInfo instance_create_info = {
         VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,     // VkStructureType            sType
         nullptr,                                    // const void*                pNext
         0,                                          // VkInstanceCreateFlags      flags
         &application_info,                          // const VkApplicationInfo   *pApplicationInfo
-        0,                                          // uint32_t                   enabledLayerCount
-        nullptr,                                    // const char * const        *ppEnabledLayerNames
+        static_cast<uint32_t>(enabledInstanceLayers.size()),  // uint32_t                   enabledLayerCount
+        &enabledInstanceLayers[0],                  // const char * const        *ppEnabledLayerNames
         static_cast<uint32_t>(extensions.size()),   // uint32_t                   enabledExtensionCount
         &extensions[0]                              // const char * const        *ppEnabledExtensionNames
     };
@@ -180,6 +233,18 @@ void VulkanRenderer::startup(Window* window)
         func = (PFN_##func)vkGetInstanceProcAddr(_instance, #func);             \
         Assert(func != nullptr, "could not load instance level vk function"); }
     #include "renderer/vulkan/api/VulkanSymbolHelper.inl"
+
+    #if defined(REAPER_DEBUG)
+        /* Setup callback creation information */
+        VkDebugReportCallbackCreateInfoEXT callbackCreateInfo;
+        callbackCreateInfo.sType       = VK_STRUCTURE_TYPE_DEBUG_REPORT_CREATE_INFO_EXT;
+        callbackCreateInfo.pNext       = nullptr;
+        callbackCreateInfo.flags       = VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT | VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT;
+        callbackCreateInfo.pfnCallback = &debugReportCallback;
+        callbackCreateInfo.pUserData   = nullptr;
+
+        Assert(vkCreateDebugReportCallbackEXT(_instance, &callbackCreateInfo, nullptr, &_debugCallback) == VK_SUCCESS);
+    #endif
 
     createPresentationSurface(_instance, window->GetParameters(), _presentationSurface);
 
@@ -230,15 +295,20 @@ void VulkanRenderer::startup(Window* window)
     }
 
     std::vector<const char*> device_extensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
+    std::vector<const char*> device_layers;
+
+#if defined(REAPER_DEBUG)
+    device_layers.push_back("VK_LAYER_LUNARG_standard_validation");
+#endif
 
     VkDeviceCreateInfo device_create_info = {
         VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,           // VkStructureType                    sType
         nullptr,                                        // const void                        *pNext
         0,                                              // VkDeviceCreateFlags                flags
         static_cast<uint32_t>(queue_create_infos.size()),// uint32_t                           queueCreateInfoCount
-        &queue_create_infos[0],                          // const VkDeviceQueueCreateInfo     *pQueueCreateInfos
-        0,                                              // uint32_t                           enabledLayerCount
-        nullptr,                                        // const char * const                *ppEnabledLayerNames
+        &queue_create_infos[0],                         // const VkDeviceQueueCreateInfo     *pQueueCreateInfos
+        static_cast<uint32_t>(device_layers.size()),    // uint32_t                           enabledLayerCount
+        &device_layers[0],                              // const char * const                *ppEnabledLayerNames
         static_cast<uint32_t>(device_extensions.size()),// uint32_t                           enabledExtensionCount
         &device_extensions[0],                          // const char * const                *ppEnabledExtensionNames
         nullptr                                         // const VkPhysicalDeviceFeatures    *pEnabledFeatures
@@ -259,6 +329,7 @@ void VulkanRenderer::startup(Window* window)
     createRenderPass();
     createFramebuffers();
     createPipeline();
+    createMeshBuffers();
     createCommandBuffers();
 }
 
@@ -280,6 +351,11 @@ void VulkanRenderer::shutdown()
     vkDestroySemaphore(_device, _renderingFinishedSemaphore, nullptr);
     vkDestroySwapchainKHR(_device, _swapChain, nullptr);
     vkDestroyDevice(_device, nullptr);
+
+#if defined(REAPER_DEBUG)
+    vkDestroyDebugReportCallbackEXT(_instance, _debugCallback, nullptr);
+#endif
+
     vkDestroyInstance(_instance, nullptr);
 
     dynlib::close(_vulkanLib);
@@ -433,7 +509,7 @@ static VkExtent2D GetSwapChainExtent(VkSurfaceCapabilitiesKHR& surface_capabilit
     // Special value of surface extent is width == height == -1
     // If this is so we define the size by ourselves but it must fit within defined confines
     if( surface_capabilities.currentExtent.width == uint32_t(-1)) {
-        VkExtent2D swap_chain_extent = { 640, 480 };
+        VkExtent2D swap_chain_extent = { 300, 300 };
         if( swap_chain_extent.width < surface_capabilities.minImageExtent.width ) {
             swap_chain_extent.width = surface_capabilities.minImageExtent.width;
         }
@@ -665,7 +741,12 @@ void VulkanRenderer::createCommandBuffers()
 
         vkCmdBindPipeline(_gfxCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, _pipeline);
 
-        vkCmdDraw(_gfxCmdBuffers[i], 3, 1, 0, 0 );
+        VkDeviceSize offsets [] = { 0 };
+        vkCmdBindIndexBuffer (_gfxCmdBuffers[i], _indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+        vkCmdBindVertexBuffers (_gfxCmdBuffers[i], 0, 1, &_vertexBuffer, offsets);
+        vkCmdDrawIndexed (_gfxCmdBuffers[i], 6, 1, 0, 0, 0);
+
+        //vkCmdDraw(_gfxCmdBuffers[i], 3, 1, 0, 0 );
 
         vkCmdEndRenderPass(_gfxCmdBuffers[i] );
 
@@ -886,14 +967,30 @@ void VulkanRenderer::createPipeline()
         }
     };
 
+    VkVertexInputBindingDescription vertexInputBindingDescription;
+    vertexInputBindingDescription.binding = 0;
+    vertexInputBindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+    vertexInputBindingDescription.stride = sizeof (float) * 5;
+
+    VkVertexInputAttributeDescription vertexInputAttributeDescription [2] = {};
+    vertexInputAttributeDescription [0].binding = vertexInputBindingDescription.binding;
+    vertexInputAttributeDescription [0].format = VK_FORMAT_R32G32B32_SFLOAT;
+    vertexInputAttributeDescription [0].location = 0;
+    vertexInputAttributeDescription [0].offset = 0;
+
+    vertexInputAttributeDescription [1].binding = vertexInputBindingDescription.binding;
+    vertexInputAttributeDescription [1].format = VK_FORMAT_R32G32_SFLOAT;
+    vertexInputAttributeDescription [1].location = 1;
+    vertexInputAttributeDescription [1].offset = sizeof (float) * 3;
+
     VkPipelineVertexInputStateCreateInfo vertex_input_state_create_info = {
         VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,    // VkStructureType                                sType
         nullptr,                                                      // const void                                    *pNext
         0,                                                            // VkPipelineVertexInputStateCreateFlags          flags;
-        0,                                                            // uint32_t                                       vertexBindingDescriptionCount
-        nullptr,                                                      // const VkVertexInputBindingDescription         *pVertexBindingDescriptions
-        0,                                                            // uint32_t                                       vertexAttributeDescriptionCount
-        nullptr                                                       // const VkVertexInputAttributeDescription       *pVertexAttributeDescriptions
+        1,                                                            // uint32_t                                       vertexBindingDescriptionCount
+        &vertexInputBindingDescription,                                                      // const VkVertexInputBindingDescription         *pVertexBindingDescriptions
+        std::extent<decltype(vertexInputAttributeDescription)>::value,                                                            // uint32_t                                       vertexAttributeDescriptionCount
+        vertexInputAttributeDescription                                                       // const VkVertexInputAttributeDescription       *pVertexAttributeDescriptions
     };
 
     VkPipelineInputAssemblyStateCreateInfo input_assembly_state_create_info = {
@@ -1027,4 +1124,139 @@ void VulkanRenderer::createPipeline()
 
     vkDestroyShaderModule(_device, fragModule, nullptr);
     vkDestroyShaderModule(_device, vertModule, nullptr);
+}
+
+namespace
+{
+    struct MemoryTypeInfo
+    {
+        bool deviceLocal = false;
+        bool hostVisible = false;
+        bool hostCoherent = false;
+        bool hostCached = false;
+        bool lazilyAllocated = false;
+
+        struct Heap
+        {
+            uint64_t size = 0;
+            bool deviceLocal = false;
+        };
+
+        Heap heap;
+        int index;
+    };
+
+    std::vector<MemoryTypeInfo> enumerateHeaps (VkPhysicalDevice device)
+    {
+        VkPhysicalDeviceMemoryProperties memoryProperties = {};
+        vkGetPhysicalDeviceMemoryProperties (device, &memoryProperties);
+
+        std::vector<MemoryTypeInfo::Heap> heaps;
+
+        for (uint32_t i = 0; i < memoryProperties.memoryHeapCount; ++i) {
+            MemoryTypeInfo::Heap info;
+            info.size = memoryProperties.memoryHeaps [i].size;
+            info.deviceLocal = (memoryProperties.memoryHeaps [i].flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT) != 0;
+
+            heaps.push_back (info);
+        }
+
+        std::vector<MemoryTypeInfo> result;
+
+        for (uint32_t i = 0; i < memoryProperties.memoryTypeCount; ++i) {
+            MemoryTypeInfo typeInfo;
+
+            typeInfo.deviceLocal = (memoryProperties.memoryTypes [i].propertyFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) != 0;
+            typeInfo.hostVisible = (memoryProperties.memoryTypes [i].propertyFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) != 0;
+            typeInfo.hostCoherent = (memoryProperties.memoryTypes [i].propertyFlags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) != 0;
+            typeInfo.hostCached = (memoryProperties.memoryTypes [i].propertyFlags & VK_MEMORY_PROPERTY_HOST_CACHED_BIT) != 0;
+            typeInfo.lazilyAllocated = (memoryProperties.memoryTypes [i].propertyFlags & VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT) != 0;
+
+            typeInfo.heap = heaps [memoryProperties.memoryTypes [i].heapIndex];
+
+            typeInfo.index = static_cast<int> (i);
+
+            result.push_back (typeInfo);
+        }
+
+        return result;
+    }
+
+    VkDeviceMemory AllocateMemory (const std::vector<MemoryTypeInfo>& memoryInfos,
+                                   VkDevice device, const int size)
+    {
+        // We take the first HOST_VISIBLE memory
+        for (auto& memoryInfo : memoryInfos) {
+            if (memoryInfo.hostVisible) {
+                VkMemoryAllocateInfo memoryAllocateInfo = {};
+                memoryAllocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+                memoryAllocateInfo.memoryTypeIndex = memoryInfo.index;
+                memoryAllocateInfo.allocationSize = size;
+
+                VkDeviceMemory deviceMemory;
+                vkAllocateMemory (device, &memoryAllocateInfo, nullptr,
+                                  &deviceMemory);
+                return deviceMemory;
+            }
+        }
+
+        return VK_NULL_HANDLE;
+    }
+
+    VkBuffer AllocateBuffer (VkDevice device, const int size,
+                             const VkBufferUsageFlagBits bits)
+    {
+        VkBufferCreateInfo bufferCreateInfo = {};
+        bufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+        bufferCreateInfo.size = static_cast<uint32_t> (size);
+        bufferCreateInfo.usage = bits;
+
+        VkBuffer result;
+        vkCreateBuffer (device, &bufferCreateInfo, nullptr, &result);
+        return result;
+    }
+}
+
+void VulkanRenderer::createMeshBuffers()
+{
+    struct Vertex
+    {
+        float position[3];
+        float uv[2];
+    };
+
+    static const Vertex vertices[4] = {
+        // Upper Left
+        { { -1.0f, 1.0f, 0 },{ 0, 0 } },
+        // Upper Right
+        { { 1.0f, 1.0f, 0 },{ 1, 0 } },
+        // Bottom right
+        { { 1.0f, -1.0f, 0 },{ 1, 1 } },
+        // Bottom left
+        { { -1.0f, -1.0f, 0 },{ 0, 1 } }
+    };
+
+    static const int indices[6] = {
+        0, 1, 2, 2, 3, 0
+    };
+
+    auto memoryHeaps = enumerateHeaps(_physicalDevice);
+    _deviceMemory = AllocateMemory(memoryHeaps, _device,
+                                    640 << 10 /* 640 KiB ought to be enough for anybody */);
+    _vertexBuffer = AllocateBuffer(_device, sizeof (vertices),
+                                    VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
+    vkBindBufferMemory (_device, _vertexBuffer, _deviceMemory, 0);
+
+    _indexBuffer = AllocateBuffer (_device, sizeof (indices),
+                                    VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
+    vkBindBufferMemory (_device, _indexBuffer, _deviceMemory,
+                        256 /* somewhere behind the vertex buffer */);
+
+    void* mapping = nullptr;
+    vkMapMemory (_device, _deviceMemory, 0, VK_WHOLE_SIZE,
+                    0, &mapping);
+    ::memcpy(mapping, vertices, sizeof (vertices));
+    ::memcpy(static_cast<uint8_t*> (mapping) + 256 /* same offset as above */,
+                indices, sizeof (indices));
+    vkUnmapMemory (_device, _deviceMemory);
 }
