@@ -3,6 +3,8 @@ include(${CMAKE_SOURCE_DIR}/cmake/compiler/msvc.cmake)
 include(${CMAKE_SOURCE_DIR}/cmake/platform/unix.cmake)
 include(${CMAKE_SOURCE_DIR}/cmake/platform/windows.cmake)
 
+include(${CMAKE_SOURCE_DIR}/cmake/glslang.cmake)
+
 set(CXX_STANDARD_REQUIRED ON)
 
 set(MSVC_DEBUG_FLAGS "/W4")
@@ -16,10 +18,7 @@ set(CLANG_DEBUG_FLAGS ${GCC_DEBUG_FLAGS})
 
 macro(add_vs_source_tree input_files path_to_strip)
     foreach(FILE ${input_files})
-        get_filename_component(PARENT_DIR "${FILE}" PATH)
-        # strip absolute path
-        string(LENGTH ${path_to_strip} PATH_TO_STRIP_LENGTH)
-        string(SUBSTRING ${PARENT_DIR} ${PATH_TO_STRIP_LENGTH} -1 GROUP)
+        file(RELATIVE_PATH GROUP ${path_to_strip} ${FILE})
         # skip src from path
         string(REGEX REPLACE "(\\./)?(src)/?" "" GROUP "${GROUP}")
         # changes /'s to \\'s

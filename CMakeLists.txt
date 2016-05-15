@@ -160,10 +160,17 @@ set(REAPER_SRCS
     ${CMAKE_SOURCE_DIR}/src/renderer/vulkan/api/VulkanSymbolHelper.inl
 )
 
+set(REAPER_GLSL_SHADERS
+    ${CMAKE_SOURCE_DIR}/rc/shader/tri.frag
+    ${CMAKE_SOURCE_DIR}/rc/shader/tri.vert
+)
+
+add_glslang_spirv_targets(REAPER_SPIRV_OUTPUT ${REAPER_GLSL_SHADERS})
+
 # Set precompiled header
 set(REAPER_PCH ${CMAKE_SOURCE_DIR}/src/pch/stdafx.h)
 
-add_executable(${REAPER_BIN} ${REAPER_SRCS})
+add_executable(${REAPER_BIN} ${REAPER_SRCS} ${REAPER_SPIRV_OUTPUT})
 add_custom_build_flags(${REAPER_BIN} "ReaperGL")
 
 set_target_properties(${REAPER_BIN} PROPERTIES COMPILE_DEFINITIONS ${VK_PLATFORM})

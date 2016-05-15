@@ -941,8 +941,8 @@ void VulkanRenderer::createPipeline()
     VkShaderModule vertModule;
     VkShaderModule fragModule;
 
-    createShaderModule(vertModule, _device, "./build/test.vert.spv");
-    createShaderModule(fragModule, _device, "./build/test.frag.spv");
+    createShaderModule(vertModule, _device, "./build/spv/tri.vert.spv");
+    createShaderModule(fragModule, _device, "./build/spv/tri.frag.spv");
 
     std::vector<VkPipelineShaderStageCreateInfo> shader_stage_create_infos = {
         // Vertex shader
