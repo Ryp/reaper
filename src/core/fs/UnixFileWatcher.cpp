@@ -47,7 +47,7 @@ UnixFileWatcher::UnixFileWatcher()
 UnixFileWatcher::~UnixFileWatcher()
 {
     if (close(_inotifyFd) == -1)
-        throw (std::runtime_error(getErrorString("close", errno)));
+        Assert(false, getErrorString("close", errno));
 }
 
 void UnixFileWatcher::start()

@@ -18,7 +18,8 @@ macro(add_vs_source_tree input_files path_to_strip)
     foreach(FILE ${input_files})
         get_filename_component(PARENT_DIR "${FILE}" PATH)
         # strip absolute path
-        string(REGEX REPLACE "^${path_to_strip}" "" GROUP ${PARENT_DIR})
+        string(LENGTH ${path_to_strip} PATH_TO_STRIP_LENGTH)
+        string(SUBSTRING ${PARENT_DIR} ${PATH_TO_STRIP_LENGTH} -1 GROUP)
         # skip src from path
         string(REGEX REPLACE "(\\./)?(src)/?" "" GROUP "${GROUP}")
         # changes /'s to \\'s
