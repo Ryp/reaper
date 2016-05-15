@@ -70,28 +70,28 @@ static void game_test()
     db.unload();
 }
 
-// #include "renderer/vulkan/PresentationSurface.h"
-// static void vulkan_test()
-// {
-//     Window  window;
-//
-//     window.Create("Vulkan Test");
-//
-//     AbstractRenderer* renderer = AbstractRenderer::createRenderer();
-//     {
-//         renderer->startup(&window);
-//         window.renderLoop(renderer);
-//         renderer->shutdown();
-//     }
-//     delete renderer;
-// }
+#include "renderer/vulkan/PresentationSurface.h"
+static void vulkan_test()
+{
+    Window  window;
+
+    window.Create("Vulkan Test");
+
+    AbstractRenderer* renderer = AbstractRenderer::createRenderer();
+    {
+        renderer->startup(&window);
+        window.renderLoop(renderer);
+        renderer->shutdown();
+    }
+    delete renderer;
+}
 
 int main(int /*ac*/, char** /*av*/)
 {
     Assert(cacheLineSize() == REAPER_CACHELINE_SIZE);
 
-    game_test();
-//     vulkan_test();
+//     game_test();
+    vulkan_test();
     return 0;
 }
 

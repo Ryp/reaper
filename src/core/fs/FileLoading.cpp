@@ -13,6 +13,8 @@ std::vector<char> readWholeFile(const std::string& fileName)
 {
     std::ifstream ifs(fileName.c_str(), std::ios::in | std::ios::binary | std::ios::ate);
 
+    Assert(ifs.is_open(), "could not open file");
+
     std::ifstream::pos_type fileSize = ifs.tellg();
     ifs.seekg(0, std::ios::beg);
 

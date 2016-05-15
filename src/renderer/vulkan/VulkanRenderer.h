@@ -32,6 +32,7 @@ private:
     void createRenderPass();
     void createFramebuffers();
     void createPipeline();
+    void createMeshBuffers();
 
 private:
     LibHandle           _vulkanLib;
@@ -49,6 +50,14 @@ private:
     VkPipeline          _pipeline;
     VkSemaphore         _imageAvailableSemaphore;
     VkSemaphore         _renderingFinishedSemaphore;
+
+private:
+    VkDebugReportCallbackEXT _debugCallback;
+
+private:
+    VkDeviceMemory  _deviceMemory;
+    VkBuffer        _vertexBuffer;
+    VkBuffer        _indexBuffer;
 
 private:
     VkCommandPool                   _gfxCmdPool;
