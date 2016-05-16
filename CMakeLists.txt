@@ -22,22 +22,23 @@ elseif(APPLE OR UNIX)
     set(REAPER_PLATFORM_INCLUDES ${REAPER_PLATFORM_INCLUDES} ${LIBXCB_INCLUDE_DIR})
 endif()
 
+# find_package(moGL NO_MODULE REQUIRED)
+# find_package(OpenGL REQUIRED)
+# find_package(glbinding REQUIRED)
+# find_package(OpenEXR REQUIRED)
+# find_package(assimp REQUIRED)
+# find_package(PkgConfig REQUIRED)
+# pkg_search_module(GLFW REQUIRED glfw3)
+
 # Find dependencies
-find_package(moGL NO_MODULE REQUIRED)
-find_package(OpenGL REQUIRED)
-find_package(glbinding REQUIRED)
-find_package(OpenEXR REQUIRED)
-find_package(assimp REQUIRED)
 find_package(Libunwind REQUIRED)
-find_package(PkgConfig REQUIRED)
-pkg_search_module(GLFW REQUIRED glfw3)
 find_package(Vulkan REQUIRED)
 
 set(REAPER_BIN reaper)
 
 set(REAPER_SRCS
-    ${CMAKE_SOURCE_DIR}/external/imgui/imgui.cpp
-    ${CMAKE_SOURCE_DIR}/external/imgui/imgui_impl_glfw_gl3.cpp
+#     ${CMAKE_SOURCE_DIR}/external/imgui/imgui.cpp
+#     ${CMAKE_SOURCE_DIR}/external/imgui/imgui_impl_glfw_gl3.cpp
 
     ${CMAKE_SOURCE_DIR}/src/main.cpp
 
@@ -59,8 +60,8 @@ set(REAPER_SRCS
     ${CMAKE_SOURCE_DIR}/src/core/fs/FileLoading.h
     ${CMAKE_SOURCE_DIR}/src/core/fs/Path.cpp
     ${CMAKE_SOURCE_DIR}/src/core/fs/Path.h
-    ${CMAKE_SOURCE_DIR}/src/core/fs/UnixFileWatcher.cpp
-    ${CMAKE_SOURCE_DIR}/src/core/fs/UnixFileWatcher.h
+#     ${CMAKE_SOURCE_DIR}/src/core/fs/UnixFileWatcher.cpp
+#     ${CMAKE_SOURCE_DIR}/src/core/fs/UnixFileWatcher.h
 
     ${CMAKE_SOURCE_DIR}/src/core/memory/Allocator.cpp
     ${CMAKE_SOURCE_DIR}/src/core/memory/Allocator.h
@@ -113,10 +114,10 @@ set(REAPER_SRCS
 #     ${CMAKE_SOURCE_DIR}/src/game/pathing/PathFinder.cpp
 #     ${CMAKE_SOURCE_DIR}/src/game/pathing/PathFinder.h
 
-    ${CMAKE_SOURCE_DIR}/src/input/AbstractController.cpp
-    ${CMAKE_SOURCE_DIR}/src/input/AbstractController.h
-    ${CMAKE_SOURCE_DIR}/src/input/SixAxisController.cpp
-    ${CMAKE_SOURCE_DIR}/src/input/SixAxisController.h
+#     ${CMAKE_SOURCE_DIR}/src/input/AbstractController.cpp
+#     ${CMAKE_SOURCE_DIR}/src/input/AbstractController.h
+#     ${CMAKE_SOURCE_DIR}/src/input/SixAxisController.cpp
+#     ${CMAKE_SOURCE_DIR}/src/input/SixAxisController.h
 
     ${CMAKE_SOURCE_DIR}/src/math/BasicMath.h
     ${CMAKE_SOURCE_DIR}/src/math/Spline.cpp
@@ -129,25 +130,25 @@ set(REAPER_SRCS
     ${CMAKE_SOURCE_DIR}/src/renderer/Renderer.cpp
     ${CMAKE_SOURCE_DIR}/src/renderer/Renderer.h
 
-    ${CMAKE_SOURCE_DIR}/src/renderer/opengl/ImageLoader.cpp
-    ${CMAKE_SOURCE_DIR}/src/renderer/opengl/ImageLoader.h
-    ${CMAKE_SOURCE_DIR}/src/renderer/opengl/Mesh.cpp
-    ${CMAKE_SOURCE_DIR}/src/renderer/opengl/Mesh.h
-    ${CMAKE_SOURCE_DIR}/src/renderer/opengl/OpenGLRenderer.cpp
-    ${CMAKE_SOURCE_DIR}/src/renderer/opengl/OpenGLRenderer.h
-    ${CMAKE_SOURCE_DIR}/src/renderer/opengl/ShaderHelper.cpp
-    ${CMAKE_SOURCE_DIR}/src/renderer/opengl/ShaderHelper.h
+#     ${CMAKE_SOURCE_DIR}/src/renderer/opengl/ImageLoader.cpp
+#     ${CMAKE_SOURCE_DIR}/src/renderer/opengl/ImageLoader.h
+#     ${CMAKE_SOURCE_DIR}/src/renderer/opengl/Mesh.cpp
+#     ${CMAKE_SOURCE_DIR}/src/renderer/opengl/Mesh.h
+#     ${CMAKE_SOURCE_DIR}/src/renderer/opengl/OpenGLRenderer.cpp
+#     ${CMAKE_SOURCE_DIR}/src/renderer/opengl/OpenGLRenderer.h
+#     ${CMAKE_SOURCE_DIR}/src/renderer/opengl/ShaderHelper.cpp
+#     ${CMAKE_SOURCE_DIR}/src/renderer/opengl/ShaderHelper.h
 
-    ${CMAKE_SOURCE_DIR}/src/renderer/opengl/api/OpenGLContext.cpp
-    ${CMAKE_SOURCE_DIR}/src/renderer/opengl/api/OpenGLContext.h
-    ${CMAKE_SOURCE_DIR}/src/renderer/opengl/api/OpenGL.h
+#     ${CMAKE_SOURCE_DIR}/src/renderer/opengl/api/OpenGLContext.cpp
+#     ${CMAKE_SOURCE_DIR}/src/renderer/opengl/api/OpenGLContext.h
+#     ${CMAKE_SOURCE_DIR}/src/renderer/opengl/api/OpenGL.h
 
-    ${CMAKE_SOURCE_DIR}/src/renderer/resource/Model.cpp
-    ${CMAKE_SOURCE_DIR}/src/renderer/resource/Model.h
-    ${CMAKE_SOURCE_DIR}/src/renderer/resource/ModelLoader.cpp
-    ${CMAKE_SOURCE_DIR}/src/renderer/resource/ModelLoader.h
-    ${CMAKE_SOURCE_DIR}/src/renderer/resource/ResourceManager.cpp
-    ${CMAKE_SOURCE_DIR}/src/renderer/resource/ResourceManager.h
+#     ${CMAKE_SOURCE_DIR}/src/renderer/resource/Model.cpp
+#     ${CMAKE_SOURCE_DIR}/src/renderer/resource/Model.h
+#     ${CMAKE_SOURCE_DIR}/src/renderer/resource/ModelLoader.cpp
+#     ${CMAKE_SOURCE_DIR}/src/renderer/resource/ModelLoader.h
+#     ${CMAKE_SOURCE_DIR}/src/renderer/resource/ResourceManager.cpp
+#     ${CMAKE_SOURCE_DIR}/src/renderer/resource/ResourceManager.h
 
     ${CMAKE_SOURCE_DIR}/src/renderer/vulkan/PresentationSurface.cpp
     ${CMAKE_SOURCE_DIR}/src/renderer/vulkan/PresentationSurface.h
