@@ -22,16 +22,7 @@ elseif(APPLE OR UNIX)
     set(REAPER_PLATFORM_INCLUDES ${REAPER_PLATFORM_INCLUDES} ${LIBXCB_INCLUDE_DIR})
 endif()
 
-# find_package(moGL NO_MODULE REQUIRED)
-# find_package(OpenGL REQUIRED)
-# find_package(glbinding REQUIRED)
-# find_package(OpenEXR REQUIRED)
-# find_package(assimp REQUIRED)
-# find_package(PkgConfig REQUIRED)
-# pkg_search_module(GLFW REQUIRED glfw3)
-
 # Find dependencies
-find_package(Libunwind REQUIRED)
 find_package(Vulkan REQUIRED)
 
 set(REAPER_BIN reaper)
@@ -171,7 +162,7 @@ add_glslang_spirv_targets(REAPER_SPIRV_OUTPUT ${REAPER_GLSL_SHADERS})
 # Set precompiled header
 set(REAPER_PCH ${CMAKE_SOURCE_DIR}/src/pch/stdafx.h)
 
-add_executable(${REAPER_BIN} ${REAPER_SRCS} ${REAPER_SPIRV_OUTPUT})
+add_executable(${REAPER_BIN} ${REAPER_SRCS} ${REAPER_GLSL_SHADERS} ${REAPER_SPIRV_OUTPUT})
 add_custom_build_flags(${REAPER_BIN} "ReaperGL")
 
 set_target_properties(${REAPER_BIN} PROPERTIES COMPILE_DEFINITIONS ${VK_PLATFORM})
@@ -183,24 +174,11 @@ target_include_directories(${REAPER_BIN} PUBLIC
 #External includes dirs (won't show warnings)
 target_include_directories(${REAPER_BIN} SYSTEM PUBLIC
     ${CMAKE_SOURCE_DIR}/external
-    ${OPENGL_INCLUDE_DIRS}
-    ${GLFW_INCLUDE_DIRS}
-    ${MOGL_INCLUDE_DIRS}
-    ${GLBINDING_INCLUDES}
-    ${ASSIMP_INCLUDE_DIRS}
-    ${LIBUNWIND_INCLUDE_DIR}
-    ${OPENEXR_INCLUDE_DIRS}
     ${VULKAN_INCLUDE_DIR}
     ${REAPER_PLATFORM_INCLUDES})
 
 #Libraries
 target_link_libraries(${REAPER_BIN}
-    ${OPENGL_LIBRARIES}
-    ${GLFW_LIBRARIES}
-    ${GLBINDING_LIBRARY_RELEASE}
-    ${ASSIMP_LIBRARIES}
-    ${LIBUNWIND_LIBRARIES}
-    ${OPENEXR_LIBRARIES}
     ${REAPER_PLATFORM_LIBRARIES})
 
 set_target_properties(${REAPER_BIN} PROPERTIES COTIRE_CXX_PREFIX_HEADER_INIT ${REAPER_PCH})

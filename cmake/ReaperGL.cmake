@@ -19,6 +19,7 @@ set(CLANG_DEBUG_FLAGS ${GCC_DEBUG_FLAGS})
 macro(add_vs_source_tree input_files path_to_strip)
     foreach(FILE ${input_files})
         file(RELATIVE_PATH GROUP ${path_to_strip} ${FILE})
+        get_filename_component(GROUP ${GROUP} PATH)
         # skip src from path
         string(REGEX REPLACE "(\\./)?(src)/?" "" GROUP "${GROUP}")
         # changes /'s to \\'s
