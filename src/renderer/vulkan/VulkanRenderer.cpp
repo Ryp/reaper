@@ -343,9 +343,12 @@ void VulkanRenderer::shutdown()
 {
     Assert(vkDeviceWaitIdle(_device) == VK_SUCCESS);
 
+    vkDestroyBuffer(_device, _vertexBuffer, nullptr);
+    vkDestroyBuffer(_device, _indexBuffer, nullptr);
+    vkFreeMemory(_device, _deviceMemory, nullptr);
+
     //vkFreeCommandBuffers(_device, _presentCmdPool, static_cast<uint32_t>(_presentCmdBuffers.size()), &_presentCmdBuffers[0]);
     //vkDestroyCommandPool(_device, _presentCmdPool, nullptr);
-
     vkFreeCommandBuffers(_device, _gfxCmdPool, static_cast<uint32_t>(_gfxCmdBuffers.size()), &_gfxCmdBuffers[0]);
     vkDestroyCommandPool(_device, _gfxCmdPool, nullptr);
 
@@ -354,9 +357,15 @@ void VulkanRenderer::shutdown()
 
     vkDestroyRenderPass(_device, _renderPass, nullptr);
 
-    Assert(vkDeviceWaitIdle(_device) == VK_SUCCESS);
     vkDestroySemaphore(_device, _imageAvailableSemaphore, nullptr);
     vkDestroySemaphore(_device, _renderingFinishedSemaphore, nullptr);
+
+    for (size_t i = 0; i < _framebuffers.size(); ++i)
+    {
+        vkDestroyImageView(_device, _swapChainImageViews[i], nullptr);
+        vkDestroyFramebuffer(_device, _framebuffers[i], nullptr);
+    }
+
     vkDestroySwapchainKHR(_device, _swapChain, nullptr);
     vkDestroyDevice(_device, nullptr);
 
