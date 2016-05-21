@@ -9,13 +9,14 @@ if(UNIX)
 
     find_package(Libunwind REQUIRED)
 
-    set(REAPER_PLATFORM_LIBRARIES_UNIX "-lglbinding -lpthread -ldl"
+    set(REAPER_PLATFORM_LIBRARIES_UNIX
         ${OPENGL_LIBRARIES}
         ${GLFW_LIBRARIES}
         ${GLBINDING_LIBRARY_RELEASE}
         ${ASSIMP_LIBRARIES}
         ${OPENEXR_LIBRARIES}
         ${LIBUNWIND_LIBRARIES}
+        -lglbinding -lpthread -ldl
     )
 
     set(REAPER_PLATFORM_INCLUDES_UNIX
