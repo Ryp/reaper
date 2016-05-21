@@ -132,6 +132,10 @@ namespace
         std::cerr << pMessage << std::endl;
         return VK_FALSE;
     }
+
+    struct VSPushConstants {
+        float scale;
+    };
 }
 
 void VulkanRenderer::startup(Window* window)
@@ -146,7 +150,9 @@ void VulkanRenderer::startup(Window* window)
     _graphicsQueue = VK_NULL_HANDLE;
     _swapChain = VK_NULL_HANDLE;
     _device = VK_NULL_HANDLE;
+
     _pipeline = VK_NULL_HANDLE;
+    _pipelineLayout = VK_NULL_HANDLE;
 
     _debugCallback = VK_NULL_HANDLE;
 
@@ -344,6 +350,8 @@ void VulkanRenderer::shutdown()
     vkDestroyCommandPool(_device, _gfxCmdPool, nullptr);
 
     vkDestroyPipeline(_device, _pipeline, nullptr);
+    vkDestroyPipelineLayout(_device, _pipelineLayout, nullptr);
+
     vkDestroyRenderPass(_device, _renderPass, nullptr);
 
     Assert(vkDeviceWaitIdle(_device) == VK_SUCCESS);
@@ -739,6 +747,11 @@ void VulkanRenderer::createCommandBuffers()
 
         vkCmdBeginRenderPass(_gfxCmdBuffers[i], &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE );
 
+        VSPushConstants constants;
+        constants.scale = 0.5f;
+
+        vkCmdPushConstants(_gfxCmdBuffers[i], _pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(constants), &constants);
+
         vkCmdBindPipeline(_gfxCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, _pipeline);
 
         VkDeviceSize offsets [] = { 0 };
@@ -941,8 +954,8 @@ void VulkanRenderer::createPipeline()
     VkShaderModule vertModule;
     VkShaderModule fragModule;
 
-    createShaderModule(vertModule, _device, "./build/spv/tri.vert.spv");
-    createShaderModule(fragModule, _device, "./build/spv/tri.frag.spv");
+    createShaderModule(vertModule, _device, "./build/spv/transform.vert.spv");
+    createShaderModule(fragModule, _device, "./build/spv/transform.frag.spv");
 
     std::vector<VkPipelineShaderStageCreateInfo> shader_stage_create_infos = {
         // Vertex shader
@@ -951,7 +964,7 @@ void VulkanRenderer::createPipeline()
             nullptr,                                                    // const void                                    *pNext
             0,                                                          // VkPipelineShaderStageCreateFlags               flags
             VK_SHADER_STAGE_VERTEX_BIT,                                 // VkShaderStageFlagBits                          stage
-            vertModule,                                 // VkShaderModule                                 module
+            vertModule,                                                 // VkShaderModule                                 module
             "main",                                                     // const char                                    *pName
             nullptr                                                     // const VkSpecializationInfo                    *pSpecializationInfo
         },
@@ -961,7 +974,7 @@ void VulkanRenderer::createPipeline()
             nullptr,                                                    // const void                                    *pNext
             0,                                                          // VkPipelineShaderStageCreateFlags               flags
             VK_SHADER_STAGE_FRAGMENT_BIT,                               // VkShaderStageFlagBits                          stage
-            fragModule,                               // VkShaderModule                                 module
+            fragModule,                                                 // VkShaderModule                                 module
             "main",                                                     // const char                                    *pName
             nullptr                                                     // const VkSpecializationInfo                    *pSpecializationInfo
         }
@@ -973,24 +986,24 @@ void VulkanRenderer::createPipeline()
     vertexInputBindingDescription.stride = sizeof (float) * 5;
 
     VkVertexInputAttributeDescription vertexInputAttributeDescription [2] = {};
-    vertexInputAttributeDescription [0].binding = vertexInputBindingDescription.binding;
-    vertexInputAttributeDescription [0].format = VK_FORMAT_R32G32B32_SFLOAT;
-    vertexInputAttributeDescription [0].location = 0;
-    vertexInputAttributeDescription [0].offset = 0;
+    vertexInputAttributeDescription[0].binding = vertexInputBindingDescription.binding;
+    vertexInputAttributeDescription[0].format = VK_FORMAT_R32G32B32_SFLOAT;
+    vertexInputAttributeDescription[0].location = 0;
+    vertexInputAttributeDescription[0].offset = 0;
 
-    vertexInputAttributeDescription [1].binding = vertexInputBindingDescription.binding;
-    vertexInputAttributeDescription [1].format = VK_FORMAT_R32G32_SFLOAT;
-    vertexInputAttributeDescription [1].location = 1;
-    vertexInputAttributeDescription [1].offset = sizeof (float) * 3;
+    vertexInputAttributeDescription[1].binding = vertexInputBindingDescription.binding;
+    vertexInputAttributeDescription[1].format = VK_FORMAT_R32G32_SFLOAT;
+    vertexInputAttributeDescription[1].location = 1;
+    vertexInputAttributeDescription[1].offset = sizeof (float) * 3;
 
     VkPipelineVertexInputStateCreateInfo vertex_input_state_create_info = {
         VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,    // VkStructureType                                sType
         nullptr,                                                      // const void                                    *pNext
         0,                                                            // VkPipelineVertexInputStateCreateFlags          flags;
         1,                                                            // uint32_t                                       vertexBindingDescriptionCount
-        &vertexInputBindingDescription,                                                      // const VkVertexInputBindingDescription         *pVertexBindingDescriptions
-        std::extent<decltype(vertexInputAttributeDescription)>::value,                                                            // uint32_t                                       vertexAttributeDescriptionCount
-        vertexInputAttributeDescription                                                       // const VkVertexInputAttributeDescription       *pVertexAttributeDescriptions
+        &vertexInputBindingDescription,                               // const VkVertexInputBindingDescription         *pVertexBindingDescriptions
+        std::extent<decltype(vertexInputAttributeDescription)>::value,// uint32_t                                       vertexAttributeDescriptionCount
+        vertexInputAttributeDescription                               // const VkVertexInputAttributeDescription       *pVertexAttributeDescriptions
     };
 
     VkPipelineInputAssemblyStateCreateInfo input_assembly_state_create_info = {
@@ -1082,7 +1095,11 @@ void VulkanRenderer::createPipeline()
         { 0.0f, 0.0f, 0.0f, 0.0f }                                    // float                                          blendConstants[4]
     };
 
-    VkPipelineLayout pipeline_layout;
+    VkPushConstantRange pushConstantRange = {
+        VK_SHADER_STAGE_VERTEX_BIT, // VkShaderStageFlags    stageFlags;
+        0,                          // uint32_t              offset;
+        sizeof(VSPushConstants)     // uint32_t              size;
+    };
 
     VkPipelineLayoutCreateInfo layout_create_info = {
         VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,  // VkStructureType                sType
@@ -1090,11 +1107,11 @@ void VulkanRenderer::createPipeline()
         0,                                              // VkPipelineLayoutCreateFlags    flags
         0,                                              // uint32_t                       setLayoutCount
         nullptr,                                        // const VkDescriptorSetLayout   *pSetLayouts
-        0,                                              // uint32_t                       pushConstantRangeCount
-        nullptr                                         // const VkPushConstantRange     *pPushConstantRanges
+        1,                                              // uint32_t                       pushConstantRangeCount
+        &pushConstantRange                              // const VkPushConstantRange     *pPushConstantRanges
     };
 
-    Assert(vkCreatePipelineLayout(_device, &layout_create_info, nullptr, &pipeline_layout) == VK_SUCCESS);
+    Assert(vkCreatePipelineLayout(_device, &layout_create_info, nullptr, &_pipelineLayout) == VK_SUCCESS);
 
     VkGraphicsPipelineCreateInfo pipeline_create_info = {
         VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,              // VkStructureType                                sType
@@ -1111,16 +1128,14 @@ void VulkanRenderer::createPipeline()
         nullptr,                                                      // const VkPipelineDepthStencilStateCreateInfo   *pDepthStencilState
         &color_blend_state_create_info,                               // const VkPipelineColorBlendStateCreateInfo     *pColorBlendState
         nullptr,                                                      // const VkPipelineDynamicStateCreateInfo        *pDynamicState
-        pipeline_layout,                                        // VkPipelineLayout                               layout
-        _renderPass,                                               // VkRenderPass                                   renderPass
+        _pipelineLayout,                                              // VkPipelineLayout                               layout
+        _renderPass,                                                  // VkRenderPass                                   renderPass
         0,                                                            // uint32_t                                       subpass
         VK_NULL_HANDLE,                                               // VkPipeline                                     basePipelineHandle
         -1                                                            // int32_t                                        basePipelineIndex
     };
 
     Assert(vkCreateGraphicsPipelines(_device, VK_NULL_HANDLE, 1, &pipeline_create_info, nullptr, &_pipeline) == VK_SUCCESS);
-
-    vkDestroyPipelineLayout(_device, pipeline_layout, nullptr);
 
     vkDestroyShaderModule(_device, fragModule, nullptr);
     vkDestroyShaderModule(_device, vertModule, nullptr);

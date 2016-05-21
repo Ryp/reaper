@@ -155,6 +155,8 @@ set(REAPER_SRCS
 set(REAPER_GLSL_SHADERS
     ${CMAKE_SOURCE_DIR}/rc/shader/tri.frag
     ${CMAKE_SOURCE_DIR}/rc/shader/tri.vert
+    ${CMAKE_SOURCE_DIR}/rc/shader/transform.frag
+    ${CMAKE_SOURCE_DIR}/rc/shader/transform.vert
 )
 
 add_glslang_spirv_targets(REAPER_SPIRV_OUTPUT ${REAPER_GLSL_SHADERS})
