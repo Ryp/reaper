@@ -48,6 +48,7 @@ private:
     VkFormat            _swapChainFormat;
     VkDevice            _device;
     VkPipeline          _pipeline;
+    VkPipelineLayout    _pipelineLayout;
     VkSemaphore         _imageAvailableSemaphore;
     VkSemaphore         _renderingFinishedSemaphore;
 
