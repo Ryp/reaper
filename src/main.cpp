@@ -94,4 +94,3 @@ int main(int /*ac*/, char** /*av*/)
     vulkan_test();
     return 0;
 }
-
