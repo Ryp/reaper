@@ -389,10 +389,10 @@ void VulkanRenderer::render()
         case VK_SUBOPTIMAL_KHR:
             break;
         case VK_ERROR_OUT_OF_DATE_KHR:
-            Assert("Resize not implemented");
+            Assert(false, "Resize not implemented");
             break;
         default:
-            Assert("Problem occurred during swap chain image acquisition");
+            Assert(false, "Problem occurred during swap chain image acquisition");
             break;
     }
 
@@ -442,10 +442,10 @@ void VulkanRenderer::render()
         case VK_SUBOPTIMAL_KHR:
             break;
         case VK_ERROR_OUT_OF_DATE_KHR:
-            Assert("Resize not implemented");
+            Assert(false, "Resize not implemented");
             break;
         default:
-            Assert("Problem occurred during swap chain image acquisition");
+            Assert(false, "Problem occurred during swap chain image acquisition");
             break;
     }
 
@@ -550,10 +550,10 @@ static VkImageUsageFlags GetSwapChainUsageFlags(VkSurfaceCapabilitiesKHR& surfac
 {
     // Color attachment flag must always be supported
     // We can define other usage flags but we always need to check if they are supported
-    if( surface_capabilities.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT ) {
-        return VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+    if( surface_capabilities.supportedUsageFlags & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT) {
+        return VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
     }
-    Assert("VK_IMAGE_USAGE_TRANSFER_DST image usage is not supported by the swap chain!");
+    Assert(false, "VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT image usage is not supported by the swap chain!");
     //     << "Supported swap chain's image usages include:" << std::endl
     //     << (surface_capabilities.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_SRC_BIT              ? "    VK_IMAGE_USAGE_TRANSFER_SRC\n" : "")
     //     << (surface_capabilities.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT              ? "    VK_IMAGE_USAGE_TRANSFER_DST\n" : "")
@@ -596,7 +596,7 @@ static VkPresentModeKHR GetSwapChainPresentMode(std::vector<VkPresentModeKHR>& p
         if (present_mode == VK_PRESENT_MODE_FIFO_KHR)
             return present_mode;
     }
-    Assert("FIFO present mode is not supported by the swap chain!");
+    Assert(false, "FIFO present mode is not supported by the swap chain!");
     return static_cast<VkPresentModeKHR>(-1);
 }
 
