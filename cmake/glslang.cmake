@@ -3,6 +3,9 @@ if(NOT GLSLANGVALIDATOR_EXEC)
     message(FATAL_ERROR "${GLSLANGVALIDATOR_EXEC} not found")
 endif()
 
+# This function will create SPIR-V targets for each input glsl file and append it
+# to the user-provided 'generated_files' variable.
+# Then make your desired target depend on them and it will automatically compile your shaders.
 function(add_glslang_spirv_targets generated_files)
     set(OUTPUT_SPIRV_FILES)
     set(GLSLANG_COMPILE_OPTIONS "-V")
