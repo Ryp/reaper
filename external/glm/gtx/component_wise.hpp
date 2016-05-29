@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////////
 /// OpenGL Mathematics (glm.g-truc.net)
 ///
-/// Copyright (c) 2005 - 2014 G-Truc Creation (www.g-truc.net)
+/// Copyright (c) 2005 - 2015 G-Truc Creation (www.g-truc.net)
 /// Permission is hereby granted, free of charge, to any person obtaining a copy
 /// of this software and associated documentation files (the "Software"), to deal
 /// in the Software without restriction, including without limitation the rights
@@ -11,6 +11,10 @@
 /// 
 /// The above copyright notice and this permission notice shall be included in
 /// all copies or substantial portions of the Software.
+/// 
+/// Restrictions:
+///		By making use of the Software for military purposes, you choose to make
+///		a Bunny unhappy.
 /// 
 /// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 /// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -35,11 +39,11 @@
 /// <glm/gtx/component_wise.hpp> need to be included to use these functionalities.
 ///////////////////////////////////////////////////////////////////////////////////
 
-#ifndef GLM_GTX_component_wise
-#define GLM_GTX_component_wise
+#pragma once
 
 // Dependencies
 #include "../detail/setup.hpp"
+#include "../detail/precision.hpp"
 
 #if(defined(GLM_MESSAGES) && !defined(GLM_EXT_INCLUDED))
 #	pragma message("GLM: GLM_GTX_component_wise extension included")
@@ -50,33 +54,39 @@ namespace glm
 	/// @addtogroup gtx_component_wise
 	/// @{
 
+	/// Convert an integer vector to a normalized float vector.
+	/// If the parameter value type is already a floating precision type, the value is passed through.
+	/// @see gtx_component_wise
+	template <typename floatType, typename T, precision P, template <typename, precision> class vecType>
+	GLM_FUNC_DECL vecType<floatType, P> compNormalize(vecType<T, P> const & v);
+
+	/// Convert a normalized float vector to an integer vector.
+	/// If the parameter value type is already a floating precision type, the value is passed through.
+	/// @see gtx_component_wise
+	template <typename T, typename floatType, precision P, template <typename, precision> class vecType>
+	GLM_FUNC_DECL vecType<T, P> compScale(vecType<floatType, P> const & v);
+
 	/// Add all vector components together. 
 	/// @see gtx_component_wise
 	template <typename genType> 
-	typename genType::value_type compAdd(
-		genType const & v);
+	GLM_FUNC_DECL typename genType::value_type compAdd(genType const & v);
 
 	/// Multiply all vector components together. 
 	/// @see gtx_component_wise
 	template <typename genType> 
-	typename genType::value_type compMul(
-		genType const & v);
+	GLM_FUNC_DECL typename genType::value_type compMul(genType const & v);
 
 	/// Find the minimum value between single vector components.
 	/// @see gtx_component_wise
 	template <typename genType> 
-	typename genType::value_type compMin(
-		genType const & v);
+	GLM_FUNC_DECL typename genType::value_type compMin(genType const & v);
 
 	/// Find the maximum value between single vector components.
 	/// @see gtx_component_wise
 	template <typename genType> 
-	typename genType::value_type compMax(
-		genType const & v);
+	GLM_FUNC_DECL typename genType::value_type compMax(genType const & v);
 
 	/// @}
 }//namespace glm
 
 #include "component_wise.inl"
-
-#endif//GLM_GTX_component_wise

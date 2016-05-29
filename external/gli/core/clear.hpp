@@ -1,49 +1,25 @@
-///////////////////////////////////////////////////////////////////////////////////
-/// OpenGL Image (gli.g-truc.net)
-///
-/// Copyright (c) 2008 - 2013 G-Truc Creation (www.g-truc.net)
-/// Permission is hereby granted, free of charge, to any person obtaining a copy
-/// of this software and associated documentation files (the "Software"), to deal
-/// in the Software without restriction, including without limitation the rights
-/// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-/// copies of the Software, and to permit persons to whom the Software is
-/// furnished to do so, subject to the following conditions:
-///
-/// The above copyright notice and this permission notice shall be included in
-/// all copies or substantial portions of the Software.
-///
-/// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-/// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-/// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-/// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-/// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-/// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-/// THE SOFTWARE.
-///
-/// @ref core
-/// @file gli/core/clear.hpp
-/// @date 2013-01-12 / 2013-01-03
-/// @author Christophe Riccio
-///////////////////////////////////////////////////////////////////////////////////
+#pragma once
 
-#ifndef GLI_CORE_CLEAR_INCLUDED
-#define GLI_CORE_CLEAR_INCLUDED
+#include "convert_func.hpp"
 
-#include "texture1d.hpp"
-#include "texture1d_array.hpp"
-#include "texture2d.hpp"
-#include "texture2d_array.hpp"
-#include "texture3d.hpp"
-#include "texture_cube.hpp"
-#include "texture_cube_array.hpp"
-
-namespace gli
+namespace gli{
+namespace detail
 {
-	template <typename genType, typename texture>
-	void clear(texture const & Texture, genType const & Texel);
+	template <typename textureType, typename T, precision P>
+	struct clear
+	{
+		static void call(textureType & Texture, typename convert<textureType, T, P>::writeFunc Write, tvec4<T, P> const & Color)
+		{
+			GLI_ASSERT(Write);
 
+			texture const ConvertTexel(Texture.target(), Texture.format(), texture::extent_type(1), 1, 1, 1);
+			textureType Texel(ConvertTexel);
+			Write(Texel, typename textureType::extent_type(0), 0, 0, 0, Color);
+
+			size_t const BlockSize(block_size(Texture.format()));
+			for(size_t BlockIndex = 0, BlockCount = Texture.size() / BlockSize; BlockIndex < BlockCount; ++BlockIndex)
+				memcpy(static_cast<std::uint8_t*>(Texture.data()) + BlockSize * BlockIndex, Texel.data(), BlockSize);
+		}
+	};
+}//namespace detail
 }//namespace gli
-
-#include "clear.inl"
-
-#endif//GLI_CORE_CLEAR_INCLUDED
