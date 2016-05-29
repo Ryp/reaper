@@ -1,33 +1,4 @@
-///////////////////////////////////////////////////////////////////////////////////
-/// OpenGL Image (gli.g-truc.net)
-///
-/// Copyright (c) 2008 - 2013 G-Truc Creation (www.g-truc.net)
-/// Permission is hereby granted, free of charge, to any person obtaining a copy
-/// of this software and associated documentation files (the "Software"), to deal
-/// in the Software without restriction, including without limitation the rights
-/// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-/// copies of the Software, and to permit persons to whom the Software is
-/// furnished to do so, subject to the following conditions:
-/// 
-/// The above copyright notice and this permission notice shall be included in
-/// all copies or substantial portions of the Software.
-/// 
-/// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-/// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-/// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-/// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-/// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-/// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-/// THE SOFTWARE.
-///
-/// @ref core
-/// @file gli/core/storage.hpp
-/// @date 2012-06-21 / 2013-01-12
-/// @author Christophe Riccio
-///////////////////////////////////////////////////////////////////////////////////
-
-#ifndef GLI_CORE_STORAGE_INCLUDED
-#define GLI_CORE_STORAGE_INCLUDED
+#pragma once
 
 // STD
 #include <vector>
@@ -36,176 +7,86 @@
 #include <cassert>
 #include <cmath>
 #include <cstring>
+#include <memory>
+
+#include "../type.hpp"
+#include "../format.hpp"
 
 // GLM
-#define GLM_FORCE_RADIANS
-#include <glm/glm.hpp>
+#include <glm/gtc/round.hpp>
 #include <glm/gtx/component_wise.hpp>
-#include <glm/gtx/gradient_paint.hpp>
 #include <glm/gtx/integer.hpp>
 #include <glm/gtx/bit.hpp>
-#include <glm/gtx/multiple.hpp>
-#include <glm/gtx/number_precision.hpp>
 #include <glm/gtx/raw_data.hpp>
-#include <glm/gtx/scalar_relational.hpp>
+#include <glm/gtx/wrap.hpp>
 
-#include "shared_ptr.hpp"
-#include "header.hpp"
-#include "format.hpp"
+static_assert(GLM_VERSION >= 97, "GLI requires at least GLM 0.9.7");
 
-namespace gli{
-namespace detail
+namespace gli
 {
-	typedef std::size_t size_type;
-	typedef glm::uint dimensions1_type;
-	typedef glm::uvec2 dimensions2_type;
-	typedef glm::uvec3 dimensions3_type;
-	typedef glm::uvec4 dimensions4_type;
-}//namespace detail
-
-	class storage
+	class storage_linear
 	{
 	public:
-		typedef glm::uint dimensions1_type;
-		typedef glm::uvec2 dimensions2_type;
-		typedef glm::uvec3 dimensions3_type;
-		typedef glm::uvec4 dimensions4_type;
-		typedef dimensions3_type dimensions_type;
-		typedef float texcoord1_type;
-		typedef glm::vec2 texcoord2_type;
-		typedef glm::vec3 texcoord3_type;
-		typedef glm::vec4 texcoord4_type;
-		typedef std::size_t size_type;
+		typedef extent3d extent_type;
+		typedef size_t size_type;
 		typedef gli::format format_type;
+		typedef glm::byte data_type;
 
 	public:
-		storage();
+		storage_linear();
 
-		storage(
-			size_type const & Layers,
-			size_type const & Faces,
-			size_type const & Levels,
-			format_type const & Format,
-			dimensions_type const & Dimensions);
-
-		storage(
-			size_type const & Layers,
-			size_type const & Faces,
-			size_type const & Levels,
-			dimensions_type const & Dimensions,
-			format_type const & Format,
-			size_type const & BlockSize,
-			dimensions_type const & BlockDimensions);
+		storage_linear(
+			format_type Format,
+			extent_type const & Extent,
+			size_type Layers,
+			size_type Faces,
+			size_type Levels);
 
 		bool empty() const;
 		size_type size() const; // Express is bytes
-		format_type format() const;
 		size_type layers() const;
-		size_type faces() const;
 		size_type levels() const;
+		size_type faces() const;
 
-		size_type blockSize() const; // Express is bytes
-		dimensions_type blockDimensions() const; // Express is bytes
-		dimensions_type dimensions(size_type const & Level) const;
+		size_type block_size() const;
+		extent_type block_extent() const;
+		extent_type block_count(size_type Level) const;
+		extent_type extent(size_type Level) const;
 
-		glm::byte * data();
-		glm::byte const * data() const;
+		data_type* data();
+		data_type const* const data() const;
 
-		size_type levelSize(
-			size_type const & Level) const;
-		size_type faceSize(
-			size_type const & BaseLevel,
-			size_type const & MaxLevel) const;
-		size_type layerSize(
-			size_type const & BaseFace,
-			size_type const & MaxFace,
-			size_type const & BaseLevel,
-			size_type const & MaxLevel) const;
+		/// Compute the relative memory offset to access the data for a specific layer, face and level
+		size_type base_offset(
+			size_type Layer,
+			size_type Face,
+			size_type Level) const;
+
+		/// Copy a subset of a specific image of a texture 
+		void copy(
+			storage_linear const& StorageSrc,
+			size_t LayerSrc, size_t FaceSrc, size_t LevelSrc, extent_type const& BlockIndexSrc,
+			size_t LayerDst, size_t FaceDst, size_t LevelDst, extent_type const& BlockIndexDst,
+			extent_type const& BlockCount);
+
+		size_type level_size(
+			size_type Level) const;
+		size_type face_size(
+			size_type BaseLevel, size_type MaxLevel) const;
+		size_type layer_size(
+			size_type BaseFace, size_type MaxFace,
+			size_type BaseLevel, size_type MaxLevel) const;
 
 	private:
-		struct impl
-		{
-			impl();
-
-			explicit impl(
-				size_type const & Layers, 
-				size_type const & Faces,
-				size_type const & Levels,
-				format_type const & Format,
-				dimensions_type const & Dimensions,
-				size_type const & BlockSize,
-				dimensions_type const & BlockDimensions);
-
-			size_type const Layers; 
-			size_type const Faces;
-			size_type const Levels;
-			format_type const Format;
-			dimensions_type const Dimensions;
-			size_type const BlockSize;
-			dimensions_type const BlockDimensions;
-			std::vector<glm::byte> Data;
-		};
-
-		shared_ptr<impl> Impl;
+		size_type const Layers;
+		size_type const Faces;
+		size_type const Levels;
+		size_type const BlockSize;
+		extent_type const BlockCount;
+		extent_type const BlockExtent;
+		extent_type const Extent;
+		std::vector<data_type> Data;
 	};
-
-/*
-	storage extractLayers(
-		storage const & Storage, 
-		storage::size_type const & Offset, 
-		storage::size_type const & Size);
-*/
-/*
-	storage extractFace(
-		storage const & Storage, 
-		face const & Face);
-*/
-/*
-	storage extractLevels(
-		storage const & Storage, 
-		storage::size_type const & Offset, 
-		storage::size_type const & Size);
-*/
-/*
-	void copy_layers(
-		storage const & SourceStorage, 
-		storage::size_type const & SourceLayerOffset,
-		storage::size_type const & SourceLayerSize,
-		storage & DestinationStorage, 
-		storage::size_type const & DestinationLayerOffset);
-
-	void copy_faces(
-		storage const & SourceStorage, 
-		storage::size_type const & SourceLayerOffset,
-		storage::size_type const & SourceFaceOffset,
-		storage::size_type const & SourceLayerSize,
-		storage & DestinationStorage, 
-		storage::size_type const & DestinationLayerOffset,
-		storage::size_type const & DestinationFaceOffset);
-
-	void copy_levels(
-		storage const & SourceStorage, 
-		storage::size_type const & SourceLayerOffset,
-		storage::size_type const & SourceFaceOffset,
-		storage::size_type const & SourceLevelOffset,
-		storage::size_type const & SourceLayerSize,
-		storage & DestinationStorage, 
-		storage::size_type const & DestinationLayerOffset,
-		storage::size_type const & DestinationFaceOffset,
-		storage::size_type const & DestinationlevelOffset);
-*/
-
-	std::size_t block_size(format const & Format);
-	glm::uvec3 block_dimensions(format const & Format);
-	std::size_t component_count(format const & Format);
-	bool is_compressed(format const & Format);
-
-	std::size_t level_count(storage::dimensions1_type const & Dimensions);
-	std::size_t level_count(storage::dimensions2_type const & Dimensions);
-	std::size_t level_count(storage::dimensions3_type const & Dimensions);
-
 }//namespace gli
 
-#include "storage.inl"
-
-#endif//GLI_CORE_STORAGE_INCLUDED
+#include "storage_linear.inl"
