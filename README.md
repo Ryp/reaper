@@ -15,3 +15,4 @@ cmake .. && make
 Dependencies:
 - Vulkan
 - libunwind (for linux)
+- Assimp

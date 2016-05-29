@@ -24,13 +24,11 @@ endif()
 
 # Find dependencies
 find_package(Vulkan REQUIRED)
+find_package(assimp REQUIRED)
 
 set(REAPER_BIN reaper)
 
 set(REAPER_SRCS
-#     ${CMAKE_SOURCE_DIR}/external/imgui/imgui.cpp
-#     ${CMAKE_SOURCE_DIR}/external/imgui/imgui_impl_glfw_gl3.cpp
-
     ${CMAKE_SOURCE_DIR}/src/main.cpp
 
     ${CMAKE_SOURCE_DIR}/src/core/Assert.h
@@ -121,26 +119,6 @@ set(REAPER_SRCS
     ${CMAKE_SOURCE_DIR}/src/renderer/Renderer.cpp
     ${CMAKE_SOURCE_DIR}/src/renderer/Renderer.h
 
-#     ${CMAKE_SOURCE_DIR}/src/renderer/opengl/ImageLoader.cpp
-#     ${CMAKE_SOURCE_DIR}/src/renderer/opengl/ImageLoader.h
-#     ${CMAKE_SOURCE_DIR}/src/renderer/opengl/Mesh.cpp
-#     ${CMAKE_SOURCE_DIR}/src/renderer/opengl/Mesh.h
-#     ${CMAKE_SOURCE_DIR}/src/renderer/opengl/OpenGLRenderer.cpp
-#     ${CMAKE_SOURCE_DIR}/src/renderer/opengl/OpenGLRenderer.h
-#     ${CMAKE_SOURCE_DIR}/src/renderer/opengl/ShaderHelper.cpp
-#     ${CMAKE_SOURCE_DIR}/src/renderer/opengl/ShaderHelper.h
-
-#     ${CMAKE_SOURCE_DIR}/src/renderer/opengl/api/OpenGLContext.cpp
-#     ${CMAKE_SOURCE_DIR}/src/renderer/opengl/api/OpenGLContext.h
-#     ${CMAKE_SOURCE_DIR}/src/renderer/opengl/api/OpenGL.h
-
-#     ${CMAKE_SOURCE_DIR}/src/renderer/resource/Model.cpp
-#     ${CMAKE_SOURCE_DIR}/src/renderer/resource/Model.h
-#     ${CMAKE_SOURCE_DIR}/src/renderer/resource/ModelLoader.cpp
-#     ${CMAKE_SOURCE_DIR}/src/renderer/resource/ModelLoader.h
-#     ${CMAKE_SOURCE_DIR}/src/renderer/resource/ResourceManager.cpp
-#     ${CMAKE_SOURCE_DIR}/src/renderer/resource/ResourceManager.h
-
     ${CMAKE_SOURCE_DIR}/src/renderer/vulkan/PresentationSurface.cpp
     ${CMAKE_SOURCE_DIR}/src/renderer/vulkan/PresentationSurface.h
     ${CMAKE_SOURCE_DIR}/src/renderer/vulkan/VulkanRenderer.cpp
@@ -177,10 +155,12 @@ target_include_directories(${REAPER_BIN} PUBLIC
 target_include_directories(${REAPER_BIN} SYSTEM PUBLIC
     ${CMAKE_SOURCE_DIR}/external
     ${VULKAN_INCLUDE_DIR}
+    ${ASSIMP_INCLUDE_DIRS}
     ${REAPER_PLATFORM_INCLUDES})
 
 #Libraries
 target_link_libraries(${REAPER_BIN}
+    ${ASSIMP_LIBRARIES}
     ${REAPER_PLATFORM_LIBRARIES})
 
 set_target_properties(${REAPER_BIN} PROPERTIES COTIRE_CXX_PREFIX_HEADER_INIT ${REAPER_PCH})

@@ -8,10 +8,8 @@
 #include "Renderer.h"
 
 #include "renderer/vulkan/VulkanRenderer.h"
-#include "renderer/opengl/OpenGLRenderer.h"
 
 AbstractRenderer* AbstractRenderer::createRenderer()
 {
     return new VulkanRenderer();
-//     return new OpenGLRenderer();
 }
