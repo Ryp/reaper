@@ -60,4 +60,6 @@ void printStacktrace()
     AssertUnreachable();
 }
 
+#else
+#error printStacktrace() not available!
 #endif
