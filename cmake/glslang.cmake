@@ -11,7 +11,7 @@ function(add_glslang_spirv_targets generated_files)
     set(GLSLANG_COMPILE_OPTIONS "-V")
     foreach(INPUT_GLSL ${ARGN})
         # Build the correct output name and path
-        file(RELATIVE_PATH INPUT_GLSL_REL "${CMAKE_SOURCE_DIR}/rc/shader" ${INPUT_GLSL})
+        file(RELATIVE_PATH INPUT_GLSL_REL "${CMAKE_SOURCE_DIR}/res/shader" ${INPUT_GLSL})
         set(OUTPUT_SPIRV "${CMAKE_BINARY_DIR}/spv/${INPUT_GLSL_REL}.spv")
         get_filename_component(OUTPUT_SPIRV_PATH ${OUTPUT_SPIRV} PATH)
         get_filename_component(OUTPUT_SPIRV_NAME ${OUTPUT_SPIRV} NAME)
