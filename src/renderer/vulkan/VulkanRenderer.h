@@ -14,6 +14,9 @@
 #include "api/Vulkan.h"
 #include "core/DynamicLibrary.h"
 
+
+struct VSUBO;
+
 class VulkanRenderer : public AbstractRenderer
 {
 public:
@@ -29,10 +32,15 @@ private:
     void createSemaphores();
     void createSwapChain();
     void createCommandBuffers();
+    void createDescriptorPool();
     void createRenderPass();
     void createFramebuffers();
     void createPipeline();
     void createMeshBuffers();
+    void createDescriptorSet();
+
+private:
+    void updateUniforms();
 
 private:
     LibHandle           _vulkanLib;
@@ -67,9 +75,24 @@ private:
     uint32_t                        _prsQueueIndex;
 
 private:
+    VkDescriptorPool        _descriptorPool;
+    VkDescriptorSet         _descriptorSet;
+    VkDescriptorSetLayout   _descriptorSetLayout;
+
+private:
+    struct {
+        VkBuffer buffer;
+        VkDeviceMemory memory;
+        VkDescriptorBufferInfo descriptor;
+    }  _uniformData;
+
+private:
     VkRenderPass                _renderPass;
     std::vector<VkFramebuffer>  _framebuffers;
     std::vector<VkImageView>    _swapChainImageViews;
+
+private:
+    VSUBO* _uniforms;
 };
 
 #endif // REAPER_VULKANRENDERER_INCLUDED

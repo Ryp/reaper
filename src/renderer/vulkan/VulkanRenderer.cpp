@@ -8,6 +8,7 @@
 #include "VulkanRenderer.h"
 
 #include <cstring>
+#include <cmath>
 
 #include "core/fs/FileLoading.h"
 
@@ -129,14 +130,124 @@ namespace
         const char*                 pMessage,
         void*                       /*pUserData*/)
     {
+//         Assert(false, pMessage);
         std::cerr << pMessage << std::endl;
         return VK_FALSE;
+    }
+
+    void createShaderModule(VkShaderModule& shaderModule, VkDevice device, const std::string& fileName)
+    {
+        std::vector<char> fileContents = readWholeFile(fileName);
+
+        VkShaderModuleCreateInfo shader_module_create_info =
+        {
+            VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+            nullptr,
+            0,
+            fileContents.size(),
+            reinterpret_cast<const uint32_t*>(&fileContents[0])
+        };
+
+        Assert(vkCreateShaderModule(device, &shader_module_create_info, nullptr, &shaderModule) == VK_SUCCESS);
     }
 
     struct VSPushConstants {
         float scale;
     };
+
+    struct MemoryTypeInfo
+    {
+        bool deviceLocal = false;
+        bool hostVisible = false;
+        bool hostCoherent = false;
+        bool hostCached = false;
+        bool lazilyAllocated = false;
+
+        struct Heap
+        {
+            uint64_t size = 0;
+            bool deviceLocal = false;
+        };
+
+        Heap heap;
+        int index;
+    };
+
+    std::vector<MemoryTypeInfo> enumerateHeaps (VkPhysicalDevice device)
+    {
+        VkPhysicalDeviceMemoryProperties memoryProperties = {};
+        vkGetPhysicalDeviceMemoryProperties (device, &memoryProperties);
+
+        std::vector<MemoryTypeInfo::Heap> heaps;
+
+        for (uint32_t i = 0; i < memoryProperties.memoryHeapCount; ++i) {
+            MemoryTypeInfo::Heap info;
+            info.size = memoryProperties.memoryHeaps [i].size;
+            info.deviceLocal = (memoryProperties.memoryHeaps [i].flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT) != 0;
+
+            heaps.push_back (info);
+        }
+
+        std::vector<MemoryTypeInfo> result;
+
+        for (uint32_t i = 0; i < memoryProperties.memoryTypeCount; ++i) {
+            MemoryTypeInfo typeInfo;
+
+            typeInfo.deviceLocal = (memoryProperties.memoryTypes [i].propertyFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) != 0;
+            typeInfo.hostVisible = (memoryProperties.memoryTypes [i].propertyFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) != 0;
+            typeInfo.hostCoherent = (memoryProperties.memoryTypes [i].propertyFlags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) != 0;
+            typeInfo.hostCached = (memoryProperties.memoryTypes [i].propertyFlags & VK_MEMORY_PROPERTY_HOST_CACHED_BIT) != 0;
+            typeInfo.lazilyAllocated = (memoryProperties.memoryTypes [i].propertyFlags & VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT) != 0;
+
+            typeInfo.heap = heaps [memoryProperties.memoryTypes [i].heapIndex];
+
+            typeInfo.index = static_cast<int> (i);
+
+            result.push_back (typeInfo);
+        }
+
+        return result;
+    }
+
+    VkDeviceMemory AllocateMemory (const std::vector<MemoryTypeInfo>& memoryInfos,
+                                   VkDevice device, const int size)
+    {
+        // We take the first HOST_VISIBLE memory
+        for (auto& memoryInfo : memoryInfos) {
+            if (memoryInfo.hostVisible) {
+                VkMemoryAllocateInfo memoryAllocateInfo = {};
+                memoryAllocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+                memoryAllocateInfo.memoryTypeIndex = memoryInfo.index;
+                memoryAllocateInfo.allocationSize = size;
+
+                VkDeviceMemory deviceMemory;
+                vkAllocateMemory (device, &memoryAllocateInfo, nullptr,
+                                  &deviceMemory);
+                return deviceMemory;
+            }
+        }
+
+        return VK_NULL_HANDLE;
+    }
+
+    VkBuffer AllocateBuffer (VkDevice device, const int size,
+                             const VkBufferUsageFlagBits bits)
+    {
+        VkBufferCreateInfo bufferCreateInfo = {};
+        bufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+        bufferCreateInfo.size = static_cast<uint32_t> (size);
+        bufferCreateInfo.usage = bits;
+
+        VkBuffer result;
+        vkCreateBuffer (device, &bufferCreateInfo, nullptr, &result);
+        return result;
+    }
 }
+
+struct VSUBO {
+    float time;
+    float scaleFactor;
+};
 
 void VulkanRenderer::startup(Window* window)
 {
@@ -164,7 +275,15 @@ void VulkanRenderer::startup(Window* window)
     _vertexBuffer = VK_NULL_HANDLE;
     _indexBuffer = VK_NULL_HANDLE;
 
+    _descriptorPool = VK_NULL_HANDLE;
+    _descriptorSet = VK_NULL_HANDLE;
+    _descriptorSetLayout = VK_NULL_HANDLE;
+
     _renderPass = VK_NULL_HANDLE;
+
+    _uniforms = new VSUBO;
+    _uniforms->time = 0.f;
+    _uniforms->scaleFactor = 0.f;
 
     #define REAPER_VK_EXPORTED_FUNCTION(func) {                                 \
         func = (PFN_##func)dynlib::getSymbol(_vulkanLib, #func); }
@@ -334,14 +453,21 @@ void VulkanRenderer::startup(Window* window)
     createSwapChain();
     createRenderPass();
     createFramebuffers();
+    createDescriptorPool();
     createPipeline();
     createMeshBuffers();
+    createDescriptorSet();
     createCommandBuffers();
 }
 
 void VulkanRenderer::shutdown()
 {
     Assert(vkDeviceWaitIdle(_device) == VK_SUCCESS);
+
+    vkDestroyDescriptorPool(_device, _descriptorPool, nullptr);
+    vkDestroyDescriptorSetLayout(_device, _descriptorSetLayout, nullptr);
+    vkDestroyBuffer(_device, _uniformData.buffer, nullptr);
+    vkFreeMemory(_device, _uniformData.memory, nullptr);
 
     vkDestroyBuffer(_device, _vertexBuffer, nullptr);
     vkDestroyBuffer(_device, _indexBuffer, nullptr);
@@ -375,6 +501,8 @@ void VulkanRenderer::shutdown()
 
     vkDestroyInstance(_instance, nullptr);
 
+    delete _uniforms;
+
     dynlib::close(_vulkanLib);
 }
 
@@ -395,6 +523,8 @@ void VulkanRenderer::render()
             Assert(false, "Problem occurred during swap chain image acquisition");
             break;
     }
+
+    updateUniforms();
 
     VkPipelineStageFlags wait_dst_stage_mask = VK_PIPELINE_STAGE_TRANSFER_BIT;
     VkSubmitInfo submit_info = {
@@ -763,10 +893,12 @@ void VulkanRenderer::createCommandBuffers()
 
         vkCmdBindPipeline(_gfxCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, _pipeline);
 
+        vkCmdBindDescriptorSets(_gfxCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, _pipelineLayout, 0, 1, &_descriptorSet, 0, nullptr);
+
         VkDeviceSize offsets [] = { 0 };
-        vkCmdBindIndexBuffer (_gfxCmdBuffers[i], _indexBuffer, 0, VK_INDEX_TYPE_UINT32);
-        vkCmdBindVertexBuffers (_gfxCmdBuffers[i], 0, 1, &_vertexBuffer, offsets);
-        vkCmdDrawIndexed (_gfxCmdBuffers[i], 6, 1, 0, 0, 0);
+        vkCmdBindIndexBuffer(_gfxCmdBuffers[i], _indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+        vkCmdBindVertexBuffers(_gfxCmdBuffers[i], 0, 1, &_vertexBuffer, offsets);
+        vkCmdDrawIndexed(_gfxCmdBuffers[i], 6, 1, 0, 0, 0);
 
         //vkCmdDraw(_gfxCmdBuffers[i], 3, 1, 0, 0 );
 
@@ -838,6 +970,129 @@ void VulkanRenderer::createCommandBuffers()
         vkCmdPipelineBarrier(_presentCmdBuffers[i], VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier_from_clear_to_present);
         Assert(vkEndCommandBuffer(_presentCmdBuffers[i]) == VK_SUCCESS);
     }*/
+}
+
+namespace
+{
+    uint32_t getMemoryType(VkPhysicalDevice device, uint32_t typeBits, VkFlags properties)
+    {
+        VkPhysicalDeviceMemoryProperties memoryProperties = {};
+        vkGetPhysicalDeviceMemoryProperties(device, &memoryProperties);
+
+        for (uint32_t i = 0; i < 32; i++)
+        {
+            if ((typeBits & 1) == 1)
+            {
+                if ((memoryProperties.memoryTypes[i].propertyFlags & properties) == properties)
+                {
+                    return i;
+                }
+            }
+            typeBits >>= 1;
+        }
+        AssertUnreachable();
+        return 0;
+    }
+}
+
+void VulkanRenderer::createDescriptorPool()
+{
+    // We need to tell the API the number of max. requested descriptors per type
+    VkDescriptorPoolSize typeCounts[1];
+    // This example only uses one descriptor type (uniform buffer) and only
+    // requests one descriptor of this type
+    typeCounts[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    typeCounts[0].descriptorCount = 1;
+    // For additional types you need to add new entries in the type count list
+    // E.g. for two combined image samplers :
+    // typeCounts[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    // typeCounts[1].descriptorCount = 2;
+
+    // Create the global descriptor pool
+    // All descriptors used in this example are allocated from this pool
+    VkDescriptorPoolCreateInfo descriptorPoolInfo = {
+        VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO, // VkStructureType                sType;
+        nullptr, // const void*                    pNext;
+        0, // VkDescriptorPoolCreateFlags    flags;
+        1, // uint32_t                       maxSets;
+        1, // uint32_t                       poolSizeCount;
+        typeCounts // const VkDescriptorPoolSize*    pPoolSizes;
+    };
+
+    descriptorPoolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+    descriptorPoolInfo.pNext = NULL;
+    descriptorPoolInfo.poolSizeCount = 1;
+    descriptorPoolInfo.pPoolSizes = typeCounts;
+
+    Assert(vkCreateDescriptorPool(_device, &descriptorPoolInfo, nullptr, &_descriptorPool) == VK_SUCCESS);
+    VkDescriptorSetLayoutBinding layoutBinding = {};
+    layoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    layoutBinding.descriptorCount = 1;
+    layoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+    layoutBinding.pImmutableSamplers = nullptr;
+
+    VkDescriptorSetLayoutCreateInfo descriptorLayout = {};
+    descriptorLayout.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    descriptorLayout.pNext = nullptr;
+    descriptorLayout.bindingCount = 1;
+    descriptorLayout.pBindings = &layoutBinding;
+
+    Assert(vkCreateDescriptorSetLayout(_device, &descriptorLayout, nullptr, &_descriptorSetLayout) == VK_SUCCESS);
+
+    {
+        /*{
+            VkBufferCreateInfo bufferInfo = {};
+            bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+            bufferInfo.size = sizeof(*_uniforms);
+            bufferInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+
+            // Create a new buffer
+            Assert(vkCreateBuffer(_device, &bufferInfo, nullptr, &_uniformData.buffer) == VK_SUCCESS);
+
+            auto memoryHeaps = enumerateHeaps(_physicalDevice);
+            _uniformData.memory = AllocateMemory(memoryHeaps, _device, 10 << 10);
+        }*/
+        {
+            // Prepare and initialize a uniform buffer block containing shader uniforms
+            // In Vulkan there are no more single uniforms like in GL
+            // All shader uniforms are passed as uniform buffer blocks
+            VkMemoryRequirements memReqs;
+
+            // Vertex shader uniform buffer block
+            VkBufferCreateInfo bufferInfo = {};
+            VkMemoryAllocateInfo allocInfo = {};
+            allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+            allocInfo.pNext = nullptr;
+            allocInfo.allocationSize = 0;
+            allocInfo.memoryTypeIndex = 0;
+
+            bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+            bufferInfo.size = sizeof(*_uniforms);
+            bufferInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+
+            // Create a new buffer
+            Assert(vkCreateBuffer(_device, &bufferInfo, nullptr, &_uniformData.buffer) == VK_SUCCESS);
+            // Get memory requirements including size, alignment and memory type
+            vkGetBufferMemoryRequirements(_device, _uniformData.buffer, &memReqs);
+            allocInfo.allocationSize = memReqs.size;
+            // Get the memory type index that supports host visibile memory access
+            // Most implementations offer multiple memory tpyes and selecting the
+            // correct one to allocate memory from is important
+            allocInfo.memoryTypeIndex = getMemoryType(_physicalDevice, memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
+            // Allocate memory for the uniform buffer
+            Assert(vkAllocateMemory(_device, &allocInfo, nullptr, &(_uniformData.memory)) == VK_SUCCESS);
+            // Bind memory to buffer
+        }
+        // Bind memory to buffer
+        Assert(vkBindBufferMemory(_device, _uniformData.buffer, _uniformData.memory, 0) == VK_SUCCESS);
+
+        // Store information in the uniform's descriptor
+        _uniformData.descriptor.buffer = _uniformData.buffer;
+        _uniformData.descriptor.offset = 0;
+        _uniformData.descriptor.range = sizeof(_uniformData);
+
+        updateUniforms();
+    }
 }
 
 void VulkanRenderer::createRenderPass()
@@ -942,29 +1197,13 @@ void VulkanRenderer::createFramebuffers()
     }
 }
 
-static void createShaderModule(VkShaderModule& shaderModule, VkDevice device, const std::string& fileName)
-{
-    std::vector<char> fileContents = readWholeFile(fileName);
-
-    VkShaderModuleCreateInfo shader_module_create_info =
-    {
-        VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
-        nullptr,
-        0,
-        fileContents.size(),
-        reinterpret_cast<const uint32_t*>(&fileContents[0])
-    };
-
-    Assert(vkCreateShaderModule(device, &shader_module_create_info, nullptr, &shaderModule) == VK_SUCCESS);
-}
-
 void VulkanRenderer::createPipeline()
 {
     VkShaderModule vertModule;
     VkShaderModule fragModule;
 
-    createShaderModule(vertModule, _device, "./build/spv/transform.vert.spv");
-    createShaderModule(fragModule, _device, "./build/spv/transform.frag.spv");
+    createShaderModule(vertModule, _device, "./build/spv/uniform.vert.spv");
+    createShaderModule(fragModule, _device, "./build/spv/uniform.frag.spv");
 
     std::vector<VkPipelineShaderStageCreateInfo> shader_stage_create_infos = {
         // Vertex shader
@@ -1114,8 +1353,8 @@ void VulkanRenderer::createPipeline()
         VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,  // VkStructureType                sType
         nullptr,                                        // const void                    *pNext
         0,                                              // VkPipelineLayoutCreateFlags    flags
-        0,                                              // uint32_t                       setLayoutCount
-        nullptr,                                        // const VkDescriptorSetLayout   *pSetLayouts
+        1,                                              // uint32_t                       setLayoutCount
+        &_descriptorSetLayout,                          // const VkDescriptorSetLayout   *pSetLayouts
         1,                                              // uint32_t                       pushConstantRangeCount
         &pushConstantRange                              // const VkPushConstantRange     *pPushConstantRanges
     };
@@ -1148,97 +1387,6 @@ void VulkanRenderer::createPipeline()
 
     vkDestroyShaderModule(_device, fragModule, nullptr);
     vkDestroyShaderModule(_device, vertModule, nullptr);
-}
-
-namespace
-{
-    struct MemoryTypeInfo
-    {
-        bool deviceLocal = false;
-        bool hostVisible = false;
-        bool hostCoherent = false;
-        bool hostCached = false;
-        bool lazilyAllocated = false;
-
-        struct Heap
-        {
-            uint64_t size = 0;
-            bool deviceLocal = false;
-        };
-
-        Heap heap;
-        int index;
-    };
-
-    std::vector<MemoryTypeInfo> enumerateHeaps (VkPhysicalDevice device)
-    {
-        VkPhysicalDeviceMemoryProperties memoryProperties = {};
-        vkGetPhysicalDeviceMemoryProperties (device, &memoryProperties);
-
-        std::vector<MemoryTypeInfo::Heap> heaps;
-
-        for (uint32_t i = 0; i < memoryProperties.memoryHeapCount; ++i) {
-            MemoryTypeInfo::Heap info;
-            info.size = memoryProperties.memoryHeaps [i].size;
-            info.deviceLocal = (memoryProperties.memoryHeaps [i].flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT) != 0;
-
-            heaps.push_back (info);
-        }
-
-        std::vector<MemoryTypeInfo> result;
-
-        for (uint32_t i = 0; i < memoryProperties.memoryTypeCount; ++i) {
-            MemoryTypeInfo typeInfo;
-
-            typeInfo.deviceLocal = (memoryProperties.memoryTypes [i].propertyFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) != 0;
-            typeInfo.hostVisible = (memoryProperties.memoryTypes [i].propertyFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) != 0;
-            typeInfo.hostCoherent = (memoryProperties.memoryTypes [i].propertyFlags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) != 0;
-            typeInfo.hostCached = (memoryProperties.memoryTypes [i].propertyFlags & VK_MEMORY_PROPERTY_HOST_CACHED_BIT) != 0;
-            typeInfo.lazilyAllocated = (memoryProperties.memoryTypes [i].propertyFlags & VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT) != 0;
-
-            typeInfo.heap = heaps [memoryProperties.memoryTypes [i].heapIndex];
-
-            typeInfo.index = static_cast<int> (i);
-
-            result.push_back (typeInfo);
-        }
-
-        return result;
-    }
-
-    VkDeviceMemory AllocateMemory (const std::vector<MemoryTypeInfo>& memoryInfos,
-                                   VkDevice device, const int size)
-    {
-        // We take the first HOST_VISIBLE memory
-        for (auto& memoryInfo : memoryInfos) {
-            if (memoryInfo.hostVisible) {
-                VkMemoryAllocateInfo memoryAllocateInfo = {};
-                memoryAllocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-                memoryAllocateInfo.memoryTypeIndex = memoryInfo.index;
-                memoryAllocateInfo.allocationSize = size;
-
-                VkDeviceMemory deviceMemory;
-                vkAllocateMemory (device, &memoryAllocateInfo, nullptr,
-                                  &deviceMemory);
-                return deviceMemory;
-            }
-        }
-
-        return VK_NULL_HANDLE;
-    }
-
-    VkBuffer AllocateBuffer (VkDevice device, const int size,
-                             const VkBufferUsageFlagBits bits)
-    {
-        VkBufferCreateInfo bufferCreateInfo = {};
-        bufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-        bufferCreateInfo.size = static_cast<uint32_t> (size);
-        bufferCreateInfo.usage = bits;
-
-        VkBuffer result;
-        vkCreateBuffer (device, &bufferCreateInfo, nullptr, &result);
-        return result;
-    }
 }
 
 void VulkanRenderer::createMeshBuffers()
@@ -1283,4 +1431,49 @@ void VulkanRenderer::createMeshBuffers()
     ::memcpy(static_cast<uint8_t*> (mapping) + 256 /* same offset as above */,
                 indices, sizeof (indices));
     vkUnmapMemory (_device, _deviceMemory);
+}
+
+void VulkanRenderer::createDescriptorSet()
+{
+    VkDescriptorSetAllocateInfo allocInfo = {
+        VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,  // VkStructureType                 sType;
+        nullptr,                                        // const void*                     pNext;
+        _descriptorPool,                                // VkDescriptorPool                descriptorPool;
+        1,                                              // uint32_t                        descriptorSetCount;
+        &_descriptorSetLayout                            // const VkDescriptorSetLayout*    pSetLayouts;
+    };
+
+    Assert(vkAllocateDescriptorSets(_device, &allocInfo, &_descriptorSet) == VK_SUCCESS);
+
+    VkWriteDescriptorSet writeDescriptorSet = {
+        VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, // VkStructureType                  sType;
+        nullptr,                                // const void*                      pNext;
+        _descriptorSet,                         // VkDescriptorSet                  dstSet;
+        0,                                      // uint32_t                         dstBinding;
+        0,                                      // uint32_t                         dstArrayElement;
+        1,                                      // uint32_t                         descriptorCount;
+        VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,      // VkDescriptorType                 descriptorType;
+        nullptr,                                // const VkDescriptorImageInfo*     pImageInfo;
+        &_uniformData.descriptor,               // const VkDescriptorBufferInfo*    pBufferInfo;
+        nullptr                                 // const VkBufferView*              pTexelBufferView;
+    };
+
+    vkUpdateDescriptorSets(_device, 1, &writeDescriptorSet, 0, nullptr);
+}
+
+void VulkanRenderer::updateUniforms()
+{
+//     _uniforms->transform = glm::scale(glm::mat4(), glm::vec3(0.5f, 0.5f, 0.5f));
+    _uniforms->time += 0.001f;
+    _uniforms->scaleFactor = sinf(_uniforms->time);
+
+    // Map uniform buffer and update it
+    // If you want to keep a handle to the memory and not unmap it afer updating,
+    // create the memory with the VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+    uint8_t *pData;
+    Assert(vkMapMemory(_device, _uniformData.memory, 0, sizeof(*_uniforms), 0, (void **)&pData) == VK_SUCCESS);
+
+    ::memcpy(pData, _uniforms, sizeof(*_uniforms));
+
+    vkUnmapMemory(_device, _uniformData.memory);
 }

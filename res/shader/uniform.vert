@@ -10,7 +10,8 @@ layout (location = 0) out vec2 outUv;
 
 layout (std140, binding = 0) uniform UBO
 {
-    mat4 transform;
+    float time;
+    float scaleFactor;
 } ubo;
 
 layout (push_constant) uniform PushConsts
@@ -20,6 +21,6 @@ layout (push_constant) uniform PushConsts
 
 void main()
 {
-    gl_Position = ubo.transform * vec4(pos, 1);
+    gl_Position = vec4(pos * ubo.scaleFactor, 1);
     outUv = inUv;
 }
