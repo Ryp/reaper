@@ -86,11 +86,37 @@ static void vulkan_test()
     delete renderer;
 }
 
+#include "renderer/mesh/ModelLoader.h"
+static void mesh_test()
+{
+    ModelLoader loader;
+    MeshCache cache;
+
+    loader.load("res/model/bunny.obj", cache);
+    loader.load("res/model/quad.obj", cache);
+    loader.load("res/model/ship.obj", cache);
+}
+
+#include "renderer/texture/TextureLoader.h"
+static void texture_test()
+{
+    TextureLoader loader;
+    TextureCache cache;
+
+    loader.load("res/texture/bricks_diffuse.dds", cache);
+    loader.load("res/texture/default.dds", cache);
+    loader.load("res/texture/ship.dds", cache);
+//     loader.load("res/texture/abrahams.dds", cache);
+}
+
 int main(int /*ac*/, char** /*av*/)
 {
     Assert(cacheLineSize() == REAPER_CACHELINE_SIZE);
 
 //     game_test();
-    vulkan_test();
+//     vulkan_test();
+
+    mesh_test();
+    texture_test();
     return 0;
 }

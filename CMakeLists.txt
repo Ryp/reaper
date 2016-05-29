@@ -119,6 +119,25 @@ set(REAPER_SRCS
     ${CMAKE_SOURCE_DIR}/src/renderer/Renderer.cpp
     ${CMAKE_SOURCE_DIR}/src/renderer/Renderer.h
 
+    ${CMAKE_SOURCE_DIR}/src/renderer/format/FloatTypes.cpp
+    ${CMAKE_SOURCE_DIR}/src/renderer/format/FloatTypes.h
+    ${CMAKE_SOURCE_DIR}/src/renderer/format/PixelFormat.cpp
+    ${CMAKE_SOURCE_DIR}/src/renderer/format/PixelFormat.h
+
+    ${CMAKE_SOURCE_DIR}/src/renderer/mesh/Mesh.cpp
+    ${CMAKE_SOURCE_DIR}/src/renderer/mesh/Mesh.h
+    ${CMAKE_SOURCE_DIR}/src/renderer/mesh/MeshCache.cpp
+    ${CMAKE_SOURCE_DIR}/src/renderer/mesh/MeshCache.h
+    ${CMAKE_SOURCE_DIR}/src/renderer/mesh/ModelLoader.cpp
+    ${CMAKE_SOURCE_DIR}/src/renderer/mesh/ModelLoader.h
+
+    ${CMAKE_SOURCE_DIR}/src/renderer/texture/Texture.cpp
+    ${CMAKE_SOURCE_DIR}/src/renderer/texture/Texture.h
+    ${CMAKE_SOURCE_DIR}/src/renderer/texture/TextureCache.cpp
+    ${CMAKE_SOURCE_DIR}/src/renderer/texture/TextureCache.h
+    ${CMAKE_SOURCE_DIR}/src/renderer/texture/TextureLoader.cpp
+    ${CMAKE_SOURCE_DIR}/src/renderer/texture/TextureLoader.h
+
     ${CMAKE_SOURCE_DIR}/src/renderer/vulkan/PresentationSurface.cpp
     ${CMAKE_SOURCE_DIR}/src/renderer/vulkan/PresentationSurface.h
     ${CMAKE_SOURCE_DIR}/src/renderer/vulkan/VulkanRenderer.cpp
