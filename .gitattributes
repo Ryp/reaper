@@ -1,16 +1,24 @@
-* text eol=lf
+* text=auto
 
 # Sources
 *.cpp text
 *.inl text
 *.hpp text
 *.h text
-
 *.glsl text
 *.frag text
 *.vert text
-
 *.cmake text
+
+# Resources
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.dds binary
+*.exr binary
+*.obj binary
+*.mtl binary
+*.blend binary
 
 # Misc
 *.txt text
