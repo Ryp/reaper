@@ -20,6 +20,7 @@ public:
 
 public:
     void loadMesh(MeshId id, Mesh mesh);
+    const Mesh& operator[](const MeshId& id) const;
 
 private:
     std::map<MeshId, Mesh> _meshes;
