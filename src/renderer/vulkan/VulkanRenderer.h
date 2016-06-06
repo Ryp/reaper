@@ -14,27 +14,24 @@
 #include "api/Vulkan.h"
 #include "core/DynamicLibrary.h"
 
+#include "SwapchainRendererBase.h"
 
 struct VSUBO;
 
-class VulkanRenderer : public AbstractRenderer
+class VulkanRenderer : public SwapchainRendererBase
 {
+    using parent_type = SwapchainRendererBase;
 public:
     VulkanRenderer() = default;
     ~VulkanRenderer() = default;
 
-public:
-    void startup(Window* window) override;
-    void shutdown() override;
-    void render() override;
+    virtual void startup(Window* window) override final;
+    virtual void shutdown() override final;
+    virtual void render() override final;
 
 private:
-    void createSemaphores();
-    void createSwapChain();
     void createCommandBuffers();
     void createDescriptorPool();
-    void createRenderPass();
-    void createFramebuffers();
     void createPipeline();
     void createMeshBuffers();
     void createDescriptorSet();
@@ -43,36 +40,13 @@ private:
     void updateUniforms();
 
 private:
-    LibHandle           _vulkanLib;
-
-private:
-    VkInstance          _instance;
-    VkPhysicalDevice    _physicalDevice;
-    VkSurfaceKHR        _presentationSurface;
-    VkQueue             _presentationQueue;
-    VkQueue             _graphicsQueue;
-    VkSwapchainKHR      _swapChain;
-    std::vector<VkImage>_swapChainImages;
-    VkFormat            _swapChainFormat;
-    VkDevice            _device;
     VkPipeline          _pipeline;
     VkPipelineLayout    _pipelineLayout;
-    VkSemaphore         _imageAvailableSemaphore;
-    VkSemaphore         _renderingFinishedSemaphore;
-
-private:
-    VkDebugReportCallbackEXT _debugCallback;
 
 private:
     VkDeviceMemory  _deviceMemory;
     VkBuffer        _vertexBuffer;
     VkBuffer        _indexBuffer;
-
-private:
-    VkCommandPool                   _gfxCmdPool;
-    std::vector<VkCommandBuffer>    _gfxCmdBuffers;
-    uint32_t                        _gfxQueueIndex;
-    uint32_t                        _prsQueueIndex;
 
 private:
     VkDescriptorPool        _descriptorPool;
@@ -85,11 +59,6 @@ private:
         VkDeviceMemory memory;
         VkDescriptorBufferInfo descriptor;
     }  _uniformData;
-
-private:
-    VkRenderPass                _renderPass;
-    std::vector<VkFramebuffer>  _framebuffers;
-    std::vector<VkImageView>    _swapChainImageViews;
 
 private:
     VSUBO* _uniforms;

@@ -8,7 +8,7 @@ layout (location = 1) in vec2 inUv;
 
 layout (location = 0) out vec2 outUv;
 
-layout (std140, binding = 0) uniform UBO
+layout (binding = 0) uniform UBO
 {
     float time;
     float scaleFactor;

@@ -12,3 +12,9 @@ void MeshCache::loadMesh(MeshId id, Mesh mesh)
     Assert(_meshes.count(id) == 0, "mesh already in cache");
     _meshes.emplace(id, mesh);
 }
+
+const Mesh& MeshCache::operator[](const MeshId& id) const
+{
+    Assert(_meshes.count(id) > 0, "mesh missing from cache");
+    return _meshes.at(id);
+}

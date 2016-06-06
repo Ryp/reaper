@@ -138,8 +138,14 @@ set(REAPER_SRCS
     ${CMAKE_SOURCE_DIR}/src/renderer/texture/TextureLoader.cpp
     ${CMAKE_SOURCE_DIR}/src/renderer/texture/TextureLoader.h
 
+    ${CMAKE_SOURCE_DIR}/src/renderer/vulkan/Memory.cpp
+    ${CMAKE_SOURCE_DIR}/src/renderer/vulkan/Memory.h
     ${CMAKE_SOURCE_DIR}/src/renderer/vulkan/PresentationSurface.cpp
     ${CMAKE_SOURCE_DIR}/src/renderer/vulkan/PresentationSurface.h
+    ${CMAKE_SOURCE_DIR}/src/renderer/vulkan/SwapchainRendererBase.cpp
+    ${CMAKE_SOURCE_DIR}/src/renderer/vulkan/SwapchainRendererBase.h
+    ${CMAKE_SOURCE_DIR}/src/renderer/vulkan/Shader.cpp
+    ${CMAKE_SOURCE_DIR}/src/renderer/vulkan/Shader.h
     ${CMAKE_SOURCE_DIR}/src/renderer/vulkan/VulkanRenderer.cpp
     ${CMAKE_SOURCE_DIR}/src/renderer/vulkan/VulkanRenderer.h
 

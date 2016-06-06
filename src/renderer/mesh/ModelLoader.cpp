@@ -99,7 +99,8 @@ void ModelLoader::loadOBJAssimp(const std::string& filename, std::ifstream& src,
         for(std::size_t j = 0; j < face.mNumIndices; ++j)
             mesh.indexes.push_back(face.mIndices[j]);
     }
-    cache.loadMesh(filename + assimpMesh->mName.C_Str(), mesh);
+
+    cache.loadMesh(filename, mesh);
 }
 
 void ModelLoader::loadOBJCustom(const std::string& filename, std::ifstream& src, MeshCache& cache)
@@ -190,6 +191,7 @@ void ModelLoader::loadOBJCustom(const std::string& filename, std::ifstream& src,
         glm::vec3   n = normals[indexes[0][2]] + normals[indexes[1][2]] + normals[indexes[2][2]];
         if (glm::dot(glm::cross(a, b), n) < 0.0f)
         {
+            Assert(false, "model has been reverted");
             glm::vec3   t;
             for (unsigned i = 0; (i + 2) < indexes.size(); i += 3)
             {
@@ -197,7 +199,6 @@ void ModelLoader::loadOBJCustom(const std::string& filename, std::ifstream& src,
                 indexes[i + 1] = indexes[i + 2];
                 indexes[i + 2] = t;
             }
-            // Model has been reverted
         }
     }
     for (unsigned i = 0; i < indexes.size(); ++i)

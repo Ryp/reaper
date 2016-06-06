@@ -114,9 +114,9 @@ int main(int /*ac*/, char** /*av*/)
     Assert(cacheLineSize() == REAPER_CACHELINE_SIZE);
 
 //     game_test();
-//     vulkan_test();
+    vulkan_test();
 
-    mesh_test();
-    texture_test();
+//     mesh_test();
+//     texture_test();
     return 0;
 }
