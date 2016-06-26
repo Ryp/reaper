@@ -15,6 +15,6 @@
 #define REAPER_CACHELINE_SIZE 64
 
 // runtime
-size_t cacheLineSize();
+REAPER_CORE_API size_t cacheLineSize();
 
 #endif // REAPER_CACHELINE_INCLUDED

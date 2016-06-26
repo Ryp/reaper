@@ -34,18 +34,6 @@
     #error CPU not recognised!
 #endif
 
-// Define portable import/export macros.
-#if defined(REAPER_PLATFORM_WINDOWS)
-    #define REAPER_EXPORT __declspec(dllexport)
-    #define REAPER_IMPORT __declspec(dllimport)
-#elif defined(__GNUC__)
-    #define REAPER_EXPORT __attribute__((visibility("hidden")))
-    #define REAPER_IMPORT
-#else
-    #define REAPER_EXPORT
-    #define REAPER_IMPORT
-#endif
-
 // NDEBUG must be defined (or not) by the build system
 #if !defined(NDEBUG)
     #define REAPER_DEBUG

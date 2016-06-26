@@ -11,6 +11,6 @@
 #include <string>
 #include <vector>
 
-std::vector<char> readWholeFile(const std::string& fileName);
+REAPER_CORE_API std::vector<char> readWholeFile(const std::string& fileName);
 
 #endif // REAPER_FILELOADING_INCLUDED

@@ -12,6 +12,7 @@ include(cotire)
 include(ReaperGL)
 
 option(REAPER_BUILD_KDEV_TEMPLATES "Builds custom templates for kdevelop" OFF)
+option(REAPER_BUILD_TESTS "Builds tests" ON)
 
 if (WIN32)
     set(VK_PLATFORM "VK_USE_PLATFORM_WIN32_KHR")
@@ -26,40 +27,24 @@ endif()
 find_package(Vulkan REQUIRED)
 find_package(assimp REQUIRED)
 
+set(REAPER_BUILD_SHARED_LIBRARIES TRUE CACHE BOOL "Build shared libraries")
+
+# Determine linkage type
+if(REAPER_BUILD_SHARED_LIBRARIES)
+    set(REAPER_BUILD_TYPE SHARED)
+else()
+    set(REAPER_BUILD_TYPE STATIC)
+endif()
+
 set(REAPER_BIN reaper)
+
+# Set precompiled header
+set(REAPER_PCH ${CMAKE_SOURCE_DIR}/src/pch/stdafx.h)
+
+add_subdirectory(src/core)
 
 set(REAPER_SRCS
     ${CMAKE_SOURCE_DIR}/src/main.cpp
-
-    ${CMAKE_SOURCE_DIR}/src/core/Assert.h
-    ${CMAKE_SOURCE_DIR}/src/core/BitTricks.h
-    ${CMAKE_SOURCE_DIR}/src/core/Cast.h
-    ${CMAKE_SOURCE_DIR}/src/core/Compiler.h
-    ${CMAKE_SOURCE_DIR}/src/core/Debugger.cpp
-    ${CMAKE_SOURCE_DIR}/src/core/Debugger.h
-    ${CMAKE_SOURCE_DIR}/src/core/DynamicLibrary.cpp
-    ${CMAKE_SOURCE_DIR}/src/core/DynamicLibrary.h
-    ${CMAKE_SOURCE_DIR}/src/core/EnumHelper.h
-    ${CMAKE_SOURCE_DIR}/src/core/Platform.h
-    ${CMAKE_SOURCE_DIR}/src/core/StackTrace.cpp
-    ${CMAKE_SOURCE_DIR}/src/core/StackTrace.h
-    ${CMAKE_SOURCE_DIR}/src/core/Types.h
-
-    ${CMAKE_SOURCE_DIR}/src/core/fs/FileLoading.cpp
-    ${CMAKE_SOURCE_DIR}/src/core/fs/FileLoading.h
-    ${CMAKE_SOURCE_DIR}/src/core/fs/Path.cpp
-    ${CMAKE_SOURCE_DIR}/src/core/fs/Path.h
-#     ${CMAKE_SOURCE_DIR}/src/core/fs/UnixFileWatcher.cpp
-#     ${CMAKE_SOURCE_DIR}/src/core/fs/UnixFileWatcher.h
-
-    ${CMAKE_SOURCE_DIR}/src/core/memory/Allocator.cpp
-    ${CMAKE_SOURCE_DIR}/src/core/memory/Allocator.h
-    ${CMAKE_SOURCE_DIR}/src/core/memory/CacheLine.cpp
-    ${CMAKE_SOURCE_DIR}/src/core/memory/CacheLine.h
-    ${CMAKE_SOURCE_DIR}/src/core/memory/LinearAllocator.cpp
-    ${CMAKE_SOURCE_DIR}/src/core/memory/LinearAllocator.h
-    ${CMAKE_SOURCE_DIR}/src/core/memory/StackAllocator.cpp
-    ${CMAKE_SOURCE_DIR}/src/core/memory/StackAllocator.h
 
     ${CMAKE_SOURCE_DIR}/src/cvar/CVar.cpp
     ${CMAKE_SOURCE_DIR}/src/cvar/CVar.h
@@ -166,9 +151,6 @@ set(REAPER_GLSL_SHADERS
 
 add_glslang_spirv_targets(REAPER_SPIRV_OUTPUT ${REAPER_GLSL_SHADERS})
 
-# Set precompiled header
-set(REAPER_PCH ${CMAKE_SOURCE_DIR}/src/pch/stdafx.h)
-
 add_executable(${REAPER_BIN} ${REAPER_SRCS} ${REAPER_GLSL_SHADERS} ${REAPER_SPIRV_OUTPUT})
 add_custom_build_flags(${REAPER_BIN} "ReaperGL")
 
@@ -188,11 +170,16 @@ target_include_directories(${REAPER_BIN} SYSTEM PUBLIC
 #Libraries
 target_link_libraries(${REAPER_BIN}
     ${ASSIMP_LIBRARIES}
-    ${REAPER_PLATFORM_LIBRARIES})
+    ${REAPER_PLATFORM_LIBRARIES}
+    ${REAPER_CORE_BIN})
 
 set_target_properties(${REAPER_BIN} PROPERTIES COTIRE_CXX_PREFIX_HEADER_INIT ${REAPER_PCH})
-set_target_properties(${REAPER_BIN} PROPERTIES COTIRE_UNITY_LINK_LIBRARIES_INIT "COPY")
 cotire(${REAPER_BIN})
+
+if (REAPER_BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(test)
+endif()
 
 if (REAPER_BUILD_KDEV_TEMPLATES)
     add_subdirectory(tools/kdevelop)

@@ -8,6 +8,7 @@
 #ifndef REAPER_COMPILER_INCLUDED
 #define REAPER_COMPILER_INCLUDED
 
+// Detect compiler
 #if defined(__INTEL_COMPILER) || defined(__ICC)
     #define REAPER_COMPILER_ICC
 #elif defined(__GNUC__)
@@ -18,6 +19,17 @@
     #define REAPER_COMPILER_MSVC
 #else
     #error Compiler not recognised!
+#endif
+
+// Define symbol export/import macros
+#if defined(REAPER_COMPILER_GCC) || defined(REAPER_COMPILER_CLANG)
+    #define REAPER_EXPORT __attribute__((visibility("default")))
+    #define REAPER_IMPORT
+#elif defined(REAPER_COMPILER_MSVC)
+    #define REAPER_EXPORT __declspec(dllexport)
+    #define REAPER_IMPORT __declspec(dllimport)
+#else
+    #error Could not define import and export macros !
 #endif
 
 #endif // REAPER_COMPILER_INCLUDED
