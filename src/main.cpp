@@ -5,45 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "core/memory/LinearAllocator.h"
-#include "core/memory/StackAllocator.h"
-#include "core/memory/CacheLine.h"
-
-#include "renderer/Renderer.h"
-
-#include "game/pathing/CostMap.h"
-
-// static void test1()
-// {
-//     auto a = new Camera();
-//     auto b = new Camera;
-//     auto c = new Camera[5];
-//
-//     delete[] c;
-//     delete b;
-//     delete a;
-// }
-
-// static void test2()
-// {
-//     StackAllocator  sa(1000);
-//     Camera*         a = nullptr;
-//     Camera*         b = nullptr;
-//
-//     a = static_cast<Camera*>(sa.alloc(sizeof(Camera)));
-//     std::cout << "alloc=(" << sizeof(Camera) << ")=" << a << std::endl;
-//
-//     auto mk = sa.getMarker();
-//
-//     b = static_cast<Camera*>(sa.alloc(sizeof(Camera)));
-//     std::cout << "alloc=(" << sizeof(Camera) << ")=" << b << std::endl;
-//
-//     sa.freeToMarker(mk);
-//
-//     b = static_cast<Camera*>(sa.alloc(sizeof(Camera)));
-//     std::cout << "alloc=(" << sizeof(Camera) << ")=" << b << std::endl;
-// }
-
+// #include "game/pathing/CostMap.h"
 // static void test3()
 // {
 //     int costMapSize = 100;
@@ -56,7 +18,6 @@
 
 #include "game/WorldUpdater.h"
 #include "game/entitydb/EntityDb.h"
-
 static void game_test()
 {
     EntityDb        db;
@@ -70,6 +31,7 @@ static void game_test()
     db.unload();
 }
 
+#include "renderer/Renderer.h"
 #include "renderer/vulkan/PresentationSurface.h"
 static void vulkan_test()
 {
@@ -111,9 +73,8 @@ static void texture_test()
 
 int main(int /*ac*/, char** /*av*/)
 {
-    Assert(cacheLineSize() == REAPER_CACHELINE_SIZE);
-
 //     game_test();
+
     vulkan_test();
 
 //     mesh_test();

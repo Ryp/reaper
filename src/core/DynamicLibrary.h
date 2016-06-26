@@ -20,11 +20,9 @@
 
 namespace dynlib
 {
-    LibHandle load(const std::string& library);
-
-    LibSym getSymbol(LibHandle handle, const std::string& name);
-
-    void close(LibHandle handle);
+    REAPER_CORE_API LibHandle load(const std::string& library);
+    REAPER_CORE_API LibSym getSymbol(LibHandle handle, const std::string& name);
+    REAPER_CORE_API void close(LibHandle handle);
 }
 
 #endif // REAPER_DYNAMICLIBRARY_INCLUDED

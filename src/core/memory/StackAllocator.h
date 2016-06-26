@@ -10,7 +10,7 @@
 
 #include "Allocator.h"
 
-class StackAllocator : public AbstractAllocator
+class REAPER_CORE_API StackAllocator : public AbstractAllocator
 {
 public:
     StackAllocator(std::size_t sizeBytes);

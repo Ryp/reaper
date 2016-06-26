@@ -28,7 +28,7 @@ void operator delete[](void* mem, std::size_t) noexcept;
 #pragma GCC diagnostic pop
 #endif
 
-class AbstractAllocator
+class REAPER_CORE_API AbstractAllocator
 {
 public:
     virtual ~AbstractAllocator() {}

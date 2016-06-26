@@ -8,44 +8,9 @@
 #ifndef REAPER_ASSERT_INCLUDED
 #define REAPER_ASSERT_INCLUDED
 
-#include <iostream>
 #include <string>
 
-#include "Platform.h"
-#include "Debugger.h"
-
-#if defined(REAPER_PLATFORM_WINDOWS)
-    #include <intrin.h> // for __debugbreak
-#endif
-
-inline void breakpoint()
-{
-#if defined(REAPER_PLATFORM_WINDOWS)
-    __debugbreak();
-#elif defined(REAPER_PLATFORM_LINUX) && defined(REAPER_CPU_ARCH_X86)
-    __asm__("int $3");
-#elif defined(REAPER_PLATFORM_MACOSX) && defined(REAPER_CPU_ARCH_X86)
-    __asm__("int $3");
-#else
-    #error breakpoint() not available!
-#endif
-}
-
-#include "StackTrace.h"
-
-inline void AssertImpl(bool condition, const char* file, const char* func, int line, const std::string& message = std::string())
-{
-    if (condition)
-        return;
-    std::cerr << std::dec << "ASSERT FAILED " << file << ':' << line << ": in '" << func << "'" << std::endl;
-    if (isInDebugger())
-        breakpoint();
-    else
-        printStacktrace();
-
-    if (!message.empty())
-        std::cerr << "ASSERT MESSAGE " << message << std::endl;
-}
+REAPER_CORE_API void AssertImpl(bool condition, const char* file, const char* func, int line, const std::string& message = std::string());
 
 // Macro overloading code (yuck)
 // http://stackoverflow.com/questions/11761703/overloading-macro-on-number-of-arguments
