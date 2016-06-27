@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.3 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.5 FATAL_ERROR)
 project(Reaper)
 
 # Avoid source tree pollution
@@ -9,14 +9,15 @@ endif()
 # Provide custom cmake scripts
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 include(cotire)
-include(ReaperGL)
+include(Reaper)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${Reaper_BINARY_DIR})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${Reaper_BINARY_DIR})
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${Reaper_BINARY_DIR})
 
-option(REAPER_BUILD_KDEV_TEMPLATES "Builds custom templates for kdevelop" OFF)
-option(REAPER_BUILD_TESTS "Builds tests" ON)
+option(REAPER_BUILD_KDEV_TEMPLATES      "Build custom templates for kdevelop" OFF)
+option(REAPER_BUILD_TESTS               "Build tests" ON)
+option(REAPER_BUILD_SHARED_LIBRARIES    "Build shared libraries" ON)
 
 if (WIN32)
     set(VK_PLATFORM "VK_USE_PLATFORM_WIN32_KHR")
@@ -30,8 +31,6 @@ endif()
 # Find dependencies
 find_package(Vulkan REQUIRED)
 find_package(assimp REQUIRED)
-
-set(REAPER_BUILD_SHARED_LIBRARIES TRUE CACHE BOOL "Build shared libraries")
 
 # Determine linkage type
 if(REAPER_BUILD_SHARED_LIBRARIES)
@@ -156,7 +155,9 @@ set(REAPER_GLSL_SHADERS
 add_glslang_spirv_targets(REAPER_SPIRV_OUTPUT ${REAPER_GLSL_SHADERS})
 
 add_executable(${REAPER_BIN} ${REAPER_SRCS} ${REAPER_GLSL_SHADERS} ${REAPER_SPIRV_OUTPUT})
-add_custom_build_flags(${REAPER_BIN} "ReaperGL")
+add_custom_build_flags(${REAPER_BIN} "Reaper")
+
+set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${REAPER_BIN})
 
 set_target_properties(${REAPER_BIN} PROPERTIES COMPILE_DEFINITIONS ${VK_PLATFORM})
 
