@@ -147,7 +147,7 @@ void ModelLoader::loadOBJCustom(const std::string& filename, std::ifstream& src,
                 {
                     val = line.substr(0, line.find_first_of('/'));
                     if (!val.empty())
-                        vIdx[j] = abs(std::stoul(val)) - 1;
+                        vIdx[j] = std::abs(static_cast<long>(std::stoul(val))) - 1;
                     else
                         vIdx[j] = 0;
                     if ((pos = line.find_first_of('/')) != std::string::npos)
@@ -164,7 +164,7 @@ void ModelLoader::loadOBJCustom(const std::string& filename, std::ifstream& src,
                 {
                     val = line.substr(0, line.find_first_of('/'));
                     if (!val.empty())
-                        vIdx[j] = abs(std::stoul(val)) - 1;
+                        vIdx[j] = std::abs(static_cast<long>(std::stoul(val))) - 1;
                     else
                         vIdx[j] = 0;
                     if ((pos = line.find_first_of('/')) != std::string::npos)
