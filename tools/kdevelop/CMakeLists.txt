@@ -6,4 +6,5 @@ find_package(KDE4 REQUIRED)
 find_package(KDevPlatform REQUIRED)
 
 kdevplatform_add_file_templates(cpp_reaper_class_template)
+kdevplatform_add_file_templates(cpp_reaper_export_header_template)
 kdevplatform_add_file_templates(cpp_reaper_module_template)

@@ -1,6 +1,5 @@
 !.gitignore
 build
-imgui.ini
 
 #Python
 __pycache__/

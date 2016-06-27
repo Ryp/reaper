@@ -1,6 +1,6 @@
 [General]
 Name=Module template
-Comment=ReaperGL module template
+Comment=Reaper module template
 Category=C++/Reaper
 Language=C++
 Type=Class
