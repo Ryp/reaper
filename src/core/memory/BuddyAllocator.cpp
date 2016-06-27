@@ -8,6 +8,7 @@
 #include "BuddyAllocator.h"
 
 #include <memory>
+#include <algorithm>
 
 #include "core/BitTricks.h"
 

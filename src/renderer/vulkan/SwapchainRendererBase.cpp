@@ -8,6 +8,7 @@
 #include "SwapchainRendererBase.h"
 
 #include <cstring>
+#include <iostream>
 
 #include "PresentationSurface.h"
 
