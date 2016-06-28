@@ -4,7 +4,7 @@ macro(reaper_add_test testname)
     set(REAPER_TEST_SRCS ${CMAKE_SOURCE_DIR}/test/test_${testname}.cpp)
 
     add_executable(${REAPER_TEST_BIN} ${REAPER_TEST_SRCS})
-    add_custom_build_flags(${REAPER_TEST_BIN} "${testname}")
+    reaper_add_custom_build_flags(${REAPER_TEST_BIN} "${testname}")
 
     # User includes dirs (won't hide warnings)
     target_include_directories(${REAPER_TEST_BIN} PUBLIC
