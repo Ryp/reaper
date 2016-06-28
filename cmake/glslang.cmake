@@ -1,6 +1,8 @@
-find_program(GLSLANGVALIDATOR_EXEC glslangValidator)
-if(NOT GLSLANGVALIDATOR_EXEC)
-    message(FATAL_ERROR "${GLSLANGVALIDATOR_EXEC} not found")
+find_program(VULKAN_GLSLANGVALIDATOR_EXEC glslangValidator)
+#    HINTS ${VULKAN_SDK}/Bin)
+
+if(NOT VULKAN_GLSLANGVALIDATOR_EXEC)
+    message(FATAL_ERROR "${VULKAN_GLSLANGVALIDATOR_EXEC} not found")
 endif()
 
 # This function will create SPIR-V targets for each input glsl file and append it
@@ -18,7 +20,7 @@ function(add_glslang_spirv_targets generated_files)
 
         add_custom_command(OUTPUT ${OUTPUT_SPIRV}
             COMMAND ${CMAKE_COMMAND} -E make_directory ${OUTPUT_SPIRV_PATH}
-            COMMAND ${GLSLANGVALIDATOR_EXEC} ${GLSLANG_COMPILE_OPTIONS} ${INPUT_GLSL} -o ${OUTPUT_SPIRV}
+            COMMAND ${VULKAN_GLSLANGVALIDATOR_EXEC} ${GLSLANG_COMPILE_OPTIONS} ${INPUT_GLSL} -o ${OUTPUT_SPIRV}
             DEPENDS ${INPUT_GLSL}
             COMMENT "Compiling GLSL shader ${INPUT_GLSL_REL} into SPIR-V (${OUTPUT_SPIRV_NAME})"
             VERBATIM

@@ -89,7 +89,8 @@ TEST_CASE("Buddy allocator", "[buddy]")
         };
 
         std::deque<Alloc> ptrs;
-        std::size_t maxSize = buddyAtorSize / 2;
+        std::size_t maxSize = buddyAtorSize / 3;
+        std::size_t maxAllocs = 16;
         u32 iterations = 1000;
         std::size_t totalSize = 0;
 
@@ -98,7 +99,7 @@ TEST_CASE("Buddy allocator", "[buddy]")
             std::size_t size = std::rand() % (maxSize + 1);
 
             // Allocate a block of random size or free one if no space available
-            if (size + totalSize <= maxSize)
+            if (size + totalSize <= maxSize && ptrs.size() < maxAllocs)
             {
                 totalSize += size;
 
