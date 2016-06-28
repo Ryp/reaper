@@ -20,6 +20,11 @@ macro(reaper_add_test testname)
 
     # Register wih ctest
     add_test(${testname} ${REAPER_TEST_BIN})
+
+    if (WIN32)
+        set_target_properties(${REAPER_TEST_BIN} PROPERTIES FOLDER Test)
+        reaper_vs_set_debugger_flags(${REAPER_TEST_BIN})
+    endif()
 endmacro()
 
 reaper_add_test(cache)
