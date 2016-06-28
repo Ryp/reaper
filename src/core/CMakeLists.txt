@@ -39,7 +39,7 @@ set(REAPER_CORE_SRCS
 )
 
 add_library(${REAPER_CORE_BIN} ${REAPER_BUILD_TYPE} ${REAPER_CORE_SRCS})
-add_custom_build_flags(${REAPER_CORE_BIN} "Core")
+reaper_add_custom_build_flags(${REAPER_CORE_BIN} "Core")
 
 target_include_directories(${REAPER_CORE_BIN} PUBLIC
     ${CMAKE_SOURCE_DIR}/src)

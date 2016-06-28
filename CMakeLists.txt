@@ -11,10 +11,6 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 include(cotire)
 include(Reaper)
 
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${Reaper_BINARY_DIR})
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${Reaper_BINARY_DIR})
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${Reaper_BINARY_DIR})
-
 option(REAPER_BUILD_KDEV_TEMPLATES      "Build custom templates for kdevelop" OFF)
 option(REAPER_BUILD_TESTS               "Build tests" ON)
 option(REAPER_BUILD_SHARED_LIBRARIES    "Build shared libraries" ON)
@@ -155,7 +151,11 @@ set(REAPER_GLSL_SHADERS
 add_glslang_spirv_targets(REAPER_SPIRV_OUTPUT ${REAPER_GLSL_SHADERS})
 
 add_executable(${REAPER_BIN} ${REAPER_SRCS} ${REAPER_GLSL_SHADERS} ${REAPER_SPIRV_OUTPUT})
-add_custom_build_flags(${REAPER_BIN} "Reaper")
+reaper_add_custom_build_flags(${REAPER_BIN} "Reaper")
+
+if (WIN32)
+    reaper_vs_set_debugger_flags(${REAPER_BIN})
+endif()
 
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${REAPER_BIN})
 
