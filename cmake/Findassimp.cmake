@@ -28,18 +28,16 @@ if(WIN32)
         find_library(ASSIMP_LIBRARY_RELEASE     assimp-${ASSIMP_MSVC_VERSION}-mt.lib     PATHS ${ASSIMP_LIBRARY_DIR})
         find_library(ASSIMP_LIBRARY_DEBUG       assimp-${ASSIMP_MSVC_VERSION}-mtd.lib    PATHS ${ASSIMP_LIBRARY_DIR})
 
-        #set(ASSIMP_SHARED_LIBRARY_RELEASE      ${ASSIMP_ROOT_DIR}/bin${ASSIMP_ARCHITECTURE}/assimp-${ASSIMP_MSVC_VERSION}-mt.dll)
-        #set(ASSIMP_SHARED_LIBRARY_DEBUG        ${ASSIMP_ROOT_DIR}/bin${ASSIMP_ARCHITECTURE}/assimp-${ASSIMP_MSVC_VERSION}-mtd.dll)
+        set(ASSIMP_SHARED_LIBRARY_RELEASE ${ASSIMP_LIBRARY_DIR}/assimp-${ASSIMP_MSVC_VERSION}-mt.dll)
+        set(ASSIMP_SHARED_LIBRARY_DEBUG   ${ASSIMP_LIBRARY_DIR}/assimp-${ASSIMP_MSVC_VERSION}-mtd.dll)
 
         set(ASSIMP_LIBRARY optimized ${ASSIMP_LIBRARY_RELEASE} debug ${ASSIMP_LIBRARY_DEBUG} )
         set(ASSIMP_LIBRARIES "ASSIMP_LIBRARY_RELEASE" "ASSIMP_LIBRARY_DEBUG")
 
-        function(ASSIMP_COPY_BINARIES TargetDirectory)
-            add_custom_target(AssimpCopyBinaries
-                COMMAND ${CMAKE_COMMAND} -E copy ${ASSIMP_ROOT_DIR}/bin${ASSIMP_ARCHITECTURE}/assimp-${ASSIMP_MSVC_VERSION}-mtd.dll     ${TargetDirectory}/Debug/assimp-${ASSIMP_MSVC_VERSION}-mtd.dll
-                COMMAND ${CMAKE_COMMAND} -E copy ${ASSIMP_ROOT_DIR}/bin${ASSIMP_ARCHITECTURE}/assimp-${ASSIMP_MSVC_VERSION}-mt.dll         ${TargetDirectory}/Release/assimp-${ASSIMP_MSVC_VERSION}-mt.dll
-            COMMENT "Copying Assimp binaries to '${TargetDirectory}'"
-            VERBATIM)
+        # Copy dlls to binary dir
+        function(assimp_copy_binaries binary_directory)
+            file(COPY ${ASSIMP_SHARED_LIBRARY_DEBUG}   DESTINATION ${binary_directory}/Debug    NO_SOURCE_PERMISSIONS)
+            file(COPY ${ASSIMP_SHARED_LIBRARY_RELEASE} DESTINATION ${binary_directory}/Release  NO_SOURCE_PERMISSIONS)
         endfunction()
     endif()
 else()
