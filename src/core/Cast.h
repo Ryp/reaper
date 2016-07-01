@@ -22,7 +22,7 @@ inline CastType checked_cast(T ptr)
     Assert(cast_ptr != nullptr);
     return cast_ptr;
 #else
-    return static_cast<T>(ptr);
+    return static_cast<CastType>(ptr);
 #endif
 }
 

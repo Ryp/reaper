@@ -1,19 +1,30 @@
 cmake_minimum_required(VERSION 3.5 FATAL_ERROR)
-project(Reaper)
 
 # Avoid source tree pollution
 if(CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
     message(FATAL_ERROR "In-source builds are discouraged. Make a separate folder for building:\nmkdir build; cd build; cmake ..;cd ..\nBefore that, remove the files already created:\nrm -rf CMakeCache.txt CMakeFiles")
 endif()
 
-# Provide custom cmake scripts
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
-include(cotire)
-include(Reaper)
+# Remove RelWithDebInfo and MinSizeRel configuration types (call this before project())
+set(CMAKE_CONFIGURATION_TYPES Debug Release CACHE TYPE INTERNAL FORCE)
+
+project(Reaper)
 
 option(REAPER_BUILD_KDEV_TEMPLATES      "Build custom templates for kdevelop" OFF)
 option(REAPER_BUILD_TESTS               "Build tests" ON)
 option(REAPER_BUILD_SHARED_LIBRARIES    "Build shared libraries" ON)
+
+# Determine linkage type
+if(REAPER_BUILD_SHARED_LIBRARIES)
+    set(REAPER_BUILD_TYPE SHARED)
+else()
+    set(REAPER_BUILD_TYPE STATIC)
+endif()
+
+# Provide custom cmake scripts
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
+include(cotire)
+include(Reaper)
 
 if (WIN32)
     set(VK_PLATFORM "VK_USE_PLATFORM_WIN32_KHR")
@@ -23,17 +34,11 @@ elseif(APPLE OR UNIX)
     set(REAPER_PLATFORM_LIBRARIES ${REAPER_PLATFORM_LIBRARIES} ${LIBXCB_LIBRARIES})
     set(REAPER_PLATFORM_INCLUDES ${REAPER_PLATFORM_INCLUDES} ${LIBXCB_INCLUDE_DIR})
 endif()
+add_definitions(-D${VK_PLATFORM})
 
 # Find dependencies
 find_package(Vulkan REQUIRED)
 find_package(assimp REQUIRED)
-
-# Determine linkage type
-if(REAPER_BUILD_SHARED_LIBRARIES)
-    set(REAPER_BUILD_TYPE SHARED)
-else()
-    set(REAPER_BUILD_TYPE STATIC)
-endif()
 
 set(REAPER_BIN reaper)
 
@@ -159,8 +164,6 @@ endif()
 
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${REAPER_BIN})
 
-set_target_properties(${REAPER_BIN} PROPERTIES COMPILE_DEFINITIONS ${VK_PLATFORM})
-
 #User includes dirs (won't hide warnings)
 target_include_directories(${REAPER_BIN} PUBLIC
     ${CMAKE_SOURCE_DIR}/src)
@@ -178,12 +181,8 @@ target_link_libraries(${REAPER_BIN}
     ${REAPER_PLATFORM_LIBRARIES}
     ${REAPER_CORE_BIN})
 
-# Copy dlls to binary dir
 if (WIN32)
-    set(ASSIMP_SHARED_LIBRARY_RELEASE ${ASSIMP_LIBRARY_DIR}/assimp-${ASSIMP_MSVC_VERSION}-mt.dll)
-    set(ASSIMP_SHARED_LIBRARY_DEBUG   ${ASSIMP_LIBRARY_DIR}/assimp-${ASSIMP_MSVC_VERSION}-mtd.dll)
-    file(COPY ${ASSIMP_SHARED_LIBRARY_DEBUG}   DESTINATION ${CMAKE_BINARY_DIR}/Debug NO_SOURCE_PERMISSIONS)
-    file(COPY ${ASSIMP_SHARED_LIBRARY_RELEASE} DESTINATION ${CMAKE_BINARY_DIR}/Release NO_SOURCE_PERMISSIONS)
+    assimp_copy_binaries(${CMAKE_BINARY_DIR})
 endif()
 
 set_target_properties(${REAPER_BIN} PROPERTIES COTIRE_CXX_PREFIX_HEADER_INIT ${REAPER_PCH})
