@@ -27,7 +27,7 @@ struct Mesh {
     bool    hasNormals;
 };
 
-unsigned int getTriangleCount(Mesh& mesh);
+std::size_t getTriangleCount(Mesh& mesh);
 void computeNormalsSimple(Mesh& mesh);
 
 #endif // REAPER_MESH_INCLUDED

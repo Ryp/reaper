@@ -28,8 +28,8 @@ namespace
 
     inline u32 targetLevel(std::size_t allocSize, std::size_t maxLevelSize, u32 maxLevels)
     {
-        const u32 offset = bitOffset(allocSize - 1) + 1;
-        const u32 level = bitOffset(maxLevelSize) - offset;
+        const std::size_t offset = bitOffset(allocSize - 1) + 1;
+        const u32 level = static_cast<u32>(bitOffset(maxLevelSize) - offset);
 
         return std::min(maxLevels - 1, level);
     }
@@ -60,7 +60,7 @@ BuddyAllocator::BuddyAllocator(std::size_t sizeBytes, std::size_t leafSizeBytes)
 
     _levels = bitOffset(sizeBytes) - bitOffset(leafSizeBytes) + 1;
 
-    _metaData.resize(1 << _levels);
+    _metaData.resize(bit(_levels));
 
     for (auto& meta : _metaData)
     {
@@ -97,7 +97,7 @@ void BuddyAllocator::free(void* ptr, std::size_t sizeBytes)
 {
     const u32 level = targetLevel(sizeBytes, _alignedSize, _levels);
     std::size_t offset = static_cast<char*>(ptr) - static_cast<char*>(_alignedPtr);
-    const u32 blockIdx = offset / size_of_level(level, _alignedSize) + ((1 << level) - 1);
+    const u32 blockIdx = static_cast<u32>(offset / size_of_level(level, _alignedSize) + ((1 << level) - 1));
 
     Assert(!_metaData[blockIdx].split, "trying to free a split block");
     Assert(!_metaData[blockIdx].free, "double free");
@@ -153,7 +153,7 @@ void BuddyAllocator::tryMergeFreeBlockRecursive(u32 blockIdx)
 void BuddyAllocator::findLeaksRecursive(u32 blockIdx)
 {
     u32 child = blockIdx * 2 + 1;
-    u32 maxBlockIdx = _metaData.size() - 1;
+    u32 maxBlockIdx = static_cast<u32>(_metaData.size() - 1);
 
     Assert(blockIdx < maxBlockIdx);
 

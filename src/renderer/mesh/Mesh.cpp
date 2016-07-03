@@ -7,7 +7,7 @@
 
 #include "Mesh.h"
 
-unsigned int getTriangleCount(Mesh& mesh)
+std::size_t getTriangleCount(Mesh& mesh)
 {
     if (mesh.isIndexed)
         return mesh.indexes.size();
@@ -17,10 +17,10 @@ unsigned int getTriangleCount(Mesh& mesh)
 
 void computeNormalsSimple(Mesh& mesh)
 {
-    unsigned int trianglesNo = getTriangleCount(mesh);
+	std::size_t trianglesNo = getTriangleCount(mesh);
 
     mesh.normals.resize(mesh.vertices.size());
-    for (unsigned int i = 0; i < trianglesNo; ++i)
+    for (std::size_t i = 0; i < trianglesNo; ++i)
     {
         glm::vec3 a = mesh.vertices[i * 3 + 1] - mesh.vertices[i * 3 + 0];
         glm::vec3 b = mesh.vertices[i * 3 + 2] - mesh.vertices[i * 3 + 0];

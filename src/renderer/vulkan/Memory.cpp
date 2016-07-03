@@ -65,7 +65,7 @@ VkDeviceMemory AllocateMemory(const std::vector<MemoryTypeInfo>& memoryInfos, Vk
     return VK_NULL_HANDLE;
 }
 
-VkBuffer AllocateBuffer(VkDevice device, const int size, const VkBufferUsageFlagBits bits)
+VkBuffer AllocateBuffer(VkDevice device, const std::size_t size, const VkBufferUsageFlagBits bits)
 {
     VkBufferCreateInfo bufferCreateInfo = {};
     bufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
