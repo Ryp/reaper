@@ -133,7 +133,7 @@ void ModelLoader::loadOBJCustom(const std::string& filename, std::ifstream& src,
         else if (line == "vt")
         {
             ss >> tmpVec2[0] >> tmpVec2[1];
-            tmpVec2[1] = 1.0 - tmpVec2[1]; // Revert V coordinate
+            tmpVec2[1] = 1.f - tmpVec2[1]; // Revert V coordinate
             uvs.push_back(tmpVec2);
         }
         else if (line == "f")

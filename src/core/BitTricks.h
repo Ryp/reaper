@@ -9,19 +9,21 @@
 #define REAPER_BITTRICKS_INCLUDED
 
 // Return integer with bit n set to 1
-constexpr unsigned int bit(unsigned int n)
+constexpr u32 bit(u32 n)
 {
     return 1 << n;
 }
 
 // Note: 0 will return true
-constexpr bool isPowerOfTwo(unsigned int value)
+template <typename T>
+constexpr bool isPowerOfTwo(T value)
 {
+	static_assert(std::is_unsigned<T>::value, "non-unsigned type");
     return ((value & (value - 1)) == 0);
 }
 
 // Brian Kernighan's way
-inline unsigned int countBits(unsigned int value)
+inline u32 countBits(u32 value)
 {
     unsigned int count;
 
@@ -32,10 +34,12 @@ inline unsigned int countBits(unsigned int value)
 }
 
 // bitOffset(0) returns 0
-inline unsigned int bitOffset(unsigned int value)
+template <typename T>
+inline u32 bitOffset(T value)
 {
-    unsigned int count;
+    u32 count;
 
+	static_assert(std::is_unsigned<T>::value, "non-unsigned type");
     for (count = 0; value > 0; count++)
         value >>= 1;
 

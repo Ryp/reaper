@@ -9,6 +9,13 @@
 
 #include <algorithm>
 
+#if defined(REAPER_COMPILER_MSVC)
+#pragma warning (push)
+#pragma warning (disable : 4100) // 'identifier' : unreferenced formal parameter
+#pragma warning (disable : 4310) // cast truncates constant value
+#pragma warning (disable : 4458) // declaration of 'identifier' hides class member
+#endif
+
 #include <gli/gli.hpp>
 #include <gli/load.hpp>
 
@@ -55,8 +62,8 @@ void TextureLoader::loadDDS(const std::string& filename, TextureCache& cache)
 
     texture.width = gliTexture.extent().x;
     texture.height = gliTexture.extent().y;
-    texture.mipLevels = gliTexture.levels();
-    texture.layerCount = gliTexture.layers();
+    texture.mipLevels = static_cast<u32>(gliTexture.levels());
+    texture.layerCount = static_cast<u32>(gliTexture.layers());
     texture.format = gliFormatToInternalPixelFormat(gliTexture.format());
     texture.data = gliTexture.data();
 
@@ -67,3 +74,7 @@ void TextureLoader::loadDDS(const std::string& filename, TextureCache& cache)
 
     cache.loadTexture(filename, texture);
 }
+
+#if defined(REAPER_COMPILER_MSVC)
+#pragma warning (pop)
+#endif
