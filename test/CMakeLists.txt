@@ -19,7 +19,7 @@ macro(reaper_add_test testname)
         ${REAPER_CORE_BIN})
 
     # Register wih ctest
-    add_test(${testname} ${REAPER_TEST_BIN})
+    add_test(NAME ${testname} COMMAND $<TARGET_FILE:${REAPER_TEST_BIN}>)
 
     if (WIN32)
         set_target_properties(${REAPER_TEST_BIN} PROPERTIES FOLDER Test)
