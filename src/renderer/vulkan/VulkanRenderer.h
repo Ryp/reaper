@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "renderer/Renderer.h"
+#include "renderer/mesh/MeshCache.h"
 #include "api/Vulkan.h"
 #include "core/DynamicLibrary.h"
 
@@ -61,7 +62,8 @@ private:
     }  _uniformData;
 
 private:
-    VSUBO* _uniforms;
+    VSUBO*      _uniforms;
+    MeshCache   _cache;
 };
 
 #endif // REAPER_VULKANRENDERER_INCLUDED

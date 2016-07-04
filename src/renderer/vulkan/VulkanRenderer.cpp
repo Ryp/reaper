@@ -14,6 +14,7 @@
 #include "Memory.h"
 
 #include "renderer/mesh/ModelLoader.h"
+#include "allocator/GPUStackAllocator.h"
 
 using namespace vk;
 
@@ -32,6 +33,10 @@ struct VSUBO {
 void VulkanRenderer::startup(Window* window)
 {
     parent_type::startup(window);
+
+    ModelLoader loader;
+    loader.load("res/model/sphere.obj", _cache);
+    loader.load("res/model/bunny.obj", _cache);
 
     _pipeline = VK_NULL_HANDLE;
     _pipelineLayout = VK_NULL_HANDLE;
@@ -209,7 +214,7 @@ void VulkanRenderer::createCommandBuffers()
         VkDeviceSize offsets [] = { 0 };
         vkCmdBindIndexBuffer(_gfxCmdBuffers[i], _indexBuffer, 0, VK_INDEX_TYPE_UINT32);
         vkCmdBindVertexBuffers(_gfxCmdBuffers[i], 0, 1, &_vertexBuffer, offsets);
-        vkCmdDrawIndexed(_gfxCmdBuffers[i], 6, 1, 0, 0, 0);
+        vkCmdDrawIndexed(_gfxCmdBuffers[i], static_cast<u32>(_cache["res/model/bunny.obj"].indexes.size()), 1, 0, 0, 0);
 
         //vkCmdDraw(_gfxCmdBuffers[i], 3, 1, 0, 0 );
 
@@ -223,9 +228,9 @@ void VulkanRenderer::createCommandBuffers()
                 VK_ACCESS_MEMORY_READ_BIT,                    // VkAccessFlags                dstAccessMask
                 VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,              // VkImageLayout                oldLayout
                 VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,              // VkImageLayout                newLayout
-                _gfxQueueIndex,               // uint32_t                     srcQueueFamilyIndex
-                _prsQueueIndex,                // uint32_t                     dstQueueFamilyIndex
-                _swapChainImages[i],                  // VkImage                      image
+                _gfxQueueIndex,							      // uint32_t                     srcQueueFamilyIndex
+                _prsQueueIndex,                               // uint32_t                     dstQueueFamilyIndex
+                _swapChainImages[i],                          // VkImage                      image
                 image_subresource_range                       // VkImageSubresourceRange      subresourceRange
             };
             vkCmdPipelineBarrier(_gfxCmdBuffers[i], VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier_from_draw_to_present );
@@ -438,7 +443,7 @@ void VulkanRenderer::createPipeline()
         VK_FALSE,                                                     // VkBool32                                       depthClampEnable
         VK_FALSE,                                                     // VkBool32                                       rasterizerDiscardEnable
         VK_POLYGON_MODE_FILL,                                         // VkPolygonMode                                  polygonMode
-        VK_CULL_MODE_BACK_BIT,                                        // VkCullModeFlags                                cullMode
+        VK_CULL_MODE_FRONT_BIT,                                        // VkCullModeFlags                                cullMode
         VK_FRONT_FACE_CLOCKWISE,                                      // VkFrontFace                                    frontFace
         VK_FALSE,                                                     // VkBool32                                       depthBiasEnable
         0.0f,                                                         // float                                          depthBiasConstantFactor
@@ -516,7 +521,7 @@ void VulkanRenderer::createPipeline()
         &color_blend_state_create_info,                               // const VkPipelineColorBlendStateCreateInfo     *pColorBlendState
         nullptr,                                                      // const VkPipelineDynamicStateCreateInfo        *pDynamicState
         _pipelineLayout,                                              // VkPipelineLayout                               layout
-        _mainRenderPass,                                                  // VkRenderPass                                   renderPass
+        _mainRenderPass,                                              // VkRenderPass                                   renderPass
         0,                                                            // uint32_t                                       subpass
         VK_NULL_HANDLE,                                               // VkPipeline                                     basePipelineHandle
         -1                                                            // int32_t                                        basePipelineIndex
@@ -530,12 +535,10 @@ void VulkanRenderer::createPipeline()
 
 void VulkanRenderer::createMeshBuffers()
 {
-    ModelLoader loader;
-    MeshCache cache;
+    const Mesh& mesh = _cache["res/model/bunny.obj"];
 
-    loader.load("res/model/quad.obj", cache);
-
-    const Mesh& mesh = cache["res/model/quad.obj"];
+    const std::size_t gpuBufferSize = 640 << 15;
+    GPUStackAllocator gpuStack(gpuBufferSize);
 
     struct Vertex
     {
@@ -553,19 +556,24 @@ void VulkanRenderer::createMeshBuffers()
     const std::size_t vertexDataBytes = vertexData.size() * sizeof(vertexData[0]);
     const std::size_t indexDataBytes = mesh.indexes.size() * sizeof(mesh.indexes[0]);
 
+    VkMemoryRequirements memReqsVertex;
+    VkMemoryRequirements memReqsIndex;
+
     auto memoryHeaps = enumerateHeaps(_physicalDevice);
-    _deviceMemory = AllocateMemory(memoryHeaps, _device, 640 << 10 /* 640 KiB */);
+    _deviceMemory = AllocateMemory(memoryHeaps, _device, gpuBufferSize);
     _vertexBuffer = AllocateBuffer(_device, vertexDataBytes, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
 
-    vkBindBufferMemory(_device, _vertexBuffer, _deviceMemory, 0);
+    vkGetBufferMemoryRequirements(_device, _vertexBuffer, &memReqsVertex);
+
+    const std::size_t vertexBufferOffset = gpuStack.alloc(vertexDataBytes, memReqsVertex.alignment);
+
+    vkBindBufferMemory(_device, _vertexBuffer, _deviceMemory, vertexBufferOffset);
 
     _indexBuffer = AllocateBuffer (_device, indexDataBytes, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
 
-    VkMemoryRequirements memReqs;
-    vkGetBufferMemoryRequirements(_device, _indexBuffer, &memReqs);
+    vkGetBufferMemoryRequirements(_device, _indexBuffer, &memReqsIndex);
 
-    const std::size_t indexBufferAligmnentReq = memReqs.alignment;
-    const std::size_t indexBufferOffset = alignOffset(vertexDataBytes, indexBufferAligmnentReq);
+    const std::size_t indexBufferOffset = gpuStack.alloc(indexDataBytes, memReqsIndex.alignment);
 
     vkBindBufferMemory(_device, _indexBuffer, _deviceMemory, indexBufferOffset);
 
@@ -579,11 +587,11 @@ void VulkanRenderer::createMeshBuffers()
 void VulkanRenderer::createDescriptorSet()
 {
     VkDescriptorSetAllocateInfo allocInfo = {
-        VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,  // VkStructureType                 sType;
+        VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, // VkStructureType                 sType;
         nullptr,                                        // const void*                     pNext;
         _descriptorPool,                                // VkDescriptorPool                descriptorPool;
         1,                                              // uint32_t                        descriptorSetCount;
-        &_descriptorSetLayout                            // const VkDescriptorSetLayout*    pSetLayouts;
+        &_descriptorSetLayout                           // const VkDescriptorSetLayout*    pSetLayouts;
     };
 
     Assert(vkAllocateDescriptorSets(_device, &allocInfo, &_descriptorSet) == VK_SUCCESS);
