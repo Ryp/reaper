@@ -18,7 +18,7 @@ constexpr u32 bit(u32 n)
 template <typename T>
 constexpr bool isPowerOfTwo(T value)
 {
-	static_assert(std::is_unsigned<T>::value, "non-unsigned type");
+    static_assert(std::is_unsigned<T>::value, "non-unsigned type");
     return ((value & (value - 1)) == 0);
 }
 
@@ -39,7 +39,7 @@ inline u32 bitOffset(T value)
 {
     u32 count;
 
-	static_assert(std::is_unsigned<T>::value, "non-unsigned type");
+    static_assert(std::is_unsigned<T>::value, "non-unsigned type");
     for (count = 0; value > 0; count++)
         value >>= 1;
 

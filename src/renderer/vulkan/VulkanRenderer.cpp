@@ -228,7 +228,7 @@ void VulkanRenderer::createCommandBuffers()
                 VK_ACCESS_MEMORY_READ_BIT,                    // VkAccessFlags                dstAccessMask
                 VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,              // VkImageLayout                oldLayout
                 VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,              // VkImageLayout                newLayout
-                _gfxQueueIndex,							      // uint32_t                     srcQueueFamilyIndex
+                _gfxQueueIndex,                               // uint32_t                     srcQueueFamilyIndex
                 _prsQueueIndex,                               // uint32_t                     dstQueueFamilyIndex
                 _swapChainImages[i],                          // VkImage                      image
                 image_subresource_range                       // VkImageSubresourceRange      subresourceRange
