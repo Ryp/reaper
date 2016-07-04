@@ -314,6 +314,7 @@ void VulkanRenderer::createDescriptorPool()
             // Get memory requirements including size, alignment and memory type
             vkGetBufferMemoryRequirements(_device, _uniformData.buffer, &memReqs);
             allocInfo.allocationSize = memReqs.size;
+
             // Get the memory type index that supports host visibile memory access
             // Most implementations offer multiple memory tpyes and selecting the
             // correct one to allocate memory from is important
@@ -551,17 +552,21 @@ void VulkanRenderer::createMeshBuffers()
 
     const std::size_t vertexDataBytes = vertexData.size() * sizeof(vertexData[0]);
     const std::size_t indexDataBytes = mesh.indexes.size() * sizeof(mesh.indexes[0]);
-    const std::size_t indexBufferOffset = ((vertexDataBytes / 16) + 1) * 16;
 
     auto memoryHeaps = enumerateHeaps(_physicalDevice);
-    _deviceMemory = AllocateMemory(memoryHeaps, _device,
-                                    640 << 10 /* 640 KiB ought to be enough for anybody */);
-    _vertexBuffer = AllocateBuffer(_device, vertexDataBytes,
-                                    VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
+    _deviceMemory = AllocateMemory(memoryHeaps, _device, 640 << 10 /* 640 KiB */);
+    _vertexBuffer = AllocateBuffer(_device, vertexDataBytes, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
+
     vkBindBufferMemory(_device, _vertexBuffer, _deviceMemory, 0);
 
-    _indexBuffer = AllocateBuffer (_device, indexDataBytes,
-                                    VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
+    _indexBuffer = AllocateBuffer (_device, indexDataBytes, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
+
+    VkMemoryRequirements memReqs;
+    vkGetBufferMemoryRequirements(_device, _indexBuffer, &memReqs);
+
+    const std::size_t indexBufferAligmnentReq = memReqs.alignment;
+    const std::size_t indexBufferOffset = alignOffset(vertexDataBytes, indexBufferAligmnentReq);
+
     vkBindBufferMemory(_device, _indexBuffer, _deviceMemory, indexBufferOffset);
 
     void* mapping = nullptr;
