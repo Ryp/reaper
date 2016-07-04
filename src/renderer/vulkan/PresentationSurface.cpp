@@ -17,7 +17,7 @@ WindowParameters Window::GetParameters() const {
 
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
 
-#define TUTORIAL_NAME "API without Secrets: Introduction to Vulkan"
+#define REAPER_WINDOW_INFO "Reaper"
 
 LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam ) {
     switch( message ) {
@@ -41,7 +41,7 @@ Window::~Window() {
     }
 
     if( _parameters.Instance ) {
-        UnregisterClass( TUTORIAL_NAME, _parameters.Instance );
+        UnregisterClass( REAPER_WINDOW_INFO, _parameters.Instance );
     }
 }
 
@@ -62,7 +62,7 @@ bool Window::Create( const char *title ) {
     wcex.hCursor = LoadCursor( NULL, IDC_ARROW );
     wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
     wcex.lpszMenuName = NULL;
-    wcex.lpszClassName = TUTORIAL_NAME;
+    wcex.lpszClassName = REAPER_WINDOW_INFO;
     wcex.hIconSm = NULL;
 
     if( !RegisterClassEx( &wcex ) ) {
@@ -70,7 +70,7 @@ bool Window::Create( const char *title ) {
     }
 
     // Create window
-    _parameters.Handle = CreateWindow( TUTORIAL_NAME, title, WS_OVERLAPPEDWINDOW, 20, 20, 500, 500, nullptr, nullptr, _parameters.Instance, nullptr );
+    _parameters.Handle = CreateWindow( REAPER_WINDOW_INFO, title, WS_OVERLAPPEDWINDOW, 20, 20, 500, 500, nullptr, nullptr, _parameters.Instance, nullptr );
     if( !_parameters.Handle ) {
         return false;
     }
