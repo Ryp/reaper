@@ -10,6 +10,8 @@
 
 #include <cstdint>
 
+#include "core/BitTricks.h"
+
 #ifdef REAPER_COMPILER_GCC
 // Remove harmless gcc warning
 // warning: redundant redeclaration of 'void* operator new(std::size_t)' in same scope [-Wredundant-decls]
@@ -43,6 +45,12 @@ T* placementNew(AbstractAllocator& allocator, Args&&... args)
     ptr = static_cast<T*>(allocator.alloc(sizeof(T)));
     Assert(ptr != nullptr);
     return new(ptr) T(args...);
+}
+
+inline std::size_t alignOffset(std::size_t offset, std::size_t alignment)
+{
+    Assert(isPowerOfTwo(alignment), "npot alignment");
+    return ((offset - 1) & ~(alignment - 1)) + alignment;
 }
 
 #endif // REAPER_ALLOCATOR_INCLUDED

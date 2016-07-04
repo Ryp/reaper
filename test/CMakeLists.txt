@@ -27,6 +27,7 @@ macro(reaper_add_test testname)
     endif()
 endmacro()
 
+reaper_add_test(alignment)
 reaper_add_test(cache)
 reaper_add_test(buddy_allocator)
 reaper_add_test(stack_allocator)
