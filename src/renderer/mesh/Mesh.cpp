@@ -17,7 +17,7 @@ std::size_t getTriangleCount(Mesh& mesh)
 
 void computeNormalsSimple(Mesh& mesh)
 {
-	std::size_t trianglesNo = getTriangleCount(mesh);
+    std::size_t trianglesNo = getTriangleCount(mesh);
 
     mesh.normals.resize(mesh.vertices.size());
     for (std::size_t i = 0; i < trianglesNo; ++i)
