@@ -138,6 +138,9 @@ set(REAPER_SRCS
     ${CMAKE_SOURCE_DIR}/src/renderer/vulkan/VulkanRenderer.cpp
     ${CMAKE_SOURCE_DIR}/src/renderer/vulkan/VulkanRenderer.h
 
+    ${CMAKE_SOURCE_DIR}/src/renderer/vulkan/allocator/GPUStackAllocator.cpp
+    ${CMAKE_SOURCE_DIR}/src/renderer/vulkan/allocator/GPUStackAllocator.h
+
     ${CMAKE_SOURCE_DIR}/src/renderer/vulkan/api/Vulkan.h
     ${CMAKE_SOURCE_DIR}/src/renderer/vulkan/api/VulkanFunctions.cpp
     ${CMAKE_SOURCE_DIR}/src/renderer/vulkan/api/VulkanFunctions.h
