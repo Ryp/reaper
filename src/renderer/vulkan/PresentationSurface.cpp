@@ -176,6 +176,8 @@ bool Window::Create(const char *title)
         std::strlen(title),
         title);
 
+    xcb_flush(_parameters.Connection);
+
     return true;
 }
 
