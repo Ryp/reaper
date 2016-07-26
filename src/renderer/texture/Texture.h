@@ -22,6 +22,8 @@ struct Texture
     u32 layerCount;
     PixelFormat format;
     void* data;
+    u32 bytesPerPixel;
+    std::size_t size;
 };
 
 #endif // REAPER_TEXTURE_INCLUDED

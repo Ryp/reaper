@@ -12,6 +12,8 @@
 
 #include "renderer/Renderer.h"
 #include "renderer/mesh/MeshCache.h"
+#include "renderer/texture/TextureCache.h"
+
 #include "api/Vulkan.h"
 #include "core/DynamicLibrary.h"
 
@@ -35,6 +37,7 @@ private:
     void createDescriptorPool();
     void createPipeline();
     void createMeshBuffers();
+    void createTextures();
     void createDescriptorSet();
 
 private:
@@ -46,6 +49,10 @@ private:
 
 private:
     VkDeviceMemory  _deviceMemory;
+    VkDeviceMemory  _texMemory;
+    VkImage         _texImage;
+    VkImageView     _texImageView;
+    VkSampler       _texSampler;
     VkBuffer        _vertexBuffer;
     VkBuffer        _indexBuffer;
 
@@ -62,8 +69,9 @@ private:
     }  _uniformData;
 
 private:
-    VSUBO*      _uniforms;
-    MeshCache   _cache;
+    VSUBO*          _uniforms;
+    MeshCache       _meshCache;
+    TextureCache    _texCache;
 };
 
 #endif // REAPER_VULKANRENDERER_INCLUDED
