@@ -152,6 +152,8 @@ set(REAPER_GLSL_SHADERS
     ${CMAKE_SOURCE_DIR}/res/shader/tri.vert
     ${CMAKE_SOURCE_DIR}/res/shader/push_constants.frag
     ${CMAKE_SOURCE_DIR}/res/shader/push_constants.vert
+    ${CMAKE_SOURCE_DIR}/res/shader/texture.frag
+    ${CMAKE_SOURCE_DIR}/res/shader/texture.vert
     ${CMAKE_SOURCE_DIR}/res/shader/uniform.frag
     ${CMAKE_SOURCE_DIR}/res/shader/uniform.vert
 )

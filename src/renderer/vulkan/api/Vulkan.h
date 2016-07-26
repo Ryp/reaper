@@ -11,6 +11,8 @@
 #define VK_NO_PROTOTYPES
 #include <vulkan/vulkan.h>
 
+#define VK_FLAGS_NONE 0
+
 #if defined(REAPER_PLATFORM_LINUX) || defined(REAPER_PLATFORM_MACOSX)
     #define REAPER_VK_LIB_NAME "libvulkan.so"
 #elif defined(REAPER_PLATFORM_WINDOWS)

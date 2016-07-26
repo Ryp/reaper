@@ -20,9 +20,10 @@ public:
 
 public:
     void loadTexture(TextureId id, Texture mesh);
+    const Texture& operator[](const TextureId& id) const;
 
 private:
-    std::map<TextureId, Texture> _meshes;
+    std::map<TextureId, Texture> _textures;
 };
 
 #endif // REAPER_TEXTURECACHE_INCLUDED

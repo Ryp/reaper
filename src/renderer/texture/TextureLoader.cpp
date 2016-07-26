@@ -66,6 +66,8 @@ void TextureLoader::loadDDS(const std::string& filename, TextureCache& cache)
     texture.layerCount = static_cast<u32>(gliTexture.layers());
     texture.format = gliFormatToInternalPixelFormat(gliTexture.format());
     texture.data = gliTexture.data();
+    texture.size = gliTexture.size();
+    texture.bytesPerPixel = gliTexture.base_layer() / (texture.height * texture.width);
 
     Assert(texture.width > 0);
     Assert(texture.height > 0);
