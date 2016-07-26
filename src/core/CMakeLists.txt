@@ -1,3 +1,9 @@
+if(UNIX)
+    find_package(Libunwind REQUIRED)
+    set(REAPER_CORE_LIBRARIES ${LIBUNWIND_LIBRARIES} -lpthread -ldl)
+    set(REAPER_CORE_INCLUDES ${LIBUNWIND_INCLUDE_DIR})
+endif()
+
 set(REAPER_CORE_BIN reaper_core)
 set(REAPER_CORE_BIN ${REAPER_CORE_BIN} PARENT_SCOPE)
 
@@ -41,8 +47,16 @@ set(REAPER_CORE_SRCS
 add_library(${REAPER_CORE_BIN} ${REAPER_BUILD_TYPE} ${REAPER_CORE_SRCS})
 reaper_add_custom_build_flags(${REAPER_CORE_BIN} "Core")
 
+#User includes dirs (won't hide warnings)
 target_include_directories(${REAPER_CORE_BIN} PUBLIC
     ${CMAKE_SOURCE_DIR}/src)
+
+#External includes dirs (won't show warnings)
+target_include_directories(${REAPER_CORE_BIN} SYSTEM PUBLIC
+    ${REAPER_CORE_INCLUDES})
+
+#Libraries
+target_link_libraries(${REAPER_CORE_BIN} ${REAPER_CORE_LIBRARIES})
 
 set_target_properties(${REAPER_CORE_BIN} PROPERTIES COTIRE_CXX_PREFIX_HEADER_INIT ${REAPER_PCH})
 cotire(${REAPER_CORE_BIN})

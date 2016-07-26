@@ -1,7 +1,5 @@
-include(${CMAKE_SOURCE_DIR}/cmake/compiler/msvc.cmake)
-
-include(${CMAKE_SOURCE_DIR}/cmake/platform/unix.cmake)
-include(${CMAKE_SOURCE_DIR}/cmake/platform/windows.cmake)
+include(${CMAKE_SOURCE_DIR}/cmake/Platform.cmake)
+include(${CMAKE_SOURCE_DIR}/cmake/Compiler.cmake)
 
 include(${CMAKE_SOURCE_DIR}/cmake/glslang.cmake)
 
@@ -26,7 +24,7 @@ set(REAPER_CLANG_DEBUG_FLAGS ${REAPER_GCC_DEBUG_FLAGS})
 # Use a xxx.vcxproj.user template file to fill the debugging directory
 macro(reaper_vs_set_debugger_flags target)
     set(REAPER_MSVC_DEBUGGER_WORKING_DIR ${CMAKE_SOURCE_DIR})
-    configure_file(${CMAKE_SOURCE_DIR}/cmake/platform/template.vcxproj.user ${CMAKE_CURRENT_BINARY_DIR}/${target}.vcxproj.user @ONLY)
+    configure_file(${CMAKE_SOURCE_DIR}/cmake/vs/template.vcxproj.user ${CMAKE_CURRENT_BINARY_DIR}/${target}.vcxproj.user @ONLY)
 endmacro()
 
 # Sort sources in folders for visual studio

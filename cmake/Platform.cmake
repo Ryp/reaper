@@ -1,10 +1,6 @@
-if(WIN32)
-    set(REAPER_PLATFORM_LIBRARIES_WINDOWS "")
-    set(REAPER_PLATFORM_INCLUDES_WINDOWS "")
-
-    set(REAPER_PLATFORM_LIBRARIES ${REAPER_PLATFORM_LIBRARIES_WINDOWS} CACHE PATH "Additional platform-specific libraries")
-    set(REAPER_PLATFORM_INCLUDES ${REAPER_PLATFORM_INCLUDES_WINDOWS} CACHE PATH "Additional platform-specific includes")
-
+if(UNIX)
+    # Nothing yet
+elseif(WIN32)
     set(REAPER_DEPS_LOCATION ${CMAKE_SOURCE_DIR}/external/downloaded)
     set(REAPER_DEPS_ARCHIVE ${REAPER_DEPS_LOCATION}/deps.tar.gz)
 
@@ -20,4 +16,6 @@ if(WIN32)
 
     # Set paths from the deps archive
     set(ASSIMP_ROOT_DIR ${REAPER_DEPS_LOCATION}/assimp-3.2 CACHE PATH "Assimp location")
+else()
+    message(FATAL_ERROR "Unrecognized platform")
 endif()

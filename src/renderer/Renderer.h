@@ -10,7 +10,7 @@
 
 class Window;
 
-class AbstractRenderer
+class REAPER_RENDERER_API AbstractRenderer
 {
 public:
     virtual ~AbstractRenderer() {}
