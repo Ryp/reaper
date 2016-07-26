@@ -91,20 +91,7 @@ set(REAPER_SRCS
     ${CMAKE_SOURCE_DIR}/src/pch/stdafx.h
 )
 
-set(REAPER_GLSL_SHADERS
-    ${CMAKE_SOURCE_DIR}/res/shader/tri.frag
-    ${CMAKE_SOURCE_DIR}/res/shader/tri.vert
-    ${CMAKE_SOURCE_DIR}/res/shader/push_constants.frag
-    ${CMAKE_SOURCE_DIR}/res/shader/push_constants.vert
-    ${CMAKE_SOURCE_DIR}/res/shader/texture.frag
-    ${CMAKE_SOURCE_DIR}/res/shader/texture.vert
-    ${CMAKE_SOURCE_DIR}/res/shader/uniform.frag
-    ${CMAKE_SOURCE_DIR}/res/shader/uniform.vert
-)
-
-add_glslang_spirv_targets(REAPER_SPIRV_OUTPUT ${REAPER_GLSL_SHADERS})
-
-add_executable(${REAPER_BIN} ${REAPER_SRCS} ${REAPER_GLSL_SHADERS} ${REAPER_SPIRV_OUTPUT})
+add_executable(${REAPER_BIN} ${REAPER_SRCS})
 reaper_add_custom_build_flags(${REAPER_BIN} "Reaper")
 
 if (WIN32)
@@ -125,10 +112,6 @@ target_include_directories(${REAPER_BIN} SYSTEM PUBLIC
 target_link_libraries(${REAPER_BIN}
     ${REAPER_CORE_BIN}
     ${REAPER_RENDERER_BIN})
-
-if (WIN32)
-    assimp_copy_binaries(${CMAKE_BINARY_DIR})
-endif()
 
 set_target_properties(${REAPER_BIN} PROPERTIES COTIRE_CXX_PREFIX_HEADER_INIT ${REAPER_PCH})
 cotire(${REAPER_BIN})

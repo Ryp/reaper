@@ -13,6 +13,10 @@ add_definitions(-D${VK_PLATFORM})
 find_package(Vulkan REQUIRED)
 find_package(assimp REQUIRED)
 
+if (WIN32)
+    assimp_copy_binaries(${Reaper_BINARY_DIR})
+endif()
+
 set(REAPER_RENDERER_LIBRARIES ${REAPER_RENDERER_LIBRARIES}
     ${REAPER_CORE_BIN}
     ${ASSIMP_LIBRARY})
@@ -72,7 +76,20 @@ set(REAPER_RENDERER_SRCS
     ${REAPER_RENDERER_DIR}/vulkan/api/VulkanSymbolHelper.inl
 )
 
-add_library(${REAPER_RENDERER_BIN} ${REAPER_BUILD_TYPE} ${REAPER_RENDERER_SRCS})
+set(REAPER_GLSL_SHADERS
+    ${CMAKE_SOURCE_DIR}/res/shader/tri.frag
+    ${CMAKE_SOURCE_DIR}/res/shader/tri.vert
+    ${CMAKE_SOURCE_DIR}/res/shader/push_constants.frag
+    ${CMAKE_SOURCE_DIR}/res/shader/push_constants.vert
+    ${CMAKE_SOURCE_DIR}/res/shader/texture.frag
+    ${CMAKE_SOURCE_DIR}/res/shader/texture.vert
+    ${CMAKE_SOURCE_DIR}/res/shader/uniform.frag
+    ${CMAKE_SOURCE_DIR}/res/shader/uniform.vert
+)
+
+add_glslang_spirv_targets(REAPER_SPIRV_OUTPUT ${REAPER_GLSL_SHADERS})
+
+add_library(${REAPER_RENDERER_BIN} ${REAPER_BUILD_TYPE} ${REAPER_RENDERER_SRCS} ${REAPER_GLSL_SHADERS} ${REAPER_SPIRV_OUTPUT})
 reaper_add_custom_build_flags(${REAPER_RENDERER_BIN} "Renderer")
 
 target_include_directories(${REAPER_RENDERER_BIN} PUBLIC ${CMAKE_SOURCE_DIR}/src)
