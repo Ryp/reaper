@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.6 FATAL_ERROR)
 
 # Avoid source tree pollution
 if(CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
@@ -26,26 +26,13 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 include(cotire)
 include(Reaper)
 
-if (WIN32)
-    set(VK_PLATFORM "VK_USE_PLATFORM_WIN32_KHR")
-elseif(APPLE OR UNIX)
-    set(VK_PLATFORM "VK_USE_PLATFORM_XCB_KHR")
-    find_package(XCB REQUIRED)
-    set(REAPER_PLATFORM_LIBRARIES ${REAPER_PLATFORM_LIBRARIES} ${LIBXCB_LIBRARIES})
-    set(REAPER_PLATFORM_INCLUDES ${REAPER_PLATFORM_INCLUDES} ${LIBXCB_INCLUDE_DIR})
-endif()
-add_definitions(-D${VK_PLATFORM})
-
-# Find dependencies
-find_package(Vulkan REQUIRED)
-find_package(assimp REQUIRED)
-
 set(REAPER_BIN reaper)
 
 # Set precompiled header
 set(REAPER_PCH ${CMAKE_SOURCE_DIR}/src/pch/stdafx.h)
 
 add_subdirectory(src/core)
+add_subdirectory(src/renderer)
 
 set(REAPER_SRCS
     ${CMAKE_SOURCE_DIR}/src/main.cpp
@@ -102,49 +89,6 @@ set(REAPER_SRCS
     ${CMAKE_SOURCE_DIR}/src/math/Spline.h
 
     ${CMAKE_SOURCE_DIR}/src/pch/stdafx.h
-
-    ${CMAKE_SOURCE_DIR}/src/renderer/Camera.cpp
-    ${CMAKE_SOURCE_DIR}/src/renderer/Camera.h
-    ${CMAKE_SOURCE_DIR}/src/renderer/Renderer.cpp
-    ${CMAKE_SOURCE_DIR}/src/renderer/Renderer.h
-
-    ${CMAKE_SOURCE_DIR}/src/renderer/format/FloatTypes.cpp
-    ${CMAKE_SOURCE_DIR}/src/renderer/format/FloatTypes.h
-    ${CMAKE_SOURCE_DIR}/src/renderer/format/PixelFormat.cpp
-    ${CMAKE_SOURCE_DIR}/src/renderer/format/PixelFormat.h
-
-    ${CMAKE_SOURCE_DIR}/src/renderer/mesh/Mesh.cpp
-    ${CMAKE_SOURCE_DIR}/src/renderer/mesh/Mesh.h
-    ${CMAKE_SOURCE_DIR}/src/renderer/mesh/MeshCache.cpp
-    ${CMAKE_SOURCE_DIR}/src/renderer/mesh/MeshCache.h
-    ${CMAKE_SOURCE_DIR}/src/renderer/mesh/ModelLoader.cpp
-    ${CMAKE_SOURCE_DIR}/src/renderer/mesh/ModelLoader.h
-
-    ${CMAKE_SOURCE_DIR}/src/renderer/texture/Texture.cpp
-    ${CMAKE_SOURCE_DIR}/src/renderer/texture/Texture.h
-    ${CMAKE_SOURCE_DIR}/src/renderer/texture/TextureCache.cpp
-    ${CMAKE_SOURCE_DIR}/src/renderer/texture/TextureCache.h
-    ${CMAKE_SOURCE_DIR}/src/renderer/texture/TextureLoader.cpp
-    ${CMAKE_SOURCE_DIR}/src/renderer/texture/TextureLoader.h
-
-    ${CMAKE_SOURCE_DIR}/src/renderer/vulkan/Memory.cpp
-    ${CMAKE_SOURCE_DIR}/src/renderer/vulkan/Memory.h
-    ${CMAKE_SOURCE_DIR}/src/renderer/vulkan/PresentationSurface.cpp
-    ${CMAKE_SOURCE_DIR}/src/renderer/vulkan/PresentationSurface.h
-    ${CMAKE_SOURCE_DIR}/src/renderer/vulkan/SwapchainRendererBase.cpp
-    ${CMAKE_SOURCE_DIR}/src/renderer/vulkan/SwapchainRendererBase.h
-    ${CMAKE_SOURCE_DIR}/src/renderer/vulkan/Shader.cpp
-    ${CMAKE_SOURCE_DIR}/src/renderer/vulkan/Shader.h
-    ${CMAKE_SOURCE_DIR}/src/renderer/vulkan/VulkanRenderer.cpp
-    ${CMAKE_SOURCE_DIR}/src/renderer/vulkan/VulkanRenderer.h
-
-    ${CMAKE_SOURCE_DIR}/src/renderer/vulkan/allocator/GPUStackAllocator.cpp
-    ${CMAKE_SOURCE_DIR}/src/renderer/vulkan/allocator/GPUStackAllocator.h
-
-    ${CMAKE_SOURCE_DIR}/src/renderer/vulkan/api/Vulkan.h
-    ${CMAKE_SOURCE_DIR}/src/renderer/vulkan/api/VulkanFunctions.cpp
-    ${CMAKE_SOURCE_DIR}/src/renderer/vulkan/api/VulkanFunctions.h
-    ${CMAKE_SOURCE_DIR}/src/renderer/vulkan/api/VulkanSymbolHelper.inl
 )
 
 set(REAPER_GLSL_SHADERS
@@ -175,16 +119,12 @@ target_include_directories(${REAPER_BIN} PUBLIC
 
 #External includes dirs (won't show warnings)
 target_include_directories(${REAPER_BIN} SYSTEM PUBLIC
-    ${CMAKE_SOURCE_DIR}/external
-    ${VULKAN_INCLUDE_DIR}
-    ${ASSIMP_INCLUDE_DIRS}
-    ${REAPER_PLATFORM_INCLUDES})
+    ${CMAKE_SOURCE_DIR}/external)
 
 #Libraries
 target_link_libraries(${REAPER_BIN}
-    ${ASSIMP_LIBRARY}
-    ${REAPER_PLATFORM_LIBRARIES}
-    ${REAPER_CORE_BIN})
+    ${REAPER_CORE_BIN}
+    ${REAPER_RENDERER_BIN})
 
 if (WIN32)
     assimp_copy_binaries(${CMAKE_BINARY_DIR})

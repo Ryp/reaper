@@ -29,7 +29,7 @@ struct WindowParameters
 #endif
 };
 
-class Window {
+class REAPER_RENDERER_API Window {
 public:
     Window();
     ~Window();

@@ -137,6 +137,7 @@ namespace
 void SwapchainRendererBase::startup(Window* window)
 {
     _vulkanLib = dynlib::load(REAPER_VK_LIB_NAME);
+
     _instance = VK_NULL_HANDLE;
     _physicalDevice = VK_NULL_HANDLE;
     _imageAvailableSemaphore = VK_NULL_HANDLE;
