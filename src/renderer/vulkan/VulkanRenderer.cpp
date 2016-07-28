@@ -43,10 +43,12 @@ void VulkanRenderer::startup(Window* window)
     _pipelineLayout = VK_NULL_HANDLE;
 
     _deviceMemory = VK_NULL_HANDLE;
+
     _texMemory = VK_NULL_HANDLE;
 	_texImage = VK_NULL_HANDLE;
     _texImageView = VK_NULL_HANDLE;
     _texSampler = VK_NULL_HANDLE;
+
     _vertexBuffer = VK_NULL_HANDLE;
     _indexBuffer = VK_NULL_HANDLE;
 
@@ -75,13 +77,18 @@ void VulkanRenderer::shutdown()
     vkDestroyBuffer(_device, _uniformData.buffer, nullptr);
     vkFreeMemory(_device, _uniformData.memory, nullptr);
 
+    vkDestroyImage(_device, _texImage, nullptr);
+    vkDestroyImageView(_device, _texImageView, nullptr);
+    vkDestroySampler(_device, _texSampler, nullptr);
+    vkFreeMemory(_device, _texMemory, nullptr);
+
     vkDestroyBuffer(_device, _vertexBuffer, nullptr);
     vkDestroyBuffer(_device, _indexBuffer, nullptr);
     vkFreeMemory(_device, _deviceMemory, nullptr);
 
     vkFreeMemory(_device, _texMemory, nullptr);
 
-        vkDestroyPipeline(_device, _pipeline, nullptr);
+    vkDestroyPipeline(_device, _pipeline, nullptr);
     vkDestroyPipelineLayout(_device, _pipelineLayout, nullptr);
 
     parent_type::shutdown();
@@ -340,11 +347,8 @@ void VulkanRenderer::createDescriptorPool()
             // Get memory requirements including size, alignment and memory type
             vkGetBufferMemoryRequirements(_device, _uniformData.buffer, &memReqs);
             allocInfo.allocationSize = memReqs.size;
-
-            // Get the memory type index that supports host visibile memory access
-            // Most implementations offer multiple memory tpyes and selecting the
-            // correct one to allocate memory from is important
             allocInfo.memoryTypeIndex = getMemoryType(_physicalDevice, memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
+
             // Allocate memory for the uniform buffer
             Assert(vkAllocateMemory(_device, &allocInfo, nullptr, &(_uniformData.memory)) == VK_SUCCESS);
             // Bind memory to buffer
@@ -395,7 +399,7 @@ void VulkanRenderer::createPipeline()
     VkVertexInputBindingDescription vertexInputBindingDescription;
     vertexInputBindingDescription.binding = 0;
     vertexInputBindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-    vertexInputBindingDescription.stride = sizeof (float) * 5;
+    vertexInputBindingDescription.stride = sizeof(float) * 5;
 
     VkVertexInputAttributeDescription vertexInputAttributeDescription [2] = {};
     vertexInputAttributeDescription[0].binding = vertexInputBindingDescription.binding;
@@ -406,7 +410,7 @@ void VulkanRenderer::createPipeline()
     vertexInputAttributeDescription[1].binding = vertexInputBindingDescription.binding;
     vertexInputAttributeDescription[1].format = VK_FORMAT_R32G32_SFLOAT;
     vertexInputAttributeDescription[1].location = 1;
-    vertexInputAttributeDescription[1].offset = sizeof (float) * 3;
+    vertexInputAttributeDescription[1].offset = sizeof(float) * 3;
 
     VkPipelineVertexInputStateCreateInfo vertex_input_state_create_info = {
         VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,    // VkStructureType                                sType
@@ -696,16 +700,6 @@ namespace
             0, nullptr,
             1, &imageMemoryBarrier);
     }
-
-//     void setImageLayout(VkCommandBuffer cmdbuffer, VkImage image, VkImageAspectFlags aspectMask, VkImageLayout oldImageLayout, VkImageLayout newImageLayout)
-//     {
-//         VkImageSubresourceRange subresourceRange = {};
-//         subresourceRange.aspectMask = aspectMask;
-//         subresourceRange.baseMipLevel = 0;
-//         subresourceRange.levelCount = 1;
-//         subresourceRange.layerCount = 1;
-//         setImageLayout(cmdbuffer, image, oldImageLayout, newImageLayout, subresourceRange);
-//     }
 }
 
 void VulkanRenderer::createTextures()
@@ -724,10 +718,11 @@ void VulkanRenderer::createTextures()
 
     vkGetPhysicalDeviceFormatProperties(_physicalDevice, format, &formatProperties);
 
+    bool useStaging = true;
     {
         // Create a host-visible staging buffer that contains the raw image data
-        VkBuffer stagingBuffer;
-        VkDeviceMemory stagingMemory;
+        VkBuffer stagingBuffer = VK_NULL_HANDLE;
+        VkDeviceMemory stagingMemory = VK_NULL_HANDLE;
 
         VkBufferCreateInfo bufferCreateInfo = {};
         bufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -760,15 +755,15 @@ void VulkanRenderer::createTextures()
         std::vector<VkBufferImageCopy> bufferCopyRegions;
         uint32_t offset = 0;
 
-        for (uint32_t i = 0; i < texture.mipLevels; i++)
+        for (uint32_t currentMip = 0; currentMip < texture.mipLevels; currentMip++)
         {
             VkBufferImageCopy bufferCopyRegion = {};
-            u32 mipWidth = texture.width >> texture.mipLevels;
-            u32 mipHeight = texture.height >> texture.mipLevels;
+            u32 mipWidth = texture.width >> currentMip;
+            u32 mipHeight = texture.height >> currentMip;
             u32 mipSize = texture.bytesPerPixel * mipHeight * mipHeight;
 
             bufferCopyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-            bufferCopyRegion.imageSubresource.mipLevel = i;
+            bufferCopyRegion.imageSubresource.mipLevel = currentMip;
             bufferCopyRegion.imageSubresource.baseArrayLayer = 0;
             bufferCopyRegion.imageSubresource.layerCount = 1;
             bufferCopyRegion.imageExtent.width = mipWidth;
@@ -818,27 +813,23 @@ void VulkanRenderer::createTextures()
 		VkCommandBuffer copyCmdBuffer = VK_NULL_HANDLE;
 		Assert(vkAllocateCommandBuffers(_device, &cmdBufAllocateInfo, &copyCmdBuffer) == VK_SUCCESS);
 
-        VkCommandBufferBeginInfo graphics_commandd_buffer_begin_info = {
+        VkCommandBufferBeginInfo graphics_command_buffer_begin_info = {
             VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,    // VkStructureType                        sType
             nullptr,                                        // const void                            *pNext
             VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT,   // VkCommandBufferUsageFlags              flags
             nullptr                                         // const VkCommandBufferInheritanceInfo  *pInheritanceInfo
         };
 
-        Assert(vkBeginCommandBuffer(copyCmdBuffer, &graphics_commandd_buffer_begin_info) == VK_SUCCESS);
+        Assert(vkBeginCommandBuffer(copyCmdBuffer, &graphics_command_buffer_begin_info) == VK_SUCCESS);
 
         // Image barrier for optimal image
 
         // The sub resource range describes the regions of the image we will be transition
         VkImageSubresourceRange subresourceRange = {};
-        // Image only contains color data
-        subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        // Start at first mip level
-        subresourceRange.baseMipLevel = 0;
-        // We will transition on all mip levels
-        subresourceRange.levelCount = texture.mipLevels;
-        // The 2D texture only has one layer
-        subresourceRange.layerCount = 1;
+        subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT; // Image only contains color data
+        subresourceRange.baseMipLevel = 0; // Start at first mip level
+        subresourceRange.levelCount = texture.mipLevels; // We will transition on all mip levels
+        subresourceRange.layerCount = 1; // The 2D texture only has one layer
 
         // Optimal image will be used as destination for the copy, so we must transfer from our
         // initial undefined image layout to the transfer destination layout
@@ -888,10 +879,8 @@ void VulkanRenderer::createTextures()
         //vkFreeCommandBuffers(_device, cmdPool, 1, &commandBuffer);
 
 		// Clean up staging resources
-		//vkFreeMemory(_device, stagingMemory, nullptr);
-		//vkDestroyBuffer(_device, stagingBuffer, nullptr);
-
-		bool useStaging = true;
+		vkFreeMemory(_device, stagingMemory, nullptr);
+		vkDestroyBuffer(_device, stagingBuffer, nullptr);
 
         // Create sampler
         // In Vulkan textures are accessed by samplers
@@ -961,23 +950,11 @@ void VulkanRenderer::createDescriptorSet()
     VkDescriptorImageInfo descriptorImageInfo = {};
     descriptorImageInfo.sampler = _texSampler;
     descriptorImageInfo.imageView = _texImageView;
-//     descriptorImageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-    descriptorImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    descriptorImageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+    //descriptorImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
     std::vector<VkWriteDescriptorSet> writeDescriptorSets =
     {
-        {
-            VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, // VkStructureType                  sType;
-            nullptr,                                // const void*                      pNext;
-            _descriptorSet,                         // VkDescriptorSet                  dstSet;
-            1,                                      // uint32_t                         dstBinding;
-            0,                                      // uint32_t                         dstArrayElement;
-            1,                                      // uint32_t                         descriptorCount;
-            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,  // VkDescriptorType                 descriptorType;
-            &descriptorImageInfo,                   // const VkDescriptorImageInfo*     pImageInfo;
-            nullptr,                                // const VkDescriptorBufferInfo*    pBufferInfo;
-            nullptr                                 // const VkBufferView*              pTexelBufferView;
-        },
         {
             VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, // VkStructureType                  sType;
             nullptr,                                // const void*                      pNext;
@@ -988,6 +965,18 @@ void VulkanRenderer::createDescriptorSet()
             VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,      // VkDescriptorType                 descriptorType;
             nullptr,                                // const VkDescriptorImageInfo*     pImageInfo;
             &_uniformData.descriptor,               // const VkDescriptorBufferInfo*    pBufferInfo;
+            nullptr                                 // const VkBufferView*              pTexelBufferView;
+        },
+        {
+            VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, // VkStructureType                  sType;
+            nullptr,                                // const void*                      pNext;
+            _descriptorSet,                         // VkDescriptorSet                  dstSet;
+            1,                                      // uint32_t                         dstBinding;
+            0,                                      // uint32_t                         dstArrayElement;
+            1,                                      // uint32_t                         descriptorCount;
+            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,  // VkDescriptorType             descriptorType;
+            &descriptorImageInfo,                   // const VkDescriptorImageInfo*     pImageInfo;
+            nullptr,                                // const VkDescriptorBufferInfo*    pBufferInfo;
             nullptr                                 // const VkBufferView*              pTexelBufferView;
         }
     };

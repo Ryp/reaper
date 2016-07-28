@@ -49,10 +49,12 @@ private:
 
 private:
     VkDeviceMemory  _deviceMemory;
+
     VkDeviceMemory  _texMemory;
     VkImage         _texImage;
     VkImageView     _texImageView;
     VkSampler       _texSampler;
+
     VkBuffer        _vertexBuffer;
     VkBuffer        _indexBuffer;
 
