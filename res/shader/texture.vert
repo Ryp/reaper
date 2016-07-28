@@ -6,6 +6,11 @@
 layout (location = 0) in vec3 pos;
 layout (location = 1) in vec2 inUv;
 
+out gl_PerVertex
+{
+  vec4 gl_Position;
+};
+
 layout (location = 0) out vec2 outUv;
 
 layout (binding = 0) uniform UBO

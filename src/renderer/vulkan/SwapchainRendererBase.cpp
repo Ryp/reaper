@@ -63,6 +63,7 @@ namespace
 
         Assert(major_version >= 1);
         Assert(device_properties.limits.maxImageDimension2D >= 4096);
+        Assert(device_features.shaderClipDistance == VK_TRUE); // This is just checked, not enabled
 
         uint32_t queue_families_count = 0;
         vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_families_count, nullptr);
@@ -128,8 +129,8 @@ namespace
         const char*                 pMessage,
         void*                       /*pUserData*/)
     {
-        //         Assert(false, pMessage);
-        std::cerr << pMessage << std::endl;
+        Assert(false, pMessage);
+        //std::cerr << pMessage << std::endl;
         return VK_FALSE;
     }
 }
