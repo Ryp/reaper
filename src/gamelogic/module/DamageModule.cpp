@@ -7,7 +7,7 @@
 
 #include "DamageModule.h"
 
-#include "game/WorldUpdater.h"
+#include "gamelogic/WorldUpdater.h"
 #include "math/BasicMath.h"
 
 void DamageUpdater::update(float /*dt*/)

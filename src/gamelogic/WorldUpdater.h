@@ -27,7 +27,7 @@
 #include "module/WeaponModule.h"
 #include "module/TowerControllerModule.h"
 
-class AbstractWorldUpdater
+class REAPER_GAMELOGIC_API AbstractWorldUpdater
 {
 public:
     virtual ~AbstractWorldUpdater() {}
@@ -37,7 +37,7 @@ public:
 
 class EntityDb;
 
-class WorldUpdater : public AbstractWorldUpdater
+class REAPER_GAMELOGIC_API WorldUpdater : public AbstractWorldUpdater
 {
     using ModuleCreators = std::map<std::string, AbstractModuleUpdater*>;
 public:

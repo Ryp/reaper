@@ -8,8 +8,8 @@
 #ifndef REAPER_PATHMODULE_INCLUDED
 #define REAPER_PATHMODULE_INCLUDED
 
-#include "game/ModuleUpdater.h"
-#include "game/map/MapInfo.h"
+#include "gamelogic/ModuleUpdater.h"
+#include "gamelogic/map/MapInfo.h"
 
 #include "MovementModule.h"
 

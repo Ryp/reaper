@@ -11,6 +11,7 @@
 #define GLM_FORCE_RADIANS // NOTE remove this when switching to glm 0.9.6 or above
 
 #include "core/CoreExport.h"
+#include "gamelogic/GameLogicExport.h"
 #include "renderer/RendererExport.h"
 
 #include "core/Assert.h"

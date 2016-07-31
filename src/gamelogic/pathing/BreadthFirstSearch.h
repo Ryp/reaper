@@ -10,7 +10,7 @@
 
 #include "core/BitTricks.h"
 
-#include "game/map/MapInfo.h"
+#include "gamelogic/map/MapInfo.h"
 
 namespace pathing
 {

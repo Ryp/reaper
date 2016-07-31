@@ -8,7 +8,7 @@
 #ifndef REAPER_DAMAGEMODULE_INCLUDED
 #define REAPER_DAMAGEMODULE_INCLUDED
 
-#include "game/ModuleUpdater.h"
+#include "gamelogic/ModuleUpdater.h"
 
 struct DamageModuleDescriptor : public ModuleDescriptor {
     u32 maxHealth;

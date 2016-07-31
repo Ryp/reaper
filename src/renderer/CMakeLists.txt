@@ -100,3 +100,9 @@ target_link_libraries(${REAPER_RENDERER_BIN} ${REAPER_RENDERER_LIBRARIES})
 
 set_target_properties(${REAPER_RENDERER_BIN} PROPERTIES COTIRE_CXX_PREFIX_HEADER_INIT ${REAPER_PCH})
 cotire(${REAPER_RENDERER_BIN})
+
+if (REAPER_BUILD_TESTS)
+    reaper_add_test(${REAPER_RENDERER_BIN} texture_loading)
+    reaper_add_test(${REAPER_RENDERER_BIN} renderer)
+    reaper_add_test(${REAPER_RENDERER_BIN} mesh_loading)
+endif()

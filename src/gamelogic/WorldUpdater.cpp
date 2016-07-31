@@ -7,7 +7,7 @@
 
 #include "WorldUpdater.h"
 
-#include "game/entitydb/EntityDb.h"
+#include "gamelogic/entitydb/EntityDb.h"
 #include "map/MapDescriptor.h"
 
 WorldUpdater::WorldUpdater(EntityDb* entityDb)

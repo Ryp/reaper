@@ -12,9 +12,9 @@
 #include <string>
 
 #include "core/memory/StackAllocator.h"
-#include "game/EntityDescriptor.h"
+#include "gamelogic/EntityDescriptor.h"
 
-class EntityDb
+class REAPER_GAMELOGIC_API EntityDb
 {
 public:
     EntityDb();
