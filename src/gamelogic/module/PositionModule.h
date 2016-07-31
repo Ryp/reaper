@@ -11,7 +11,7 @@
 #include <glm/vec3.hpp>
 #include <glm/gtc/quaternion.hpp>
 
-#include "game/ModuleUpdater.h"
+#include "gamelogic/ModuleUpdater.h"
 
 struct PositionModuleDescriptor : public ModuleDescriptor {
     glm::vec3   position;

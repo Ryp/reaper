@@ -8,9 +8,9 @@
 #ifndef REAPER_MOVEMENTMODULE_INCLUDED
 #define REAPER_MOVEMENTMODULE_INCLUDED
 
-#include "game/ModuleUpdater.h"
-#include "game/pathing/AIPath.h"
-#include "game/map/MapInfo.h"
+#include "gamelogic/ModuleUpdater.h"
+#include "gamelogic/pathing/AIPath.h"
+#include "gamelogic/map/MapInfo.h"
 
 #include "PositionModule.h"
 

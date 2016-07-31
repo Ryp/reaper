@@ -8,7 +8,7 @@
 #ifndef REAPER_TOWERCONTROLLERMODULE_INCLUDED
 #define REAPER_TOWERCONTROLLERMODULE_INCLUDED
 
-#include "game/ModuleUpdater.h"
+#include "gamelogic/ModuleUpdater.h"
 
 #include "DamageModule.h"
 #include "PositionModule.h"

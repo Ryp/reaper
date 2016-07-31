@@ -7,7 +7,7 @@
 
 #include "WaveSpawnerModule.h"
 
-#include "game/WorldUpdater.h"
+#include "gamelogic/WorldUpdater.h"
 
 void WaveSpawnerUpdater::update(float dt)
 {

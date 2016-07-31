@@ -8,7 +8,7 @@
 #ifndef REAPER_TEAMMODULE_INCLUDED
 #define REAPER_TEAMMODULE_INCLUDED
 
-#include "game/ModuleUpdater.h"
+#include "gamelogic/ModuleUpdater.h"
 
 struct TeamModuleDescriptor : public ModuleDescriptor {
     u8 teamId;

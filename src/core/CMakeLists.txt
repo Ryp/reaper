@@ -60,3 +60,10 @@ target_link_libraries(${REAPER_CORE_BIN} ${REAPER_CORE_LIBRARIES})
 
 set_target_properties(${REAPER_CORE_BIN} PROPERTIES COTIRE_CXX_PREFIX_HEADER_INIT ${REAPER_PCH})
 cotire(${REAPER_CORE_BIN})
+
+if (REAPER_BUILD_TESTS)
+    reaper_add_test(${REAPER_CORE_BIN} alignment)
+    reaper_add_test(${REAPER_CORE_BIN} cache)
+    reaper_add_test(${REAPER_CORE_BIN} buddy_allocator)
+    reaper_add_test(${REAPER_CORE_BIN} stack_allocator)
+endif()

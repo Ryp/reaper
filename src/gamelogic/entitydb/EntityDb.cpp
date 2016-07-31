@@ -7,14 +7,14 @@
 
 #include "EntityDb.h"
 
-#include "game/module/TeamModule.h"
-#include "game/module/PositionModule.h"
-#include "game/module/DamageModule.h"
-#include "game/module/MovementModule.h"
-#include "game/module/PathModule.h"
-#include "game/module/WaveSpawnerModule.h"
-#include "game/module/WeaponModule.h"
-#include "game/module/TowerControllerModule.h"
+#include "gamelogic/module/TeamModule.h"
+#include "gamelogic/module/PositionModule.h"
+#include "gamelogic/module/DamageModule.h"
+#include "gamelogic/module/MovementModule.h"
+#include "gamelogic/module/PathModule.h"
+#include "gamelogic/module/WaveSpawnerModule.h"
+#include "gamelogic/module/WeaponModule.h"
+#include "gamelogic/module/TowerControllerModule.h"
 
 EntityDb::EntityDb()
 :   _allocator(10000)

@@ -11,8 +11,8 @@
 
 #include <iostream>
 
-#include "game/pathing/BreadthFirstSearch.h"
-#include "game/map/MapDescriptor.h"
+#include "gamelogic/pathing/BreadthFirstSearch.h"
+#include "gamelogic/map/MapDescriptor.h"
 
 PathUpdater::PathUpdater(AbstractWorldUpdater* worldUpdater, MapInfo& mapInfo)
 :   parent_type(worldUpdater)

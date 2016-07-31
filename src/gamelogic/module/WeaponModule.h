@@ -8,7 +8,7 @@
 #ifndef REAPER_WEAPONMODULE_INCLUDED
 #define REAPER_WEAPONMODULE_INCLUDED
 
-#include "game/ModuleUpdater.h"
+#include "gamelogic/ModuleUpdater.h"
 
 struct WeaponModuleDescriptor : public ModuleDescriptor {
     u32 damage;
