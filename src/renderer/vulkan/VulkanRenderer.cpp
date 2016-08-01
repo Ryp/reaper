@@ -312,18 +312,6 @@ void VulkanRenderer::createDescriptorPool()
     Assert(vkCreateDescriptorSetLayout(_device, &descriptorLayout, nullptr, &_descriptorSetLayout) == VK_SUCCESS);
 
     {
-        /*{
-            VkBufferCreateInfo bufferInfo = {};
-            bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-            bufferInfo.size = sizeof(*_uniforms);
-            bufferInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-
-            // Create a new buffer
-            Assert(vkCreateBuffer(_device, &bufferInfo, nullptr, &_uniformData.buffer) == VK_SUCCESS);
-
-            auto memoryHeaps = enumerateHeaps(_physicalDevice);
-            _uniformData.memory = AllocateMemory(memoryHeaps, _device, 10 << 10);
-        }*/
         {
             // Prepare and initialize a uniform buffer block containing shader uniforms
             // In Vulkan there are no more single uniforms like in GL
@@ -359,7 +347,7 @@ void VulkanRenderer::createDescriptorPool()
         // Store information in the uniform's descriptor
         _uniformData.descriptor.buffer = _uniformData.buffer;
         _uniformData.descriptor.offset = 0;
-        _uniformData.descriptor.range = sizeof(_uniformData);
+        _uniformData.descriptor.range = sizeof(VSUBO);
 
         updateUniforms();
     }
