@@ -177,12 +177,14 @@ bool Window::Create(const char *title)
         title);
 
     xcb_flush(_parameters.Connection);
+    Assert(xcb_connection_has_error(_parameters.Connection) == 0);
 
     return true;
 }
 
 bool Window::renderLoop(AbstractRenderer* renderer) const
 {
+    Assert(xcb_connection_has_error(_parameters.Connection) == 0);
     // Prepare notification for window destruction
     xcb_intern_atom_cookie_t  protocols_cookie = xcb_intern_atom( _parameters.Connection, 1, 12, "WM_PROTOCOLS" );
     xcb_intern_atom_reply_t  *protocols_reply  = xcb_intern_atom_reply( _parameters.Connection, protocols_cookie, 0 );

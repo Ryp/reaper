@@ -1,13 +1,8 @@
-if (WIN32)
-    set(VK_PLATFORM "VK_USE_PLATFORM_WIN32_KHR")
-elseif(APPLE OR UNIX)
-    set(VK_PLATFORM "VK_USE_PLATFORM_XCB_KHR")
+if(APPLE OR UNIX)
     find_package(XCB REQUIRED)
     set(REAPER_RENDERER_LIBRARIES ${LIBXCB_LIBRARIES})
     set(REAPER_RENDERER_INCLUDES ${LIBXCB_INCLUDE_DIR})
 endif()
-
-add_definitions(-D${VK_PLATFORM})
 
 # Find dependencies
 find_package(Vulkan REQUIRED)
@@ -105,4 +100,5 @@ if (REAPER_BUILD_TESTS)
     reaper_add_test(${REAPER_RENDERER_BIN} texture_loading)
     reaper_add_test(${REAPER_RENDERER_BIN} renderer)
     reaper_add_test(${REAPER_RENDERER_BIN} mesh_loading)
+    reaper_add_test(${REAPER_RENDERER_BIN} window)
 endif()
