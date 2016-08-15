@@ -25,6 +25,12 @@ namespace
     struct VSPushConstants {
         float scale;
     };
+
+    constexpr std::size_t TextureCacheSize = 10_MB;
+    static const std::string TextureFile("res/texture/default.dds");
+    static const std::string MeshFile("res/model/sphere.obj");
+    static const std::string ShaderFragFile("./build/spv/texture.frag.spv");
+    static const std::string ShaderVertFile("./build/spv/texture.vert.spv");
 }
 
 struct VSUBO {
@@ -32,12 +38,19 @@ struct VSUBO {
     float scaleFactor;
 };
 
+VulkanRenderer::VulkanRenderer()
+:   _texCache(TextureCacheSize)
+{}
+
 void VulkanRenderer::startup(Window* window)
 {
     parent_type::startup(window);
 
-    ModelLoader loader;
-    loader.load("res/model/sphere.obj", _meshCache);
+    ModelLoader meshLoader;
+    meshLoader.load(MeshFile, _meshCache);
+
+    TextureLoader texLoader;
+    texLoader.load(TextureFile, _texCache);
 
     _pipeline = VK_NULL_HANDLE;
     _pipelineLayout = VK_NULL_HANDLE;
@@ -85,8 +98,6 @@ void VulkanRenderer::shutdown()
     vkDestroyBuffer(_device, _vertexBuffer, nullptr);
     vkDestroyBuffer(_device, _indexBuffer, nullptr);
     vkFreeMemory(_device, _deviceMemory, nullptr);
-
-    vkFreeMemory(_device, _texMemory, nullptr);
 
     vkDestroyPipeline(_device, _pipeline, nullptr);
     vkDestroyPipelineLayout(_device, _pipelineLayout, nullptr);
@@ -230,7 +241,7 @@ void VulkanRenderer::createCommandBuffers()
         vkCmdBindIndexBuffer(_gfxCmdBuffers[i], _indexBuffer, 0, VK_INDEX_TYPE_UINT32);
         vkCmdBindVertexBuffers(_gfxCmdBuffers[i], 0, 1, &_vertexBuffer, offsets);
 
-        vkCmdDrawIndexed(_gfxCmdBuffers[i], static_cast<u32>(_meshCache["res/model/sphere.obj"].indexes.size()), 1, 0, 0, 0);
+        vkCmdDrawIndexed(_gfxCmdBuffers[i], static_cast<u32>(_meshCache[MeshFile].indexes.size()), 1, 0, 0, 0);
 
         //vkCmdDraw(_gfxCmdBuffers[i], 3, 1, 0, 0 );
 
@@ -358,8 +369,8 @@ void VulkanRenderer::createPipeline()
     VkShaderModule vertModule;
     VkShaderModule fragModule;
 
-    createShaderModule(vertModule, _device, "./build/spv/texture.vert.spv");
-    createShaderModule(fragModule, _device, "./build/spv/texture.frag.spv");
+    createShaderModule(vertModule, _device, ShaderVertFile);
+    createShaderModule(fragModule, _device, ShaderFragFile);
 
     std::vector<VkPipelineShaderStageCreateInfo> shader_stage_create_infos = {
         // Vertex shader
@@ -548,9 +559,9 @@ void VulkanRenderer::createPipeline()
 
 void VulkanRenderer::createMeshBuffers()
 {
-    const Mesh& mesh = _meshCache["res/model/sphere.obj"];
+    const Mesh& mesh = _meshCache[MeshFile];
 
-    const std::size_t gpuBufferSize = 640 << 15;
+    const std::size_t gpuBufferSize = 1_MB;
     GPUStackAllocator gpuStack(gpuBufferSize);
 
     struct Vertex
@@ -591,9 +602,9 @@ void VulkanRenderer::createMeshBuffers()
     vkBindBufferMemory(_device, _indexBuffer, _deviceMemory, indexBufferOffset);
 
     void* mapping = nullptr;
-    vkMapMemory (_device, _deviceMemory, 0, VK_WHOLE_SIZE, 0, &mapping);
-    ::memcpy(mapping, vertexData.data(), vertexDataBytes);
-    ::memcpy(static_cast<uint8_t*> (mapping) + indexBufferOffset, mesh.indexes.data(), indexDataBytes);
+    Assert(vkMapMemory(_device, _deviceMemory, 0, VK_WHOLE_SIZE, 0, &mapping) == VK_SUCCESS);
+    std::memcpy(static_cast<uint8_t*>(mapping) + vertexBufferOffset, vertexData.data(), vertexDataBytes);
+    std::memcpy(static_cast<uint8_t*>(mapping) + indexBufferOffset, mesh.indexes.data(), indexDataBytes);
     vkUnmapMemory (_device, _deviceMemory);
 }
 
@@ -692,12 +703,7 @@ namespace
 
 void VulkanRenderer::createTextures()
 {
-    TextureLoader loader;
-    std::string texFile = "res/texture/default.dds";
-
-    loader.load(texFile, _texCache);
-
-    const Texture& texture = _texCache[texFile.c_str()];
+    const Texture& texture = _texCache[TextureFile.c_str()];
 
     VkFormat format = pixelFormatToVkFormat(texture.format);
     Assert(format != VK_FORMAT_UNDEFINED);
@@ -734,9 +740,9 @@ void VulkanRenderer::createTextures()
         Assert(vkBindBufferMemory(_device, stagingBuffer, stagingMemory, 0) == VK_SUCCESS);
 
         // Copy texture data into staging buffer
-        uint8_t *data;
+        uint8_t *data = nullptr;
         Assert(vkMapMemory(_device, stagingMemory, 0, memReqs.size, 0, (void**)&data) == VK_SUCCESS);
-        memcpy(data, texture.data, texture.size);
+        std::memcpy(data, texture.rawData, texture.size);
         vkUnmapMemory(_device, stagingMemory);
 
         // Setup buffer copy regions for each mip level
@@ -938,8 +944,8 @@ void VulkanRenderer::createDescriptorSet()
     VkDescriptorImageInfo descriptorImageInfo = {};
     descriptorImageInfo.sampler = _texSampler;
     descriptorImageInfo.imageView = _texImageView;
-    descriptorImageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-    //descriptorImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    //descriptorImageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+    descriptorImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
     std::vector<VkWriteDescriptorSet> writeDescriptorSets =
     {
@@ -981,10 +987,10 @@ void VulkanRenderer::updateUniforms()
     // Map uniform buffer and update it
     // If you want to keep a handle to the memory and not unmap it afer updating,
     // create the memory with the VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
-    uint8_t *pData;
+    uint8_t *pData = nullptr;
     Assert(vkMapMemory(_device, _uniformData.memory, 0, sizeof(*_uniforms), 0, (void **)&pData) == VK_SUCCESS);
 
-    ::memcpy(pData, _uniforms, sizeof(*_uniforms));
+    std::memcpy(pData, _uniforms, sizeof(*_uniforms));
 
     vkUnmapMemory(_device, _uniformData.memory);
 }

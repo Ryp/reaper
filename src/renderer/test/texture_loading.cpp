@@ -8,7 +8,7 @@
 TEST_CASE("Texture Loading", "[texture]")
 {
     TextureLoader loader;
-    TextureCache cache;
+    TextureCache cache(1_MB);
 
     SECTION("DDS files")
     {

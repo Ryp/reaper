@@ -7,10 +7,23 @@
 
 #include "TextureCache.h"
 
-void TextureCache::loadTexture(TextureId id, Texture mesh)
+#include <cstring>
+
+TextureCache::TextureCache(const std::size_t cacheSize)
+:   _textureAllocator(cacheSize)
+{}
+
+void TextureCache::loadTexture(TextureId id, Texture texture)
 {
+    void* rawDataCachePtr = _textureAllocator.alloc(texture.size);
+
+    Assert(rawDataCachePtr != nullptr);
+
+    std::memcpy(rawDataCachePtr, texture.rawData, texture.size);
+    texture.rawData = rawDataCachePtr;
+
     Assert(_textures.count(id) == 0, "texture already in cache");
-    _textures.emplace(id, mesh);
+    _textures.emplace(id, texture);
 }
 
 const Texture& TextureCache::operator[](const TextureId& id) const

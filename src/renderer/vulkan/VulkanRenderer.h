@@ -25,7 +25,7 @@ class VulkanRenderer : public SwapchainRendererBase
 {
     using parent_type = SwapchainRendererBase;
 public:
-    VulkanRenderer() = default;
+    VulkanRenderer();
     ~VulkanRenderer() = default;
 
     virtual void startup(Window* window) override final;
