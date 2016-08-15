@@ -59,22 +59,25 @@ void TextureLoader::loadDDS(const std::string& filename, TextureCache& cache)
     Texture texture;
 
     Assert(!gliTexture.empty(), "empty texture");
+    Assert(gliTexture.data() != nullptr);
 
     texture.width = gliTexture.extent().x;
     texture.height = gliTexture.extent().y;
     texture.mipLevels = static_cast<u32>(gliTexture.levels());
     texture.layerCount = static_cast<u32>(gliTexture.layers());
     texture.format = gliFormatToInternalPixelFormat(gliTexture.format());
-    texture.data = gliTexture.data();
     texture.size = gliTexture.size();
+    texture.rawData = gliTexture.data();
+
+    // Deduce bpp value from the base mip
     texture.bytesPerPixel = gliTexture.size(0) / (texture.height * texture.width);
 
     Assert(texture.width > 0);
     Assert(texture.height > 0);
     Assert(texture.format != PixelFormat::Unknown);
-    Assert(texture.data != nullptr);
+    Assert(texture.size > 0);
     Assert(texture.bytesPerPixel > 0);
-    Assert(texture.bytesPerPixel < 1024);
+    Assert(texture.bytesPerPixel < 32);
 
     cache.loadTexture(filename, texture);
 }

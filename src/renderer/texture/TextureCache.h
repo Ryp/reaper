@@ -11,18 +11,22 @@
 #include <map>
 #include <string>
 
+#include "core/memory/StackAllocator.h"
+
 #include "Texture.h"
 
-class TextureCache {
+class REAPER_RENDERER_API TextureCache
+{
 public:
-    TextureCache() = default;
+    TextureCache(const std::size_t cacheSize);
     ~TextureCache() = default;
 
 public:
-    void loadTexture(TextureId id, Texture mesh);
+    void loadTexture(TextureId id, Texture texture);
     const Texture& operator[](const TextureId& id) const;
 
 private:
+    StackAllocator               _textureAllocator;
     std::map<TextureId, Texture> _textures;
 };
 
