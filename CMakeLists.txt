@@ -31,6 +31,13 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 include(cotire)
 include(Reaper)
 
+if(WIN32)
+    set(VK_PLATFORM "VK_USE_PLATFORM_WIN32_KHR")
+elseif(APPLE OR UNIX)
+    set(VK_PLATFORM "VK_USE_PLATFORM_XCB_KHR")
+endif()
+add_definitions(-D${VK_PLATFORM})
+
 set(REAPER_BIN reaper)
 
 # Set precompiled header

@@ -26,10 +26,13 @@ struct WindowParameters
     Display*            DisplayPtr;
     Window              Handle;
     WindowParameters() : DisplayPtr(), Handle() {}
+#else
+    #error You are doing something wrong
 #endif
 };
 
-class REAPER_RENDERER_API Window {
+class REAPER_RENDERER_API Window
+{
 public:
     Window();
     ~Window();

@@ -19,7 +19,11 @@ set(REAPER_GCC_DEBUG_FLAGS "-Wall" "-Wextra" "-Wundef" "-Wshadow" "-funsigned-ch
         "-Wpointer-arith" "-Wredundant-decls" "-Winline" "-Wformat"
         "-Wformat-security" "-Winit-self" "-Wdeprecated-declarations"
         "-Wmissing-include-dirs" "-Wmissing-declarations")
+set(REAPER_GCC_RELEASE_FLAGS "")
+
+# Use the same flags as GCC
 set(REAPER_CLANG_DEBUG_FLAGS ${REAPER_GCC_DEBUG_FLAGS})
+set(REAPER_CLANG_RELEASE_FLAGS ${REAPER_GCC_RELEASE_FLAGS})
 
 # Use a xxx.vcxproj.user template file to fill the debugging directory
 macro(reaper_vs_set_debugger_flags target)
@@ -63,9 +67,11 @@ macro(reaper_add_custom_build_flags target project_label)
     elseif(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
         target_compile_options(${target} PRIVATE "-fvisibility=hidden")
         target_compile_options(${target} PRIVATE "$<$<CONFIG:DEBUG>:${REAPER_GCC_DEBUG_FLAGS}>")
+        target_compile_options(${target} PRIVATE "$<$<CONFIG:RELEASE>:${REAPER_GCC_RELEASE_FLAGS}>")
     elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
         target_compile_options(${target} PRIVATE "-fvisibility=hidden")
         target_compile_options(${target} PRIVATE "$<$<CONFIG:DEBUG>:${REAPER_CLANG_DEBUG_FLAGS}>")
+        target_compile_options(${target} PRIVATE "$<$<CONFIG:RELEASE>:${REAPER_CLANG_RELEASE_FLAGS}>")
     endif()
     target_compile_definitions(${target} PRIVATE ${TARGET_COMPILE_DEFINITIONS})
 endmacro()
