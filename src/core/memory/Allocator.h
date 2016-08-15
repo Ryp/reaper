@@ -53,4 +53,16 @@ inline std::size_t alignOffset(std::size_t offset, std::size_t alignment)
     return ((offset - 1) & ~(alignment - 1)) + alignment;
 }
 
+// User-defined literals
+// Here we assume kB = kiB = 1024 bytes
+constexpr std::size_t operator "" _kB(unsigned long long int sizeInkB)
+{
+    return sizeInkB << 10;
+}
+
+constexpr std::size_t operator "" _MB(unsigned long long int sizeInMB)
+{
+    return sizeInMB << 20;
+}
+
 #endif // REAPER_ALLOCATOR_INCLUDED
