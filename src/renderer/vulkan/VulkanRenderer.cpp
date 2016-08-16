@@ -27,7 +27,7 @@ namespace
     };
 
     constexpr std::size_t TextureCacheSize = 10_MB;
-    static const std::string TextureFile("res/texture/default.dds");
+    static const std::string TextureFile("res/texture/uvmap.dds");
     static const std::string MeshFile("res/model/sphere.obj");
     static const std::string ShaderFragFile("./build/spv/texture.frag.spv");
     static const std::string ShaderVertFile("./build/spv/texture.vert.spv");
@@ -90,8 +90,8 @@ void VulkanRenderer::shutdown()
     vkDestroyBuffer(_device, _uniformData.buffer, nullptr);
     vkFreeMemory(_device, _uniformData.memory, nullptr);
 
-    vkDestroyImage(_device, _texImage, nullptr);
     vkDestroyImageView(_device, _texImageView, nullptr);
+    vkDestroyImage(_device, _texImage, nullptr);
     vkDestroySampler(_device, _texSampler, nullptr);
     vkFreeMemory(_device, _texMemory, nullptr);
 
@@ -101,6 +101,8 @@ void VulkanRenderer::shutdown()
 
     vkDestroyPipeline(_device, _pipeline, nullptr);
     vkDestroyPipelineLayout(_device, _pipelineLayout, nullptr);
+
+    delete _uniforms;
 
     parent_type::shutdown();
 }
@@ -218,8 +220,8 @@ void VulkanRenderer::createCommandBuffers()
                     0                                           // int32_t                        y
                 },
                 {                                           // VkExtent2D                     extent
-                    300,                                        // int32_t                        width
-                    300,                                        // int32_t                        height
+                    800,                                        // int32_t                        width
+                    800,                                        // int32_t                        height
                 }
             },
             1,                                            // uint32_t                       clearValueCount
@@ -432,8 +434,8 @@ void VulkanRenderer::createPipeline()
     VkViewport viewport = {
         0.0f,                                                         // float                                          x
         0.0f,                                                         // float                                          y
-        300.0f,                                                       // float                                          width
-        300.0f,                                                       // float                                          height
+        800.0f,                                                       // float                                          width
+        800.0f,                                                       // float                                          height
         0.0f,                                                         // float                                          minDepth
         1.0f                                                          // float                                          maxDepth
     };
@@ -444,8 +446,8 @@ void VulkanRenderer::createPipeline()
             0                                                             // int32_t                                        y
         },
         {                                                             // VkExtent2D                                     extent
-            300,                                                          // int32_t                                        width
-            300                                                           // int32_t                                        height
+            800,                                                          // int32_t                                        width
+            800                                                           // int32_t                                        height
         }
     };
 
@@ -467,8 +469,8 @@ void VulkanRenderer::createPipeline()
         VK_FALSE,                                                     // VkBool32                                       depthClampEnable
         VK_FALSE,                                                     // VkBool32                                       rasterizerDiscardEnable
         VK_POLYGON_MODE_FILL,                                         // VkPolygonMode                                  polygonMode
-        VK_CULL_MODE_FRONT_BIT,                                        // VkCullModeFlags                                cullMode
-        VK_FRONT_FACE_CLOCKWISE,                                      // VkFrontFace                                    frontFace
+        VK_CULL_MODE_NONE,                                            // VkCullModeFlags                                cullMode
+        VK_FRONT_FACE_COUNTER_CLOCKWISE,                              // VkFrontFace                                    frontFace
         VK_FALSE,                                                     // VkBool32                                       depthBiasEnable
         0.0f,                                                         // float                                          depthBiasConstantFactor
         0.0f,                                                         // float                                          depthBiasClamp
@@ -548,7 +550,7 @@ void VulkanRenderer::createPipeline()
         _mainRenderPass,                                              // VkRenderPass                                   renderPass
         0,                                                            // uint32_t                                       subpass
         VK_NULL_HANDLE,                                               // VkPipeline                                     basePipelineHandle
-        -1                                                            // int32_t                                        basePipelineIndex
+        0                                                             // int32_t                                        basePipelineIndex
     };
 
     Assert(vkCreateGraphicsPipelines(_device, VK_NULL_HANDLE, 1, &pipeline_create_info, nullptr, &_pipeline) == VK_SUCCESS);
@@ -870,7 +872,7 @@ void VulkanRenderer::createTextures()
 
         Assert(vkQueueSubmit(_graphicsQueue, 1, &submit_info, VK_NULL_HANDLE) == VK_SUCCESS);
         Assert(vkQueueWaitIdle(_graphicsQueue) == VK_SUCCESS);
-        //vkFreeCommandBuffers(_device, cmdPool, 1, &commandBuffer);
+        vkFreeCommandBuffers(_device, _gfxCmdPool, 1, &copyCmdBuffer);
 
 		// Clean up staging resources
 		vkFreeMemory(_device, stagingMemory, nullptr);
@@ -944,8 +946,7 @@ void VulkanRenderer::createDescriptorSet()
     VkDescriptorImageInfo descriptorImageInfo = {};
     descriptorImageInfo.sampler = _texSampler;
     descriptorImageInfo.imageView = _texImageView;
-    //descriptorImageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-    descriptorImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    descriptorImageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
 
     std::vector<VkWriteDescriptorSet> writeDescriptorSets =
     {
@@ -981,7 +982,7 @@ void VulkanRenderer::createDescriptorSet()
 void VulkanRenderer::updateUniforms()
 {
 //     _uniforms->transform = glm::scale(glm::mat4(), glm::vec3(0.5f, 0.5f, 0.5f));
-    _uniforms->time += 0.001f;
+    _uniforms->time += 0.01f;
     _uniforms->scaleFactor = sinf(_uniforms->time);
 
     // Map uniform buffer and update it

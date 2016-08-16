@@ -345,10 +345,12 @@ void SwapchainRendererBase::shutdown()
     for (size_t i = 0; i < _framebuffers.size(); ++i)
     {
         vkDestroyImageView(_device, _swapChainImageViews[i], nullptr);
-         vkDestroyFramebuffer(_device, _framebuffers[i], nullptr);
+        vkDestroyFramebuffer(_device, _framebuffers[i], nullptr);
     }
 
     vkDestroySwapchainKHR(_device, _swapChain, nullptr);
+
+    vkDestroySurfaceKHR(_instance, _presentationSurface, nullptr);
     vkDestroyDevice(_device, nullptr);
 
     #if defined(REAPER_DEBUG)
@@ -399,7 +401,7 @@ namespace
         // Special value of surface extent is width == height == -1
         // If this is so we define the size by ourselves but it must fit within defined confines
         if( surface_capabilities.currentExtent.width == uint32_t(-1)) {
-            VkExtent2D swap_chain_extent = { 300, 300 };
+            VkExtent2D swap_chain_extent = { 800, 800 };
             if( swap_chain_extent.width < surface_capabilities.minImageExtent.width ) {
                 swap_chain_extent.width = surface_capabilities.minImageExtent.width;
             }
@@ -600,10 +602,10 @@ void SwapchainRendererBase::createFramebuffers()
             VK_IMAGE_VIEW_TYPE_2D,                      // VkImageViewType                viewType
             _swapChainFormat,                           // VkFormat                       format
             {                                           // VkComponentMapping             components
-                VK_COMPONENT_SWIZZLE_IDENTITY,              // VkComponentSwizzle             r
-                VK_COMPONENT_SWIZZLE_IDENTITY,              // VkComponentSwizzle             g
-                VK_COMPONENT_SWIZZLE_IDENTITY,              // VkComponentSwizzle             b
-                VK_COMPONENT_SWIZZLE_IDENTITY               // VkComponentSwizzle             a
+                VK_COMPONENT_SWIZZLE_IDENTITY,          // VkComponentSwizzle             r
+                VK_COMPONENT_SWIZZLE_IDENTITY,          // VkComponentSwizzle             g
+                VK_COMPONENT_SWIZZLE_IDENTITY,          // VkComponentSwizzle             b
+                VK_COMPONENT_SWIZZLE_IDENTITY           // VkComponentSwizzle             a
             },
             {                                           // VkImageSubresourceRange        subresourceRange
                 VK_IMAGE_ASPECT_COLOR_BIT,                  // VkImageAspectFlags             aspectMask
@@ -620,11 +622,11 @@ void SwapchainRendererBase::createFramebuffers()
             VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,  // VkStructureType                sType
             nullptr,                                    // const void                    *pNext
             0,                                          // VkFramebufferCreateFlags       flags
-            _mainRenderPass,                                // VkRenderPass                   renderPass
+            _mainRenderPass,                            // VkRenderPass                   renderPass
             1,                                          // uint32_t                       attachmentCount
-            &_swapChainImageViews[i],                            // const VkImageView             *pAttachments
-            300,                                        // uint32_t                       width
-            300,                                        // uint32_t                       height
+            &_swapChainImageViews[i],                   // const VkImageView             *pAttachments
+            800,                                        // uint32_t                       width
+            800,                                        // uint32_t                       height
             1                                           // uint32_t                       layers
         };
 
