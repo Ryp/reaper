@@ -70,7 +70,7 @@ bool Window::Create( const char *title ) {
     }
 
     // Create window
-    _parameters.Handle = CreateWindow( REAPER_WINDOW_INFO, title, WS_OVERLAPPEDWINDOW, 20, 20, 500, 500, nullptr, nullptr, _parameters.Instance, nullptr );
+    _parameters.Handle = CreateWindow( REAPER_WINDOW_INFO, title, WS_OVERLAPPEDWINDOW, 20, 20, 800, 800, nullptr, nullptr, _parameters.Instance, nullptr );
     if( !_parameters.Handle ) {
         return false;
     }
@@ -154,12 +154,12 @@ bool Window::Create(const char *title)
     xcb_create_window(
         _parameters.Connection,
         XCB_COPY_FROM_PARENT,
-                    _parameters.Handle,
+        _parameters.Handle,
         screen->root,
         20,
         20,
-        300,
-        300,
+        800,
+        800,
         0,
         XCB_WINDOW_CLASS_INPUT_OUTPUT,
         screen->root_visual,
@@ -169,7 +169,7 @@ bool Window::Create(const char *title)
     xcb_change_property(
         _parameters.Connection,
         XCB_PROP_MODE_REPLACE,
-                      _parameters.Handle,
+        _parameters.Handle,
         XCB_ATOM_WM_NAME,
         XCB_ATOM_STRING,
         8,
@@ -269,8 +269,8 @@ bool Window::Create( const char *title ) {
         DefaultRootWindow( _parameters.DisplayPtr ),
                                             20,
                                             20,
-                                            500,
-                                            500,
+                                            800,
+                                            800,
                                             1,
                                             BlackPixel( _parameters.DisplayPtr, default_screen ),
                                             WhitePixel( _parameters.DisplayPtr, default_screen ) );

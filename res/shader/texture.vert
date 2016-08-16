@@ -18,6 +18,7 @@ layout (push_constant) uniform PushConsts
 } pushConsts;
 
 layout (location = 0) out vec2 outUv;
+layout (location = 1) out float scale;
 
 out gl_PerVertex
 {
@@ -28,4 +29,5 @@ void main()
 {
     gl_Position = vec4(pos * ubo.scaleFactor, 1);
     outUv = inUv;
+    scale = ubo.scaleFactor;
 }
