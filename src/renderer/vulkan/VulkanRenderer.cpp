@@ -18,6 +18,11 @@
 
 #include "allocator/GPUStackAllocator.h"
 
+#define GLM_FORCE_RADIANS
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+
 using namespace vk;
 
 namespace
@@ -29,11 +34,12 @@ namespace
     constexpr std::size_t TextureCacheSize = 10_MB;
     static const std::string TextureFile("res/texture/uvmap.dds");
     static const std::string MeshFile("res/model/sphere.obj");
-    static const std::string ShaderFragFile("./build/spv/texture.frag.spv");
-    static const std::string ShaderVertFile("./build/spv/texture.vert.spv");
+    static const std::string ShaderFragFile("./build/spv/mesh_shade.frag.spv");
+    static const std::string ShaderVertFile("./build/spv/mesh_shade.vert.spv");
 }
 
 struct VSUBO {
+    glm::mat4 transform;
     float time;
     float scaleFactor;
 };
@@ -981,7 +987,7 @@ void VulkanRenderer::createDescriptorSet()
 
 void VulkanRenderer::updateUniforms()
 {
-//     _uniforms->transform = glm::scale(glm::mat4(), glm::vec3(0.5f, 0.5f, 0.5f));
+    _uniforms->transform = glm::scale(glm::mat4(), glm::vec3(0.5f, 0.5f, 0.5f));
     _uniforms->time += 0.01f;
     _uniforms->scaleFactor = sinf(_uniforms->time);
 
