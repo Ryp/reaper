@@ -1,16 +1,21 @@
-#include "pch/stdafx.h"
+////////////////////////////////////////////////////////////////////////////////
+/// Reaper
+///
+/// Copyright (c) 2015-2016 Thibault Schueller
+/// This file is distributed under the MIT License
+////////////////////////////////////////////////////////////////////////////////
 
-#define CATCH_CONFIG_MAIN
-#include "catch.hpp"
+#include "pch/stdafx.h"
+#include "doctest/doctest.h"
 
 #include "renderer/mesh/ModelLoader.h"
 
-TEST_CASE("Mesh Loading", "[mesh]")
+TEST_CASE("Mesh Loading")
 {
     ModelLoader loader;
     MeshCache cache;
 
-    SECTION("OBJ files")
+    SUBCASE("OBJ files")
     {
         loader.load("res/model/bunny.obj", cache);
         loader.load("res/model/quad.obj", cache);

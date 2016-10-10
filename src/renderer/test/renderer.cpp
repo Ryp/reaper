@@ -1,36 +1,41 @@
-#include "pch/stdafx.h"
+////////////////////////////////////////////////////////////////////////////////
+/// Reaper
+///
+/// Copyright (c) 2015-2016 Thibault Schueller
+/// This file is distributed under the MIT License
+////////////////////////////////////////////////////////////////////////////////
 
-#define CATCH_CONFIG_MAIN
-#include "catch.hpp"
+#include "pch/stdafx.h"
+#include "doctest/doctest.h"
 
 #include "renderer/Renderer.h"
 #include "renderer/vulkan/PresentationSurface.h"
 
-TEST_CASE("Renderer", "[renderer]")
+TEST_CASE("Renderer")
 {
     Window  window;
     AbstractRenderer* renderer = nullptr;
 
-    SECTION("Create window")
+    SUBCASE("Create window")
     {
         window.Create("Vulkan Test");
     }
 
-    SECTION("Create renderer")
+    SUBCASE("Create renderer")
     {
         renderer = AbstractRenderer::createRenderer();
 
         CHECK(renderer != nullptr);
     }
 
-    SECTION("Render")
+    SUBCASE("Render")
     {
         renderer->startup(&window);
         window.renderLoop(renderer);
         renderer->shutdown();
     }
 
-    SECTION("Delete renderer")
+    SUBCASE("Delete renderer")
     {
         delete renderer;
     }

@@ -1,13 +1,18 @@
-#include "pch/stdafx.h"
+////////////////////////////////////////////////////////////////////////////////
+/// Reaper
+///
+/// Copyright (c) 2015-2016 Thibault Schueller
+/// This file is distributed under the MIT License
+////////////////////////////////////////////////////////////////////////////////
 
-#define CATCH_CONFIG_MAIN
-#include "catch.hpp"
+#include "pch/stdafx.h"
+#include "doctest/doctest.h"
 
 #include "core/memory/Allocator.h"
 
-TEST_CASE("Offset alignment", "[align]")
+TEST_CASE("Offset alignment")
 {
-    SECTION("Alignment16")
+    SUBCASE("Alignment16")
     {
         const std::size_t alignmentMultiples = 4;
         const std::size_t alignment = 16;

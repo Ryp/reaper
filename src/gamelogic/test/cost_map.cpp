@@ -1,15 +1,20 @@
-#include "pch/stdafx.h"
+////////////////////////////////////////////////////////////////////////////////
+/// Reaper
+///
+/// Copyright (c) 2015-2016 Thibault Schueller
+/// This file is distributed under the MIT License
+////////////////////////////////////////////////////////////////////////////////
 
-#define CATCH_CONFIG_MAIN
-#include "catch.hpp"
+#include "pch/stdafx.h"
+#include "doctest/doctest.h"
 
 #include "gamelogic/pathing/CostMap.h"
 
-TEST_CASE("Cost Map", "[costmap]")
+TEST_CASE("Cost Map")
 {
     int costMapSize = 100;
 
-    SECTION("Multiple alloc/free")
+    SUBCASE("Multiple alloc/free")
     {
         CostMap map = createCostMap(costMapSize);
 

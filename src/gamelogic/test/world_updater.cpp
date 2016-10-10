@@ -1,17 +1,22 @@
-#include "pch/stdafx.h"
+////////////////////////////////////////////////////////////////////////////////
+/// Reaper
+///
+/// Copyright (c) 2015-2016 Thibault Schueller
+/// This file is distributed under the MIT License
+////////////////////////////////////////////////////////////////////////////////
 
-#define CATCH_CONFIG_MAIN
-#include "catch.hpp"
+#include "pch/stdafx.h"
+#include "doctest/doctest.h"
 
 #include "gamelogic/WorldUpdater.h"
 #include "gamelogic/entitydb/EntityDb.h"
 
-TEST_CASE("World Updater", "[worldupdater]")
+TEST_CASE("World Updater")
 {
     EntityDb        db;
     WorldUpdater    wu(&db);
 
-    SECTION("Multiple alloc/free")
+    SUBCASE("Multiple alloc/free")
     {
         db.load();
         wu.load();

@@ -1,19 +1,24 @@
-#include "pch/stdafx.h"
+////////////////////////////////////////////////////////////////////////////////
+/// Reaper
+///
+/// Copyright (c) 2015-2016 Thibault Schueller
+/// This file is distributed under the MIT License
+////////////////////////////////////////////////////////////////////////////////
 
-#define CATCH_CONFIG_MAIN
-#include "catch.hpp"
+#include "pch/stdafx.h"
+#include "doctest/doctest.h"
 
 #include "core/memory/BuddyAllocator.h"
 
 #include <deque>
 #include <random>
 
-TEST_CASE("Buddy allocator", "[buddy]")
+TEST_CASE("Buddy allocator")
 {
     const std::size_t buddyAtorSize = 512;
     BuddyAllocator ator(buddyAtorSize);
 
-    SECTION("Alloc and free")
+    SUBCASE("Alloc and free")
     {
         void* ptr = nullptr;
 
@@ -24,7 +29,7 @@ TEST_CASE("Buddy allocator", "[buddy]")
         ator.free(ptr, 42);
     }
 
-    SECTION("Alloc char and write to it")
+    SUBCASE("Alloc char and write to it")
     {
         char* ptr = nullptr;
 
@@ -37,7 +42,7 @@ TEST_CASE("Buddy allocator", "[buddy]")
         ator.free(ptr, sizeof(char));
     }
 
-    SECTION("Alloc int and write to it")
+    SUBCASE("Alloc int and write to it")
     {
         int* ptr = nullptr;
 
@@ -50,7 +55,7 @@ TEST_CASE("Buddy allocator", "[buddy]")
         ator.free(ptr, sizeof(int));
     }
 
-    SECTION("Multiple alloc/free")
+    SUBCASE("Multiple alloc/free")
     {
         void* ptrA = nullptr;
         void* ptrB = nullptr;
@@ -69,7 +74,7 @@ TEST_CASE("Buddy allocator", "[buddy]")
         ator.free(ptrC, 63);
     }
 
-    SECTION("Alloc/free all sizes")
+    SUBCASE("Alloc/free all sizes")
     {
         for (std::size_t size = 1; size <= buddyAtorSize; ++size)
         {
@@ -80,7 +85,7 @@ TEST_CASE("Buddy allocator", "[buddy]")
         }
     }
 
-    SECTION("Random allocs")
+    SUBCASE("Random allocs")
     {
         struct Alloc
         {
@@ -105,7 +110,6 @@ TEST_CASE("Buddy allocator", "[buddy]")
 
                 Alloc alloc = { ator.alloc(size), size };
 
-                CAPTURE(size);
                 CHECK(alloc.ptr != nullptr);
 
                 ptrs.push_back(alloc);
@@ -126,7 +130,7 @@ TEST_CASE("Buddy allocator", "[buddy]")
             ator.free(alloc.ptr, alloc.size);
     }
 
-    SECTION("Multiple allocators with different sizes")
+    SUBCASE("Multiple allocators with different sizes")
     {
         BuddyAllocator ba1(128, 64);
         BuddyAllocator ba2(512, 64);

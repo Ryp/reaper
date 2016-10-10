@@ -45,6 +45,14 @@ set(REAPER_CORE_SRCS
     ${REAPER_CORE_DIR}/memory/StackAllocator.h
 )
 
+set(REAPER_CORE_TEST_SRCS
+    ${REAPER_CORE_DIR}/test/alignment.cpp
+    ${REAPER_CORE_DIR}/test/buddy_allocator.cpp
+    ${REAPER_CORE_DIR}/test/cache.cpp
+    ${REAPER_CORE_DIR}/test/stack_allocator.cpp
+    ${REAPER_CORE_DIR}/test/test_main.cpp
+)
+
 add_library(${REAPER_CORE_BIN} ${REAPER_BUILD_TYPE} ${REAPER_CORE_SRCS})
 reaper_add_custom_build_flags(${REAPER_CORE_BIN} "Core")
 
@@ -63,8 +71,5 @@ set_target_properties(${REAPER_CORE_BIN} PROPERTIES COTIRE_CXX_PREFIX_HEADER_INI
 cotire(${REAPER_CORE_BIN})
 
 if (REAPER_BUILD_TESTS)
-    reaper_add_test(${REAPER_CORE_BIN} alignment)
-    reaper_add_test(${REAPER_CORE_BIN} cache)
-    reaper_add_test(${REAPER_CORE_BIN} buddy_allocator)
-    reaper_add_test(${REAPER_CORE_BIN} stack_allocator)
+    reaper_add_tests(${REAPER_CORE_BIN} ${REAPER_CORE_TEST_SRCS})
 endif()

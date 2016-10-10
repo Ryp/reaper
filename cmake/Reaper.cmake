@@ -77,12 +77,13 @@ macro(reaper_add_custom_build_flags target project_label)
 endmacro()
 
 # Reaper standard test macro
-macro(reaper_add_test library testname)
-    set(REAPER_TEST_BIN test_${testname})
-    set(REAPER_TEST_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/test/${testname}.cpp)
+macro(reaper_add_tests library testfiles)
+    set(REAPER_TEST_FILES ${testfiles} ${ARGN}) # Expecting a list here
+    set(REAPER_TEST_BIN ${library}_tests)
+    set(REAPER_TEST_SRCS ${REAPER_TEST_FILES})
 
     add_executable(${REAPER_TEST_BIN} ${REAPER_TEST_SRCS})
-    reaper_add_custom_build_flags(${REAPER_TEST_BIN} "${testname}")
+    reaper_add_custom_build_flags(${REAPER_TEST_BIN} "${REAPER_TEST_BIN}")
 
     # User includes dirs (won't hide warnings)
     target_include_directories(${REAPER_TEST_BIN} PUBLIC
@@ -92,11 +93,10 @@ macro(reaper_add_test library testname)
     target_include_directories(${REAPER_TEST_BIN} SYSTEM PUBLIC
         ${CMAKE_SOURCE_DIR}/external)
 
-    target_link_libraries(${REAPER_TEST_BIN}
-        ${library})
+    target_link_libraries(${REAPER_TEST_BIN} ${library})
 
     # Register wih ctest
-    add_test(NAME ${testname} COMMAND $<TARGET_FILE:${REAPER_TEST_BIN}>)
+    add_test(NAME ${REAPER_TEST_BIN} COMMAND $<TARGET_FILE:${REAPER_TEST_BIN}>)
 
     if (WIN32)
         set_target_properties(${REAPER_TEST_BIN} PROPERTIES FOLDER Test)
