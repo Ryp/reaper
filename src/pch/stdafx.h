@@ -18,6 +18,7 @@
 #include "core/Compiler.h"
 #include "core/Platform.h"
 #include "core/Types.h"
+#include "core/Version.h"
 #include "core/memory/Allocator.h"
 
 #endif // REAPER_STDAFX_INCLUDED
