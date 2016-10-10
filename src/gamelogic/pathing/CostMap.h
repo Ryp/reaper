@@ -31,15 +31,15 @@ struct Index {
     Index operator-(Index& other) const { return Index(x - other.x, y - other.y); }
 };
 
-CostMap createCostMap(u16 size, CostType initialCost = minimalCost());
-void    destroyCostMap(CostMap& map);
-CostType evalCostMap(const CostMap& map, const Index& index);
+REAPER_GAMELOGIC_API CostMap createCostMap(u16 size, CostType initialCost = minimalCost());
+REAPER_GAMELOGIC_API void destroyCostMap(CostMap& map);
+REAPER_GAMELOGIC_API CostType evalCostMap(const CostMap& map, const Index& index);
 
 struct Brush {
     float   hardness;
     u16     radius;
 };
 
-void    paintCost(CostMap& map, Index position, Brush& brush);
+void paintCost(CostMap& map, Index position, Brush& brush);
 
 #endif // REAPER_COSTMAP_INCLUDED

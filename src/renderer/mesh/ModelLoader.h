@@ -15,7 +15,7 @@
 #include "Mesh.h"
 #include "MeshCache.h"
 
-class ModelLoader
+class REAPER_RENDERER_API ModelLoader
 {
 public:
     ModelLoader();

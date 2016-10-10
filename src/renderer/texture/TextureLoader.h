@@ -13,7 +13,7 @@
 
 #include "TextureCache.h"
 
-class TextureLoader
+class REAPER_RENDERER_API TextureLoader
 {
 public:
     TextureLoader();

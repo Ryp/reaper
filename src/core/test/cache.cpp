@@ -1,11 +1,16 @@
-#include "pch/stdafx.h"
+////////////////////////////////////////////////////////////////////////////////
+/// Reaper
+///
+/// Copyright (c) 2015-2016 Thibault Schueller
+/// This file is distributed under the MIT License
+////////////////////////////////////////////////////////////////////////////////
 
-#define CATCH_CONFIG_MAIN
-#include "catch.hpp"
+#include "pch/stdafx.h"
+#include "doctest/doctest.h"
 
 #include "core/memory/CacheLine.h"
 
-TEST_CASE("Cache line size", "[cache]")
+TEST_CASE("Cache line size")
 {
     CHECK(cacheLineSize() == REAPER_CACHELINE_SIZE);
 }

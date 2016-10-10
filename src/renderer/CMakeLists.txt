@@ -71,6 +71,14 @@ set(REAPER_RENDERER_SRCS
     ${REAPER_RENDERER_DIR}/vulkan/api/VulkanSymbolHelper.inl
 )
 
+set(REAPER_RENDERER_TEST_SRCS
+    ${REAPER_RENDERER_DIR}/test/mesh_loading.cpp
+    ${REAPER_RENDERER_DIR}/test/renderer.cpp
+    ${REAPER_RENDERER_DIR}/test/test_main.cpp
+    ${REAPER_RENDERER_DIR}/test/texture_loading.cpp
+    ${REAPER_RENDERER_DIR}/test/window.cpp
+)
+
 set(REAPER_GLSL_SHADERS
     ${CMAKE_SOURCE_DIR}/res/shader/samples/tri.frag
     ${CMAKE_SOURCE_DIR}/res/shader/samples/tri.vert
@@ -99,8 +107,5 @@ set_target_properties(${REAPER_RENDERER_BIN} PROPERTIES COTIRE_CXX_PREFIX_HEADER
 cotire(${REAPER_RENDERER_BIN})
 
 if (REAPER_BUILD_TESTS)
-    reaper_add_test(${REAPER_RENDERER_BIN} texture_loading)
-    reaper_add_test(${REAPER_RENDERER_BIN} renderer)
-    reaper_add_test(${REAPER_RENDERER_BIN} mesh_loading)
-    reaper_add_test(${REAPER_RENDERER_BIN} window)
+    reaper_add_tests(${REAPER_RENDERER_BIN} ${REAPER_RENDERER_TEST_SRCS})
 endif()

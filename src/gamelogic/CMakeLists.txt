@@ -51,6 +51,12 @@ set(REAPER_GAMELOGIC_SRCS
 #     ${REAPER_GAMELOGIC_DIR}/pathing/PathFinder.h
 )
 
+set(REAPER_GAMELOGIC_TEST_SRCS
+    ${REAPER_GAMELOGIC_DIR}/test/cost_map.cpp
+    ${REAPER_GAMELOGIC_DIR}/test/test_main.cpp
+    ${REAPER_GAMELOGIC_DIR}/test/world_updater.cpp
+)
+
 add_library(${REAPER_GAMELOGIC_BIN} ${REAPER_BUILD_TYPE} ${REAPER_GAMELOGIC_SRCS})
 reaper_add_custom_build_flags(${REAPER_GAMELOGIC_BIN} "GameLogic")
 
@@ -64,6 +70,5 @@ set_target_properties(${REAPER_GAMELOGIC_BIN} PROPERTIES COTIRE_CXX_PREFIX_HEADE
 cotire(${REAPER_GAMELOGIC_BIN})
 
 if (REAPER_BUILD_TESTS)
-    reaper_add_test(${REAPER_GAMELOGIC_BIN} world_updater)
-    reaper_add_test(${REAPER_GAMELOGIC_BIN} cost_map)
+    reaper_add_tests(${REAPER_GAMELOGIC_BIN} ${REAPER_GAMELOGIC_TEST_SRCS})
 endif()

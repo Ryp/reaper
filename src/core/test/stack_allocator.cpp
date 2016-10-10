@@ -1,15 +1,20 @@
-#include "pch/stdafx.h"
+////////////////////////////////////////////////////////////////////////////////
+/// Reaper
+///
+/// Copyright (c) 2015-2016 Thibault Schueller
+/// This file is distributed under the MIT License
+////////////////////////////////////////////////////////////////////////////////
 
-#define CATCH_CONFIG_MAIN
-#include "catch.hpp"
+#include "pch/stdafx.h"
+#include "doctest/doctest.h"
 
 #include "core/memory/StackAllocator.h"
 
-TEST_CASE("Stack allocator", "[stack]")
+TEST_CASE("Stack allocator")
 {
     const std::size_t size = 512;
 
-    SECTION("Alloc")
+    SUBCASE("Alloc")
     {
         StackAllocator ator(size);
 
@@ -22,7 +27,7 @@ TEST_CASE("Stack allocator", "[stack]")
         ator.clear();
     }
 
-    SECTION("Use marker")
+    SUBCASE("Use marker")
     {
         struct Dummy
         {
