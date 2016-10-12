@@ -2426,7 +2426,7 @@ namespace detail
         if(p->no_colors)
             return;
 #ifdef DOCTEST_CONFIG_COLORS_ANSI
-        if(isatty(STDOUT_FILENO)) {
+        if(isatty(STDOUT_FILENO) || true) {
             const char* col = "";
             // clang-format off
             switch(code) {
