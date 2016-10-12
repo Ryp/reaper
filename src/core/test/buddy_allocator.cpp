@@ -96,7 +96,7 @@ TEST_CASE("Buddy allocator")
         std::deque<Alloc> ptrs;
         std::size_t maxSize = buddyAtorSize / 3;
         std::size_t maxAllocs = 16;
-        u32 iterations = 1000;
+        u32 iterations = 10;
         std::size_t totalSize = 0;
 
         for (u32 i = 0; i < iterations; ++i)
