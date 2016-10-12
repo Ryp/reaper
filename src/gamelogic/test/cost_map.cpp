@@ -18,7 +18,7 @@ TEST_CASE("Cost Map")
     {
         CostMap map = createCostMap(costMapSize);
 
-        CHECK(static_cast<u16>(map.costs[0]) == 0);
+        CHECK(static_cast<u16>(map.costs[0]) == minimalCost());
 
         destroyCostMap(map);
     }
