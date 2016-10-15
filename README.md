@@ -8,6 +8,7 @@ Vulkan might be used for the rendering also.
 ## Build
 
 ```
+git submodule update --init
 mkdir build && pushd build
 cmake .. && make
 ```
