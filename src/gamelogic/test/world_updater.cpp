@@ -6,7 +6,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "pch/stdafx.h"
-#include "doctest/doctest.h"
+#include <doctest/doctest.h>
 
 #include "gamelogic/WorldUpdater.h"
 #include "gamelogic/entitydb/EntityDb.h"
