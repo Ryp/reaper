@@ -91,7 +91,7 @@ macro(reaper_add_tests library testfiles)
 
     # External includes dirs (won't show warnings)
     target_include_directories(${REAPER_TEST_BIN} SYSTEM PUBLIC
-        ${CMAKE_SOURCE_DIR}/external)
+        ${CMAKE_SOURCE_DIR}/external/doctest)
 
     target_link_libraries(${REAPER_TEST_BIN} ${library})
 
