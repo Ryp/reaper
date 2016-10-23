@@ -10,6 +10,9 @@ set(CMAKE_CONFIGURATION_TYPES Debug Release CACHE TYPE INTERNAL FORCE)
 
 project(Reaper)
 
+# Export compile commands in a json file. Useful for vim completion and debugging
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 option(REAPER_BUILD_KDEV_TEMPLATES      "Build custom templates for kdevelop" OFF)
 option(REAPER_BUILD_TESTS               "Build tests" ON)
 option(REAPER_BUILD_SHARED_LIBRARIES    "Build shared libraries" ON)
