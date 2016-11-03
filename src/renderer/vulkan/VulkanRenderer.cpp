@@ -64,7 +64,7 @@ void VulkanRenderer::startup(Window* window)
     _deviceMemory = VK_NULL_HANDLE;
 
     _texMemory = VK_NULL_HANDLE;
-	_texImage = VK_NULL_HANDLE;
+    _texImage = VK_NULL_HANDLE;
     _texImageView = VK_NULL_HANDLE;
     _texSampler = VK_NULL_HANDLE;
 
@@ -618,15 +618,9 @@ void VulkanRenderer::createMeshBuffers()
 
 namespace
 {
-    VkFormat pixelFormatToVkFormat(PixelFormat format)
+    VkFormat pixelFormatToVkFormat(u32 format)
     {
-        switch (format)
-        {
-            case PixelFormat::R8G8B8A8_UNORM:   return VK_FORMAT_R8G8B8A8_UNORM;
-            case PixelFormat::B8G8R8A8_UNORM:   return VK_FORMAT_B8G8R8A8_UNORM;
-            case PixelFormat::BC2_UNORM_BLOCK:  return VK_FORMAT_BC2_UNORM_BLOCK;
-            default:                            return VK_FORMAT_UNDEFINED;
-        }
+        return static_cast<VkFormat>(format);
     }
 
     void setImageLayout(VkCommandBuffer cmdBuffer, VkImage image, VkImageLayout oldImageLayout, VkImageLayout newImageLayout, VkImageSubresourceRange subresourceRange)
@@ -651,46 +645,46 @@ namespace
         // Source layouts (old)
         switch (oldImageLayout)
         {
-        case VK_IMAGE_LAYOUT_UNDEFINED:
-            // Only valid as initial layout, memory contents are not preserved
-            // Can be accessed directly, no source dependency required
-            imageMemoryBarrier.srcAccessMask = 0;
-            break;
-        case VK_IMAGE_LAYOUT_PREINITIALIZED:
-            // Only valid as initial layout for linear images, preserves memory contents
-            // Make sure host writes to the image have been finished
-            imageMemoryBarrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT;
-            break;
-        case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
-            // Old layout is transfer destination
-            // Make sure any writes to the image have been finished
-            imageMemoryBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-            break;
-        default:
-            Assert(false, "Unsupported old image layout");
-            break;
+            case VK_IMAGE_LAYOUT_UNDEFINED:
+                // Only valid as initial layout, memory contents are not preserved
+                // Can be accessed directly, no source dependency required
+                imageMemoryBarrier.srcAccessMask = 0;
+                break;
+            case VK_IMAGE_LAYOUT_PREINITIALIZED:
+                // Only valid as initial layout for linear images, preserves memory contents
+                // Make sure host writes to the image have been finished
+                imageMemoryBarrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT;
+                break;
+            case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
+                // Old layout is transfer destination
+                // Make sure any writes to the image have been finished
+                imageMemoryBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+                break;
+            default:
+                Assert(false, "Unsupported old image layout");
+                break;
         }
 
         // Target layouts (new)
         switch (newImageLayout)
         {
-        case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
-            // Transfer source (copy, blit)
-            // Make sure any reads from the image have been finished
-            imageMemoryBarrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-            break;
-        case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
-            // Transfer destination (copy, blit)
-            // Make sure any writes to the image have been finished
-            imageMemoryBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-            break;
-        case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
-            // Shader read (sampler, input attachment)
-            imageMemoryBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-            break;
-        default:
-            Assert(false, "Unsupported new image layout");
-            break;
+            case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
+                // Transfer source (copy, blit)
+                // Make sure any reads from the image have been finished
+                imageMemoryBarrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+                break;
+            case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
+                // Transfer destination (copy, blit)
+                // Make sure any writes to the image have been finished
+                imageMemoryBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+                break;
+            case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
+                // Shader read (sampler, input attachment)
+                imageMemoryBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+                break;
+            default:
+                Assert(false, "Unsupported new image layout");
+                break;
         }
 
         // Put barrier on top of pipeline
@@ -699,13 +693,13 @@ namespace
 
         // Put barrier inside setup command buffer
         vkCmdPipelineBarrier(
-            cmdBuffer,
-            srcStageFlags,
-            destStageFlags,
-            VK_FLAGS_NONE,
-            0, nullptr,
-            0, nullptr,
-            1, &imageMemoryBarrier);
+                cmdBuffer,
+                srcStageFlags,
+                destStageFlags,
+                VK_FLAGS_NONE,
+                0, nullptr,
+                0, nullptr,
+                1, &imageMemoryBarrier);
     }
 }
 
@@ -717,7 +711,6 @@ void VulkanRenderer::createTextures()
     Assert(format != VK_FORMAT_UNDEFINED);
 
     VkFormatProperties formatProperties;
-
     vkGetPhysicalDeviceFormatProperties(_physicalDevice, format, &formatProperties);
 
     bool useStaging = true;
@@ -804,16 +797,16 @@ void VulkanRenderer::createTextures()
         Assert(vkAllocateMemory(_device, &memAllocInfo, nullptr, &_texMemory) == VK_SUCCESS);
         Assert(vkBindImageMemory(_device, _texImage, _texMemory, 0) == VK_SUCCESS);
 
-		VkCommandBufferAllocateInfo cmdBufAllocateInfo = {
-			VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO, // VkStructureType              sType
-			nullptr,                                        // const void*                  pNext
-			_gfxCmdPool,                                    // VkCommandPool                commandPool
-			VK_COMMAND_BUFFER_LEVEL_PRIMARY,                // VkCommandBufferLevel         level
-			1												// uint32_t                     bufferCount
-		};
+        VkCommandBufferAllocateInfo cmdBufAllocateInfo = {
+            VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO, // VkStructureType              sType
+            nullptr,                                        // const void*                  pNext
+            _gfxCmdPool,                                    // VkCommandPool                commandPool
+            VK_COMMAND_BUFFER_LEVEL_PRIMARY,                // VkCommandBufferLevel         level
+            1                                               // uint32_t                     bufferCount
+        };
 
-		VkCommandBuffer copyCmdBuffer = VK_NULL_HANDLE;
-		Assert(vkAllocateCommandBuffers(_device, &cmdBufAllocateInfo, &copyCmdBuffer) == VK_SUCCESS);
+        VkCommandBuffer copyCmdBuffer = VK_NULL_HANDLE;
+        Assert(vkAllocateCommandBuffers(_device, &cmdBufAllocateInfo, &copyCmdBuffer) == VK_SUCCESS);
 
         VkCommandBufferBeginInfo graphics_command_buffer_begin_info = {
             VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,    // VkStructureType                        sType
@@ -836,31 +829,31 @@ void VulkanRenderer::createTextures()
         // Optimal image will be used as destination for the copy, so we must transfer from our
         // initial undefined image layout to the transfer destination layout
         setImageLayout(
-            copyCmdBuffer,
-			_texImage,
-//             VK_IMAGE_ASPECT_COLOR_BIT,
-            VK_IMAGE_LAYOUT_UNDEFINED,
-            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-            subresourceRange);
+                copyCmdBuffer,
+                _texImage,
+                //             VK_IMAGE_ASPECT_COLOR_BIT,
+                VK_IMAGE_LAYOUT_UNDEFINED,
+                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                subresourceRange);
 
         // Copy mip levels from staging buffer
         vkCmdCopyBufferToImage(
-            copyCmdBuffer,
-            stagingBuffer,
-			_texImage,
-            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-            bufferCopyRegions.size(),
-            bufferCopyRegions.data());
+                copyCmdBuffer,
+                stagingBuffer,
+                _texImage,
+                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                bufferCopyRegions.size(),
+                bufferCopyRegions.data());
 
         // Change texture image layout to shader read after all mip levels have been copied
         VkImageLayout texImageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
         setImageLayout(
-            copyCmdBuffer,
-			_texImage,
-//             VK_IMAGE_ASPECT_COLOR_BIT,
-            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-			texImageLayout,
-            subresourceRange);
+                copyCmdBuffer,
+                _texImage,
+                //             VK_IMAGE_ASPECT_COLOR_BIT,
+                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                texImageLayout,
+                subresourceRange);
 
         Assert(vkEndCommandBuffer(copyCmdBuffer) == VK_SUCCESS);
 
@@ -880,9 +873,9 @@ void VulkanRenderer::createTextures()
         Assert(vkQueueWaitIdle(_graphicsQueue) == VK_SUCCESS);
         vkFreeCommandBuffers(_device, _gfxCmdPool, 1, &copyCmdBuffer);
 
-		// Clean up staging resources
-		vkFreeMemory(_device, stagingMemory, nullptr);
-		vkDestroyBuffer(_device, stagingBuffer, nullptr);
+        // Clean up staging resources
+        vkFreeMemory(_device, stagingMemory, nullptr);
+        vkDestroyBuffer(_device, stagingBuffer, nullptr);
 
         // Create sampler
         // In Vulkan textures are accessed by samplers
@@ -891,24 +884,24 @@ void VulkanRenderer::createTextures()
         // This means you could have multiple sampler objects
         // for the same texture with different settings
         // Similar to the samplers available with OpenGL 3.3
-		VkSamplerCreateInfo samplerInfo = {};
-		samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-		samplerInfo.pNext = nullptr;
-		samplerInfo.magFilter = VK_FILTER_LINEAR;
-		samplerInfo.minFilter = VK_FILTER_LINEAR;
-		samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-		samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-		samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-		samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-		samplerInfo.mipLodBias = 0.0f;
-		samplerInfo.compareOp = VK_COMPARE_OP_NEVER;
-		samplerInfo.minLod = 0.0f;
+        VkSamplerCreateInfo samplerInfo = {};
+        samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+        samplerInfo.pNext = nullptr;
+        samplerInfo.magFilter = VK_FILTER_LINEAR;
+        samplerInfo.minFilter = VK_FILTER_LINEAR;
+        samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+        samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        samplerInfo.mipLodBias = 0.0f;
+        samplerInfo.compareOp = VK_COMPARE_OP_NEVER;
+        samplerInfo.minLod = 0.0f;
         // Max level-of-detail should match mip level count
-		samplerInfo.maxLod = (useStaging) ? (float)texture.mipLevels : 0.0f;
+        samplerInfo.maxLod = (useStaging) ? (float)texture.mipLevels : 0.0f;
         // Enable anisotropic filtering
-		samplerInfo.maxAnisotropy = 8;
-		samplerInfo.anisotropyEnable = VK_TRUE;
-		samplerInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
+        samplerInfo.maxAnisotropy = 8;
+        samplerInfo.anisotropyEnable = VK_TRUE;
+        samplerInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
 
         Assert(vkCreateSampler(_device, &samplerInfo, nullptr, &_texSampler) == VK_SUCCESS);
 
@@ -916,21 +909,21 @@ void VulkanRenderer::createTextures()
         // Textures are not directly accessed by the shaders and
         // are abstracted by image views containing additional
         // information and sub resource ranges
-		VkImageViewCreateInfo viewInfo = {};
-		viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-		viewInfo.pNext = nullptr;
-		viewInfo.image = VK_NULL_HANDLE;
-		viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-		viewInfo.format = format;
-		viewInfo.components = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
-		viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		viewInfo.subresourceRange.baseMipLevel = 0;
-		viewInfo.subresourceRange.baseArrayLayer = 0;
-		viewInfo.subresourceRange.layerCount = 1;
+        VkImageViewCreateInfo viewInfo = {};
+        viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        viewInfo.pNext = nullptr;
+        viewInfo.image = VK_NULL_HANDLE;
+        viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        viewInfo.format = format;
+        viewInfo.components = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
+        viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        viewInfo.subresourceRange.baseMipLevel = 0;
+        viewInfo.subresourceRange.baseArrayLayer = 0;
+        viewInfo.subresourceRange.layerCount = 1;
         // Linear tiling usually won't support mip maps
         // Only set mip map count if optimal tiling is used
-		viewInfo.subresourceRange.levelCount = (useStaging) ? texture.mipLevels : 1;
-		viewInfo.image = _texImage;
+        viewInfo.subresourceRange.levelCount = (useStaging) ? texture.mipLevels : 1;
+        viewInfo.image = _texImage;
 
         Assert(vkCreateImageView(_device, &viewInfo, nullptr, &_texImageView) == VK_SUCCESS);
     }
