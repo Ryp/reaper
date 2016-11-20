@@ -74,6 +74,9 @@ set(REAPER_SRCS
     ${CMAKE_SOURCE_DIR}/src/math/Spline.h
 
     ${CMAKE_SOURCE_DIR}/src/pch/stdafx.h
+
+    ${CMAKE_SOURCE_DIR}/src/resource/Resource.cpp
+    ${CMAKE_SOURCE_DIR}/src/resource/Resource.h
 )
 
 add_executable(${REAPER_BIN} ${REAPER_SRCS})

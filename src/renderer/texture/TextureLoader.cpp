@@ -39,20 +39,6 @@ void TextureLoader::load(std::string filename, TextureCache& cache)
     ((*this).*(_loaders.at(extension)))(filename, cache);
 }
 
-namespace
-{
-    PixelFormat gliFormatToInternalPixelFormat(gli::format format)
-    {
-        switch (format)
-        {
-            case gli::format::FORMAT_RGBA8_UNORM_PACK8:         return PixelFormat::R8G8B8A8_UNORM;
-            case gli::format::FORMAT_BGRA8_UNORM_PACK8:         return PixelFormat::B8G8R8A8_UNORM;
-            case gli::format::FORMAT_RGBA_DXT3_UNORM_BLOCK16:   return PixelFormat::BC2_UNORM_BLOCK;
-            default:                                            return PixelFormat::Unknown;
-        }
-    }
-}
-
 void TextureLoader::loadDDS(const std::string& filename, TextureCache& cache)
 {
     gli::texture gliTexture = gli::load(filename.c_str());
@@ -65,7 +51,7 @@ void TextureLoader::loadDDS(const std::string& filename, TextureCache& cache)
     texture.height = gliTexture.extent().y;
     texture.mipLevels = static_cast<u32>(gliTexture.levels());
     texture.layerCount = static_cast<u32>(gliTexture.layers());
-    texture.format = gliFormatToInternalPixelFormat(gliTexture.format());
+    texture.format = static_cast<u32>(gliTexture.format());
     texture.size = gliTexture.size();
     texture.rawData = gliTexture.data();
 
@@ -74,7 +60,7 @@ void TextureLoader::loadDDS(const std::string& filename, TextureCache& cache)
 
     Assert(texture.width > 0);
     Assert(texture.height > 0);
-    Assert(texture.format != PixelFormat::Unknown);
+    Assert(texture.format != 0);
     Assert(texture.size > 0);
     Assert(texture.bytesPerPixel > 0);
     Assert(texture.bytesPerPixel < 32);

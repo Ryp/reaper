@@ -5,12 +5,15 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "Renderer.h"
+#ifndef REAPER_RESOURCE_INCLUDED
+#define REAPER_RESOURCE_INCLUDED
 
-#include "renderer/vulkan/VulkanRenderer.h"
+#include <string>
 
-AbstractRenderer* AbstractRenderer::createRenderer()
-{
-    return new VulkanRenderer();
-}
+using ResourceId = std::string;
 
+using MeshId = ResourceId;
+using MaterialId = ResourceId;
+using TextureId = ResourceId;
+
+#endif // REAPER_RESOURCE_INCLUDED

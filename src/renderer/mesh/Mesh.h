@@ -12,8 +12,6 @@
 
 #include <glm/glm.hpp>
 
-using MeshId = std::string;
-
 struct Mesh {
     std::vector<glm::vec3>    vertices;
     std::vector<glm::vec3>    normals;
