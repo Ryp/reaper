@@ -29,9 +29,15 @@ set(REAPER_RENDERER_DIR ${CMAKE_SOURCE_DIR}/src/renderer)
 set(REAPER_RENDERER_SRCS
     ${REAPER_RENDERER_DIR}/Camera.cpp
     ${REAPER_RENDERER_DIR}/Camera.h
+
+    ${REAPER_RENDERER_DIR}/Material.cpp
+    ${REAPER_RENDERER_DIR}/Material.h
     ${REAPER_RENDERER_DIR}/Renderer.cpp
     ${REAPER_RENDERER_DIR}/Renderer.h
     ${REAPER_RENDERER_DIR}/RendererExport.h
+
+    ${REAPER_RENDERER_DIR}/Scene.cpp
+    ${REAPER_RENDERER_DIR}/Scene.h
 
     ${REAPER_RENDERER_DIR}/format/FloatTypes.cpp
     ${REAPER_RENDERER_DIR}/format/FloatTypes.h
@@ -75,6 +81,8 @@ set(REAPER_RENDERER_SRCS
 set(REAPER_RENDERER_TEST_SRCS
     ${REAPER_RENDERER_DIR}/test/mesh_loading.cpp
     ${REAPER_RENDERER_DIR}/test/renderer.cpp
+    ${REAPER_RENDERER_DIR}/test/scene.cpp
+    ${REAPER_RENDERER_DIR}/test/culling.cpp
     ${REAPER_RENDERER_DIR}/test/test_main.cpp
     ${REAPER_RENDERER_DIR}/test/texture_loading.cpp
     ${REAPER_RENDERER_DIR}/test/window.cpp

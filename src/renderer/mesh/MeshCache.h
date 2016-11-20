@@ -11,6 +11,8 @@
 #include <map>
 #include <string>
 
+#include "resource/Resource.h"
+
 #include "Mesh.h"
 
 class MeshCache {

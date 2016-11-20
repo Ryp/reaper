@@ -10,6 +10,7 @@
 #include <cstdlib>
 // #include <iostream>
 
+/*
 void* operator new(std::size_t size)
 {
 //     std::cout << "new(" << size << ")" << std::endl;
@@ -45,3 +46,4 @@ void operator delete[](void* mem, std::size_t) noexcept
 //     std::cout << "delete[](" << mem << ")" << std::endl;
     free(mem);
 }
+*/

@@ -8,12 +8,7 @@
 #ifndef REAPER_TEXTURE_INCLUDED
 #define REAPER_TEXTURE_INCLUDED
 
-#include <string>
-#include <vector>
-
 #include "renderer/format/PixelFormat.h"
-
-using TextureId = std::string;
 
 struct Texture
 {
@@ -21,7 +16,7 @@ struct Texture
     u32 height;
     u32 mipLevels;
     u32 layerCount;
-    PixelFormat format;
+    u32 format;
     void* rawData;
     std::size_t size;
     u32 bytesPerPixel;

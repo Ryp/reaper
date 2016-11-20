@@ -12,6 +12,7 @@
 #include <string>
 
 #include "core/memory/StackAllocator.h"
+#include "resource/Resource.h"
 
 #include "Texture.h"
 
