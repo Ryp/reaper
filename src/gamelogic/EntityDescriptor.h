@@ -25,4 +25,4 @@ constexpr EntityId invalidEId()
     return EntityId(0);
 }
 
-#endif // REAPER_ENTITYDE SCRIPTOR_INCLUDED
+#endif // REAPER_ENTITYDESCRIPTOR_INCLUDED
