@@ -5,8 +5,22 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
     message(FATAL_ERROR "In-source builds are discouraged. Make a separate folder for building:\nmkdir build; cd build; cmake ..;cd ..\nBefore that, remove the files already created:\nrm -rf CMakeCache.txt CMakeFiles")
 endif()
 
-# Remove RelWithDebInfo and MinSizeRel configuration types (call this before project())
-set(CMAKE_CONFIGURATION_TYPES Debug Release CACHE TYPE INTERNAL FORCE)
+# Set build type rules
+if(CMAKE_CONFIGURATION_TYPES)
+    # Multiconfig generator
+    # Remove RelWithDebInfo and MinSizeRel configuration types (call this before project())
+    set(CMAKE_CONFIGURATION_TYPES "Debug;Release" CACHE STRING "" FORCE)
+else()
+    # Monoconfig generator
+    set(REAPER_DEFAULT_BUILD_TYPE "Debug")
+    if(NOT CMAKE_BUILD_TYPE)
+        message("No build type provided, defaulting to: ${REAPER_DEFAULT_BUILD_TYPE}")
+        set(CMAKE_BUILD_TYPE ${REAPER_DEFAULT_BUILD_TYPE} CACHE STRING "" FORCE)
+    endif()
+    # Set the valid options for cmake-gui drop-down list
+    set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug;Release")
+    set_property(CACHE CMAKE_BUILD_TYPE PROPERTY HELPSTRING "Choose the type of build")
+endif()
 
 project(Reaper)
 

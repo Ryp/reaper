@@ -72,6 +72,8 @@ macro(reaper_add_custom_build_flags target project_label)
         target_compile_options(${target} PRIVATE "-fvisibility=hidden")
         target_compile_options(${target} PRIVATE "$<$<CONFIG:DEBUG>:${REAPER_CLANG_DEBUG_FLAGS}>")
         target_compile_options(${target} PRIVATE "$<$<CONFIG:RELEASE>:${REAPER_CLANG_RELEASE_FLAGS}>")
+    else()
+        message(FATAL_ERROR "Could not detect compiler")
     endif()
     target_compile_definitions(${target} PRIVATE ${TARGET_COMPILE_DEFINITIONS})
 endmacro()
@@ -96,7 +98,7 @@ macro(reaper_add_tests library testfiles)
     target_link_libraries(${REAPER_TEST_BIN} ${library})
 
     # Register wih ctest
-    add_test(NAME ${REAPER_TEST_BIN} COMMAND $<TARGET_FILE:${REAPER_TEST_BIN}>)
+    add_test(NAME ${REAPER_TEST_BIN} COMMAND $<TARGET_FILE:${REAPER_TEST_BIN}> WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 
     if (WIN32)
         set_target_properties(${REAPER_TEST_BIN} PROPERTIES FOLDER Test)
