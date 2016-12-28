@@ -13,8 +13,6 @@
 
 struct Frustum
 {
-    glm::vec3 normal[6];
-    glm::mat4 matrix;
     glm::vec4 plane[6];
 };
 
@@ -90,18 +88,35 @@ TEST_CASE("Frustum culling")
     glm::vec3 rotationDirection(3.0f, 1.0f, 0.0f);
     glm::mat4 transform = glm::translate(glm::rotate(glm::mat4(1.0f), angle, rotationDirection), translation);
 
-    AABB box;
-
-    box.min = glm::vec3(0.0f, 0.0f, 0.0f);
-    box.max = glm::vec3(1.0f, 1.0f, 1.0f);
-
-    Frustum frustum;
+    AABB box =
+    {
+        { -1, -2, -3 },
+        { 1, 2, 3 }
+    };
 
     // TODO compute frustum plane equations
+    Frustum frustum =
+    {
+        {
+            { 1, 0, 0, 10 },
+            { -1, 0, 0, 10 },
+            { 0, 1, 0, 10 },
+            { 0, -1, 0, 10 },
+            { 0, 0, 1, 10 },
+            { 0, 0, -1, 10 }
+        }
+    };
 
-    glm::mat3x4 hmatrix = transform;
+    glm::mat3x4 hmatrix =
+    {
+        { 0.123f, 0.456f, 0.789f, 1 },
+        { 0.456f, 0.123f, 0.789f, -1 },
+        { 0.789f, 0.123f, 0.456f, 1 }
+    };
 
-    SUBCASE("OBJ files")
+    //glm::mat3x4 hmatrix = transform;
+
+    SUBCASE("visible")
     {
         CHECK(is_visible(&hmatrix, &box, &frustum));
     }
