@@ -44,11 +44,11 @@ struct VSUBO {
     float scaleFactor;
 };
 
-VulkanRenderer::VulkanRenderer()
+OldRenderer::OldRenderer()
 :   _texCache(TextureCacheSize)
 {}
 
-void VulkanRenderer::startup(Window* window)
+void OldRenderer::startup(Window* window)
 {
     parent_type::startup(window);
 
@@ -87,7 +87,7 @@ void VulkanRenderer::startup(Window* window)
     createCommandBuffers();
 }
 
-void VulkanRenderer::shutdown()
+void OldRenderer::shutdown()
 {
     Assert(vkDeviceWaitIdle(_device) == VK_SUCCESS);
 
@@ -113,7 +113,7 @@ void VulkanRenderer::shutdown()
     parent_type::shutdown();
 }
 
-void VulkanRenderer::render()
+void OldRenderer::render()
 {
     uint32_t image_index;
 
@@ -173,7 +173,7 @@ void VulkanRenderer::render()
     }
 }
 
-void VulkanRenderer::createCommandBuffers()
+void OldRenderer::createCommandBuffers()
 {
     VkCommandBufferBeginInfo graphics_commandd_buffer_begin_info = {
         VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,    // VkStructureType                        sType
@@ -274,7 +274,7 @@ void VulkanRenderer::createCommandBuffers()
     }
 }
 
-void VulkanRenderer::createDescriptorPool()
+void OldRenderer::createDescriptorPool()
 {
     // We need to tell the API the number of max. requested descriptors per type
     VkDescriptorPoolSize typeCounts[2];
@@ -372,7 +372,7 @@ void VulkanRenderer::createDescriptorPool()
     }
 }
 
-void VulkanRenderer::createPipeline()
+void OldRenderer::createPipeline()
 {
     VkShaderModule vertModule;
     VkShaderModule fragModule;
@@ -565,7 +565,7 @@ void VulkanRenderer::createPipeline()
     vkDestroyShaderModule(_device, vertModule, nullptr);
 }
 
-void VulkanRenderer::createMeshBuffers()
+void OldRenderer::createMeshBuffers()
 {
     const Mesh& mesh = _meshCache[MeshFile];
 
@@ -703,7 +703,7 @@ namespace
     }
 }
 
-void VulkanRenderer::createTextures()
+void OldRenderer::createTextures()
 {
     const Texture& texture = _texCache[TextureFile.c_str()];
 
@@ -929,7 +929,7 @@ void VulkanRenderer::createTextures()
     }
 }
 
-void VulkanRenderer::createDescriptorSet()
+void OldRenderer::createDescriptorSet()
 {
     VkDescriptorSetAllocateInfo allocInfo = {
         VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, // VkStructureType                 sType;
@@ -978,7 +978,7 @@ void VulkanRenderer::createDescriptorSet()
     vkUpdateDescriptorSets(_device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, nullptr);
 }
 
-void VulkanRenderer::updateUniforms()
+void OldRenderer::updateUniforms()
 {
     _uniforms->transform = glm::scale(glm::mat4(), glm::vec3(0.5f, 0.5f, 0.5f));
     _uniforms->time += 0.01f;

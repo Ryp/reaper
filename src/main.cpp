@@ -5,24 +5,35 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "common/ReaperRoot.h"
+#include "common/DebugLog.h"
+
 #include "renderer/Renderer.h"
-#include "renderer/vulkan/PresentationSurface.h"
+#include "renderer/vulkan/VulkanRenderer.h"
+
+namespace
+{
+    int reaper_main()
+    {
+        ReaperRoot root = {};
+
+        root.log = new DebugLog();
+
+        if (create_renderer(&root))
+        {
+            // Do a barrel roll
+            destroy_renderer(&root);
+        }
+
+        delete root.log;
+        root.log = nullptr;
+
+        return 0;
+    }
+}
 
 int main(int /*ac*/, char** /*av*/)
 {
-    Window window;
-    AbstractRenderer* renderer = nullptr;
-
-    window.Create("Vulkan Test");
-
-    renderer = AbstractRenderer::createRenderer();
-
-    renderer->startup(&window);
-    window.renderLoop(renderer);
-    renderer->shutdown();
-
-    delete renderer;
-
-    return 0;
+    return reaper_main();
 }
 

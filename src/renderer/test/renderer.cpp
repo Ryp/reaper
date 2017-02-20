@@ -16,27 +16,15 @@ TEST_CASE("Renderer")
     Window  window;
     AbstractRenderer* renderer = nullptr;
 
-    SUBCASE("Create window")
-    {
-        window.Create("Vulkan Test");
-    }
+    window.Create("Vulkan Test");
 
-    SUBCASE("Create renderer")
-    {
-        renderer = AbstractRenderer::createRenderer();
+    renderer = AbstractRenderer::createRenderer();
 
-        CHECK(renderer != nullptr);
-    }
+    CHECK(renderer != nullptr);
 
-    SUBCASE("Render")
-    {
-        renderer->startup(&window);
-        window.renderLoop(renderer);
-        renderer->shutdown();
-    }
+    renderer->startup(&window);
+    window.renderLoop(renderer);
+    renderer->shutdown();
 
-    SUBCASE("Delete renderer")
-    {
-        delete renderer;
-    }
+    delete renderer;
 }
