@@ -21,12 +21,12 @@
 
 struct VSUBO;
 
-class VulkanRenderer : public SwapchainRendererBase
+class OldRenderer : public SwapchainRendererBase
 {
     using parent_type = SwapchainRendererBase;
 public:
-    VulkanRenderer();
-    ~VulkanRenderer() = default;
+    OldRenderer();
+    ~OldRenderer() = default;
 
     virtual void startup(Window* window) override final;
     virtual void shutdown() override final;

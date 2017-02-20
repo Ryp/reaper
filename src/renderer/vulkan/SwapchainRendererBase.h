@@ -62,4 +62,18 @@ protected:
     VkQueue             _graphicsQueue;
 };
 
+struct VulkanRenderer
+{
+    LibHandle           vulkanLib;
+    VkInstance          instance;
+    VkSwapchainKHR      swapChain;
+    VkPhysicalDevice    physicalDevice;
+    VkDevice            device;
+
+    VulkanRenderer();
+};
+
+void create_vulkan_renderer(VulkanRenderer& renderer, ReaperRoot& root, Window* window);
+void destroy_vulkan_renderer(VulkanRenderer& renderer, ReaperRoot& root);
+
 #endif // REAPER_SWAPCHAINRENDERERBASE_INCLUDED

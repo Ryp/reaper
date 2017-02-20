@@ -659,3 +659,29 @@ void SwapchainRendererBase::createCommandBufferPool()
 
     Assert(vkAllocateCommandBuffers(_device, &cmd_buffer_allocate_info, &_gfxCmdBuffers[0]) == VK_SUCCESS);
 }
+
+VulkanRenderer::VulkanRenderer()
+:   vulkanLib(nullptr)
+,   instance(VK_NULL_HANDLE)
+,   swapChain(VK_NULL_HANDLE)
+,   physicalDevice(VK_NULL_HANDLE)
+,   device(VK_NULL_HANDLE)
+{}
+
+#include "common/Log.h"
+
+void create_vulkan_renderer(VulkanRenderer& renderer, ReaperRoot& root, Window* window)
+{
+    log_info(root, "vulkan: creating renderer");
+
+    log_debug(root, "vulkan: loading {}", REAPER_VK_LIB_NAME);
+    renderer.vulkanLib = dynlib::load(REAPER_VK_LIB_NAME);
+}
+
+void destroy_vulkan_renderer(VulkanRenderer& renderer, ReaperRoot& root)
+{
+    log_info(root, "vulkan: destroying renderer");
+
+    Assert(vkDeviceWaitIdle(renderer.device) == VK_SUCCESS);
+}
+
