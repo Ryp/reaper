@@ -31,6 +31,7 @@ bool create_renderer(ReaperRoot* root)
 
 void destroy_renderer(ReaperRoot* root)
 {
+    Assert(root != nullptr);
     Assert(root->renderer != nullptr);
 
     destroy_vulkan_renderer(*root->renderer, *root);

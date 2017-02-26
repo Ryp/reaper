@@ -676,12 +676,18 @@ void create_vulkan_renderer(VulkanRenderer& renderer, ReaperRoot& root, Window* 
 
     log_debug(root, "vulkan: loading {}", REAPER_VK_LIB_NAME);
     renderer.vulkanLib = dynlib::load(REAPER_VK_LIB_NAME);
+
 }
 
 void destroy_vulkan_renderer(VulkanRenderer& renderer, ReaperRoot& root)
 {
     log_info(root, "vulkan: destroying renderer");
 
-    Assert(vkDeviceWaitIdle(renderer.device) == VK_SUCCESS);
+    log_debug(root, "vulkan: unloading {}", REAPER_VK_LIB_NAME);
+    Assert(renderer.vulkanLib != nullptr);
+    dynlib::close(renderer.vulkanLib);
+    renderer.vulkanLib = nullptr;
+
+//    Assert(vkDeviceWaitIdle(renderer.device) == VK_SUCCESS);
 }
 
