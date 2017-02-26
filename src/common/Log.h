@@ -21,7 +21,7 @@ enum class LogLevel
     Debug
 };
 
-class ILog
+class REAPER_COMMON_API ILog
 {
     public:
         virtual ~ILog() {}
