@@ -9,8 +9,8 @@
 #define REAPER_ROOT_INCLUDED
 
 class GameLogic;
-class VulkanRenderer;
 class ILog;
+struct VulkanRenderer;
 
 struct ReaperRoot
 {
