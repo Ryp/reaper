@@ -8,14 +8,19 @@
 #include "pch/stdafx.h"
 #include <doctest/doctest.h>
 
-#include "renderer/vulkan/PresentationSurface.h"
+#include "renderer/window/Window.h"
 
 TEST_CASE("Window")
 {
-    Window  window;
+    IWindow* window = nullptr;
 
     SUBCASE("Create window")
     {
-        window.Create("Test");
+        window = createWindow();
+        window->create("Test");
+
+        delete window;
+        window = nullptr;
     }
 }
+

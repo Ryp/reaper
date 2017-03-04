@@ -26,13 +26,13 @@ void DebugLog::log(LogLevel level, const std::string& message)
     switch (level)
     {
         case LogLevel::Error:
-            std::cout << "[error] "; break;
+            std::cout << "  [error] "; break;
         case LogLevel::Warning:
             std::cout << "[warning] "; break;
         case LogLevel::Info:
-            std::cout << "[info] "; break;
+            std::cout << "   [info] "; break;
         case LogLevel::Debug:
-            std::cout << "[debug] "; break;
+            std::cout << "  [debug] "; break;
         default:
             AssertUnreachable();
             break;

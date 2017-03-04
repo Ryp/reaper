@@ -10,13 +10,13 @@
 
 class GameLogic;
 class ILog;
-struct VulkanRenderer;
+struct Renderer;
 
 struct ReaperRoot
 {
-    GameLogic*      game;
-    VulkanRenderer* renderer;
-    ILog*           log;
+    GameLogic*  game;
+    Renderer*   renderer;
+    ILog*       log;
 };
 
 #endif // REAPER_ROOT_INCLUDED

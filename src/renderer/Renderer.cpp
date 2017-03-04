@@ -17,15 +17,14 @@ AbstractRenderer* AbstractRenderer::createRenderer()
 
 bool create_renderer(ReaperRoot* root)
 {
-    VulkanRenderer* vulkanRenderer = new VulkanRenderer();
-
+    Assert(root != nullptr);
     Assert(root->renderer == nullptr);
 
-    create_vulkan_renderer(*vulkanRenderer, *root, nullptr);
+    root->renderer = new Renderer();
+    root->renderer->backend = new VulkanBackend();
 
-    Assert(vulkanRenderer != nullptr);
+    create_vulkan_renderer_backend(*root, *root->renderer->backend);
 
-    root->renderer = vulkanRenderer;
     return true;
 }
 
@@ -33,9 +32,11 @@ void destroy_renderer(ReaperRoot* root)
 {
     Assert(root != nullptr);
     Assert(root->renderer != nullptr);
+    Assert(root->renderer->backend != nullptr);
 
-    destroy_vulkan_renderer(*root->renderer, *root);
+    destroy_vulkan_renderer_backend(*root, *root->renderer->backend);
 
+    delete root->renderer->backend;
     delete root->renderer;
     root->renderer = nullptr;
 }

@@ -1,4 +1,17 @@
-if(APPLE OR UNIX)
+#///////////////////////////////////////////////////////////////////////////////
+#// Reaper
+#//
+#// Copyright (c) 2015-2017 Thibault Schueller
+#// This file is distributed under the MIT License
+#///////////////////////////////////////////////////////////////////////////////
+
+if(REAPER_USE_WIN32_WINDOW)
+    # Nothing to set here yet
+elseif(REAPER_USE_XLIB_WINDOW)
+    find_package(X11 REQUIRED)
+    set(REAPER_RENDERER_LIBRARIES ${X11_LIBRARIES})
+    set(REAPER_RENDERER_INCLUDES ${X11_INCLUDE_DIR})
+elseif(REAPER_USE_XCB_WINDOW)
     find_package(XCB REQUIRED)
     set(REAPER_RENDERER_LIBRARIES ${LIBXCB_LIBRARIES})
     set(REAPER_RENDERER_INCLUDES ${LIBXCB_INCLUDE_DIR})
@@ -78,7 +91,27 @@ set(REAPER_RENDERER_SRCS
     ${REAPER_RENDERER_DIR}/vulkan/api/VulkanFunctions.cpp
     ${REAPER_RENDERER_DIR}/vulkan/api/VulkanFunctions.h
     ${REAPER_RENDERER_DIR}/vulkan/api/VulkanSymbolHelper.inl
+
+    ${REAPER_RENDERER_DIR}/window/Window.cpp
+    ${REAPER_RENDERER_DIR}/window/Window.h
 )
+
+if(REAPER_USE_WIN32_WINDOW)
+    set(REAPER_WINDOW_SRCS
+        ${REAPER_RENDERER_DIR}/window/Win32Window.cpp
+        ${REAPER_RENDERER_DIR}/window/Win32Window.h
+    )
+elseif(REAPER_USE_XLIB_WINDOW)
+    set(REAPER_WINDOW_SRCS
+        ${REAPER_RENDERER_DIR}/window/XLibWindow.cpp
+        ${REAPER_RENDERER_DIR}/window/XLibWindow.h
+    )
+elseif(REAPER_USE_XCB_WINDOW)
+    set(REAPER_WINDOW_SRCS
+        ${REAPER_RENDERER_DIR}/window/XCBWindow.cpp
+        ${REAPER_RENDERER_DIR}/window/XCBWindow.h
+    )
+endif()
 
 set(REAPER_RENDERER_TEST_SRCS
     ${REAPER_RENDERER_DIR}/test/mesh_loading.cpp
@@ -105,7 +138,7 @@ set(REAPER_GLSL_SHADERS
 
 add_glslang_spirv_targets(REAPER_SPIRV_OUTPUT ${REAPER_GLSL_SHADERS})
 
-add_library(${REAPER_RENDERER_BIN} ${REAPER_BUILD_TYPE} ${REAPER_RENDERER_SRCS} ${REAPER_GLSL_SHADERS} ${REAPER_SPIRV_OUTPUT})
+add_library(${REAPER_RENDERER_BIN} ${REAPER_BUILD_TYPE} ${REAPER_RENDERER_SRCS} ${REAPER_WINDOW_SRCS} ${REAPER_GLSL_SHADERS} ${REAPER_SPIRV_OUTPUT})
 reaper_add_custom_build_flags(${REAPER_RENDERER_BIN} "Renderer")
 
 target_include_directories(${REAPER_RENDERER_BIN} PUBLIC ${CMAKE_SOURCE_DIR}/src)

@@ -5,6 +5,9 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
+// TODO use Pimpl to prevent name clashes between Xlib and fmt and move this include forward
+#include "common/Log.h"
+
 #include "SwapchainRendererBase.h"
 
 #include <cstring>
@@ -119,7 +122,7 @@ namespace
         return true;
     }
 
-    VkBool32 debugReportCallback(
+    VkBool32 debugReportCallbackMf(
         VkDebugReportFlagsEXT       /*flags*/,
         VkDebugReportObjectTypeEXT  /*objectType*/,
         uint64_t                    /*object*/,
@@ -135,7 +138,7 @@ namespace
     }
 }
 
-void SwapchainRendererBase::startup(Window* window)
+void SwapchainRendererBase::startup(IWindow* window)
 {
     _vulkanLib = dynlib::load(REAPER_VK_LIB_NAME);
 
@@ -181,9 +184,9 @@ void SwapchainRendererBase::startup(Window* window)
 
     Assert(extensions.size() == 2);
 
-    #if defined(REAPER_DEBUG)
+#if defined(REAPER_DEBUG)
     extensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
-    #endif
+#endif
 
     for(size_t i = 0; i < extensions.size(); ++i)
         Assert(checkExtensionAvailability(extensions[i], available_extensions));
@@ -238,13 +241,13 @@ void SwapchainRendererBase::startup(Window* window)
     callbackCreateInfo.sType       = VK_STRUCTURE_TYPE_DEBUG_REPORT_CREATE_INFO_EXT;
     callbackCreateInfo.pNext       = nullptr;
     callbackCreateInfo.flags       = VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT | VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT;
-    callbackCreateInfo.pfnCallback = &debugReportCallback;
+    callbackCreateInfo.pfnCallback = &debugReportCallbackMf;
     callbackCreateInfo.pUserData   = nullptr;
 
     Assert(vkCreateDebugReportCallbackEXT(_instance, &callbackCreateInfo, nullptr, &_debugCallback) == VK_SUCCESS);
     #endif
 
-    createPresentationSurface(_instance, window->GetParameters(), _presentationSurface);
+    create_presentation_surface(_instance, window, _presentationSurface);
 
     uint32_t deviceNo = 0;
 
@@ -296,9 +299,9 @@ void SwapchainRendererBase::startup(Window* window)
     std::vector<const char*> device_extensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
     std::vector<const char*> device_layers;
 
-    #if defined(REAPER_DEBUG)
+#if defined(REAPER_DEBUG)
     device_layers.push_back("VK_LAYER_LUNARG_standard_validation");
-    #endif
+#endif
 
     VkDeviceCreateInfo device_create_info = {
         VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,           // VkStructureType                    sType
@@ -660,7 +663,7 @@ void SwapchainRendererBase::createCommandBufferPool()
     Assert(vkAllocateCommandBuffers(_device, &cmd_buffer_allocate_info, &_gfxCmdBuffers[0]) == VK_SUCCESS);
 }
 
-VulkanRenderer::VulkanRenderer()
+VulkanBackend::VulkanBackend()
 :   vulkanLib(nullptr)
 ,   instance(VK_NULL_HANDLE)
 ,   swapChain(VK_NULL_HANDLE)
@@ -668,26 +671,176 @@ VulkanRenderer::VulkanRenderer()
 ,   device(VK_NULL_HANDLE)
 {}
 
-#include "common/Log.h"
 
-void create_vulkan_renderer(VulkanRenderer& renderer, ReaperRoot& root, Window* window)
+void create_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& renderer)
 {
     log_info(root, "vulkan: creating renderer");
 
     log_debug(root, "vulkan: loading {}", REAPER_VK_LIB_NAME);
     renderer.vulkanLib = dynlib::load(REAPER_VK_LIB_NAME);
 
+    vulkan_load_exported_functions(renderer.vulkanLib);
+    vulkan_load_global_level_functions();
+
+    std::vector<const char*> extensions = {
+        VK_KHR_SURFACE_EXTENSION_NAME,
+        REAPER_VK_SWAPCHAIN_EXTENSION_NAME
+    };
+
+#if defined(REAPER_DEBUG)
+    extensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
+#endif
+
+    log_info(root, "vulkan: using {} instance level extensions", extensions.size());
+    for (auto& e : extensions)
+        log_debug(root, "- {}", e);
+
+    vulkan_instance_check_extensions(extensions);
+
+    std::vector<const char*> layers;
+
+#if defined(REAPER_DEBUG)
+    layers.push_back("VK_LAYER_LUNARG_standard_validation");
+#endif
+
+    log_info(root, "vulkan: using {} instance level layers", layers.size());
+    for (auto& layer : layers)
+        log_debug(root, "- {}", layer);
+
+    vulkan_instance_check_layers(layers);
+
+    VkApplicationInfo application_info = {
+        VK_STRUCTURE_TYPE_APPLICATION_INFO, // VkStructureType            sType
+        nullptr,                            // const void                *pNext
+        "Application",                      // const char                *pApplicationName
+        VK_MAKE_VERSION(1, 0, 0),           // uint32_t                   applicationVersion
+        "Reaper",                           // const char                *pEngineName
+        VK_MAKE_VERSION(1, 0, 0),           // uint32_t                   engineVersion
+        REAPER_VK_API_VERSION               // uint32_t                   apiVersion
+    };
+
+    VkInstanceCreateInfo instance_create_info = {
+        VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,     // VkStructureType            sType
+        nullptr,                                    // const void*                pNext
+        0,                                          // VkInstanceCreateFlags      flags
+        &application_info,                          // const VkApplicationInfo   *pApplicationInfo
+        static_cast<uint32_t>(layers.size()),       // uint32_t                   enabledLayerCount
+        &layers[0],                                 // const char * const        *ppEnabledLayerNames
+        static_cast<uint32_t>(extensions.size()),   // uint32_t                   enabledExtensionCount
+        &extensions[0]                              // const char * const        *ppEnabledExtensionNames
+    };
+
+    Assert(vkCreateInstance(&instance_create_info, nullptr, &renderer.instance) == VK_SUCCESS, "cannot create Vulkan instance");
+
+    vulkan_load_instance_level_functions(renderer.instance);
+
+#if defined(REAPER_DEBUG)
+    log_debug(root, "vulkan: attaching debug callback");
+    vulkan_setup_debug_callback(root, renderer);
+#endif
 }
 
-void destroy_vulkan_renderer(VulkanRenderer& renderer, ReaperRoot& root)
+void destroy_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& renderer)
 {
     log_info(root, "vulkan: destroying renderer");
+
+    //Assert(vkDeviceWaitIdle(renderer.device) == VK_SUCCESS);
+
+#if defined(REAPER_DEBUG)
+    log_debug(root, "vulkan: detaching debug callback");
+    vulkan_destroy_debug_callback(renderer);
+#endif
+
+    vkDestroyInstance(renderer.instance, nullptr);
 
     log_debug(root, "vulkan: unloading {}", REAPER_VK_LIB_NAME);
     Assert(renderer.vulkanLib != nullptr);
     dynlib::close(renderer.vulkanLib);
     renderer.vulkanLib = nullptr;
+}
 
-//    Assert(vkDeviceWaitIdle(renderer.device) == VK_SUCCESS);
+void vulkan_instance_check_extensions(const std::vector<const char*>& extensions)
+{
+    uint32_t extensions_count = 0;
+    Assert(vkEnumerateInstanceExtensionProperties(nullptr, &extensions_count, nullptr) == VK_SUCCESS);
+    Assert(extensions_count > 0);
+
+    std::vector<VkExtensionProperties> available_extensions(extensions_count);
+    Assert(vkEnumerateInstanceExtensionProperties(nullptr, &extensions_count, &available_extensions[0]) == VK_SUCCESS);
+
+    for (size_t i = 0; i < extensions.size(); ++i)
+    {
+        bool found = false;
+        for (size_t j = 0; j < available_extensions.size(); ++j)
+        {
+            if (std::strcmp(available_extensions[j].extensionName, extensions[i]) == 0)
+                found = true;
+        }
+        Assert(found, "extension not found");
+    }
+}
+
+void vulkan_instance_check_layers(const std::vector<const char*>& layers)
+{
+    uint32_t layers_count = 0;
+    Assert(vkEnumerateInstanceLayerProperties(&layers_count, nullptr) == VK_SUCCESS);
+    Assert(layers_count > 0);
+
+    std::vector<VkLayerProperties> available_layers(layers_count);
+    Assert(vkEnumerateInstanceLayerProperties(&layers_count, &available_layers[0]) == VK_SUCCESS);
+
+    for (size_t i = 0; i < layers.size(); ++i)
+    {
+        bool found = false;
+        for (size_t j = 0; j < available_layers.size(); ++j)
+        {
+            if (std::strcmp(available_layers[j].layerName, layers[i]) == 0)
+                found = true;
+        }
+        Assert(found, "layer not found");
+    }
+}
+
+namespace
+{
+    VkBool32 debugReportCallback(
+        VkDebugReportFlagsEXT       /*flags*/,
+        VkDebugReportObjectTypeEXT  /*objectType*/,
+        uint64_t                    /*object*/,
+        size_t                      /*location*/,
+        int32_t                     /*messageCode*/,
+        const char*                 /*pLayerPrefix*/,
+        const char*                 pMessage,
+        void*                       pUserData)
+    {
+        ReaperRoot* root = static_cast<ReaperRoot*>(pUserData);
+
+        Assert(root != nullptr);
+        //Assert(false, pMessage);
+
+        log_warning(*root, "vulkan: {}", pMessage);
+        return VK_FALSE;
+    }
+}
+
+void vulkan_setup_debug_callback(ReaperRoot& root, VulkanBackend& renderer)
+{
+    VkDebugReportCallbackCreateInfoEXT callbackCreateInfo;
+    callbackCreateInfo.sType       = VK_STRUCTURE_TYPE_DEBUG_REPORT_CREATE_INFO_EXT;
+    callbackCreateInfo.pNext       = nullptr;
+    callbackCreateInfo.flags       = VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT | VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT;
+    callbackCreateInfo.pfnCallback = &debugReportCallback;
+    callbackCreateInfo.pUserData   = &root;
+
+    Assert(vkCreateDebugReportCallbackEXT(renderer.instance, &callbackCreateInfo, nullptr, &renderer.debugCallback) == VK_SUCCESS);
+}
+
+void vulkan_destroy_debug_callback(VulkanBackend& renderer)
+{
+    Assert(renderer.debugCallback != nullptr);
+
+    vkDestroyDebugReportCallbackEXT(renderer.instance, renderer.debugCallback, nullptr);
+
+    renderer.debugCallback = nullptr;
 }
 

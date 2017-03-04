@@ -55,13 +55,6 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 include(cotire)
 include(Reaper)
 
-if(WIN32)
-    set(VK_PLATFORM "VK_USE_PLATFORM_WIN32_KHR")
-elseif(APPLE OR UNIX)
-    set(VK_PLATFORM "VK_USE_PLATFORM_XCB_KHR")
-endif()
-add_definitions(-D${VK_PLATFORM})
-
 set(REAPER_BIN reaper)
 
 # Set precompiled header
@@ -74,6 +67,21 @@ set(REAPER_VERSION_PATCH 0)
 set(REAPER_VERSION_SHORT "${REAPER_VERSION_MAJOR}.${REAPER_VERSION_MINOR}.${REAPER_VERSION_PATCH}")
 
 configure_file(${CMAKE_SOURCE_DIR}/src/core/Version.h.in ${CMAKE_SOURCE_DIR}/src/core/Version.h NEWLINE_STYLE LF)
+
+# Choose windowing system
+if(WIN32)
+    set(REAPER_USE_WIN32_WINDOW ON)
+    set(VK_PLATFORM "VK_USE_PLATFORM_WIN32_KHR")
+elseif(APPLE OR UNIX)
+    #set(REAPER_USE_XCB_WINDOW ON)
+    #set(VK_PLATFORM "VK_USE_PLATFORM_XCB_KHR")
+    set(REAPER_USE_XLIB_WINDOW ON)
+    set(VK_PLATFORM "VK_USE_PLATFORM_XLIB_KHR")
+else()
+    # We could allow headless instances without problems
+    message(FATAL_ERROR "Could not detect platform!")
+endif()
+add_definitions(-D${VK_PLATFORM})
 
 add_subdirectory(src/core)
 add_subdirectory(src/common)

@@ -20,7 +20,7 @@ public:
     SwapchainRendererBase() = default;
     ~SwapchainRendererBase() = default;
 
-    virtual void startup(Window* window) override;
+    virtual void startup(IWindow* window) override;
     virtual void shutdown() override;
 
 private:
@@ -62,7 +62,7 @@ protected:
     VkQueue             _graphicsQueue;
 };
 
-struct VulkanRenderer
+struct REAPER_RENDERER_API VulkanBackend
 {
     LibHandle           vulkanLib;
     VkInstance          instance;
@@ -70,10 +70,18 @@ struct VulkanRenderer
     VkPhysicalDevice    physicalDevice;
     VkDevice            device;
 
-    VulkanRenderer();
+    VkDebugReportCallbackEXT debugCallback;
+
+    VulkanBackend();
 };
 
-void create_vulkan_renderer(VulkanRenderer& renderer, ReaperRoot& root, Window* window);
-void destroy_vulkan_renderer(VulkanRenderer& renderer, ReaperRoot& root);
+void create_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& renderer);
+void destroy_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& renderer);
+
+void vulkan_instance_check_extensions(const std::vector<const char*>& extensions);
+void vulkan_instance_check_layers(const std::vector<const char*>& layers);
+
+void vulkan_setup_debug_callback(ReaperRoot& root, VulkanBackend& renderer);
+void vulkan_destroy_debug_callback(VulkanBackend& renderer);
 
 #endif // REAPER_SWAPCHAINRENDERERBASE_INCLUDED

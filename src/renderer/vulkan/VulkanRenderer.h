@@ -28,7 +28,7 @@ public:
     OldRenderer();
     ~OldRenderer() = default;
 
-    virtual void startup(Window* window) override final;
+    virtual void startup(IWindow* window) override final;
     virtual void shutdown() override final;
     virtual void render() override final;
 
