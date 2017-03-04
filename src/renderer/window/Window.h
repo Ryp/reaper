@@ -18,7 +18,7 @@ public:
     virtual bool renderLoop(AbstractRenderer* renderer) const = 0;
 };
 
-IWindow* REAPER_RENDERER_API createWindow();
+REAPER_RENDERER_API IWindow* createWindow();
 
 #endif // REAPER_WINDOW_INCLUDED
 

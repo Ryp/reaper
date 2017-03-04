@@ -699,7 +699,7 @@ void create_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& renderer)
 
     std::vector<const char*> layers;
 
-#if defined(REAPER_DEBUG)
+#if defined(REAPER_DEBUG) && !defined(REAPER_PLATFORM_WINDOWS)
     layers.push_back("VK_LAYER_LUNARG_standard_validation");
 #endif
 
@@ -719,15 +719,18 @@ void create_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& renderer)
         REAPER_VK_API_VERSION               // uint32_t                   apiVersion
     };
 
+    uint32_t layerCount = static_cast<uint32_t>(layers.size());
+    uint32_t extensionCount = static_cast<uint32_t>(extensions.size());
+
     VkInstanceCreateInfo instance_create_info = {
-        VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,     // VkStructureType            sType
-        nullptr,                                    // const void*                pNext
-        0,                                          // VkInstanceCreateFlags      flags
-        &application_info,                          // const VkApplicationInfo   *pApplicationInfo
-        static_cast<uint32_t>(layers.size()),       // uint32_t                   enabledLayerCount
-        &layers[0],                                 // const char * const        *ppEnabledLayerNames
-        static_cast<uint32_t>(extensions.size()),   // uint32_t                   enabledExtensionCount
-        &extensions[0]                              // const char * const        *ppEnabledExtensionNames
+        VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,             // VkStructureType            sType
+        nullptr,                                            // const void*                pNext
+        0,                                                  // VkInstanceCreateFlags      flags
+        &application_info,                                  // const VkApplicationInfo   *pApplicationInfo
+        layerCount,                                         // uint32_t                   enabledLayerCount
+        (layerCount > 0 ? &layers[0] : nullptr),            // const char * const        *ppEnabledLayerNames
+        extensionCount,                                     // uint32_t                   enabledExtensionCount
+        (extensionCount > 0 ? &extensions[0] : nullptr),    // const char * const        *ppEnabledExtensionNames
     };
 
     Assert(vkCreateInstance(&instance_create_info, nullptr, &renderer.instance) == VK_SUCCESS, "cannot create Vulkan instance");
