@@ -1,3 +1,10 @@
+#///////////////////////////////////////////////////////////////////////////////
+#// Reaper
+#//
+#// Copyright (c) 2015-2017 Thibault Schueller
+#// This file is distributed under the MIT License
+#///////////////////////////////////////////////////////////////////////////////
+
 set(REAPER_COMMON_LIBRARIES ${REAPER_COMMON_LIBRARIES} ${REAPER_CORE_BIN})
 
 set(REAPER_COMMON_BIN reaper_common)
