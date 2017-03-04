@@ -10,21 +10,23 @@
 
 #include "renderer/Renderer.h"
 #include "renderer/vulkan/PresentationSurface.h"
+#include "renderer/window/Window.h"
 
 TEST_CASE("Renderer")
 {
-    Window  window;
+    IWindow* window = createWindow();
     AbstractRenderer* renderer = nullptr;
 
-    window.Create("Vulkan Test");
+    window->create("Vulkan Test");
 
     renderer = AbstractRenderer::createRenderer();
 
     CHECK(renderer != nullptr);
 
-    renderer->startup(&window);
-    window.renderLoop(renderer);
+    renderer->startup(window);
+    window->renderLoop(renderer);
     renderer->shutdown();
 
     delete renderer;
 }
+

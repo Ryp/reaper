@@ -48,7 +48,7 @@ OldRenderer::OldRenderer()
 :   _texCache(TextureCacheSize)
 {}
 
-void OldRenderer::startup(Window* window)
+void OldRenderer::startup(IWindow* window)
 {
     parent_type::startup(window);
 
