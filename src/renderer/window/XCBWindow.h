@@ -15,15 +15,24 @@
 class REAPER_RENDERER_API XCBWindow : public IWindow
 {
 public:
-    XCBWindow();
+    XCBWindow(const WindowCreationDescriptor& creationInfo);
     ~XCBWindow();
 
-    bool create(const char* title) override;
-    bool renderLoop(AbstractRenderer* renderer) const override;
+    bool renderLoop(AbstractRenderer* renderer) override;
+
+private:
+    void handleEvent(xcb_generic_event_t* event);
 
 public:
     xcb_connection_t*   Connection;
     xcb_window_t        Handle;
+
+private:
+    xcb_intern_atom_reply_t* DeleteWindowReply;
+
+private:
+    bool ShouldResizeASAP;
+    bool IsValid;
 };
 
 #endif // REAPER_XCB_WINDOW_INCLUDED

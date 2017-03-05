@@ -16,8 +16,13 @@ TEST_CASE("Window")
 
     SUBCASE("Create window")
     {
-        window = createWindow();
-        window->create("Test");
+        WindowCreationDescriptor windowDescriptor;
+        windowDescriptor.title = "TestTitle";
+        windowDescriptor.width = 800;
+        windowDescriptor.height = 600;
+        windowDescriptor.fullscreen = false;
+
+        window = createWindow(windowDescriptor);
 
         delete window;
         window = nullptr;

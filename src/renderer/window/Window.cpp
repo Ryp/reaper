@@ -15,15 +15,16 @@
     #include "XLibWindow.h"
 #endif
 
-IWindow* createWindow()
+IWindow* createWindow(const WindowCreationDescriptor& creationInfo)
 {
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
-    return new Win32Window();
+    return new Win32Window(creationInfo);
 #elif defined(VK_USE_PLATFORM_XCB_KHR)
-    return new XCBWindow();
+    return new XCBWindow(creationInfo);
 #elif defined(VK_USE_PLATFORM_XLIB_KHR)
-    return new XLibWindow();
+    return new XLibWindow(creationInfo);
 #else
+    static_cast<void>(creationInfo);
     return nullptr;
 #endif
 }

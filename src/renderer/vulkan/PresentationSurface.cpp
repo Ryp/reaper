@@ -19,7 +19,7 @@
 
 using namespace vk;
 
-void create_presentation_surface(VkInstance instance, IWindow* window, VkSurfaceKHR& vkPresentationSurface)
+void create_presentation_surface(VkInstance instance, VkSurfaceKHR& vkPresentationSurface, IWindow* window)
 {
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
     Win32Window* win32Window = dynamic_cast<Win32Window*>(window);

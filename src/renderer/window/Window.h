@@ -14,11 +14,18 @@ class REAPER_RENDERER_API IWindow
 {
 public:
     virtual ~IWindow() {}
-    virtual bool create(const char *title) = 0;
-    virtual bool renderLoop(AbstractRenderer* renderer) const = 0;
+    virtual bool renderLoop(AbstractRenderer* renderer) = 0;
 };
 
-REAPER_RENDERER_API IWindow* createWindow();
+struct WindowCreationDescriptor
+{
+    const char* title;
+    u32         width;
+    u32         height;
+    bool        fullscreen;
+};
+
+REAPER_RENDERER_API IWindow* createWindow(const WindowCreationDescriptor& creationInfo);
 
 #endif // REAPER_WINDOW_INCLUDED
 
