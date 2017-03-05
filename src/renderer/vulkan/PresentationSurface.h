@@ -12,7 +12,7 @@
 
 class IWindow;
 
-void create_presentation_surface(VkInstance instance, IWindow* window, VkSurfaceKHR& vkPresentationSurface);
+void create_presentation_surface(VkInstance instance, VkSurfaceKHR& vkPresentationSurface, IWindow* window);
 
 #endif // REAPER_PRESENTATIONSURFACE_INCLUDED
 

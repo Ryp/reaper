@@ -1,0 +1,45 @@
+# We don't care about problems in the ICD or loader
+# Many of these could be false positives, since valgrind doesn't know about GPU access
+{
+  IntelVulkanAddr8
+  Memcheck:Addr8
+  ...
+  obj:*libvulkan_intel.so*
+}
+{
+  IntelVulkanAddr4
+  Memcheck:Addr4
+  ...
+  obj:*libvulkan_intel.so*
+}
+{
+  IntelVulkanAddr2
+  Memcheck:Addr2
+  ...
+  obj:*libvulkan_intel.so*
+}
+{
+  IntelVulkanAddr1
+  Memcheck:Addr1
+  ...
+  obj:*libvulkan_intel.so*
+}
+{
+  IntelVulkanCond
+  Memcheck:Cond
+  ...
+  obj:*libvulkan_intel.so*
+}
+{
+  IntelVulkanValue8
+  Memcheck:Value8
+  ...
+  obj:*libvulkan_intel.so*
+}
+{
+  IntelVulkanLeak
+  Memcheck:Leak
+  match-leak-kinds: all
+  ...
+  obj:*libvulkan_intel.so*
+}

@@ -14,10 +14,14 @@
 
 TEST_CASE("Renderer")
 {
-    IWindow* window = createWindow();
-    AbstractRenderer* renderer = nullptr;
+    WindowCreationDescriptor windowDescriptor;
+    windowDescriptor.title = "TestTitle";
+    windowDescriptor.width = 800;
+    windowDescriptor.height = 600;
+    windowDescriptor.fullscreen = false;
 
-    window->create("Vulkan Test");
+    IWindow* window = createWindow(windowDescriptor);
+    AbstractRenderer* renderer = nullptr;
 
     renderer = AbstractRenderer::createRenderer();
 
