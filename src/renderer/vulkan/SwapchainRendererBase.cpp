@@ -875,14 +875,18 @@ void vulkan_setup_debug_callback(ReaperRoot& root, VulkanBackend& backend)
     callbackCreateInfo.pfnCallback = &debugReportCallback;
     callbackCreateInfo.pUserData   = &root;
 
+#if defined(REAPER_DEBUG)
     Assert(vkCreateDebugReportCallbackEXT(backend.instance, &callbackCreateInfo, nullptr, &backend.debugCallback) == VK_SUCCESS);
+#endif
 }
 
 void vulkan_destroy_debug_callback(VulkanBackend& backend)
 {
     Assert(backend.debugCallback != nullptr);
 
+#if defined(REAPER_DEBUG)
     vkDestroyDebugReportCallbackEXT(backend.instance, backend.debugCallback, nullptr);
+#endif
 
     backend.debugCallback = nullptr;
 }

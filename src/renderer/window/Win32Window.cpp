@@ -32,21 +32,9 @@ namespace
 
 #define REAPER_WINDOW_INFO "Reaper"
 
-Win32Window::Win32Window()
+Win32Window::Win32Window(const WindowCreationDescriptor& creationInfo)
 :   Instance()
 ,   Handle()
-{}
-
-Win32Window::~Win32Window()
-{
-    if (Handle)
-        DestroyWindow(Handle);
-
-    if (Instance)
-        UnregisterClass(REAPER_WINDOW_INFO, Instance);
-}
-
-bool Win32Window::create(const char *title)
 {
     Instance = GetModuleHandle(nullptr);
 
@@ -68,23 +56,30 @@ bool Win32Window::create(const char *title)
     wcex.hIconSm = nullptr;
 
     if (!RegisterClassEx(&wcex))
-        return false;
+    {
+        AssertUnreachable();
+        return;
+    }
 
     // Create window
-    Handle = CreateWindow( REAPER_WINDOW_INFO, title, WS_OVERLAPPEDWINDOW, 20, 20, 800, 800, nullptr, nullptr, Instance, nullptr );
+    Handle = CreateWindow(REAPER_WINDOW_INFO, creationInfo.title, WS_OVERLAPPEDWINDOW, 20, 20, creationInfo.width, creationInfo.height, nullptr, nullptr, Instance, nullptr);
     Assert(Handle != nullptr);
-
-    if (!Handle)
-        return false;
-
-    return true;
 }
 
-bool Win32Window::renderLoop(AbstractRenderer* renderer) const
+Win32Window::~Win32Window()
+{
+    if (Handle)
+        DestroyWindow(Handle);
+
+    if (Instance)
+        UnregisterClass(REAPER_WINDOW_INFO, Instance);
+}
+
+bool Win32Window::renderLoop(AbstractRenderer* renderer)
 {
     // Display window
-    ShowWindow( Handle, SW_SHOWNORMAL );
-    UpdateWindow( Handle );
+    ShowWindow(Handle, SW_SHOWNORMAL);
+    UpdateWindow(Handle);
 
     // Main message loop
     MSG message;
