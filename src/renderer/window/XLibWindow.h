@@ -15,11 +15,10 @@
 class REAPER_RENDERER_API XLibWindow : public IWindow
 {
 public:
-    XLibWindow();
+    XLibWindow(const WindowCreationDescriptor& creationInfo);
     ~XLibWindow();
 
-    bool create(const char* title) override;
-    bool renderLoop(AbstractRenderer* renderer) const override;
+    bool renderLoop(AbstractRenderer* renderer) override;
 
 public:
     Display*    DisplayPtr;
