@@ -11,10 +11,30 @@
 
 #include "renderer/Renderer.h"
 
-XLibWindow::XLibWindow()
+XLibWindow::XLibWindow(const WindowCreationDescriptor& creationInfo)
 :   DisplayPtr()
 ,   Handle()
-{}
+{
+    DisplayPtr = XOpenDisplay( nullptr );
+
+    Assert(DisplayPtr != nullptr);
+
+    int default_screen = DefaultScreen(DisplayPtr);
+
+    Handle = XCreateSimpleWindow(
+            DisplayPtr,
+            DefaultRootWindow(DisplayPtr),
+            20,
+            20,
+            creationInfo.width,
+            creationInfo.height,
+            1,
+            BlackPixel(DisplayPtr, default_screen),
+            WhitePixel(DisplayPtr, default_screen));
+
+    XSetStandardProperties(DisplayPtr, Handle, creationInfo.title, creationInfo.title, None, nullptr, 0, nullptr);
+    XSelectInput(DisplayPtr, Handle, ExposureMask | KeyPressMask | StructureNotifyMask);
+}
 
 XLibWindow::~XLibWindow()
 {
@@ -22,33 +42,7 @@ XLibWindow::~XLibWindow()
     XCloseDisplay(DisplayPtr);
 }
 
-bool XLibWindow::create(const char *title)
-{
-    DisplayPtr = XOpenDisplay( nullptr );
-    if( !DisplayPtr ) {
-        return false;
-    }
-
-    int default_screen = DefaultScreen( DisplayPtr );
-
-    Handle = XCreateSimpleWindow(
-            DisplayPtr,
-            DefaultRootWindow( DisplayPtr ),
-            20,
-            20,
-            800,
-            800,
-            1,
-            BlackPixel( DisplayPtr, default_screen ),
-            WhitePixel( DisplayPtr, default_screen ) );
-
-    XSetStandardProperties( DisplayPtr, Handle, title, title, None, nullptr, 0, nullptr );
-    XSelectInput( DisplayPtr, Handle, ExposureMask | KeyPressMask | StructureNotifyMask );
-
-    return true;
-}
-
-bool XLibWindow::renderLoop(AbstractRenderer* renderer) const
+bool XLibWindow::renderLoop(AbstractRenderer* renderer)
 {
     // Prepare notification for window destruction
     Atom delete_window_atom;
@@ -56,29 +50,34 @@ bool XLibWindow::renderLoop(AbstractRenderer* renderer) const
     XSetWMProtocols( DisplayPtr, Handle, &delete_window_atom, 1);
 
     // Display window
-    XClearWindow( DisplayPtr, Handle );
-    XMapWindow( DisplayPtr, Handle );
+    XClearWindow(DisplayPtr, Handle);
+    XMapWindow(DisplayPtr, Handle);
 
     // Main message loop
     XEvent event;
     bool loop = true;
     bool resize = false;
 
-    while( loop ) {
-        if( XPending( DisplayPtr ) ) {
-            XNextEvent( DisplayPtr, &event );
-            switch( event.type ) {
+    while (loop)
+    {
+        if (XPending(DisplayPtr))
+        {
+            XNextEvent(DisplayPtr, &event);
+            switch (event.type)
+            {
                 //Process events
-                case ConfigureNotify: {
+                case ConfigureNotify:
+                {
                     static int width = event.xconfigure.width;
                     static int height = event.xconfigure.height;
 
-                    if( ((event.xconfigure.width > 0) && (event.xconfigure.width != width)) ||
-                        ((event.xconfigure.height > 0) && (event.xconfigure.width != height)) ) {
+                    if (((event.xconfigure.width > 0) && (event.xconfigure.width != width)) ||
+                        ((event.xconfigure.height > 0) && (event.xconfigure.width != height)))
+                    {
                         width = event.xconfigure.width;
-                    height = event.xconfigure.height;
-                    resize = true;
-                        }
+                        height = event.xconfigure.height;
+                        resize = true;
+                    }
                 }
                 break;
                 case KeyPress:
@@ -93,18 +92,19 @@ bool XLibWindow::renderLoop(AbstractRenderer* renderer) const
                     }
                     break;
             }
-        } else {
-            // Draw
-            if( resize ) {
+        }
+        else
+        {
+            if (resize)
+            {
+                // TODO Resize stuff
                 resize = false;
-//                 if( !tutorial.OnWindowSizeChanged() ) {
-//                     loop = false;
-//                 }
             }
+
+            // Draw
             renderer->render();
         }
     }
-
     return true;
 }
 
