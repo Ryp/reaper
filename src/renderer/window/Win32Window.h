@@ -15,11 +15,10 @@
 class REAPER_RENDERER_API Win32Window : public IWindow
 {
 public:
-    Win32Window();
+    Win32Window(const WindowCreationDescriptor& creationInfo);
     ~Win32Window();
 
-    bool create(const char* title) override;
-    bool renderLoop(AbstractRenderer* renderer) const override;
+    bool renderLoop(AbstractRenderer* renderer) override;
 
 public:
     HINSTANCE   Instance;
