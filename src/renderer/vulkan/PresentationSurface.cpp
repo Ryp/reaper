@@ -14,12 +14,12 @@
 #elif defined(VK_USE_PLATFORM_XLIB_KHR)
     #include "renderer/window/XLibWindow.h"
 #else
-    #error You are doing something wrong!
+    #error Unsupported WSI!
 #endif
 
 using namespace vk;
 
-void create_presentation_surface(VkInstance instance, VkSurfaceKHR& vkPresentationSurface, IWindow* window)
+void vulkan_create_presentation_surface(VkInstance instance, VkSurfaceKHR& vkPresentationSurface, IWindow* window)
 {
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
     Win32Window* win32Window = dynamic_cast<Win32Window*>(window);
@@ -60,7 +60,41 @@ void create_presentation_surface(VkInstance instance, VkSurfaceKHR& vkPresentati
     };
 
     Assert(vkCreateXlibSurfaceKHR(instance, &surface_create_info, nullptr, &vkPresentationSurface) == VK_SUCCESS);
+#else
+    #error Unsupported WSI!
 #endif
     Assert(vkPresentationSurface != VK_NULL_HANDLE);
+}
+
+bool vulkan_queue_family_has_presentation_support(VkPhysicalDevice device, uint32_t queueFamilyIndex, IWindow* window)
+{
+#if defined(VK_USE_PLATFORM_WIN32_KHR)
+    static_cast<void>(window);
+    return vkGetPhysicalDeviceWin32PresentationSupportKHR(device, queueFamilyIndex) == VK_TRUE;
+#elif defined(VK_USE_PLATFORM_XCB_KHR)
+    XCBWindow* xcbWindow = dynamic_cast<XCBWindow*>(window);
+    Assert(xcbWindow != nullptr);
+
+    xcb_screen_t* screen = xcbWindow->Screen;
+    Assert(screen != nullptr);
+
+    xcb_visualid_t visualId = screen->root_visual;
+    return vkGetPhysicalDeviceXcbPresentationSupportKHR(device, queueFamilyIndex, xcbWindow->Connection, visualId) == VK_TRUE;
+#elif defined(VK_USE_PLATFORM_XLIB_KHR)
+    XLibWindow* xlibWindow = dynamic_cast<XLibWindow*>(window);
+    Assert(xlibWindow != nullptr);
+
+    XWindowAttributes* attributes = nullptr;
+    Assert(XGetWindowAttributes(xlibWindow->DisplayPtr, xlibWindow->Handle, attributes) != 0); // Non-zero equals success in X.
+    Assert(attributes != nullptr);
+
+    Visual* visual = attributes->visual;
+    Assert(visual != nullptr);
+
+    VisualID visualId = XVisualIDFromVisual(visual);
+    return vkGetPhysicalDeviceXlibPresentationSupportKHR(device, queueFamilyIndex, xlibWindow->DisplayPtr, visualId) == VK_TRUE;
+#else
+    #error Unsupported WSI!
+#endif
 }
 
