@@ -29,12 +29,13 @@ XCBWindow::XCBWindow(const WindowCreationDescriptor& creationInfo)
     while( screen_index-- > 0 )
         xcb_screen_next(&screen_iterator);
 
-    xcb_screen_t *screen = screen_iterator.data;
+    Screen = screen_iterator.data;
+    Assert(Screen != nullptr);
 
     Handle = xcb_generate_id(Connection);
 
     uint32_t value_list[] = {
-        screen->white_pixel,
+        Screen->white_pixel,
         XCB_EVENT_MASK_EXPOSURE | XCB_EVENT_MASK_KEY_PRESS | XCB_EVENT_MASK_STRUCTURE_NOTIFY
     };
 
@@ -42,14 +43,14 @@ XCBWindow::XCBWindow(const WindowCreationDescriptor& creationInfo)
         Connection,
         XCB_COPY_FROM_PARENT,
         Handle,
-        screen->root,
+        Screen->root,
         20,
         20,
         creationInfo.width,
         creationInfo.height,
         0,
         XCB_WINDOW_CLASS_INPUT_OUTPUT,
-        screen->root_visual,
+        Screen->root_visual,
         XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK,
         value_list);
 

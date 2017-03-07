@@ -248,7 +248,7 @@ void SwapchainRendererBase::startup(IWindow* window)
     Assert(vkCreateDebugReportCallbackEXT(_instance, &callbackCreateInfo, nullptr, &_debugCallback) == VK_SUCCESS);
     #endif
 
-    create_presentation_surface(_instance, _presentationSurface, window);
+    vulkan_create_presentation_surface(_instance, _presentationSurface, window);
 
     uint32_t deviceNo = 0;
 
@@ -757,7 +757,7 @@ void create_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& backend)
     root.renderer->window = window;
 
     log_debug(root, "vulkan: creating presentation surface");
-    create_presentation_surface(backend.instance, backend.presentInfo.surface, window);
+    vulkan_create_presentation_surface(backend.instance, backend.presentInfo.surface, window);
 
     log_debug(root, "vulkan: choosing physical device");
     vulkan_choose_physical_device(root, backend, backend.physicalDeviceInfo);
@@ -913,8 +913,10 @@ void vulkan_device_check_extensions(const std::vector<const char*>& extensions, 
     }
 }
 
-bool vulkan_check_physical_device(VkPhysicalDevice physical_device, VkSurfaceKHR presentationSurface, const std::vector<const char*>& extensions, uint32_t& queue_family_index, uint32_t& selected_present_queue_family_index)
+bool vulkan_check_physical_device(IWindow* window, VkPhysicalDevice physical_device, VkSurfaceKHR presentationSurface, const std::vector<const char*>& extensions, uint32_t& queue_family_index, uint32_t& selected_present_queue_family_index)
 {
+    Assert(window != nullptr);
+
     vulkan_device_check_extensions(extensions, physical_device);
 
     VkPhysicalDeviceProperties device_properties;
@@ -959,6 +961,7 @@ bool vulkan_check_physical_device(VkPhysicalDevice physical_device, VkSurfaceKHR
                 selected_present_queue_family_index = i;
                 return true;
             }
+            Assert(vulkan_queue_family_has_presentation_support(physical_device, i, window) == queue_present_support[i], "Queue family presentation support mismatch.");
         }
     }
 
@@ -1025,7 +1028,7 @@ void vulkan_choose_physical_device(ReaperRoot& root, const VulkanBackend& backen
 
     for (auto& device : availableDevices)
     {
-        if (vulkan_check_physical_device(device, backend.presentInfo.surface, extensions, selected_queue_family_index, selected_present_queue_family_index))
+        if (vulkan_check_physical_device(root.renderer->window, device, backend.presentInfo.surface, extensions, selected_queue_family_index, selected_present_queue_family_index))
         {
             physicalDeviceInfo.physicalDevice = device;
             break;

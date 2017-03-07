@@ -107,7 +107,7 @@ void vulkan_device_check_extensions(const std::vector<const char*>& extensions, 
 void vulkan_setup_debug_callback(ReaperRoot& root, VulkanBackend& renderer);
 void vulkan_destroy_debug_callback(VulkanBackend& renderer);
 
-bool vulkan_check_physical_device(VkPhysicalDevice physical_device, VkSurfaceKHR presentationSurface, const std::vector<const char*>& extensions, uint32_t& queue_family_index, uint32_t& selected_present_queue_family_index);
+bool vulkan_check_physical_device(IWindow* window, VkPhysicalDevice physical_device, VkSurfaceKHR presentationSurface, const std::vector<const char*>& extensions, uint32_t& queue_family_index, uint32_t& selected_present_queue_family_index);
 void vulkan_choose_physical_device(ReaperRoot& root, const VulkanBackend& backend, VulkanPhysicalDeviceInfo& physicalDeviceInfo);
 void vulkan_create_logical_device(ReaperRoot& root, const VulkanBackend& backend, VulkanDeviceInfo& deviceInfo);
 

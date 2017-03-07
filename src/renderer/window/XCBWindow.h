@@ -26,6 +26,7 @@ private:
 public:
     xcb_connection_t*   Connection;
     xcb_window_t        Handle;
+    xcb_screen_t*       Screen;
 
 private:
     xcb_intern_atom_reply_t* DeleteWindowReply;
