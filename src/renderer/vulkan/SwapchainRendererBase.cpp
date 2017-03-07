@@ -9,6 +9,7 @@
 #include "common/Log.h"
 
 #include "SwapchainRendererBase.h"
+#include "Swapchain.h"
 
 #include <cstring>
 #include <iostream>
@@ -667,10 +668,11 @@ void SwapchainRendererBase::createCommandBufferPool()
 VulkanBackend::VulkanBackend()
 :   vulkanLib(nullptr)
 ,   instance(VK_NULL_HANDLE)
-,   swapChain(VK_NULL_HANDLE)
-,   presentInfo({VK_NULL_HANDLE})
-,   physicalDeviceInfo({VK_NULL_HANDLE, 0, 0})
-,   deviceInfo({VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE})
+,   physicalDevice(VK_NULL_HANDLE)
+,   physicalDeviceInfo({0, 0})
+,   device(VK_NULL_HANDLE)
+,   deviceInfo({VK_NULL_HANDLE, VK_NULL_HANDLE})
+,   presentInfo({VK_NULL_HANDLE, VK_NULL_HANDLE, 0, VK_FORMAT_UNDEFINED})
 ,   debugCallback(VK_NULL_HANDLE)
 {}
 
@@ -751,7 +753,6 @@ void create_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& backend)
     windowDescriptor.fullscreen = false;
 
     log_info(root, "vulkan: creating window: size = {}x{}, title = '{}', fullscreen = {}", windowDescriptor.width, windowDescriptor.height, windowDescriptor.title, windowDescriptor.fullscreen);
-
     IWindow* window = createWindow(windowDescriptor);
 
     root.renderer->window = window;
@@ -763,12 +764,12 @@ void create_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& backend)
     vulkan_choose_physical_device(root, backend, backend.physicalDeviceInfo);
 
     log_debug(root, "vulkan: creating logical device");
-    vulkan_create_logical_device(root, backend, backend.deviceInfo);
+    vulkan_create_logical_device(root, backend);
 
-    vulkan_load_device_level_functions(backend.deviceInfo.device);
+    SwapchainDescriptor swapchainDesc;
 
-    vkGetDeviceQueue(backend.deviceInfo.device, backend.physicalDeviceInfo.graphicsQueueIndex, 0, &backend.deviceInfo.graphicsQueue);
-    vkGetDeviceQueue(backend.deviceInfo.device, backend.physicalDeviceInfo.presentQueueIndex, 0, &backend.deviceInfo.presentQueue);
+    log_debug(root, "vulkan: creating swapchain");
+    create_vulkan_swapchain(root, backend, swapchainDesc, backend.presentInfo);
 
     log_info(root, "vulkan: ready");
 }
@@ -777,11 +778,14 @@ void destroy_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& backend)
 {
     log_info(root, "vulkan: destroying backend");
 
+    log_debug(root, "vulkan: destroying swapchain");
+    destroy_vulkan_swapchain(root, backend, backend.presentInfo);
+
     log_debug(root, "vulkan: waiting for current work to finish");
-    Assert(vkDeviceWaitIdle(backend.deviceInfo.device) == VK_SUCCESS);
+    Assert(vkDeviceWaitIdle(backend.device) == VK_SUCCESS);
 
     log_debug(root, "vulkan: destroying logical device");
-    vkDestroyDevice(backend.deviceInfo.device, nullptr);
+    vkDestroyDevice(backend.device, nullptr);
 
     log_debug(root, "vulkan: destroying presentation surface");
     vkDestroySurfaceKHR(backend.instance, backend.presentInfo.surface, nullptr);
@@ -1006,7 +1010,7 @@ namespace
     }
 }
 
-void vulkan_choose_physical_device(ReaperRoot& root, const VulkanBackend& backend, VulkanPhysicalDeviceInfo& physicalDeviceInfo)
+void vulkan_choose_physical_device(ReaperRoot& root, VulkanBackend& backend, PhysicalDeviceInfo& physicalDeviceInfo)
 {
     uint32_t deviceCount = 0;
 
@@ -1026,26 +1030,24 @@ void vulkan_choose_physical_device(ReaperRoot& root, const VulkanBackend& backen
         VK_KHR_SWAPCHAIN_EXTENSION_NAME
     };
 
+    VkPhysicalDevice chosenPhysicalDevice = VK_NULL_HANDLE;
     for (auto& device : availableDevices)
     {
         if (vulkan_check_physical_device(root.renderer->window, device, backend.presentInfo.surface, extensions, selected_queue_family_index, selected_present_queue_family_index))
         {
-            physicalDeviceInfo.physicalDevice = device;
+            chosenPhysicalDevice = device;
             break;
         }
     }
 
-    //fmt::print("raw: graphics {}\n", selected_queue_family_index);
-    //fmt::print("raw: present {}\n", selected_present_queue_family_index);
-
     physicalDeviceInfo.graphicsQueueIndex = selected_queue_family_index;
     physicalDeviceInfo.presentQueueIndex = selected_present_queue_family_index;
 
-    Assert(physicalDeviceInfo.physicalDevice != VK_NULL_HANDLE, "could not select physical device based on the chosen properties");
+    Assert(chosenPhysicalDevice != VK_NULL_HANDLE, "could not select physical device based on the chosen properties");
 
     // re-fetch device infos TODO avoid
     VkPhysicalDeviceProperties physicalDeviceProperties;
-    vkGetPhysicalDeviceProperties(physicalDeviceInfo.physicalDevice, &physicalDeviceProperties);
+    vkGetPhysicalDeviceProperties(chosenPhysicalDevice, &physicalDeviceProperties);
 
     log_info(root, "vulkan: selecting device '{}'", physicalDeviceProperties.deviceName);
     log_debug(root, "- type = {}", vulkan_physical_device_type_name(physicalDeviceProperties.deviceType));
@@ -1054,9 +1056,11 @@ void vulkan_choose_physical_device(ReaperRoot& root, const VulkanBackend& backen
     uint32_t driverVersion = physicalDeviceProperties.driverVersion;
     log_debug(root, "- api version = {}.{}.{}", VK_VERSION_MAJOR(apiVersion), VK_VERSION_MINOR(apiVersion), VK_VERSION_PATCH(apiVersion));
     log_debug(root, "- driver version = {}.{}.{}", VK_VERSION_MAJOR(driverVersion), VK_VERSION_MINOR(driverVersion), VK_VERSION_PATCH(driverVersion));
+
+    backend.physicalDevice = chosenPhysicalDevice;
 }
 
-void vulkan_create_logical_device(ReaperRoot& root, const VulkanBackend& backend, VulkanDeviceInfo& deviceInfo)
+void vulkan_create_logical_device(ReaperRoot& root, VulkanBackend& backend)
 {
     std::vector<VkDeviceQueueCreateInfo>    queue_create_infos;
     std::vector<float>                      queue_priorities = { 1.0f };
@@ -1110,5 +1114,10 @@ void vulkan_create_logical_device(ReaperRoot& root, const VulkanBackend& backend
         nullptr                                                         // const VkPhysicalDeviceFeatures    *pEnabledFeatures
     };
 
-    Assert(vkCreateDevice(backend.physicalDeviceInfo.physicalDevice, &device_create_info, nullptr, &deviceInfo.device) == VK_SUCCESS, "could not create Vulkan device");
+    Assert(vkCreateDevice(backend.physicalDevice, &device_create_info, nullptr, &backend.device) == VK_SUCCESS, "could not create Vulkan device");
+
+    vulkan_load_device_level_functions(backend.device);
+
+    vkGetDeviceQueue(backend.device, backend.physicalDeviceInfo.graphicsQueueIndex, 0, &backend.deviceInfo.graphicsQueue);
+    vkGetDeviceQueue(backend.device, backend.physicalDeviceInfo.presentQueueIndex, 0, &backend.deviceInfo.presentQueue);
 }
