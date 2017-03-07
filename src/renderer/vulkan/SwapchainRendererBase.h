@@ -62,21 +62,25 @@ protected:
     VkQueue             _graphicsQueue;
 };
 
-struct VulkanPresentInfo
+struct PresentationInfo
 {
     VkSurfaceKHR        surface;
+    VkSwapchainKHR      swapchain;
+    u32                 imageCount;
+    VkFormat            format;
+    std::vector<VkImage>        images;
+    std::vector<VkImageView>    imageViews;
+    std::vector<VkFramebuffer>  framebuffers;
 };
 
-struct VulkanPhysicalDeviceInfo
+struct PhysicalDeviceInfo
 {
-    VkPhysicalDevice    physicalDevice;
     uint32_t            graphicsQueueIndex;
     uint32_t            presentQueueIndex;
 };
 
-struct VulkanDeviceInfo
+struct DeviceInfo
 {
-    VkDevice device;
     VkQueue  graphicsQueue;
     VkQueue  presentQueue;
 };
@@ -85,11 +89,14 @@ struct REAPER_RENDERER_API VulkanBackend
 {
     LibHandle           vulkanLib;
     VkInstance          instance;
-    VkSwapchainKHR      swapChain;
-    VulkanPresentInfo   presentInfo;
 
-    VulkanPhysicalDeviceInfo    physicalDeviceInfo;
-    VulkanDeviceInfo            deviceInfo;
+    VkPhysicalDevice    physicalDevice;
+    PhysicalDeviceInfo  physicalDeviceInfo;
+
+    VkDevice            device;
+    DeviceInfo          deviceInfo;
+
+    PresentationInfo    presentInfo;
 
     VkDebugReportCallbackEXT debugCallback;
 
@@ -108,7 +115,7 @@ void vulkan_setup_debug_callback(ReaperRoot& root, VulkanBackend& renderer);
 void vulkan_destroy_debug_callback(VulkanBackend& renderer);
 
 bool vulkan_check_physical_device(IWindow* window, VkPhysicalDevice physical_device, VkSurfaceKHR presentationSurface, const std::vector<const char*>& extensions, uint32_t& queue_family_index, uint32_t& selected_present_queue_family_index);
-void vulkan_choose_physical_device(ReaperRoot& root, const VulkanBackend& backend, VulkanPhysicalDeviceInfo& physicalDeviceInfo);
-void vulkan_create_logical_device(ReaperRoot& root, const VulkanBackend& backend, VulkanDeviceInfo& deviceInfo);
+void vulkan_choose_physical_device(ReaperRoot& root, VulkanBackend& backend, PhysicalDeviceInfo& physicalDeviceInfo);
+void vulkan_create_logical_device(ReaperRoot& root, VulkanBackend& backend);
 
 #endif // REAPER_SWAPCHAINRENDERERBASE_INCLUDED

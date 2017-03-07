@@ -77,6 +77,8 @@ set(REAPER_RENDERER_SRCS
     ${REAPER_RENDERER_DIR}/vulkan/Memory.h
     ${REAPER_RENDERER_DIR}/vulkan/PresentationSurface.cpp
     ${REAPER_RENDERER_DIR}/vulkan/PresentationSurface.h
+    ${REAPER_RENDERER_DIR}/vulkan/Swapchain.cpp
+    ${REAPER_RENDERER_DIR}/vulkan/Swapchain.h
     ${REAPER_RENDERER_DIR}/vulkan/SwapchainRendererBase.cpp
     ${REAPER_RENDERER_DIR}/vulkan/SwapchainRendererBase.h
     ${REAPER_RENDERER_DIR}/vulkan/Shader.cpp
