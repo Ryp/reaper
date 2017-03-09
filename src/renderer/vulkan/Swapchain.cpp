@@ -7,67 +7,57 @@
 
 #include "Swapchain.h"
 
+#include "common/Log.h"
 #include "api/Vulkan.h"
 
 namespace
 {
-    VkSurfaceFormatKHR GetSwapChainFormat(std::vector<VkSurfaceFormatKHR> &surface_formats)
+    VkSurfaceFormatKHR vulkan_swapchain_choose_surface_format(std::vector<VkSurfaceFormatKHR> &surface_formats, VkSurfaceFormatKHR preferredFormat)
     {
         // If the list contains only one entry with undefined format
         // it means that there are no preferred surface formats and any can be chosen
-        if( (surface_formats.size() == 1) && (surface_formats[0].format == VK_FORMAT_UNDEFINED) ) {
-            return{ VK_FORMAT_R8G8B8A8_UNORM, VK_COLORSPACE_SRGB_NONLINEAR_KHR };
-        }
+        if ((surface_formats.size() == 1) && (surface_formats[0].format == VK_FORMAT_UNDEFINED))
+            return preferredFormat;
 
-        // Check if list contains most widely used R8 G8 B8 A8 format
-        // with nonlinear color space
-        for( VkSurfaceFormatKHR &surface_format : surface_formats ) {
-            if( surface_format.format == VK_FORMAT_R8G8B8A8_UNORM ) {
+        for (const VkSurfaceFormatKHR &surface_format : surface_formats)
+        {
+            if (surface_format.format == preferredFormat.format && surface_format.colorSpace == preferredFormat.colorSpace)
                 return surface_format;
-            }
         }
 
-        // Return the first format from the list
-        return surface_formats[0];
+        return surface_formats[0]; // Return first available format
     }
 
-    VkExtent2D GetSwapChainExtent(VkSurfaceCapabilitiesKHR& surface_capabilities)
+    uint32_t clamp(uint32_t v, uint32_t min, uint32_t max)
+    {
+        if (v < min)
+            return min;
+        if (v > max)
+            return max;
+        else
+            return v;
+    }
+
+    VkExtent2D clamp(VkExtent2D value, VkExtent2D min, VkExtent2D max)
+    {
+        return {
+            clamp(value.width, min.width, max.width),
+            clamp(value.height, min.height, max.height),
+        };
+    }
+
+    VkExtent2D vulkan_swapchain_choose_extent(VkSurfaceCapabilitiesKHR& surface_capabilities, VkExtent2D preferredExtent)
     {
         // Special value of surface extent is width == height == -1
         // If this is so we define the size by ourselves but it must fit within defined confines
-        if( surface_capabilities.currentExtent.width == uint32_t(-1)) {
-            VkExtent2D swap_chain_extent = { 800, 800 };
-            if( swap_chain_extent.width < surface_capabilities.minImageExtent.width ) {
-                swap_chain_extent.width = surface_capabilities.minImageExtent.width;
-            }
-            if( swap_chain_extent.height < surface_capabilities.minImageExtent.height ) {
-                swap_chain_extent.height = surface_capabilities.minImageExtent.height;
-            }
-            if( swap_chain_extent.width > surface_capabilities.maxImageExtent.width ) {
-                swap_chain_extent.width = surface_capabilities.maxImageExtent.width;
-            }
-            if( swap_chain_extent.height > surface_capabilities.maxImageExtent.height ) {
-                swap_chain_extent.height = surface_capabilities.maxImageExtent.height;
-            }
-            return swap_chain_extent;
-        }
+        if (surface_capabilities.currentExtent.width == uint32_t(-1))
+            return clamp(preferredExtent, surface_capabilities.minImageExtent, surface_capabilities.maxImageExtent);
 
         // Most of the cases we define size of the swap_chain images equal to current window's size
         return surface_capabilities.currentExtent;
     }
 
-    VkImageUsageFlags GetSwapChainUsageFlags(VkSurfaceCapabilitiesKHR& surface_capabilities)
-    {
-        // Color attachment flag must always be supported
-        // We can define other usage flags but we always need to check if they are supported
-        if( surface_capabilities.supportedUsageFlags & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT) {
-            return VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-        }
-        Assert(false, "VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT image usage is not supported by the swap chain!");
-        return static_cast<VkImageUsageFlags>(-1);
-    }
-
-    VkSurfaceTransformFlagBitsKHR GetSwapChainTransform(VkSurfaceCapabilitiesKHR& surface_capabilities)
+    VkSurfaceTransformFlagBitsKHR vulkan_swapchain_choose_tranform(VkSurfaceCapabilitiesKHR& surface_capabilities)
     {
         // Sometimes images must be transformed before they are presented (i.e. due to device's orienation
         // being other than default orientation)
@@ -82,22 +72,23 @@ namespace
         }
     }
 
-    VkPresentModeKHR GetSwapChainPresentMode(std::vector<VkPresentModeKHR>& present_modes)
+    VkPresentModeKHR vulkan_swapchain_choose_present_mode(std::vector<VkPresentModeKHR>& present_modes)
     {
-        // FIFO present mode is always available
-        // MAILBOX is the lowest latency V-Sync enabled mode (something like triple-buffering) so use it if available
+        // Prefer MAILBOX over FIFO
         for (VkPresentModeKHR &present_mode : present_modes)
         {
             if (present_mode == VK_PRESENT_MODE_MAILBOX_KHR)
                 return present_mode;
         }
+
         for (VkPresentModeKHR &present_mode : present_modes)
         {
             if (present_mode == VK_PRESENT_MODE_FIFO_KHR)
                 return present_mode;
         }
-        Assert(false, "FIFO present mode is not supported by the swap chain!");
-        return static_cast<VkPresentModeKHR>(-1);
+
+        Assert(false, "FIFO present mode is not supported by the swap chain!"); // Normally enforced by the API
+        return VK_PRESENT_MODE_FIFO_KHR;
     }
 }
 
@@ -105,10 +96,7 @@ using namespace vk;
 
 void create_vulkan_swapchain(ReaperRoot& root, const VulkanBackend& backend, const SwapchainDescriptor& swapchainDesc, PresentationInfo& presentInfo)
 {
-    static_cast<void>(root); // TODO FIXME
-    static_cast<void>(swapchainDesc); // TODO FIXME
-    VkSurfaceCapabilitiesKHR surface_capabilities;
-    Assert(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(backend.physicalDevice, presentInfo.surface, &surface_capabilities) == VK_SUCCESS);
+    log_debug(root, "vulkan: creating swapchain");
 
     uint32_t formats_count;
     Assert(vkGetPhysicalDeviceSurfaceFormatsKHR(backend.physicalDevice, presentInfo.surface, &formats_count, nullptr) == VK_SUCCESS);
@@ -117,68 +105,111 @@ void create_vulkan_swapchain(ReaperRoot& root, const VulkanBackend& backend, con
     std::vector<VkSurfaceFormatKHR> surface_formats(formats_count);
     Assert(vkGetPhysicalDeviceSurfaceFormatsKHR(backend.physicalDevice, presentInfo.surface, &formats_count, &surface_formats[0]) == VK_SUCCESS);
 
-    uint32_t present_modes_count;
-    Assert(vkGetPhysicalDeviceSurfacePresentModesKHR(backend.physicalDevice, presentInfo.surface, &present_modes_count, nullptr ) == VK_SUCCESS);
-    Assert(present_modes_count > 0);
+    log_debug(root, "vulkan: swapchain supports {} formats", formats_count);
+    for (auto& format : surface_formats)
+        log_debug(root, "- pixel format = {}, colorspace = {}", format.format, format.colorSpace); // TODO to_string() function
 
-    std::vector<VkPresentModeKHR> present_modes(present_modes_count);
-    Assert(vkGetPhysicalDeviceSurfacePresentModesKHR(backend.physicalDevice, presentInfo.surface, &present_modes_count, &present_modes[0]) == VK_SUCCESS);
+    VkSurfaceFormatKHR surfaceFormat = vulkan_swapchain_choose_surface_format(surface_formats, swapchainDesc.preferredFormat);
 
-    // Set of images defined in a swap chain may not always be available for application to render to:
-    // One may be displayed and one may wait in a queue to be presented
-    // If application wants to use more images at the same time it must ask for more images
-    uint32_t image_count = surface_capabilities.minImageCount + 1;
-    if ((surface_capabilities.maxImageCount > 0) && (image_count > surface_capabilities.maxImageCount))
-        image_count = surface_capabilities.maxImageCount;
+    if (surfaceFormat.format != swapchainDesc.preferredFormat.format || surfaceFormat.colorSpace != swapchainDesc.preferredFormat.colorSpace)
+    {
+        // TODO format to_string() function
+        log_warning(root, "vulkan: incompatible swapchain format: pixel format = {}, colorspace = {}", swapchainDesc.preferredFormat.format, swapchainDesc.preferredFormat.colorSpace);
+        log_warning(root, "- falling back to: pixel format = {}, colorspace = {}", surfaceFormat.format, surfaceFormat.colorSpace);
+    }
 
-    uint32_t                      desired_number_of_images = image_count;
-    VkSurfaceFormatKHR            desired_format = GetSwapChainFormat(surface_formats);
-    VkExtent2D                    desired_extent = GetSwapChainExtent(surface_capabilities);
-    VkImageUsageFlags             desired_usage = GetSwapChainUsageFlags(surface_capabilities);
-    VkSurfaceTransformFlagBitsKHR desired_transform = GetSwapChainTransform(surface_capabilities);
-    VkPresentModeKHR              desired_present_mode = GetSwapChainPresentMode(present_modes);
+    // Image count
+    VkSurfaceCapabilitiesKHR surfaceCaps;
+    Assert(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(backend.physicalDevice, presentInfo.surface, &surfaceCaps) == VK_SUCCESS);
 
-    Assert(static_cast<int>(desired_usage) != -1);
-    Assert(static_cast<int>(desired_present_mode) != -1);
+    log_debug(root, "vulkan: swapchain image count support: min = {}, max = {}", surfaceCaps.minImageCount, surfaceCaps.maxImageCount);
+
+    uint32_t imageCount = swapchainDesc.preferredImageCount;
+    if (imageCount < surfaceCaps.minImageCount)
+        imageCount = surfaceCaps.minImageCount;
+    else if (surfaceCaps.maxImageCount > 0 && imageCount > surfaceCaps.maxImageCount)
+        imageCount = surfaceCaps.maxImageCount;
+
+    if (imageCount != swapchainDesc.preferredImageCount)
+        log_warning(root, "vulkan: swapchain image count {} is unsupported. falling back to {}", swapchainDesc.preferredImageCount, imageCount);
+
+    Assert(imageCount > 0);
+    Assert(imageCount < 4); // Seems like a reasonable limit
+
+    // Present mode
+    uint32_t presentModeCount;
+    Assert(vkGetPhysicalDeviceSurfacePresentModesKHR(backend.physicalDevice, presentInfo.surface, &presentModeCount, nullptr) == VK_SUCCESS);
+    Assert(presentModeCount > 0);
+
+    std::vector<VkPresentModeKHR> availablePresentModes(presentModeCount);
+    Assert(vkGetPhysicalDeviceSurfacePresentModesKHR(backend.physicalDevice, presentInfo.surface, &presentModeCount, &availablePresentModes[0]) == VK_SUCCESS);
+
+    log_debug(root, "vulkan: swapchain supports {} present modes", presentModeCount);
+    for (auto& mode : availablePresentModes)
+        log_debug(root, "- {}", mode); // TODO to_string() function
+
+    VkPresentModeKHR present_mode = vulkan_swapchain_choose_present_mode(availablePresentModes);
+
+    // Extent
+    VkExtent2D extent = vulkan_swapchain_choose_extent(surfaceCaps, swapchainDesc.preferredExtent);
+
+    if (extent.width != swapchainDesc.preferredExtent.width || extent.height != swapchainDesc.preferredExtent.height)
+    {
+        log_warning(root, "vulkan: swapchain extent {}x{} is not supported", swapchainDesc.preferredExtent.width, swapchainDesc.preferredExtent.height);
+        log_warning(root, "- falling back to {}x{}", extent.width, extent.height);
+    }
+
+    // Usage flags
+    VkImageUsageFlags usageFlags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+    Assert(surfaceCaps.supportedUsageFlags & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, "Vulkan API error");
+
+    // Transform
+    VkSurfaceTransformFlagBitsKHR transform = vulkan_swapchain_choose_tranform(surfaceCaps);
 
     VkSwapchainCreateInfoKHR swap_chain_create_info = {
-        VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,  // VkStructureType                sType
-        nullptr,                                      // const void                    *pNext
-        0,                                            // VkSwapchainCreateFlagsKHR      flags
-        presentInfo.surface,                  // VkSurfaceKHR                   surface
-        desired_number_of_images,                     // uint32_t                       minImageCount
-        desired_format.format,                        // VkFormat                       imageFormat
-        desired_format.colorSpace,                    // VkColorSpaceKHR                imageColorSpace
-        desired_extent,                               // VkExtent2D                     imageExtent
-        1,                                            // uint32_t                       imageArrayLayers
-        desired_usage,                                // VkImageUsageFlags              imageUsage
-        VK_SHARING_MODE_EXCLUSIVE,                    // VkSharingMode                  imageSharingMode
-        0,                                            // uint32_t                       queueFamilyIndexCount
-        nullptr,                                      // const uint32_t                *pQueueFamilyIndices
-        desired_transform,                            // VkSurfaceTransformFlagBitsKHR  preTransform
-        VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,            // VkCompositeAlphaFlagBitsKHR    compositeAlpha
-        desired_present_mode,                         // VkPresentModeKHR               presentMode
-        VK_TRUE,                                      // VkBool32                       clipped
-        VK_NULL_HANDLE                                // VkSwapchainKHR                 oldSwapchain
+        VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,// VkStructureType                sType
+        nullptr,                                    // const void                    *pNext
+        0,                                          // VkSwapchainCreateFlagsKHR      flags
+        presentInfo.surface,                        // VkSurfaceKHR                   surface
+        imageCount,                                 // uint32_t                       minImageCount
+        surfaceFormat.format,                       // VkFormat                       imageFormat
+        surfaceFormat.colorSpace,                   // VkColorSpaceKHR                imageColorSpace
+        extent,                                     // VkExtent2D                     imageExtent
+        1,                                          // uint32_t                       imageArrayLayers
+        usageFlags,                                 // VkImageUsageFlags              imageUsage
+        VK_SHARING_MODE_EXCLUSIVE,                  // VkSharingMode                  imageSharingMode
+        0,                                          // uint32_t                       queueFamilyIndexCount
+        nullptr,                                    // const uint32_t                *pQueueFamilyIndices
+        transform,                                  // VkSurfaceTransformFlagBitsKHR  preTransform
+        VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,          // VkCompositeAlphaFlagBitsKHR    compositeAlpha
+        present_mode,                               // VkPresentModeKHR               presentMode
+        VK_TRUE,                                    // VkBool32                       clipped
+        VK_NULL_HANDLE                              // VkSwapchainKHR                 oldSwapchain
     };
 
     Assert(vkCreateSwapchainKHR(backend.device, &swap_chain_create_info, nullptr, &presentInfo.swapchain) == VK_SUCCESS);
+
     Assert(vkGetSwapchainImagesKHR(backend.device, presentInfo.swapchain, &presentInfo.imageCount, nullptr) == VK_SUCCESS);
     Assert(presentInfo.imageCount > 0);
 
-    presentInfo.format = desired_format.format;
+    presentInfo.surfaceCaps = surfaceCaps;
+    presentInfo.surfaceFormat = surfaceFormat;
+
     presentInfo.images.resize(presentInfo.imageCount);
     Assert(vkGetSwapchainImagesKHR(backend.device, presentInfo.swapchain, &presentInfo.imageCount, &presentInfo.images[0]) == VK_SUCCESS);
+
+    // TODO Framebuffer and imageView creation
 }
 
 void destroy_vulkan_swapchain(ReaperRoot& root, const VulkanBackend& backend, PresentationInfo& presentInfo)
 {
-    static_cast<void>(root); // TODO FIXME
-    for (size_t i = 0; i < presentInfo.framebuffers.size(); ++i)
-    {
-        vkDestroyImageView(backend.device, presentInfo.imageViews[i], nullptr);
-        vkDestroyFramebuffer(backend.device, presentInfo.framebuffers[i], nullptr);
-    }
+    log_debug(root, "vulkan: destroying swapchain");
+
+    //for (size_t i = 0; i < presentInfo.framebuffers.size(); ++i)
+    //{
+    //    vkDestroyImageView(backend.device, presentInfo.imageViews[i], nullptr);
+    //    vkDestroyFramebuffer(backend.device, presentInfo.framebuffers[i], nullptr);
+    //}
     presentInfo.imageViews.clear();
     presentInfo.framebuffers.clear();
 

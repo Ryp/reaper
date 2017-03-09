@@ -665,7 +665,7 @@ void SwapchainRendererBase::createCommandBufferPool()
     Assert(vkAllocateCommandBuffers(_device, &cmd_buffer_allocate_info, &_gfxCmdBuffers[0]) == VK_SUCCESS);
 }
 
-VulkanBackend::VulkanBackend()
+VulkanBackend::VulkanBackend() // TODO add correct init
 :   vulkanLib(nullptr)
 ,   instance(VK_NULL_HANDLE)
 ,   physicalDevice(VK_NULL_HANDLE)
@@ -767,8 +767,12 @@ void create_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& backend)
     vulkan_create_logical_device(root, backend);
 
     SwapchainDescriptor swapchainDesc;
+    swapchainDesc.preferredImageCount = 2; // Double buffering
+    //swapchainDesc.preferredFormat = { VK_FORMAT_R8G8B8A8_UNORM, VK_COLORSPACE_SRGB_NONLINEAR_KHR };
+    swapchainDesc.preferredFormat = { VK_FORMAT_B8G8R8A8_UNORM, VK_COLORSPACE_SRGB_NONLINEAR_KHR };
+    swapchainDesc.preferredExtent = { windowDescriptor.width, windowDescriptor.height };
+    //swapchainDesc.preferredExtent = { 1920, 1080 };
 
-    log_debug(root, "vulkan: creating swapchain");
     create_vulkan_swapchain(root, backend, swapchainDesc, backend.presentInfo);
 
     log_info(root, "vulkan: ready");
@@ -778,7 +782,6 @@ void destroy_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& backend)
 {
     log_info(root, "vulkan: destroying backend");
 
-    log_debug(root, "vulkan: destroying swapchain");
     destroy_vulkan_swapchain(root, backend, backend.presentInfo);
 
     log_debug(root, "vulkan: waiting for current work to finish");
