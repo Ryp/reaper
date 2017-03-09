@@ -64,10 +64,11 @@ protected:
 
 struct PresentationInfo
 {
-    VkSurfaceKHR        surface;
-    VkSwapchainKHR      swapchain;
-    u32                 imageCount;
-    VkFormat            format;
+    VkSurfaceKHR                surface;
+    VkSurfaceCapabilitiesKHR    surfaceCaps;
+    VkSurfaceFormatKHR          surfaceFormat;
+    VkSwapchainKHR              swapchain;
+    u32                         imageCount;
     std::vector<VkImage>        images;
     std::vector<VkImageView>    imageViews;
     std::vector<VkFramebuffer>  framebuffers;
