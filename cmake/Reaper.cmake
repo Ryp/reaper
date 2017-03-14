@@ -8,8 +8,6 @@
 include(${CMAKE_SOURCE_DIR}/cmake/Platform.cmake)
 include(${CMAKE_SOURCE_DIR}/cmake/Compiler.cmake)
 
-include(${CMAKE_SOURCE_DIR}/cmake/glslang.cmake)
-
 set(CXX_STANDARD_REQUIRED ON)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
@@ -107,7 +105,7 @@ macro(reaper_add_tests library testfiles)
     # Register wih ctest
     add_test(NAME ${REAPER_TEST_BIN} COMMAND $<TARGET_FILE:${REAPER_TEST_BIN}> WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 
-    if (WIN32)
+    if (MSVC)
         set_target_properties(${REAPER_TEST_BIN} PROPERTIES FOLDER Test)
         reaper_vs_set_debugger_flags(${REAPER_TEST_BIN})
     endif()

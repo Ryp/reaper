@@ -32,6 +32,7 @@ set(REAPER_CORE_SRCS
     ${REAPER_CORE_DIR}/StackTrace.h
     ${REAPER_CORE_DIR}/Types.h
     ${REAPER_CORE_DIR}/Version.h
+    ${REAPER_CORE_DIR}/Version.h.in
 
     ${REAPER_CORE_DIR}/fs/FileLoading.cpp
     ${REAPER_CORE_DIR}/fs/FileLoading.h

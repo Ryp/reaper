@@ -21,7 +21,7 @@ else()
     # Monoconfig generator
     set(REAPER_DEFAULT_BUILD_TYPE "Debug")
     if(NOT CMAKE_BUILD_TYPE)
-        message("No build type provided, defaulting to: ${REAPER_DEFAULT_BUILD_TYPE}")
+        message(STATUS "No build type provided, defaulting to: ${REAPER_DEFAULT_BUILD_TYPE}")
         set(CMAKE_BUILD_TYPE ${REAPER_DEFAULT_BUILD_TYPE} CACHE STRING "" FORCE)
     endif()
     # Set the valid options for cmake-gui drop-down list
@@ -52,8 +52,11 @@ endif()
 
 # Provide custom cmake scripts
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
-include(cotire)
 include(Reaper)
+
+include(cotire)
+include(glslang)
+include(microprofile)
 
 set(REAPER_BIN reaper)
 
