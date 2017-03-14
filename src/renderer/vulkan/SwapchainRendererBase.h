@@ -68,6 +68,9 @@ struct PresentationInfo
     VkSurfaceCapabilitiesKHR    surfaceCaps;
     VkSurfaceFormatKHR          surfaceFormat;
     VkSwapchainKHR              swapchain;
+    VkExtent2D                  surfaceExtent;
+    VkSemaphore                 imageAvailableSemaphore;
+    VkSemaphore                 renderingFinishedSemaphore;
     u32                         imageCount;
     std::vector<VkImage>        images;
     std::vector<VkImageView>    imageViews;

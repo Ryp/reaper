@@ -194,16 +194,28 @@ void create_vulkan_swapchain(ReaperRoot& root, const VulkanBackend& backend, con
 
     presentInfo.surfaceCaps = surfaceCaps;
     presentInfo.surfaceFormat = surfaceFormat;
+    presentInfo.surfaceExtent = extent;
 
     presentInfo.images.resize(presentInfo.imageCount);
     Assert(vkGetSwapchainImagesKHR(backend.device, presentInfo.swapchain, &presentInfo.imageCount, &presentInfo.images[0]) == VK_SUCCESS);
 
     // TODO Framebuffer and imageView creation
+    VkSemaphoreCreateInfo semaphore_create_info = {
+        VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,      // VkStructureType          sType
+        nullptr,                                      // const void*              pNext
+        0                                             // VkSemaphoreCreateFlags   flags
+    };
+
+    Assert(vkCreateSemaphore(backend.device, &semaphore_create_info, nullptr, &presentInfo.imageAvailableSemaphore) == VK_SUCCESS);
+    Assert(vkCreateSemaphore(backend.device, &semaphore_create_info, nullptr, &presentInfo.renderingFinishedSemaphore) == VK_SUCCESS);
 }
 
 void destroy_vulkan_swapchain(ReaperRoot& root, const VulkanBackend& backend, PresentationInfo& presentInfo)
 {
     log_debug(root, "vulkan: destroying swapchain");
+
+    vkDestroySemaphore(backend.device, presentInfo.imageAvailableSemaphore, nullptr);
+    vkDestroySemaphore(backend.device, presentInfo.renderingFinishedSemaphore, nullptr);
 
     //for (size_t i = 0; i < presentInfo.framebuffers.size(); ++i)
     //{
