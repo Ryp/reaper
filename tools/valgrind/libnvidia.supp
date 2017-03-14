@@ -1,0 +1,53 @@
+# We don't care about problems in the ICD or loader
+# Many of these could be false positives, since valgrind doesn't know about GPU access
+{
+  NvidiaVulkanAddr8
+  Memcheck:Addr8
+  ...
+  obj:*libnvidia-glcore.so*
+}
+{
+  NvidiaVulkanAddr4
+  Memcheck:Addr4
+  ...
+  obj:*libnvidia-glcore.so*
+}
+{
+  NvidiaVulkanAddr2
+  Memcheck:Addr2
+  ...
+  obj:*libnvidia-glcore.so*
+}
+{
+  NvidiaVulkanAddr1
+  Memcheck:Addr1
+  ...
+  obj:*libnvidia-glcore.so*
+}
+{
+  NvidiaVulkanCond
+  Memcheck:Cond
+  ...
+  obj:*libnvidia-glcore.so*
+}
+{
+  NvidiaVulkanValue8
+  Memcheck:Value8
+  ...
+  obj:*libnvidia-glcore.so*
+}
+{
+  NvidiaVulkanLeak
+  Memcheck:Leak
+  match-leak-kinds: all
+  ...
+  obj:*libnvidia-glcore.so*
+}
+{
+  NvidiaVulkanSendMsg
+  Memcheck:Param
+  sendmsg(msg.msg_iov[0])
+  fun:sendmsg
+  ...
+  obj:*libnvidia-glcore.so*
+}
