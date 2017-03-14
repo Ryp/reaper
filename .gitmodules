@@ -1,12 +1,16 @@
 [submodule "external/doctest"]
-	path = external/doctest
-	url = https://github.com/onqtam/doctest
+    path = external/doctest
+    url = https://github.com/onqtam/doctest
 [submodule "external/gli"]
-	path = external/gli
-	url = https://github.com/g-truc/gli
+    path = external/gli
+    url = https://github.com/g-truc/gli
 [submodule "external/glm"]
-	path = external/glm
-	url = https://github.com/g-truc/glm
+    path = external/glm
+    url = https://github.com/g-truc/glm
 [submodule "external/fmt"]
-	path = external/fmt
-	url = https://github.com/fmtlib/fmt
+    path = external/fmt
+    url = https://github.com/fmtlib/fmt
+[submodule "external/microprofile"]
+    path = external/microprofile
+    url = https://github.com/jonasmr/microprofile
+    ignore = untracked
