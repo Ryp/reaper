@@ -34,7 +34,6 @@ project(Reaper)
 # Export compile commands in a json file. Useful for vim completion and debugging
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-option(REAPER_BUILD_KDEV_TEMPLATES      "Build custom templates for kdevelop" OFF)
 option(REAPER_BUILD_TESTS               "Build tests" ON)
 option(REAPER_BUILD_SHARED_LIBRARIES    "Build shared libraries" ON)
 
@@ -139,6 +138,3 @@ target_link_libraries(${REAPER_BIN}
 set_target_properties(${REAPER_BIN} PROPERTIES COTIRE_CXX_PREFIX_HEADER_INIT ${REAPER_PCH})
 cotire(${REAPER_BIN})
 
-if (REAPER_BUILD_KDEV_TEMPLATES)
-    add_subdirectory(tools/kdevelop)
-endif()
