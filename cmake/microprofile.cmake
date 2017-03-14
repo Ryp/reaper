@@ -9,8 +9,6 @@ set(MICROPROFILE_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/external/microprofile)
 
 configure_file(${CMAKE_SOURCE_DIR}/external/microprofile.config.h.in ${MICROPROFILE_INCLUDE_DIR}/microprofile.config.h NEWLINE_STYLE LF)
 
-add_definitions(-DMICROPROFILE_USE_CONFIG)
-
 set(MICROPROFILE_LIBRARY microprofile)
 set(MICROPROFILE_SRCS
     ${CMAKE_SOURCE_DIR}/external/microprofile.config.h.in
@@ -20,12 +18,13 @@ set(MICROPROFILE_SRCS
 )
 
 add_library(${MICROPROFILE_LIBRARY} STATIC ${MICROPROFILE_SRCS})
+set_target_properties(${MICROPROFILE_LIBRARY} PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
-if (MSVC)
+if(MSVC)
     set_target_properties(${MICROPROFILE_LIBRARY} PROPERTIES FOLDER External)
 endif()
 
-if (WIN32)
+if(WIN32)
     target_link_libraries(${MICROPROFILE_LIBRARY} ws2_32)
 endif()
 
