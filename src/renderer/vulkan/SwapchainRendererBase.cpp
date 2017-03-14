@@ -961,7 +961,7 @@ bool vulkan_check_physical_device(IWindow* window, VkPhysicalDevice physical_dev
             if (graphics_queue_family_index == UINT32_MAX)
                 graphics_queue_family_index = i;
 
-            Assert(vulkan_queue_family_has_presentation_support(physical_device, i, window) == queue_present_support[i], "Queue family presentation support mismatch.");
+            Assert(vulkan_queue_family_has_presentation_support(physical_device, i, window) == (queue_present_support[i] == VK_TRUE), "Queue family presentation support mismatch.");
 
             // If there is queue that supports both graphics and present - prefer it
             if (queue_present_support[i])

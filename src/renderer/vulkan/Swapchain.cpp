@@ -161,7 +161,7 @@ void create_vulkan_swapchain(ReaperRoot& root, const VulkanBackend& backend, con
 
     // Usage flags
     VkImageUsageFlags usageFlags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-    Assert(surfaceCaps.supportedUsageFlags & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, "Vulkan API error");
+    Assert((surfaceCaps.supportedUsageFlags & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT) != 0, "Vulkan API error");
 
     // Transform
     VkSurfaceTransformFlagBitsKHR transform = vulkan_swapchain_choose_tranform(surfaceCaps);
