@@ -141,7 +141,7 @@ void OldRenderer::render()
         &_imageAvailableSemaphore,          // const VkSemaphore           *pWaitSemaphores
         &wait_dst_stage_mask,               // const VkPipelineStageFlags  *pWaitDstStageMask;
         1,                                  // uint32_t                     commandBufferCount
-        &_gfxCmdBuffers[image_index],   // const VkCommandBuffer       *pCommandBuffers
+        &_gfxCmdBuffers[image_index],       // const VkCommandBuffer       *pCommandBuffers
         1,                                  // uint32_t                     signalSemaphoreCount
         &_renderingFinishedSemaphore        // const VkSemaphore           *pSignalSemaphores
     };
@@ -325,7 +325,7 @@ void OldRenderer::createDescriptorPool()
     VkDescriptorSetLayoutCreateInfo descriptorLayout = {};
     descriptorLayout.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
     descriptorLayout.pNext = nullptr;
-    descriptorLayout.bindingCount = setLayoutBindings.size();
+    descriptorLayout.bindingCount = static_cast<uint32_t>(setLayoutBindings.size());
     descriptorLayout.pBindings = setLayoutBindings.data();
 
     Assert(vkCreateDescriptorSetLayout(_device, &descriptorLayout, nullptr, &_descriptorSetLayout) == VK_SUCCESS);
@@ -842,7 +842,7 @@ void OldRenderer::createTextures()
                 stagingBuffer,
                 _texImage,
                 VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                bufferCopyRegions.size(),
+                static_cast<uint32_t>(bufferCopyRegions.size()),
                 bufferCopyRegions.data());
 
         // Change texture image layout to shader read after all mip levels have been copied
@@ -975,7 +975,7 @@ void OldRenderer::createDescriptorSet()
         }
     };
 
-    vkUpdateDescriptorSets(_device, writeDescriptorSets.size(), writeDescriptorSets.data(), 0, nullptr);
+    vkUpdateDescriptorSets(_device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
 }
 
 void OldRenderer::updateUniforms()
