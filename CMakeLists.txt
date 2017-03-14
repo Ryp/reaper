@@ -36,6 +36,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 option(REAPER_BUILD_TESTS               "Build tests" ON)
 option(REAPER_BUILD_SHARED_LIBRARIES    "Build shared libraries" ON)
+option(REAPER_USE_MICROPROFILE          "Use microprofile" ON)
 
 # Enable CTest
 if (REAPER_BUILD_TESTS)
@@ -55,7 +56,12 @@ include(Reaper)
 
 include(cotire)
 include(glslang)
-include(microprofile)
+
+if(REAPER_USE_MICROPROFILE)
+    add_definitions(-DREAPER_USE_MICROPROFILE)
+    add_definitions(-DMICROPROFILE_USE_CONFIG)
+    include(microprofile)
+endif()
 
 set(REAPER_BIN reaper)
 
