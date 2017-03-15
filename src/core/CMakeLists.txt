@@ -33,6 +33,7 @@ set(REAPER_CORE_SRCS
     ${REAPER_CORE_DIR}/DynamicLibrary.h
     ${REAPER_CORE_DIR}/EnumHelper.h
     ${REAPER_CORE_DIR}/Platform.h
+    ${REAPER_CORE_DIR}/Profile.h
     ${REAPER_CORE_DIR}/StackTrace.cpp
     ${REAPER_CORE_DIR}/StackTrace.h
     ${REAPER_CORE_DIR}/Types.h
