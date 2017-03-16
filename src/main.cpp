@@ -11,6 +11,8 @@
 #include "renderer/Renderer.h"
 #include "renderer/vulkan/VulkanRenderer.h"
 
+#include "core/Profile.h"
+
 namespace
 {
     int reaper_main()
@@ -21,18 +23,40 @@ namespace
 
         if (create_renderer(&root))
         {
-            // Do a barrel roll
+            REAPER_PROFILE_SCOPE("Ready", MP_GREEN);
+            Sleep(1);
+            {
+                REAPER_PROFILE_SCOPE("Waiting", MP_GREEN);
+                Sleep(1);
+            }
+            Sleep(1);
+
+            REAPER_PROFILE_SCOPE("Destroying", MP_GREEN);
             destroy_renderer(&root);
         }
 
         delete root.log;
         root.log = nullptr;
 
+        MicroProfileDumpFileImmediately("profile.html", nullptr, nullptr);
+        Sleep(1);
         return 0;
     }
 }
 
 int main(int /*ac*/, char** /*av*/)
 {
-    return reaper_main();
+#if defined(REAPER_USE_MICROPROFILE)
+    MicroProfileOnThreadCreate("Main");
+    MicroProfileSetEnableAllGroups(true);
+    MicroProfileSetForceMetaCounters(true);
+#endif
+
+    int r = reaper_main();
+
+#if defined(REAPER_USE_MICROPROFILE)
+    MicroProfileShutdown();
+#endif
+
+    return r;
 }
