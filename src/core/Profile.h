@@ -16,4 +16,3 @@
 #endif
 
 #endif // REAPER_PROFILE_INCLUDED
-
