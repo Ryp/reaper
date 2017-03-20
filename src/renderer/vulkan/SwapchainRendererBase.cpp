@@ -8,6 +8,8 @@
 // TODO use Pimpl to prevent name clashes between Xlib and fmt and move this include forward
 #include "common/Log.h"
 
+#include "core/Profile.h"
+
 #include "SwapchainRendererBase.h"
 #include "Swapchain.h"
 
@@ -678,6 +680,7 @@ VulkanBackend::VulkanBackend() // TODO add correct init
 
 void create_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& backend)
 {
+    REAPER_PROFILE_SCOPE("Vulkan", MP_RED1);
     log_info(root, "vulkan: creating backend");
 
     log_debug(root, "vulkan: loading {}", REAPER_VK_LIB_NAME);
@@ -780,6 +783,7 @@ void create_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& backend)
 
 void destroy_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& backend)
 {
+    REAPER_PROFILE_SCOPE("Vulkan", MP_RED1);
     log_info(root, "vulkan: destroying backend");
 
     destroy_vulkan_swapchain(root, backend, backend.presentInfo);

@@ -10,6 +10,8 @@
 #include "common/Log.h"
 #include "api/Vulkan.h"
 
+#include "core/Profile.h"
+
 namespace
 {
     VkSurfaceFormatKHR vulkan_swapchain_choose_surface_format(std::vector<VkSurfaceFormatKHR> &surface_formats, VkSurfaceFormatKHR preferredFormat)
@@ -96,6 +98,7 @@ using namespace vk;
 
 void create_vulkan_swapchain(ReaperRoot& root, const VulkanBackend& backend, const SwapchainDescriptor& swapchainDesc, PresentationInfo& presentInfo)
 {
+    REAPER_PROFILE_SCOPE("Vulkan", MP_RED);
     log_debug(root, "vulkan: creating swapchain");
 
     uint32_t formats_count;
@@ -212,6 +215,7 @@ void create_vulkan_swapchain(ReaperRoot& root, const VulkanBackend& backend, con
 
 void destroy_vulkan_swapchain(ReaperRoot& root, const VulkanBackend& backend, PresentationInfo& presentInfo)
 {
+    REAPER_PROFILE_SCOPE("Vulkan", MP_RED);
     log_debug(root, "vulkan: destroying swapchain");
 
     vkDestroySemaphore(backend.device, presentInfo.imageAvailableSemaphore, nullptr);
