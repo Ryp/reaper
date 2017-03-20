@@ -23,23 +23,13 @@ namespace
 
         if (create_renderer(&root))
         {
-            REAPER_PROFILE_SCOPE("Ready", MP_GREEN);
-            Sleep(1);
-            {
-                REAPER_PROFILE_SCOPE("Waiting", MP_GREEN);
-                Sleep(1);
-            }
-            Sleep(1);
 
-            REAPER_PROFILE_SCOPE("Destroying", MP_GREEN);
             destroy_renderer(&root);
         }
 
         delete root.log;
         root.log = nullptr;
 
-        MicroProfileDumpFileImmediately("profile.html", nullptr, nullptr);
-        Sleep(1);
         return 0;
     }
 }
@@ -55,6 +45,7 @@ int main(int /*ac*/, char** /*av*/)
     int r = reaper_main();
 
 #if defined(REAPER_USE_MICROPROFILE)
+    MicroProfileDumpFileImmediately("profile.html", nullptr, nullptr);
     MicroProfileShutdown();
 #endif
 
