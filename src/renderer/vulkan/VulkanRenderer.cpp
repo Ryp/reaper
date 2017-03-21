@@ -121,6 +121,8 @@ void OldRenderer::render()
     switch(result)
     {
         case VK_SUCCESS:
+        case VK_NOT_READY:
+        case VK_TIMEOUT:
         case VK_SUBOPTIMAL_KHR:
             break;
         case VK_ERROR_OUT_OF_DATE_KHR:
