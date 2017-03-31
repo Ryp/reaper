@@ -37,6 +37,7 @@ Win32Window::Win32Window(const WindowCreationDescriptor& creationInfo)
 ,   Handle()
 {
     Instance = GetModuleHandle(nullptr);
+    Assert(Instance != nullptr);
 
     // Register window class
     WNDCLASSEX wcex;
@@ -89,10 +90,10 @@ Win32Window::Win32Window(const WindowCreationDescriptor& creationInfo)
 Win32Window::~Win32Window()
 {
     if (Handle)
-        DestroyWindow(Handle);
+        Assert(DestroyWindow(Handle) != FALSE);
 
     if (Instance)
-        UnregisterClass(REAPER_WINDOW_INFO, Instance);
+        Assert(UnregisterClass(REAPER_WINDOW_INFO, Instance) != FALSE);
 }
 
 bool Win32Window::renderLoop(AbstractRenderer* renderer)
