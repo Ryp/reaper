@@ -31,7 +31,7 @@ struct VulkanBackend;
 struct REAPER_RENDERER_API Renderer
 {
     VulkanBackend*  backend;
-    IWindow*         window;
+    IWindow*        window;
 };
 
 REAPER_RENDERER_API bool create_renderer(ReaperRoot* root);

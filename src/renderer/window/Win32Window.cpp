@@ -61,8 +61,28 @@ Win32Window::Win32Window(const WindowCreationDescriptor& creationInfo)
         return;
     }
 
+    constexpr u32 DefaultX = 40;
+    constexpr u32 DefaultY = DefaultX;
+
+    RECT rect;
+    rect.left = DefaultX;
+    rect.top = DefaultY;
+    rect.right = creationInfo.width + DefaultX;
+    rect.bottom = creationInfo.height + DefaultY;
+
+    const DWORD style = WS_OVERLAPPEDWINDOW;
+    const HWND parent = nullptr;
+
+    const HMENU menu = nullptr;
+    const BOOL hasMenu = (menu == nullptr ? FALSE : TRUE);
+
+    // Adjust rect to account for window decorations so we get the desired resolution
+    Assert(AdjustWindowRect(&rect, style, hasMenu) != FALSE);
+
+    const LPVOID param = nullptr;
+
     // Create window
-    Handle = CreateWindow(REAPER_WINDOW_INFO, creationInfo.title, WS_OVERLAPPEDWINDOW, 20, 20, creationInfo.width, creationInfo.height, nullptr, nullptr, Instance, nullptr);
+    Handle = CreateWindow(REAPER_WINDOW_INFO, creationInfo.title, style, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top, parent, menu, Instance, param);
     Assert(Handle != nullptr);
 }
 
