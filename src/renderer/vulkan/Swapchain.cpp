@@ -59,7 +59,7 @@ namespace
         return surface_capabilities.currentExtent;
     }
 
-    VkSurfaceTransformFlagBitsKHR vulkan_swapchain_choose_tranform(VkSurfaceCapabilitiesKHR& surface_capabilities)
+    VkSurfaceTransformFlagBitsKHR vulkan_swapchain_choose_transform(VkSurfaceCapabilitiesKHR& surface_capabilities)
     {
         // Sometimes images must be transformed before they are presented (i.e. due to device's orienation
         // being other than default orientation)
@@ -167,7 +167,7 @@ void create_vulkan_swapchain(ReaperRoot& root, const VulkanBackend& backend, con
     Assert((surfaceCaps.supportedUsageFlags & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT) != 0, "Vulkan API error");
 
     // Transform
-    VkSurfaceTransformFlagBitsKHR transform = vulkan_swapchain_choose_tranform(surfaceCaps);
+    VkSurfaceTransformFlagBitsKHR transform = vulkan_swapchain_choose_transform(surfaceCaps);
 
     VkSwapchainCreateInfoKHR swap_chain_create_info = {
         VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,// VkStructureType                sType
@@ -209,6 +209,8 @@ void create_vulkan_swapchain(ReaperRoot& root, const VulkanBackend& backend, con
         0                                             // VkSemaphoreCreateFlags   flags
     };
 
+    //create_swapchain_framebuffers(backend, presentInfo, VK_NULL_HANDLE);
+
     Assert(vkCreateSemaphore(backend.device, &semaphore_create_info, nullptr, &presentInfo.imageAvailableSemaphore) == VK_SUCCESS);
     Assert(vkCreateSemaphore(backend.device, &semaphore_create_info, nullptr, &presentInfo.renderingFinishedSemaphore) == VK_SUCCESS);
 }
@@ -221,15 +223,70 @@ void destroy_vulkan_swapchain(ReaperRoot& root, const VulkanBackend& backend, Pr
     vkDestroySemaphore(backend.device, presentInfo.imageAvailableSemaphore, nullptr);
     vkDestroySemaphore(backend.device, presentInfo.renderingFinishedSemaphore, nullptr);
 
-    //for (size_t i = 0; i < presentInfo.framebuffers.size(); ++i)
-    //{
-    //    vkDestroyImageView(backend.device, presentInfo.imageViews[i], nullptr);
-    //    vkDestroyFramebuffer(backend.device, presentInfo.framebuffers[i], nullptr);
-    //}
-    presentInfo.imageViews.clear();
-    presentInfo.framebuffers.clear();
 
     vkDestroySwapchainKHR(backend.device, presentInfo.swapchain, nullptr);
     presentInfo.swapchain = VK_NULL_HANDLE;
+}
+
+void create_swapchain_framebuffers(const VulkanBackend& backend, PresentationInfo& presentInfo, VkRenderPass renderPass)
+{
+    const size_t imgCount = presentInfo.imageCount;
+
+    Assert(imgCount > 0);
+
+    presentInfo.framebuffers.resize(imgCount);
+    presentInfo.imageViews.resize(imgCount);
+
+    for (size_t i = 0; i < imgCount; ++i)
+    {
+        VkImageViewCreateInfo image_view_create_info = {
+            VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,   // VkStructureType                sType
+            nullptr,                                    // const void                    *pNext
+            0,                                          // VkImageViewCreateFlags         flags
+            presentInfo.images[i],                      // VkImage                        image
+            VK_IMAGE_VIEW_TYPE_2D,                      // VkImageViewType                viewType
+            presentInfo.surfaceFormat.format,           // VkFormat                       format
+            {                                           // VkComponentMapping             components
+                VK_COMPONENT_SWIZZLE_IDENTITY,          // VkComponentSwizzle             r
+                VK_COMPONENT_SWIZZLE_IDENTITY,          // VkComponentSwizzle             g
+                VK_COMPONENT_SWIZZLE_IDENTITY,          // VkComponentSwizzle             b
+                VK_COMPONENT_SWIZZLE_IDENTITY           // VkComponentSwizzle             a
+            },
+            {                                           // VkImageSubresourceRange        subresourceRange
+                VK_IMAGE_ASPECT_COLOR_BIT,              // VkImageAspectFlags             aspectMask
+                0,                                      // uint32_t                       baseMipLevel
+                1,                                      // uint32_t                       levelCount
+                0,                                      // uint32_t                       baseArrayLayer
+                1                                       // uint32_t                       layerCount
+            }
+        };
+
+        Assert(vkCreateImageView(backend.device, &image_view_create_info, nullptr, &presentInfo.imageViews[i]) == VK_SUCCESS);
+
+        VkFramebufferCreateInfo framebuffer_create_info = {
+            VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,  // VkStructureType                sType
+            nullptr,                                    // const void                    *pNext
+            0,                                          // VkFramebufferCreateFlags       flags
+            renderPass,                                 // VkRenderPass                   renderPass
+            1,                                          // uint32_t                       attachmentCount
+            &presentInfo.imageViews[i],                 // const VkImageView             *pAttachments
+            presentInfo.surfaceExtent.width,            // uint32_t                       width
+            presentInfo.surfaceExtent.height,           // uint32_t                       height
+            1                                           // uint32_t                       layers
+        };
+
+        Assert(vkCreateFramebuffer(backend.device, &framebuffer_create_info, nullptr, &presentInfo.framebuffers[i]) == VK_SUCCESS);
+    }
+}
+
+void destroy_create_swapchain_framebuffers(const VulkanBackend& backend, PresentationInfo& presentInfo)
+{
+    for (size_t i = 0; i < presentInfo.framebuffers.size(); ++i)
+    {
+        vkDestroyImageView(backend.device, presentInfo.imageViews[i], nullptr);
+        vkDestroyFramebuffer(backend.device, presentInfo.framebuffers[i], nullptr);
+    }
+    presentInfo.imageViews.clear();
+    presentInfo.framebuffers.clear();
 }
 

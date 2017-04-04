@@ -22,5 +22,8 @@ struct SwapchainDescriptor
 void create_vulkan_swapchain(ReaperRoot& root, const VulkanBackend& backend, const SwapchainDescriptor& swapchainDesc, PresentationInfo& presentInfo);
 void destroy_vulkan_swapchain(ReaperRoot& root, const VulkanBackend& backend, PresentationInfo& presentInfo);
 
+void create_swapchain_framebuffers(const VulkanBackend& backend, PresentationInfo& presentInfo, VkRenderPass renderPass);
+void destroy_create_swapchain_framebuffers(const VulkanBackend& backend, PresentationInfo& presentInfo);
+
 #endif // REAPER_SWAPCHAIN_INCLUDED
 

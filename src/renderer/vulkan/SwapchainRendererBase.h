@@ -75,6 +75,8 @@ struct PresentationInfo
     std::vector<VkImage>        images;
     std::vector<VkImageView>    imageViews;
     std::vector<VkFramebuffer>  framebuffers;
+
+    PresentationInfo();
 };
 
 struct PhysicalDeviceInfo
