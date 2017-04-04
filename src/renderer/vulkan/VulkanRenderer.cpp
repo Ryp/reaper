@@ -306,6 +306,7 @@ void OldRenderer::createDescriptorPool()
     descriptorPoolInfo.pPoolSizes = typeCounts;
 
     Assert(vkCreateDescriptorPool(_device, &descriptorPoolInfo, nullptr, &_descriptorPool) == VK_SUCCESS);
+
     VkDescriptorSetLayoutBinding layoutBinding = {};
     layoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     layoutBinding.descriptorCount = 1;

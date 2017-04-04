@@ -667,14 +667,28 @@ void SwapchainRendererBase::createCommandBufferPool()
     Assert(vkAllocateCommandBuffers(_device, &cmd_buffer_allocate_info, &_gfxCmdBuffers[0]) == VK_SUCCESS);
 }
 
-VulkanBackend::VulkanBackend() // TODO add correct init
+PresentationInfo::PresentationInfo()
+:   surface(VK_NULL_HANDLE)
+,   surfaceCaps()
+,   surfaceFormat({VK_FORMAT_UNDEFINED, VK_COLORSPACE_SRGB_NONLINEAR_KHR})
+,   swapchain(VK_NULL_HANDLE)
+,   surfaceExtent({0, 0})
+,   imageAvailableSemaphore(VK_NULL_HANDLE)
+,   renderingFinishedSemaphore(VK_NULL_HANDLE)
+,   imageCount(0)
+,   images()
+,   imageViews()
+,   framebuffers()
+{}
+
+VulkanBackend::VulkanBackend()
 :   vulkanLib(nullptr)
 ,   instance(VK_NULL_HANDLE)
 ,   physicalDevice(VK_NULL_HANDLE)
 ,   physicalDeviceInfo({0, 0})
 ,   device(VK_NULL_HANDLE)
 ,   deviceInfo({VK_NULL_HANDLE, VK_NULL_HANDLE})
-,   presentInfo({VK_NULL_HANDLE, VK_NULL_HANDLE, 0, VK_FORMAT_UNDEFINED})
+,   presentInfo()
 ,   debugCallback(VK_NULL_HANDLE)
 {}
 
