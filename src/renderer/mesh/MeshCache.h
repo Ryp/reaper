@@ -15,7 +15,8 @@
 
 #include "Mesh.h"
 
-class MeshCache {
+class MeshCache
+{
 public:
     MeshCache() = default;
     ~MeshCache() = default;

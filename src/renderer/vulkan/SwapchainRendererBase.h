@@ -75,6 +75,7 @@ struct PresentationInfo
     std::vector<VkImage>        images;
     std::vector<VkImageView>    imageViews;
     std::vector<VkFramebuffer>  framebuffers;
+    VkRenderPass                renderPass;
 
     PresentationInfo();
 };
@@ -111,17 +112,5 @@ struct REAPER_RENDERER_API VulkanBackend
 
 void create_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& renderer);
 void destroy_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& renderer);
-
-void vulkan_instance_check_extensions(const std::vector<const char*>& extensions);
-void vulkan_instance_check_layers(const std::vector<const char*>& layers);
-
-void vulkan_device_check_extensions(const std::vector<const char*>& extensions, VkPhysicalDevice physicalDevice);
-
-void vulkan_setup_debug_callback(ReaperRoot& root, VulkanBackend& renderer);
-void vulkan_destroy_debug_callback(VulkanBackend& renderer);
-
-bool vulkan_check_physical_device(IWindow* window, VkPhysicalDevice physical_device, VkSurfaceKHR presentationSurface, const std::vector<const char*>& extensions, uint32_t& queue_family_index, uint32_t& selected_present_queue_family_index);
-void vulkan_choose_physical_device(ReaperRoot& root, VulkanBackend& backend, PhysicalDeviceInfo& physicalDeviceInfo);
-void vulkan_create_logical_device(ReaperRoot& root, VulkanBackend& backend);
 
 #endif // REAPER_SWAPCHAINRENDERERBASE_INCLUDED

@@ -209,7 +209,10 @@ void create_vulkan_swapchain(ReaperRoot& root, const VulkanBackend& backend, con
         0                                             // VkSemaphoreCreateFlags   flags
     };
 
-    //create_swapchain_framebuffers(backend, presentInfo, VK_NULL_HANDLE);
+    log_debug(root, "vulkan: create present renderpass");
+    create_swapchain_renderpass(backend, presentInfo);
+
+    create_swapchain_framebuffers(backend, presentInfo);
 
     Assert(vkCreateSemaphore(backend.device, &semaphore_create_info, nullptr, &presentInfo.imageAvailableSemaphore) == VK_SUCCESS);
     Assert(vkCreateSemaphore(backend.device, &semaphore_create_info, nullptr, &presentInfo.renderingFinishedSemaphore) == VK_SUCCESS);
@@ -223,12 +226,73 @@ void destroy_vulkan_swapchain(ReaperRoot& root, const VulkanBackend& backend, Pr
     vkDestroySemaphore(backend.device, presentInfo.imageAvailableSemaphore, nullptr);
     vkDestroySemaphore(backend.device, presentInfo.renderingFinishedSemaphore, nullptr);
 
+    destroy_swapchain_framebuffers(backend, presentInfo);
+    destroy_swapchain_renderpass(backend, presentInfo);
 
     vkDestroySwapchainKHR(backend.device, presentInfo.swapchain, nullptr);
     presentInfo.swapchain = VK_NULL_HANDLE;
 }
 
-void create_swapchain_framebuffers(const VulkanBackend& backend, PresentationInfo& presentInfo, VkRenderPass renderPass)
+void create_swapchain_renderpass(const VulkanBackend& backend, PresentationInfo& presentInfo)
+{
+    VkAttachmentDescription attachment_descriptions[] = {
+        {
+            0,                                          // VkAttachmentDescriptionFlags   flags
+            presentInfo.surfaceFormat.format,           // VkFormat                       format
+            VK_SAMPLE_COUNT_1_BIT,                      // VkSampleCountFlagBits          samples
+            VK_ATTACHMENT_LOAD_OP_CLEAR,                // VkAttachmentLoadOp             loadOp
+            VK_ATTACHMENT_STORE_OP_STORE,               // VkAttachmentStoreOp            storeOp
+            VK_ATTACHMENT_LOAD_OP_DONT_CARE,            // VkAttachmentLoadOp             stencilLoadOp
+            VK_ATTACHMENT_STORE_OP_DONT_CARE,           // VkAttachmentStoreOp            stencilStoreOp
+            VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,            // VkImageLayout                  initialLayout;
+            VK_IMAGE_LAYOUT_PRESENT_SRC_KHR             // VkImageLayout                  finalLayout
+        }
+    };
+
+    VkAttachmentReference color_attachment_references[] = {
+        {
+            0,                                          // uint32_t                       attachment
+            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL    // VkImageLayout                  layout
+        }
+    };
+
+    VkSubpassDescription subpass_descriptions[] = {
+        {
+            0,                                          // VkSubpassDescriptionFlags      flags
+            VK_PIPELINE_BIND_POINT_GRAPHICS,            // VkPipelineBindPoint            pipelineBindPoint
+            0,                                          // uint32_t                       inputAttachmentCount
+            nullptr,                                    // const VkAttachmentReference   *pInputAttachments
+            1,                                          // uint32_t                       colorAttachmentCount
+            color_attachment_references,                // const VkAttachmentReference   *pColorAttachments
+            nullptr,                                    // const VkAttachmentReference   *pResolveAttachments
+            nullptr,                                    // const VkAttachmentReference   *pDepthStencilAttachment
+            0,                                          // uint32_t                       preserveAttachmentCount
+            nullptr                                     // const uint32_t*                pPreserveAttachments
+        }
+    };
+
+    VkRenderPassCreateInfo render_pass_create_info = {
+        VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,    // VkStructureType                sType
+        nullptr,                                      // const void                    *pNext
+        0,                                            // VkRenderPassCreateFlags        flags
+        1,                                            // uint32_t                       attachmentCount
+        attachment_descriptions,                      // const VkAttachmentDescription *pAttachments
+        1,                                            // uint32_t                       subpassCount
+        subpass_descriptions,                         // const VkSubpassDescription    *pSubpasses
+        0,                                            // uint32_t                       dependencyCount
+        nullptr                                       // const VkSubpassDependency     *pDependencies
+    };
+
+    Assert(vkCreateRenderPass(backend.device, &render_pass_create_info, nullptr, &presentInfo.renderPass) == VK_SUCCESS);
+}
+
+void destroy_swapchain_renderpass(const VulkanBackend& backend, PresentationInfo& presentInfo)
+{
+    vkDestroyRenderPass(backend.device, presentInfo.renderPass, nullptr);
+    presentInfo.renderPass = VK_NULL_HANDLE;
+}
+
+void create_swapchain_framebuffers(const VulkanBackend& backend, PresentationInfo& presentInfo)
 {
     const size_t imgCount = presentInfo.imageCount;
 
@@ -236,6 +300,8 @@ void create_swapchain_framebuffers(const VulkanBackend& backend, PresentationInf
 
     presentInfo.framebuffers.resize(imgCount);
     presentInfo.imageViews.resize(imgCount);
+
+    Assert(presentInfo.renderPass != VK_NULL_HANDLE);
 
     for (size_t i = 0; i < imgCount; ++i)
     {
@@ -267,7 +333,7 @@ void create_swapchain_framebuffers(const VulkanBackend& backend, PresentationInf
             VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,  // VkStructureType                sType
             nullptr,                                    // const void                    *pNext
             0,                                          // VkFramebufferCreateFlags       flags
-            renderPass,                                 // VkRenderPass                   renderPass
+            presentInfo.renderPass,                     // VkRenderPass                   renderPass
             1,                                          // uint32_t                       attachmentCount
             &presentInfo.imageViews[i],                 // const VkImageView             *pAttachments
             presentInfo.surfaceExtent.width,            // uint32_t                       width
@@ -279,7 +345,7 @@ void create_swapchain_framebuffers(const VulkanBackend& backend, PresentationInf
     }
 }
 
-void destroy_create_swapchain_framebuffers(const VulkanBackend& backend, PresentationInfo& presentInfo)
+void destroy_swapchain_framebuffers(const VulkanBackend& backend, PresentationInfo& presentInfo)
 {
     for (size_t i = 0; i < presentInfo.framebuffers.size(); ++i)
     {

@@ -7,6 +7,8 @@
 
 #include "VulkanRenderer.h"
 
+#include "common/Log.h"
+
 #include <cmath>
 #include <cstring>
 
@@ -380,8 +382,8 @@ void OldRenderer::createPipeline()
     VkShaderModule vertModule;
     VkShaderModule fragModule;
 
-    createShaderModule(vertModule, _device, ShaderVertFile);
-    createShaderModule(fragModule, _device, ShaderFragFile);
+    vulkan_create_shader_module(vertModule, _device, ShaderVertFile);
+    vulkan_create_shader_module(fragModule, _device, ShaderFragFile);
 
     std::vector<VkPipelineShaderStageCreateInfo> shader_stage_create_infos = {
         // Vertex shader
@@ -997,3 +999,23 @@ void OldRenderer::updateUniforms()
 
     vkUnmapMemory(_device, _uniformData.memory);
 }
+
+void test_vulkan_renderer(ReaperRoot& root, VulkanBackend& backend)
+{
+    log_info(root, "vulkan: running test function");
+
+    VkCommandPool gfxCmdPool = VK_NULL_HANDLE;
+
+    VkCommandPoolCreateInfo cmd_pool_create_info = {
+        VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,     // VkStructureType              sType
+        nullptr,                                        // const void*                  pNext
+        0,                                              // VkCommandPoolCreateFlags     flags
+        backend.physicalDeviceInfo.graphicsQueueIndex   // uint32_t                     queueFamilyIndex
+    };
+    Assert(vkCreateCommandPool(backend.device, &cmd_pool_create_info, nullptr, &gfxCmdPool) == VK_SUCCESS);
+
+
+
+    vkDestroyCommandPool(backend.device, gfxCmdPool, nullptr);
+}
+

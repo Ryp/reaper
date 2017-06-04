@@ -11,7 +11,7 @@
 
 using namespace vk;
 
-void createShaderModule(VkShaderModule& shaderModule, VkDevice device, const std::string& fileName)
+void vulkan_create_shader_module(VkShaderModule& shaderModule, VkDevice device, const std::string& fileName)
 {
     std::vector<char> fileContents = readWholeFile(fileName);
 

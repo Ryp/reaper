@@ -12,6 +12,6 @@
 
 #include "api/Vulkan.h"
 
-void createShaderModule(VkShaderModule& shaderModule, VkDevice device, const std::string& fileName);
+void vulkan_create_shader_module(VkShaderModule& shaderModule, VkDevice device, const std::string& fileName);
 
 #endif // REAPER_SHADER_INCLUDED
