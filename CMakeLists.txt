@@ -96,6 +96,8 @@ add_subdirectory(src/common)
 add_subdirectory(src/gamelogic)
 add_subdirectory(src/renderer)
 
+add_subdirectory(src/splinesonic)
+
 set(REAPER_SRCS
     ${CMAKE_SOURCE_DIR}/src/main.cpp
 
@@ -108,6 +110,7 @@ set(REAPER_SRCS
 #     ${CMAKE_SOURCE_DIR}/src/input/SixAxisController.h
 
     ${CMAKE_SOURCE_DIR}/src/math/BasicMath.h
+    ${CMAKE_SOURCE_DIR}/src/math/Constants.h
     ${CMAKE_SOURCE_DIR}/src/math/Spline.cpp
     ${CMAKE_SOURCE_DIR}/src/math/Spline.h
 
