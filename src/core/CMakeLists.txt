@@ -64,7 +64,6 @@ set(REAPER_CORE_TEST_SRCS
     ${REAPER_CORE_DIR}/test/buddy_allocator.cpp
     ${REAPER_CORE_DIR}/test/cache.cpp
     ${REAPER_CORE_DIR}/test/stack_allocator.cpp
-    ${REAPER_CORE_DIR}/test/test_main.cpp
 )
 
 add_library(${REAPER_CORE_BIN} ${REAPER_BUILD_TYPE} ${REAPER_CORE_SRCS})

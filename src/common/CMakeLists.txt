@@ -22,7 +22,6 @@ set(REAPER_COMMON_SRCS
 
 set(REAPER_COMMON_TEST_SRCS
     ${REAPER_COMMON_DIR}/test/log.cpp
-    ${REAPER_COMMON_DIR}/test/test_main.cpp
 )
 
 add_library(${REAPER_COMMON_BIN} ${REAPER_BUILD_TYPE} ${REAPER_COMMON_SRCS})
