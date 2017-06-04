@@ -41,3 +41,12 @@ void destroy_renderer(ReaperRoot* root)
     root->renderer = nullptr;
 }
 
+void run_renderer(ReaperRoot* root)
+{
+    Assert(root != nullptr);
+    Assert(root->renderer != nullptr);
+    Assert(root->renderer->backend != nullptr);
+
+    test_vulkan_renderer(*root, *root->renderer->backend);
+}
+

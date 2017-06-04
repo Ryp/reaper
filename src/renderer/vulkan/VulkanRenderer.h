@@ -76,4 +76,6 @@ private:
     TextureCache    _texCache;
 };
 
+void test_vulkan_renderer(ReaperRoot& root, VulkanBackend& backend);
+
 #endif // REAPER_VULKANRENDERER_INCLUDED
