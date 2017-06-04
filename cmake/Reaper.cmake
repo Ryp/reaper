@@ -87,7 +87,8 @@ endmacro()
 macro(reaper_add_tests library testfiles)
     set(REAPER_TEST_FILES ${testfiles} ${ARGN}) # Expecting a list here
     set(REAPER_TEST_BIN ${library}_tests)
-    set(REAPER_TEST_SRCS ${REAPER_TEST_FILES})
+    set(REAPER_TEST_MAIN ${CMAKE_SOURCE_DIR}/src/test/test_main.cpp)
+    set(REAPER_TEST_SRCS ${REAPER_TEST_FILES} ${REAPER_TEST_MAIN})
 
     add_executable(${REAPER_TEST_BIN} ${REAPER_TEST_SRCS})
     reaper_add_custom_build_flags(${REAPER_TEST_BIN} "${REAPER_TEST_BIN}")

@@ -21,7 +21,6 @@ set(REAPER_TRACKGEN_SRCS
 )
 
 set(REAPER_TRACKGEN_TEST_SRCS
-    ${REAPER_TRACKGEN_DIR}/test/test_main.cpp
     ${REAPER_TRACKGEN_DIR}/test/gen_simple.cpp
 )
 

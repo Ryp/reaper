@@ -59,7 +59,6 @@ set(REAPER_GAMELOGIC_SRCS
 
 set(REAPER_GAMELOGIC_TEST_SRCS
     ${REAPER_GAMELOGIC_DIR}/test/cost_map.cpp
-    ${REAPER_GAMELOGIC_DIR}/test/test_main.cpp
     ${REAPER_GAMELOGIC_DIR}/test/world_updater.cpp
 )
 
