@@ -5,21 +5,18 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef REAPER_ROOT_INCLUDED
-#define REAPER_ROOT_INCLUDED
+#pragma once
 
-class GameLogic;
-class ILog;
-struct Renderer;
-struct AssetCache;
+#include <string>
 
-struct ReaperRoot
+#include "common/ReaperRoot.h"
+
+struct AssetCache
 {
-    GameLogic*  game;
-    Renderer*   renderer;
-    ILog*       log;
-    AssetCache* assetCache;
+    const std::string m_basePath;
+
+    AssetCache(const std::string& basePath);
 };
 
-#endif // REAPER_ROOT_INCLUDED
+void load_pak_to_asset_cache(ReaperRoot& root, AssetCache& assetCache, const std::string& filename);
 

@@ -1,0 +1,5 @@
+Texture     res/texture/uvmap.dds
+Mesh        res/model/sphere.obj
+Shader      build/spv/mesh_shade.frag.spv
+Shader      build/spv/mesh_shade.vert.spv
+
