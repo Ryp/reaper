@@ -101,6 +101,9 @@ add_subdirectory(src/splinesonic)
 set(REAPER_SRCS
     ${CMAKE_SOURCE_DIR}/src/main.cpp
 
+    ${CMAKE_SOURCE_DIR}/src/AssetCache.cpp
+    ${CMAKE_SOURCE_DIR}/src/AssetCache.h
+
     ${CMAKE_SOURCE_DIR}/src/cvar/CVar.cpp
     ${CMAKE_SOURCE_DIR}/src/cvar/CVar.h
 
