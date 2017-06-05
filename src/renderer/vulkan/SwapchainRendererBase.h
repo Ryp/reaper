@@ -5,8 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef REAPER_SWAPCHAINRENDERERBASE_INCLUDED
-#define REAPER_SWAPCHAINRENDERERBASE_INCLUDED
+#pragma once
 
 #include <vector>
 
@@ -112,5 +111,3 @@ struct REAPER_RENDERER_API VulkanBackend
 
 void create_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& renderer);
 void destroy_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& renderer);
-
-#endif // REAPER_SWAPCHAINRENDERERBASE_INCLUDED

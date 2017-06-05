@@ -5,12 +5,9 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef REAPER_FILELOADING_INCLUDED
-#define REAPER_FILELOADING_INCLUDED
+#pragma once
 
 #include <string>
 #include <vector>
 
 REAPER_CORE_API std::vector<char> readWholeFile(const std::string& fileName);
-
-#endif // REAPER_FILELOADING_INCLUDED

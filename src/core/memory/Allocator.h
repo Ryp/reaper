@@ -5,8 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef REAPER_ALLOCATOR_INCLUDED
-#define REAPER_ALLOCATOR_INCLUDED
+#pragma once
 
 #include <cstdint>
 
@@ -64,5 +63,3 @@ constexpr std::size_t operator "" _MB(unsigned long long int sizeInMB)
 {
     return sizeInMB << 20;
 }
-
-#endif // REAPER_ALLOCATOR_INCLUDED

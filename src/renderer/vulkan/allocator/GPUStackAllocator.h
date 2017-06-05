@@ -5,8 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef REAPER_GPUSTACKALLOCATOR_INCLUDED
-#define REAPER_GPUSTACKALLOCATOR_INCLUDED
+#pragma once
 
 class GPUStackAllocator
 {
@@ -21,5 +20,3 @@ private:
     std::size_t _size;
     std::size_t _offset;
 };
-
-#endif // REAPER_GPUSTACKALLOCATOR_INCLUDED

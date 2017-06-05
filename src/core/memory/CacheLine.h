@@ -5,8 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef REAPER_CACHELINE_INCLUDED
-#define REAPER_CACHELINE_INCLUDED
+#pragma once
 
 // The main function should assert the equality between the runtime and compiletime
 // values.
@@ -16,5 +15,3 @@
 
 // runtime
 REAPER_CORE_API size_t cacheLineSize();
-
-#endif // REAPER_CACHELINE_INCLUDED

@@ -5,8 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef REAPER_BITTRICKS_INCLUDED
-#define REAPER_BITTRICKS_INCLUDED
+#pragma once
 
 // Return integer with bit n set to 1
 constexpr u32 bit(u32 n)
@@ -45,5 +44,3 @@ inline u32 bitOffset(T value)
 
     return count - 1;
 }
-
-#endif // REAPER_BITTRICKS_INCLUDED

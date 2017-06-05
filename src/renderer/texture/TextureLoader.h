@@ -5,8 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef REAPER_TEXTURELOADER_INCLUDED
-#define REAPER_TEXTURELOADER_INCLUDED
+#pragma once
 
 #include <string>
 #include <map>
@@ -28,5 +27,3 @@ private:
 private:
     std::map<std::string, void (TextureLoader::*)(const std::string&, TextureCache&)> _loaders;
 };
-
-#endif // REAPER_TEXTURELOADER_INCLUDED

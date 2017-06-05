@@ -23,8 +23,7 @@
 * \brief UnixFileWatcher class declaration
 */
 
-#ifndef UNIXFILEWATCHER_HPP
-#define UNIXFILEWATCHER_HPP
+#pragma once
 
 #include <string>
 #include <thread>
@@ -69,5 +68,3 @@ private:
     UnixFd              _inotifyFd;
     Watches             _watches;
 };
-
-#endif // UNIXFILEWATCHER_HPP

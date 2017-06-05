@@ -5,8 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef REAPER_SIXAXISCONTROLLER_INCLUDED
-#define REAPER_SIXAXISCONTROLLER_INCLUDED
+#pragma once
 
 #include <string>
 
@@ -93,5 +92,3 @@ private:
     bool        _connected;
     int         _fd;
 };
-
-#endif // REAPER_SIXAXISCONTROLLER_INCLUDED

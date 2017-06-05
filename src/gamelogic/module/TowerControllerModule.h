@@ -5,8 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef REAPER_TOWERCONTROLLERMODULE_INCLUDED
-#define REAPER_TOWERCONTROLLERMODULE_INCLUDED
+#pragma once
 
 #include "gamelogic/ModuleUpdater.h"
 
@@ -46,5 +45,3 @@ private:
     static void fireWeapon(WeaponModule* weaponModule, DamageModule* targetDamageModule);
     static bool isPositionInRange(const TowerControllerModule& controllerModule, const glm::vec2& relativePosition);
 };
-
-#endif // REAPER_TOWERCONTROLLERMODULE_INCLUDED

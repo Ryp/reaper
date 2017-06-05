@@ -5,8 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef REAPER_DYNAMICLIBRARY_INCLUDED
-#define REAPER_DYNAMICLIBRARY_INCLUDED
+#pragma once
 
 #include <string>
 
@@ -24,5 +23,3 @@ namespace dynlib
     REAPER_CORE_API LibSym getSymbol(LibHandle handle, const std::string& name);
     REAPER_CORE_API void close(LibHandle handle);
 }
-
-#endif // REAPER_DYNAMICLIBRARY_INCLUDED

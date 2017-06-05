@@ -5,8 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef REAPER_ENTITYDESCRIPTOR_INCLUDED
-#define REAPER_ENTITYDESCRIPTOR_INCLUDED
+#pragma once
 
 #include <map>
 #include <string>
@@ -24,5 +23,3 @@ constexpr EntityId invalidEId()
 {
     return EntityId(0);
 }
-
-#endif // REAPER_ENTITYDESCRIPTOR_INCLUDED

@@ -5,8 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef REAPER_MAPDESCRIPTOR_INCLUDED
-#define REAPER_MAPDESCRIPTOR_INCLUDED
+#pragma once
 
 #include <vector>
 
@@ -28,5 +27,3 @@ struct MapDescriptor {
     std::vector<MapAccess> accesses;
     uvec2 dimensions;
 };
-
-#endif // REAPER_MAPDESCRIPTOR_INCLUDED

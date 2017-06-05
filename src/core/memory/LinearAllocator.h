@@ -5,8 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef REAPER_LINEARALLOCATOR_INCLUDED
-#define REAPER_LINEARALLOCATOR_INCLUDED
+#pragma once
 
 #include "Allocator.h"
 
@@ -25,5 +24,3 @@ private:
     char*       _currentPtr;
     std::size_t _memSize;
 };
-
-#endif // REAPER_LINEARALLOCATOR_INCLUDED

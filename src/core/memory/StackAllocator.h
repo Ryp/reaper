@@ -5,8 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef REAPER_STACKALLOCATOR_INCLUDED
-#define REAPER_STACKALLOCATOR_INCLUDED
+#pragma once
 
 #include "Allocator.h"
 
@@ -28,5 +27,3 @@ private:
     const std::size_t   _memSize;
     std::size_t         _currentMarker;
 };
-
-#endif // REAPER_STACKALLOCATOR_INCLUDED

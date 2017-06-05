@@ -5,8 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef REAPER_TEXTURE_INCLUDED
-#define REAPER_TEXTURE_INCLUDED
+#pragma once
 
 #include "renderer/format/PixelFormat.h"
 
@@ -21,5 +20,3 @@ struct Texture
     std::size_t size;
     u32 bytesPerPixel;
 };
-
-#endif // REAPER_TEXTURE_INCLUDED

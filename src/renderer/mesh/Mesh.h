@@ -5,8 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef REAPER_MESH_INCLUDED
-#define REAPER_MESH_INCLUDED
+#pragma once
 
 #include <vector>
 
@@ -27,5 +26,3 @@ struct Mesh {
 
 std::size_t getTriangleCount(Mesh& mesh);
 void computeNormalsSimple(Mesh& mesh);
-
-#endif // REAPER_MESH_INCLUDED

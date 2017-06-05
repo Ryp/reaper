@@ -5,8 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef REAPER_WINDOW_INCLUDED
-#define REAPER_WINDOW_INCLUDED
+#pragma once
 
 class AbstractRenderer;
 
@@ -26,6 +25,3 @@ struct WindowCreationDescriptor
 };
 
 REAPER_RENDERER_API IWindow* createWindow(const WindowCreationDescriptor& creationInfo);
-
-#endif // REAPER_WINDOW_INCLUDED
-

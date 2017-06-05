@@ -5,8 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef REAPER_TEXTURECACHE_INCLUDED
-#define REAPER_TEXTURECACHE_INCLUDED
+#pragma once
 
 #include <map>
 #include <string>
@@ -30,5 +29,3 @@ private:
     StackAllocator               _textureAllocator;
     std::map<TextureId, Texture> _textures;
 };
-
-#endif // REAPER_TEXTURECACHE_INCLUDED

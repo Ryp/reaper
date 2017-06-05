@@ -5,8 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef REAPER_COSTMAP_INCLUDED
-#define REAPER_COSTMAP_INCLUDED
+#pragma once
 
 #include "core/Types.h"
 
@@ -41,5 +40,3 @@ struct Brush {
 };
 
 void paintCost(CostMap& map, Index position, Brush& brush);
-
-#endif // REAPER_COSTMAP_INCLUDED

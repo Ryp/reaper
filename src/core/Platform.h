@@ -5,8 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef REAPER_PLATFORM_INCLUDED
-#define REAPER_PLATFORM_INCLUDED
+#pragma once
 
 // Identify the operating system.
 #if defined(WIN32) || defined(_WIN32) || defined(__MINGW32__)
@@ -47,5 +46,3 @@ constexpr bool isDebugBuild()
     return false;
 #endif
 }
-
-#endif // REAPER_PLATFORM_INCLUDED

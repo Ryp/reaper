@@ -5,8 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef REAPER_MODULEUPDATER_INCLUDED
-#define REAPER_MODULEUPDATER_INCLUDED
+#pragma once
 
 #include <map>
 
@@ -82,5 +81,3 @@ protected:
     AbstractWorldUpdater*          _worldUpdater;
     std::map<EntityId, ModuleType> _modules;
 };
-
-#endif // REAPER_MODULEUPDATER_INCLUDED

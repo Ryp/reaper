@@ -5,8 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef REAPER_MESHCACHE_INCLUDED
-#define REAPER_MESHCACHE_INCLUDED
+#pragma once
 
 #include <map>
 #include <string>
@@ -28,5 +27,3 @@ public:
 private:
     std::map<MeshId, Mesh> _meshes;
 };
-
-#endif // REAPER_MESHCACHE_INCLUDED

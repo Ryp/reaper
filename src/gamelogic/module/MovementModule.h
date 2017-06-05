@@ -5,8 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef REAPER_MOVEMENTMODULE_INCLUDED
-#define REAPER_MOVEMENTMODULE_INCLUDED
+#pragma once
 
 #include "gamelogic/ModuleUpdater.h"
 #include "gamelogic/pathing/AIPath.h"
@@ -36,5 +35,3 @@ public:
 public:
     static void buildAIPath(MovementModule* movementModule, const TDPath& path);
 };
-
-#endif // REAPER_MOVEMENTMODULE_INCLUDED

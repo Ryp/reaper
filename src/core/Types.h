@@ -5,8 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef REAPER_TYPES_INCLUDED
-#define REAPER_TYPES_INCLUDED
+#pragma once
 
 #include <cstdint>
 
@@ -28,5 +27,3 @@ using f64 = double;
 
 static_assert(sizeof(f32) == 4, "floats are not 32 bits");
 static_assert(sizeof(f64) == 8, "doubles are not 64 bits");
-
-#endif // REAPER_TYPES_INCLUDED

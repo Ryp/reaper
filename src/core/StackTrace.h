@@ -5,8 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef REAPER_STACKTRACE_INCLUDED
-#define REAPER_STACKTRACE_INCLUDED
+#pragma once
 
 void printStacktrace();
 
@@ -28,5 +27,3 @@ public:
 private:
     std::vector<std::string>   _trace;
 };
-
-#endif // REAPER_STACKTRACE_INCLUDED

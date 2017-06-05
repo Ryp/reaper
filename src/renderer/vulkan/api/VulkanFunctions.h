@@ -5,8 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef REAPER_VULKANFUNCTIONS_INCLUDED
-#define REAPER_VULKANFUNCTIONS_INCLUDED
+#pragma once
 
 #include "Vulkan.h"
 
@@ -26,5 +25,3 @@ void vulkan_load_instance_level_functions(VkInstance instance);
 void vulkan_load_device_level_functions(VkDevice device);
 
 }
-
-#endif // REAPER_VULKANFUNCTIONS_INCLUDED

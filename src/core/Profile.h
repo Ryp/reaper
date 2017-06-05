@@ -5,8 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef REAPER_PROFILE_INCLUDED
-#define REAPER_PROFILE_INCLUDED
+#pragma once
 
 #if defined(REAPER_USE_MICROPROFILE)
     #include "microprofile.h"
@@ -14,5 +13,3 @@
 #else
     #define REAPER_PROFILE_SCOPE(group, color)  do{}while(0)
 #endif
-
-#endif // REAPER_PROFILE_INCLUDED

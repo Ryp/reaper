@@ -5,8 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef REAPER_UNIQUEPTR_INCLUDED
-#define REAPER_UNIQUEPTR_INCLUDED
+#pragma once
 
 #include "Allocator.h"
 
@@ -31,5 +30,3 @@ public:
 private:
     T* const    _ptr;
 };
-
-#endif // REAPER_UNIQUEPTR_INCLUDED

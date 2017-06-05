@@ -5,8 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef REAPER_XLIB_WINDOW_INCLUDED
-#define REAPER_XLIB_WINDOW_INCLUDED
+#pragma once
 
 #include "Window.h"
 
@@ -24,6 +23,3 @@ public:
     Display*    DisplayPtr;
     Window      Handle;
 };
-
-#endif // REAPER_XLIB_WINDOW_INCLUDED
-

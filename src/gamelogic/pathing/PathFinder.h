@@ -5,8 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef REAPER_PATHFINDER_INCLUDED
-#define REAPER_PATHFINDER_INCLUDED
+#pragma once
 
 #include <iostream>
 #include <list>
@@ -69,5 +68,3 @@ private:
     t_path      _path;
     bool        _isFound;
 };
-
-#endif

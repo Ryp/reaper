@@ -5,8 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef REAPER_WAVESPAWNERMODULE_INCLUDED
-#define REAPER_WAVESPAWNERMODULE_INCLUDED
+#pragma once
 
 #include "gamelogic/ModuleUpdater.h"
 
@@ -37,5 +36,3 @@ public:
     void update(float dt);
     void createModule(EntityId id, const WaveSpawnerModuleDescriptor* descriptor) override;
 };
-
-#endif // REAPER_WAVESPAWNERMODULE_INCLUDED

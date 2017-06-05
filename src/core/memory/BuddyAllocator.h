@@ -5,8 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef REAPER_BUDDYALLOCATOR_INCLUDED
-#define REAPER_BUDDYALLOCATOR_INCLUDED
+#pragma once
 
 #include "Allocator.h"
 
@@ -50,5 +49,3 @@ private:
 
     std::vector<MetaData> _metaData;
 };
-
-#endif // REAPER_BUDDYALLOCATOR_INCLUDED

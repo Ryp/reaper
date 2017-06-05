@@ -5,8 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef REAPER_PRESENTATIONSURFACE_INCLUDED
-#define REAPER_PRESENTATIONSURFACE_INCLUDED
+#pragma once
 
 #include "api/Vulkan.h"
 
@@ -15,6 +14,3 @@ class IWindow;
 void vulkan_create_presentation_surface(VkInstance instance, VkSurfaceKHR& vkPresentationSurface, IWindow* window);
 
 bool vulkan_queue_family_has_presentation_support(VkPhysicalDevice device, uint32_t queueFamilyIndex, IWindow* window);
-
-#endif // REAPER_PRESENTATIONSURFACE_INCLUDED
-

@@ -5,8 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef REAPER_SCENE_INCLUDED
-#define REAPER_SCENE_INCLUDED
+#pragma once
 
 #include <glm/vec3.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -59,5 +58,3 @@ struct REAPER_RENDERER_API Scene
 
 REAPER_RENDERER_API Node* addNode(Scene& scene, glm::vec3 position = glm::vec3(0.f), glm::quat orientation = glm::quat(), u32 parent = 0);
 REAPER_RENDERER_API Node* addModel(Scene& scene, Model* model, glm::vec3 position = glm::vec3(0.f), glm::quat orientation = glm::quat(), u32 parent = 0);
-
-#endif // REAPER_SCENE_INCLUDED
