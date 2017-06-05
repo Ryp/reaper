@@ -44,8 +44,6 @@ set(REAPER_CORE_SRCS
     ${REAPER_CORE_DIR}/fs/FileLoading.h
     ${REAPER_CORE_DIR}/fs/Path.cpp
     ${REAPER_CORE_DIR}/fs/Path.h
-#     ${REAPER_CORE_DIR}/fs/UnixFileWatcher.cpp
-#     ${REAPER_CORE_DIR}/fs/UnixFileWatcher.h
 
     ${REAPER_CORE_DIR}/memory/Allocator.cpp
     ${REAPER_CORE_DIR}/memory/Allocator.h
