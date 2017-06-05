@@ -5,8 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef REAPER_CVAR_INCLUDED
-#define REAPER_CVAR_INCLUDED
+#pragma once
 
 #include <string>
 
@@ -44,5 +43,3 @@ namespace reaper
         std::string         _valueStr;
     };
 }
-
-#endif // REAPER_CVAR_INCLUDED

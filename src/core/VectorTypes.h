@@ -5,8 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef REAPER_VECTORTYPES_INCLUDED
-#define REAPER_VECTORTYPES_INCLUDED
+#pragma once
 
 template <typename T>
 struct vec2 {
@@ -21,5 +20,3 @@ using uvec2 = vec2<unsigned int>;
 using u8vec2 = vec2<u8>;
 
 #include "VectorTypes.inl"
-
-#endif // REAPER_VECTORTYPES_INCLUDED

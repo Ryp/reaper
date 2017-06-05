@@ -5,8 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef REAPER_LOG_INCLUDED
-#define REAPER_LOG_INCLUDED
+#pragma once
 
 #include "ReaperRoot.h"
 
@@ -53,6 +52,3 @@ void log_error(ReaperRoot& root, const char *format, const Args & ... args)
 {
     log_message(root.log, LogLevel::Error, fmt::format(format, args...));
 }
-
-#endif // REAPER_LOG_INCLUDED
-

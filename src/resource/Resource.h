@@ -5,8 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef REAPER_RESOURCE_INCLUDED
-#define REAPER_RESOURCE_INCLUDED
+#pragma once
 
 #include <string>
 
@@ -15,5 +14,3 @@ using ResourceId = std::string;
 using MeshId = ResourceId;
 using MaterialId = ResourceId;
 using TextureId = ResourceId;
-
-#endif // REAPER_RESOURCE_INCLUDED

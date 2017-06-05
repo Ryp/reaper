@@ -5,8 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef REAPER_MODELLOADER_INCLUDED
-#define REAPER_MODELLOADER_INCLUDED
+#pragma once
 
 #include <fstream>
 #include <string>
@@ -31,5 +30,3 @@ private:
 private:
     std::map<std::string, void (ModelLoader::*)(const std::string&, std::ifstream&, MeshCache&)> _loaders;
 };
-
-#endif // REAPER_MODELLOADER_INCLUDED

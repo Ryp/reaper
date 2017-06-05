@@ -5,8 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef REAPER_SWAPCHAIN_INCLUDED
-#define REAPER_SWAPCHAIN_INCLUDED
+#pragma once
 
 #include "common/ReaperRoot.h"
 
@@ -27,6 +26,3 @@ void destroy_swapchain_framebuffers(const VulkanBackend& backend, PresentationIn
 
 void create_swapchain_renderpass(const VulkanBackend& backend, PresentationInfo& presentInfo);
 void destroy_swapchain_renderpass(const VulkanBackend& backend, PresentationInfo& presentInfo);
-
-#endif // REAPER_SWAPCHAIN_INCLUDED
-

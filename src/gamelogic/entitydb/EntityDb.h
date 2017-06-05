@@ -5,8 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef REAPER_ENTITYDB_INCLUDED
-#define REAPER_ENTITYDB_INCLUDED
+#pragma once
 
 #include <map>
 #include <string>
@@ -30,5 +29,3 @@ private:
     StackAllocator                          _allocator;
     std::map<std::string, EntityDescriptor> _entityDescriptors;
 };
-
-#endif // REAPER_ENTITYDB_INCLUDED

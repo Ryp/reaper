@@ -5,8 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef REAPER_ROOT_INCLUDED
-#define REAPER_ROOT_INCLUDED
+#pragma once
 
 class GameLogic;
 class ILog;
@@ -20,6 +19,3 @@ struct ReaperRoot
     ILog*       log;
     AssetCache* assetCache;
 };
-
-#endif // REAPER_ROOT_INCLUDED
-

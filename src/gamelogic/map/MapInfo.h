@@ -5,8 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef REAPER_MAPINFO_INCLUDED
-#define REAPER_MAPINFO_INCLUDED
+#pragma once
 
 #include <vector>
 
@@ -76,5 +75,3 @@ private:
     std::vector<MapAccess>  _accesses;
     CellMap*                _cells;
 };
-
-#endif // REAPER_MAPINFO_INCLUDED

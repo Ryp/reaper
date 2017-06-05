@@ -5,8 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef REAPER_DAMAGEMODULE_INCLUDED
-#define REAPER_DAMAGEMODULE_INCLUDED
+#pragma once
 
 #include "gamelogic/ModuleUpdater.h"
 
@@ -30,5 +29,3 @@ public:
     void update(float dt);
     void createModule(EntityId id, const DamageModuleDescriptor* descriptor) override;
 };
-
-#endif // REAPER_DAMAGEMODULE_INCLUDED

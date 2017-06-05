@@ -5,8 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef REAPER_TEAMMODULE_INCLUDED
-#define REAPER_TEAMMODULE_INCLUDED
+#pragma once
 
 #include "gamelogic/ModuleUpdater.h"
 
@@ -27,5 +26,3 @@ public:
 public:
     void createModule(EntityId id, const TeamModuleDescriptor* descriptor) override;
 };
-
-#endif // REAPER_TEAMMODULE_INCLUDED

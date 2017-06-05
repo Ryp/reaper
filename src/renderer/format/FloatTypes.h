@@ -5,8 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef REAPER_FLOATTYPES_INCLUDED
-#define REAPER_FLOATTYPES_INCLUDED
+#pragma once
 
 namespace half
 {
@@ -22,5 +21,3 @@ namespace uf11
 {
     float toFloat(u16 data);
 }
-
-#endif // REAPER_FLOATTYPES_INCLUDED

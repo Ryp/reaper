@@ -5,8 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef REAPER_COMPILER_INCLUDED
-#define REAPER_COMPILER_INCLUDED
+#pragma once
 
 // Detect compiler
 #if defined(__INTEL_COMPILER) || defined(__ICC)
@@ -31,5 +30,3 @@
 #else
     #error Could not define import and export macros !
 #endif
-
-#endif // REAPER_COMPILER_INCLUDED

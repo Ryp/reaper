@@ -5,8 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef REAPER_XCB_WINDOW_INCLUDED
-#define REAPER_XCB_WINDOW_INCLUDED
+#pragma once
 
 #include <xcb/xcb.h>
 
@@ -35,6 +34,3 @@ private:
     bool ShouldResizeASAP;
     bool IsValid;
 };
-
-#endif // REAPER_XCB_WINDOW_INCLUDED
-

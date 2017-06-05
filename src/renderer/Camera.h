@@ -5,8 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef REAPER_CAMERA_INCLUDED
-#define REAPER_CAMERA_INCLUDED
+#pragma once
 
 #include <glm/glm.hpp>
 
@@ -45,5 +44,3 @@ protected:
     float       _yaw;
     float       _pitch;
 };
-
-#endif // REAPER_CAMERA_INCLUDED

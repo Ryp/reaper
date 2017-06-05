@@ -5,8 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef REAPER_PATHMODULE_INCLUDED
-#define REAPER_PATHMODULE_INCLUDED
+#pragma once
 
 #include "gamelogic/ModuleUpdater.h"
 #include "gamelogic/map/MapInfo.h"
@@ -42,5 +41,3 @@ private:
     MapInfo&            _mapInfo;
     std::vector<TDPath> _mainPaths;
 };
-
-#endif // REAPER_PATHMODULE_INCLUDED

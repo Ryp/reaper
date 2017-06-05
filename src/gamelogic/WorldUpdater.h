@@ -5,8 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef REAPER_WORLDUPDATER_INCLUDED
-#define REAPER_WORLDUPDATER_INCLUDED
+#pragma once
 
 #include <string>
 #include <map>
@@ -76,5 +75,3 @@ private:
     UniquePtr<WaveSpawnerUpdater>       _waveSpawnerUpdater;
     UniquePtr<TowerControllerUpdater>   _towerControllerUpdater;
 };
-
-#endif // REAPER_WORLDUPDATER_INCLUDED

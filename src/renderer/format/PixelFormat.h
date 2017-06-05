@@ -5,8 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef REAPER_PIXELFORMAT_INCLUDED
-#define REAPER_PIXELFORMAT_INCLUDED
+#pragma once
 
 enum class PixelFormat
 {
@@ -18,5 +17,3 @@ enum class PixelFormat
     B8G8R8A8_UNORM,
     BC2_UNORM_BLOCK
 };
-
-#endif // REAPER_PIXELFORMAT_INCLUDED

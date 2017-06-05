@@ -5,8 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef REAPER_VULKANRENDERER_INCLUDED
-#define REAPER_VULKANRENDERER_INCLUDED
+#pragma once
 
 #include <vector>
 
@@ -77,5 +76,3 @@ private:
 };
 
 void test_vulkan_renderer(ReaperRoot& root, VulkanBackend& backend);
-
-#endif // REAPER_VULKANRENDERER_INCLUDED

@@ -5,8 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef REAPER_SPLINE_INCLUDED
-#define REAPER_SPLINE_INCLUDED
+#pragma once
 
 #include <list>
 #include <vector>
@@ -47,5 +46,3 @@ private:
     std::vector<ControlPoint>   _ctPoints;
     std::vector<float>          _knotsVector;
 };
-
-#endif // REAPER_SPLINE_INCLUDED

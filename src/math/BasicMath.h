@@ -5,8 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef REAPER_BASICMATH_INCLUDED
-#define REAPER_BASICMATH_INCLUDED
+#pragma once
 
 #include <cmath>
 
@@ -64,5 +63,3 @@ inline float distanceSq(const glm::vec2 a, const glm::vec2 b)
 {
     return lengthSq(b - a);
 }
-
-#endif // REAPER_BASICMATH_INCLUDED

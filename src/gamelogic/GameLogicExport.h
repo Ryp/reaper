@@ -5,8 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef REAPER_GAMELOGIC_EXPORT_INCLUDED
-#define REAPER_GAMELOGIC_EXPORT_INCLUDED
+#pragma once
 
 #include "core/Compiler.h"
 
@@ -22,5 +21,3 @@
 #else
     #error Build type must be defined
 #endif
-
-#endif // REAPER_GAMELOGIC_EXPORT_INCLUDED

@@ -5,8 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef REAPER_VULKAN_INCLUDED
-#define REAPER_VULKAN_INCLUDED
+#pragma once
 
 #define VK_NO_PROTOTYPES
 #include <vulkan/vulkan.h>
@@ -31,5 +30,3 @@
 
 #define REAPER_VK_USE_SWAPCHAIN_EXTENSIONS
 #include "VulkanFunctions.h"
-
-#endif // REAPER_VULKAN_INCLUDED

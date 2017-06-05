@@ -5,8 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef REAPER_COMMON_DEBUG_LOG_INCLUDED
-#define REAPER_COMMON_DEBUG_LOG_INCLUDED
+#pragma once
 
 #include "Log.h"
 
@@ -25,6 +24,3 @@ class REAPER_COMMON_API DebugLog : public ILog
     private:
         LogLevel _logLevel;
 };
-
-#endif // REAPER_COMMON_DEBUG_LOG_INCLUDED
-

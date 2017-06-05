@@ -5,8 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef REAPER_WEAPONMODULE_INCLUDED
-#define REAPER_WEAPONMODULE_INCLUDED
+#pragma once
 
 #include "gamelogic/ModuleUpdater.h"
 
@@ -31,5 +30,3 @@ public:
     void update(float dt);
     void createModule(EntityId id, const WeaponModuleDescriptor* descriptor) override;
 };
-
-#endif // REAPER_WEAPONMODULE_INCLUDED

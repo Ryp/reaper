@@ -5,8 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef REAPER_CAST_INCLUDED
-#define REAPER_CAST_INCLUDED
+#pragma once
 
 #include <type_traits>
 
@@ -25,5 +24,3 @@ inline CastType checked_cast(T ptr)
     return static_cast<CastType>(ptr);
 #endif
 }
-
-#endif // REAPER_CAST_INCLUDED

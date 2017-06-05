@@ -5,8 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef REAPER_ABSTRACTCONTROLLER_INCLUDED
-#define REAPER_ABSTRACTCONTROLLER_INCLUDED
+#pragma once
 
 #include <vector>
 
@@ -40,5 +39,3 @@ protected:
     std::vector<Button>   _buttons;
     std::vector<Axe>      _axes;
 };
-
-#endif // ACONTROLLER_HPP

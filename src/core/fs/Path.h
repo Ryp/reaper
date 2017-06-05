@@ -5,8 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef REAPER_PATH_INCLUDED
-#define REAPER_PATH_INCLUDED
+#pragma once
 
 #include <string>
 
@@ -14,6 +13,3 @@ namespace reaper
 {
     std::string getExecutablePath(const std::string& av0);
 }
-
-#endif // REAPER_PATH_INCLUDED
-

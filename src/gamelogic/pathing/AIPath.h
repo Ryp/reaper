@@ -5,8 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef REAPER_AIPATH_INCLUDED
-#define REAPER_AIPATH_INCLUDED
+#pragma once
 
 #include <vector>
 
@@ -18,5 +17,3 @@ struct Segment {
 };
 
 using AIPath = std::vector<Segment>;
-
-#endif // REAPER_AIPATH_INCLUDED

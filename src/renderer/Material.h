@@ -5,8 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef REAPER_MATERIAL_INCLUDED
-#define REAPER_MATERIAL_INCLUDED
+#pragma once
 
 #include "resource/Resource.h"
 
@@ -16,5 +15,3 @@ struct Material {
     TextureId roughness;
     TextureId normal;
 };
-
-#endif // REAPER_MATERIAL_INCLUDED

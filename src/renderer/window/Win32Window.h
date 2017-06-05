@@ -5,8 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef REAPER_WIN32_WINDOW_INCLUDED
-#define REAPER_WIN32_WINDOW_INCLUDED
+#pragma once
 
 #include <Windows.h>
 
@@ -24,7 +23,3 @@ public:
     HINSTANCE   Instance;
     HWND        Handle;
 };
-
-#endif // REAPER_WIN32_WINDOW_INCLUDED
-
-

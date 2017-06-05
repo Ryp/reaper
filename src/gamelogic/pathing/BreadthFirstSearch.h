@@ -5,8 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef REAPER_BREADTHFIRSTSEARCH_INCLUDED
-#define REAPER_BREADTHFIRSTSEARCH_INCLUDED
+#pragma once
 
 #include "core/BitTricks.h"
 
@@ -35,5 +34,3 @@ namespace pathing
 
     void buildPathFromBFS(uvec2 start, TDPath& path, const CellMap& graph);
 }
-
-#endif // REAPER_BREADTHFIRSTSEARCH_INCLUDED

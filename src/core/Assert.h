@@ -5,8 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef REAPER_ASSERT_INCLUDED
-#define REAPER_ASSERT_INCLUDED
+#pragma once
 
 #include <string>
 
@@ -34,5 +33,3 @@ REAPER_CORE_API void AssertImpl(bool condition, const char* file, const char* fu
 // Actual macros
 #define Assert(...) REAPER_CALL_OVERLOAD(Assert, __VA_ARGS__)
 #define AssertUnreachable() AssertImpl(false, __FILE__, __FUNCTION__, __LINE__, "unreachable")
-
-#endif // REAPER_ASSERT_INCLUDED
