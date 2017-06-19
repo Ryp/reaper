@@ -11,7 +11,7 @@ void log_message(ILog* log, LogLevel level, const std::string& message)
 {
     Assert(log != nullptr);
 
-    if (log)
+    if (log != nullptr)
         log->log(level, message);
 }
 
