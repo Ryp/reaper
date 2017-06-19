@@ -12,7 +12,7 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
     message(FATAL_ERROR "In-source builds are discouraged. Make a separate folder for building:\nmkdir build; cd build; cmake ..;cd ..\nBefore that, remove the files already created:\nrm -rf CMakeCache.txt CMakeFiles")
 endif()
 
-# Set build type rules
+# Set build type rules (use GENERATOR_IS_MULTI_CONFIG when CMake 3.9 is required)
 if(CMAKE_CONFIGURATION_TYPES)
     # Multiconfig generator
     # Remove RelWithDebInfo and MinSizeRel configuration types (call this before project())
@@ -34,9 +34,10 @@ project(Reaper)
 # Export compile commands in a json file. Useful for vim completion and debugging
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-option(REAPER_BUILD_TESTS               "Build tests" ON)
-option(REAPER_BUILD_SHARED_LIBRARIES    "Build shared libraries" ON)
-option(REAPER_USE_MICROPROFILE          "Use microprofile" ON)
+option(REAPER_BUILD_TESTS               "Build tests"                   ON)
+option(REAPER_BUILD_SHARED_LIBRARIES    "Build shared libraries"        ON)
+option(REAPER_USE_MICROPROFILE          "Use microprofile"              ON)
+option(REAPER_RUN_CLANG_TIDY            "Run clang-tidy when compiling" ON)
 
 # Enable CTest
 if (REAPER_BUILD_TESTS)

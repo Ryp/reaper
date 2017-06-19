@@ -15,9 +15,6 @@ DebugLog::DebugLog(LogLevel level)
 : _logLevel(level)
 {}
 
-DebugLog::~DebugLog()
-{}
-
 void DebugLog::log(LogLevel level, const std::string& message)
 {
     if (to_underlying(level) > to_underlying(_logLevel))

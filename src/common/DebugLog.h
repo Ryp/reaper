@@ -15,7 +15,7 @@ class REAPER_COMMON_API DebugLog : public ILog
 {
     public:
         DebugLog(LogLevel level = LogLevel::Debug);
-        virtual ~DebugLog();
+        virtual ~DebugLog() = default;
 
     public:
         virtual void log(LogLevel level, const std::string& message) override final;
