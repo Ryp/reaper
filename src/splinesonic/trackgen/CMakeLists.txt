@@ -18,6 +18,7 @@ set(REAPER_TRACKGEN_SRCS
     ${REAPER_TRACKGEN_DIR}/Track.h
     ${REAPER_TRACKGEN_DIR}/TrackDebug.cpp
     ${REAPER_TRACKGEN_DIR}/TrackDebug.h
+    ${REAPER_TRACKGEN_DIR}/TrackGenExport.h
 )
 
 set(REAPER_TRACKGEN_TEST_SRCS
