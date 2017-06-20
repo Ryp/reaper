@@ -12,13 +12,16 @@
 
 #include <glm/vec3.hpp>
 
-class Spline
+#include "MathExport.h"
+
+class REAPER_MATH_API Spline
 {
-    typedef struct {
+    struct ControlPoint {
         glm::vec3   pos;
         float       weight;
-    } ControlPoint;
-    static const float  DefaultWeight;
+    };
+
+    static constexpr float DefaultWeight = 1.f;
 
 public:
     explicit Spline(unsigned int degree);
@@ -42,7 +45,7 @@ private:
     float    evalSplinePrimitive(unsigned int i, unsigned int d, float t) const;
 
 private:
-    const unsigned int          _degree;
-    std::vector<ControlPoint>   _ctPoints;
-    std::vector<float>          _knotsVector;
+    const unsigned int          m_degree;
+    std::vector<ControlPoint>   m_ctPoints;
+    std::vector<float>          m_knots;
 };

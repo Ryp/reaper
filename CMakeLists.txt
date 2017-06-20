@@ -93,6 +93,7 @@ endif()
 add_definitions(-D${VK_PLATFORM})
 
 add_subdirectory(src/core)
+add_subdirectory(src/math)
 add_subdirectory(src/common)
 add_subdirectory(src/gamelogic)
 add_subdirectory(src/renderer)
@@ -112,11 +113,6 @@ set(REAPER_SRCS
 #     ${CMAKE_SOURCE_DIR}/src/input/AbstractController.h
 #     ${CMAKE_SOURCE_DIR}/src/input/SixAxisController.cpp
 #     ${CMAKE_SOURCE_DIR}/src/input/SixAxisController.h
-
-    ${CMAKE_SOURCE_DIR}/src/math/BasicMath.h
-    ${CMAKE_SOURCE_DIR}/src/math/Constants.h
-    ${CMAKE_SOURCE_DIR}/src/math/Spline.cpp
-    ${CMAKE_SOURCE_DIR}/src/math/Spline.h
 
     ${CMAKE_SOURCE_DIR}/src/pch/stdafx.h
 

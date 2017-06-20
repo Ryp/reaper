@@ -11,6 +11,7 @@
 
 #include "core/CoreExport.h"
 #include "common/CommonExport.h"
+#include "math/MathExport.h"
 #include "gamelogic/GameLogicExport.h"
 #include "renderer/RendererExport.h"
 
