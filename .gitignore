@@ -7,6 +7,3 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-#Ryp custom
-*.kdev4*
-.idea
