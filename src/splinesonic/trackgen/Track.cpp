@@ -42,9 +42,9 @@ namespace SplineSonic { namespace TrackGen
             const glm::vec2 phiBounds = glm::vec2(-PhiMax, PhiMax) * genInfo.chaos;
             const glm::vec2 rollBounds = glm::vec2(-RollMax, RollMax) * genInfo.chaos;
 
-            std::uniform_real_distribution<> thetaDistribution(thetaBounds.x, thetaBounds.y);
-            std::uniform_real_distribution<> phiDistribution(phiBounds.x, phiBounds.y);
-            std::uniform_real_distribution<> rollDistribution(rollBounds.x, rollBounds.y);
+            std::uniform_real_distribution<float> thetaDistribution(thetaBounds.x, thetaBounds.y);
+            std::uniform_real_distribution<float> phiDistribution(phiBounds.x, phiBounds.y);
+            std::uniform_real_distribution<float> rollDistribution(rollBounds.x, rollBounds.y);
 
             const float theta = thetaDistribution(rng);
             const float phi = phiDistribution(rng);
@@ -75,8 +75,8 @@ namespace SplineSonic { namespace TrackGen
 
         TrackSkeletonNode GenerateNode(const TrackSkeleton& track, RNG& rng)
         {
-            std::uniform_real_distribution<> widthDistribution(WidthMin, WidthMax);
-            std::uniform_real_distribution<> radiusDistribution(RadiusMin, RadiusMax);
+            std::uniform_real_distribution<float> widthDistribution(WidthMin, WidthMax);
+            std::uniform_real_distribution<float> radiusDistribution(RadiusMin, RadiusMax);
 
             TrackSkeletonNode node;
 
