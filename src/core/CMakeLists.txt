@@ -32,6 +32,8 @@ set(REAPER_CORE_SRCS
     ${REAPER_CORE_DIR}/DynamicLibrary.cpp
     ${REAPER_CORE_DIR}/DynamicLibrary.h
     ${REAPER_CORE_DIR}/EnumHelper.h
+    ${REAPER_CORE_DIR}/IntrusiveList.cpp
+    ${REAPER_CORE_DIR}/IntrusiveList.h
     ${REAPER_CORE_DIR}/Platform.h
     ${REAPER_CORE_DIR}/Profile.h
     ${REAPER_CORE_DIR}/StackTrace.cpp
@@ -62,6 +64,7 @@ set(REAPER_CORE_TEST_SRCS
     ${REAPER_CORE_DIR}/test/buddy_allocator.cpp
     ${REAPER_CORE_DIR}/test/cache.cpp
     ${REAPER_CORE_DIR}/test/stack_allocator.cpp
+    ${REAPER_CORE_DIR}/test/intrusive_list.cpp
 )
 
 add_library(${REAPER_CORE_BIN} ${REAPER_BUILD_TYPE} ${REAPER_CORE_SRCS})
