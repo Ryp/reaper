@@ -16,10 +16,13 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${Reaper_BINARY_DIR})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${Reaper_BINARY_DIR})
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${Reaper_BINARY_DIR})
 
+# std:c++latest: added for nested namespaces (vs2015)
+set(REAPER_MSVC_COMMON_FLAGS "/std:c++latest")
+
 # Ignore level-4 warning C4201: nonstandard extension used : nameless struct/union
 # Ignore level-1 warning C4251: 'identifier' : class 'type' needs to have dll-interface to be used by clients of class 'type2'
-set(REAPER_MSVC_DEBUG_FLAGS "/W4" "/wd4201" "/wd4251")
-set(REAPER_MSVC_RELEASE_FLAGS "/W0")
+set(REAPER_MSVC_DEBUG_FLAGS ${REAPER_MSVC_COMMON_FLAGS} "/W4" "/wd4201" "/wd4251")
+set(REAPER_MSVC_RELEASE_FLAGS ${REAPER_MSVC_COMMON_FLAGS} "/W0")
 set(REAPER_GCC_DEBUG_FLAGS "-Wall" "-Wextra" "-Wundef" "-Wshadow" "-funsigned-char"
         "-Wchar-subscripts" "-Wcast-align" "-Wwrite-strings" "-Wunused" "-Wuninitialized"
         "-Wpointer-arith" "-Wredundant-decls" "-Winline" "-Wformat"
@@ -49,6 +52,8 @@ macro(reaper_add_vs_source_tree input_files path_to_strip)
         # group into "Source Files" and "Header Files"
         if ("${FILE}" MATCHES ".*\\.cpp" OR "${FILE}" MATCHES ".*\\.inl" OR "${FILE}" MATCHES ".*\\.h" OR "${FILE}" MATCHES ".*\\.hpp")
             set(GROUP "Source Files\\${GROUP}")
+        elseif ("${FILE}" MATCHES ".*\\.natvis")
+            set(GROUP "Natvis")
         else()
             set(GROUP "Other Files\\${GROUP}")
         endif()

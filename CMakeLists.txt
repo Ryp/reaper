@@ -5,7 +5,7 @@
 #// This file is distributed under the MIT License
 #///////////////////////////////////////////////////////////////////////////////
 
-cmake_minimum_required(VERSION 3.6 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.7 FATAL_ERROR)
 
 # Avoid source tree pollution
 if(CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
@@ -120,10 +120,17 @@ set(REAPER_SRCS
     ${CMAKE_SOURCE_DIR}/src/resource/Resource.h
 )
 
-add_executable(${REAPER_BIN} ${REAPER_SRCS})
+# List additionnal natvis files for Visual Studio
+if(MSVC)
+    set(REAPER_NATVIS_FILES
+        ${CMAKE_SOURCE_DIR}/external/glm/util/glm.natvis
+    )
+endif()
+
+add_executable(${REAPER_BIN} ${REAPER_SRCS} ${REAPER_NATVIS_FILES})
 reaper_add_custom_build_flags(${REAPER_BIN} "Reaper")
 
-if (WIN32)
+if (MSVC)
     reaper_vs_set_debugger_flags(${REAPER_BIN})
 endif()
 
