@@ -38,6 +38,9 @@ target_include_directories(${REAPER_MATH_BIN} SYSTEM PUBLIC
 #Libraries
 target_link_libraries(${REAPER_MATH_BIN} ${REAPER_MATH_LIBRARIES})
 
+set_target_properties(${REAPER_MATH_BIN} PROPERTIES COTIRE_CXX_PREFIX_HEADER_INIT ${REAPER_PCH})
+cotire(${REAPER_MATH_BIN})
+
 if (REAPER_BUILD_TESTS)
     reaper_add_tests(${REAPER_MATH_BIN} ${REAPER_MATH_TEST_SRCS})
 endif()

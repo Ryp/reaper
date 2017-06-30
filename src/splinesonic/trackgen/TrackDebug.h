@@ -8,12 +8,17 @@
 #pragma once
 
 #include <ostream>
+#include <vector>
 
-#include "TrackGenExport.h"
+namespace Reaper { namespace Math
+{
+    struct Spline;
+}}
 
 namespace SplineSonic { namespace TrackGen
 {
-    struct TrackSkeleton;
+    struct TrackSkeletonNode;
 
-    REAPER_TRACKGEN_API void SaveTrackAsObj(std::ostream& output, TrackSkeleton& track);
+    REAPER_TRACKGEN_API void SaveTrackSkeletonAsObj(std::ostream& output, std::vector<TrackSkeletonNode>& skeleton);
+    REAPER_TRACKGEN_API void SaveTrackSplinesAsObj(std::ostream& output, std::vector<Reaper::Math::Spline>& splines, u32 tesselation);
 }}

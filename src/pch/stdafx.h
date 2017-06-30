@@ -14,6 +14,7 @@
 #include "math/MathExport.h"
 #include "gamelogic/GameLogicExport.h"
 #include "renderer/RendererExport.h"
+#include "splinesonic/trackgen/TrackGenExport.h"
 
 #include "core/Assert.h"
 #include "core/Compiler.h"

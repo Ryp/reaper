@@ -10,34 +10,46 @@
 
 #include <fstream>
 
+#include "math/Spline.h"
+
 #include "splinesonic/trackgen/Track.h"
 #include "splinesonic/trackgen/TrackDebug.h"
 
 using namespace SplineSonic::TrackGen;
 
-TEST_CASE("Simple track generation")
+TEST_CASE("Track generation")
 {
-    TrackSkeleton testTrack;
-    GenerationInfo genInfo = {};
-
-    genInfo.length = 100;
-    genInfo.width = 12.0f;
-    genInfo.chaos = 0.00f;
-
-    GenerateTrackSkeleton(genInfo, testTrack);
-}
-
-TEST_CASE("Save track")
-{
-    TrackSkeleton testTrack;
+    Track testTrack;
     GenerationInfo genInfo = {};
 
     genInfo.length = 100;
     genInfo.width = 12.0f;
     genInfo.chaos = 1.0f;
 
-    GenerateTrackSkeleton(genInfo, testTrack);
+    testTrack.genInfo = genInfo;
 
-    std::ofstream file("test.obj");
-    SaveTrackAsObj(file, testTrack);
+    SUBCASE("Generate skeleton")
+    {
+        GenerateTrackSkeleton(genInfo, testTrack.skeletonNodes);
+
+        CHECK_EQ(testTrack.skeletonNodes.size(), testTrack.genInfo.length);
+
+        SUBCASE("") {}
+        SUBCASE("Save skeleton as obj")
+        {
+            std::ofstream file("test_skeleton.obj");
+            SaveTrackSkeletonAsObj(file, testTrack.skeletonNodes);
+        }
+        SUBCASE("Generate splines")
+        {
+            GenerateTrackSplines(testTrack.skeletonNodes, testTrack.splines);
+
+            SUBCASE("") {}
+            SUBCASE("Save splines as obj")
+            {
+                std::ofstream file2("test_splines.obj");
+                SaveTrackSplinesAsObj(file2, testTrack.splines, 20);
+            }
+        }
+    }
 }
