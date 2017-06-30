@@ -30,7 +30,8 @@ namespace SplineSonic { namespace TrackGen
     constexpr u32 MaxTryCount = 10000;
 
     constexpr u32 SplineOrder = 3;
-    constexpr u32 SplineInnerWeight = 1.0f;
+
+    constexpr float SplineInnerWeight = 0.5f;
 
     using RNG = std::mt19937;
 
