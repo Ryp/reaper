@@ -12,7 +12,10 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
-#include "TrackGenExport.h"
+namespace Reaper { namespace Math
+{
+    struct Spline;
+}}
 
 namespace SplineSonic { namespace TrackGen
 {
@@ -33,13 +36,14 @@ namespace SplineSonic { namespace TrackGen
         float outWidth;
     };
 
-    using TrackSkeletonNodeArray = std::vector<TrackSkeletonNode>;
-
-    struct TrackSkeleton
+    struct Track
     {
         GenerationInfo genInfo;
-        TrackSkeletonNodeArray nodes;
+        std::vector<TrackSkeletonNode> skeletonNodes;
+        std::vector<Reaper::Math::Spline> splines;
     };
 
-    REAPER_TRACKGEN_API void GenerateTrackSkeleton(const GenerationInfo& genInfo, TrackSkeleton& track);
-}}
+    REAPER_TRACKGEN_API void GenerateTrackSkeleton(const GenerationInfo& genInfo, std::vector<TrackSkeletonNode>& skeletonNodes);
+
+    REAPER_TRACKGEN_API void GenerateTrackSplines(const std::vector<TrackSkeletonNode>& skeletonNodes, std::vector<Reaper::Math::Spline>& splines);
+}} // namespace SplineSonic::TrackGen
