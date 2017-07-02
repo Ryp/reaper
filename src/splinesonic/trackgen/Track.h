@@ -36,14 +36,28 @@ namespace SplineSonic { namespace TrackGen
         float outWidth;
     };
 
+    struct Bone
+    {
+        glm::vec3 boneRootMS;
+        glm::vec3 boneEndMS;
+    };
+
+    struct TrackSkinning
+    {
+        std::vector<Bone> bones;
+    };
+
     struct Track
     {
         GenerationInfo genInfo;
         std::vector<TrackSkeletonNode> skeletonNodes;
         std::vector<Reaper::Math::Spline> splines;
+        std::vector<TrackSkinning> skinning;
     };
 
     REAPER_TRACKGEN_API void GenerateTrackSkeleton(const GenerationInfo& genInfo, std::vector<TrackSkeletonNode>& skeletonNodes);
 
     REAPER_TRACKGEN_API void GenerateTrackSplines(const std::vector<TrackSkeletonNode>& skeletonNodes, std::vector<Reaper::Math::Spline>& splines);
+
+    REAPER_TRACKGEN_API void GenerateTrackSkinning(const std::vector<Reaper::Math::Spline>& splines, std::vector<TrackSkinning>& skinning);
 }} // namespace SplineSonic::TrackGen

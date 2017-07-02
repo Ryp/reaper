@@ -33,6 +33,8 @@ namespace SplineSonic { namespace TrackGen
 
     constexpr float SplineInnerWeight = 0.5f;
 
+    constexpr u32 BoneCountPerChunk = 4;
+
     using RNG = std::mt19937;
 
     using Reaper::Math::UnitXAxis;
@@ -164,5 +166,39 @@ namespace SplineSonic { namespace TrackGen
             splines[i] = Reaper::Math::ConstructSpline(SplineOrder, controlPoints);
         }
     }
-}} // namespace SplineSonic::TrackGen
 
+    namespace
+    {
+        void GenerateTrackSkinningForChunk(const Reaper::Math::Spline& spline, TrackSkinning& skinningInfo)
+        {
+            skinningInfo.bones.resize(BoneCountPerChunk);
+
+            // Fill bone positions
+            skinningInfo.bones[0].boneRootMS = EvalSpline(spline, 0.0f);
+            skinningInfo.bones[BoneCountPerChunk - 1].boneEndMS = EvalSpline(spline, 1.0f);
+
+            for (u32 i = 1; i < BoneCountPerChunk; i++)
+            {
+                const float param = static_cast<float>(i) / static_cast<float>(BoneCountPerChunk);
+                const glm::vec3 anchorPos = EvalSpline(spline, param);
+
+                skinningInfo.bones[i - 1].boneEndMS = anchorPos;
+                skinningInfo.bones[i].boneRootMS = anchorPos;
+            }
+        }
+    }
+
+    void GenerateTrackSkinning(const std::vector<Reaper::Math::Spline>& splines, std::vector<TrackSkinning>& skinning)
+    {
+        const u32 trackChunkCount = splines.size();
+
+        Assert(trackChunkCount > 0);
+
+        skinning.resize(trackChunkCount);
+
+        for (u32 chunkIdx = 0; chunkIdx < splines.size(); chunkIdx++)
+        {
+            GenerateTrackSkinningForChunk(splines[chunkIdx], skinning[chunkIdx]);
+        }
+    }
+}} // namespace SplineSonic::TrackGen
