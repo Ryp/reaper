@@ -13,17 +13,6 @@
 
 namespace SplineSonic { namespace TrackGen
 {
-    namespace
-    {
-        struct Geometry
-        {
-            std::vector<glm::fvec3> vertices;
-            std::vector<glm::fvec2> uvs;
-            std::vector<glm::fvec3> normals;
-            std::vector<glm::uvec3> indexes;
-        };
-    }
-
     void SaveTrackSkeletonAsObj(std::ostream& output, std::vector<TrackSkeletonNode>& skeleton)
     {
         output << "o Skeleton" << std::endl;
@@ -70,6 +59,51 @@ namespace SplineSonic { namespace TrackGen
         }
 
         for (u32 i = 0; i < splineCount * tesselation; i++)
+        {
+            output << 'l';
+            output << ' ' << i + 1;
+            output << ' ' << i + 2;
+            output << std::endl;
+        }
+    }
+
+    void SaveTrackBonesAsObj(std::ostream& output, std::vector<TrackSkinning>& skinningInfo)
+    {
+        const u32 trackChunkCount = skinningInfo.size();
+
+        Assert(trackChunkCount > 0);
+
+        const u32 bonesPerChunkCount = skinningInfo[0].bones.size();
+
+        output << "o Bones" << std::endl;
+        for (const auto& skinning : skinningInfo)
+        {
+            Assert(bonesPerChunkCount == skinning.bones.size());
+
+            for (const auto& bone : skinning.bones)
+            {
+                {
+                    glm::vec3 pos = bone.boneRootMS;
+
+                    output << 'v';
+                    output << ' ' << pos.x;
+                    output << ' ' << pos.y;
+                    output << ' ' << pos.z;
+                    output << std::endl;
+                }
+                {
+                    glm::vec3 pos = bone.boneEndMS;
+
+                    output << 'v';
+                    output << ' ' << pos.x;
+                    output << ' ' << pos.y;
+                    output << ' ' << pos.z;
+                    output << std::endl;
+                }
+            }
+        }
+
+        for (u32 i = 0; i < trackChunkCount * bonesPerChunkCount; i++)
         {
             output << 'l';
             output << ' ' << i + 1;

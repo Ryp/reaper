@@ -49,6 +49,18 @@ TEST_CASE("Track generation")
             {
                 std::ofstream file2("test_splines.obj");
                 SaveTrackSplinesAsObj(file2, testTrack.splines, 20);
+
+                SUBCASE("Generate bones")
+                {
+                    GenerateTrackSkinning(testTrack.splines, testTrack.skinning);
+
+                    SUBCASE("") {}
+                    SUBCASE("Save bones as obj")
+                    {
+                        std::ofstream file3("test_bones.obj");
+                        SaveTrackBonesAsObj(file3, testTrack.skinning);
+                    }
+                }
             }
         }
     }
