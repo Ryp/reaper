@@ -283,8 +283,8 @@ namespace SplineSonic { namespace TrackGen
                 const glm::fmat4 boneTransform = trackSkinning.poseTransforms[j] * trackSkinning.invBindTransforms[j];
                 const glm::fvec4 skinnedVertex = (boneTransform * glm::fvec4(vertex, 1.0f)) * boneWeights[j];
 
-                Assert(skinnedVertex.w > 0.0f);
-                skinnedVertices[i] += glm::fvec3(skinnedVertex) / skinnedVertex.w;
+                if (glm::abs(skinnedVertex.w) > 0.0f)
+                    skinnedVertices[i] += glm::fvec3(skinnedVertex) / skinnedVertex.w;
             }
         }
         mesh.vertices = skinnedVertices;
