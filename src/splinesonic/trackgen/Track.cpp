@@ -252,10 +252,10 @@ namespace SplineSonic { namespace TrackGen
 
     namespace
     {
-        glm::fvec4 ComputeBoneWeights(glm::vec3 position)
+        glm::fvec4 ComputeBoneWeights(glm::vec3 position, float radius)
         {
-            static_cast<void>(position);
-            return glm::vec4(1.0f, 0.0f, 0.0f, 0.0f); // FIXME
+            const float weight = (position.x / radius) * 0.5f + 0.5f;
+            return glm::clamp(glm::vec4(1.0f - weight, 0.0f, 0.0f, weight), 0.0f, 1.0f); // FIXME use all bones
         }
     }
 
@@ -264,7 +264,7 @@ namespace SplineSonic { namespace TrackGen
                             Mesh& mesh, float meshLength)
     {
         const u32 vertexCount = static_cast<u32>(mesh.vertices.size());
-        const u32 boneCount = 4; // FIXME
+        const u32 boneCount = 4; // FIXME choose if this is a hard limit or not
         std::vector<glm::fvec3> skinnedVertices(vertexCount);
 
         Assert(vertexCount > 0);
@@ -273,19 +273,22 @@ namespace SplineSonic { namespace TrackGen
 
         for (u32 i = 0; i < vertexCount; i++)
         {
-            const glm::fvec3 vertex = mesh.vertices[i] * glm::fvec3(scaleX, 1.0f, 1.0f);
-            const glm::fvec4 boneWeights = ComputeBoneWeights(vertex);
+            const float scaleHack = 20.0f; // FIXME
+            const glm::fvec3 vertex = mesh.vertices[i] * glm::fvec3(scaleX, scaleHack, scaleHack);
+            const glm::fvec4 boneWeights = ComputeBoneWeights(vertex, node.radius);
 
-            skinnedVertices[i] = glm::fvec3(0.0f);
+            const float debugSum = boneWeights.x + boneWeights.y + boneWeights.z + boneWeights.w;
+            Assert(debugSum > 0.99f && debugSum < 1.01f); // FIXME write a proper helper function for this
 
+            glm::fvec4 skinnedVertex(0.0f);
             for (u32 j = 0; j < boneCount; j++)
             {
                 const glm::fmat4 boneTransform = trackSkinning.poseTransforms[j] * trackSkinning.invBindTransforms[j];
-                const glm::fvec4 skinnedVertex = (boneTransform * glm::fvec4(vertex, 1.0f)) * boneWeights[j];
 
-                if (glm::abs(skinnedVertex.w) > 0.0f)
-                    skinnedVertices[i] += glm::fvec3(skinnedVertex) / skinnedVertex.w;
+                skinnedVertex += (boneTransform * glm::fvec4(vertex, 1.0f)) * boneWeights[j];
             }
+            if (glm::abs(skinnedVertex.w) > 0.0f)
+                skinnedVertices[i] = glm::fvec3(skinnedVertex) / skinnedVertex.w;
         }
         mesh.vertices = skinnedVertices;
     }
