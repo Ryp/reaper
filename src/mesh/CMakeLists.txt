@@ -35,7 +35,7 @@ set(REAPER_MESH_SRCS
 )
 
 set(REAPER_MESH_TEST_SRCS
-    ${REAPER_MESH_DIR}/test/temp.cpp
+    ${REAPER_MESH_DIR}/test/load.cpp
 )
 
 add_library(${REAPER_MESH_BIN} ${REAPER_BUILD_TYPE} ${REAPER_MESH_SRCS})

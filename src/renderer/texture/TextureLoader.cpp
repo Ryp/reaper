@@ -56,7 +56,7 @@ void TextureLoader::loadDDS(const std::string& filename, TextureCache& cache)
     texture.rawData = gliTexture.data();
 
     // Deduce bpp value from the base mip
-    texture.bytesPerPixel = gliTexture.size(0) / (texture.height * texture.width);
+    texture.bytesPerPixel = static_cast<u32>(gliTexture.size(0)) / (texture.height * texture.width);
 
     Assert(texture.width > 0);
     Assert(texture.height > 0);

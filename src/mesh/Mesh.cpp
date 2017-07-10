@@ -10,9 +10,9 @@
 u32 getTriangleCount(const Mesh& mesh)
 {
     if (mesh.isIndexed)
-        return mesh.indexes.size();
+        return static_cast<u32>(mesh.indexes.size());
     else
-        return mesh.vertices.size() / 3;
+        return static_cast<u32>(mesh.vertices.size()) / 3;
 }
 
 void computeNormalsSimple(Mesh& mesh)
