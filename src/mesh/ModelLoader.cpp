@@ -219,10 +219,10 @@ void ModelLoader::loadOBJCustom(const std::string& filename, std::ifstream& src,
 
 void SaveMeshAsObj(std::ostream& output, const Mesh& mesh)
 {
-    const u32 vertexCount = mesh.vertices.size();
-    const u32 uvCount = mesh.uvs.size();
-    const u32 normalCount = mesh.normals.size();
-    const u32 indexCount = mesh.indexes.size();
+    const u32 vertexCount = static_cast<u32>(mesh.vertices.size());
+    const u32 uvCount = static_cast<u32>(mesh.uvs.size());
+    const u32 normalCount = static_cast<u32>(mesh.normals.size());
+    const u32 indexCount = static_cast<u32>(mesh.indexes.size());
 
     Assert(indexCount % 3 == 0);
 

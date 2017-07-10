@@ -152,7 +152,7 @@ namespace SplineSonic { namespace TrackGen
     void GenerateTrackSplines(const std::vector<TrackSkeletonNode>& skeletonNodes, std::vector<Reaper::Math::Spline>& splines)
     {
         std::vector<glm::vec4> controlPoints(4);
-        const u32 trackChunkCount = skeletonNodes.size();
+        const u32 trackChunkCount = static_cast<u32>(skeletonNodes.size());
 
         Assert(trackChunkCount > 0);
         Assert(trackChunkCount == skeletonNodes.size());
@@ -238,7 +238,7 @@ namespace SplineSonic { namespace TrackGen
                                const std::vector<Reaper::Math::Spline>& splines,
                                std::vector<TrackSkinning>& skinning)
     {
-        const u32 trackChunkCount = splines.size();
+        const u32 trackChunkCount = static_cast<u32>(splines.size());
 
         Assert(trackChunkCount > 0);
 
@@ -263,7 +263,7 @@ namespace SplineSonic { namespace TrackGen
                             const TrackSkinning& trackSkinning,
                             Mesh& mesh, float meshLength)
     {
-        const u32 vertexCount = mesh.vertices.size();
+        const u32 vertexCount = static_cast<u32>(mesh.vertices.size());
         const u32 boneCount = 4; // FIXME
         std::vector<glm::fvec3> skinnedVertices(vertexCount);
 

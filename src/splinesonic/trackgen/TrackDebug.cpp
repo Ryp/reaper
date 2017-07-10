@@ -38,7 +38,7 @@ namespace SplineSonic { namespace TrackGen
     void SaveTrackSplinesAsObj(std::ostream& output, std::vector<TrackSkeletonNode>& skeleton,
                                std::vector<Reaper::Math::Spline>& splines, u32 tesselation)
     {
-        const u32 splineCount = splines.size();
+        const u32 splineCount = static_cast<u32>(splines.size());
 
         output << "o Splines" << std::endl;
 
@@ -74,11 +74,11 @@ namespace SplineSonic { namespace TrackGen
 
     void SaveTrackBonesAsObj(std::ostream& output, std::vector<TrackSkinning>& skinningInfo)
     {
-        const u32 trackChunkCount = skinningInfo.size();
+        const u32 trackChunkCount = static_cast<u32>(skinningInfo.size());
 
         Assert(trackChunkCount > 0);
 
-        const u32 bonesPerChunkCount = skinningInfo[0].bones.size();
+        const u32 bonesPerChunkCount = static_cast<u32>(skinningInfo[0].bones.size());
 
         output << "o Bones" << std::endl;
         for (const auto& skinning : skinningInfo)
