@@ -94,6 +94,7 @@ add_definitions(-D${VK_PLATFORM})
 
 add_subdirectory(src/core)
 add_subdirectory(src/math)
+add_subdirectory(src/mesh)
 add_subdirectory(src/common)
 add_subdirectory(src/gamelogic)
 add_subdirectory(src/renderer)
@@ -149,6 +150,8 @@ target_link_libraries(${REAPER_BIN}
     ${REAPER_CORE_BIN}
     ${REAPER_COMMON_BIN}
     ${REAPER_GAMELOGIC_BIN}
+    ${REAPER_MATH_BIN}
+    ${REAPER_MESH_BIN}
     ${REAPER_RENDERER_BIN})
 
 set_target_properties(${REAPER_BIN} PROPERTIES COTIRE_CXX_PREFIX_HEADER_INIT ${REAPER_PCH})

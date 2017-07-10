@@ -20,7 +20,13 @@ namespace SplineSonic { namespace TrackGen
     struct TrackSkeletonNode;
     struct TrackSkinning;
 
-    REAPER_TRACKGEN_API void SaveTrackSkeletonAsObj(std::ostream& output, std::vector<TrackSkeletonNode>& skeleton);
-    REAPER_TRACKGEN_API void SaveTrackSplinesAsObj(std::ostream& output, std::vector<Reaper::Math::Spline>& splines, u32 tesselation);
-    REAPER_TRACKGEN_API void SaveTrackBonesAsObj(std::ostream& output, std::vector<TrackSkinning>& skinningInfo);
+    REAPER_TRACKGEN_API
+    void SaveTrackSkeletonAsObj(std::ostream& output, std::vector<TrackSkeletonNode>& skeleton);
+
+    REAPER_TRACKGEN_API
+    void SaveTrackSplinesAsObj(std::ostream& output, std::vector<TrackSkeletonNode>& skeleton,
+                               std::vector<Reaper::Math::Spline>& splines, u32 tesselation);
+
+    REAPER_TRACKGEN_API
+    void SaveTrackBonesAsObj(std::ostream& output, std::vector<TrackSkinning>& skinningInfo);
 }}

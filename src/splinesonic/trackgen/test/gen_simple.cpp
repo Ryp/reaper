@@ -20,8 +20,8 @@ using namespace SplineSonic::TrackGen;
 TEST_CASE("Track generation")
 {
     Track testTrack;
-    GenerationInfo genInfo = {};
 
+    GenerationInfo genInfo = {};
     genInfo.length = 100;
     genInfo.width = 12.0f;
     genInfo.chaos = 1.0f;
@@ -42,26 +42,56 @@ TEST_CASE("Track generation")
         }
         SUBCASE("Generate splines")
         {
-            GenerateTrackSplines(testTrack.skeletonNodes, testTrack.splines);
+            GenerateTrackSplines(testTrack.skeletonNodes, testTrack.splinesMS);
 
             SUBCASE("") {}
             SUBCASE("Save splines as obj")
             {
                 std::ofstream file2("test_splines.obj");
-                SaveTrackSplinesAsObj(file2, testTrack.splines, 20);
+                SaveTrackSplinesAsObj(file2, testTrack.skeletonNodes, testTrack.splinesMS, 20);
+            }
+            SUBCASE("Generate bones")
+            {
+                GenerateTrackSkinning(testTrack.skeletonNodes, testTrack.splinesMS, testTrack.skinning);
 
-                SUBCASE("Generate bones")
+                SUBCASE("") {}
+                SUBCASE("Save bones as obj")
                 {
-                    GenerateTrackSkinning(testTrack.splines, testTrack.skinning);
-
-                    SUBCASE("") {}
-                    SUBCASE("Save bones as obj")
-                    {
-                        std::ofstream file3("test_bones.obj");
-                        SaveTrackBonesAsObj(file3, testTrack.skinning);
-                    }
+                    std::ofstream file3("test_bones.obj");
+                    SaveTrackBonesAsObj(file3, testTrack.skinning);
                 }
             }
         }
     }
+}
+
+#include "mesh/ModelLoader.h"
+
+TEST_CASE("Track mesh generation")
+{
+    Track testTrack;
+
+    GenerationInfo genInfo = {};
+    genInfo.length = 5;
+    genInfo.width = 10.0f;
+    genInfo.chaos = 0.5f;
+
+    testTrack.genInfo = genInfo;
+
+    GenerateTrackSkeleton(genInfo, testTrack.skeletonNodes);
+    GenerateTrackSplines(testTrack.skeletonNodes, testTrack.splinesMS);
+    GenerateTrackSkinning(testTrack.skeletonNodes, testTrack.splinesMS, testTrack.skinning);
+
+    const std::string assetFile("res/model/track/chunk_simple.obj");
+
+    MeshCache cache;
+    ModelLoader loader;
+
+    loader.load(assetFile, cache);
+
+    SkinTrackChunkMesh(testTrack.skeletonNodes[0], testTrack.skinning[0], cache[assetFile], 10.0f);
+
+    std::ofstream outFile("test_skinned_chunk.obj");
+
+    SaveMeshAsObj(outFile, cache[assetFile]);
 }

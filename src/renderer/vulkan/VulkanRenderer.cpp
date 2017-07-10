@@ -15,7 +15,8 @@
 #include "Shader.h"
 #include "Memory.h"
 
-#include "renderer/mesh/ModelLoader.h"
+#include "mesh/ModelLoader.h"
+
 #include "renderer/texture/TextureLoader.h"
 
 #include "allocator/GPUStackAllocator.h"

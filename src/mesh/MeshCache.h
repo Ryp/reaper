@@ -14,7 +14,7 @@
 
 #include "Mesh.h"
 
-class MeshCache
+class REAPER_MESH_API MeshCache
 {
 public:
     MeshCache() = default;
@@ -23,6 +23,7 @@ public:
 public:
     void loadMesh(MeshId id, Mesh mesh);
     const Mesh& operator[](const MeshId& id) const;
+    Mesh& operator[](const MeshId& id);
 
 private:
     std::map<MeshId, Mesh> _meshes;

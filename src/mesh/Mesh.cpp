@@ -7,7 +7,7 @@
 
 #include "Mesh.h"
 
-std::size_t getTriangleCount(Mesh& mesh)
+u32 getTriangleCount(const Mesh& mesh)
 {
     if (mesh.isIndexed)
         return mesh.indexes.size();
