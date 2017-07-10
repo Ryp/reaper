@@ -15,6 +15,7 @@ set(REAPER_MATH_DIR ${CMAKE_SOURCE_DIR}/src/math)
 set(REAPER_MATH_SRCS
     ${REAPER_MATH_DIR}/BasicMath.h
     ${REAPER_MATH_DIR}/Constants.h
+    ${REAPER_MATH_DIR}/FloatComparison.h
     ${REAPER_MATH_DIR}/MathExport.h
     ${REAPER_MATH_DIR}/Spline.cpp
     ${REAPER_MATH_DIR}/Spline.h
