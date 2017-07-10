@@ -30,6 +30,10 @@ set(REAPER_TRACKGEN_TEST_SRCS
 add_library(${REAPER_TRACKGEN_BIN} ${REAPER_BUILD_TYPE} ${REAPER_TRACKGEN_SRCS})
 reaper_add_custom_build_flags(${REAPER_TRACKGEN_BIN} "TrackGen")
 
+if (MSVC)
+    set_target_properties(${REAPER_TRACKGEN_BIN} PROPERTIES FOLDER SplineSonic)
+endif()
+
 #User includes dirs (won't hide warnings)
 target_include_directories(${REAPER_TRACKGEN_BIN} PUBLIC
     ${CMAKE_SOURCE_DIR}/src)
@@ -48,4 +52,3 @@ cotire(${REAPER_TRACKGEN_BIN})
 if (REAPER_BUILD_TESTS)
     reaper_add_tests(${REAPER_TRACKGEN_BIN} ${REAPER_TRACKGEN_TEST_SRCS})
 endif()
-

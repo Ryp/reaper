@@ -254,7 +254,13 @@ void SaveMeshAsObj(std::ostream& output, const Mesh& mesh)
     {
         output << 'f';
         output << ' ' << mesh.indexes[i * 3 + 0] + 1;
+        output << '/' << mesh.indexes[i * 3 + 0] + 1;
+        output << '/' << mesh.indexes[i * 3 + 0] + 1;
+        output << ' ' << mesh.indexes[i * 3 + 1] + 1;
         output << '/' << mesh.indexes[i * 3 + 1] + 1;
+        output << '/' << mesh.indexes[i * 3 + 1] + 1;
+        output << ' ' << mesh.indexes[i * 3 + 2] + 1;
+        output << '/' << mesh.indexes[i * 3 + 2] + 1;
         output << '/' << mesh.indexes[i * 3 + 2] + 1;
         output << std::endl;
     }
