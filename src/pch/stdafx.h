@@ -11,8 +11,9 @@
 
 #include "core/CoreExport.h"
 #include "common/CommonExport.h"
-#include "math/MathExport.h"
 #include "gamelogic/GameLogicExport.h"
+#include "math/MathExport.h"
+#include "mesh/MeshExport.h"
 #include "renderer/RendererExport.h"
 #include "splinesonic/trackgen/TrackGenExport.h"
 

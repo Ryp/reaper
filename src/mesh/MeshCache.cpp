@@ -18,3 +18,9 @@ const Mesh& MeshCache::operator[](const MeshId& id) const
     Assert(_meshes.count(id) > 0, "mesh missing from cache");
     return _meshes.at(id);
 }
+
+Mesh& MeshCache::operator[](const MeshId& id)
+{
+    Assert(_meshes.count(id) > 0, "mesh missing from cache");
+    return _meshes.at(id);
+}

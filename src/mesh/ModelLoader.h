@@ -14,7 +14,7 @@
 #include "Mesh.h"
 #include "MeshCache.h"
 
-class REAPER_RENDERER_API ModelLoader
+class REAPER_MESH_API ModelLoader
 {
 public:
     ModelLoader();
@@ -30,3 +30,6 @@ private:
 private:
     std::map<std::string, void (ModelLoader::*)(const std::string&, std::ifstream&, MeshCache&)> _loaders;
 };
+
+REAPER_MESH_API
+void SaveMeshAsObj(std::ostream& output, const Mesh& mesh);

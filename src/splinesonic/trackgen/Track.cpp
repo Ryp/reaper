@@ -9,9 +9,14 @@
 
 #include "math/Constants.h"
 #include "math/Spline.h"
+
+#include "mesh/Mesh.h"
+
 #include "splinesonic/Constants.h"
 
 #include <glm/gtx/norm.hpp>
+#include <glm/gtx/projection.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 #include <random>
 
@@ -91,7 +96,7 @@ namespace SplineSonic { namespace TrackGen
 
             if (skeletonNodes.empty())
             {
-                node.inOrientation = glm::quat();
+                node.orientationWS = glm::quat();
                 node.inWidth = widthDistribution(rng);
                 node.positionWS = glm::vec3(0.f);
             }
@@ -99,16 +104,16 @@ namespace SplineSonic { namespace TrackGen
             {
                 const TrackSkeletonNode& previousNode = skeletonNodes.back();
 
-                node.inOrientation = previousNode.outOrientation;
+                node.orientationWS = previousNode.orientationWS * previousNode.rotationLS;
                 node.inWidth = previousNode.outWidth;
 
                 const glm::vec3 offsetMS = UnitXAxis * (previousNode.radius + node.radius);
-                const glm::vec3 offsetWS = node.inOrientation * offsetMS;
+                const glm::vec3 offsetWS = node.orientationWS * offsetMS;
 
                 node.positionWS = previousNode.positionWS + offsetWS;
             }
 
-            node.outOrientation = node.inOrientation * GenerateChunkEndLocalSpace(genInfo, rng);
+            node.rotationLS = GenerateChunkEndLocalSpace(genInfo, rng);
             node.outWidth = widthDistribution(rng);
 
             return node;
@@ -158,10 +163,12 @@ namespace SplineSonic { namespace TrackGen
         {
             const TrackSkeletonNode& node = skeletonNodes[i];
 
-            controlPoints[0] = glm::vec4(node.positionWS - node.inOrientation * UnitXAxis * node.radius, 1.0f);
-            controlPoints[1] = glm::vec4(node.positionWS, SplineInnerWeight);
-            controlPoints[2] = glm::vec4(node.positionWS, SplineInnerWeight);
-            controlPoints[3] = glm::vec4(node.positionWS + node.outOrientation * UnitXAxis * node.radius, 1.0f);
+            // Laying down 1 control point at each end and 2 in the center of the sphere
+            // seems to work pretty well.
+            controlPoints[0] = glm::vec4(UnitXAxis * -node.radius, 1.0f);
+            controlPoints[1] = glm::vec4(glm::vec3(0.0f), SplineInnerWeight);
+            controlPoints[2] = glm::vec4(glm::vec3(0.0f), SplineInnerWeight);
+            controlPoints[3] = glm::vec4(node.rotationLS * UnitXAxis * node.radius, 1.0f);
 
             splines[i] = Reaper::Math::ConstructSpline(SplineOrder, controlPoints);
         }
@@ -169,26 +176,67 @@ namespace SplineSonic { namespace TrackGen
 
     namespace
     {
-        void GenerateTrackSkinningForChunk(const Reaper::Math::Spline& spline, TrackSkinning& skinningInfo)
+        void GenerateTrackSkinningForChunk(const TrackSkeletonNode& node,
+                                           const Reaper::Math::Spline& spline,
+                                           TrackSkinning& skinningInfo)
         {
             skinningInfo.bones.resize(BoneCountPerChunk);
 
             // Fill bone positions
-            skinningInfo.bones[0].boneRootMS = EvalSpline(spline, 0.0f);
-            skinningInfo.bones[BoneCountPerChunk - 1].boneEndMS = EvalSpline(spline, 1.0f);
+            skinningInfo.bones[0].root = EvalSpline(spline, 0.0f);
+            skinningInfo.bones[BoneCountPerChunk - 1].end = EvalSpline(spline, 1.0f);
 
+            // Compute bone start and end positions
             for (u32 i = 1; i < BoneCountPerChunk; i++)
             {
                 const float param = static_cast<float>(i) / static_cast<float>(BoneCountPerChunk);
                 const glm::vec3 anchorPos = EvalSpline(spline, param);
 
-                skinningInfo.bones[i - 1].boneEndMS = anchorPos;
-                skinningInfo.bones[i].boneRootMS = anchorPos;
+                skinningInfo.bones[i - 1].end = anchorPos;
+                skinningInfo.bones[i].root = anchorPos;
+            }
+
+            skinningInfo.invBindTransforms.resize(BoneCountPerChunk);
+
+            // Compute inverse bind pose matrix
+            for (u32 i = 0; i < BoneCountPerChunk; i++)
+            {
+                const float t = static_cast<float>(i) / static_cast<float>(BoneCountPerChunk);
+                const float param = t * 2.0f - 1.0f;
+                const glm::vec3 offset = UnitXAxis * (param * node.radius);
+
+                // Inverse of a translation is the translation by the opposite vector
+                skinningInfo.invBindTransforms[i] = glm::translate(glm::mat4(1.0f), -offset);
+            }
+
+            skinningInfo.poseTransforms.resize(BoneCountPerChunk);
+
+            // Compute current pose matrix by reconstructing an ortho-base
+            // We only have roll information at chunk boundary, so we have to
+            // use tricks to get the correct bone rotation
+            for (u32 i = 0; i < BoneCountPerChunk; i++)
+            {
+                const float t = static_cast<float>(i) / static_cast<float>(BoneCountPerChunk);
+                const glm::fquat interpolatedOrientation = glm::slerp(glm::quat(), node.rotationLS, t);
+
+                const Bone& bone = skinningInfo.bones[i];
+                const glm::fvec3 plusX = glm::normalize(bone.end - bone.root);
+                const glm::fvec3 interpolatedPlusY = interpolatedOrientation * UnitYAxis;
+                const glm::fvec3 plusY = glm::normalize(interpolatedPlusY - glm::proj(interpolatedPlusY, plusX)); // Trick to get a correct-ish roll along the spline
+                const glm::fvec3 plusZ = glm::cross(plusX, plusY); // Should already be normalized at this point (write assert)
+
+                // Convert to a matrix
+                const glm::fmat4 rotation = glm::fmat3(plusX, plusY, plusZ);
+                const glm::fmat4 translation = glm::translate(glm::fmat4(1.0f), bone.root);
+
+                skinningInfo.poseTransforms[i] = translation * rotation;
             }
         }
     }
 
-    void GenerateTrackSkinning(const std::vector<Reaper::Math::Spline>& splines, std::vector<TrackSkinning>& skinning)
+    void GenerateTrackSkinning(const std::vector<TrackSkeletonNode>& skeletonNodes,
+                               const std::vector<Reaper::Math::Spline>& splines,
+                               std::vector<TrackSkinning>& skinning)
     {
         const u32 trackChunkCount = splines.size();
 
@@ -198,7 +246,47 @@ namespace SplineSonic { namespace TrackGen
 
         for (u32 chunkIdx = 0; chunkIdx < splines.size(); chunkIdx++)
         {
-            GenerateTrackSkinningForChunk(splines[chunkIdx], skinning[chunkIdx]);
+            GenerateTrackSkinningForChunk(skeletonNodes[chunkIdx], splines[chunkIdx], skinning[chunkIdx]);
         }
+    }
+
+    namespace
+    {
+        glm::fvec4 ComputeBoneWeights(glm::vec3 position)
+        {
+            static_cast<void>(position);
+            return glm::vec4(1.0f, 0.0f, 0.0f, 0.0f); // FIXME
+        }
+    }
+
+    void SkinTrackChunkMesh(const TrackSkeletonNode& node,
+                            const TrackSkinning& trackSkinning,
+                            Mesh& mesh, float meshLength)
+    {
+        const u32 vertexCount = mesh.vertices.size();
+        const u32 boneCount = 4; // FIXME
+        std::vector<glm::fvec3> skinnedVertices(vertexCount);
+
+        Assert(vertexCount > 0);
+
+        const float scaleX = node.radius / (meshLength * 0.5f);
+
+        for (u32 i = 0; i < vertexCount; i++)
+        {
+            const glm::fvec3 vertex = mesh.vertices[i] * glm::fvec3(scaleX, 1.0f, 1.0f);
+            const glm::fvec4 boneWeights = ComputeBoneWeights(vertex);
+
+            skinnedVertices[i] = glm::fvec3(0.0f);
+
+            for (u32 j = 0; j < boneCount; j++)
+            {
+                const glm::fmat4 boneTransform = trackSkinning.poseTransforms[j] * trackSkinning.invBindTransforms[j];
+                const glm::fvec4 skinnedVertex = (boneTransform * glm::fvec4(vertex, 1.0f)) * boneWeights[j];
+
+                Assert(skinnedVertex.w > 0.0f);
+                skinnedVertices[i] += glm::fvec3(skinnedVertex) / skinnedVertex.w;
+            }
+        }
+        mesh.vertices = skinnedVertices;
     }
 }} // namespace SplineSonic::TrackGen

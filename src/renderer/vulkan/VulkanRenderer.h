@@ -9,8 +9,9 @@
 
 #include <vector>
 
+#include "mesh/MeshCache.h"
+
 #include "renderer/Renderer.h"
-#include "renderer/mesh/MeshCache.h"
 #include "renderer/texture/TextureCache.h"
 
 #include "api/Vulkan.h"

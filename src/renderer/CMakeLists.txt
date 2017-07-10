@@ -19,16 +19,11 @@ endif()
 
 # Find dependencies
 find_package(Vulkan REQUIRED)
-find_package(assimp REQUIRED)
-
-if (WIN32)
-    assimp_copy_binaries(${Reaper_BINARY_DIR})
-endif()
 
 set(REAPER_RENDERER_LIBRARIES ${REAPER_RENDERER_LIBRARIES}
     ${REAPER_CORE_BIN}
+    ${REAPER_MESH_BIN}
     ${REAPER_COMMON_BIN}
-    ${ASSIMP_LIBRARY}
     ${MICROPROFILE_LIBRARY}
 )
 
@@ -36,7 +31,6 @@ set(REAPER_RENDERER_INCLUDES ${REAPER_RENDERER_INCLUDES}
     ${CMAKE_SOURCE_DIR}/external/fmt
     ${CMAKE_SOURCE_DIR}/external/gli
     ${CMAKE_SOURCE_DIR}/external/glm
-    ${ASSIMP_INCLUDE_DIRS}
     ${VULKAN_INCLUDE_DIR}
     ${MICROPROFILE_INCLUDE_DIR}
 )
@@ -62,13 +56,6 @@ set(REAPER_RENDERER_SRCS
     ${REAPER_RENDERER_DIR}/format/FloatTypes.h
     ${REAPER_RENDERER_DIR}/format/PixelFormat.cpp
     ${REAPER_RENDERER_DIR}/format/PixelFormat.h
-
-    ${REAPER_RENDERER_DIR}/mesh/Mesh.cpp
-    ${REAPER_RENDERER_DIR}/mesh/Mesh.h
-    ${REAPER_RENDERER_DIR}/mesh/MeshCache.cpp
-    ${REAPER_RENDERER_DIR}/mesh/MeshCache.h
-    ${REAPER_RENDERER_DIR}/mesh/ModelLoader.cpp
-    ${REAPER_RENDERER_DIR}/mesh/ModelLoader.h
 
     ${REAPER_RENDERER_DIR}/texture/Texture.cpp
     ${REAPER_RENDERER_DIR}/texture/Texture.h

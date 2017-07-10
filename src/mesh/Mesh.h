@@ -12,17 +12,18 @@
 #include <glm/glm.hpp>
 
 struct Mesh {
-    std::vector<glm::vec3>    vertices;
-    std::vector<glm::vec3>    normals;
-    std::vector<glm::vec2>    uvs;
-    std::vector<unsigned int> indexes;
-    std::vector<glm::vec3>    tangents;
-    std::vector<glm::vec3>    bitangents;
+    std::vector<glm::fvec3> vertices;
+    std::vector<glm::fvec3> normals;
+    std::vector<glm::fvec2> uvs;
+    std::vector<u32>        indexes;
+    std::vector<glm::fvec3> tangents;
+    std::vector<glm::fvec3> bitangents;
 
     bool    isIndexed;
     bool    hasUVs;
     bool    hasNormals;
 };
 
-std::size_t getTriangleCount(Mesh& mesh);
+u32 getTriangleCount(const Mesh& mesh);
+
 void computeNormalsSimple(Mesh& mesh);

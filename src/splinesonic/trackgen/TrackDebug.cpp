@@ -35,25 +35,30 @@ namespace SplineSonic { namespace TrackGen
         }
     }
 
-    void SaveTrackSplinesAsObj(std::ostream& output, std::vector<Reaper::Math::Spline>& splines, u32 tesselation)
+    void SaveTrackSplinesAsObj(std::ostream& output, std::vector<TrackSkeletonNode>& skeleton,
+                               std::vector<Reaper::Math::Spline>& splines, u32 tesselation)
     {
         const u32 splineCount = splines.size();
 
         output << "o Splines" << std::endl;
 
         Assert(tesselation > 0);
+        Assert(splineCount > 0);
 
-        for (const auto& spline : splines)
+        for (u32 i = 0; i < splineCount; i++)
         {
-            for (u32 i = 0; i < (tesselation + 1); i++)
+            const Reaper::Math::Spline& spline = splines[i];
+            const TrackSkeletonNode& node = skeleton[i];
+            for (u32 j = 0; j < (tesselation + 1); j++)
             {
-                float param = static_cast<float>(i) / static_cast<float>(tesselation);
-                glm::vec3 pos = Reaper::Math::EvalSpline(spline, param);
+                const float param = static_cast<float>(j) / static_cast<float>(tesselation);
+                const glm::vec3 posMS = Reaper::Math::EvalSpline(spline, param);
+                const glm::vec3 posWS = node.positionWS + node.orientationWS * posMS;
 
                 output << 'v';
-                output << ' ' << pos.x;
-                output << ' ' << pos.y;
-                output << ' ' << pos.z;
+                output << ' ' << posWS.x;
+                output << ' ' << posWS.y;
+                output << ' ' << posWS.z;
                 output << std::endl;
             }
         }
@@ -83,7 +88,7 @@ namespace SplineSonic { namespace TrackGen
             for (const auto& bone : skinning.bones)
             {
                 {
-                    glm::vec3 pos = bone.boneRootMS;
+                    const glm::vec3 pos = bone.root;
 
                     output << 'v';
                     output << ' ' << pos.x;
@@ -92,7 +97,7 @@ namespace SplineSonic { namespace TrackGen
                     output << std::endl;
                 }
                 {
-                    glm::vec3 pos = bone.boneEndMS;
+                    const glm::vec3 pos = bone.end;
 
                     output << 'v';
                     output << ' ' << pos.x;
@@ -111,4 +116,4 @@ namespace SplineSonic { namespace TrackGen
             output << std::endl;
         }
     }
-}}
+}} // namespace SplineSonic::TrackGen

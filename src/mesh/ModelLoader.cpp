@@ -216,3 +216,46 @@ void ModelLoader::loadOBJCustom(const std::string& filename, std::ifstream& src,
 
     cache.loadMesh(filename, mesh);
 }
+
+void SaveMeshAsObj(std::ostream& output, const Mesh& mesh)
+{
+    const u32 vertexCount = mesh.vertices.size();
+    const u32 uvCount = mesh.uvs.size();
+    const u32 normalCount = mesh.normals.size();
+    const u32 indexCount = mesh.indexes.size();
+
+    Assert(indexCount % 3 == 0);
+
+    for (u32 i = 0; i < vertexCount; ++i)
+    {
+        output << 'v';
+        for (u32 j = 0; j < 3; ++j)
+            output << ' ' << mesh.vertices[i][j];
+        output << std::endl;
+    }
+
+    for (u32 i = 0; i < uvCount; ++i)
+    {
+        output << "vt";
+        for (u32 j = 0; j < 2; ++j)
+            output << ' ' << mesh.uvs[i][j];
+        output << std::endl;
+    }
+
+    for (u32 i = 0; i < normalCount; ++i)
+    {
+        output << "vn";
+        for (u32 j = 0; j < 3; ++j)
+            output << ' ' << mesh.normals[i][j];
+        output << std::endl;
+    }
+
+    for (u32 i = 0; i < (indexCount / 3); ++i)
+    {
+        output << 'f';
+        output << ' ' << mesh.indexes[i * 3 + 0] + 1;
+        output << '/' << mesh.indexes[i * 3 + 1] + 1;
+        output << '/' << mesh.indexes[i * 3 + 2] + 1;
+        output << std::endl;
+    }
+}
