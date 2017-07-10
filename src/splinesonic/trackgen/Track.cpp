@@ -8,6 +8,7 @@
 #include "Track.h"
 
 #include "math/Constants.h"
+#include "math/FloatComparison.h"
 #include "math/Spline.h"
 
 #include "mesh/Mesh.h"
@@ -20,11 +21,13 @@
 
 #include <random>
 
+using namespace Reaper;
+
 namespace SplineSonic { namespace TrackGen
 {
-    constexpr float ThetaMax = 0.8f * Reaper::Math::HalfPi;
-    constexpr float PhiMax = 1.0f * Reaper::Math::Pi;
-    constexpr float RollMax = 0.25f * Reaper::Math::Pi;
+    constexpr float ThetaMax = 0.8f * Math::HalfPi;
+    constexpr float PhiMax = 1.0f * Math::Pi;
+    constexpr float RollMax = 0.25f * Math::Pi;
     constexpr float WidthMin = 20.0f * MeterInGameUnits;
     constexpr float WidthMax = 50.0f * MeterInGameUnits;
     constexpr float RadiusMin = 100.0f * MeterInGameUnits;
@@ -42,9 +45,9 @@ namespace SplineSonic { namespace TrackGen
 
     using RNG = std::mt19937;
 
-    using Reaper::Math::UnitXAxis;
-    using Reaper::Math::UnitYAxis;
-    using Reaper::Math::UnitZAxis;
+    using Math::UnitXAxis;
+    using Math::UnitYAxis;
+    using Math::UnitZAxis;
 
     namespace
     {
@@ -149,7 +152,7 @@ namespace SplineSonic { namespace TrackGen
         Assert(tryCount < MaxTryCount, "something is majorly FUBAR");
     }
 
-    void GenerateTrackSplines(const std::vector<TrackSkeletonNode>& skeletonNodes, std::vector<Reaper::Math::Spline>& splines)
+    void GenerateTrackSplines(const std::vector<TrackSkeletonNode>& skeletonNodes, std::vector<Math::Spline>& splines)
     {
         std::vector<glm::vec4> controlPoints(4);
         const u32 trackChunkCount = static_cast<u32>(skeletonNodes.size());
@@ -170,14 +173,14 @@ namespace SplineSonic { namespace TrackGen
             controlPoints[2] = glm::vec4(glm::vec3(0.0f), SplineInnerWeight);
             controlPoints[3] = glm::vec4(node.rotationLS * UnitXAxis * node.radius, 1.0f);
 
-            splines[i] = Reaper::Math::ConstructSpline(SplineOrder, controlPoints);
+            splines[i] = Math::ConstructSpline(SplineOrder, controlPoints);
         }
     }
 
     namespace
     {
         void GenerateTrackSkinningForChunk(const TrackSkeletonNode& node,
-                                           const Reaper::Math::Spline& spline,
+                                           const Math::Spline& spline,
                                            TrackSkinning& skinningInfo)
         {
             skinningInfo.bones.resize(BoneCountPerChunk);
@@ -223,7 +226,9 @@ namespace SplineSonic { namespace TrackGen
                 const glm::fvec3 plusX = glm::normalize(bone.end - bone.root);
                 const glm::fvec3 interpolatedPlusY = interpolatedOrientation * UnitYAxis;
                 const glm::fvec3 plusY = glm::normalize(interpolatedPlusY - glm::proj(interpolatedPlusY, plusX)); // Trick to get a correct-ish roll along the spline
-                const glm::fvec3 plusZ = glm::cross(plusX, plusY); // Should already be normalized at this point (write assert)
+                const glm::fvec3 plusZ = glm::cross(plusX, plusY);
+
+                Assert(Math::IsEqualWithEpsilon(glm::length2(plusZ), 1.0f));
 
                 // Convert to a matrix
                 const glm::fmat4 rotation = glm::fmat3(plusX, plusY, plusZ);
@@ -235,7 +240,7 @@ namespace SplineSonic { namespace TrackGen
     }
 
     void GenerateTrackSkinning(const std::vector<TrackSkeletonNode>& skeletonNodes,
-                               const std::vector<Reaper::Math::Spline>& splines,
+                               const std::vector<Math::Spline>& splines,
                                std::vector<TrackSkinning>& skinning)
     {
         const u32 trackChunkCount = static_cast<u32>(splines.size());
@@ -273,12 +278,12 @@ namespace SplineSonic { namespace TrackGen
 
         for (u32 i = 0; i < vertexCount; i++)
         {
-            const float scaleHack = 20.0f; // FIXME
+            const float scaleHack = 30.0f; // FIXME fix the scale
             const glm::fvec3 vertex = mesh.vertices[i] * glm::fvec3(scaleX, scaleHack, scaleHack);
             const glm::fvec4 boneWeights = ComputeBoneWeights(vertex, node.radius);
 
             const float debugSum = boneWeights.x + boneWeights.y + boneWeights.z + boneWeights.w;
-            Assert(debugSum > 0.99f && debugSum < 1.01f); // FIXME write a proper helper function for this
+            Assert(Math::IsEqualWithEpsilon(debugSum, 1.0f));
 
             glm::fvec4 skinnedVertex(0.0f);
             for (u32 j = 0; j < boneCount; j++)
