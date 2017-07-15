@@ -9,6 +9,6 @@
 
 namespace SplineSonic
 {
-    constexpr float MeterInGameUnits = 1.0f;
+    constexpr float MeterInGameUnits = 0.1f;
 }
 

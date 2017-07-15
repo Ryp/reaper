@@ -42,7 +42,8 @@ void ModelLoader::load(std::string filename, MeshCache& cache)
     file.open(filename);
     Assert(file.good(), "Could not open file \'" + filename + "\'");
 
-    ((*this).*(_loaders.at(extension)))(filename, file, cache);
+    Mesh mesh = (_loaders.at(extension))(file);
+    cache.loadMesh(filename, mesh);
 }
 
 static inline glm::vec3 to_glm3(aiVector3D& v)
@@ -55,7 +56,7 @@ static inline glm::vec2 to_glm2(aiVector3D& v)
     return glm::vec2(v.x, v.y);
 }
 
-void ModelLoader::loadOBJAssimp(const std::string& filename, std::ifstream& src, MeshCache& cache)
+Mesh ModelLoader::loadOBJAssimp(std::ifstream& src)
 {
     Mesh                mesh;
     Assimp::Importer    importer;
@@ -99,11 +100,10 @@ void ModelLoader::loadOBJAssimp(const std::string& filename, std::ifstream& src,
         for(std::size_t j = 0; j < face.mNumIndices; ++j)
             mesh.indexes.push_back(face.mIndices[j]);
     }
-
-    cache.loadMesh(filename, mesh);
+    return mesh;
 }
 
-void ModelLoader::loadOBJCustom(const std::string& filename, std::ifstream& src, MeshCache& cache)
+Mesh ModelLoader::loadOBJCustom(std::ifstream& src)
 {
     Mesh                    mesh;
     std::string             line;
@@ -214,54 +214,67 @@ void ModelLoader::loadOBJCustom(const std::string& filename, std::ifstream& src,
     if (!mesh.hasNormals)
         computeNormalsSimple(mesh);
 
-    cache.loadMesh(filename, mesh);
+    return mesh;
 }
 
-void SaveMeshAsObj(std::ostream& output, const Mesh& mesh)
+// FIXME safety checks for ptr+count ?
+void SaveMeshesAsObj(std::ostream& output, const Mesh* meshes, u32 meshCount)
 {
-    const u32 vertexCount = static_cast<u32>(mesh.vertices.size());
-    const u32 uvCount = static_cast<u32>(mesh.uvs.size());
-    const u32 normalCount = static_cast<u32>(mesh.normals.size());
-    const u32 indexCount = static_cast<u32>(mesh.indexes.size());
+    u32 vertexOffset = 0;
+    u32 uvOffset = 0;
+    u32 normalOffset = 0;
 
-    Assert(indexCount % 3 == 0);
-
-    for (u32 i = 0; i < vertexCount; ++i)
+    for (u32 meshIndex = 0; meshIndex < meshCount; meshIndex++)
     {
-        output << 'v';
-        for (u32 j = 0; j < 3; ++j)
-            output << ' ' << mesh.vertices[i][j];
-        output << std::endl;
-    }
+        const Mesh& mesh = meshes[meshIndex];
+        const u32 vertexCount = static_cast<u32>(mesh.vertices.size());
+        const u32 uvCount = static_cast<u32>(mesh.uvs.size());
+        const u32 normalCount = static_cast<u32>(mesh.normals.size());
+        const u32 indexCount = static_cast<u32>(mesh.indexes.size());
 
-    for (u32 i = 0; i < uvCount; ++i)
-    {
-        output << "vt";
-        for (u32 j = 0; j < 2; ++j)
-            output << ' ' << mesh.uvs[i][j];
-        output << std::endl;
-    }
+        Assert(indexCount % 3 == 0);
 
-    for (u32 i = 0; i < normalCount; ++i)
-    {
-        output << "vn";
-        for (u32 j = 0; j < 3; ++j)
-            output << ' ' << mesh.normals[i][j];
-        output << std::endl;
-    }
+        for (u32 i = 0; i < vertexCount; i++)
+        {
+            output << 'v';
+            for (u32 j = 0; j < 3; ++j)
+                output << ' ' << mesh.vertices[i][j];
+            output << std::endl;
+        }
 
-    for (u32 i = 0; i < (indexCount / 3); ++i)
-    {
-        output << 'f';
-        output << ' ' << mesh.indexes[i * 3 + 0] + 1;
-        output << '/' << mesh.indexes[i * 3 + 0] + 1;
-        output << '/' << mesh.indexes[i * 3 + 0] + 1;
-        output << ' ' << mesh.indexes[i * 3 + 1] + 1;
-        output << '/' << mesh.indexes[i * 3 + 1] + 1;
-        output << '/' << mesh.indexes[i * 3 + 1] + 1;
-        output << ' ' << mesh.indexes[i * 3 + 2] + 1;
-        output << '/' << mesh.indexes[i * 3 + 2] + 1;
-        output << '/' << mesh.indexes[i * 3 + 2] + 1;
-        output << std::endl;
+        for (u32 i = 0; i < uvCount; i++)
+        {
+            output << "vt";
+            for (u32 j = 0; j < 2; ++j)
+                output << ' ' << mesh.uvs[i][j];
+            output << std::endl;
+        }
+
+        for (u32 i = 0; i < normalCount; i++)
+        {
+            output << "vn";
+            for (u32 j = 0; j < 3; ++j)
+                output << ' ' << mesh.normals[i][j];
+            output << std::endl;
+        }
+
+        for (u32 i = 0; i < (indexCount / 3); i++)
+        {
+            output << 'f';
+            output << ' ' << mesh.indexes[i * 3 + 0] + 1 + vertexOffset;
+            output << '/' << mesh.indexes[i * 3 + 0] + 1 + uvOffset;
+            output << '/' << mesh.indexes[i * 3 + 0] + 1 + normalOffset;
+            output << ' ' << mesh.indexes[i * 3 + 1] + 1 + vertexOffset;
+            output << '/' << mesh.indexes[i * 3 + 1] + 1 + uvOffset;
+            output << '/' << mesh.indexes[i * 3 + 1] + 1 + normalOffset;
+            output << ' ' << mesh.indexes[i * 3 + 2] + 1 + vertexOffset;
+            output << '/' << mesh.indexes[i * 3 + 2] + 1 + uvOffset;
+            output << '/' << mesh.indexes[i * 3 + 2] + 1 + normalOffset;
+            output << std::endl;
+        }
+
+        vertexOffset += vertexCount;
+        uvOffset += uvCount;
+        normalOffset += normalCount;
     }
 }

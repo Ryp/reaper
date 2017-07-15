@@ -72,9 +72,9 @@ TEST_CASE("Track mesh generation")
     Track testTrack;
 
     GenerationInfo genInfo = {};
-    genInfo.length = 5;
+    genInfo.length = 10;
     genInfo.width = 10.0f;
-    genInfo.chaos = 0.5f;
+    genInfo.chaos = 1.0f;
 
     testTrack.genInfo = genInfo;
 
@@ -84,14 +84,16 @@ TEST_CASE("Track mesh generation")
 
     const std::string assetFile("res/model/track/chunk_simple.obj");
 
-    MeshCache cache;
-    ModelLoader loader;
+    std::ofstream outFile("test_skinned_track.obj");
+    std::vector<Mesh> meshes(genInfo.length);
 
-    loader.load(assetFile, cache);
+    for (u32 i = 0; i < genInfo.length; i++)
+    {
+        std::ifstream file(assetFile);
+        meshes[i] = ModelLoader::loadOBJAssimp(file);
 
-    SkinTrackChunkMesh(testTrack.skeletonNodes[0], testTrack.skinning[0], cache[assetFile], 10.0f);
+        SkinTrackChunkMesh(testTrack.skeletonNodes[i], testTrack.skinning[i], meshes[i], 10.0f);
+    }
 
-    std::ofstream outFile("test_skinned_chunk.obj");
-
-    SaveMeshAsObj(outFile, cache[assetFile]);
+    SaveMeshesAsObj(outFile, &meshes[0], static_cast<u32>(meshes.size()));
 }

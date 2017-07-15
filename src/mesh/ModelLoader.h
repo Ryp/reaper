@@ -23,13 +23,15 @@ public:
 public:
     void load(std::string filename, MeshCache& cache);
 
-private:
-    void loadOBJAssimp(const std::string& filename, std::ifstream& src, MeshCache& cache);
-    void loadOBJCustom(const std::string& filename, std::ifstream& src, MeshCache& cache);
+public:
+    static Mesh loadOBJAssimp(std::ifstream& src);
+    static Mesh loadOBJCustom(std::ifstream& src);
 
 private:
-    std::map<std::string, void (ModelLoader::*)(const std::string&, std::ifstream&, MeshCache&)> _loaders;
+    using LoaderFunc = Mesh (*)(std::ifstream&);
+
+    std::map<std::string, LoaderFunc> _loaders;
 };
 
 REAPER_MESH_API
-void SaveMeshAsObj(std::ostream& output, const Mesh& mesh);
+void SaveMeshesAsObj(std::ostream& output, const Mesh* meshes, u32 meshCount);
