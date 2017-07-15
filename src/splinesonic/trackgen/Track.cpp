@@ -259,8 +259,14 @@ namespace SplineSonic { namespace TrackGen
     {
         glm::fvec4 ComputeBoneWeights(glm::vec3 position, float radius)
         {
-            const float weight = (position.x / radius) * 0.5f + 0.5f;
-            return glm::clamp(glm::vec4(1.0f - weight, 0.0f, 0.0f, weight), 0.0f, 1.0f); // FIXME use all bones
+            const float t = (position.x / radius) * 2.0f + 2.0f;
+            return glm::clamp(glm::vec4
+            (
+                1.0f - glm::max(t - 0.5f, 0.0f),
+                1.0f - glm::abs(t - 1.5f),
+                1.0f - glm::abs(t - 2.5f),
+                1.0f - glm::max(3.5f - t, 0.0f)
+            ), 0.0f, 1.0f);
         }
     }
 
@@ -278,8 +284,7 @@ namespace SplineSonic { namespace TrackGen
 
         for (u32 i = 0; i < vertexCount; i++)
         {
-            const float scaleHack = 30.0f; // FIXME fix the scale
-            const glm::fvec3 vertex = mesh.vertices[i] * glm::fvec3(scaleX, scaleHack, scaleHack);
+            const glm::fvec3 vertex = mesh.vertices[i] * glm::fvec3(scaleX, 1.0f, 1.0f);
             const glm::fvec4 boneWeights = ComputeBoneWeights(vertex, node.radius);
 
             const float debugSum = boneWeights.x + boneWeights.y + boneWeights.z + boneWeights.w;
@@ -294,6 +299,9 @@ namespace SplineSonic { namespace TrackGen
             }
             if (glm::abs(skinnedVertex.w) > 0.0f)
                 skinnedVertices[i] = glm::fvec3(skinnedVertex) / skinnedVertex.w;
+
+            // FIXME hack to get a full track easily
+            skinnedVertices[i] = node.orientationWS * skinnedVertices[i] + node.positionWS;
         }
         mesh.vertices = skinnedVertices;
     }
