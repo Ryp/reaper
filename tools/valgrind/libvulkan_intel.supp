@@ -1,6 +1,12 @@
 # We don't care about problems in the ICD or loader
 # Many of these could be false positives, since valgrind doesn't know about GPU access
 {
+  IntelVulkanAddr16
+  Memcheck:Addr16
+  ...
+  obj:*libvulkan_intel.so*
+}
+{
   IntelVulkanAddr8
   Memcheck:Addr8
   ...
