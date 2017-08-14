@@ -1,0 +1,17 @@
+{
+  MicroProfileInitLeak
+  Memcheck:Leak
+  fun:memalign
+  ...
+  fun:MicroProfileInit
+  fun:MicroProfileGetToken
+  ...
+  fun:_dl_init
+}
+{
+  MicroProfileOnThreadCreateLeak
+  Memcheck:Leak
+  fun:memalign
+  ...
+  fun:MicroProfileOnThreadCreate
+}

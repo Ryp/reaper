@@ -1,0 +1,22 @@
+{
+  LibdlCatchErrorLeak
+  Memcheck:Leak
+  ...
+  fun:_dl_open
+  obj:*libdl-*.so*
+  fun:_dl_catch_error
+}
+{
+  LibdlDLOpenLeak
+  Memcheck:Leak
+  fun:calloc
+  obj:*libdl-*.so*
+  fun:dlopen
+}
+{
+  LibdlDLCloseLeak
+  Memcheck:Leak
+  ...
+  obj:*libdl-*.so*
+  fun:dlclose
+}
