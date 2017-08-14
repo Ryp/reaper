@@ -38,10 +38,6 @@ namespace
     }
 }
 
-#if defined(REAPER_PLATFORM_LINUX)
-#   include <unistd.h>
-#endif
-
 int main(int /*ac*/, char** /*av*/)
 {
 #if defined(REAPER_USE_MICROPROFILE)
@@ -55,9 +51,6 @@ int main(int /*ac*/, char** /*av*/)
 
 #if defined(REAPER_USE_MICROPROFILE)
     MicroProfileDumpFileImmediately("profile.html", nullptr, nullptr);
-#   if defined(REAPER_PLATFORM_LINUX)
-    usleep(420); // Hack until this is fixed: https://github.com/jonasmr/microprofile/issues/19
-#   endif
     MicroProfileShutdown();
 #endif
 
