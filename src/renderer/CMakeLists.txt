@@ -108,10 +108,10 @@ elseif(REAPER_USE_XCB_WINDOW)
 endif()
 
 set(REAPER_RENDERER_TEST_SRCS
+    #${REAPER_RENDERER_DIR}/test/culling.cpp
     ${REAPER_RENDERER_DIR}/test/mesh_loading.cpp
     ${REAPER_RENDERER_DIR}/test/renderer.cpp
     ${REAPER_RENDERER_DIR}/test/scene.cpp
-    ${REAPER_RENDERER_DIR}/test/culling.cpp
     ${REAPER_RENDERER_DIR}/test/texture_loading.cpp
     ${REAPER_RENDERER_DIR}/test/window.cpp
 )
