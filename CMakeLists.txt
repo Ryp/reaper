@@ -129,7 +129,7 @@ if(MSVC)
 endif()
 
 add_executable(${REAPER_BIN} ${REAPER_SRCS} ${REAPER_NATVIS_FILES})
-reaper_add_custom_build_flags(${REAPER_BIN} "Reaper")
+reaper_configure_target(${REAPER_BIN} "Reaper")
 
 if (MSVC)
     reaper_vs_set_debugger_flags(${REAPER_BIN})

@@ -26,7 +26,7 @@ set(REAPER_MATH_TEST_SRCS
 )
 
 add_library(${REAPER_MATH_BIN} ${REAPER_BUILD_TYPE} ${REAPER_MATH_SRCS})
-reaper_add_custom_build_flags(${REAPER_MATH_BIN} "Math")
+reaper_configure_target(${REAPER_MATH_BIN} "Math")
 
 #User includes dirs (won't hide warnings)
 target_include_directories(${REAPER_MATH_BIN} PUBLIC

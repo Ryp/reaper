@@ -28,7 +28,7 @@ set(REAPER_TRACKGEN_TEST_SRCS
 )
 
 add_library(${REAPER_TRACKGEN_BIN} ${REAPER_BUILD_TYPE} ${REAPER_TRACKGEN_SRCS})
-reaper_add_custom_build_flags(${REAPER_TRACKGEN_BIN} "TrackGen")
+reaper_configure_target(${REAPER_TRACKGEN_BIN} "TrackGen")
 
 if (MSVC)
     set_target_properties(${REAPER_TRACKGEN_BIN} PROPERTIES FOLDER SplineSonic)

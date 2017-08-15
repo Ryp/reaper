@@ -19,7 +19,7 @@ set(MICROPROFILE_SRCS
 configure_file(${CMAKE_SOURCE_DIR}/external/microprofile.config.h.in ${MICROPROFILE_INCLUDE_DIR}/microprofile.config.h NEWLINE_STYLE LF)
 
 add_library(${MICROPROFILE_BIN} ${REAPER_BUILD_TYPE} ${MICROPROFILE_SRCS})
-reaper_add_custom_build_flags(${MICROPROFILE_BIN} "Microprofile")
+reaper_configure_external_target(${MICROPROFILE_BIN} "Microprofile")
 
 target_include_directories(${MICROPROFILE_BIN} PUBLIC ${CMAKE_SOURCE_DIR}/src)
 

@@ -25,7 +25,7 @@ set(REAPER_COMMON_TEST_SRCS
 )
 
 add_library(${REAPER_COMMON_BIN} ${REAPER_BUILD_TYPE} ${REAPER_COMMON_SRCS})
-reaper_add_custom_build_flags(${REAPER_COMMON_BIN} "Common")
+reaper_configure_target(${REAPER_COMMON_BIN} "Common")
 
 #User includes dirs (won't hide warnings)
 target_include_directories(${REAPER_COMMON_BIN} PUBLIC
