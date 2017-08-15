@@ -59,8 +59,8 @@ include(cotire)
 include(glslang)
 
 if(REAPER_USE_MICROPROFILE)
-    add_definitions(-DREAPER_USE_MICROPROFILE)
-    add_definitions(-DMICROPROFILE_USE_CONFIG)
+    add_definitions(-DREAPER_USE_MICROPROFILE) # Also define the macro for C++ code
+    add_definitions(-DMICROPROFILE_USE_CONFIG) # Get microprofile to include our custom conf
     include(microprofile)
 endif()
 
