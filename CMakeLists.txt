@@ -147,6 +147,7 @@ target_include_directories(${REAPER_BIN} SYSTEM PUBLIC
 
 #Libraries
 target_link_libraries(${REAPER_BIN}
+    ${MICROPROFILE_BIN}
     ${REAPER_CORE_BIN}
     ${REAPER_COMMON_BIN}
     ${REAPER_GAMELOGIC_BIN}

@@ -21,6 +21,7 @@ endif()
 find_package(Vulkan REQUIRED)
 
 set(REAPER_RENDERER_LIBRARIES ${REAPER_RENDERER_LIBRARIES}
+    ${MICROPROFILE_BIN}
     ${REAPER_CORE_BIN}
     ${REAPER_MESH_BIN}
     ${REAPER_COMMON_BIN}
@@ -115,22 +116,23 @@ set(REAPER_RENDERER_TEST_SRCS
     ${REAPER_RENDERER_DIR}/test/window.cpp
 )
 
-set(REAPER_GLSL_SHADERS
-    ${CMAKE_SOURCE_DIR}/res/shader/samples/tri.frag
-    ${CMAKE_SOURCE_DIR}/res/shader/samples/tri.vert
-    ${CMAKE_SOURCE_DIR}/res/shader/samples/push_constants.frag
-    ${CMAKE_SOURCE_DIR}/res/shader/samples/push_constants.vert
-    ${CMAKE_SOURCE_DIR}/res/shader/samples/texture.frag
-    ${CMAKE_SOURCE_DIR}/res/shader/samples/texture.vert
-    ${CMAKE_SOURCE_DIR}/res/shader/samples/uniform.frag
-    ${CMAKE_SOURCE_DIR}/res/shader/samples/uniform.vert
-    ${CMAKE_SOURCE_DIR}/res/shader/mesh_shade.frag
-    ${CMAKE_SOURCE_DIR}/res/shader/mesh_shade.vert
+set(REAPER_GLSL_DIR ${CMAKE_SOURCE_DIR}/res/shader)
+set(REAPER_GLSL_SRCS
+    ${REAPER_GLSL_DIR}/samples/tri.frag
+    ${REAPER_GLSL_DIR}/samples/tri.vert
+    ${REAPER_GLSL_DIR}/samples/push_constants.frag
+    ${REAPER_GLSL_DIR}/samples/push_constants.vert
+    ${REAPER_GLSL_DIR}/samples/texture.frag
+    ${REAPER_GLSL_DIR}/samples/texture.vert
+    ${REAPER_GLSL_DIR}/samples/uniform.frag
+    ${REAPER_GLSL_DIR}/samples/uniform.vert
+    ${REAPER_GLSL_DIR}/mesh_shade.frag
+    ${REAPER_GLSL_DIR}/mesh_shade.vert
 )
 
-add_glslang_spirv_targets(REAPER_SPIRV_OUTPUT ${REAPER_GLSL_SHADERS})
+add_glslang_spirv_targets(REAPER_SPIRV_OUTPUT ${REAPER_GLSL_SRCS})
 
-add_library(${REAPER_RENDERER_BIN} ${REAPER_BUILD_TYPE} ${REAPER_RENDERER_SRCS} ${REAPER_WINDOW_SRCS} ${REAPER_GLSL_SHADERS} ${REAPER_SPIRV_OUTPUT})
+add_library(${REAPER_RENDERER_BIN} ${REAPER_BUILD_TYPE} ${REAPER_RENDERER_SRCS} ${REAPER_WINDOW_SRCS} ${REAPER_GLSL_SRCS} ${REAPER_SPIRV_OUTPUT})
 reaper_add_custom_build_flags(${REAPER_RENDERER_BIN} "Renderer")
 
 target_include_directories(${REAPER_RENDERER_BIN} PUBLIC ${CMAKE_SOURCE_DIR}/src)
