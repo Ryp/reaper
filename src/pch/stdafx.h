@@ -7,8 +7,6 @@
 
 #pragma once
 
-#define GLM_FORCE_RADIANS // NOTE remove this when switching to glm 0.9.6 or above
-
 #include "core/CoreExport.h"
 #include "common/CommonExport.h"
 #include "gamelogic/GameLogicExport.h"
