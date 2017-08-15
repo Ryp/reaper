@@ -61,8 +61,25 @@ macro(reaper_add_vs_source_tree input_files path_to_strip)
     endforeach()
 endmacro()
 
-# Add relevant warnings to the specified target
-macro(reaper_add_custom_build_flags target project_label)
+# Helper macro that add default compilation flags for reaper targets
+macro(reaper_configure_warnings target)
+    if(MSVC)
+        target_compile_options(${target} PRIVATE "$<$<CONFIG:DEBUG>:${REAPER_MSVC_DEBUG_FLAGS}>")
+        target_compile_options(${target} PRIVATE "$<$<CONFIG:RELEASE>:${REAPER_MSVC_RELEASE_FLAGS}>")
+    elseif(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
+        target_compile_options(${target} PRIVATE "$<$<CONFIG:DEBUG>:${REAPER_GCC_DEBUG_FLAGS}>")
+        target_compile_options(${target} PRIVATE "$<$<CONFIG:RELEASE>:${REAPER_GCC_RELEASE_FLAGS}>")
+    elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        target_compile_options(${target} PRIVATE "$<$<CONFIG:DEBUG>:${REAPER_CLANG_DEBUG_FLAGS}>")
+        target_compile_options(${target} PRIVATE "$<$<CONFIG:RELEASE>:${REAPER_CLANG_RELEASE_FLAGS}>")
+    else()
+        message(FATAL_ERROR "Could not detect compiler")
+    endif()
+endmacro()
+
+# Common helper macro that sets relevant C++ warnings and compilation flags
+# see below for specific versions of the macro.
+macro(reaper_configure_target_common target project_label)
     set_target_properties(${target} PROPERTIES CXX_STANDARD 14)
     set(TARGET_COMPILE_DEFINITIONS REAPER_BUILD_${REAPER_BUILD_TYPE})
     if(MSVC)
@@ -70,22 +87,27 @@ macro(reaper_add_custom_build_flags target project_label)
         get_target_property(SOURCE_FILES ${target} SOURCES)
         reaper_add_vs_source_tree("${SOURCE_FILES}" ${CMAKE_CURRENT_SOURCE_DIR})
         target_compile_options(${target} PRIVATE "/MP")
-        target_compile_options(${target} PRIVATE "$<$<CONFIG:DEBUG>:${REAPER_MSVC_DEBUG_FLAGS}>")
-        target_compile_options(${target} PRIVATE "$<$<CONFIG:RELEASE>:${REAPER_MSVC_RELEASE_FLAGS}>")
     elseif(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
         target_compile_options(${target} PRIVATE "-fvisibility=hidden")
-        target_compile_options(${target} PRIVATE "$<$<CONFIG:DEBUG>:${REAPER_GCC_DEBUG_FLAGS}>")
-        target_compile_options(${target} PRIVATE "$<$<CONFIG:RELEASE>:${REAPER_GCC_RELEASE_FLAGS}>")
         add_clang_tidy_flags(${target}) # May give false positives when using GCC
     elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
         target_compile_options(${target} PRIVATE "-fvisibility=hidden")
-        target_compile_options(${target} PRIVATE "$<$<CONFIG:DEBUG>:${REAPER_CLANG_DEBUG_FLAGS}>")
-        target_compile_options(${target} PRIVATE "$<$<CONFIG:RELEASE>:${REAPER_CLANG_RELEASE_FLAGS}>")
         add_clang_tidy_flags(${target})
     else()
         message(FATAL_ERROR "Could not detect compiler")
     endif()
     target_compile_definitions(${target} PRIVATE ${TARGET_COMPILE_DEFINITIONS})
+endmacro()
+
+# Use this macro for internal engine libraries
+macro(reaper_configure_target target project_label)
+    reaper_configure_target_common(${target} ${project_label})
+    reaper_configure_warnings(${target})
+endmacro()
+
+# Use this macro for external dependencies
+macro(reaper_configure_external_target target project_label)
+    reaper_configure_target_common(${target} ${project_label})
 endmacro()
 
 # Reaper standard test macro
@@ -96,7 +118,9 @@ macro(reaper_add_tests library testfiles)
     set(REAPER_TEST_SRCS ${REAPER_TEST_FILES} ${REAPER_TEST_MAIN})
 
     add_executable(${REAPER_TEST_BIN} ${REAPER_TEST_SRCS})
-    reaper_add_custom_build_flags(${REAPER_TEST_BIN} "${REAPER_TEST_BIN}")
+
+    reaper_configure_target_common(${REAPER_TEST_BIN} "${REAPER_TEST_BIN}")
+    reaper_configure_warnings(${REAPER_TEST_BIN})
 
     # User includes dirs (won't hide warnings)
     target_include_directories(${REAPER_TEST_BIN} PUBLIC

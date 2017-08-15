@@ -39,7 +39,7 @@ set(REAPER_MESH_TEST_SRCS
 )
 
 add_library(${REAPER_MESH_BIN} ${REAPER_BUILD_TYPE} ${REAPER_MESH_SRCS})
-reaper_add_custom_build_flags(${REAPER_MESH_BIN} "Mesh")
+reaper_configure_target(${REAPER_MESH_BIN} "Mesh")
 
 #User includes dirs (won't hide warnings)
 target_include_directories(${REAPER_MESH_BIN} PUBLIC
