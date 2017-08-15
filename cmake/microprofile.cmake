@@ -7,9 +7,8 @@
 
 set(MICROPROFILE_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/external/microprofile)
 
-configure_file(${CMAKE_SOURCE_DIR}/external/microprofile.config.h.in ${MICROPROFILE_INCLUDE_DIR}/microprofile.config.h NEWLINE_STYLE LF)
+set(MICROPROFILE_BIN microprofile)
 
-set(MICROPROFILE_LIBRARY microprofile)
 set(MICROPROFILE_SRCS
     ${CMAKE_SOURCE_DIR}/external/microprofile.config.h.in
     ${CMAKE_SOURCE_DIR}/external/microprofile/microprofile.config.h
@@ -17,14 +16,18 @@ set(MICROPROFILE_SRCS
     ${CMAKE_SOURCE_DIR}/external/microprofile/microprofile.h
 )
 
-add_library(${MICROPROFILE_LIBRARY} STATIC ${MICROPROFILE_SRCS})
-set_target_properties(${MICROPROFILE_LIBRARY} PROPERTIES POSITION_INDEPENDENT_CODE ON)
+configure_file(${CMAKE_SOURCE_DIR}/external/microprofile.config.h.in ${MICROPROFILE_INCLUDE_DIR}/microprofile.config.h NEWLINE_STYLE LF)
+
+add_library(${MICROPROFILE_BIN} ${REAPER_BUILD_TYPE} ${MICROPROFILE_SRCS})
+reaper_add_custom_build_flags(${MICROPROFILE_BIN} "Microprofile")
+
+target_include_directories(${MICROPROFILE_BIN} PUBLIC ${CMAKE_SOURCE_DIR}/src)
 
 if(MSVC)
-    set_target_properties(${MICROPROFILE_LIBRARY} PROPERTIES FOLDER External)
+    set_target_properties(${MICROPROFILE_BIN} PROPERTIES FOLDER External)
 endif()
 
 if(WIN32)
-    target_link_libraries(${MICROPROFILE_LIBRARY} ws2_32)
+    target_link_libraries(${MICROPROFILE_BIN} ws2_32)
 endif()
 
