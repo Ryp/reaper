@@ -68,7 +68,7 @@ set(REAPER_CORE_TEST_SRCS
 )
 
 add_library(${REAPER_CORE_BIN} ${REAPER_BUILD_TYPE} ${REAPER_CORE_SRCS})
-reaper_configure_target(${REAPER_CORE_BIN} "Core")
+reaper_configure_library(${REAPER_CORE_BIN} "Core")
 
 #User includes dirs (won't hide warnings)
 target_include_directories(${REAPER_CORE_BIN} PUBLIC

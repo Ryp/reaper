@@ -63,7 +63,7 @@ set(REAPER_GAMELOGIC_TEST_SRCS
 )
 
 add_library(${REAPER_GAMELOGIC_BIN} ${REAPER_BUILD_TYPE} ${REAPER_GAMELOGIC_SRCS})
-reaper_configure_target(${REAPER_GAMELOGIC_BIN} "GameLogic")
+reaper_configure_library(${REAPER_GAMELOGIC_BIN} "GameLogic")
 
 target_include_directories(${REAPER_GAMELOGIC_BIN} PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_include_directories(${REAPER_GAMELOGIC_BIN} SYSTEM PUBLIC ${REAPER_GAMELOGIC_INCLUDES})
