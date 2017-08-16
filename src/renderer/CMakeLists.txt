@@ -133,7 +133,7 @@ set(REAPER_GLSL_SRCS
 add_glslang_spirv_targets(REAPER_SPIRV_OUTPUT ${REAPER_GLSL_SRCS})
 
 add_library(${REAPER_RENDERER_BIN} ${REAPER_BUILD_TYPE} ${REAPER_RENDERER_SRCS} ${REAPER_WINDOW_SRCS} ${REAPER_GLSL_SRCS} ${REAPER_SPIRV_OUTPUT})
-reaper_configure_target(${REAPER_RENDERER_BIN} "Renderer")
+reaper_configure_library(${REAPER_RENDERER_BIN} "Renderer")
 
 target_include_directories(${REAPER_RENDERER_BIN} PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_include_directories(${REAPER_RENDERER_BIN} SYSTEM PUBLIC ${REAPER_RENDERER_INCLUDES})
