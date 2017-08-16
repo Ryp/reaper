@@ -132,10 +132,9 @@ add_executable(${REAPER_BIN} ${REAPER_SRCS} ${REAPER_NATVIS_FILES})
 reaper_configure_executable(${REAPER_BIN} "Reaper")
 
 if (MSVC)
-    reaper_vs_set_debugger_flags(${REAPER_BIN})
+    reaper_vs_configure_debugger_command(${REAPER_BIN})
+    set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${REAPER_BIN})
 endif()
-
-set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${REAPER_BIN})
 
 #User includes dirs (won't hide warnings)
 target_include_directories(${REAPER_BIN} PUBLIC
