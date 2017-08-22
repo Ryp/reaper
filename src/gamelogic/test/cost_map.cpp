@@ -12,7 +12,7 @@
 
 TEST_CASE("Cost Map")
 {
-    int costMapSize = 100;
+    u16 costMapSize = 100;
 
     SUBCASE("Multiple alloc/free")
     {
