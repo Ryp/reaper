@@ -21,8 +21,9 @@ set(REAPER_MSVC_COMMON_FLAGS "/std:c++latest")
 
 # Ignore level-4 warning C4201: nonstandard extension used : nameless struct/union
 # Ignore level-1 warning C4251: 'identifier' : class 'type' needs to have dll-interface to be used by clients of class 'type2'
+set(REAPER_MSVC_DISABLE_WARNINGS "/W0")
 set(REAPER_MSVC_DEBUG_FLAGS ${REAPER_MSVC_COMMON_FLAGS} "/W4" "/wd4201" "/wd4251")
-set(REAPER_MSVC_RELEASE_FLAGS ${REAPER_MSVC_COMMON_FLAGS} "/W0")
+set(REAPER_MSVC_RELEASE_FLAGS ${REAPER_MSVC_COMMON_FLAGS} ${REAPER_MSVC_DISABLE_WARNINGS})
 set(REAPER_GCC_DEBUG_FLAGS "-Wall" "-Wextra" "-Wundef" "-Wshadow" "-funsigned-char"
         "-Wchar-subscripts" "-Wcast-align" "-Wwrite-strings" "-Wunused" "-Wuninitialized"
         "-Wpointer-arith" "-Wredundant-decls" "-Winline" "-Wformat"
@@ -82,18 +83,25 @@ macro(reaper_generate_export_header target project_label)
 endmacro()
 
 # Helper macro that add default compilation flags for reaper targets
-macro(reaper_configure_warnings target)
-    if(MSVC)
-        target_compile_options(${target} PRIVATE "$<$<CONFIG:DEBUG>:${REAPER_MSVC_DEBUG_FLAGS}>")
-        target_compile_options(${target} PRIVATE "$<$<CONFIG:RELEASE>:${REAPER_MSVC_RELEASE_FLAGS}>")
-    elseif(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
-        target_compile_options(${target} PRIVATE "$<$<CONFIG:DEBUG>:${REAPER_GCC_DEBUG_FLAGS}>")
-        target_compile_options(${target} PRIVATE "$<$<CONFIG:RELEASE>:${REAPER_GCC_RELEASE_FLAGS}>")
-    elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-        target_compile_options(${target} PRIVATE "$<$<CONFIG:DEBUG>:${REAPER_CLANG_DEBUG_FLAGS}>")
-        target_compile_options(${target} PRIVATE "$<$<CONFIG:RELEASE>:${REAPER_CLANG_RELEASE_FLAGS}>")
+macro(reaper_configure_warnings target enabled)
+    if(${enabled})
+        if(MSVC)
+            target_compile_options(${target} PRIVATE "$<$<CONFIG:DEBUG>:${REAPER_MSVC_DEBUG_FLAGS}>")
+            target_compile_options(${target} PRIVATE "$<$<CONFIG:RELEASE>:${REAPER_MSVC_RELEASE_FLAGS}>")
+        elseif(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
+            target_compile_options(${target} PRIVATE "$<$<CONFIG:DEBUG>:${REAPER_GCC_DEBUG_FLAGS}>")
+            target_compile_options(${target} PRIVATE "$<$<CONFIG:RELEASE>:${REAPER_GCC_RELEASE_FLAGS}>")
+        elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+            target_compile_options(${target} PRIVATE "$<$<CONFIG:DEBUG>:${REAPER_CLANG_DEBUG_FLAGS}>")
+            target_compile_options(${target} PRIVATE "$<$<CONFIG:RELEASE>:${REAPER_CLANG_RELEASE_FLAGS}>")
+        else()
+            message(FATAL_ERROR "Could not detect compiler")
+        endif()
     else()
-        message(FATAL_ERROR "Could not detect compiler")
+        if(MSVC)
+            target_compile_options(${target} PRIVATE "$<$<CONFIG:DEBUG>:${REAPER_MSVC_DISABLE_WARNINGS}>")
+            target_compile_options(${target} PRIVATE "$<$<CONFIG:RELEASE>:${REAPER_MSVC_DISABLE_WARNINGS}>")
+        endif()
     endif()
 endmacro()
 
@@ -121,19 +129,20 @@ endmacro()
 # Use this macro for engine libraries
 macro(reaper_configure_library target project_label)
     reaper_configure_target_common(${target} ${project_label})
-    reaper_configure_warnings(${target})
+    reaper_configure_warnings(${target} ON)
     reaper_generate_export_header(${target} ${project_label})
 endmacro()
 
 # Use this macro for executables
 macro(reaper_configure_executable target project_label)
     reaper_configure_target_common(${target} ${project_label})
-    reaper_configure_warnings(${target})
+    reaper_configure_warnings(${target} ON)
 endmacro()
 
 # Use this macro for external dependencies
 macro(reaper_configure_external_target target project_label)
     reaper_configure_target_common(${target} ${project_label})
+    reaper_configure_warnings(${target} OFF)
 endmacro()
 
 # Reaper standard test macro
@@ -146,7 +155,7 @@ macro(reaper_add_tests library testfiles)
     add_executable(${REAPER_TEST_BIN} ${REAPER_TEST_SRCS})
 
     reaper_configure_target_common(${REAPER_TEST_BIN} "${REAPER_TEST_BIN}")
-    reaper_configure_warnings(${REAPER_TEST_BIN})
+    reaper_configure_warnings(${REAPER_TEST_BIN} ON)
 
     # User includes dirs (won't hide warnings)
     target_include_directories(${REAPER_TEST_BIN} PUBLIC
