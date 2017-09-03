@@ -34,6 +34,7 @@ project(Reaper)
 # Export compile commands in a json file. Useful for vim completion and debugging
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+option(REAPER_GIT_HOOKS_AUTO_UPDATE     "Update git hooks"              ON)
 option(REAPER_BUILD_TESTS               "Build tests"                   ON)
 option(REAPER_BUILD_SHARED_LIBRARIES    "Build shared libraries"        ON)
 option(REAPER_USE_MICROPROFILE          "Use microprofile"              ON)
@@ -54,6 +55,11 @@ endif()
 # Provide custom cmake scripts
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 include(Reaper)
+
+# Auto-update git hooks
+if(REAPER_GIT_HOOKS_AUTO_UPDATE)
+    reaper_update_git_hooks()
+endif()
 
 include(cotire)
 include(glslang)

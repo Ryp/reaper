@@ -175,3 +175,13 @@ macro(reaper_add_tests library testfiles)
         reaper_vs_configure_debugger_command(${REAPER_TEST_BIN})
     endif()
 endmacro()
+
+# Install and update git hooks
+macro(reaper_update_git_hooks)
+    message(STATUS "updating git hooks")
+    set(GIT_HOOKS_DIR ${CMAKE_SOURCE_DIR}/.git/hooks)
+    set(REAPER_HOOKS_DIR ${CMAKE_SOURCE_DIR}/tools/git/hooks)
+
+    # Setup hooks
+    configure_file(${REAPER_HOOKS_DIR}/pre-commit.sh ${GIT_HOOKS_DIR}/pre-commit @ONLY)
+endmacro()
