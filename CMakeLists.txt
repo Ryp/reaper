@@ -58,6 +58,14 @@ include(Reaper)
 
 # Auto-update git hooks
 if(REAPER_GIT_HOOKS_AUTO_UPDATE)
+    find_program(CLANG_FORMAT_EXEC clang-format)
+
+    if(CLANG_FORMAT_EXEC)
+        message(STATUS "Found clang-format")
+    else()
+        message(FATAL_ERROR "Could not find clang-format")
+    endif()
+
     reaper_update_git_hooks()
 endif()
 
