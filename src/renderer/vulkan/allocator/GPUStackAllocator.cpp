@@ -8,12 +8,14 @@
 #include "GPUStackAllocator.h"
 
 GPUStackAllocator::GPUStackAllocator(std::size_t size)
-:   _size(size)
-,   _offset(0)
-{}
+    : _size(size)
+    , _offset(0)
+{
+}
 
 GPUStackAllocator::~GPUStackAllocator()
-{}
+{
+}
 
 std::size_t GPUStackAllocator::alloc(std::size_t size, std::size_t alignment)
 {

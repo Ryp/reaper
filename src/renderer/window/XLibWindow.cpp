@@ -12,25 +12,24 @@
 #include "renderer/Renderer.h"
 
 XLibWindow::XLibWindow(const WindowCreationDescriptor& creationInfo)
-:   DisplayPtr()
-,   Handle()
+    : DisplayPtr()
+    , Handle()
 {
-    DisplayPtr = XOpenDisplay( nullptr );
+    DisplayPtr = XOpenDisplay(nullptr);
 
     Assert(DisplayPtr != nullptr);
 
     int default_screen = DefaultScreen(DisplayPtr);
 
-    Handle = XCreateSimpleWindow(
-            DisplayPtr,
-            DefaultRootWindow(DisplayPtr),
-            20,
-            20,
-            creationInfo.width,
-            creationInfo.height,
-            1,
-            BlackPixel(DisplayPtr, default_screen),
-            WhitePixel(DisplayPtr, default_screen));
+    Handle = XCreateSimpleWindow(DisplayPtr,
+                                 DefaultRootWindow(DisplayPtr),
+                                 20,
+                                 20,
+                                 creationInfo.width,
+                                 creationInfo.height,
+                                 1,
+                                 BlackPixel(DisplayPtr, default_screen),
+                                 WhitePixel(DisplayPtr, default_screen));
 
     XSetStandardProperties(DisplayPtr, Handle, creationInfo.title, creationInfo.title, None, nullptr, 0, nullptr);
     XSelectInput(DisplayPtr, Handle, ExposureMask | KeyPressMask | StructureNotifyMask);
@@ -46,8 +45,8 @@ bool XLibWindow::renderLoop(AbstractRenderer* renderer)
 {
     // Prepare notification for window destruction
     Atom delete_window_atom;
-    delete_window_atom = XInternAtom( DisplayPtr, "WM_DELETE_WINDOW", false );
-    XSetWMProtocols( DisplayPtr, Handle, &delete_window_atom, 1);
+    delete_window_atom = XInternAtom(DisplayPtr, "WM_DELETE_WINDOW", false);
+    XSetWMProtocols(DisplayPtr, Handle, &delete_window_atom, 1);
 
     // Display window
     XClearWindow(DisplayPtr, Handle);
@@ -55,8 +54,8 @@ bool XLibWindow::renderLoop(AbstractRenderer* renderer)
 
     // Main message loop
     XEvent event;
-    bool loop = true;
-    bool resize = false;
+    bool   loop = true;
+    bool   resize = false;
 
     while (loop)
     {
@@ -65,32 +64,33 @@ bool XLibWindow::renderLoop(AbstractRenderer* renderer)
             XNextEvent(DisplayPtr, &event);
             switch (event.type)
             {
-                //Process events
-                case ConfigureNotify:
-                {
-                    static int width = event.xconfigure.width;
-                    static int height = event.xconfigure.height;
+            // Process events
+            case ConfigureNotify:
+            {
+                static int width = event.xconfigure.width;
+                static int height = event.xconfigure.height;
 
-                    if (((event.xconfigure.width > 0) && (event.xconfigure.width != width)) ||
-                        ((event.xconfigure.height > 0) && (event.xconfigure.width != height)))
-                    {
-                        width = event.xconfigure.width;
-                        height = event.xconfigure.height;
-                        resize = true;
-                    }
+                if (((event.xconfigure.width > 0) && (event.xconfigure.width != width))
+                    || ((event.xconfigure.height > 0) && (event.xconfigure.width != height)))
+                {
+                    width = event.xconfigure.width;
+                    height = event.xconfigure.height;
+                    resize = true;
+                }
+            }
+            break;
+            case KeyPress:
+                loop = false;
+                break;
+            case DestroyNotify:
+                loop = false;
+                break;
+            case ClientMessage:
+                if (static_cast<unsigned int>(event.xclient.data.l[0]) == delete_window_atom)
+                {
+                    loop = false;
                 }
                 break;
-                case KeyPress:
-                    loop = false;
-                    break;
-                case DestroyNotify:
-                    loop = false;
-                    break;
-                case ClientMessage:
-                    if( static_cast<unsigned int>(event.xclient.data.l[0]) == delete_window_atom ) {
-                        loop = false;
-                    }
-                    break;
             }
         }
         else
@@ -107,4 +107,3 @@ bool XLibWindow::renderLoop(AbstractRenderer* renderer)
     }
     return true;
 }
-

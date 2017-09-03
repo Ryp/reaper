@@ -13,7 +13,7 @@
 TEST_CASE("Mesh Loading")
 {
     ModelLoader loader;
-    MeshCache cache;
+    MeshCache   cache;
 
     SUBCASE("OBJ files")
     {

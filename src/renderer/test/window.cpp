@@ -28,4 +28,3 @@ TEST_CASE("Window")
         window = nullptr;
     }
 }
-

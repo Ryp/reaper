@@ -12,34 +12,40 @@ using namespace vk;
 std::vector<MemoryTypeInfo> enumerateHeaps(VkPhysicalDevice device)
 {
     VkPhysicalDeviceMemoryProperties memoryProperties = {};
-    vkGetPhysicalDeviceMemoryProperties (device, &memoryProperties);
+    vkGetPhysicalDeviceMemoryProperties(device, &memoryProperties);
 
     std::vector<MemoryTypeInfo::Heap> heaps;
 
-    for (uint32_t i = 0; i < memoryProperties.memoryHeapCount; ++i) {
+    for (uint32_t i = 0; i < memoryProperties.memoryHeapCount; ++i)
+    {
         MemoryTypeInfo::Heap info;
-        info.size = memoryProperties.memoryHeaps [i].size;
-        info.deviceLocal = (memoryProperties.memoryHeaps [i].flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT) != 0;
+        info.size = memoryProperties.memoryHeaps[i].size;
+        info.deviceLocal = (memoryProperties.memoryHeaps[i].flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT) != 0;
 
-        heaps.push_back (info);
+        heaps.push_back(info);
     }
 
     std::vector<MemoryTypeInfo> result;
 
-    for (uint32_t i = 0; i < memoryProperties.memoryTypeCount; ++i) {
+    for (uint32_t i = 0; i < memoryProperties.memoryTypeCount; ++i)
+    {
         MemoryTypeInfo typeInfo;
 
-        typeInfo.deviceLocal = (memoryProperties.memoryTypes [i].propertyFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) != 0;
-        typeInfo.hostVisible = (memoryProperties.memoryTypes [i].propertyFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) != 0;
-        typeInfo.hostCoherent = (memoryProperties.memoryTypes [i].propertyFlags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) != 0;
-        typeInfo.hostCached = (memoryProperties.memoryTypes [i].propertyFlags & VK_MEMORY_PROPERTY_HOST_CACHED_BIT) != 0;
-        typeInfo.lazilyAllocated = (memoryProperties.memoryTypes [i].propertyFlags & VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT) != 0;
+        typeInfo.deviceLocal =
+            (memoryProperties.memoryTypes[i].propertyFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) != 0;
+        typeInfo.hostVisible =
+            (memoryProperties.memoryTypes[i].propertyFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) != 0;
+        typeInfo.hostCoherent =
+            (memoryProperties.memoryTypes[i].propertyFlags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) != 0;
+        typeInfo.hostCached = (memoryProperties.memoryTypes[i].propertyFlags & VK_MEMORY_PROPERTY_HOST_CACHED_BIT) != 0;
+        typeInfo.lazilyAllocated =
+            (memoryProperties.memoryTypes[i].propertyFlags & VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT) != 0;
 
-        typeInfo.heap = heaps [memoryProperties.memoryTypes [i].heapIndex];
+        typeInfo.heap = heaps[memoryProperties.memoryTypes[i].heapIndex];
 
-        typeInfo.index = static_cast<int> (i);
+        typeInfo.index = static_cast<int>(i);
 
-        result.push_back (typeInfo);
+        result.push_back(typeInfo);
     }
 
     return result;
@@ -48,16 +54,17 @@ std::vector<MemoryTypeInfo> enumerateHeaps(VkPhysicalDevice device)
 VkDeviceMemory AllocateMemory(const std::vector<MemoryTypeInfo>& memoryInfos, VkDevice device, const int size)
 {
     // We take the first HOST_VISIBLE memory
-    for (auto& memoryInfo : memoryInfos) {
-        if (memoryInfo.hostVisible) {
+    for (auto& memoryInfo : memoryInfos)
+    {
+        if (memoryInfo.hostVisible)
+        {
             VkMemoryAllocateInfo memoryAllocateInfo = {};
             memoryAllocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
             memoryAllocateInfo.memoryTypeIndex = memoryInfo.index;
             memoryAllocateInfo.allocationSize = size;
 
             VkDeviceMemory deviceMemory;
-            vkAllocateMemory (device, &memoryAllocateInfo, nullptr,
-                              &deviceMemory);
+            vkAllocateMemory(device, &memoryAllocateInfo, nullptr, &deviceMemory);
             return deviceMemory;
         }
     }
@@ -69,11 +76,11 @@ VkBuffer AllocateBuffer(VkDevice device, const std::size_t size, const VkBufferU
 {
     VkBufferCreateInfo bufferCreateInfo = {};
     bufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    bufferCreateInfo.size = static_cast<uint32_t> (size);
+    bufferCreateInfo.size = static_cast<uint32_t>(size);
     bufferCreateInfo.usage = bits;
 
     VkBuffer result;
-    vkCreateBuffer (device, &bufferCreateInfo, nullptr, &result);
+    vkCreateBuffer(device, &bufferCreateInfo, nullptr, &result);
     return result;
 }
 

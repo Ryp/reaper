@@ -15,14 +15,9 @@ void vulkan_create_shader_module(VkShaderModule& shaderModule, VkDevice device, 
 {
     std::vector<char> fileContents = readWholeFile(fileName);
 
-    VkShaderModuleCreateInfo shader_module_create_info =
-    {
-        VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
-        nullptr,
-        0,
-        fileContents.size(),
-        reinterpret_cast<const uint32_t*>(&fileContents[0])
-    };
+    VkShaderModuleCreateInfo shader_module_create_info = {VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO, nullptr, 0,
+                                                          fileContents.size(),
+                                                          reinterpret_cast<const uint32_t*>(&fileContents[0])};
 
     Assert(vkCreateShaderModule(device, &shader_module_create_info, nullptr, &shaderModule) == VK_SUCCESS);
 }
