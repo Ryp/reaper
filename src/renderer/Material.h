@@ -9,7 +9,8 @@
 
 #include "resource/Resource.h"
 
-struct Material {
+struct Material
+{
     TextureId albedo;
     TextureId fresnel;
     TextureId roughness;

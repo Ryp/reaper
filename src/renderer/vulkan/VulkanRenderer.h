@@ -24,6 +24,7 @@ struct VSUBO;
 class OldRenderer : public SwapchainRendererBase
 {
     using parent_type = SwapchainRendererBase;
+
 public:
     OldRenderer();
     ~OldRenderer() = default;
@@ -44,36 +45,37 @@ private:
     void updateUniforms();
 
 private:
-    VkPipeline          _pipeline;
-    VkPipelineLayout    _pipelineLayout;
+    VkPipeline       _pipeline;
+    VkPipelineLayout _pipelineLayout;
 
 private:
-    VkDeviceMemory  _deviceMemory;
+    VkDeviceMemory _deviceMemory;
 
-    VkDeviceMemory  _texMemory;
-    VkImage         _texImage;
-    VkImageView     _texImageView;
-    VkSampler       _texSampler;
+    VkDeviceMemory _texMemory;
+    VkImage        _texImage;
+    VkImageView    _texImageView;
+    VkSampler      _texSampler;
 
-    VkBuffer        _vertexBuffer;
-    VkBuffer        _indexBuffer;
-
-private:
-    VkDescriptorPool        _descriptorPool;
-    VkDescriptorSet         _descriptorSet;
-    VkDescriptorSetLayout   _descriptorSetLayout;
+    VkBuffer _vertexBuffer;
+    VkBuffer _indexBuffer;
 
 private:
-    struct {
-        VkBuffer buffer;
-        VkDeviceMemory memory;
+    VkDescriptorPool      _descriptorPool;
+    VkDescriptorSet       _descriptorSet;
+    VkDescriptorSetLayout _descriptorSetLayout;
+
+private:
+    struct
+    {
+        VkBuffer               buffer;
+        VkDeviceMemory         memory;
         VkDescriptorBufferInfo descriptor;
-    }  _uniformData;
+    } _uniformData;
 
 private:
-    VSUBO*          _uniforms;
-    MeshCache       _meshCache;
-    TextureCache    _texCache;
+    VSUBO*       _uniforms;
+    MeshCache    _meshCache;
+    TextureCache _texCache;
 };
 
 void test_vulkan_renderer(ReaperRoot& root, VulkanBackend& backend);

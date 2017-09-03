@@ -12,7 +12,9 @@ class IWindow;
 class REAPER_RENDERER_API AbstractRenderer
 {
 public:
-    virtual ~AbstractRenderer() {}
+    virtual ~AbstractRenderer()
+    {
+    }
 
 public:
     virtual void startup(IWindow* window) = 0;
@@ -29,8 +31,8 @@ struct VulkanBackend;
 
 struct REAPER_RENDERER_API Renderer
 {
-    VulkanBackend*  backend;
-    IWindow*        window;
+    VulkanBackend* backend;
+    IWindow*       window;
 };
 
 REAPER_RENDERER_API bool create_renderer(ReaperRoot* root);

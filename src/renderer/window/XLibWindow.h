@@ -20,6 +20,6 @@ public:
     bool renderLoop(AbstractRenderer* renderer) override;
 
 public:
-    Display*    DisplayPtr;
-    Window      Handle;
+    Display* DisplayPtr;
+    Window   Handle;
 };

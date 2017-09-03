@@ -20,6 +20,6 @@ public:
     bool renderLoop(AbstractRenderer* renderer) override;
 
 public:
-    HINSTANCE   Instance;
-    HWND        Handle;
+    HINSTANCE Instance;
+    HWND      Handle;
 };

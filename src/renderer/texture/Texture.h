@@ -11,12 +11,12 @@
 
 struct Texture
 {
-    u32 width;
-    u32 height;
-    u32 mipLevels;
-    u32 layerCount;
-    u32 format;
-    void* rawData;
+    u32         width;
+    u32         height;
+    u32         mipLevels;
+    u32         layerCount;
+    u32         format;
+    void*       rawData;
     std::size_t size;
-    u32 bytesPerPixel;
+    u32         bytesPerPixel;
 };

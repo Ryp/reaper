@@ -12,7 +12,9 @@ class AbstractRenderer;
 class REAPER_RENDERER_API IWindow
 {
 public:
-    virtual ~IWindow() {}
+    virtual ~IWindow()
+    {
+    }
     virtual bool renderLoop(AbstractRenderer* renderer) = 0;
 };
 
