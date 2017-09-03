@@ -5,8 +5,8 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "common/ReaperRoot.h"
 #include "common/DebugLog.h"
+#include "common/ReaperRoot.h"
 
 #include "renderer/Renderer.h"
 #include "renderer/vulkan/VulkanRenderer.h"
@@ -25,7 +25,6 @@ namespace
         {
             if (create_renderer(&root))
             {
-
                 destroy_renderer(&root);
             }
         }
