@@ -9,22 +9,24 @@
 
 #include <cmath>
 
-#include <glm/gtx/transform.hpp>
 #include <glm/gtc/constants.hpp>
+#include <glm/gtx/transform.hpp>
 
 const float Camera::PitchDeadzone = 0.001f;
 
 Camera::Camera(const glm::vec3& pos, const glm::vec3& direction, float yaw, float pitch)
-:   _viewMatrix(glm::mat4(1.0)),
-    _position(pos),
-    _direction(direction),
-    _yaw(yaw),
-    _pitch(pitch)
+    : _viewMatrix(glm::mat4(1.0))
+    , _position(pos)
+    , _direction(direction)
+    , _yaw(yaw)
+    , _pitch(pitch)
 {
     update(Cartesian);
 }
 
-Camera::~Camera() {}
+Camera::~Camera()
+{
+}
 
 void Camera::update(Mode mode)
 {

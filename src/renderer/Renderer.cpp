@@ -7,8 +7,8 @@
 
 #include "Renderer.h"
 
-#include "renderer/vulkan/VulkanRenderer.h"
 #include "renderer/vulkan/SwapchainRendererBase.h"
+#include "renderer/vulkan/VulkanRenderer.h"
 
 AbstractRenderer* AbstractRenderer::createRenderer()
 {
@@ -49,4 +49,3 @@ void run_renderer(ReaperRoot* root)
 
     test_vulkan_renderer(*root, *root->renderer->backend);
 }
-

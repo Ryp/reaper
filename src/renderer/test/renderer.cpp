@@ -20,7 +20,7 @@ TEST_CASE("Renderer")
     windowDescriptor.height = 600;
     windowDescriptor.fullscreen = false;
 
-    IWindow* window = createWindow(windowDescriptor);
+    IWindow*          window = createWindow(windowDescriptor);
     AbstractRenderer* renderer = nullptr;
 
     renderer = AbstractRenderer::createRenderer();
@@ -33,4 +33,3 @@ TEST_CASE("Renderer")
 
     delete renderer;
 }
-

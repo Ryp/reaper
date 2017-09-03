@@ -15,16 +15,16 @@ namespace
     {
         switch (message)
         {
-            case WM_SIZE:
-            case WM_EXITSIZEMOVE:
-                PostMessage(hWnd, WM_USER + 1, wParam, lParam);
-                break;
-            case WM_KEYDOWN:
-            case WM_CLOSE:
-                PostMessage(hWnd, WM_USER + 2, wParam, lParam);
-                break;
-            default:
-                return DefWindowProc(hWnd, message, wParam, lParam);
+        case WM_SIZE:
+        case WM_EXITSIZEMOVE:
+            PostMessage(hWnd, WM_USER + 1, wParam, lParam);
+            break;
+        case WM_KEYDOWN:
+        case WM_CLOSE:
+            PostMessage(hWnd, WM_USER + 2, wParam, lParam);
+            break;
+        default:
+            return DefWindowProc(hWnd, message, wParam, lParam);
         }
         return 0;
     }
@@ -33,8 +33,8 @@ namespace
 #define REAPER_WINDOW_INFO "Reaper"
 
 Win32Window::Win32Window(const WindowCreationDescriptor& creationInfo)
-:   Instance()
-,   Handle()
+    : Instance()
+    , Handle()
 {
     Instance = GetModuleHandle(nullptr);
     Assert(Instance != nullptr);
@@ -72,10 +72,10 @@ Win32Window::Win32Window(const WindowCreationDescriptor& creationInfo)
     rect.bottom = creationInfo.height + DefaultY;
 
     const DWORD style = WS_OVERLAPPEDWINDOW;
-    const HWND parent = nullptr;
+    const HWND  parent = nullptr;
 
     const HMENU menu = nullptr;
-    const BOOL hasMenu = (menu == nullptr ? FALSE : TRUE);
+    const BOOL  hasMenu = (menu == nullptr ? FALSE : TRUE);
 
     // Adjust rect to account for window decorations so we get the desired resolution
     Assert(AdjustWindowRect(&rect, style, hasMenu) != FALSE);
@@ -83,7 +83,8 @@ Win32Window::Win32Window(const WindowCreationDescriptor& creationInfo)
     const LPVOID param = nullptr;
 
     // Create window
-    Handle = CreateWindow(REAPER_WINDOW_INFO, creationInfo.title, style, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top, parent, menu, Instance, param);
+    Handle = CreateWindow(REAPER_WINDOW_INFO, creationInfo.title, style, rect.left, rect.top, rect.right - rect.left,
+                          rect.bottom - rect.top, parent, menu, Instance, param);
     Assert(Handle != nullptr);
 }
 
@@ -103,7 +104,7 @@ bool Win32Window::renderLoop(AbstractRenderer* renderer)
     UpdateWindow(Handle);
 
     // Main message loop
-    MSG message;
+    MSG  message;
     bool loop = true;
     bool resize = false;
 
@@ -114,14 +115,14 @@ bool Win32Window::renderLoop(AbstractRenderer* renderer)
             // Process events
             switch (message.message)
             {
-                // Resize
-                case WM_USER + 1:
-                    resize = true;
-                    break;
-                // Close
-                case WM_USER + 2:
-                    loop = false;
-                    break;
+            // Resize
+            case WM_USER + 1:
+                resize = true;
+                break;
+            // Close
+            case WM_USER + 2:
+                loop = false;
+                break;
             }
             TranslateMessage(&message);
             DispatchMessage(&message);
@@ -132,13 +133,12 @@ bool Win32Window::renderLoop(AbstractRenderer* renderer)
             if (resize)
             {
                 resize = false;
-//                 if( !renderer.OnWindowSizeChanged() ) {
-//                     loop = false;
-//                 }
+                //                 if( !renderer.OnWindowSizeChanged() ) {
+                //                     loop = false;
+                //                 }
             }
             renderer->render();
         }
     }
     return true;
 }
-

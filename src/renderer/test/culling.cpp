@@ -38,18 +38,11 @@ namespace
     bool is_visible(glm::mat3x4* transform, AABB* aabb, Frustum* frustum)
     {
         // get aabb points
-        glm::vec3 points[] =
-        {
-            { aabb->min.x, aabb->min.y, aabb->min.z },
-            { aabb->max.x, aabb->min.y, aabb->min.z },
-            { aabb->max.x, aabb->max.y, aabb->min.z },
-            { aabb->min.x, aabb->max.y, aabb->min.z },
+        glm::vec3 points[] = {{aabb->min.x, aabb->min.y, aabb->min.z}, {aabb->max.x, aabb->min.y, aabb->min.z},
+                              {aabb->max.x, aabb->max.y, aabb->min.z}, {aabb->min.x, aabb->max.y, aabb->min.z},
 
-            { aabb->min.x, aabb->min.y, aabb->max.z },
-            { aabb->max.x, aabb->min.y, aabb->max.z },
-            { aabb->max.x, aabb->max.y, aabb->max.z },
-            { aabb->min.x, aabb->max.y, aabb->max.z }
-        };
+                              {aabb->min.x, aabb->min.y, aabb->max.z}, {aabb->max.x, aabb->min.y, aabb->max.z},
+                              {aabb->max.x, aabb->max.y, aabb->max.z}, {aabb->min.x, aabb->max.y, aabb->max.z}};
 
         // transform points to world space
         for (int i = 0; i < 8; ++i)
@@ -83,42 +76,22 @@ namespace
 
 TEST_CASE("Frustum culling")
 {
-    float angle = 30.0f;
+    float     angle = 30.0f;
     glm::vec3 translation(125.0f, 5.0f, 10.0f);
     glm::vec3 rotationDirection(3.0f, 1.0f, 0.0f);
     glm::mat4 transform = glm::translate(glm::rotate(glm::mat4(1.0f), angle, rotationDirection), translation);
 
-    AABB box =
-    {
-        { -1, -2, -3 },
-        { 1, 2, 3 }
-    };
+    AABB box = {{-1, -2, -3}, {1, 2, 3}};
 
     // TODO compute frustum plane equations
-    Frustum frustum =
-    {
-        {
-            { 1, 0, 0, 10 },
-            { -1, 0, 0, 10 },
-            { 0, 1, 0, 10 },
-            { 0, -1, 0, 10 },
-            { 0, 0, 1, 10 },
-            { 0, 0, -1, 10 }
-        }
-    };
+    Frustum frustum = {{{1, 0, 0, 10}, {-1, 0, 0, 10}, {0, 1, 0, 10}, {0, -1, 0, 10}, {0, 0, 1, 10}, {0, 0, -1, 10}}};
 
-    glm::mat3x4 hmatrix =
-    {
-        { 0.123f, 0.456f, 0.789f, 1 },
-        { 0.456f, 0.123f, 0.789f, -1 },
-        { 0.789f, 0.123f, 0.456f, 1 }
-    };
+    glm::mat3x4 hmatrix = {{0.123f, 0.456f, 0.789f, 1}, {0.456f, 0.123f, 0.789f, -1}, {0.789f, 0.123f, 0.456f, 1}};
 
-    //glm::mat3x4 hmatrix = transform;
+    // glm::mat3x4 hmatrix = transform;
 
     SUBCASE("visible")
     {
         CHECK(is_visible(&hmatrix, &box, &frustum));
     }
 }
-

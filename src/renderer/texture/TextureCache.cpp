@@ -10,8 +10,9 @@
 #include <cstring>
 
 TextureCache::TextureCache(const std::size_t cacheSize)
-:   _textureAllocator(cacheSize)
-{}
+    : _textureAllocator(cacheSize)
+{
+}
 
 void TextureCache::loadTexture(TextureId id, Texture texture)
 {

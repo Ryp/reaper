@@ -28,4 +28,3 @@ IWindow* createWindow(const WindowCreationDescriptor& creationInfo)
     return nullptr;
 #endif
 }
-

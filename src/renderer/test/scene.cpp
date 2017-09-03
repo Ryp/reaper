@@ -8,8 +8,8 @@
 #include "pch/stdafx.h"
 #include <doctest/doctest.h>
 
-#include "renderer/Scene.h"
 #include "renderer/Material.h"
+#include "renderer/Scene.h"
 
 TEST_CASE("Scene")
 {
@@ -25,4 +25,3 @@ TEST_CASE("Scene")
         addModel(scene, model, glm::vec3(0.f), glm::quat());
     }
 }
-
