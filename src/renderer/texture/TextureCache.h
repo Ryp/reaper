@@ -26,6 +26,6 @@ public:
     const Texture& operator[](const TextureId& id) const;
 
 private:
-    StackAllocator               _textureAllocator;
+    StackAllocator _textureAllocator;
     std::map<TextureId, Texture> _textures;
 };

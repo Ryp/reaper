@@ -9,8 +9,8 @@
 
 #include <vector>
 
-#include "core/DynamicLibrary.h"
 #include "api/Vulkan.h"
+#include "core/DynamicLibrary.h"
 #include "renderer/Renderer.h"
 
 class SwapchainRendererBase : public AbstractRenderer
@@ -30,79 +30,79 @@ private:
     void createCommandBufferPool();
 
 private:
-    LibHandle   _vulkanLib;
+    LibHandle _vulkanLib;
 
 private:
     VkDebugReportCallbackEXT _debugCallback;
 
 protected:
-    VkPhysicalDevice    _physicalDevice;
-    VkSurfaceKHR        _presentationSurface;
-    VkQueue             _presentationQueue;
-    VkSwapchainKHR      _swapChain;
-    u32                 _swapChainImageCount;
-    VkFormat            _swapChainFormat;
-    std::vector<VkImage>        _swapChainImages;
-    std::vector<VkImageView>    _swapChainImageViews;
-    std::vector<VkFramebuffer>  _framebuffers;
-    VkSemaphore                 _imageAvailableSemaphore;
-    VkSemaphore                 _renderingFinishedSemaphore;
-    VkRenderPass                _mainRenderPass;
+    VkPhysicalDevice           _physicalDevice;
+    VkSurfaceKHR               _presentationSurface;
+    VkQueue                    _presentationQueue;
+    VkSwapchainKHR             _swapChain;
+    u32                        _swapChainImageCount;
+    VkFormat                   _swapChainFormat;
+    std::vector<VkImage>       _swapChainImages;
+    std::vector<VkImageView>   _swapChainImageViews;
+    std::vector<VkFramebuffer> _framebuffers;
+    VkSemaphore                _imageAvailableSemaphore;
+    VkSemaphore                _renderingFinishedSemaphore;
+    VkRenderPass               _mainRenderPass;
 
 protected:
-    VkCommandPool                   _gfxCmdPool;
-    std::vector<VkCommandBuffer>    _gfxCmdBuffers;
-    uint32_t                        _gfxQueueIndex;
-    uint32_t                        _prsQueueIndex;
+    VkCommandPool                _gfxCmdPool;
+    std::vector<VkCommandBuffer> _gfxCmdBuffers;
+    uint32_t                     _gfxQueueIndex;
+    uint32_t                     _prsQueueIndex;
 
 protected:
-    VkInstance          _instance;
-    VkDevice            _device;
-    VkQueue             _graphicsQueue;
+    VkInstance _instance;
+    VkDevice   _device;
+    VkQueue    _graphicsQueue;
 };
 
 struct PresentationInfo
 {
-    VkSurfaceKHR                surface;
-    VkSurfaceCapabilitiesKHR    surfaceCaps;
-    VkSurfaceFormatKHR          surfaceFormat;
-    VkSwapchainKHR              swapchain;
-    VkExtent2D                  surfaceExtent;
-    VkSemaphore                 imageAvailableSemaphore;
-    VkSemaphore                 renderingFinishedSemaphore;
-    u32                         imageCount;
-    std::vector<VkImage>        images;
-    std::vector<VkImageView>    imageViews;
-    std::vector<VkFramebuffer>  framebuffers;
-    VkRenderPass                renderPass;
+    VkSurfaceKHR               surface;
+    VkSurfaceCapabilitiesKHR   surfaceCaps;
+    VkSurfaceFormatKHR         surfaceFormat;
+    VkSwapchainKHR             swapchain;
+    VkExtent2D                 surfaceExtent;
+    VkSemaphore                imageAvailableSemaphore;
+    VkSemaphore                renderingFinishedSemaphore;
+    u32                        imageCount;
+    std::vector<VkImage>       images;
+    std::vector<VkImageView>   imageViews;
+    std::vector<VkFramebuffer> framebuffers;
+    VkRenderPass               renderPass;
 
     PresentationInfo();
 };
 
 struct PhysicalDeviceInfo
 {
-    uint32_t            graphicsQueueIndex;
-    uint32_t            presentQueueIndex;
+    uint32_t graphicsQueueIndex;
+    uint32_t presentQueueIndex;
 };
 
 struct DeviceInfo
 {
-    VkQueue  graphicsQueue;
-    VkQueue  presentQueue;
+    VkQueue graphicsQueue;
+    VkQueue presentQueue;
 };
 
 struct REAPER_RENDERER_API VulkanBackend
 {
-    LibHandle           vulkanLib;
-    VkInstance          instance;
+    LibHandle  vulkanLib;
+    VkInstance instance;
 
-    VkPhysicalDevice    physicalDevice;
-    PhysicalDeviceInfo  physicalDeviceInfo;
+    VkPhysicalDevice   physicalDevice;
+    PhysicalDeviceInfo physicalDeviceInfo;
 
-    VkDevice            device;
-    DeviceInfo          deviceInfo;
+    VkDevice   device;
+    DeviceInfo deviceInfo;
 
-    PresentationInfo    presentInfo;
+    PresentationInfo presentInfo;
 
     VkDebugReportCallbackEXT debugCallback;
 

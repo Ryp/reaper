@@ -22,11 +22,11 @@ struct MemoryTypeInfo
     struct Heap
     {
         uint64_t size = 0;
-        bool deviceLocal = false;
+        bool     deviceLocal = false;
     };
 
     Heap heap;
-    int index;
+    int  index;
 };
 
 std::vector<MemoryTypeInfo> enumerateHeaps(VkPhysicalDevice device);
