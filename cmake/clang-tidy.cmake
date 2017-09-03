@@ -8,11 +8,11 @@
 find_program(CLANG_TIDY_EXEC clang-tidy)
 
 if(NOT CLANG_TIDY_EXEC)
-    message(STATUS "clang-tidy not found.")
+    message(STATUS "Could not find clang-tidy")
 elseif(NOT REAPER_RUN_CLANG_TIDY)
-    message(STATUS "clang-tidy found but disabled.")
+    message(STATUS "Found clang-tidy but disabled")
 else()
-    message(STATUS "clang-tidy found.")
+    message(STATUS "Found clang-tidy")
 endif()
 
 # This function will add clang-tidy flags to the provided target

@@ -178,7 +178,7 @@ endmacro()
 
 # Install and update git hooks
 macro(reaper_update_git_hooks)
-    message(STATUS "updating git hooks")
+    message(STATUS "Updating git hooks")
     set(GIT_HOOKS_DIR ${CMAKE_SOURCE_DIR}/.git/hooks)
     set(REAPER_HOOKS_DIR ${CMAKE_SOURCE_DIR}/tools/git/hooks)
 
