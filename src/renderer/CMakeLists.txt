@@ -58,6 +58,8 @@ set(REAPER_RENDERER_SRCS
     ${REAPER_RENDERER_DIR}/format/PixelFormat.cpp
     ${REAPER_RENDERER_DIR}/format/PixelFormat.h
 
+    ${REAPER_RENDERER_DIR}/texture/GPUTextureProperties.cpp
+    ${REAPER_RENDERER_DIR}/texture/GPUTextureProperties.h
     ${REAPER_RENDERER_DIR}/texture/Texture.cpp
     ${REAPER_RENDERER_DIR}/texture/Texture.h
     ${REAPER_RENDERER_DIR}/texture/TextureCache.cpp
@@ -75,6 +77,8 @@ set(REAPER_RENDERER_SRCS
     ${REAPER_RENDERER_DIR}/vulkan/SwapchainRendererBase.h
     ${REAPER_RENDERER_DIR}/vulkan/Shader.cpp
     ${REAPER_RENDERER_DIR}/vulkan/Shader.h
+    ${REAPER_RENDERER_DIR}/vulkan/Test.cpp
+    ${REAPER_RENDERER_DIR}/vulkan/Test.h
     ${REAPER_RENDERER_DIR}/vulkan/VulkanRenderer.cpp
     ${REAPER_RENDERER_DIR}/vulkan/VulkanRenderer.h
 
