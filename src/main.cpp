@@ -9,6 +9,7 @@
 #include "common/ReaperRoot.h"
 
 #include "renderer/Renderer.h"
+#include "renderer/vulkan/Test.h"
 #include "renderer/vulkan/VulkanRenderer.h"
 
 #include "core/Profile.h"
@@ -25,6 +26,7 @@ namespace
         {
             if (create_renderer(&root))
             {
+                vulkan_test(root, *root.renderer->backend);
                 destroy_renderer(&root);
             }
         }
