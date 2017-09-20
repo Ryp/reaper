@@ -26,7 +26,7 @@ namespace
         {
             if (create_renderer(&root))
             {
-                vulkan_test(root, *root.renderer->backend);
+                Reaper::vulkan_test(root, *root.renderer->backend);
                 destroy_renderer(&root);
             }
         }

@@ -88,6 +88,8 @@ set(REAPER_RENDERER_SRCS
     ${REAPER_RENDERER_DIR}/vulkan/api/Vulkan.h
     ${REAPER_RENDERER_DIR}/vulkan/api/VulkanFunctions.cpp
     ${REAPER_RENDERER_DIR}/vulkan/api/VulkanFunctions.h
+    ${REAPER_RENDERER_DIR}/vulkan/api/VulkanStringConversion.cpp
+    ${REAPER_RENDERER_DIR}/vulkan/api/VulkanStringConversion.h
     ${REAPER_RENDERER_DIR}/vulkan/api/VulkanSymbolHelper.inl
 
     ${REAPER_RENDERER_DIR}/window/Window.cpp

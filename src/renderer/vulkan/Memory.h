@@ -35,4 +35,4 @@ VkDeviceMemory AllocateMemory(const std::vector<MemoryTypeInfo>& memoryInfos, Vk
 
 VkBuffer AllocateBuffer(VkDevice device, const std::size_t size, const VkBufferUsageFlagBits bits);
 
-u32 getMemoryType(VkPhysicalDevice device, uint32_t typeBits, VkFlags properties);
+u32 getMemoryType(VkPhysicalDevice device, uint32_t typeBits, VkMemoryPropertyFlags requiredProperties);

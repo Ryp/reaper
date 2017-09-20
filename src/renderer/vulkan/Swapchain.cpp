@@ -8,6 +8,8 @@
 #include "Swapchain.h"
 
 #include "api/Vulkan.h"
+#include "api/VulkanStringConversion.h"
+
 #include "common/Log.h"
 
 #include "core/Profile.h"
@@ -45,7 +47,8 @@ namespace
     VkExtent2D clamp(VkExtent2D value, VkExtent2D min, VkExtent2D max)
     {
         return {
-            clamp(value.width, min.width, max.width), clamp(value.height, min.height, max.height),
+            clamp(value.width, min.width, max.width),
+            clamp(value.height, min.height, max.height),
         };
     }
 
@@ -170,7 +173,7 @@ void create_vulkan_swapchain(ReaperRoot& root, const VulkanBackend& backend, con
 
     log_debug(root, "vulkan: swapchain supports {} present modes", presentModeCount);
     for (auto& mode : availablePresentModes)
-        log_debug(root, "- {}", mode); // TODO to_string() function
+        log_debug(root, "- {}", GetPresentModeKHRToString(mode));
 
     VkPresentModeKHR present_mode = vulkan_swapchain_choose_present_mode(availablePresentModes);
 

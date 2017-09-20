@@ -84,16 +84,16 @@ VkBuffer AllocateBuffer(VkDevice device, const std::size_t size, const VkBufferU
     return result;
 }
 
-u32 getMemoryType(VkPhysicalDevice device, uint32_t typeBits, VkFlags properties)
+u32 getMemoryType(VkPhysicalDevice device, uint32_t typeBits, VkMemoryPropertyFlags requiredProperties)
 {
     VkPhysicalDeviceMemoryProperties memoryProperties = {};
     vkGetPhysicalDeviceMemoryProperties(device, &memoryProperties);
 
-    for (uint32_t i = 0; i < 32; i++)
+    for (uint32_t i = 0; i < VK_MAX_MEMORY_TYPES; i++)
     {
         if ((typeBits & 1) == 1)
         {
-            if ((memoryProperties.memoryTypes[i].propertyFlags & properties) == properties)
+            if ((memoryProperties.memoryTypes[i].propertyFlags & requiredProperties) == requiredProperties)
             {
                 return i;
             }

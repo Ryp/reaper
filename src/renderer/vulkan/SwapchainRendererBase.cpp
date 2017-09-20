@@ -741,7 +741,7 @@ VulkanBackend::VulkanBackend()
     : vulkanLib(nullptr)
     , instance(VK_NULL_HANDLE)
     , physicalDevice(VK_NULL_HANDLE)
-    , physicalDeviceInfo({0, 0})
+    , physicalDeviceInfo({0, 0, {}})
     , device(VK_NULL_HANDLE)
     , deviceInfo({VK_NULL_HANDLE, VK_NULL_HANDLE})
     , presentInfo()
@@ -1140,10 +1140,12 @@ void vulkan_choose_physical_device(ReaperRoot& root, VulkanBackend& backend, Phy
         }
     }
 
+    Assert(chosenPhysicalDevice != VK_NULL_HANDLE, "could not select physical device based on the chosen properties");
+
     physicalDeviceInfo.graphicsQueueIndex = selected_queue_family_index;
     physicalDeviceInfo.presentQueueIndex = selected_present_queue_family_index;
 
-    Assert(chosenPhysicalDevice != VK_NULL_HANDLE, "could not select physical device based on the chosen properties");
+    vkGetPhysicalDeviceMemoryProperties(chosenPhysicalDevice, &physicalDeviceInfo.memory);
 
     // re-fetch device infos TODO avoid
     VkPhysicalDeviceProperties physicalDeviceProperties;
@@ -1164,6 +1166,17 @@ void vulkan_choose_physical_device(ReaperRoot& root, VulkanBackend& backend, Phy
               VK_VERSION_MAJOR(driverVersion),
               VK_VERSION_MINOR(driverVersion),
               VK_VERSION_PATCH(driverVersion));
+
+    log_debug(root,
+              "- memory type count = {}, memory heap count = {}",
+              physicalDeviceInfo.memory.memoryTypeCount,
+              physicalDeviceInfo.memory.memoryHeapCount);
+
+    for (u32 i = 0; i < physicalDeviceInfo.memory.memoryHeapCount; ++i)
+    {
+        VkMemoryHeap& heap = physicalDeviceInfo.memory.memoryHeaps[i];
+        log_debug(root, "- heap {}: available size = {}, flags = {}", i, heap.size, heap.flags);
+    }
 
     backend.physicalDevice = chosenPhysicalDevice;
 }

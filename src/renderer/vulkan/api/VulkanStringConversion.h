@@ -7,11 +7,10 @@
 
 #pragma once
 
-struct ReaperRoot;
-struct VulkanBackend;
+#include "Vulkan.h"
 
-namespace Reaper
+namespace vk
 {
-    REAPER_RENDERER_API
-    void vulkan_test(ReaperRoot& root, VulkanBackend& backend);
+    const char* GetPresentModeKHRToString(VkPresentModeKHR presentMode);
+    const char* GetMemoryPropertyFlagBitToString(VkMemoryPropertyFlags memoryFlag);
 }
