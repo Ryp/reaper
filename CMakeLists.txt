@@ -12,7 +12,6 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
     message(FATAL_ERROR "In-source builds are discouraged. Make a separate folder for building:\nmkdir build; cd build; cmake ..;cd ..\nBefore that, remove the files already created:\nrm -rf CMakeCache.txt CMakeFiles")
 endif()
 
-# Set build type rules (use GENERATOR_IS_MULTI_CONFIG when CMake 3.9 is required)
 if(GENERATOR_IS_MULTI_CONFIG)
     # Remove RelWithDebInfo and MinSizeRel configuration types (call this before project())
     set(CMAKE_CONFIGURATION_TYPES "Debug;Release" CACHE STRING "" FORCE)
@@ -28,9 +27,12 @@ else()
     set_property(CACHE CMAKE_BUILD_TYPE PROPERTY HELPSTRING "Choose the type of build")
 endif()
 
-project(Reaper)
+project(Reaper
+    VERSION 0.1.0
+    LANGUAGES CXX
+    DESCRIPTION "Tiny C++ Engine")
 
-# Export compile commands in a json file. Useful for vim completion and debugging
+# Export compile commands in a json file. Useful for clang-based tools
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 option(REAPER_GIT_HOOKS_AUTO_UPDATE     "Update git hooks"              ON)
@@ -81,12 +83,6 @@ set(REAPER_BIN reaper)
 
 # Set precompiled header
 set(REAPER_PCH ${CMAKE_SOURCE_DIR}/src/pch/stdafx.h)
-
-# Declare version numbers and pass them to Version.h
-set(REAPER_VERSION_MAJOR 0)
-set(REAPER_VERSION_MINOR 1)
-set(REAPER_VERSION_PATCH 0)
-set(REAPER_VERSION_SHORT "${REAPER_VERSION_MAJOR}.${REAPER_VERSION_MINOR}.${REAPER_VERSION_PATCH}")
 
 configure_file(${CMAKE_SOURCE_DIR}/src/core/Version.h.in ${CMAKE_SOURCE_DIR}/src/core/Version.h NEWLINE_STYLE LF)
 
@@ -144,10 +140,9 @@ endif()
 add_executable(${REAPER_BIN} ${REAPER_SRCS} ${REAPER_NATVIS_FILES})
 reaper_configure_executable(${REAPER_BIN} "Reaper")
 
-if (MSVC)
-    reaper_vs_configure_debugger_command(${REAPER_BIN})
-    set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${REAPER_BIN})
-endif()
+# Configure main VS projet
+set_target_properties(${REAPER_BIN} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${REAPER_BIN})
 
 #User includes dirs (won't hide warnings)
 target_include_directories(${REAPER_BIN} PUBLIC
@@ -169,4 +164,3 @@ target_link_libraries(${REAPER_BIN}
 
 set_target_properties(${REAPER_BIN} PROPERTIES COTIRE_CXX_PREFIX_HEADER_INIT ${REAPER_PCH})
 cotire(${REAPER_BIN})
-
