@@ -5,7 +5,7 @@
 #// This file is distributed under the MIT License
 #///////////////////////////////////////////////////////////////////////////////
 
-cmake_minimum_required(VERSION 3.7 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.9 FATAL_ERROR)
 
 # Avoid source tree pollution
 if(CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
@@ -13,8 +13,7 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
 endif()
 
 # Set build type rules (use GENERATOR_IS_MULTI_CONFIG when CMake 3.9 is required)
-if(CMAKE_CONFIGURATION_TYPES)
-    # Multiconfig generator
+if(GENERATOR_IS_MULTI_CONFIG)
     # Remove RelWithDebInfo and MinSizeRel configuration types (call this before project())
     set(CMAKE_CONFIGURATION_TYPES "Debug;Release" CACHE STRING "" FORCE)
 else()
@@ -45,7 +44,7 @@ if (REAPER_BUILD_TESTS)
     enable_testing()
 endif()
 
-# Determine linkage type
+# Select linkage type
 if(REAPER_BUILD_SHARED_LIBRARIES)
     set(REAPER_BUILD_TYPE SHARED)
 else()
