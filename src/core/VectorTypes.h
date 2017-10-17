@@ -8,12 +8,19 @@
 #pragma once
 
 template <typename T>
-struct vec2 {
+struct vec2
+{
     using vtype = T;
     vtype x;
     vtype y;
-    vec2() : x(0), y(0) {}
-    vec2(vtype X, vtype Y) : x(X), y(Y) {}
+    vec2()
+        : x(0)
+        , y(0)
+    {}
+    vec2(vtype X, vtype Y)
+        : x(X)
+        , y(Y)
+    {}
 };
 
 using uvec2 = vec2<unsigned int>;

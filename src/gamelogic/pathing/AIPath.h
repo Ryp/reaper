@@ -11,7 +11,8 @@
 
 #include <glm/vec2.hpp>
 
-struct Segment {
+struct Segment
+{
     glm::vec2 origin;
     glm::vec2 end;
 };

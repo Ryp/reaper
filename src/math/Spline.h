@@ -13,16 +13,16 @@
 #include <list>
 #include <vector>
 
-namespace Reaper { namespace Math
+namespace Reaper::Math
 {
-    struct Spline
-    {
-        std::vector<glm::vec4>  controlPoints; // w stores the weight
-        std::vector<float>      knots;
-        u32                     order;
-    };
+struct Spline
+{
+    std::vector<glm::vec4> controlPoints; // w stores the weight
+    std::vector<float>     knots;
+    u32                    order;
+};
 
-    REAPER_MATH_API Spline ConstructSpline(u32 order, const std::vector<glm::vec4>& controlPoints);
+REAPER_MATH_API Spline ConstructSpline(u32 order, const std::vector<glm::vec4>& controlPoints);
 
-    REAPER_MATH_API glm::vec3 EvalSpline(const Spline& spline, float t);
-}} // namespace Reaper::Math
+REAPER_MATH_API glm::vec3 EvalSpline(const Spline& spline, float t);
+} // namespace Reaper::Math

@@ -26,4 +26,4 @@ public:
 private:
     LogLevel m_logLevel;
 };
-}
+} // namespace Reaper

@@ -27,4 +27,4 @@ struct WindowCreationDescriptor
 };
 
 REAPER_RENDERER_API IWindow* createWindow(const WindowCreationDescriptor& creationInfo);
-}
+} // namespace Reaper

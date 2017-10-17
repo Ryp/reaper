@@ -7,8 +7,8 @@
 
 #pragma once
 
-#include "core/CoreExport.h"
 #include "common/CommonExport.h"
+#include "core/CoreExport.h"
 #include "gamelogic/GameLogicExport.h"
 #include "math/MathExport.h"
 #include "mesh/MeshExport.h"

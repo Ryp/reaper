@@ -10,24 +10,30 @@
 #include "math/BasicMath.h"
 
 void TowerControllerUpdater::update(float dt,
-                                    ModuleAccessor<PositionModule> positionModuleAccessor,
-                                    ModuleAccessor<WeaponModule> weaponModuleAccessor,
-                                    ModuleAccessor<DamageModule> damageModuleAccessor,
-                                    ModuleAccessor<TeamModule> teamModuleAccessor)
+                                    ModuleAccessor<PositionModule>
+                                        positionModuleAccessor,
+                                    ModuleAccessor<WeaponModule>
+                                        weaponModuleAccessor,
+                                    ModuleAccessor<DamageModule>
+                                        damageModuleAccessor,
+                                    ModuleAccessor<TeamModule>
+                                        teamModuleAccessor)
 {
     for (auto& controllerModuleIt : _modules)
     {
         auto&           moduleInstance = controllerModuleIt.second;
         const EntityId  towerEntityId = controllerModuleIt.first;
         PositionModule* towerPositionModule = positionModuleAccessor[towerEntityId];
-        const glm::vec2 towerDirection = glm::vec2(cos(towerPositionModule->orientation.x), sin(towerPositionModule->orientation.x));
-        bool            targetFound = false;
-        glm::vec2       positionDiff;
+        const glm::vec2 towerDirection =
+            glm::vec2(cos(towerPositionModule->orientation.x), sin(towerPositionModule->orientation.x));
+        bool      targetFound = false;
+        glm::vec2 positionDiff;
 
         // Try to aim at our previous target if we have one
         if (moduleInstance.activeTargetId != invalidEId())
         {
-            positionDiff = glm::vec2(positionModuleAccessor[moduleInstance.activeTargetId]->position - towerPositionModule->position);
+            positionDiff = glm::vec2(positionModuleAccessor[moduleInstance.activeTargetId]->position
+                                     - towerPositionModule->position);
 
             if (!isPositionInRange(moduleInstance, positionDiff))
                 moduleInstance.activeTargetId = invalidEId();
@@ -41,7 +47,7 @@ void TowerControllerUpdater::update(float dt,
             for (auto positionModuleIt : positionModuleAccessor.map())
             {
                 PositionModule const* targetPositionModule = &positionModuleIt.second;
-                const EntityId targetId = positionModuleIt.first;
+                const EntityId        targetId = positionModuleIt.first;
 
                 positionDiff = glm::vec2(targetPositionModule->position - towerPositionModule->position);
                 if (!isPositionInRange(moduleInstance, positionDiff))
@@ -69,7 +75,9 @@ void TowerControllerUpdater::update(float dt,
                 fireWeapon(weaponModuleAccessor[towerEntityId], damageModuleAccessor[moduleInstance.activeTargetId]);
             }
             else
-                towerPositionModule->orientation.x += moduleInstance.rotationSpeed * dt * glm::sign(deltaAngle); // Angle can be out of range, but we don't care
+                towerPositionModule->orientation.x +=
+                    moduleInstance.rotationSpeed * dt
+                    * glm::sign(deltaAngle); // Angle can be out of range, but we don't care
         }
     }
 }
@@ -111,7 +119,8 @@ void TowerControllerUpdater::fireWeapon(WeaponModule* weaponModule, DamageModule
     }
 }
 
-bool TowerControllerUpdater::isPositionInRange(const TowerControllerModule& controllerModule, const glm::vec2& relativePosition)
+bool TowerControllerUpdater::isPositionInRange(const TowerControllerModule& controllerModule,
+                                               const glm::vec2&             relativePosition)
 {
     const float distanceSq = sqr(relativePosition.x) + sqr(relativePosition.y);
     const float rangeMinSq = sqr(controllerModule.rangeMin);

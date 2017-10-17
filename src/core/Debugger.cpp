@@ -17,11 +17,11 @@ bool isInDebugger()
 
 #elif defined(REAPER_PLATFORM_LINUX)
 
-#include <cstdlib>
-#include <sys/stat.h>
-#include <string.h>
-#include <fcntl.h>
-#include <unistd.h>
+#    include <cstdlib>
+#    include <fcntl.h>
+#    include <string.h>
+#    include <sys/stat.h>
+#    include <unistd.h>
 
 bool isInDebugger()
 {
@@ -42,7 +42,7 @@ bool isInDebugger()
     if (num_read > 0)
     {
         static const char TracerPid[] = "TracerPid:";
-        char *tracer_pid;
+        char*             tracer_pid;
 
         buf[num_read] = 0;
         tracer_pid = strstr(buf, TracerPid);
@@ -55,11 +55,11 @@ bool isInDebugger()
 
 #elif defined(REAPER_PLATFORM_MACOSX)
 
-#include <assert.h>
-#include <stdbool.h>
-#include <sys/types.h>
-#include <unistd.h>
-#include <sys/sysctl.h>
+#    include <assert.h>
+#    include <stdbool.h>
+#    include <sys/sysctl.h>
+#    include <sys/types.h>
+#    include <unistd.h>
 
 /**
  * From https://developer.apple.com/library/mac/qa/qa1361/_index.html
@@ -68,10 +68,10 @@ bool isInDebugger()
  */
 bool isInDebugger()
 {
-    int                 junk;
-    int                 mib[4];
-    struct kinfo_proc   info;
-    size_t              size;
+    int               junk;
+    int               mib[4];
+    struct kinfo_proc info;
+    size_t            size;
 
     // Initialize the flags so that, if sysctl fails for some bizarre
     // reason, we get a predictable result.
@@ -95,6 +95,6 @@ bool isInDebugger()
 
 #else
 
-#error debugger detection not available!
+#    error debugger detection not available!
 
 #endif

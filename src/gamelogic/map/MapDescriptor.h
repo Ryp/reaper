@@ -9,21 +9,24 @@
 
 #include <vector>
 
-#include "core/VectorTypes.h"
 #include "core/BitTricks.h"
+#include "core/VectorTypes.h"
 
-struct MapAccess {
+struct MapAccess
+{
     uvec2 entrance;
     uvec2 exit;
 };
 
-enum CellFlags {
+enum CellFlags
+{
     None = 0,
     Constructible = bit(1),
     Pathable = bit(2)
 };
 
-struct MapDescriptor {
+struct MapDescriptor
+{
     std::vector<MapAccess> accesses;
-    uvec2 dimensions;
+    uvec2                  dimensions;
 };

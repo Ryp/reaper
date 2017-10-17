@@ -26,19 +26,23 @@ bool PathFinder::findPath(const CostMap& map, const Index& size, const Index& st
         tmp.parent.x = _start.x;
         tmp.parent.y = _start.y;
         tmp.loc_cost = tmp.mvt_cost = tmp.tot_cost = 0;
-        //Put start into the open list to start A* algorythm
+        // Put start into the open list to start A* algorythm
         _open[toKey(_start)] = tmp;
     }
     Index current;
-    do {
+    do
+    {
         current = getBestOpenPos();
         addToClosedList(current);
         addAdjacentNodes(current);
     } while (!((current.x == _dest.x) && (current.y == _dest.y)) && (!_open.empty()));
-    if ((current.x == _dest.x) && (current.y == _dest.y)){
+    if ((current.x == _dest.x) && (current.y == _dest.y))
+    {
         buildPath();
         _isFound = true;
-    } else {
+    }
+    else
+    {
         _isFound = false;
     }
     return (_isFound);
@@ -57,9 +61,11 @@ int PathFinder::getManhattanDistance(const Index& a, const Index& b)
 Index PathFinder::getBestOpenPos()
 {
     CostType cost = _open.begin()->second.tot_cost;
-    Index node = toIndex(_open.begin()->first);
-    for (t_nodelist::iterator it = _open.begin(); it != _open.end(); ++it) {
-        if (it->second.tot_cost < cost) {
+    Index    node = toIndex(_open.begin()->first);
+    for (t_nodelist::iterator it = _open.begin(); it != _open.end(); ++it)
+    {
+        if (it->second.tot_cost < cost)
+        {
             cost = it->second.tot_cost;
             node = toIndex(it->first);
         }
@@ -70,7 +76,8 @@ Index PathFinder::getBestOpenPos()
 void PathFinder::addToClosedList(const Index& p)
 {
     _closed[toKey(p)] = _open[toKey(p)];
-    if (_open.erase(toKey(p)) == 0) {
+    if (_open.erase(toKey(p)) == 0)
+    {
         std::cerr << "Error: Node absent from open list" << std::endl;
     }
 }
@@ -93,11 +100,15 @@ void PathFinder::addAdjacentNodes(const Index& n)
                         tmp.mvt_cost = _closed.find(toKey(n))->second.mvt_cost + (evalCostMap(_map, p) & ~NODE_BLOCKED);
                         tmp.tot_cost = tmp.loc_cost + tmp.mvt_cost;
                         tmp.parent = n;
-                        if (isOpen(p)) {
-                            if (tmp.tot_cost < _open[toKey(p)].tot_cost) {
+                        if (isOpen(p))
+                        {
+                            if (tmp.tot_cost < _open[toKey(p)].tot_cost)
+                            {
                                 _open[toKey(p)] = tmp;
                             }
-                        } else {
+                        }
+                        else
+                        {
                             _open[toKey(p)] = tmp;
                         }
                     }
@@ -135,12 +146,13 @@ bool PathFinder::isClosed(const Index& n)
 void PathFinder::buildPath()
 {
     t_node& tmp = _closed[toKey(_dest)];
-    Index n;
-    Index prec;
+    Index   n;
+    Index   prec;
     prec.x = tmp.parent.x;
     prec.y = tmp.parent.y;
     _path.push_front(_dest);
-    do {
+    do
+    {
         n.x = prec.x;
         n.y = prec.y;
         _path.push_front(n);

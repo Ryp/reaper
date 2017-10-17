@@ -10,7 +10,7 @@
 #include "MapDescriptor.h"
 
 MapInfo::MapInfo()
-:   _cells(nullptr)
+    : _cells(nullptr)
 {}
 
 MapInfo::~MapInfo()

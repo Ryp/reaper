@@ -21,4 +21,4 @@ struct AssetCache
 };
 
 void load_pak_to_asset_cache(ReaperRoot& root, AssetCache& assetCache, const std::string& filename);
-}
+} // namespace Reaper

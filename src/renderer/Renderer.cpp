@@ -46,4 +46,4 @@ void run_renderer(ReaperRoot* root)
 
     test_vulkan_renderer(*root, *root->renderer->backend);
 }
-}
+} // namespace Reaper

@@ -16,10 +16,10 @@ public:
     virtual ~AbstractController();
 
 public:
-    void reset();
-    bool isHeld(unsigned idx) const;
-    bool isPressed(unsigned idx) const;
-    bool isReleased(unsigned idx) const;
+    void  reset();
+    bool  isHeld(unsigned idx) const;
+    bool  isPressed(unsigned idx) const;
+    bool  isReleased(unsigned idx) const;
     float getAxis(unsigned idx) const;
 
 protected:
@@ -27,7 +27,8 @@ protected:
     virtual void destroy() = 0;
 
 protected:
-    struct Button {
+    struct Button
+    {
         bool held;
         bool new_held;
         bool pressed;
@@ -36,6 +37,6 @@ protected:
     using Axe = float;
 
 protected:
-    std::vector<Button>   _buttons;
-    std::vector<Axe>      _axes;
+    std::vector<Button> _buttons;
+    std::vector<Axe>    _axes;
 };

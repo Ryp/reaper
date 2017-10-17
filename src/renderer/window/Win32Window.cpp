@@ -11,24 +11,24 @@
 
 namespace
 {
-    LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+    switch (message)
     {
-        switch (message)
-        {
-        case WM_SIZE:
-        case WM_EXITSIZEMOVE:
-            PostMessage(hWnd, WM_USER + 1, wParam, lParam);
-            break;
-        case WM_KEYDOWN:
-        case WM_CLOSE:
-            PostMessage(hWnd, WM_USER + 2, wParam, lParam);
-            break;
-        default:
-            return DefWindowProc(hWnd, message, wParam, lParam);
-        }
-        return 0;
+    case WM_SIZE:
+    case WM_EXITSIZEMOVE:
+        PostMessage(hWnd, WM_USER + 1, wParam, lParam);
+        break;
+    case WM_KEYDOWN:
+    case WM_CLOSE:
+        PostMessage(hWnd, WM_USER + 2, wParam, lParam);
+        break;
+    default:
+        return DefWindowProc(hWnd, message, wParam, lParam);
     }
+    return 0;
 }
+} // namespace
 
 #define REAPER_WINDOW_INFO "Reaper"
 

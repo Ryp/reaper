@@ -21,4 +21,4 @@ struct ReaperRoot
     ILog*       log;
     AssetCache* assetCache;
 };
-}
+} // namespace Reaper

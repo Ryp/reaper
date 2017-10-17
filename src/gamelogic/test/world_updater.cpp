@@ -13,8 +13,8 @@
 
 TEST_CASE("World Updater")
 {
-    EntityDb        db;
-    WorldUpdater    wu(&db);
+    EntityDb     db;
+    WorldUpdater wu(&db);
 
     SUBCASE("Multiple alloc/free")
     {

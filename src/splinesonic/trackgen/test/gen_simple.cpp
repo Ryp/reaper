@@ -84,7 +84,7 @@ TEST_CASE("Track mesh generation")
 
     const std::string assetFile("res/model/track/chunk_simple.obj");
 
-    std::ofstream outFile("test_skinned_track.obj");
+    std::ofstream     outFile("test_skinned_track.obj");
     std::vector<Mesh> meshes(genInfo.length);
 
     for (u32 i = 0; i < genInfo.length; i++)

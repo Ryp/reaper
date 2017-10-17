@@ -9,12 +9,14 @@
 
 #include "gamelogic/ModuleUpdater.h"
 
-struct WeaponModuleDescriptor : public ModuleDescriptor {
+struct WeaponModuleDescriptor : public ModuleDescriptor
+{
     u32 damage;
     f32 rate;
 };
 
-struct WeaponModule {
+struct WeaponModule
+{
     u32 damage;
     u32 rateInvMs;
     u32 cooldownMs;
@@ -23,8 +25,11 @@ struct WeaponModule {
 class WeaponUpdater : public ModuleUpdater<WeaponModule, WeaponModuleDescriptor>
 {
     using parent_type = ModuleUpdater<WeaponModule, WeaponModuleDescriptor>;
+
 public:
-    WeaponUpdater(AbstractWorldUpdater* worldUpdater) : parent_type(worldUpdater) {}
+    WeaponUpdater(AbstractWorldUpdater* worldUpdater)
+        : parent_type(worldUpdater)
+    {}
 
 public:
     void update(float dt);

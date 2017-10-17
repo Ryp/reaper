@@ -15,11 +15,13 @@ class UniquePtr
 {
 public:
     template <typename... Args>
-    UniquePtr(AbstractAllocator& allocator, Args&&... args) : _ptr(placementNew<T>(allocator, args...)) {}
+    UniquePtr(AbstractAllocator& allocator, Args&&... args)
+        : _ptr(placementNew<T>(allocator, args...))
+    {}
     ~UniquePtr() { _ptr->~T(); }
 
-    UniquePtr(const UniquePtr &other) = delete;
-    UniquePtr &operator=(const UniquePtr &other) = delete;
+    UniquePtr(const UniquePtr& other) = delete;
+    UniquePtr& operator=(const UniquePtr& other) = delete;
 
 public:
     // TODO implement const operators
@@ -28,5 +30,5 @@ public:
     T& operator*() { return *_ptr; }
 
 private:
-    T* const    _ptr;
+    T* const _ptr;
 };

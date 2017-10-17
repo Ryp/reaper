@@ -11,10 +11,10 @@
 
 namespace Reaper::Math
 {
-    constexpr float DefaultEpsilon = 1e-4f;
+constexpr float DefaultEpsilon = 1e-4f;
 
-    inline bool IsEqualWithEpsilon(float lhs, float rhs, float epsilon = DefaultEpsilon)
-    {
-        return std::abs(rhs - lhs) < epsilon;
-    }
+inline bool IsEqualWithEpsilon(float lhs, float rhs, float epsilon = DefaultEpsilon)
+{
+    return std::abs(rhs - lhs) < epsilon;
 }
+} // namespace Reaper::Math

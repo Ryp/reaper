@@ -12,23 +12,23 @@
 
 namespace Reaper
 {
-    struct GPUTextureProperties
-    {
-        u32         width;
-        u32         height;
-        u32         depth;
-        PixelFormat format;
-        u32         mipCount;
-        u32         layerCount;
-        u32         sampleCount;
-        bool        isCubemap;
-    };
+struct GPUTextureProperties
+{
+    u32         width;
+    u32         height;
+    u32         depth;
+    PixelFormat format;
+    u32         mipCount;
+    u32         layerCount;
+    u32         sampleCount;
+    bool        isCubemap;
+};
 
-    REAPER_RENDERER_API
-    GPUTextureProperties DefaultGPUTextureProperties(u32 width, u32 height, PixelFormat format);
+REAPER_RENDERER_API
+GPUTextureProperties DefaultGPUTextureProperties(u32 width, u32 height, PixelFormat format);
 
-    struct GPUTextureUsage
-    {
-        bool hey;
-    };
-}
+struct GPUTextureUsage
+{
+    bool hey;
+};
+} // namespace Reaper

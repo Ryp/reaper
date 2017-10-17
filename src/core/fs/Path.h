@@ -11,5 +11,5 @@
 
 namespace reaper
 {
-    std::string getExecutablePath(const std::string& av0);
+std::string getExecutablePath(const std::string& av0);
 }

@@ -12,13 +12,13 @@
 #include "core/Compiler.h"
 
 #if defined(REAPER_BUILD_SHARED)
-    #if defined(@LIBRARY_BUILDING_MACRO@)
-        #define @LIBRARY_API_MACRO@ REAPER_EXPORT
-    #else
-        #define @LIBRARY_API_MACRO@ REAPER_IMPORT
-    #endif
+#    if defined(@LIBRARY_BUILDING_MACRO@)
+#        define @LIBRARY_API_MACRO@ REAPER_EXPORT
+#    else
+#        define @LIBRARY_API_MACRO@ REAPER_IMPORT
+#    endif
 #elif defined(REAPER_BUILD_STATIC)
-    #define @LIBRARY_API_MACRO@
+#    define @LIBRARY_API_MACRO@
 #else
-    #error Build type must be defined
+#    error Build type must be defined
 #endif

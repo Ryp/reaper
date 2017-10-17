@@ -10,9 +10,9 @@
 #include <stdexcept>
 
 StackAllocator::StackAllocator(std::size_t sizeBytes)
-:   _memPtr(new char[sizeBytes]),
-    _memSize(sizeBytes),
-    _currentMarker(0)
+    : _memPtr(new char[sizeBytes])
+    , _memSize(sizeBytes)
+    , _currentMarker(0)
 {}
 
 StackAllocator::~StackAllocator()

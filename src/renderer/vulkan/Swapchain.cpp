@@ -98,7 +98,7 @@ VkPresentModeKHR vulkan_swapchain_choose_present_mode(std::vector<VkPresentModeK
     Assert(false, "FIFO present mode is not supported by the swap chain!"); // Normally enforced by the API
     return VK_PRESENT_MODE_FIFO_KHR;
 }
-}
+} // namespace
 
 using namespace vk;
 
@@ -384,4 +384,4 @@ void destroy_swapchain_framebuffers(const VulkanBackend& backend, PresentationIn
     presentInfo.imageViews.clear();
     presentInfo.framebuffers.clear();
 }
-}
+} // namespace Reaper

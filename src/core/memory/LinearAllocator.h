@@ -16,8 +16,8 @@ public:
     ~LinearAllocator();
 
 public:
-    void*   alloc(std::size_t sizeBytes) override;
-    void    clear();
+    void* alloc(std::size_t sizeBytes) override;
+    void  clear();
 
 private:
     char*       _memPtr;

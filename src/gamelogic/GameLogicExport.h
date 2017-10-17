@@ -12,13 +12,13 @@
 #include "core/Compiler.h"
 
 #if defined(REAPER_BUILD_SHARED)
-    #if defined(reaper_gamelogic_EXPORTS)
-        #define REAPER_GAMELOGIC_API REAPER_EXPORT
-    #else
-        #define REAPER_GAMELOGIC_API REAPER_IMPORT
-    #endif
+#    if defined(reaper_gamelogic_EXPORTS)
+#        define REAPER_GAMELOGIC_API REAPER_EXPORT
+#    else
+#        define REAPER_GAMELOGIC_API REAPER_IMPORT
+#    endif
 #elif defined(REAPER_BUILD_STATIC)
-    #define REAPER_GAMELOGIC_API
+#    define REAPER_GAMELOGIC_API
 #else
-    #error Build type must be defined
+#    error Build type must be defined
 #endif

@@ -11,6 +11,6 @@
 
 namespace vk
 {
-    const char* GetPresentModeKHRToString(VkPresentModeKHR presentMode);
-    const char* GetMemoryPropertyFlagBitToString(VkMemoryPropertyFlags memoryFlag);
-}
+const char* GetPresentModeKHRToString(VkPresentModeKHR presentMode);
+const char* GetMemoryPropertyFlagBitToString(VkMemoryPropertyFlags memoryFlag);
+} // namespace vk

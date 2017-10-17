@@ -9,15 +9,15 @@
 
 namespace half
 {
-    float toFloat(u16 data);
+float toFloat(u16 data);
 }
 
 namespace uf10
 {
-    float toFloat(u16 data);
+float toFloat(u16 data);
 }
 
 namespace uf11
 {
-    float toFloat(u16 data);
+float toFloat(u16 data);
 }

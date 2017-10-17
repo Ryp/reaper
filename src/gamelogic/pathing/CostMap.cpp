@@ -55,7 +55,7 @@ void paintCost(CostMap& map, Index position, Brush& brush)
         for (current.x = min.x; current.x <= max.x; ++current.x)
         {
             Index relative = current - position;
-//             float radius2 = brush.radius * brush.radius;
+            //             float radius2 = brush.radius * brush.radius;
             const float distance = static_cast<float>(relative.x * relative.x + relative.y * relative.y);
             const float falloff = 1.f / (1.f + distance);
             const float hardness = 1.f - (1.f / (1.f + brush.hardness * 0.1f));

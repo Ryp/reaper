@@ -9,20 +9,20 @@
 
 #if defined(REAPER_PLATFORM_LINUX)
 
-#define UNW_LOCAL_ONLY
-#include <libunwind.h>
-#include <cxxabi.h> // This may be invalid on windows
+#    define UNW_LOCAL_ONLY
+#    include <cxxabi.h> // This may be invalid on windows
+#    include <libunwind.h>
 
-#include <iostream>
-#include <iomanip>
+#    include <iomanip>
+#    include <iostream>
 
 void printStacktrace()
 {
-    unw_cursor_t    cursor;
-    unw_context_t   context;
-    unw_word_t      offset;
-    unw_word_t      pc;
-    static char     sym[256];
+    unw_cursor_t  cursor;
+    unw_context_t context;
+    unw_word_t    offset;
+    unw_word_t    pc;
+    static char   sym[256];
 
     // Initialize cursor to current frame for local unwinding.
     unw_getcontext(&context);
@@ -39,9 +39,9 @@ void printStacktrace()
 
         if (unw_get_proc_name(&cursor, sym, sizeof(sym), &offset) == 0)
         {
-            char*   nameptr = sym;
-            int     status;
-            char*   demangled = abi::__cxa_demangle(sym, nullptr, nullptr, &status);
+            char* nameptr = sym;
+            int   status;
+            char* demangled = abi::__cxa_demangle(sym, nullptr, nullptr, &status);
 
             if (status == 0)
                 nameptr = demangled;
@@ -61,5 +61,5 @@ void printStacktrace()
 }
 
 #else
-#error printStacktrace() not available!
+#    error printStacktrace() not available!
 #endif

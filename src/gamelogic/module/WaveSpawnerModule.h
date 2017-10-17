@@ -9,28 +9,33 @@
 
 #include "gamelogic/ModuleUpdater.h"
 
-struct WaveSpawnerModuleDescriptor : public ModuleDescriptor {
-    u32     accessId;
-    u32     unitCount;
-    float   delay;
-    float   interval;
+struct WaveSpawnerModuleDescriptor : public ModuleDescriptor
+{
+    u32         accessId;
+    u32         unitCount;
+    float       delay;
+    float       interval;
     std::string unitToSpawn;
 };
 
-struct WaveSpawnerModule {
-    u32     accessId;
-    u32     unitCount;
-    float   delay;
-    float   interval;
+struct WaveSpawnerModule
+{
+    u32         accessId;
+    u32         unitCount;
+    float       delay;
+    float       interval;
     std::string unitToSpawn;
-    float   countdown;
+    float       countdown;
 };
 
 class WaveSpawnerUpdater : public ModuleUpdater<WaveSpawnerModule, WaveSpawnerModuleDescriptor>
 {
     using parent_type = ModuleUpdater<WaveSpawnerModule, WaveSpawnerModuleDescriptor>;
+
 public:
-    WaveSpawnerUpdater(AbstractWorldUpdater* worldUpdater) : parent_type(worldUpdater) {}
+    WaveSpawnerUpdater(AbstractWorldUpdater* worldUpdater)
+        : parent_type(worldUpdater)
+    {}
 
 public:
     void update(float dt);
