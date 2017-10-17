@@ -10,11 +10,8 @@
 #include "renderer/vulkan/SwapchainRendererBase.h"
 #include "renderer/vulkan/VulkanRenderer.h"
 
-AbstractRenderer* AbstractRenderer::createRenderer()
+namespace Reaper
 {
-    return new OldRenderer();
-}
-
 bool create_renderer(ReaperRoot* root)
 {
     Assert(root != nullptr);
@@ -48,4 +45,5 @@ void run_renderer(ReaperRoot* root)
     Assert(root->renderer->backend != nullptr);
 
     test_vulkan_renderer(*root, *root->renderer->backend);
+}
 }

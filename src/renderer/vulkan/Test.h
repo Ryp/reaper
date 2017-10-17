@@ -7,11 +7,11 @@
 
 #pragma once
 
+namespace Reaper
+{
 struct ReaperRoot;
 struct VulkanBackend;
 
-namespace Reaper
-{
-    REAPER_RENDERER_API
-    void vulkan_test(ReaperRoot& root, VulkanBackend& backend);
+REAPER_RENDERER_API
+void vulkan_test(ReaperRoot& root, VulkanBackend& backend);
 }

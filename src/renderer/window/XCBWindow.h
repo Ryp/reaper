@@ -11,6 +11,8 @@
 
 #include "Window.h"
 
+namespace Reaper
+{
 class REAPER_RENDERER_API XCBWindow : public IWindow
 {
 public:
@@ -34,3 +36,4 @@ private:
     bool ShouldResizeASAP;
     bool IsValid;
 };
+}

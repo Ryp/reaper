@@ -16,7 +16,6 @@ set(REAPER_COMMON_SRCS
     ${REAPER_COMMON_DIR}/DebugLog.h
     ${REAPER_COMMON_DIR}/Log.cpp
     ${REAPER_COMMON_DIR}/Log.h
-
     ${REAPER_COMMON_DIR}/ReaperRoot.h
 )
 

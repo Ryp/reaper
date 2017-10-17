@@ -10,6 +10,8 @@
 
 #include "renderer/window/Window.h"
 
+namespace Reaper
+{
 TEST_CASE("Window")
 {
     IWindow* window = nullptr;
@@ -27,4 +29,5 @@ TEST_CASE("Window")
         delete window;
         window = nullptr;
     }
+}
 }

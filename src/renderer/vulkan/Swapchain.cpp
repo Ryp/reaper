@@ -16,94 +16,94 @@
 
 namespace
 {
-    VkSurfaceFormatKHR vulkan_swapchain_choose_surface_format(std::vector<VkSurfaceFormatKHR>& surface_formats,
-                                                              VkSurfaceFormatKHR               preferredFormat)
+VkSurfaceFormatKHR vulkan_swapchain_choose_surface_format(std::vector<VkSurfaceFormatKHR>& surface_formats,
+                                                          VkSurfaceFormatKHR               preferredFormat)
+{
+    // If the list contains only one entry with undefined format
+    // it means that there are no preferred surface formats and any can be chosen
+    if ((surface_formats.size() == 1) && (surface_formats[0].format == VK_FORMAT_UNDEFINED))
+        return preferredFormat;
+
+    for (const VkSurfaceFormatKHR& surface_format : surface_formats)
     {
-        // If the list contains only one entry with undefined format
-        // it means that there are no preferred surface formats and any can be chosen
-        if ((surface_formats.size() == 1) && (surface_formats[0].format == VK_FORMAT_UNDEFINED))
-            return preferredFormat;
-
-        for (const VkSurfaceFormatKHR& surface_format : surface_formats)
-        {
-            if (surface_format.format == preferredFormat.format
-                && surface_format.colorSpace == preferredFormat.colorSpace)
-                return surface_format;
-        }
-
-        return surface_formats[0]; // Return first available format
+        if (surface_format.format == preferredFormat.format && surface_format.colorSpace == preferredFormat.colorSpace)
+            return surface_format;
     }
 
-    uint32_t clamp(uint32_t v, uint32_t min, uint32_t max)
+    return surface_formats[0]; // Return first available format
+}
+
+uint32_t clamp(uint32_t v, uint32_t min, uint32_t max)
+{
+    if (v < min)
+        return min;
+    if (v > max)
+        return max;
+    else
+        return v;
+}
+
+VkExtent2D clamp(VkExtent2D value, VkExtent2D min, VkExtent2D max)
+{
+    return {
+        clamp(value.width, min.width, max.width),
+        clamp(value.height, min.height, max.height),
+    };
+}
+
+VkExtent2D vulkan_swapchain_choose_extent(VkSurfaceCapabilitiesKHR& surface_capabilities, VkExtent2D preferredExtent)
+{
+    // Special value of surface extent is width == height == -1
+    // If this is so we define the size by ourselves but it must fit within defined confines
+    if (surface_capabilities.currentExtent.width == uint32_t(-1))
+        return clamp(preferredExtent, surface_capabilities.minImageExtent, surface_capabilities.maxImageExtent);
+
+    // Most of the cases we define size of the swap_chain images equal to current window's size
+    return surface_capabilities.currentExtent;
+}
+
+VkSurfaceTransformFlagBitsKHR vulkan_swapchain_choose_transform(VkSurfaceCapabilitiesKHR& surface_capabilities)
+{
+    // Sometimes images must be transformed before they are presented (i.e. due to device's orienation
+    // being other than default orientation)
+    // If the specified transform is other than current transform, presentation engine will transform image
+    // during presentation operation; this operation may hit performance on some platforms
+    // Here we don't want any transformations to occur so if the identity transform is supported use it
+    // otherwise just use the same transform as current transform
+    if (surface_capabilities.supportedTransforms & VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR)
     {
-        if (v < min)
-            return min;
-        if (v > max)
-            return max;
-        else
-            return v;
+        return VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
+    }
+    else
+    {
+        return surface_capabilities.currentTransform;
+    }
+}
+
+VkPresentModeKHR vulkan_swapchain_choose_present_mode(std::vector<VkPresentModeKHR>& present_modes)
+{
+    // Prefer MAILBOX over FIFO
+    for (VkPresentModeKHR& present_mode : present_modes)
+    {
+        if (present_mode == VK_PRESENT_MODE_MAILBOX_KHR)
+            return present_mode;
     }
 
-    VkExtent2D clamp(VkExtent2D value, VkExtent2D min, VkExtent2D max)
+    for (VkPresentModeKHR& present_mode : present_modes)
     {
-        return {
-            clamp(value.width, min.width, max.width),
-            clamp(value.height, min.height, max.height),
-        };
+        if (present_mode == VK_PRESENT_MODE_FIFO_KHR)
+            return present_mode;
     }
 
-    VkExtent2D vulkan_swapchain_choose_extent(VkSurfaceCapabilitiesKHR& surface_capabilities,
-                                              VkExtent2D                preferredExtent)
-    {
-        // Special value of surface extent is width == height == -1
-        // If this is so we define the size by ourselves but it must fit within defined confines
-        if (surface_capabilities.currentExtent.width == uint32_t(-1))
-            return clamp(preferredExtent, surface_capabilities.minImageExtent, surface_capabilities.maxImageExtent);
-
-        // Most of the cases we define size of the swap_chain images equal to current window's size
-        return surface_capabilities.currentExtent;
-    }
-
-    VkSurfaceTransformFlagBitsKHR vulkan_swapchain_choose_transform(VkSurfaceCapabilitiesKHR& surface_capabilities)
-    {
-        // Sometimes images must be transformed before they are presented (i.e. due to device's orienation
-        // being other than default orientation)
-        // If the specified transform is other than current transform, presentation engine will transform image
-        // during presentation operation; this operation may hit performance on some platforms
-        // Here we don't want any transformations to occur so if the identity transform is supported use it
-        // otherwise just use the same transform as current transform
-        if (surface_capabilities.supportedTransforms & VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR)
-        {
-            return VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
-        }
-        else
-        {
-            return surface_capabilities.currentTransform;
-        }
-    }
-
-    VkPresentModeKHR vulkan_swapchain_choose_present_mode(std::vector<VkPresentModeKHR>& present_modes)
-    {
-        // Prefer MAILBOX over FIFO
-        for (VkPresentModeKHR& present_mode : present_modes)
-        {
-            if (present_mode == VK_PRESENT_MODE_MAILBOX_KHR)
-                return present_mode;
-        }
-
-        for (VkPresentModeKHR& present_mode : present_modes)
-        {
-            if (present_mode == VK_PRESENT_MODE_FIFO_KHR)
-                return present_mode;
-        }
-
-        Assert(false, "FIFO present mode is not supported by the swap chain!"); // Normally enforced by the API
-        return VK_PRESENT_MODE_FIFO_KHR;
-    }
+    Assert(false, "FIFO present mode is not supported by the swap chain!"); // Normally enforced by the API
+    return VK_PRESENT_MODE_FIFO_KHR;
+}
 }
 
 using namespace vk;
 
+namespace Reaper
+{
 void create_vulkan_swapchain(ReaperRoot& root, const VulkanBackend& backend, const SwapchainDescriptor& swapchainDesc,
                              PresentationInfo& presentInfo)
 {
@@ -383,4 +383,5 @@ void destroy_swapchain_framebuffers(const VulkanBackend& backend, PresentationIn
     }
     presentInfo.imageViews.clear();
     presentInfo.framebuffers.clear();
+}
 }

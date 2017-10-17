@@ -14,22 +14,5 @@
 
 TEST_CASE("Renderer")
 {
-    WindowCreationDescriptor windowDescriptor;
-    windowDescriptor.title = "TestTitle";
-    windowDescriptor.width = 800;
-    windowDescriptor.height = 600;
-    windowDescriptor.fullscreen = false;
-
-    IWindow*          window = createWindow(windowDescriptor);
-    AbstractRenderer* renderer = nullptr;
-
-    renderer = AbstractRenderer::createRenderer();
-
-    CHECK(renderer != nullptr);
-
-    renderer->startup(window);
-    window->renderLoop(renderer);
-    renderer->shutdown();
-
-    delete renderer;
+    // TODO use the new API
 }

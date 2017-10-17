@@ -17,6 +17,8 @@
     #error Unsupported WSI!
 #endif
 
+namespace Reaper
+{
 using namespace vk;
 
 void vulkan_create_presentation_surface(VkInstance instance, VkSurfaceKHR& vkPresentationSurface, IWindow* window)
@@ -99,4 +101,5 @@ bool vulkan_queue_family_has_presentation_support(VkPhysicalDevice device, uint3
 #else
     #error Unsupported WSI!
 #endif
+}
 }

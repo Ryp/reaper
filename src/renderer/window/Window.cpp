@@ -15,6 +15,8 @@
     #include "XLibWindow.h"
 #endif
 
+namespace Reaper
+{
 IWindow* createWindow(const WindowCreationDescriptor& creationInfo)
 {
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
@@ -27,4 +29,5 @@ IWindow* createWindow(const WindowCreationDescriptor& creationInfo)
     static_cast<void>(creationInfo);
     return nullptr;
 #endif
+}
 }

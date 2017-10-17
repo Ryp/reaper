@@ -21,6 +21,8 @@
 
 using namespace vk;
 
+namespace Reaper
+{
 void vulkan_instance_check_extensions(const std::vector<const char*>& extensions);
 void vulkan_instance_check_layers(const std::vector<const char*>& layers);
 
@@ -1241,4 +1243,5 @@ void vulkan_create_logical_device(ReaperRoot& root, VulkanBackend& backend)
     vkGetDeviceQueue(
         backend.device, backend.physicalDeviceInfo.graphicsQueueIndex, 0, &backend.deviceInfo.graphicsQueue);
     vkGetDeviceQueue(backend.device, backend.physicalDeviceInfo.presentQueueIndex, 0, &backend.deviceInfo.presentQueue);
+}
 }

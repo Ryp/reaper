@@ -12,7 +12,10 @@
 #include "api/Vulkan.h"
 #include "core/DynamicLibrary.h"
 #include "renderer/Renderer.h"
+#include "renderer/texture/GPUTextureProperties.h"
 
+namespace Reaper
+{
 class SwapchainRendererBase : public AbstractRenderer
 {
 public:
@@ -112,3 +115,4 @@ struct REAPER_RENDERER_API VulkanBackend
 
 void create_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& renderer);
 void destroy_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& renderer);
+}
