@@ -11,7 +11,7 @@
 
 #include "core/BitTricks.h"
 
-namespace reaper
+namespace Reaper
 {
 class CVar
 {
@@ -41,4 +41,4 @@ private:
     float             _valueFloat;
     std::string       _valueStr;
 };
-} // namespace reaper
+} // namespace Reaper
