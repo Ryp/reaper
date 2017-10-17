@@ -7,22 +7,21 @@
 
 #include "SixAxisController.h"
 
-#include <cstdint>
 #include <cmath>
+#include <cstdint>
 #include <cstring>
 
-#include <sys/ioctl.h>
-#include <linux/joystick.h>
 #include <fcntl.h>
+#include <linux/joystick.h>
+#include <sys/ioctl.h>
 #include <unistd.h>
 
 const float SixAxisController::AxisDeadzone = 0.12f;
 
 SixAxisController::SixAxisController(const std::string& device)
-:   AbstractController(TotalButtonsNumber,
-                TotalAxesNumber),
-    _device(device),
-    _connected(connect())
+    : AbstractController(TotalButtonsNumber, TotalAxesNumber)
+    , _device(device)
+    , _connected(connect())
 {
     AbstractController::reset();
 }
@@ -56,12 +55,13 @@ void SixAxisController::destroy()
 
 bool SixAxisController::connect()
 {
-    char    deviceName[256];
+    char deviceName[256];
 
     _fd = open(_device.c_str(), O_RDONLY | O_NONBLOCK);
     if (_fd == -1)
         return false;
-    Assert(ioctl(_fd, JSIOCGNAME(256), deviceName) != -1, "could not retrieve device name: " + std::string(strerror(errno)));
+    Assert(ioctl(_fd, JSIOCGNAME(256), deviceName) != -1,
+           "could not retrieve device name: " + std::string(strerror(errno)));
     Assert(std::string("Sony PLAYSTATION(R)3 Controller") == deviceName, "not a playstation 3 controller");
     update();
     AbstractController::reset();

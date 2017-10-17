@@ -7,15 +7,15 @@
 
 #include "ModelLoader.h"
 
-#include <vector>
-#include <sstream>
-#include <cctype>
 #include <algorithm>
+#include <cctype>
+#include <sstream>
 #include <string.h>
+#include <vector>
 
 #include <assimp/Importer.hpp>
-#include <assimp/scene.h>
 #include <assimp/postprocess.h>
+#include <assimp/scene.h>
 
 #include <glm/geometric.hpp>
 
@@ -27,12 +27,12 @@ ModelLoader::ModelLoader()
 
 void ModelLoader::load(std::string filename, MeshCache& cache)
 {
-    std::ifstream   file;
-    std::size_t     extensionLength;
-    std::string     extension;
+    std::ifstream file;
+    std::size_t   extensionLength;
+    std::string   extension;
 
     extensionLength = filename.find_last_of(".");
-    Assert(extensionLength != std::string::npos,"Invalid file name \'" + filename + "\'");
+    Assert(extensionLength != std::string::npos, "Invalid file name \'" + filename + "\'");
 
     extension = filename.substr(extensionLength + 1);
     std::transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
@@ -58,16 +58,19 @@ static inline glm::vec2 to_glm2(aiVector3D& v)
 
 Mesh ModelLoader::loadOBJAssimp(std::ifstream& src)
 {
-    Mesh                mesh;
-    Assimp::Importer    importer;
-    std::string         content(std::istreambuf_iterator<char>(static_cast<std::istream&>(src)), std::istreambuf_iterator<char>());
-    const aiScene*      scene;
-    aiMesh*             assimpMesh = nullptr;
-    unsigned int        flags = aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenSmoothNormals | aiProcess_CalcTangentSpace;
+    Mesh             mesh;
+    Assimp::Importer importer;
+    std::string      content(std::istreambuf_iterator<char>(static_cast<std::istream&>(src)),
+                             std::istreambuf_iterator<char>());
+    const aiScene*   scene;
+    aiMesh*          assimpMesh = nullptr;
+    unsigned int     flags =
+        aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenSmoothNormals | aiProcess_CalcTangentSpace;
 
     scene = importer.ReadFileFromMemory(content.c_str(), content.size(), flags);
 
-    Assert(scene && !(scene->mFlags == AI_SCENE_FLAGS_INCOMPLETE) && scene->mRootNode, std::string("loadOBJAssimp::") + importer.GetErrorString());
+    Assert(scene && !(scene->mFlags == AI_SCENE_FLAGS_INCOMPLETE) && scene->mRootNode,
+           std::string("loadOBJAssimp::") + importer.GetErrorString());
 
     // Only support simplistic scene structures
     Assert(scene->HasMeshes(), "loadOBJAssimp::no mesh found");
@@ -97,7 +100,7 @@ Mesh ModelLoader::loadOBJAssimp(std::ifstream& src)
     for (std::size_t i = 0; i < assimpMesh->mNumFaces; ++i)
     {
         aiFace face = assimpMesh->mFaces[i];
-        for(std::size_t j = 0; j < face.mNumIndices; ++j)
+        for (std::size_t j = 0; j < face.mNumIndices; ++j)
             mesh.indexes.push_back(face.mIndices[j]);
     }
     return mesh;
@@ -126,7 +129,6 @@ Mesh ModelLoader::loadOBJCustom(std::ifstream& src)
         }
         else if (line == "vn")
         {
-
             ss >> tmpVec3[0] >> tmpVec3[1] >> tmpVec3[2];
             normals.push_back(tmpVec3);
         }
@@ -186,13 +188,13 @@ Mesh ModelLoader::loadOBJCustom(std::ifstream& src)
     // CW Winding test
     if (mesh.hasNormals)
     {
-        glm::vec3   a = vertices[indexes[1][0]] - vertices[indexes[0][0]];
-        glm::vec3   b = vertices[indexes[2][0]] - vertices[indexes[0][0]];
-        glm::vec3   n = normals[indexes[0][2]] + normals[indexes[1][2]] + normals[indexes[2][2]];
+        glm::vec3 a = vertices[indexes[1][0]] - vertices[indexes[0][0]];
+        glm::vec3 b = vertices[indexes[2][0]] - vertices[indexes[0][0]];
+        glm::vec3 n = normals[indexes[0][2]] + normals[indexes[1][2]] + normals[indexes[2][2]];
         if (glm::dot(glm::cross(a, b), n) < 0.0f)
         {
             Assert(false, "model has been reverted");
-            glm::vec3   t;
+            glm::vec3 t;
             for (unsigned i = 0; (i + 2) < indexes.size(); i += 3)
             {
                 t = indexes[i + 1];
@@ -227,10 +229,10 @@ void SaveMeshesAsObj(std::ostream& output, const Mesh* meshes, u32 meshCount)
     for (u32 meshIndex = 0; meshIndex < meshCount; meshIndex++)
     {
         const Mesh& mesh = meshes[meshIndex];
-        const u32 vertexCount = static_cast<u32>(mesh.vertices.size());
-        const u32 uvCount = static_cast<u32>(mesh.uvs.size());
-        const u32 normalCount = static_cast<u32>(mesh.normals.size());
-        const u32 indexCount = static_cast<u32>(mesh.indexes.size());
+        const u32   vertexCount = static_cast<u32>(mesh.vertices.size());
+        const u32   uvCount = static_cast<u32>(mesh.uvs.size());
+        const u32   normalCount = static_cast<u32>(mesh.normals.size());
+        const u32   indexCount = static_cast<u32>(mesh.indexes.size());
 
         Assert(indexCount % 3 == 0);
 

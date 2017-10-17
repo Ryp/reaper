@@ -12,13 +12,12 @@
 // ************************************************************ //
 
 #ifndef REAPER_VK_EXPORTED_FUNCTION
-    #define REAPER_VK_EXPORTED_FUNCTION(func)
+#    define REAPER_VK_EXPORTED_FUNCTION(func)
 #endif
 
 REAPER_VK_EXPORTED_FUNCTION(vkGetInstanceProcAddr)
 
 #undef REAPER_VK_EXPORTED_FUNCTION
-
 
 // ************************************************************ //
 // Global level functions                                       //
@@ -28,7 +27,7 @@ REAPER_VK_EXPORTED_FUNCTION(vkGetInstanceProcAddr)
 // ************************************************************ //
 
 #ifndef REAPER_VK_GLOBAL_LEVEL_FUNCTION
-    #define REAPER_VK_GLOBAL_LEVEL_FUNCTION(func)
+#    define REAPER_VK_GLOBAL_LEVEL_FUNCTION(func)
 #endif
 
 REAPER_VK_GLOBAL_LEVEL_FUNCTION(vkCreateInstance)
@@ -36,7 +35,6 @@ REAPER_VK_GLOBAL_LEVEL_FUNCTION(vkEnumerateInstanceExtensionProperties)
 REAPER_VK_GLOBAL_LEVEL_FUNCTION(vkEnumerateInstanceLayerProperties)
 
 #undef REAPER_VK_GLOBAL_LEVEL_FUNCTION
-
 
 // ************************************************************ //
 // Instance level functions                                     //
@@ -46,7 +44,7 @@ REAPER_VK_GLOBAL_LEVEL_FUNCTION(vkEnumerateInstanceLayerProperties)
 // ************************************************************ //
 
 #ifndef REAPER_VK_INSTANCE_LEVEL_FUNCTION
-    #define REAPER_VK_INSTANCE_LEVEL_FUNCTION(func)
+#    define REAPER_VK_INSTANCE_LEVEL_FUNCTION(func)
 #endif
 
 REAPER_VK_INSTANCE_LEVEL_FUNCTION(vkDestroyInstance)
@@ -66,16 +64,16 @@ REAPER_VK_INSTANCE_LEVEL_FUNCTION(vkGetPhysicalDeviceSurfaceSupportKHR)
 REAPER_VK_INSTANCE_LEVEL_FUNCTION(vkGetPhysicalDeviceSurfaceCapabilitiesKHR)
 REAPER_VK_INSTANCE_LEVEL_FUNCTION(vkGetPhysicalDeviceSurfaceFormatsKHR)
 REAPER_VK_INSTANCE_LEVEL_FUNCTION(vkGetPhysicalDeviceSurfacePresentModesKHR)
-#if defined(VK_USE_PLATFORM_WIN32_KHR)
+#    if defined(VK_USE_PLATFORM_WIN32_KHR)
 REAPER_VK_INSTANCE_LEVEL_FUNCTION(vkGetPhysicalDeviceWin32PresentationSupportKHR)
 REAPER_VK_INSTANCE_LEVEL_FUNCTION(vkCreateWin32SurfaceKHR)
-#elif defined(VK_USE_PLATFORM_XCB_KHR)
+#    elif defined(VK_USE_PLATFORM_XCB_KHR)
 REAPER_VK_INSTANCE_LEVEL_FUNCTION(vkGetPhysicalDeviceXcbPresentationSupportKHR)
 REAPER_VK_INSTANCE_LEVEL_FUNCTION(vkCreateXcbSurfaceKHR)
-#elif defined(VK_USE_PLATFORM_XLIB_KHR)
+#    elif defined(VK_USE_PLATFORM_XLIB_KHR)
 REAPER_VK_INSTANCE_LEVEL_FUNCTION(vkGetPhysicalDeviceXlibPresentationSupportKHR)
 REAPER_VK_INSTANCE_LEVEL_FUNCTION(vkCreateXlibSurfaceKHR)
-#endif
+#    endif
 #endif
 
 #if defined(REAPER_DEBUG)
@@ -93,7 +91,7 @@ REAPER_VK_INSTANCE_LEVEL_FUNCTION(vkDestroyDebugReportCallbackEXT)
 // ************************************************************ //
 
 #ifndef REAPER_VK_DEVICE_LEVEL_FUNCTION
-    #define REAPER_VK_DEVICE_LEVEL_FUNCTION(func)
+#    define REAPER_VK_DEVICE_LEVEL_FUNCTION(func)
 #endif
 
 REAPER_VK_DEVICE_LEVEL_FUNCTION(vkGetDeviceQueue)

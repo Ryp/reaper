@@ -16,7 +16,7 @@
 TEST_CASE("Buddy allocator")
 {
     const std::size_t buddyAtorSize = 512;
-    BuddyAllocator ator(buddyAtorSize);
+    BuddyAllocator    ator(buddyAtorSize);
 
     SUBCASE("Alloc and free")
     {
@@ -89,15 +89,15 @@ TEST_CASE("Buddy allocator")
     {
         struct Alloc
         {
-            void* ptr;
+            void*       ptr;
             std::size_t size;
         };
 
         std::deque<Alloc> ptrs;
-        std::size_t maxSize = buddyAtorSize / 3;
-        std::size_t maxAllocs = 16;
-        u32 iterations = 10;
-        std::size_t totalSize = 0;
+        std::size_t       maxSize = buddyAtorSize / 3;
+        std::size_t       maxAllocs = 16;
+        u32               iterations = 10;
+        std::size_t       totalSize = 0;
 
         for (u32 i = 0; i < iterations; ++i)
         {
@@ -108,7 +108,7 @@ TEST_CASE("Buddy allocator")
             {
                 totalSize += size;
 
-                Alloc alloc = { ator.alloc(size), size };
+                Alloc alloc = {ator.alloc(size), size};
 
                 CHECK(alloc.ptr != nullptr);
 

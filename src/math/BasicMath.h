@@ -13,7 +13,10 @@
 #include <glm/vec2.hpp>
 
 template <typename T>
-constexpr T sqr(T value) { return value * value; }
+constexpr T sqr(T value)
+{
+    return value * value;
+}
 
 // Arithmetic operations handling unsigned types overflow
 template <typename T>

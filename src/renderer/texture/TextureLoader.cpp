@@ -10,10 +10,10 @@
 #include <algorithm>
 
 #if defined(REAPER_COMPILER_MSVC)
-#pragma warning(push)
-#pragma warning(disable : 4100) // 'identifier' : unreferenced formal parameter
-#pragma warning(disable : 4310) // cast truncates constant value
-#pragma warning(disable : 4458) // declaration of 'identifier' hides class member
+#    pragma warning(push)
+#    pragma warning(disable : 4100) // 'identifier' : unreferenced formal parameter
+#    pragma warning(disable : 4310) // cast truncates constant value
+#    pragma warning(disable : 4458) // declaration of 'identifier' hides class member
 #endif
 
 #include <gli/gli.hpp>
@@ -69,5 +69,5 @@ void TextureLoader::loadDDS(const std::string& filename, TextureCache& cache)
 }
 
 #if defined(REAPER_COMPILER_MSVC)
-#pragma warning(pop)
+#    pragma warning(pop)
 #endif

@@ -9,8 +9,8 @@
 
 void printStacktrace();
 
-#include <vector>
 #include <string>
+#include <vector>
 
 /*
  * Base stacktrace class, could be used to make an uniform API between platforms
@@ -21,9 +21,9 @@ public:
     StackTrace();
 
 public:
-    void    pushFrame(unsigned int pc, const std::string& symbol, unsigned int offset);
+    void               pushFrame(unsigned int pc, const std::string& symbol, unsigned int offset);
     const std::string& operator[](std::size_t idx) const;
 
 private:
-    std::vector<std::string>   _trace;
+    std::vector<std::string> _trace;
 };

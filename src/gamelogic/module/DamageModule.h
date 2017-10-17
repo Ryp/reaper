@@ -9,11 +9,13 @@
 
 #include "gamelogic/ModuleUpdater.h"
 
-struct DamageModuleDescriptor : public ModuleDescriptor {
+struct DamageModuleDescriptor : public ModuleDescriptor
+{
     u32 maxHealth;
 };
 
-struct DamageModule {
+struct DamageModule
+{
     u32 health;
     u32 maxHealth;
     u32 damages;
@@ -22,8 +24,11 @@ struct DamageModule {
 class DamageUpdater : public ModuleUpdater<DamageModule, DamageModuleDescriptor>
 {
     using parent_type = ModuleUpdater<DamageModule, DamageModuleDescriptor>;
+
 public:
-    DamageUpdater(AbstractWorldUpdater* worldUpdater) : parent_type(worldUpdater) {}
+    DamageUpdater(AbstractWorldUpdater* worldUpdater)
+        : parent_type(worldUpdater)
+    {}
 
 public:
     void update(float dt);

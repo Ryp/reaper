@@ -16,4 +16,4 @@ class IWindow;
 void vulkan_create_presentation_surface(VkInstance instance, VkSurfaceKHR& vkPresentationSurface, IWindow* window);
 
 bool vulkan_queue_family_has_presentation_support(VkPhysicalDevice device, uint32_t queueFamilyIndex, IWindow* window);
-}
+} // namespace Reaper

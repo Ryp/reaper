@@ -25,8 +25,7 @@ Camera::Camera(const glm::vec3& pos, const glm::vec3& direction, float yaw, floa
 }
 
 Camera::~Camera()
-{
-}
+{}
 
 void Camera::update(Mode mode)
 {

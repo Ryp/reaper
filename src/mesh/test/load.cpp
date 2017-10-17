@@ -13,7 +13,7 @@
 TEST_CASE("Mesh Loading")
 {
     ModelLoader loader;
-    MeshCache cache;
+    MeshCache   cache;
 
     SUBCASE("Small OBJ files")
     {
@@ -21,8 +21,5 @@ TEST_CASE("Mesh Loading")
         loader.load("res/model/ship.obj", cache);
     }
 
-    SUBCASE("Big OBJ files")
-    {
-        loader.load("res/model/bunny.obj", cache);
-    }
+    SUBCASE("Big OBJ files") { loader.load("res/model/bunny.obj", cache); }
 }

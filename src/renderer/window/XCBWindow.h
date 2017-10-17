@@ -36,4 +36,4 @@ private:
     bool ShouldResizeASAP;
     bool IsValid;
 };
-}
+} // namespace Reaper

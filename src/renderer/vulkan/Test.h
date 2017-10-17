@@ -14,4 +14,4 @@ struct VulkanBackend;
 
 REAPER_RENDERER_API
 void vulkan_test(ReaperRoot& root, VulkanBackend& backend);
-}
+} // namespace Reaper

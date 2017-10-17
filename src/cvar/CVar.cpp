@@ -11,10 +11,8 @@
 
 namespace reaper
 {
-    CVar::CVar(const std::string& name, int flags)
-    :   _name(name),
-        _flags(flags)
-    {
-
-    }
-}
+CVar::CVar(const std::string& name, int flags)
+    : _name(name)
+    , _flags(flags)
+{}
+} // namespace reaper

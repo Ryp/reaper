@@ -54,4 +54,4 @@ void log_error(ReaperRoot& root, const char* format, const Args&... args)
 {
     log_message(root.log, LogLevel::Error, fmt::format(format, args...));
 }
-}
+} // namespace Reaper

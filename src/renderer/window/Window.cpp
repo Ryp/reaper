@@ -8,11 +8,11 @@
 #include "Window.h"
 
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
-    #include "Win32Window.h"
+#    include "Win32Window.h"
 #elif defined(VK_USE_PLATFORM_XCB_KHR)
-    #include "XCBWindow.h"
+#    include "XCBWindow.h"
 #elif defined(VK_USE_PLATFORM_XLIB_KHR)
-    #include "XLibWindow.h"
+#    include "XLibWindow.h"
 #endif
 
 namespace Reaper
@@ -30,4 +30,4 @@ IWindow* createWindow(const WindowCreationDescriptor& creationInfo)
     return nullptr;
 #endif
 }
-}
+} // namespace Reaper

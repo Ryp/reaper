@@ -12,25 +12,28 @@
 
 #include "MovementModule.h"
 
-struct PathModuleDescriptor : public ModuleDescriptor {
-//     u32 placeHolder;
+struct PathModuleDescriptor : public ModuleDescriptor
+{
+    //     u32 placeHolder;
 };
 
-struct PathModule {
+struct PathModule
+{
     TDPath path;
-    u32 pathId;
+    u32    pathId;
 };
 
 class PathUpdater : public ModuleUpdater<PathModule, PathModuleDescriptor>
 {
     using parent_type = ModuleUpdater<PathModule, PathModuleDescriptor>;
+
 public:
     PathUpdater(AbstractWorldUpdater* worldUpdater, MapInfo& mapInfo);
     ~PathUpdater();
 
 public:
     void update(float dt, ModuleAccessor<MovementModule> movementModuleAccessor,
-                          ModuleAccessor<PositionModule> positionModuleAccessor);
+                ModuleAccessor<PositionModule> positionModuleAccessor);
     void createModule(EntityId id, const PathModuleDescriptor* descriptor) override;
 
 private:

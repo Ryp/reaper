@@ -169,7 +169,7 @@ namespace
         // std::cerr << pMessage << std::endl;
         return VK_FALSE;
     }
-}
+} // namespace
 
 void SwapchainRendererBase::startup(IWindow* window)
 {
@@ -524,7 +524,7 @@ namespace
         Assert(false, "FIFO present mode is not supported by the swap chain!");
         return static_cast<VkPresentModeKHR>(-1);
     }
-}
+} // namespace
 
 void SwapchainRendererBase::createSwapChain()
 {
@@ -736,8 +736,7 @@ PresentationInfo::PresentationInfo()
     , imageViews()
     , framebuffers()
     , renderPass(VK_NULL_HANDLE)
-{
-}
+{}
 
 VulkanBackend::VulkanBackend()
     : vulkanLib(nullptr)
@@ -748,8 +747,7 @@ VulkanBackend::VulkanBackend()
     , deviceInfo({VK_NULL_HANDLE, VK_NULL_HANDLE})
     , presentInfo()
     , debugCallback(VK_NULL_HANDLE)
-{
-}
+{}
 
 void create_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& backend)
 {
@@ -951,7 +949,7 @@ namespace
         log_warning(*root, "vulkan: {}", pMessage);
         return VK_FALSE;
     }
-}
+} // namespace
 
 void vulkan_setup_debug_callback(ReaperRoot& root, VulkanBackend& backend)
 {
@@ -1106,7 +1104,7 @@ namespace
         }
         return "unknown";
     }
-}
+} // namespace
 
 void vulkan_choose_physical_device(ReaperRoot& root, VulkanBackend& backend, PhysicalDeviceInfo& physicalDeviceInfo)
 {
@@ -1244,4 +1242,4 @@ void vulkan_create_logical_device(ReaperRoot& root, VulkanBackend& backend)
         backend.device, backend.physicalDeviceInfo.graphicsQueueIndex, 0, &backend.deviceInfo.graphicsQueue);
     vkGetDeviceQueue(backend.device, backend.physicalDeviceInfo.presentQueueIndex, 0, &backend.deviceInfo.presentQueue);
 }
-}
+} // namespace Reaper

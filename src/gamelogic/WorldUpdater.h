@@ -7,24 +7,24 @@
 
 #pragma once
 
-#include <string>
 #include <map>
-#include <queue>
 #include <memory>
+#include <queue>
+#include <string>
 
 #include "ModuleUpdater.h"
 
 #include "core/memory/StackAllocator.h"
 #include "core/memory/UniquePtr.h"
 
-#include "module/TeamModule.h"
-#include "module/PositionModule.h"
 #include "module/DamageModule.h"
 #include "module/MovementModule.h"
 #include "module/PathModule.h"
+#include "module/PositionModule.h"
+#include "module/TeamModule.h"
+#include "module/TowerControllerModule.h"
 #include "module/WaveSpawnerModule.h"
 #include "module/WeaponModule.h"
-#include "module/TowerControllerModule.h"
 
 class REAPER_GAMELOGIC_API AbstractWorldUpdater
 {
@@ -39,6 +39,7 @@ class EntityDb;
 class REAPER_GAMELOGIC_API WorldUpdater : public AbstractWorldUpdater
 {
     using ModuleCreators = std::map<std::string, AbstractModuleUpdater*>;
+
 public:
     WorldUpdater(EntityDb* entityDb);
     ~WorldUpdater();
@@ -52,26 +53,26 @@ public:
     void notifySpawnEnemy(const std::string& entityName, u32 accessId) override;
 
 private:
-    EntityId    createEntity(const std::string& entityName);
-    void        removeEntity(EntityId id);
+    EntityId createEntity(const std::string& entityName);
+    void     removeEntity(EntityId id);
 
 private:
-    EntityDb*               _entityDb;
-    EntityId                _currentId;
-    ModuleCreators          _modulesCreators;
-    StackAllocator          _allocator;
-    std::queue<EntityId>    _idToRemove;
+    EntityDb*            _entityDb;
+    EntityId             _currentId;
+    ModuleCreators       _modulesCreators;
+    StackAllocator       _allocator;
+    std::queue<EntityId> _idToRemove;
 
 private:
-    UniquePtr<MapInfo>  _mapInfo;
+    UniquePtr<MapInfo> _mapInfo;
 
 private:
-    UniquePtr<TeamUpdater>              _teamUpdater;
-    UniquePtr<PositionUpdater>          _positionUpdater;
-    UniquePtr<DamageUpdater>            _damageUpdater;
-    UniquePtr<MovementUpdater>          _movementUpdater;
-    UniquePtr<PathUpdater>              _pathUpdater;
-    UniquePtr<WeaponUpdater>            _weaponUpdater;
-    UniquePtr<WaveSpawnerUpdater>       _waveSpawnerUpdater;
-    UniquePtr<TowerControllerUpdater>   _towerControllerUpdater;
+    UniquePtr<TeamUpdater>            _teamUpdater;
+    UniquePtr<PositionUpdater>        _positionUpdater;
+    UniquePtr<DamageUpdater>          _damageUpdater;
+    UniquePtr<MovementUpdater>        _movementUpdater;
+    UniquePtr<PathUpdater>            _pathUpdater;
+    UniquePtr<WeaponUpdater>          _weaponUpdater;
+    UniquePtr<WaveSpawnerUpdater>     _waveSpawnerUpdater;
+    UniquePtr<TowerControllerUpdater> _towerControllerUpdater;
 };

@@ -11,7 +11,8 @@
 
 #include <glm/glm.hpp>
 
-struct Mesh {
+struct Mesh
+{
     std::vector<glm::fvec3> vertices;
     std::vector<glm::fvec3> normals;
     std::vector<glm::fvec2> uvs;
@@ -19,9 +20,9 @@ struct Mesh {
     std::vector<glm::fvec3> tangents;
     std::vector<glm::fvec3> bitangents;
 
-    bool    isIndexed;
-    bool    hasUVs;
-    bool    hasNormals;
+    bool isIndexed;
+    bool hasUVs;
+    bool hasNormals;
 };
 
 u32 getTriangleCount(const Mesh& mesh);

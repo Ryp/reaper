@@ -31,13 +31,13 @@ TEST_CASE("Stack allocator")
     {
         struct Dummy
         {
-            bool isUseful;
-            char pid;
+            bool  isUseful;
+            char  pid;
             float temp;
         };
 
         StackAllocator ator(size);
-        StackAllocator  sa(1000);
+        StackAllocator sa(1000);
         Dummy*         a = nullptr;
         Dummy*         b = nullptr;
         Dummy*         c = nullptr;

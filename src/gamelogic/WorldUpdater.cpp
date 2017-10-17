@@ -11,18 +11,18 @@
 #include "map/MapDescriptor.h"
 
 WorldUpdater::WorldUpdater(EntityDb* entityDb)
-:   _entityDb(entityDb)
-,   _currentId(0)
-,   _allocator(10000)
-,   _mapInfo(_allocator)
-,   _teamUpdater(_allocator, this)
-,   _positionUpdater(_allocator, this)
-,   _damageUpdater(_allocator, this)
-,   _movementUpdater(_allocator, this)
-,   _pathUpdater(_allocator, this, *_mapInfo)
-,   _weaponUpdater(_allocator, this)
-,   _waveSpawnerUpdater(_allocator, this)
-,   _towerControllerUpdater(_allocator, this)
+    : _entityDb(entityDb)
+    , _currentId(0)
+    , _allocator(10000)
+    , _mapInfo(_allocator)
+    , _teamUpdater(_allocator, this)
+    , _positionUpdater(_allocator, this)
+    , _damageUpdater(_allocator, this)
+    , _movementUpdater(_allocator, this)
+    , _pathUpdater(_allocator, this, *_mapInfo)
+    , _weaponUpdater(_allocator, this)
+    , _waveSpawnerUpdater(_allocator, this)
+    , _towerControllerUpdater(_allocator, this)
 {
     _modulesCreators["TeamModuleDescriptor"] = _teamUpdater.get();
     _modulesCreators["PositionModuleDescriptor"] = _positionUpdater.get();
@@ -39,15 +39,12 @@ WorldUpdater::~WorldUpdater()
 
 void WorldUpdater::updateModules(float dt)
 {
-    _pathUpdater->update(dt, _movementUpdater->getModuleAccessor(),
-                             _positionUpdater->getModuleAccessor());
+    _pathUpdater->update(dt, _movementUpdater->getModuleAccessor(), _positionUpdater->getModuleAccessor());
     _movementUpdater->update(dt, _positionUpdater->getModuleAccessor());
     _positionUpdater->update(dt);
     _weaponUpdater->update(dt);
-    _towerControllerUpdater->update(dt, _positionUpdater->getModuleAccessor(),
-                                        _weaponUpdater->getModuleAccessor(),
-                                        _damageUpdater->getModuleAccessor(),
-                                        _teamUpdater->getModuleAccessor());
+    _towerControllerUpdater->update(dt, _positionUpdater->getModuleAccessor(), _weaponUpdater->getModuleAccessor(),
+                                    _damageUpdater->getModuleAccessor(), _teamUpdater->getModuleAccessor());
     _damageUpdater->update(dt);
     _waveSpawnerUpdater->update(dt);
 
@@ -67,9 +64,9 @@ void WorldUpdater::notifyRemoveEntity(EntityId id)
 // NOTE: maybe this should be done at the end of a frame
 void WorldUpdater::notifySpawnEnemy(const std::string& entityName, u32 accessId)
 {
-    EntityId id = createEntity(entityName);
+    EntityId                   id = createEntity(entityName);
     ModuleAccessor<PathModule> pathModuleAccessor = _pathUpdater->getModuleAccessor();
-    PathModule* pathModule = pathModuleAccessor[id];
+    PathModule*                pathModule = pathModuleAccessor[id];
 
     pathModule->pathId = accessId;
 }
@@ -82,8 +79,8 @@ void WorldUpdater::load()
 
         mapDesc.dimensions = uvec2(8, 8);
 
-        MapAccess   access1;
-        MapAccess   access2;
+        MapAccess access1;
+        MapAccess access2;
 
         access1.entrance = uvec2(0, 0);
         access1.exit = uvec2(7, 5);
@@ -108,7 +105,7 @@ void WorldUpdater::unload()
 EntityId WorldUpdater::createEntity(const std::string& entityName)
 {
     const EntityDescriptor& entityDescriptor = _entityDb->getEntityDescriptor(entityName);
-    const EntityId id = _currentId;
+    const EntityId          id = _currentId;
 
     for (auto& moduleDescriptor : entityDescriptor)
     {

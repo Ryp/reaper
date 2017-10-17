@@ -19,7 +19,8 @@
 class SixAxisController : public AbstractController
 {
 public:
-    enum Buttons {
+    enum Buttons
+    {
         Select = 0,
         LeftAnalog,
         RightAnalog,
@@ -41,7 +42,8 @@ public:
         UnknownB18,
     };
 
-    enum Axes {
+    enum Axes
+    {
         LeftAnalogX = 0,
         LeftAnalogY,
         RightAnalogX,
@@ -71,10 +73,10 @@ public:
         UnknownA26,
     };
 
-    static const int    AxisAbsoluteResolution = (2 << 14) - 1;
-    static const int    TotalButtonsNumber = 19;
-    static const int    TotalAxesNumber = 27;
-    static const float  AxisDeadzone;
+    static const int   AxisAbsoluteResolution = (2 << 14) - 1;
+    static const int   TotalButtonsNumber = 19;
+    static const int   TotalAxesNumber = 27;
+    static const float AxisDeadzone;
 
 public:
     SixAxisController(const std::string& device);

@@ -46,4 +46,4 @@ void test_vulkan_renderer(ReaperRoot& root, VulkanBackend& backend)
 
     vkDestroyCommandPool(backend.device, gfxCmdPool, nullptr);
 }
-}
+} // namespace Reaper

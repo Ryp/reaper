@@ -16,4 +16,4 @@ void log_message(ILog* log, LogLevel level, const std::string& message)
     if (log != nullptr)
         log->log(level, message);
 }
-}
+} // namespace Reaper

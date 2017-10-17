@@ -8,8 +8,11 @@
 #pragma once
 
 #if defined(REAPER_USE_MICROPROFILE)
-    #include "microprofile.h"
-    #define REAPER_PROFILE_SCOPE(group, color)  MICROPROFILE_SCOPEI(group, __func__, color)
+#    include "microprofile.h"
+#    define REAPER_PROFILE_SCOPE(group, color) MICROPROFILE_SCOPEI(group, __func__, color)
 #else
-    #define REAPER_PROFILE_SCOPE(group, color)  do{}while(0)
+#    define REAPER_PROFILE_SCOPE(group, color) \
+        do                                     \
+        {                                      \
+        } while (0)
 #endif

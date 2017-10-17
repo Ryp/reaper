@@ -21,9 +21,9 @@ public:
     ~MeshCache() = default;
 
 public:
-    void loadMesh(MeshId id, Mesh mesh);
+    void        loadMesh(MeshId id, Mesh mesh);
     const Mesh& operator[](const MeshId& id) const;
-    Mesh& operator[](const MeshId& id);
+    Mesh&       operator[](const MeshId& id);
 
 private:
     std::map<MeshId, Mesh> _meshes;

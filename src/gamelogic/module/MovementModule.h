@@ -8,25 +8,30 @@
 #pragma once
 
 #include "gamelogic/ModuleUpdater.h"
-#include "gamelogic/pathing/AIPath.h"
 #include "gamelogic/map/MapInfo.h"
+#include "gamelogic/pathing/AIPath.h"
 
 #include "PositionModule.h"
 
-struct MovementModuleDescriptor : public ModuleDescriptor {
+struct MovementModuleDescriptor : public ModuleDescriptor
+{
     f32 speed;
 };
 
-struct MovementModule {
-    f32 speed;
+struct MovementModule
+{
+    f32    speed;
     AIPath path;
 };
 
 class MovementUpdater : public ModuleUpdater<MovementModule, MovementModuleDescriptor>
 {
     using parent_type = ModuleUpdater<MovementModule, MovementModuleDescriptor>;
+
 public:
-    MovementUpdater(AbstractWorldUpdater* worldUpdater) : parent_type(worldUpdater) {}
+    MovementUpdater(AbstractWorldUpdater* worldUpdater)
+        : parent_type(worldUpdater)
+    {}
 
 public:
     void update(float dt, ModuleAccessor<PositionModule> positionModuleAccessor);

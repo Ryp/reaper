@@ -30,4 +30,4 @@ TEST_CASE("Window")
         window = nullptr;
     }
 }
-}
+} // namespace Reaper

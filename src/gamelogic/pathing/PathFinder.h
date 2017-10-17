@@ -17,11 +17,12 @@
 
 using t_path = std::list<Index>;
 
-struct t_node {
-    Index       parent;
-    CostType    loc_cost;
-    CostType    mvt_cost;
-    CostType    tot_cost;
+struct t_node
+{
+    Index    parent;
+    CostType loc_cost;
+    CostType mvt_cost;
+    CostType tot_cost;
 };
 
 using t_nodelist = std::map<int, t_node>;
@@ -49,22 +50,22 @@ public:
     t_path getPath();
 
 private:
-    int getManhattanDistance(const Index& a, const Index& b);
+    int   getManhattanDistance(const Index& a, const Index& b);
     Index getBestOpenPos();
-    void addToClosedList(const Index& n);
-    void addAdjacentNodes(const Index& n);
-    int toKey(const Index& index) const;
+    void  addToClosedList(const Index& n);
+    void  addAdjacentNodes(const Index& n);
+    int   toKey(const Index& index) const;
     Index toIndex(const int& key) const;
-    bool isOpen(const Index& n);
-    bool isClosed(const Index& n);
-    void buildPath();
+    bool  isOpen(const Index& n);
+    bool  isClosed(const Index& n);
+    void  buildPath();
 
-    CostMap     _map;
-    Index       _map_size;
-    Index       _start;
-    Index       _dest;
-    t_nodelist  _open;
-    t_nodelist  _closed;
-    t_path      _path;
-    bool        _isFound;
+    CostMap    _map;
+    Index      _map_size;
+    Index      _start;
+    Index      _dest;
+    t_nodelist _open;
+    t_nodelist _closed;
+    t_path     _path;
+    bool       _isFound;
 };

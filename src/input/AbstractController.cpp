@@ -8,11 +8,12 @@
 #include "AbstractController.h"
 
 AbstractController::AbstractController(int buttons, int axes)
-:   _buttons(buttons),
-    _axes(axes)
+    : _buttons(buttons)
+    , _axes(axes)
 {}
 
-AbstractController::~AbstractController() {}
+AbstractController::~AbstractController()
+{}
 
 void AbstractController::reset()
 {

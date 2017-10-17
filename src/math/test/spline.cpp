@@ -12,12 +12,8 @@
 
 TEST_CASE("Spline")
 {
-    std::vector<glm::vec4> controlPoints = {
-        glm::vec4(0.f, 0.f, 0.f, 1.0f),
-        glm::vec4(1.f, 0.f, 0.f, 1.0f),
-        glm::vec4(3.f, 0.f, 0.f, 1.0f),
-        glm::vec4(4.f, 0.f, 0.f, 1.0f)
-    };
+    std::vector<glm::vec4> controlPoints = {glm::vec4(0.f, 0.f, 0.f, 1.0f), glm::vec4(1.f, 0.f, 0.f, 1.0f),
+                                            glm::vec4(3.f, 0.f, 0.f, 1.0f), glm::vec4(4.f, 0.f, 0.f, 1.0f)};
 
     Reaper::Math::Spline s = Reaper::Math::ConstructSpline(3, controlPoints);
 

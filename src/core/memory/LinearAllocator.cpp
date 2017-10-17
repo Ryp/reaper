@@ -10,9 +10,9 @@
 #include <stdexcept>
 
 LinearAllocator::LinearAllocator(std::size_t sizeBytes)
-:   _memPtr(new char[sizeBytes]),
-    _currentPtr(_memPtr),
-    _memSize(sizeBytes)
+    : _memPtr(new char[sizeBytes])
+    , _currentPtr(_memPtr)
+    , _memSize(sizeBytes)
 {}
 
 LinearAllocator::~LinearAllocator()

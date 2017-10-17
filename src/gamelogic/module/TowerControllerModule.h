@@ -14,30 +14,34 @@
 #include "TeamModule.h"
 #include "WeaponModule.h"
 
-struct TowerControllerModuleDescriptor : public ModuleDescriptor {
+struct TowerControllerModuleDescriptor : public ModuleDescriptor
+{
     f32 rotationSpeed;
     f32 rangeMin;
     f32 rangeMax;
 };
 
-struct TowerControllerModule {
-    f32 rotationSpeed;
-    f32 rangeMin;
-    f32 rangeMax;
+struct TowerControllerModule
+{
+    f32      rotationSpeed;
+    f32      rangeMin;
+    f32      rangeMax;
     EntityId activeTargetId;
 };
 
 class TowerControllerUpdater : public ModuleUpdater<TowerControllerModule, TowerControllerModuleDescriptor>
 {
     using parent_type = ModuleUpdater<TowerControllerModule, TowerControllerModuleDescriptor>;
+
 public:
-    TowerControllerUpdater(AbstractWorldUpdater* worldUpdater) : parent_type(worldUpdater) {}
+    TowerControllerUpdater(AbstractWorldUpdater* worldUpdater)
+        : parent_type(worldUpdater)
+    {}
 
 public:
     void update(float dt, ModuleAccessor<PositionModule> positionModuleAccessor,
-                          ModuleAccessor<WeaponModule> weaponModuleAccessor,
-                          ModuleAccessor<DamageModule> damageModuleAccessor,
-                          ModuleAccessor<TeamModule> teamModuleAccessor);
+                ModuleAccessor<WeaponModule> weaponModuleAccessor, ModuleAccessor<DamageModule> damageModuleAccessor,
+                ModuleAccessor<TeamModule> teamModuleAccessor);
     void createModule(EntityId id, const TowerControllerModuleDescriptor* descriptor) override;
     void removeModule(EntityId id) override;
 

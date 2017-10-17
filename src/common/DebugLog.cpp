@@ -15,8 +15,7 @@ namespace Reaper
 {
 DebugLog::DebugLog(LogLevel level)
     : m_logLevel(level)
-{
-}
+{}
 
 void DebugLog::log(LogLevel level, const std::string& message)
 {
@@ -48,4 +47,4 @@ void DebugLog::setLogLevel(LogLevel level)
 {
     m_logLevel = level;
 }
-}
+} // namespace Reaper

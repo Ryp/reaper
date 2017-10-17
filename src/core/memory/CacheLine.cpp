@@ -9,7 +9,7 @@
 
 #if defined(REAPER_PLATFORM_LINUX)
 
-#include <unistd.h>
+#    include <unistd.h>
 
 static size_t cacheLineSizeImpl()
 {
@@ -21,7 +21,7 @@ static size_t cacheLineSizeImpl()
 
 #elif defined(REAPER_PLATFORM_MACOSX)
 
-#include <sys/sysctl.h>
+#    include <sys/sysctl.h>
 
 static size_t cacheLineSizeImpl()
 {
@@ -34,17 +34,17 @@ static size_t cacheLineSizeImpl()
 
 #elif defined(REAPER_PLATFORM_WINDOWS)
 
-#include <stdlib.h>
-#include <windows.h>
+#    include <stdlib.h>
+#    include <windows.h>
 static size_t cacheLineSizeImpl()
 {
-    size_t lineSize = 0;
-    DWORD bufferSize = 0;
-    DWORD i = 0;
-    SYSTEM_LOGICAL_PROCESSOR_INFORMATION * buffer = 0;
+    size_t                                lineSize = 0;
+    DWORD                                 bufferSize = 0;
+    DWORD                                 i = 0;
+    SYSTEM_LOGICAL_PROCESSOR_INFORMATION* buffer = 0;
 
     GetLogicalProcessorInformation(0, &bufferSize);
-    buffer = (SYSTEM_LOGICAL_PROCESSOR_INFORMATION *) malloc(bufferSize);
+    buffer = (SYSTEM_LOGICAL_PROCESSOR_INFORMATION*)malloc(bufferSize);
     GetLogicalProcessorInformation(&buffer[0], &bufferSize);
 
     for (i = 0; i != bufferSize / sizeof(SYSTEM_LOGICAL_PROCESSOR_INFORMATION); ++i)
@@ -61,7 +61,7 @@ static size_t cacheLineSizeImpl()
 }
 
 #else
-    #error cacheLineSize() not implemented for this platform
+#    error cacheLineSize() not implemented for this platform
 #endif
 
 size_t cacheLineSize()

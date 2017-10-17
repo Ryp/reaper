@@ -7,23 +7,21 @@
 
 #include "EntityDb.h"
 
-#include "gamelogic/module/TeamModule.h"
-#include "gamelogic/module/PositionModule.h"
 #include "gamelogic/module/DamageModule.h"
 #include "gamelogic/module/MovementModule.h"
 #include "gamelogic/module/PathModule.h"
+#include "gamelogic/module/PositionModule.h"
+#include "gamelogic/module/TeamModule.h"
+#include "gamelogic/module/TowerControllerModule.h"
 #include "gamelogic/module/WaveSpawnerModule.h"
 #include "gamelogic/module/WeaponModule.h"
-#include "gamelogic/module/TowerControllerModule.h"
 
 EntityDb::EntityDb()
-:   _allocator(10000)
-{
-}
+    : _allocator(10000)
+{}
 
 EntityDb::~EntityDb()
-{
-}
+{}
 
 void EntityDb::load()
 {
@@ -33,7 +31,6 @@ void EntityDb::load()
         TeamModuleDescriptor* towerTeamDesc = placementNew<TeamModuleDescriptor>(_allocator);
         towerTeamDesc->teamId = 1;
 
-
         PositionModuleDescriptor* positionDesc = placementNew<PositionModuleDescriptor>(_allocator);
         positionDesc->position = glm::vec3(0.f);
         positionDesc->orientation = glm::vec2(0.f);
@@ -42,7 +39,8 @@ void EntityDb::load()
         weaponDesc->damage = 30;
         weaponDesc->rate = 20.f;
 
-        TowerControllerModuleDescriptor* towerControllerDesc = placementNew<TowerControllerModuleDescriptor>(_allocator);
+        TowerControllerModuleDescriptor* towerControllerDesc =
+            placementNew<TowerControllerModuleDescriptor>(_allocator);
         towerControllerDesc->rangeMin = 0.1f;
         towerControllerDesc->rangeMax = 10.f;
         towerControllerDesc->rotationSpeed = 1.5f;
@@ -96,8 +94,7 @@ void EntityDb::load()
 }
 
 void EntityDb::unload()
-{
-}
+{}
 
 const EntityDescriptor& EntityDb::getEntityDescriptor(const std::string& entityName)
 {

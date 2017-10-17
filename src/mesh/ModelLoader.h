@@ -8,8 +8,8 @@
 #pragma once
 
 #include <fstream>
-#include <string>
 #include <map>
+#include <string>
 
 #include "Mesh.h"
 #include "MeshCache.h"

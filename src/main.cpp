@@ -24,6 +24,8 @@ int main(int /*ac*/, char** /*av*/)
 #endif
 
     {
+        using namespace Reaper;
+
         ReaperRoot root = {};
 
         root.log = new DebugLog();

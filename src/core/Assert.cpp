@@ -7,14 +7,14 @@
 
 #include "Assert.h"
 
-#include "Platform.h"
 #include "Debugger.h"
+#include "Platform.h"
 #include "StackTrace.h"
 
 #include <iostream>
 
 #if defined(REAPER_PLATFORM_WINDOWS)
-    #include <intrin.h> // for __debugbreak
+#    include <intrin.h> // for __debugbreak
 #endif
 
 inline void breakpoint()
@@ -26,7 +26,7 @@ inline void breakpoint()
 #elif defined(REAPER_PLATFORM_MACOSX) && defined(REAPER_CPU_ARCH_X86)
     __asm__("int $3");
 #else
-    #error breakpoint() not available!
+#    error breakpoint() not available!
 #endif
 }
 

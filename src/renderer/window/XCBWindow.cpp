@@ -153,4 +153,4 @@ bool XCBWindow::renderLoop(AbstractRenderer* renderer)
     }
     return true;
 }
-}
+} // namespace Reaper

@@ -7,8 +7,8 @@
 
 #include "BuddyAllocator.h"
 
-#include <memory>
 #include <algorithm>
+#include <memory>
 
 #include "core/BitTricks.h"
 
@@ -16,31 +16,31 @@ static_assert(isPowerOfTwo(BuddyAllocator::DefaultMemoryAlignment), "npot alignm
 
 namespace
 {
-    inline std::size_t size_of_level(u32 level, std::size_t total_size)
-    {
-        return total_size >> level;
-    }
-
-    inline u32 max_blocks_of_level(u32 level)
-    {
-        return 1 << level;
-    }
-
-    inline u32 targetLevel(std::size_t allocSize, std::size_t maxLevelSize, u32 maxLevels)
-    {
-        const std::size_t offset = bitOffset(allocSize - 1) + 1;
-        const u32 level = static_cast<u32>(bitOffset(maxLevelSize) - offset);
-
-        return std::min(maxLevels - 1, level);
-    }
+inline std::size_t size_of_level(u32 level, std::size_t total_size)
+{
+    return total_size >> level;
 }
 
+inline u32 max_blocks_of_level(u32 level)
+{
+    return 1 << level;
+}
+
+inline u32 targetLevel(std::size_t allocSize, std::size_t maxLevelSize, u32 maxLevels)
+{
+    const std::size_t offset = bitOffset(allocSize - 1) + 1;
+    const u32         level = static_cast<u32>(bitOffset(maxLevelSize) - offset);
+
+    return std::min(maxLevels - 1, level);
+}
+} // namespace
+
 BuddyAllocator::BuddyAllocator(std::size_t sizeBytes, std::size_t leafSizeBytes)
-:   _memPtr(nullptr),
-    _memSize(0),
-    _alignedPtr(nullptr),
-    _alignedSize(0),
-    _levels(0)
+    : _memPtr(nullptr)
+    , _memSize(0)
+    , _alignedPtr(nullptr)
+    , _alignedSize(0)
+    , _levels(0)
 {
     std::size_t allocSpace = sizeBytes + DefaultMemoryAlignment - 1;
 
@@ -85,7 +85,7 @@ void* BuddyAllocator::alloc(std::size_t sizeBytes)
 
     std::size_t levelSize = size_of_level(level, _alignedSize);
     std::size_t offset = (blockIdx - ((1 << level) - 1)) * levelSize;
-    char* address = static_cast<char*>(_alignedPtr) + offset;
+    char*       address = static_cast<char*>(_alignedPtr) + offset;
 
     Assert(address >= _alignedPtr, "return address is out of bounds");
     Assert(address < (static_cast<char*>(_alignedPtr) + _alignedSize), "return address is out of bounds");
@@ -95,9 +95,9 @@ void* BuddyAllocator::alloc(std::size_t sizeBytes)
 
 void BuddyAllocator::free(void* ptr, std::size_t sizeBytes)
 {
-    const u32 level = targetLevel(sizeBytes, _alignedSize, _levels);
+    const u32   level = targetLevel(sizeBytes, _alignedSize, _levels);
     std::size_t offset = static_cast<char*>(ptr) - static_cast<char*>(_alignedPtr);
-    const u32 blockIdx = static_cast<u32>(offset / size_of_level(level, _alignedSize) + ((1 << level) - 1));
+    const u32   blockIdx = static_cast<u32>(offset / size_of_level(level, _alignedSize) + ((1 << level) - 1));
 
     Assert(!_metaData[blockIdx].split, "trying to free a split block");
     Assert(!_metaData[blockIdx].free, "double free");

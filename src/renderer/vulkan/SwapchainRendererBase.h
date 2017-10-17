@@ -115,4 +115,4 @@ struct REAPER_RENDERER_API VulkanBackend
 
 void create_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& renderer);
 void destroy_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& renderer);
-}
+} // namespace Reaper

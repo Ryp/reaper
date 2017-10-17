@@ -27,4 +27,4 @@ TEST_CASE("Log")
     delete root.log;
     root.log = nullptr;
 }
-}
+} // namespace Reaper
