@@ -53,13 +53,18 @@ inline std::size_t alignOffset(std::size_t offset, std::size_t alignment)
 }
 
 // User-defined literals
-// Here we assume kB = kiB = 1024 bytes
-constexpr std::size_t operator"" _kB(unsigned long long int sizeInkB)
+// 1 kiB = 1024 bytes
+constexpr std::size_t operator"" _kiB(unsigned long long int sizeInkiB)
 {
-    return sizeInkB << 10;
+    return sizeInkiB << 10;
 }
 
-constexpr std::size_t operator"" _MB(unsigned long long int sizeInMB)
+constexpr std::size_t operator"" _MiB(unsigned long long int sizeInMiB)
 {
-    return sizeInMB << 20;
+    return sizeInMiB << 20;
+}
+
+constexpr std::size_t operator"" _GiB(unsigned long long int sizeInGiB)
+{
+    return sizeInGiB << 30;
 }
