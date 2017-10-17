@@ -8,9 +8,11 @@
 #include "pch/stdafx.h"
 #include <doctest/doctest.h>
 
-#include "common/Log.h"
 #include "common/DebugLog.h"
+#include "common/Log.h"
 
+namespace Reaper
+{
 TEST_CASE("Log")
 {
     ReaperRoot root = {};
@@ -25,4 +27,4 @@ TEST_CASE("Log")
     delete root.log;
     root.log = nullptr;
 }
-
+}

@@ -11,6 +11,8 @@
 
 #include "common/ReaperRoot.h"
 
+namespace Reaper
+{
 struct AssetCache
 {
     const std::string m_basePath;
@@ -19,4 +21,4 @@ struct AssetCache
 };
 
 void load_pak_to_asset_cache(ReaperRoot& root, AssetCache& assetCache, const std::string& filename);
-
+}

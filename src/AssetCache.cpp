@@ -15,9 +15,12 @@
 #include <fstream>
 #include <sstream>
 
+namespace Reaper
+{
 AssetCache::AssetCache(const std::string& basePath)
-:   m_basePath(basePath)
-{}
+    : m_basePath(basePath)
+{
+}
 
 void load_pak_to_asset_cache(ReaperRoot& root, AssetCache& assetCache, const std::string& filename)
 {
@@ -38,8 +41,8 @@ void load_pak_to_asset_cache(ReaperRoot& root, AssetCache& assetCache, const std
             continue;
 
         std::istringstream line(lineStr);
-        std::string type;
-        std::string resourceFilename;
+        std::string        type;
+        std::string        resourceFilename;
 
         line >> type;
         line >> resourceFilename;
@@ -54,4 +57,4 @@ void load_pak_to_asset_cache(ReaperRoot& root, AssetCache& assetCache, const std
         log_debug(root, "asset: loaded resource file, type = {}, name = {}", type, resourceFilename);
     }
 }
-
+}

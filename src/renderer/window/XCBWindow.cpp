@@ -11,6 +11,8 @@
 
 #include "renderer/Renderer.h"
 
+namespace Reaper
+{
 XCBWindow::XCBWindow(const WindowCreationDescriptor& creationInfo)
     : Connection()
     , Handle()
@@ -150,4 +152,5 @@ bool XCBWindow::renderLoop(AbstractRenderer* renderer)
         }
     }
     return true;
+}
 }

@@ -7,14 +7,14 @@
 
 #pragma once
 
+namespace Reaper
+{
 class AbstractRenderer;
 
 class REAPER_RENDERER_API IWindow
 {
 public:
-    virtual ~IWindow()
-    {
-    }
+    virtual ~IWindow() {}
     virtual bool renderLoop(AbstractRenderer* renderer) = 0;
 };
 
@@ -27,3 +27,4 @@ struct WindowCreationDescriptor
 };
 
 REAPER_RENDERER_API IWindow* createWindow(const WindowCreationDescriptor& creationInfo);
+}

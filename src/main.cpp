@@ -14,9 +14,15 @@
 
 #include "core/Profile.h"
 
-namespace
+int main(int /*ac*/, char** /*av*/)
 {
-    int reaper_main()
+#if defined(REAPER_USE_MICROPROFILE)
+    MicroProfileOnThreadCreate("Main");
+    MicroProfileSetEnableAllGroups(true);
+    MicroProfileSetForceMetaCounters(true);
+    MicroProfileStartContextSwitchTrace();
+#endif
+
     {
         ReaperRoot root = {};
 
@@ -26,7 +32,7 @@ namespace
         {
             if (create_renderer(&root))
             {
-                Reaper::vulkan_test(root, *root.renderer->backend);
+                vulkan_test(root, *root.renderer->backend);
                 destroy_renderer(&root);
             }
         }
@@ -37,23 +43,11 @@ namespace
 
         return 0;
     }
-}
-
-int main(int /*ac*/, char** /*av*/)
-{
-#if defined(REAPER_USE_MICROPROFILE)
-    MicroProfileOnThreadCreate("Main");
-    MicroProfileSetEnableAllGroups(true);
-    MicroProfileSetForceMetaCounters(true);
-    MicroProfileStartContextSwitchTrace();
-#endif
-
-    int r = reaper_main();
 
 #if defined(REAPER_USE_MICROPROFILE)
     MicroProfileDumpFileImmediately("profile.html", nullptr, nullptr);
     MicroProfileShutdown();
 #endif
 
-    return r;
+    return 0;
 }

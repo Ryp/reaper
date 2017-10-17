@@ -7,14 +7,16 @@
 
 #pragma once
 
+#include "common/ReaperRoot.h"
+
+namespace Reaper
+{
 class IWindow;
 
 class REAPER_RENDERER_API AbstractRenderer
 {
 public:
-    virtual ~AbstractRenderer()
-    {
-    }
+    virtual ~AbstractRenderer() {}
 
 public:
     virtual void startup(IWindow* window) = 0;
@@ -24,8 +26,6 @@ public:
 public:
     static AbstractRenderer* createRenderer();
 };
-
-#include "common/ReaperRoot.h"
 
 struct VulkanBackend;
 
@@ -38,3 +38,4 @@ struct REAPER_RENDERER_API Renderer
 REAPER_RENDERER_API bool create_renderer(ReaperRoot* root);
 REAPER_RENDERER_API void destroy_renderer(ReaperRoot* root);
 REAPER_RENDERER_API void run_renderer(ReaperRoot* root);
+}

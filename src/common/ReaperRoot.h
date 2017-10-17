@@ -7,6 +7,8 @@
 
 #pragma once
 
+namespace Reaper
+{
 class GameLogic;
 class ILog;
 struct Renderer;
@@ -19,3 +21,4 @@ struct ReaperRoot
     ILog*       log;
     AssetCache* assetCache;
 };
+}

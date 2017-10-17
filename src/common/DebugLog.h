@@ -11,16 +11,19 @@
 
 #include <string>
 
+namespace Reaper
+{
 class REAPER_COMMON_API DebugLog : public ILog
 {
-    public:
-        DebugLog(LogLevel level = LogLevel::Debug);
-        virtual ~DebugLog() = default;
+public:
+    DebugLog(LogLevel level = LogLevel::Debug);
+    virtual ~DebugLog() = default;
 
-    public:
-        virtual void log(LogLevel level, const std::string& message) override final;
-        void setLogLevel(LogLevel level);
+public:
+    virtual void log(LogLevel level, const std::string& message) override final;
+    void         setLogLevel(LogLevel level);
 
-    private:
-        LogLevel _logLevel;
+private:
+    LogLevel m_logLevel;
 };
+}
