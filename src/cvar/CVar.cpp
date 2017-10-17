@@ -9,10 +9,10 @@
 
 #include <iostream>
 
-namespace reaper
+namespace Reaper
 {
 CVar::CVar(const std::string& name, int flags)
     : _name(name)
     , _flags(flags)
 {}
-} // namespace reaper
+} // namespace Reaper

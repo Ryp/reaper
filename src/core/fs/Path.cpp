@@ -7,7 +7,9 @@
 
 #include "Path.h"
 
-std::string reaper::getExecutablePath(const std::string& av0)
+namespace Reaper
+{
+std::string getExecutablePath(const std::string& av0)
 {
     std::size_t pos;
 
@@ -15,4 +17,5 @@ std::string reaper::getExecutablePath(const std::string& av0)
         return std::string("./");
     else
         return av0.substr(0, pos + 1);
+}
 }

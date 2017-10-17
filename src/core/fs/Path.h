@@ -9,7 +9,7 @@
 
 #include <string>
 
-namespace reaper
+namespace Reaper
 {
 std::string getExecutablePath(const std::string& av0);
-}
+} // namespace Reaper
