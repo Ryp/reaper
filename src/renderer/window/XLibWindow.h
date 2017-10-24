@@ -11,6 +11,8 @@
 
 #include <X11/Xlib.h>
 
+namespace
+{
 class REAPER_RENDERER_API XLibWindow : public IWindow
 {
 public:
@@ -23,3 +25,4 @@ public:
     Display* DisplayPtr;
     Window   Handle;
 };
+} // namespace Reaper

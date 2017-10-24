@@ -11,6 +11,8 @@
 
 #include "Window.h"
 
+namespace Reaper
+{
 class REAPER_RENDERER_API Win32Window : public IWindow
 {
 public:
@@ -23,3 +25,4 @@ public:
     HINSTANCE Instance;
     HWND      Handle;
 };
+} // namespace Reaper
