@@ -11,6 +11,8 @@
 
 #include "renderer/Renderer.h"
 
+namespace
+{
 XLibWindow::XLibWindow(const WindowCreationDescriptor& creationInfo)
     : DisplayPtr()
     , Handle()
@@ -107,3 +109,4 @@ bool XLibWindow::renderLoop(AbstractRenderer* renderer)
     }
     return true;
 }
+} // namespace Reaper

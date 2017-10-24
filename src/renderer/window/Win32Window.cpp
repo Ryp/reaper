@@ -32,6 +32,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 #define REAPER_WINDOW_INFO "Reaper"
 
+namespace Reaper
+{
 Win32Window::Win32Window(const WindowCreationDescriptor& creationInfo)
     : Instance()
     , Handle()
@@ -142,3 +144,4 @@ bool Win32Window::renderLoop(AbstractRenderer* renderer)
     }
     return true;
 }
+} // namespace Reaper
