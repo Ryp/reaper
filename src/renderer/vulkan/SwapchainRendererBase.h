@@ -16,54 +16,6 @@
 
 namespace Reaper
 {
-class SwapchainRendererBase : public AbstractRenderer
-{
-public:
-    SwapchainRendererBase() = default;
-    ~SwapchainRendererBase() = default;
-
-    virtual void startup(IWindow* window) override;
-    virtual void shutdown() override;
-
-private:
-    void createSemaphores();
-    void createSwapChain();
-    void createRenderPass();
-    void createFramebuffers();
-    void createCommandBufferPool();
-
-private:
-    LibHandle _vulkanLib;
-
-private:
-    VkDebugReportCallbackEXT _debugCallback;
-
-protected:
-    VkPhysicalDevice           _physicalDevice;
-    VkSurfaceKHR               _presentationSurface;
-    VkQueue                    _presentationQueue;
-    VkSwapchainKHR             _swapChain;
-    u32                        _swapChainImageCount;
-    VkFormat                   _swapChainFormat;
-    std::vector<VkImage>       _swapChainImages;
-    std::vector<VkImageView>   _swapChainImageViews;
-    std::vector<VkFramebuffer> _framebuffers;
-    VkSemaphore                _imageAvailableSemaphore;
-    VkSemaphore                _renderingFinishedSemaphore;
-    VkRenderPass               _mainRenderPass;
-
-protected:
-    VkCommandPool                _gfxCmdPool;
-    std::vector<VkCommandBuffer> _gfxCmdBuffers;
-    uint32_t                     _gfxQueueIndex;
-    uint32_t                     _prsQueueIndex;
-
-protected:
-    VkInstance _instance;
-    VkDevice   _device;
-    VkQueue    _graphicsQueue;
-};
-
 struct PresentationInfo
 {
     VkSurfaceKHR               surface;
@@ -91,6 +43,7 @@ struct PhysicalDeviceInfo
 
 struct DeviceInfo
 {
+    // These can point to the same object!
     VkQueue graphicsQueue;
     VkQueue presentQueue;
 };

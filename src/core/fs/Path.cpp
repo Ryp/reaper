@@ -18,4 +18,4 @@ std::string getExecutablePath(const std::string& av0)
     else
         return av0.substr(0, pos + 1);
 }
-}
+} // namespace Reaper

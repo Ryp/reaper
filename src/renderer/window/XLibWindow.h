@@ -25,4 +25,4 @@ public:
     Display* DisplayPtr;
     Window   Handle;
 };
-} // namespace Reaper
+} // namespace
