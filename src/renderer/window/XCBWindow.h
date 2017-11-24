@@ -19,21 +19,16 @@ public:
     XCBWindow(const WindowCreationDescriptor& creationInfo);
     ~XCBWindow();
 
-    bool renderLoop(AbstractRenderer* renderer) override;
-
-private:
-    void handleEvent(xcb_generic_event_t* event);
+    void map() override final;
+    void unmap() override final;
+    void pumpEvents(std::vector<Window::Event>& eventOutput) override final;
 
 public:
-    xcb_connection_t* Connection;
-    xcb_window_t      Handle;
-    xcb_screen_t*     Screen;
+    xcb_connection_t* m_connection;
+    xcb_window_t      m_handle;
+    xcb_screen_t*     m_screen;
 
 private:
-    xcb_intern_atom_reply_t* DeleteWindowReply;
-
-private:
-    bool ShouldResizeASAP;
-    bool IsValid;
+    xcb_intern_atom_reply_t* m_deleteWindowReply;
 };
 } // namespace Reaper

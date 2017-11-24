@@ -7,15 +7,24 @@
 
 #pragma once
 
+#include <vector>
+
 namespace Reaper
 {
+namespace Window
+{
+    struct Event;
+}
+
 class AbstractRenderer;
 
 class REAPER_RENDERER_API IWindow
 {
 public:
     virtual ~IWindow() {}
-    virtual bool renderLoop(AbstractRenderer* renderer) = 0;
+    virtual void map() = 0;
+    virtual void unmap() = 0;
+    virtual void pumpEvents(std::vector<Window::Event>& eventOutput) = 0;
 };
 
 struct WindowCreationDescriptor

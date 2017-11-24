@@ -44,8 +44,8 @@ void vulkan_create_presentation_surface(VkInstance instance, VkSurfaceKHR& vkPre
         VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR, // VkStructureType                  sType
         nullptr,                                       // const void                      *pNext
         0,                                             // VkXcbSurfaceCreateFlagsKHR       flags
-        xcbWindow->Connection,                         // xcb_connection_t*                connection
-        xcbWindow->Handle                              // xcb_window_t                     window
+        xcbWindow->m_connection,                       // xcb_connection_t*                connection
+        xcbWindow->m_handle                            // xcb_window_t                     window
     };
 
     Assert(vkCreateXcbSurfaceKHR(instance, &surface_create_info, nullptr, &vkPresentationSurface) == VK_SUCCESS);
@@ -77,11 +77,11 @@ bool vulkan_queue_family_has_presentation_support(VkPhysicalDevice device, uint3
     XCBWindow* xcbWindow = dynamic_cast<XCBWindow*>(window);
     Assert(xcbWindow != nullptr);
 
-    xcb_screen_t* screen = xcbWindow->Screen;
+    xcb_screen_t* screen = xcbWindow->m_screen;
     Assert(screen != nullptr);
 
     xcb_visualid_t visualId = screen->root_visual;
-    return vkGetPhysicalDeviceXcbPresentationSupportKHR(device, queueFamilyIndex, xcbWindow->Connection, visualId)
+    return vkGetPhysicalDeviceXcbPresentationSupportKHR(device, queueFamilyIndex, xcbWindow->m_connection, visualId)
            == VK_TRUE;
 #elif defined(VK_USE_PLATFORM_XLIB_KHR)
     XLibWindow* xlibWindow = dynamic_cast<XLibWindow*>(window);

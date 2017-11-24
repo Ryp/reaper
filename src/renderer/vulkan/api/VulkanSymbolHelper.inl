@@ -5,27 +5,14 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-// ************************************************************ //
-// Exported functions                                           //
-//                                                              //
-// These functions are always exposed by vulkan libraries.      //
-// ************************************************************ //
-
+// Exported functions
 #ifndef REAPER_VK_EXPORTED_FUNCTION
 #    define REAPER_VK_EXPORTED_FUNCTION(func)
 #endif
 
 REAPER_VK_EXPORTED_FUNCTION(vkGetInstanceProcAddr)
 
-#undef REAPER_VK_EXPORTED_FUNCTION
-
-// ************************************************************ //
-// Global level functions                                       //
-//                                                              //
-// They allow checking what instance extensions are available   //
-// and allow creation of a Vulkan Instance.                     //
-// ************************************************************ //
-
+// Global level functions
 #ifndef REAPER_VK_GLOBAL_LEVEL_FUNCTION
 #    define REAPER_VK_GLOBAL_LEVEL_FUNCTION(func)
 #endif
@@ -34,15 +21,7 @@ REAPER_VK_GLOBAL_LEVEL_FUNCTION(vkCreateInstance)
 REAPER_VK_GLOBAL_LEVEL_FUNCTION(vkEnumerateInstanceExtensionProperties)
 REAPER_VK_GLOBAL_LEVEL_FUNCTION(vkEnumerateInstanceLayerProperties)
 
-#undef REAPER_VK_GLOBAL_LEVEL_FUNCTION
-
-// ************************************************************ //
-// Instance level functions                                     //
-//                                                              //
-// These functions allow for device queries and creation.       //
-// They help choose which device is well suited for our needs.  //
-// ************************************************************ //
-
+// Instance level functions
 #ifndef REAPER_VK_INSTANCE_LEVEL_FUNCTION
 #    define REAPER_VK_INSTANCE_LEVEL_FUNCTION(func)
 #endif
@@ -57,39 +36,15 @@ REAPER_VK_INSTANCE_LEVEL_FUNCTION(vkGetDeviceProcAddr)
 REAPER_VK_INSTANCE_LEVEL_FUNCTION(vkEnumerateDeviceExtensionProperties)
 REAPER_VK_INSTANCE_LEVEL_FUNCTION(vkGetPhysicalDeviceMemoryProperties)
 REAPER_VK_INSTANCE_LEVEL_FUNCTION(vkGetPhysicalDeviceFormatProperties)
-// From extensions
-#if defined(REAPER_VK_USE_SWAPCHAIN_EXTENSIONS)
-REAPER_VK_INSTANCE_LEVEL_FUNCTION(vkDestroySurfaceKHR)
-REAPER_VK_INSTANCE_LEVEL_FUNCTION(vkGetPhysicalDeviceSurfaceSupportKHR)
-REAPER_VK_INSTANCE_LEVEL_FUNCTION(vkGetPhysicalDeviceSurfaceCapabilitiesKHR)
-REAPER_VK_INSTANCE_LEVEL_FUNCTION(vkGetPhysicalDeviceSurfaceFormatsKHR)
-REAPER_VK_INSTANCE_LEVEL_FUNCTION(vkGetPhysicalDeviceSurfacePresentModesKHR)
-#    if defined(VK_USE_PLATFORM_WIN32_KHR)
-REAPER_VK_INSTANCE_LEVEL_FUNCTION(vkGetPhysicalDeviceWin32PresentationSupportKHR)
-REAPER_VK_INSTANCE_LEVEL_FUNCTION(vkCreateWin32SurfaceKHR)
-#    elif defined(VK_USE_PLATFORM_XCB_KHR)
-REAPER_VK_INSTANCE_LEVEL_FUNCTION(vkGetPhysicalDeviceXcbPresentationSupportKHR)
-REAPER_VK_INSTANCE_LEVEL_FUNCTION(vkCreateXcbSurfaceKHR)
-#    elif defined(VK_USE_PLATFORM_XLIB_KHR)
-REAPER_VK_INSTANCE_LEVEL_FUNCTION(vkGetPhysicalDeviceXlibPresentationSupportKHR)
-REAPER_VK_INSTANCE_LEVEL_FUNCTION(vkCreateXlibSurfaceKHR)
-#    endif
-#endif
 
+// Separate these
 #if defined(REAPER_DEBUG)
 REAPER_VK_INSTANCE_LEVEL_FUNCTION(vkCreateDebugReportCallbackEXT)
 REAPER_VK_INSTANCE_LEVEL_FUNCTION(vkDebugReportMessageEXT)
 REAPER_VK_INSTANCE_LEVEL_FUNCTION(vkDestroyDebugReportCallbackEXT)
 #endif
 
-#undef REAPER_VK_INSTANCE_LEVEL_FUNCTION
-
-// ************************************************************ //
-// Device level functions                                       //
-//                                                              //
-// These functions are used mainly for drawing                  //
-// ************************************************************ //
-
+// Device level functions
 #ifndef REAPER_VK_DEVICE_LEVEL_FUNCTION
 #    define REAPER_VK_DEVICE_LEVEL_FUNCTION(func)
 #endif
@@ -106,7 +61,9 @@ REAPER_VK_DEVICE_LEVEL_FUNCTION(vkCreateCommandPool)
 REAPER_VK_DEVICE_LEVEL_FUNCTION(vkDestroyCommandPool)
 REAPER_VK_DEVICE_LEVEL_FUNCTION(vkAllocateCommandBuffers)
 REAPER_VK_DEVICE_LEVEL_FUNCTION(vkAllocateDescriptorSets)
+REAPER_VK_DEVICE_LEVEL_FUNCTION(vkFreeDescriptorSets)
 REAPER_VK_DEVICE_LEVEL_FUNCTION(vkBeginCommandBuffer)
+REAPER_VK_DEVICE_LEVEL_FUNCTION(vkResetCommandBuffer)
 REAPER_VK_DEVICE_LEVEL_FUNCTION(vkCmdPipelineBarrier)
 REAPER_VK_DEVICE_LEVEL_FUNCTION(vkCmdClearColorImage)
 REAPER_VK_DEVICE_LEVEL_FUNCTION(vkEndCommandBuffer)
@@ -127,12 +84,14 @@ REAPER_VK_DEVICE_LEVEL_FUNCTION(vkDestroyShaderModule)
 REAPER_VK_DEVICE_LEVEL_FUNCTION(vkCreatePipelineLayout)
 REAPER_VK_DEVICE_LEVEL_FUNCTION(vkDestroyPipelineLayout)
 REAPER_VK_DEVICE_LEVEL_FUNCTION(vkCreateGraphicsPipelines)
+REAPER_VK_DEVICE_LEVEL_FUNCTION(vkCreateComputePipelines)
 REAPER_VK_DEVICE_LEVEL_FUNCTION(vkDestroyPipeline)
 REAPER_VK_DEVICE_LEVEL_FUNCTION(vkCmdBeginRenderPass)
 REAPER_VK_DEVICE_LEVEL_FUNCTION(vkCmdEndRenderPass)
 REAPER_VK_DEVICE_LEVEL_FUNCTION(vkCmdBindPipeline)
 REAPER_VK_DEVICE_LEVEL_FUNCTION(vkCmdDraw)
 REAPER_VK_DEVICE_LEVEL_FUNCTION(vkCmdDrawIndexed)
+REAPER_VK_DEVICE_LEVEL_FUNCTION(vkCmdDispatch)
 REAPER_VK_DEVICE_LEVEL_FUNCTION(vkCreateImage)
 REAPER_VK_DEVICE_LEVEL_FUNCTION(vkCmdCopyImage)
 REAPER_VK_DEVICE_LEVEL_FUNCTION(vkDestroyImage)
@@ -156,13 +115,10 @@ REAPER_VK_DEVICE_LEVEL_FUNCTION(vkResetFences)
 REAPER_VK_DEVICE_LEVEL_FUNCTION(vkWaitForFences)
 REAPER_VK_DEVICE_LEVEL_FUNCTION(vkCreateSampler)
 REAPER_VK_DEVICE_LEVEL_FUNCTION(vkDestroySampler)
-// From extensions
-#if defined(REAPER_VK_USE_SWAPCHAIN_EXTENSIONS)
-REAPER_VK_DEVICE_LEVEL_FUNCTION(vkCreateSwapchainKHR)
-REAPER_VK_DEVICE_LEVEL_FUNCTION(vkDestroySwapchainKHR)
-REAPER_VK_DEVICE_LEVEL_FUNCTION(vkGetSwapchainImagesKHR)
-REAPER_VK_DEVICE_LEVEL_FUNCTION(vkAcquireNextImageKHR)
-REAPER_VK_DEVICE_LEVEL_FUNCTION(vkQueuePresentKHR)
-#endif
 
+#include "VulkanSymbolHelperSwapchainKHR.inl"
+
+#undef REAPER_VK_EXPORTED_FUNCTION
+#undef REAPER_VK_GLOBAL_LEVEL_FUNCTION
+#undef REAPER_VK_INSTANCE_LEVEL_FUNCTION
 #undef REAPER_VK_DEVICE_LEVEL_FUNCTION

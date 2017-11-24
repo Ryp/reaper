@@ -7,12 +7,14 @@
 
 #pragma once
 
-#include "common/ReaperRoot.h"
-
-#include "SwapchainRendererBase.h"
+#include "api/Vulkan.h"
 
 namespace Reaper
 {
+struct ReaperRoot;
+struct VulkanBackend;
+struct PresentationInfo;
+
 struct SwapchainDescriptor
 {
     uint32_t           preferredImageCount; // Can fallback on different modes
@@ -20,9 +22,15 @@ struct SwapchainDescriptor
     VkExtent2D         preferredExtent;     // Set this to the window's size if not used
 };
 
-void create_vulkan_swapchain(ReaperRoot& root, const VulkanBackend& backend, const SwapchainDescriptor& swapchainDesc,
-                             PresentationInfo& presentInfo);
-void destroy_vulkan_swapchain(ReaperRoot& root, const VulkanBackend& backend, PresentationInfo& presentInfo);
+// Window Manager API
+void configure_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backend,
+                                   const SwapchainDescriptor& swapchainDesc, PresentationInfo& presentInfo);
+
+void create_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backend, PresentationInfo& presentInfo);
+void destroy_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backend, PresentationInfo& presentInfo);
+
+void resize_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backend, PresentationInfo& presentInfo,
+                                VkExtent2D extent);
 
 void create_swapchain_framebuffers(const VulkanBackend& backend, PresentationInfo& presentInfo);
 void destroy_swapchain_framebuffers(const VulkanBackend& backend, PresentationInfo& presentInfo);
