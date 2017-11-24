@@ -18,20 +18,24 @@ namespace Reaper
 {
 struct PresentationInfo
 {
-    VkSurfaceKHR               surface;
-    VkSurfaceCapabilitiesKHR   surfaceCaps;
-    VkSurfaceFormatKHR         surfaceFormat;
+    VkSurfaceKHR surface;
+
+    // Split this in another struct
+    VkSurfaceCapabilitiesKHR      surfaceCaps;
+    VkSurfaceFormatKHR            surfaceFormat;
+    u32                           imageCount;
+    VkPresentModeKHR              presentMode;
+    VkExtent2D                    surfaceExtent;
+    VkImageUsageFlags             usageFlags;
+    VkSurfaceTransformFlagBitsKHR transform;
+
     VkSwapchainKHR             swapchain;
-    VkExtent2D                 surfaceExtent;
     VkSemaphore                imageAvailableSemaphore;
     VkSemaphore                renderingFinishedSemaphore;
-    u32                        imageCount;
     std::vector<VkImage>       images;
     std::vector<VkImageView>   imageViews;
     std::vector<VkFramebuffer> framebuffers;
     VkRenderPass               renderPass;
-
-    PresentationInfo();
 };
 
 struct PhysicalDeviceInfo

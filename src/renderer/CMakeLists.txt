@@ -92,6 +92,8 @@ set(REAPER_RENDERER_SRCS
     ${REAPER_RENDERER_DIR}/vulkan/api/VulkanStringConversion.h
     ${REAPER_RENDERER_DIR}/vulkan/api/VulkanSymbolHelper.inl
 
+    ${REAPER_RENDERER_DIR}/window/Event.cpp
+    ${REAPER_RENDERER_DIR}/window/Event.h
     ${REAPER_RENDERER_DIR}/window/Window.cpp
     ${REAPER_RENDERER_DIR}/window/Window.h
 )
@@ -132,8 +134,11 @@ set(REAPER_GLSL_SRCS
     ${REAPER_GLSL_DIR}/samples/texture.vert
     ${REAPER_GLSL_DIR}/samples/uniform.frag
     ${REAPER_GLSL_DIR}/samples/uniform.vert
+    ${REAPER_GLSL_DIR}/blit.frag
+    ${REAPER_GLSL_DIR}/blit.vert
     ${REAPER_GLSL_DIR}/mesh_shade.frag
     ${REAPER_GLSL_DIR}/mesh_shade.vert
+    ${REAPER_GLSL_DIR}/test.comp
 )
 
 add_glslang_spirv_targets(REAPER_SPIRV_OUTPUT ${REAPER_GLSL_SRCS})

@@ -5,21 +5,21 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "SwapchainRendererBase.h"
+
 // TODO use Pimpl to prevent name clashes between Xlib and fmt and move this include forward
 #include "common/Log.h"
 
 #include "core/Profile.h"
 
+#include "Display.h"
 #include "Swapchain.h"
-#include "SwapchainRendererBase.h"
 
 #include <cstring>
 #include <iostream>
 
 #include "PresentationSurface.h"
 #include "renderer/window/Window.h"
-
-using namespace vk;
 
 namespace Reaper
 {
@@ -41,21 +41,6 @@ bool vulkan_check_physical_device(IWindow*                        window,
 void vulkan_choose_physical_device(ReaperRoot& root, VulkanBackend& backend, PhysicalDeviceInfo& physicalDeviceInfo);
 void vulkan_create_logical_device(ReaperRoot& root, VulkanBackend& backend);
 
-PresentationInfo::PresentationInfo()
-    : surface(VK_NULL_HANDLE)
-    , surfaceCaps()
-    , surfaceFormat({VK_FORMAT_UNDEFINED, VK_COLORSPACE_SRGB_NONLINEAR_KHR})
-    , swapchain(VK_NULL_HANDLE)
-    , surfaceExtent({0, 0})
-    , imageAvailableSemaphore(VK_NULL_HANDLE)
-    , renderingFinishedSemaphore(VK_NULL_HANDLE)
-    , imageCount(0)
-    , images()
-    , imageViews()
-    , framebuffers()
-    , renderPass(VK_NULL_HANDLE)
-{}
-
 VulkanBackend::VulkanBackend()
     : vulkanLib(nullptr)
     , instance(VK_NULL_HANDLE)
@@ -63,7 +48,7 @@ VulkanBackend::VulkanBackend()
     , physicalDeviceInfo({0, 0, {}})
     , device(VK_NULL_HANDLE)
     , deviceInfo({VK_NULL_HANDLE, VK_NULL_HANDLE})
-    , presentInfo()
+    , presentInfo({})
     , debugCallback(VK_NULL_HANDLE)
 {}
 
@@ -164,12 +149,13 @@ void create_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& backend)
 
     SwapchainDescriptor swapchainDesc;
     swapchainDesc.preferredImageCount = 2; // Double buffering
-    // swapchainDesc.preferredFormat = { VK_FORMAT_R8G8B8A8_UNORM, VK_COLORSPACE_SRGB_NONLINEAR_KHR };
     swapchainDesc.preferredFormat = {VK_FORMAT_B8G8R8A8_UNORM, VK_COLORSPACE_SRGB_NONLINEAR_KHR};
     swapchainDesc.preferredExtent = {windowDescriptor.width, windowDescriptor.height};
-    // swapchainDesc.preferredExtent = { 1920, 1080 };
 
-    create_vulkan_swapchain(root, backend, swapchainDesc, backend.presentInfo);
+    configure_vulkan_wm_swapchain(root, backend, swapchainDesc, backend.presentInfo);
+    create_vulkan_wm_swapchain(root, backend, backend.presentInfo);
+
+    // create_vulkan_display_swapchain(root, backend);
 
     log_info(root, "vulkan: ready");
 }
@@ -179,7 +165,7 @@ void destroy_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& backend)
     REAPER_PROFILE_SCOPE("Vulkan", MP_RED1);
     log_info(root, "vulkan: destroying backend");
 
-    destroy_vulkan_swapchain(root, backend, backend.presentInfo);
+    destroy_vulkan_wm_swapchain(root, backend, backend.presentInfo);
 
     log_debug(root, "vulkan: waiting for current work to finish");
     Assert(vkDeviceWaitIdle(backend.device) == VK_SUCCESS);
@@ -223,7 +209,7 @@ void vulkan_instance_check_extensions(const std::vector<const char*>& extensions
             if (std::strcmp(available_extensions[j].extensionName, extensions[i]) == 0)
                 found = true;
         }
-        Assert(found, "extension not found");
+        Assert(found, fmt::format("vulkan: extension '{}' not supported by the instance", extensions[i]));
     }
 }
 
@@ -244,7 +230,7 @@ void vulkan_instance_check_layers(const std::vector<const char*>& layers)
             if (std::strcmp(available_layers[j].layerName, layers[i]) == 0)
                 found = true;
         }
-        Assert(found, "layer not found");
+        Assert(found, fmt::format("vulkan: layer '{}' not supported by the instance", layers[i]));
     }
 }
 
@@ -316,7 +302,7 @@ void vulkan_device_check_extensions(const std::vector<const char*>& extensions, 
             if (std::strcmp(available_extensions[j].extensionName, extensions[i]) == 0)
                 found = true;
         }
-        Assert(found, "extension not found");
+        Assert(found, fmt::format("vulkan: extension '{}' not supported by the device", extensions[i]));
     }
 }
 
