@@ -84,7 +84,7 @@ set(REAPER_BIN reaper)
 # Set precompiled header
 set(REAPER_PCH ${CMAKE_SOURCE_DIR}/src/pch/stdafx.h)
 
-configure_file(${CMAKE_SOURCE_DIR}/src/core/Version.h.in ${CMAKE_SOURCE_DIR}/src/core/Version.h NEWLINE_STYLE LF)
+configure_file(${CMAKE_SOURCE_DIR}/src/core/Version.h.in ${CMAKE_SOURCE_DIR}/src/core/Version.h NEWLINE_STYLE UNIX)
 
 # Choose windowing system
 if(WIN32)
