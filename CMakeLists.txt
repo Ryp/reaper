@@ -59,12 +59,18 @@ include(Reaper)
 
 # Auto-update git hooks
 if(REAPER_GIT_HOOKS_AUTO_UPDATE)
-    find_program(CLANG_FORMAT_EXEC clang-format)
+    include(clang-format)
 
-    if(CLANG_FORMAT_EXEC)
-        message(STATUS "Found clang-format")
-    else()
-        message(FATAL_ERROR "Could not find clang-format")
+    # Check if the executable is available
+    if(NOT CLANG_FORMAT)
+        message(FATAL_ERROR "clang-format is required")
+    endif()
+
+    set(REAPER_CLANG_FORMAT_REQUIRED_VERSION 6.0.0)
+
+    # Check that we meet the requirements
+    if(CLANG_FORMAT_VERSION VERSION_LESS ${REAPER_CLANG_FORMAT_REQUIRED_VERSION})
+        message(FATAL_ERROR "clang-format ${REAPER_CLANG_FORMAT_REQUIRED_VERSION} is required")
     endif()
 
     reaper_update_git_hooks()
