@@ -18,6 +18,9 @@ set(MICROPROFILE_SRCS
 
 configure_file(${CMAKE_SOURCE_DIR}/external/microprofile.config.h.in ${MICROPROFILE_INCLUDE_DIR}/microprofile.config.h NEWLINE_STYLE LF)
 
+add_definitions(-DREAPER_USE_MICROPROFILE) # Also define the macro for C++ code
+add_definitions(-DMICROPROFILE_USE_CONFIG) # Get microprofile to include our custom conf
+
 add_library(${MICROPROFILE_BIN} ${REAPER_BUILD_TYPE} ${MICROPROFILE_SRCS})
 reaper_configure_external_target(${MICROPROFILE_BIN} "Microprofile")
 
