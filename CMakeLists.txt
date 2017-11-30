@@ -79,94 +79,9 @@ endif()
 include(cotire)
 include(glslang)
 
+# Setup microprofile
 if(REAPER_USE_MICROPROFILE)
-    add_definitions(-DREAPER_USE_MICROPROFILE) # Also define the macro for C++ code
-    add_definitions(-DMICROPROFILE_USE_CONFIG) # Get microprofile to include our custom conf
     include(microprofile)
 endif()
 
-set(REAPER_BIN reaper)
-
-# Set precompiled header
-set(REAPER_PCH ${CMAKE_SOURCE_DIR}/src/pch/stdafx.h)
-
-configure_file(${CMAKE_SOURCE_DIR}/src/core/Version.h.in ${CMAKE_SOURCE_DIR}/src/core/Version.h NEWLINE_STYLE UNIX)
-
-# Choose windowing system
-if(WIN32)
-    set(REAPER_USE_WIN32_WINDOW ON)
-    set(VK_PLATFORM "VK_USE_PLATFORM_WIN32_KHR")
-elseif(APPLE OR UNIX)
-    set(REAPER_USE_XCB_WINDOW ON)
-    set(VK_PLATFORM "VK_USE_PLATFORM_XCB_KHR")
-    #set(REAPER_USE_XLIB_WINDOW ON)
-    #set(VK_PLATFORM "VK_USE_PLATFORM_XLIB_KHR")
-else()
-    # We could allow headless instances without problems
-    message(FATAL_ERROR "Could not detect platform!")
-endif()
-add_definitions(-D${VK_PLATFORM})
-
-add_subdirectory(src/core)
-add_subdirectory(src/math)
-add_subdirectory(src/mesh)
-add_subdirectory(src/common)
-add_subdirectory(src/gamelogic)
-add_subdirectory(src/renderer)
-
-add_subdirectory(src/splinesonic)
-
-set(REAPER_SRCS
-    ${CMAKE_SOURCE_DIR}/src/main.cpp
-
-    ${CMAKE_SOURCE_DIR}/src/AssetCache.cpp
-    ${CMAKE_SOURCE_DIR}/src/AssetCache.h
-
-    ${CMAKE_SOURCE_DIR}/src/cvar/CVar.cpp
-    ${CMAKE_SOURCE_DIR}/src/cvar/CVar.h
-
-#     ${CMAKE_SOURCE_DIR}/src/input/AbstractController.cpp
-#     ${CMAKE_SOURCE_DIR}/src/input/AbstractController.h
-#     ${CMAKE_SOURCE_DIR}/src/input/SixAxisController.cpp
-#     ${CMAKE_SOURCE_DIR}/src/input/SixAxisController.h
-
-    ${CMAKE_SOURCE_DIR}/src/pch/stdafx.h
-
-    ${CMAKE_SOURCE_DIR}/src/resource/Resource.cpp
-    ${CMAKE_SOURCE_DIR}/src/resource/Resource.h
-)
-
-# List additionnal natvis files for Visual Studio
-if(MSVC)
-    set(REAPER_NATVIS_FILES
-        ${CMAKE_SOURCE_DIR}/external/glm/util/glm.natvis
-    )
-endif()
-
-add_executable(${REAPER_BIN} ${REAPER_SRCS} ${REAPER_NATVIS_FILES})
-reaper_configure_executable(${REAPER_BIN} "Reaper")
-
-# Configure main VS projet
-set_target_properties(${REAPER_BIN} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
-set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${REAPER_BIN})
-
-#User includes dirs (won't hide warnings)
-target_include_directories(${REAPER_BIN} PUBLIC
-    ${CMAKE_SOURCE_DIR}/src)
-
-#External includes dirs (won't show warnings)
-target_include_directories(${REAPER_BIN} SYSTEM PUBLIC
-    ${CMAKE_SOURCE_DIR}/external)
-
-#Libraries
-target_link_libraries(${REAPER_BIN}
-    ${MICROPROFILE_BIN}
-    ${REAPER_CORE_BIN}
-    ${REAPER_COMMON_BIN}
-    ${REAPER_GAMELOGIC_BIN}
-    ${REAPER_MATH_BIN}
-    ${REAPER_MESH_BIN}
-    ${REAPER_RENDERER_BIN})
-
-set_target_properties(${REAPER_BIN} PROPERTIES COTIRE_CXX_PREFIX_HEADER_INIT ${REAPER_PCH})
-cotire(${REAPER_BIN})
+add_subdirectory(src)
