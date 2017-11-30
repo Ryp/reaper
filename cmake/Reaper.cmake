@@ -169,3 +169,13 @@ macro(reaper_update_git_hooks)
     # Setup hooks
     configure_file(${REAPER_HOOKS_DIR}/pre-commit.sh ${GIT_HOOKS_DIR}/pre-commit @ONLY)
 endmacro()
+
+# Generic utility to declare version variables in the current scope
+# ex: set_program_version(MYTOOL 4.5.6)
+# will define MYTOOL_VERSION_MAJOR to 4, MYTOOL_VERSION_MINOR to 5, etc...
+function(set_program_version program_prefix version_major version_minor version_patch)
+    set(${program_prefix}_VERSION_MAJOR ${version_major} PARENT_SCOPE)
+    set(${program_prefix}_VERSION_MINOR ${version_minor} PARENT_SCOPE)
+    set(${program_prefix}_VERSION_PATCH ${version_patch} PARENT_SCOPE)
+    set(${program_prefix}_VERSION "${version_major}.${version_minor}.${version_patch}" PARENT_SCOPE)
+endfunction()
