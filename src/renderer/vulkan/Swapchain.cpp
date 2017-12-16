@@ -122,8 +122,8 @@ void create_vulkan_swapchain(ReaperRoot& root, const VulkanBackend& backend, con
 
     log_debug(root, "vulkan: swapchain supports {} formats", formats_count);
     for (auto& format : surface_formats)
-        log_debug(root, "- pixel format = {}, colorspace = {}", format.format,
-                  format.colorSpace); // TODO to_string() function
+        log_debug(root, "- pixel format = {}, colorspace = {}", GetFormatToString(format.format),
+                  GetColorSpaceKHRToString(format.colorSpace));
 
     VkSurfaceFormatKHR surfaceFormat =
         vulkan_swapchain_choose_surface_format(surface_formats, swapchainDesc.preferredFormat);

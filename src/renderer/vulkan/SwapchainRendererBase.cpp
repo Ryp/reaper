@@ -37,25 +37,9 @@ bool vulkan_check_physical_device(IWindow*                        window,
                                   const std::vector<const char*>& extensions,
                                   uint32_t&                       queue_family_index,
                                   uint32_t&                       selected_present_queue_family_index);
+
 void vulkan_choose_physical_device(ReaperRoot& root, VulkanBackend& backend, PhysicalDeviceInfo& physicalDeviceInfo);
 void vulkan_create_logical_device(ReaperRoot& root, VulkanBackend& backend);
-
-namespace
-{
-    VkBool32 debugReportCallbackMf(VkDebugReportFlagsEXT /*flags*/,
-                                   VkDebugReportObjectTypeEXT /*objectType*/,
-                                   uint64_t /*object*/,
-                                   size_t /*location*/,
-                                   int32_t /*messageCode*/,
-                                   const char* /*pLayerPrefix*/,
-                                   const char* pMessage,
-                                   void* /*pUserData*/)
-    {
-        Assert(false, pMessage);
-        // std::cerr << pMessage << std::endl;
-        return VK_FALSE;
-    }
-} // namespace
 
 PresentationInfo::PresentationInfo()
     : surface(VK_NULL_HANDLE)
