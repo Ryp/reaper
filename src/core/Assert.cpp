@@ -30,7 +30,7 @@ inline void breakpoint()
 #endif
 }
 
-void AssertImpl(bool condition, const char* file, const char* func, int line, const std::string& message)
+void AssertImpl(const char* file, const char* func, int line, bool condition, const std::string& message)
 {
     if (condition)
         return;
