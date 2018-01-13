@@ -102,7 +102,6 @@ macro(reaper_configure_target_common target project_label)
         target_compile_options(${target} PRIVATE "/MP") # Enable multi-threaded compilation
     elseif(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
         target_compile_options(${target} PRIVATE "-fvisibility=hidden")
-        add_clang_tidy_flags(${target}) # May give false positives when using GCC
     elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
         target_compile_options(${target} PRIVATE "-fvisibility=hidden")
         add_clang_tidy_flags(${target})
