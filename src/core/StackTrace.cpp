@@ -61,5 +61,5 @@ void printStacktrace()
 }
 
 #else
-#    error printStacktrace() not available!
+#    error "printStacktrace() not available!"
 #endif

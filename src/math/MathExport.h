@@ -20,5 +20,5 @@
 #elif defined(REAPER_BUILD_STATIC)
 #    define REAPER_MATH_API
 #else
-#    error Build type must be defined
+#    error "Build type must be defined"
 #endif

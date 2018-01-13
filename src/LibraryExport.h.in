@@ -20,5 +20,5 @@
 #elif defined(REAPER_BUILD_STATIC)
 #    define @LIBRARY_API_MACRO@
 #else
-#    error Build type must be defined
+#    error "Build type must be defined"
 #endif

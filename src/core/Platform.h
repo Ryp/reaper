@@ -18,7 +18,7 @@
 #elif defined(__MACOSX__) || (defined(__APPLE__) && defined(__MACH__)
 #    define REAPER_PLATFORM_MACOSX
 #else
-#    error Platform not recognised!
+#    error "Platform not recognised!"
 #endif
 
 // Identify CPU architecture
@@ -31,7 +31,7 @@
 #    define REAPER_CPU_ARCH_X86
 #    define REAPER_CPU_ARCH_X86_32
 #else
-#    error CPU not recognised!
+#    error "CPU not recognised!"
 #endif
 
 // NDEBUG must be defined (or not) by the build system
