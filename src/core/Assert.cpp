@@ -26,7 +26,7 @@ inline void breakpoint()
 #elif defined(REAPER_PLATFORM_MACOSX) && defined(REAPER_CPU_ARCH_X86)
     __asm__("int $3");
 #else
-#    error breakpoint() not available!
+#    error "breakpoint() not available!"
 #endif
 }
 

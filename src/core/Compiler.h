@@ -17,7 +17,7 @@
 #elif defined(_MSC_VER)
 #    define REAPER_COMPILER_MSVC
 #else
-#    error Compiler not recognised!
+#    error "Compiler not recognised!"
 #endif
 
 // Define symbol export/import macros
@@ -28,5 +28,5 @@
 #    define REAPER_EXPORT __declspec(dllexport)
 #    define REAPER_IMPORT __declspec(dllimport)
 #else
-#    error Could not define import and export macros !
+#    error "Could not define import and export macros !"
 #endif

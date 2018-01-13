@@ -14,7 +14,7 @@
 #elif defined(VK_USE_PLATFORM_XLIB_KHR)
 #    include "renderer/window/XLibWindow.h"
 #else
-#    error Unsupported WSI!
+#    error "Unsupported WSI!"
 #endif
 
 namespace Reaper
@@ -63,7 +63,7 @@ void vulkan_create_presentation_surface(VkInstance instance, VkSurfaceKHR& vkPre
 
     Assert(vkCreateXlibSurfaceKHR(instance, &surface_create_info, nullptr, &vkPresentationSurface) == VK_SUCCESS);
 #else
-#    error Unsupported WSI!
+#    error "Unsupported WSI!"
 #endif
     Assert(vkPresentationSurface != VK_NULL_HANDLE);
 }
@@ -99,7 +99,7 @@ bool vulkan_queue_family_has_presentation_support(VkPhysicalDevice device, uint3
     return vkGetPhysicalDeviceXlibPresentationSupportKHR(device, queueFamilyIndex, xlibWindow->DisplayPtr, visualId)
            == VK_TRUE;
 #else
-#    error Unsupported WSI!
+#    error "Unsupported WSI!"
 #endif
 }
 } // namespace Reaper

@@ -61,7 +61,7 @@ static size_t cacheLineSizeImpl()
 }
 
 #else
-#    error cacheLineSize() not implemented for this platform
+#    error "cacheLineSize() not implemented for this platform"
 #endif
 
 size_t cacheLineSize()

@@ -95,6 +95,6 @@ bool isInDebugger()
 
 #else
 
-#    error debugger detection not available!
+#    error "debugger detection not available!"
 
 #endif
