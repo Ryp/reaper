@@ -1,0 +1,17 @@
+FROM ubuntu:18.04
+RUN apt-get update && apt-get install locales
+
+# Set the locale
+RUN locale-gen en_US.UTF-8
+ENV LANG en_US.UTF-8
+ENV LANGUAGE en_US:en
+ENV LC_ALL en_US.UTF-8
+
+# Install dependencies
+RUN apt-get update && apt-get install -y                                                                        \
+    wget unzip build-essential cmake gcc                                                                        \
+    libassimp-dev libvulkan-dev libunwind-dev libx11-xcb-dev
+
+RUN wget https://github.com/KhronosGroup/glslang/releases/download/master-tot/glslang-master-linux-Release.zip  \
+    && unzip glslang-master-linux-Release.zip                                                                   \
+    && cp bin/glslangValidator /usr/bin/
