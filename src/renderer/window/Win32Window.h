@@ -19,10 +19,12 @@ public:
     Win32Window(const WindowCreationDescriptor& creationInfo);
     ~Win32Window();
 
-    bool renderLoop(AbstractRenderer* renderer) override;
+    void map() override final;
+    void unmap() override final;
+    void pumpEvents(std::vector<Window::Event>& eventOutput) override final;
 
 public:
-    HINSTANCE Instance;
-    HWND      Handle;
+    HINSTANCE m_instance;
+    HWND      m_handle;
 };
 } // namespace Reaper

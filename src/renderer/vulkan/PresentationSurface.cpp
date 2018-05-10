@@ -31,8 +31,8 @@ void vulkan_create_presentation_surface(VkInstance instance, VkSurfaceKHR& vkPre
         VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR, // VkStructureType                  sType
         nullptr,                                         // const void                      *pNext
         0,                                               // VkWin32SurfaceCreateFlagsKHR     flags
-        win32Window->Instance,                           // HINSTANCE                        hinstance
-        win32Window->Handle                              // HWND                             hwnd
+        win32Window->m_instance,                         // HINSTANCE                        hinstance
+        win32Window->m_handle                            // HWND                             hwnd
     };
 
     Assert(vkCreateWin32SurfaceKHR(instance, &surface_create_info, nullptr, &vkPresentationSurface) == VK_SUCCESS);

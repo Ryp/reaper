@@ -11,7 +11,7 @@ elseif(WIN32)
     set(REAPER_DEPS_LOCATION ${CMAKE_SOURCE_DIR}/external/downloaded)
     set(REAPER_DEPS_ARCHIVE ${REAPER_DEPS_LOCATION}/deps.tar.gz)
 
-    file(DOWNLOAD "https://www.dropbox.com/s/1a0ahbhsjsljmdw/reaper-deps-r1-2016-06-28.tar.gz?dl=0" ${REAPER_DEPS_ARCHIVE}
+    file(DOWNLOAD "https://www.dropbox.com/s/1a0ahbhsjsljmdw/reaper-deps-r1-2016-06-28.tar.gz?dl=1" ${REAPER_DEPS_ARCHIVE}
         EXPECTED_HASH MD5=857a1318f9fde1efb355c427d9bf94ff
         INACTIVITY_TIMEOUT 10
         SHOW_PROGRESS)

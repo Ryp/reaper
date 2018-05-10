@@ -7,7 +7,12 @@
 
 #include "Win32Window.h"
 
+#include "Event.h"
+
 #include "renderer/Renderer.h"
+
+#define REAPER_WM_RESIZE (WM_USER + 1)
+#define REAPER_WM_CLOSE (WM_USER + 2)
 
 namespace
 {
@@ -17,11 +22,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     {
     case WM_SIZE:
     case WM_EXITSIZEMOVE:
-        PostMessage(hWnd, WM_USER + 1, wParam, lParam);
+        PostMessage(hWnd, REAPER_WM_RESIZE, wParam, lParam);
         break;
     case WM_KEYDOWN:
     case WM_CLOSE:
-        PostMessage(hWnd, WM_USER + 2, wParam, lParam);
+        PostMessage(hWnd, REAPER_WM_CLOSE, wParam, lParam);
         break;
     default:
         return DefWindowProc(hWnd, message, wParam, lParam);
@@ -30,16 +35,17 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 }
 } // namespace
 
+// FIXME
 #define REAPER_WINDOW_INFO "Reaper"
 
 namespace Reaper
 {
 Win32Window::Win32Window(const WindowCreationDescriptor& creationInfo)
-    : Instance()
-    , Handle()
+    : m_instance()
+    , m_handle()
 {
-    Instance = GetModuleHandle(nullptr);
-    Assert(Instance != nullptr);
+    m_instance = GetModuleHandle(nullptr);
+    Assert(m_instance != nullptr);
 
     // Register window class
     WNDCLASSEX wcex;
@@ -50,7 +56,7 @@ Win32Window::Win32Window(const WindowCreationDescriptor& creationInfo)
     wcex.lpfnWndProc = WndProc;
     wcex.cbClsExtra = 0;
     wcex.cbWndExtra = 0;
-    wcex.hInstance = Instance;
+    wcex.hInstance = m_instance;
     wcex.hIcon = nullptr;
     wcex.hCursor = LoadCursor(nullptr, IDC_ARROW);
     wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
@@ -85,63 +91,50 @@ Win32Window::Win32Window(const WindowCreationDescriptor& creationInfo)
     const LPVOID param = nullptr;
 
     // Create window
-    Handle = CreateWindow(REAPER_WINDOW_INFO, creationInfo.title, style, rect.left, rect.top, rect.right - rect.left,
-                          rect.bottom - rect.top, parent, menu, Instance, param);
-    Assert(Handle != nullptr);
+    m_handle = CreateWindow(REAPER_WINDOW_INFO, creationInfo.title, style, rect.left, rect.top, rect.right - rect.left,
+                            rect.bottom - rect.top, parent, menu, m_instance, param);
+    Assert(m_handle != nullptr);
 }
 
 Win32Window::~Win32Window()
 {
-    if (Handle)
-        Assert(DestroyWindow(Handle) != FALSE);
+    if (m_handle)
+        Assert(DestroyWindow(m_handle) != FALSE);
 
-    if (Instance)
-        Assert(UnregisterClass(REAPER_WINDOW_INFO, Instance) != FALSE);
+    if (m_instance)
+        Assert(UnregisterClass(REAPER_WINDOW_INFO, m_instance) != FALSE);
 }
 
-bool Win32Window::renderLoop(AbstractRenderer* renderer)
+void Win32Window::map()
 {
-    // Display window
-    ShowWindow(Handle, SW_SHOWNORMAL);
-    UpdateWindow(Handle);
+    ShowWindow(m_handle, SW_SHOWNORMAL);
+    UpdateWindow(m_handle);
+}
 
+void Win32Window::unmap()
+{
+    // FIXME
+}
+
+void Win32Window::pumpEvents(std::vector<Window::Event>& eventOutput)
+{
     // Main message loop
-    MSG  message;
-    bool loop = true;
-    bool resize = false;
+    MSG message;
 
-    while (loop)
+    // Process events
+    while (PeekMessage(&message, nullptr, 0, 0, PM_REMOVE))
     {
-        if (PeekMessage(&message, nullptr, 0, 0, PM_REMOVE))
+        switch (message.message)
         {
-            // Process events
-            switch (message.message)
-            {
-            // Resize
-            case WM_USER + 1:
-                resize = true;
-                break;
-            // Close
-            case WM_USER + 2:
-                loop = false;
-                break;
-            }
-            TranslateMessage(&message);
-            DispatchMessage(&message);
+        case REAPER_WM_RESIZE:
+            // eventOutput.emplace_back(Window::createResizeEvent(configure_event->width, configure_event->height));
+            break;
+        case REAPER_WM_CLOSE:
+            // eventOutput.emplace_back(convertXcbEvent(event));
+            break;
         }
-        else
-        {
-            // Draw
-            if (resize)
-            {
-                resize = false;
-                //                 if( !renderer.OnWindowSizeChanged() ) {
-                //                     loop = false;
-                //                 }
-            }
-            renderer->render();
-        }
+        TranslateMessage(&message);
+        DispatchMessage(&message);
     }
-    return true;
 }
 } // namespace Reaper

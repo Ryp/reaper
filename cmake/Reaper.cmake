@@ -16,14 +16,11 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${Reaper_BINARY_DIR})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${Reaper_BINARY_DIR})
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${Reaper_BINARY_DIR})
 
-# std:c++latest: added for nested namespaces (vs2015)
-set(REAPER_MSVC_COMMON_FLAGS "/std:c++latest")
-
 # Ignore level-4 warning C4201: nonstandard extension used : nameless struct/union
 # Ignore level-1 warning C4251: 'identifier' : class 'type' needs to have dll-interface to be used by clients of class 'type2'
 set(REAPER_MSVC_DISABLE_WARNINGS "/W0")
-set(REAPER_MSVC_DEBUG_FLAGS ${REAPER_MSVC_COMMON_FLAGS} "/W4" "/wd4201" "/wd4251")
-set(REAPER_MSVC_RELEASE_FLAGS ${REAPER_MSVC_COMMON_FLAGS} ${REAPER_MSVC_DISABLE_WARNINGS})
+set(REAPER_MSVC_DEBUG_FLAGS "/W4" "/wd4201" "/wd4251")
+set(REAPER_MSVC_RELEASE_FLAGS ${REAPER_MSVC_DISABLE_WARNINGS})
 set(REAPER_GCC_DEBUG_FLAGS "-Wall" "-Wextra" "-Wundef" "-Wshadow" "-funsigned-char"
         "-Wchar-subscripts" "-Wcast-align" "-Wwrite-strings" "-Wunused" "-Wuninitialized"
         "-Wpointer-arith" "-Wredundant-decls" "-Winline" "-Wformat"
@@ -94,12 +91,18 @@ endmacro()
 # Common helper macro that sets relevant C++ warnings and compilation flags
 # see below for specific versions of the macro.
 macro(reaper_configure_target_common target project_label)
-    set_target_properties(${target} PROPERTIES CXX_STANDARD 14)
+    if(NOT MSVC) # We are using c++latest for vs2015
+        set_target_properties(${target} PROPERTIES CXX_STANDARD 14)
+    endif()
+
     set(TARGET_COMPILE_DEFINITIONS REAPER_BUILD_${REAPER_BUILD_TYPE})
     if(MSVC)
         set_target_properties(${target} PROPERTIES PROJECT_LABEL ${project_label})
         reaper_fill_vs_source_tree(${target} ${CMAKE_CURRENT_SOURCE_DIR})
-        target_compile_options(${target} PRIVATE "/MP") # Enable multi-threaded compilation
+        # /MP:              enable multi-threaded compilation
+        # /std:c++latest:   added for nested namespaces (vs2015)
+        # NOTE: it is mutually exclusive with /std:c++14
+        target_compile_options(${target} PRIVATE "/MP" "/std:c++latest")
     elseif(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
         target_compile_options(${target} PRIVATE "-fvisibility=hidden")
     elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
