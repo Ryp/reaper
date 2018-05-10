@@ -22,6 +22,7 @@ TEST_CASE("Scene")
         model->material = MaterialId("res/material/text.mat");
         model->mesh = MaterialId("res/model/sphere.obj");
 
-        addModel(scene, model, glm::vec3(0.f), glm::quat());
+        // FIXME
+        // addModel(scene, model, glm::vec3(0.f), glm::quat());
     }
 }

@@ -5,7 +5,8 @@
 #// This file is distributed under the MIT License
 #///////////////////////////////////////////////////////////////////////////////
 
-find_program(VULKAN_GLSLANGVALIDATOR_EXEC glslangValidator)
+find_program(VULKAN_GLSLANGVALIDATOR_EXEC glslangValidator
+    HINT "$ENV{VULKAN_SDK}/Bin")
 
 if(NOT VULKAN_GLSLANGVALIDATOR_EXEC)
     message(FATAL_ERROR "${VULKAN_GLSLANGVALIDATOR_EXEC} not found")

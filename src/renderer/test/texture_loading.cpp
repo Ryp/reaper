@@ -13,13 +13,12 @@
 TEST_CASE("Texture Loading")
 {
     TextureLoader loader;
-    TextureCache  cache(1_MiB);
+    TextureCache  cache(10_MiB);
 
     SUBCASE("DDS files")
     {
         loader.load("res/texture/bricks_diffuse.dds", cache);
         loader.load("res/texture/default.dds", cache);
         loader.load("res/texture/ship.dds", cache);
-        loader.load("res/texture/abrahams.dds", cache);
     }
 }
