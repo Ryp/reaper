@@ -1,0 +1,24 @@
+clone_folder: c:\project\reaper
+os:
+    - Visual Studio 2015
+platform:
+    - x64
+environment:
+    repo_folder: 'c:\project\reaper'
+# Appveyor does not clone git submodules by default
+# See https://github.com/appveyor/ci/issues/899
+clone_script:
+    - cmd: git clone -q --branch=%APPVEYOR_REPO_BRANCH% https://github.com/%APPVEYOR_REPO_NAME%.git %APPVEYOR_BUILD_FOLDER%
+    - cmd: cd %APPVEYOR_BUILD_FOLDER%
+    - cmd: git submodule update --init --recursive
+    - cmd: git checkout -qf %APPVEYOR_REPO_COMMIT%
+install:
+    - ps: cmake --version
+    - ps: $env:VULKAN_SDK_VERSION = "1.1.70.1"
+    - ps: $env:VULKAN_SDK = "c:\VulkanSDK\$env:VULKAN_SDK_VERSION" # Set environment var used by CMake later on
+    - ps: Invoke-WebRequest "https://www.dropbox.com/s/b9xyr1q43p2ov7z/VulkanSDK-$env:VULKAN_SDK_VERSION-Installer.exe?dl=1" -OutFile 'VulkanSDK.exe'
+    - ps: .\VulkanSDK.exe /S | Out-Null # Execute installer in silent mode and wait for completion
+build_script:
+    - ps: cmake .\ -Bbuild -G "Visual Studio 14 2015 Win64" -DREAPER_GIT_HOOKS_AUTO_UPDATE=OFF -DREAPER_RUN_CLANG_TIDY=OFF
+    - ps: cmake --build build --config Debug
+    - ps: cmake --build build --target RUN_TESTS
