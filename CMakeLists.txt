@@ -67,28 +67,22 @@ else()
     set(REAPER_BUILD_TYPE STATIC)
 endif()
 
+# The CXX_STANDARD property is a requirement
+set(CXX_STANDARD_REQUIRED ON)
+
+# Enable folder support (useful for Visual Studio)
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+
+# Override binary output paths
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${Reaper_BINARY_DIR})
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${Reaper_BINARY_DIR})
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${Reaper_BINARY_DIR})
+
 # Provide custom cmake scripts
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 include(Reaper)
 include(cotire)
 
-# Auto-update git hooks
-if(REAPER_GIT_HOOKS_AUTO_UPDATE)
-    include(clang-format)
-
-    # Check if the executable is available
-    if(NOT CLANG_FORMAT)
-        message(FATAL_ERROR "clang-format is required")
-    endif()
-
-    set(REAPER_CLANG_FORMAT_REQUIRED_VERSION 6.0.0)
-
-    # Check that we meet the requirements
-    if(CLANG_FORMAT_VERSION VERSION_LESS ${REAPER_CLANG_FORMAT_REQUIRED_VERSION})
-        message(FATAL_ERROR "clang-format ${REAPER_CLANG_FORMAT_REQUIRED_VERSION} is required")
-    endif()
-
-    reaper_update_git_hooks()
-endif()
+reaper_setup_git_hooks()
 
 add_subdirectory(src)
