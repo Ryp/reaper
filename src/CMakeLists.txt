@@ -56,7 +56,7 @@ target_link_libraries(${REAPER_BIN} PRIVATE
 
 # Configure main VS projet
 set_target_properties(${REAPER_BIN} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
-set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${REAPER_BIN})
+set_property(DIRECTORY ${CMAKE_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${REAPER_BIN})
 
 reaper_configure_executable(${REAPER_BIN} "Reaper")
 
