@@ -12,7 +12,4 @@ if(MSVC)
     elseif(MSVC_VERSION GREATER 1900)
         message(WARNING "This version of Visual Studio is not yet supported")
     endif()
-
-    add_definitions(-D_CRT_SECURE_NO_WARNINGS)
-    add_definitions(-D_USE_MATH_DEFINES)
 endif()

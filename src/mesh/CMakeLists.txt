@@ -5,56 +5,39 @@
 #// This file is distributed under the MIT License
 #///////////////////////////////////////////////////////////////////////////////
 
-find_package(assimp REQUIRED)
+set(target reaper_mesh)
+set(REAPER_MESH_BIN ${target} PARENT_SCOPE)
 
-if (WIN32)
+add_library(${target} ${REAPER_BUILD_TYPE})
+
+target_sources(${target} PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/Mesh.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Mesh.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/MeshCache.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/MeshCache.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/ModelLoader.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/ModelLoader.h
+)
+
+# Add assimp dependency
+find_package(assimp REQUIRED)
+target_link_libraries(${target} ${ASSIMP_LIBRARY})
+target_include_directories(${target} SYSTEM PUBLIC ${ASSIMP_INCLUDE_DIRS})
+
+if(WIN32)
     assimp_copy_binaries(${Reaper_BINARY_DIR})
 endif()
 
-set(REAPER_MESH_LIBRARIES
+target_link_libraries(${target}
     ${REAPER_CORE_BIN}
-    ${ASSIMP_LIBRARY}
+    glm
 )
 
-set(REAPER_MESH_INCLUDES
-    ${CMAKE_SOURCE_DIR}/external/glm
-    ${ASSIMP_INCLUDE_DIRS}
+reaper_configure_library(${target} "Mesh")
+
+set_target_properties(${target} PROPERTIES COTIRE_CXX_PREFIX_HEADER_INIT ${REAPER_PCH})
+cotire(${target})
+
+reaper_add_tests(${target}
+    ${CMAKE_CURRENT_SOURCE_DIR}/test/load.cpp
 )
-
-set(REAPER_MESH_BIN reaper_mesh)
-set(REAPER_MESH_BIN ${REAPER_MESH_BIN} PARENT_SCOPE)
-
-set(REAPER_MESH_DIR ${CMAKE_SOURCE_DIR}/src/mesh)
-set(REAPER_MESH_SRCS
-    ${REAPER_MESH_DIR}/Mesh.cpp
-    ${REAPER_MESH_DIR}/Mesh.h
-    ${REAPER_MESH_DIR}/MeshCache.cpp
-    ${REAPER_MESH_DIR}/MeshCache.h
-    ${REAPER_MESH_DIR}/ModelLoader.cpp
-    ${REAPER_MESH_DIR}/ModelLoader.h
-)
-
-set(REAPER_MESH_TEST_SRCS
-    ${REAPER_MESH_DIR}/test/load.cpp
-)
-
-add_library(${REAPER_MESH_BIN} ${REAPER_BUILD_TYPE} ${REAPER_MESH_SRCS})
-reaper_configure_library(${REAPER_MESH_BIN} "Mesh")
-
-#User includes dirs (won't hide warnings)
-target_include_directories(${REAPER_MESH_BIN} PUBLIC
-    ${CMAKE_SOURCE_DIR}/src)
-
-#External includes dirs (won't show warnings)
-target_include_directories(${REAPER_MESH_BIN} SYSTEM PUBLIC
-    ${REAPER_MESH_INCLUDES})
-
-#Libraries
-target_link_libraries(${REAPER_MESH_BIN} ${REAPER_MESH_LIBRARIES})
-
-set_target_properties(${REAPER_MESH_BIN} PROPERTIES COTIRE_CXX_PREFIX_HEADER_INIT ${REAPER_PCH})
-cotire(${REAPER_MESH_BIN})
-
-if (REAPER_BUILD_TESTS)
-    reaper_add_tests(${REAPER_MESH_BIN} ${REAPER_MESH_TEST_SRCS})
-endif()
