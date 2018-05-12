@@ -45,7 +45,7 @@ target_sources(${REAPER_BIN} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/resource/Resource.h
 )
 
-target_link_libraries(${REAPER_BIN}
+target_link_libraries(${REAPER_BIN} PRIVATE
     ${REAPER_CORE_BIN}
     ${REAPER_COMMON_BIN}
     ${REAPER_GAMELOGIC_BIN}

@@ -21,14 +21,14 @@ target_sources(${target} PRIVATE
 
 # Add assimp dependency
 find_package(assimp REQUIRED)
-target_link_libraries(${target} ${ASSIMP_LIBRARY})
+target_link_libraries(${target} PUBLIC ${ASSIMP_LIBRARY})
 target_include_directories(${target} SYSTEM PUBLIC ${ASSIMP_INCLUDE_DIRS})
 
 if(WIN32)
     assimp_copy_binaries(${Reaper_BINARY_DIR})
 endif()
 
-target_link_libraries(${target}
+target_link_libraries(${target} PUBLIC
     ${REAPER_CORE_BIN}
     glm
 )

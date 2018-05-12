@@ -104,7 +104,7 @@ if(WIN32)
 elseif(APPLE OR UNIX)
     if(ON) # Prefer XCB
         find_package(XCB REQUIRED)
-        target_link_libraries(${target} ${LIBXCB_LIBRARIES})
+        target_link_libraries(${target} PUBLIC ${LIBXCB_LIBRARIES})
         target_include_directories(${target} SYSTEM PUBLIC ${LIBXCB_INCLUDE_DIR})
         target_compile_definitions(${target} PUBLIC VK_USE_PLATFORM_XCB_KHR)
         target_sources(${target} PRIVATE
@@ -112,7 +112,7 @@ elseif(APPLE OR UNIX)
             ${CMAKE_CURRENT_SOURCE_DIR}/window/XCBWindow.h)
     else()
         find_package(X11 REQUIRED)
-        target_link_libraries(${target} ${X11_LIBRARIES})
+        target_link_libraries(${target} PUBLIC ${X11_LIBRARIES})
         target_include_directories(${target} SYSTEM PUBLIC ${X11_INCLUDE_DIR})
         target_compile_definitions(${target} PUBLIC VK_USE_PLATFORM_XLIB_KHR)
         target_sources(${target} PRIVATE
@@ -124,7 +124,7 @@ else()
     message(FATAL_ERROR "Could not detect platform!")
 endif()
 
-target_link_libraries(${target}
+target_link_libraries(${target} PUBLIC
     ${REAPER_CORE_BIN}
     ${REAPER_MESH_BIN}
     ${REAPER_COMMON_BIN}
