@@ -27,6 +27,6 @@ target_compile_definitions(${MICROPROFILE_BIN} PUBLIC MICROPROFILE_USE_CONFIG)
 set_target_properties(${MICROPROFILE_BIN} PROPERTIES FOLDER External)
 
 if(WIN32)
-    target_link_libraries(${MICROPROFILE_BIN} ws2_32)
+    target_link_libraries(${MICROPROFILE_BIN} PRIVATE ws2_32)
 endif()
 

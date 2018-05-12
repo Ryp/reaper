@@ -19,7 +19,7 @@ target_sources(${target} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/Spline.h
 )
 
-target_link_libraries(${target}
+target_link_libraries(${target} PUBLIC
     ${REAPER_CORE_BIN}
     glm
 )
