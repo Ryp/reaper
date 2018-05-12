@@ -5,85 +5,74 @@
 #// This file is distributed under the MIT License
 #///////////////////////////////////////////////////////////////////////////////
 
+set(target reaper_core)
+set(REAPER_CORE_BIN ${target} PARENT_SCOPE)
+
+add_library(${target} ${REAPER_BUILD_TYPE})
+
+target_sources(${target} PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/Assert.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Assert.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/BitTricks.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Cast.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Compiler.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/CoreExport.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Debugger.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Debugger.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/DynamicLibrary.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/DynamicLibrary.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/EnumHelper.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/IntrusiveList.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/IntrusiveList.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Platform.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Profile.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/StackTrace.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/StackTrace.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Types.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Version.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Version.h.in
+
+    ${CMAKE_CURRENT_SOURCE_DIR}/fs/FileLoading.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/fs/FileLoading.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/fs/Path.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/fs/Path.h
+
+    ${CMAKE_CURRENT_SOURCE_DIR}/memory/Allocator.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/memory/Allocator.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/memory/BuddyAllocator.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/memory/BuddyAllocator.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/memory/CacheLine.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/memory/CacheLine.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/memory/LinearAllocator.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/memory/LinearAllocator.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/memory/StackAllocator.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/memory/StackAllocator.h
+)
+
+# Setup microprofile
+if(REAPER_USE_MICROPROFILE)
+    include(microprofile)
+    target_compile_definitions(${target} PUBLIC REAPER_USE_MICROPROFILE)
+    target_link_libraries(${target} ${MICROPROFILE_BIN})
+    target_include_directories(${target} SYSTEM PUBLIC ${MICROPROFILE_INCLUDE_DIR})
+endif()
+
+# Setup libunwind
 if(UNIX)
     find_package(Libunwind REQUIRED)
-    set(REAPER_CORE_LIBRARIES ${LIBUNWIND_LIBRARIES} -lpthread -ldl)
-    set(REAPER_CORE_INCLUDES ${LIBUNWIND_INCLUDE_DIR})
+    target_link_libraries(${target} ${LIBUNWIND_LIBRARIES} -lpthread -ldl)
+    target_include_directories(${target} SYSTEM PUBLIC ${LIBUNWIND_INCLUDE_DIR})
 endif()
 
-if(REAPER_USE_MICROPROFILE)
-    set(REAPER_CORE_LIBRARIES ${REAPER_CORE_LIBRARIES} ${MICROPROFILE_LIBRARY})
-    set(REAPER_CORE_INCLUDES ${REAPER_CORE_INCLUDES} ${MICROPROFILE_INCLUDE_DIR})
-endif()
+reaper_configure_library(${target} "Core")
 
-set(REAPER_CORE_BIN reaper_core)
-set(REAPER_CORE_BIN ${REAPER_CORE_BIN} PARENT_SCOPE)
+set_target_properties(${target} PROPERTIES COTIRE_CXX_PREFIX_HEADER_INIT ${REAPER_PCH})
+cotire(${target})
 
-set(REAPER_CORE_DIR ${CMAKE_SOURCE_DIR}/src/core)
-set(REAPER_CORE_SRCS
-    ${REAPER_CORE_DIR}/Assert.cpp
-    ${REAPER_CORE_DIR}/Assert.h
-    ${REAPER_CORE_DIR}/BitTricks.h
-    ${REAPER_CORE_DIR}/Cast.h
-    ${REAPER_CORE_DIR}/Compiler.h
-    ${REAPER_CORE_DIR}/CoreExport.h
-    ${REAPER_CORE_DIR}/Debugger.cpp
-    ${REAPER_CORE_DIR}/Debugger.h
-    ${REAPER_CORE_DIR}/DynamicLibrary.cpp
-    ${REAPER_CORE_DIR}/DynamicLibrary.h
-    ${REAPER_CORE_DIR}/EnumHelper.h
-    ${REAPER_CORE_DIR}/IntrusiveList.cpp
-    ${REAPER_CORE_DIR}/IntrusiveList.h
-    ${REAPER_CORE_DIR}/Platform.h
-    ${REAPER_CORE_DIR}/Profile.h
-    ${REAPER_CORE_DIR}/StackTrace.cpp
-    ${REAPER_CORE_DIR}/StackTrace.h
-    ${REAPER_CORE_DIR}/Types.h
-    ${REAPER_CORE_DIR}/Version.h
-    ${REAPER_CORE_DIR}/Version.h.in
-
-    ${REAPER_CORE_DIR}/fs/FileLoading.cpp
-    ${REAPER_CORE_DIR}/fs/FileLoading.h
-    ${REAPER_CORE_DIR}/fs/Path.cpp
-    ${REAPER_CORE_DIR}/fs/Path.h
-
-    ${REAPER_CORE_DIR}/memory/Allocator.cpp
-    ${REAPER_CORE_DIR}/memory/Allocator.h
-    ${REAPER_CORE_DIR}/memory/BuddyAllocator.cpp
-    ${REAPER_CORE_DIR}/memory/BuddyAllocator.h
-    ${REAPER_CORE_DIR}/memory/CacheLine.cpp
-    ${REAPER_CORE_DIR}/memory/CacheLine.h
-    ${REAPER_CORE_DIR}/memory/LinearAllocator.cpp
-    ${REAPER_CORE_DIR}/memory/LinearAllocator.h
-    ${REAPER_CORE_DIR}/memory/StackAllocator.cpp
-    ${REAPER_CORE_DIR}/memory/StackAllocator.h
+reaper_add_tests(${target}
+    ${CMAKE_CURRENT_SOURCE_DIR}/test/alignment.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/test/buddy_allocator.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/test/cache.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/test/stack_allocator.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/test/intrusive_list.cpp
 )
-
-set(REAPER_CORE_TEST_SRCS
-    ${REAPER_CORE_DIR}/test/alignment.cpp
-    ${REAPER_CORE_DIR}/test/buddy_allocator.cpp
-    ${REAPER_CORE_DIR}/test/cache.cpp
-    ${REAPER_CORE_DIR}/test/stack_allocator.cpp
-    ${REAPER_CORE_DIR}/test/intrusive_list.cpp
-)
-
-add_library(${REAPER_CORE_BIN} ${REAPER_BUILD_TYPE} ${REAPER_CORE_SRCS})
-reaper_configure_library(${REAPER_CORE_BIN} "Core")
-
-#User includes dirs (won't hide warnings)
-target_include_directories(${REAPER_CORE_BIN} PUBLIC
-    ${CMAKE_SOURCE_DIR}/src)
-
-#External includes dirs (won't show warnings)
-target_include_directories(${REAPER_CORE_BIN} SYSTEM PUBLIC
-    ${REAPER_CORE_INCLUDES})
-
-#Libraries
-target_link_libraries(${REAPER_CORE_BIN} ${REAPER_CORE_LIBRARIES})
-
-set_target_properties(${REAPER_CORE_BIN} PROPERTIES COTIRE_CXX_PREFIX_HEADER_INIT ${REAPER_PCH})
-cotire(${REAPER_CORE_BIN})
-
-if (REAPER_BUILD_TESTS)
-    reaper_add_tests(${REAPER_CORE_BIN} ${REAPER_CORE_TEST_SRCS})
-endif()

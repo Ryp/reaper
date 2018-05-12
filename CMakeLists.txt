@@ -35,11 +35,25 @@ project(Reaper
 # Export compile commands in a json file. Useful for clang-based tools
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# This will automatically keep git hooks up-to-date. Do NOT disable this option
+# if you intent to push code on your local copy.
 option(REAPER_GIT_HOOKS_AUTO_UPDATE     "Update git hooks"              ON)
+
+# Enable testing. Remember to run the tests before submitting code.
 option(REAPER_BUILD_TESTS               "Build tests"                   ON)
+
+# Recommended option if you want to quickly iterate on libraries.
+# The runtime performance should be comparable to a classic static build.
 option(REAPER_BUILD_SHARED_LIBRARIES    "Build shared libraries"        ON)
+
+# Enable runtime profiling. Go to localhost:1338 in chrome to get the output.
 option(REAPER_USE_MICROPROFILE          "Use microprofile"              ON)
+
+# See .clang-tidy for the list of useful checks.
 option(REAPER_RUN_CLANG_TIDY            "Run clang-tidy when compiling" ON)
+
+# Building with coverage info will slow down build and execution times.
+option(REAPER_BUILD_COVERAGE_INFO       "Build with coverage info"      OFF)
 
 # Enable CTest
 if (REAPER_BUILD_TESTS)
@@ -56,6 +70,7 @@ endif()
 # Provide custom cmake scripts
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 include(Reaper)
+include(cotire)
 
 # Auto-update git hooks
 if(REAPER_GIT_HOOKS_AUTO_UPDATE)
@@ -74,14 +89,6 @@ if(REAPER_GIT_HOOKS_AUTO_UPDATE)
     endif()
 
     reaper_update_git_hooks()
-endif()
-
-include(cotire)
-include(glslang)
-
-# Setup microprofile
-if(REAPER_USE_MICROPROFILE)
-    include(microprofile)
 endif()
 
 add_subdirectory(src)

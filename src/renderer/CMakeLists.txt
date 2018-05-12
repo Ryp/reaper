@@ -5,123 +5,67 @@
 #// This file is distributed under the MIT License
 #///////////////////////////////////////////////////////////////////////////////
 
-if(REAPER_USE_WIN32_WINDOW)
-    # Nothing to set here yet
-elseif(REAPER_USE_XLIB_WINDOW)
-    find_package(X11 REQUIRED)
-    set(REAPER_RENDERER_LIBRARIES ${X11_LIBRARIES})
-    set(REAPER_RENDERER_INCLUDES ${X11_INCLUDE_DIR})
-elseif(REAPER_USE_XCB_WINDOW)
-    find_package(XCB REQUIRED)
-    set(REAPER_RENDERER_LIBRARIES ${LIBXCB_LIBRARIES})
-    set(REAPER_RENDERER_INCLUDES ${LIBXCB_INCLUDE_DIR})
-endif()
+set(target reaper_renderer)
+set(REAPER_RENDERER_BIN ${target} PARENT_SCOPE)
 
-# Find dependencies
-find_package(Vulkan REQUIRED)
+add_library(${target} ${REAPER_BUILD_TYPE})
 
-set(REAPER_RENDERER_LIBRARIES ${REAPER_RENDERER_LIBRARIES}
-    ${MICROPROFILE_BIN}
-    ${REAPER_CORE_BIN}
-    ${REAPER_MESH_BIN}
-    ${REAPER_COMMON_BIN}
-    ${MICROPROFILE_LIBRARY}
-)
+target_sources(${target} PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/Camera.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Camera.h
 
-set(REAPER_RENDERER_INCLUDES ${REAPER_RENDERER_INCLUDES}
-    ${CMAKE_SOURCE_DIR}/external/fmt
-    ${CMAKE_SOURCE_DIR}/external/gli
-    ${CMAKE_SOURCE_DIR}/external/glm
-    ${VULKAN_INCLUDE_DIR}
-    ${MICROPROFILE_INCLUDE_DIR}
-)
+    ${CMAKE_CURRENT_SOURCE_DIR}/Material.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Material.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Renderer.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Renderer.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/RendererExport.h
 
-set(REAPER_RENDERER_BIN reaper_renderer)
-set(REAPER_RENDERER_BIN ${REAPER_RENDERER_BIN} PARENT_SCOPE)
+    ${CMAKE_CURRENT_SOURCE_DIR}/Scene.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Scene.h
 
-set(REAPER_RENDERER_DIR ${CMAKE_CURRENT_SOURCE_DIR})
-set(REAPER_RENDERER_SRCS
-    ${REAPER_RENDERER_DIR}/Camera.cpp
-    ${REAPER_RENDERER_DIR}/Camera.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/format/FloatTypes.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/format/FloatTypes.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/format/PixelFormat.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/format/PixelFormat.h
 
-    ${REAPER_RENDERER_DIR}/Material.cpp
-    ${REAPER_RENDERER_DIR}/Material.h
-    ${REAPER_RENDERER_DIR}/Renderer.cpp
-    ${REAPER_RENDERER_DIR}/Renderer.h
-    ${REAPER_RENDERER_DIR}/RendererExport.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/texture/GPUTextureProperties.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/texture/GPUTextureProperties.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/texture/Texture.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/texture/Texture.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/texture/TextureCache.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/texture/TextureCache.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/texture/TextureLoader.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/texture/TextureLoader.h
 
-    ${REAPER_RENDERER_DIR}/Scene.cpp
-    ${REAPER_RENDERER_DIR}/Scene.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Memory.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Memory.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/PresentationSurface.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/PresentationSurface.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Swapchain.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Swapchain.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/SwapchainRendererBase.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/SwapchainRendererBase.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Shader.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Shader.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Test.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Test.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/VulkanRenderer.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/VulkanRenderer.h
 
-    ${REAPER_RENDERER_DIR}/format/FloatTypes.cpp
-    ${REAPER_RENDERER_DIR}/format/FloatTypes.h
-    ${REAPER_RENDERER_DIR}/format/PixelFormat.cpp
-    ${REAPER_RENDERER_DIR}/format/PixelFormat.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/allocator/GPUStackAllocator.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/allocator/GPUStackAllocator.h
 
-    ${REAPER_RENDERER_DIR}/texture/GPUTextureProperties.cpp
-    ${REAPER_RENDERER_DIR}/texture/GPUTextureProperties.h
-    ${REAPER_RENDERER_DIR}/texture/Texture.cpp
-    ${REAPER_RENDERER_DIR}/texture/Texture.h
-    ${REAPER_RENDERER_DIR}/texture/TextureCache.cpp
-    ${REAPER_RENDERER_DIR}/texture/TextureCache.h
-    ${REAPER_RENDERER_DIR}/texture/TextureLoader.cpp
-    ${REAPER_RENDERER_DIR}/texture/TextureLoader.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/api/Vulkan.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/api/VulkanFunctions.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/api/VulkanFunctions.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/api/VulkanStringConversion.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/api/VulkanStringConversion.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/api/VulkanSymbolHelper.inl
 
-    ${REAPER_RENDERER_DIR}/vulkan/Memory.cpp
-    ${REAPER_RENDERER_DIR}/vulkan/Memory.h
-    ${REAPER_RENDERER_DIR}/vulkan/PresentationSurface.cpp
-    ${REAPER_RENDERER_DIR}/vulkan/PresentationSurface.h
-    ${REAPER_RENDERER_DIR}/vulkan/Swapchain.cpp
-    ${REAPER_RENDERER_DIR}/vulkan/Swapchain.h
-    ${REAPER_RENDERER_DIR}/vulkan/SwapchainRendererBase.cpp
-    ${REAPER_RENDERER_DIR}/vulkan/SwapchainRendererBase.h
-    ${REAPER_RENDERER_DIR}/vulkan/Shader.cpp
-    ${REAPER_RENDERER_DIR}/vulkan/Shader.h
-    ${REAPER_RENDERER_DIR}/vulkan/Test.cpp
-    ${REAPER_RENDERER_DIR}/vulkan/Test.h
-    ${REAPER_RENDERER_DIR}/vulkan/VulkanRenderer.cpp
-    ${REAPER_RENDERER_DIR}/vulkan/VulkanRenderer.h
-
-    ${REAPER_RENDERER_DIR}/vulkan/allocator/GPUStackAllocator.cpp
-    ${REAPER_RENDERER_DIR}/vulkan/allocator/GPUStackAllocator.h
-
-    ${REAPER_RENDERER_DIR}/vulkan/api/Vulkan.h
-    ${REAPER_RENDERER_DIR}/vulkan/api/VulkanFunctions.cpp
-    ${REAPER_RENDERER_DIR}/vulkan/api/VulkanFunctions.h
-    ${REAPER_RENDERER_DIR}/vulkan/api/VulkanStringConversion.cpp
-    ${REAPER_RENDERER_DIR}/vulkan/api/VulkanStringConversion.h
-    ${REAPER_RENDERER_DIR}/vulkan/api/VulkanSymbolHelper.inl
-
-    ${REAPER_RENDERER_DIR}/window/Event.cpp
-    ${REAPER_RENDERER_DIR}/window/Event.h
-    ${REAPER_RENDERER_DIR}/window/Window.cpp
-    ${REAPER_RENDERER_DIR}/window/Window.h
-)
-
-if(REAPER_USE_WIN32_WINDOW)
-    set(REAPER_WINDOW_SRCS
-        ${REAPER_RENDERER_DIR}/window/Win32Window.cpp
-        ${REAPER_RENDERER_DIR}/window/Win32Window.h
-    )
-elseif(REAPER_USE_XLIB_WINDOW)
-    set(REAPER_WINDOW_SRCS
-        ${REAPER_RENDERER_DIR}/window/XLibWindow.cpp
-        ${REAPER_RENDERER_DIR}/window/XLibWindow.h
-    )
-elseif(REAPER_USE_XCB_WINDOW)
-    set(REAPER_WINDOW_SRCS
-        ${REAPER_RENDERER_DIR}/window/XCBWindow.cpp
-        ${REAPER_RENDERER_DIR}/window/XCBWindow.h
-    )
-endif()
-
-set(REAPER_RENDERER_TEST_SRCS
-    #${REAPER_RENDERER_DIR}/test/culling.cpp
-    ${REAPER_RENDERER_DIR}/test/mesh_loading.cpp
-    ${REAPER_RENDERER_DIR}/test/renderer.cpp
-    ${REAPER_RENDERER_DIR}/test/scene.cpp
-    ${REAPER_RENDERER_DIR}/test/texture_loading.cpp
-    ${REAPER_RENDERER_DIR}/test/window.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/window/Event.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/window/Event.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/window/Window.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/window/Window.h
 )
 
 set(REAPER_GLSL_DIR ${CMAKE_SOURCE_DIR}/res/shader)
@@ -141,20 +85,64 @@ set(REAPER_GLSL_SRCS
     ${REAPER_GLSL_DIR}/test.comp
 )
 
+# Shader compilation
+include(glslang)
+
 add_glslang_spirv_targets(REAPER_SPIRV_OUTPUT ${REAPER_GLSL_SRCS})
+target_sources(${target} PRIVATE ${REAPER_GLSL_SRCS} ${REAPER_SPIRV_OUTPUT})
 
-add_library(${REAPER_RENDERER_BIN} ${REAPER_BUILD_TYPE} ${REAPER_RENDERER_SRCS} ${REAPER_WINDOW_SRCS} ${REAPER_GLSL_SRCS} ${REAPER_SPIRV_OUTPUT})
-reaper_configure_library(${REAPER_RENDERER_BIN} "Renderer")
+# Vulkan dependency
+find_package(Vulkan REQUIRED)
+target_include_directories(${target} SYSTEM PUBLIC ${VULKAN_INCLUDE_DIR})
 
-target_include_directories(${REAPER_RENDERER_BIN} PUBLIC ${CMAKE_SOURCE_DIR}/src)
-target_include_directories(${REAPER_RENDERER_BIN} SYSTEM PUBLIC ${REAPER_RENDERER_INCLUDES})
-
-#Libraries
-target_link_libraries(${REAPER_RENDERER_BIN} ${REAPER_RENDERER_LIBRARIES})
-
-set_target_properties(${REAPER_RENDERER_BIN} PROPERTIES COTIRE_CXX_PREFIX_HEADER_INIT ${REAPER_PCH})
-cotire(${REAPER_RENDERER_BIN})
-
-if (REAPER_BUILD_TESTS)
-    reaper_add_tests(${REAPER_RENDERER_BIN} ${REAPER_RENDERER_TEST_SRCS})
+# Choose windowing system
+if(WIN32)
+    target_compile_definitions(${target} PUBLIC VK_USE_PLATFORM_WIN32_KHR)
+    target_sources(${target} PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/window/Win32Window.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/window/Win32Window.h)
+elseif(APPLE OR UNIX)
+    if(ON) # Prefer XCB
+        find_package(XCB REQUIRED)
+        target_link_libraries(${target} ${LIBXCB_LIBRARIES})
+        target_include_directories(${target} SYSTEM PUBLIC ${LIBXCB_INCLUDE_DIR})
+        target_compile_definitions(${target} PUBLIC VK_USE_PLATFORM_XCB_KHR)
+        target_sources(${target} PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/window/XCBWindow.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/window/XCBWindow.h)
+    else()
+        find_package(X11 REQUIRED)
+        target_link_libraries(${target} ${X11_LIBRARIES})
+        target_include_directories(${target} SYSTEM PUBLIC ${X11_INCLUDE_DIR})
+        target_compile_definitions(${target} PUBLIC VK_USE_PLATFORM_XLIB_KHR)
+        target_sources(${target} PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/window/XLibWindow.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/window/XLibWindow.h)
+    endif()
+else()
+    # We could allow headless instances without problems though
+    message(FATAL_ERROR "Could not detect platform!")
 endif()
+
+target_link_libraries(${target}
+    ${REAPER_CORE_BIN}
+    ${REAPER_MESH_BIN}
+    ${REAPER_COMMON_BIN}
+    fmt
+    gli
+    glm
+)
+
+reaper_configure_library(${target} "Renderer")
+
+set_target_properties(${target} PROPERTIES COTIRE_CXX_PREFIX_HEADER_INIT ${REAPER_PCH})
+cotire(${target})
+
+reaper_add_tests(${target}
+    #${CMAKE_CURRENT_SOURCE_DIR}/test/culling.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/test/mesh_loading.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/test/renderer.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/test/scene.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/test/texture_loading.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/test/window.cpp
+)

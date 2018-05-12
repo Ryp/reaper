@@ -17,7 +17,6 @@ endif()
 # Then make your desired target depend on them and it will automatically compile your shaders.
 function(add_glslang_spirv_targets generated_files)
     set(OUTPUT_SPIRV_FILES)
-    set(GLSLANG_COMPILE_OPTIONS "-V")
     foreach(INPUT_GLSL ${ARGN})
         # Build the correct output name and path
         file(RELATIVE_PATH INPUT_GLSL_REL "${CMAKE_SOURCE_DIR}/res/shader" ${INPUT_GLSL})
@@ -27,7 +26,7 @@ function(add_glslang_spirv_targets generated_files)
 
         add_custom_command(OUTPUT ${OUTPUT_SPIRV}
             COMMAND ${CMAKE_COMMAND} -E make_directory ${OUTPUT_SPIRV_PATH}
-            COMMAND ${VULKAN_GLSLANGVALIDATOR_EXEC} ${GLSLANG_COMPILE_OPTIONS} ${INPUT_GLSL} -o ${OUTPUT_SPIRV}
+            COMMAND ${VULKAN_GLSLANGVALIDATOR_EXEC} -V ${INPUT_GLSL} -o ${OUTPUT_SPIRV}
             DEPENDS ${INPUT_GLSL}
             COMMENT "Compiling GLSL shader ${INPUT_GLSL_REL} into SPIR-V (${OUTPUT_SPIRV_NAME})"
             VERBATIM

@@ -5,43 +5,30 @@
 #// This file is distributed under the MIT License
 #///////////////////////////////////////////////////////////////////////////////
 
-set(REAPER_MATH_LIBRARIES ${REAPER_CORE_BIN})
-set(REAPER_MATH_INCLUDES ${CMAKE_SOURCE_DIR}/external/glm)
+set(target reaper_math)
+set(REAPER_MATH_BIN ${target} PARENT_SCOPE)
 
-set(REAPER_MATH_BIN reaper_math)
-set(REAPER_MATH_BIN ${REAPER_MATH_BIN} PARENT_SCOPE)
+add_library(${target} ${REAPER_BUILD_TYPE})
 
-set(REAPER_MATH_DIR ${CMAKE_SOURCE_DIR}/src/math)
-set(REAPER_MATH_SRCS
-    ${REAPER_MATH_DIR}/BasicMath.h
-    ${REAPER_MATH_DIR}/Constants.h
-    ${REAPER_MATH_DIR}/FloatComparison.h
-    ${REAPER_MATH_DIR}/MathExport.h
-    ${REAPER_MATH_DIR}/Spline.cpp
-    ${REAPER_MATH_DIR}/Spline.h
+target_sources(${target} PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/BasicMath.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Constants.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/FloatComparison.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/MathExport.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Spline.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Spline.h
 )
 
-set(REAPER_MATH_TEST_SRCS
-    ${REAPER_MATH_DIR}/test/spline.cpp
+target_link_libraries(${target}
+    ${REAPER_CORE_BIN}
+    glm
 )
 
-add_library(${REAPER_MATH_BIN} ${REAPER_BUILD_TYPE} ${REAPER_MATH_SRCS})
-reaper_configure_library(${REAPER_MATH_BIN} "Math")
+reaper_configure_library(${target} "Math")
 
-#User includes dirs (won't hide warnings)
-target_include_directories(${REAPER_MATH_BIN} PUBLIC
-    ${CMAKE_SOURCE_DIR}/src)
+set_target_properties(${target} PROPERTIES COTIRE_CXX_PREFIX_HEADER_INIT ${REAPER_PCH})
+cotire(${target})
 
-#External includes dirs (won't show warnings)
-target_include_directories(${REAPER_MATH_BIN} SYSTEM PUBLIC
-    ${REAPER_MATH_INCLUDES})
-
-#Libraries
-target_link_libraries(${REAPER_MATH_BIN} ${REAPER_MATH_LIBRARIES})
-
-set_target_properties(${REAPER_MATH_BIN} PROPERTIES COTIRE_CXX_PREFIX_HEADER_INIT ${REAPER_PCH})
-cotire(${REAPER_MATH_BIN})
-
-if (REAPER_BUILD_TESTS)
-    reaper_add_tests(${REAPER_MATH_BIN} ${REAPER_MATH_TEST_SRCS})
-endif()
+reaper_add_tests(${target}
+    ${CMAKE_CURRENT_SOURCE_DIR}/test/spline.cpp
+)

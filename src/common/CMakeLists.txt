@@ -5,42 +5,29 @@
 #// This file is distributed under the MIT License
 #///////////////////////////////////////////////////////////////////////////////
 
-set(REAPER_COMMON_LIBRARIES ${REAPER_COMMON_LIBRARIES} ${REAPER_CORE_BIN})
+set(target reaper_common)
+set(REAPER_COMMON_BIN ${target} PARENT_SCOPE)
 
-set(REAPER_COMMON_BIN reaper_common)
-set(REAPER_COMMON_BIN ${REAPER_COMMON_BIN} PARENT_SCOPE)
+add_library(${target} ${REAPER_BUILD_TYPE})
 
-set(REAPER_COMMON_DIR ${CMAKE_SOURCE_DIR}/src/common)
-set(REAPER_COMMON_SRCS
-    ${REAPER_COMMON_DIR}/DebugLog.cpp
-    ${REAPER_COMMON_DIR}/DebugLog.h
-    ${REAPER_COMMON_DIR}/Log.cpp
-    ${REAPER_COMMON_DIR}/Log.h
-    ${REAPER_COMMON_DIR}/ReaperRoot.h
+target_sources(${target} PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/DebugLog.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/DebugLog.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Log.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Log.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/ReaperRoot.h
 )
 
-set(REAPER_COMMON_TEST_SRCS
-    ${REAPER_COMMON_DIR}/test/log.cpp
+target_link_libraries(${target}
+    ${REAPER_CORE_BIN}
+    fmt
 )
 
-add_library(${REAPER_COMMON_BIN} ${REAPER_BUILD_TYPE} ${REAPER_COMMON_SRCS})
-reaper_configure_library(${REAPER_COMMON_BIN} "Common")
+reaper_configure_library(${target} "Common")
 
-#User includes dirs (won't hide warnings)
-target_include_directories(${REAPER_COMMON_BIN} PUBLIC
-    ${CMAKE_SOURCE_DIR}/src)
+set_target_properties(${target} PROPERTIES COTIRE_CXX_PREFIX_HEADER_INIT ${REAPER_PCH})
+cotire(${target})
 
-#External includes dirs (won't show warnings)
-target_include_directories(${REAPER_COMMON_BIN} SYSTEM PUBLIC
-    ${CMAKE_SOURCE_DIR}/external/fmt
-    ${REAPER_COMMON_INCLUDES})
-
-#Libraries
-target_link_libraries(${REAPER_COMMON_BIN} ${REAPER_COMMON_LIBRARIES})
-
-set_target_properties(${REAPER_COMMON_BIN} PROPERTIES COTIRE_CXX_PREFIX_HEADER_INIT ${REAPER_PCH})
-cotire(${REAPER_COMMON_BIN})
-
-if (REAPER_BUILD_TESTS)
-    reaper_add_tests(${REAPER_COMMON_BIN} ${REAPER_COMMON_TEST_SRCS})
-endif()
+reaper_add_tests(${target}
+    ${CMAKE_CURRENT_SOURCE_DIR}/test/log.cpp
+)

@@ -16,19 +16,15 @@ set(MICROPROFILE_SRCS
     ${CMAKE_SOURCE_DIR}/external/microprofile/microprofile.h
 )
 
-configure_file(${CMAKE_SOURCE_DIR}/external/microprofile.config.h.in ${MICROPROFILE_INCLUDE_DIR}/microprofile.config.h NEWLINE_STYLE LF)
-
-add_definitions(-DREAPER_USE_MICROPROFILE) # Also define the macro for C++ code
-add_definitions(-DMICROPROFILE_USE_CONFIG) # Get microprofile to include our custom conf
+configure_file(${CMAKE_SOURCE_DIR}/external/microprofile.config.h.in ${MICROPROFILE_INCLUDE_DIR}/microprofile.config.h NEWLINE_STYLE UNIX)
 
 add_library(${MICROPROFILE_BIN} ${REAPER_BUILD_TYPE} ${MICROPROFILE_SRCS})
 reaper_configure_external_target(${MICROPROFILE_BIN} "Microprofile")
 
-target_include_directories(${MICROPROFILE_BIN} PUBLIC ${CMAKE_SOURCE_DIR}/src)
+# Get microprofile to include our custom conf
+target_compile_definitions(${MICROPROFILE_BIN} PUBLIC MICROPROFILE_USE_CONFIG)
 
-if(MSVC)
-    set_target_properties(${MICROPROFILE_BIN} PROPERTIES FOLDER External)
-endif()
+set_target_properties(${MICROPROFILE_BIN} PROPERTIES FOLDER External)
 
 if(WIN32)
     target_link_libraries(${MICROPROFILE_BIN} ws2_32)
