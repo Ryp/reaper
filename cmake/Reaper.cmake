@@ -10,13 +10,6 @@ include(${CMAKE_SOURCE_DIR}/cmake/Compiler.cmake)
 include(${CMAKE_SOURCE_DIR}/cmake/clang-tidy.cmake)
 include(${CMAKE_SOURCE_DIR}/cmake/external.cmake)
 
-set(CXX_STANDARD_REQUIRED ON)
-set_property(GLOBAL PROPERTY USE_FOLDERS ON)
-
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${Reaper_BINARY_DIR})
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${Reaper_BINARY_DIR})
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${Reaper_BINARY_DIR})
-
 # Ignore level-4 warning C4201: nonstandard extension used : nameless struct/union
 # Ignore level-1 warning C4251: 'identifier' : class 'type' needs to have dll-interface to be used by clients of class 'type2'
 set(REAPER_MSVC_DISABLE_WARNINGS "/W0")
@@ -190,14 +183,30 @@ macro(reaper_add_tests library testfiles)
 endmacro()
 
 # Install and update git hooks
-macro(reaper_update_git_hooks)
-    message(STATUS "Updating git hooks")
-    set(GIT_HOOKS_DIR ${CMAKE_SOURCE_DIR}/.git/hooks)
-    set(REAPER_HOOKS_DIR ${CMAKE_SOURCE_DIR}/tools/git/hooks)
+function(reaper_setup_git_hooks)
+    if(REAPER_GIT_HOOKS_AUTO_UPDATE)
+        include(clang-format)
 
-    # Setup hooks
-    configure_file(${REAPER_HOOKS_DIR}/pre-commit.sh ${GIT_HOOKS_DIR}/pre-commit @ONLY)
-endmacro()
+        # Check if the executable is available
+        if(NOT CLANG_FORMAT)
+            message(FATAL_ERROR "clang-format is required")
+        endif()
+
+        set(REAPER_CLANG_FORMAT_REQUIRED_VERSION 6.0.0)
+
+        # Check that we meet the requirements
+        if(CLANG_FORMAT_VERSION VERSION_LESS ${REAPER_CLANG_FORMAT_REQUIRED_VERSION})
+            message(FATAL_ERROR "clang-format ${REAPER_CLANG_FORMAT_REQUIRED_VERSION} is required")
+        endif()
+
+        message(STATUS "Updating git hooks")
+        set(GIT_HOOKS_DIR ${CMAKE_SOURCE_DIR}/.git/hooks)
+        set(REAPER_HOOKS_DIR ${CMAKE_SOURCE_DIR}/tools/git/hooks)
+
+        # Setup hooks
+        configure_file(${REAPER_HOOKS_DIR}/pre-commit.sh ${GIT_HOOKS_DIR}/pre-commit @ONLY)
+    endif()
+endfunction()
 
 # Generic utility to declare version variables in the current scope
 # ex: set_program_version(MYTOOL 4.5.6)
