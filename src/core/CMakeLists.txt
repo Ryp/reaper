@@ -52,16 +52,17 @@ target_sources(${target} PRIVATE
 # Setup microprofile
 if(REAPER_USE_MICROPROFILE)
     include(microprofile)
-    target_compile_definitions(${target} PUBLIC REAPER_USE_MICROPROFILE)
     target_link_libraries(${target} PUBLIC ${MICROPROFILE_BIN})
-    target_include_directories(${target} SYSTEM PUBLIC ${MICROPROFILE_INCLUDE_DIR})
+    target_compile_definitions(${target} PUBLIC REAPER_USE_MICROPROFILE)
 endif()
 
-# Setup libunwind
 if(UNIX)
+    # Setup libunwind
     find_package(Libunwind REQUIRED)
-    target_link_libraries(${target} PUBLIC ${LIBUNWIND_LIBRARIES} -lpthread -ldl)
-    target_include_directories(${target} SYSTEM PUBLIC ${LIBUNWIND_INCLUDE_DIR})
+    target_link_libraries(${target} PRIVATE Libunwind::Libunwind)
+
+    # Link with libdl
+    target_link_libraries(${target} PRIVATE -ldl)
 endif()
 
 reaper_configure_library(${target} "Core")

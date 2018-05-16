@@ -29,3 +29,10 @@ find_package_handle_standard_args(Vulkan DEFAULT_MSG VULKAN_LIBRARY VULKAN_INCLU
 
 mark_as_advanced(VULKAN_INCLUDE_DIR VULKAN_LIBRARY)
 
+if(Vulkan_FOUND AND NOT TARGET Vulkan::Vulkan)
+    add_library(Vulkan::Vulkan INTERFACE IMPORTED)
+    set_target_properties(Vulkan::Vulkan PROPERTIES
+        INTERFACE_SYSTEM_INCLUDE_DIRECTORIES "${VULKAN_INCLUDE_DIR}"
+        # IMPORTED_LOCATION "${VULKAN_LIBRARY}"
+    )
+endif()
