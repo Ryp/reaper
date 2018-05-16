@@ -93,7 +93,6 @@ target_sources(${target} PRIVATE ${REAPER_GLSL_SRCS} ${REAPER_SPIRV_OUTPUT})
 
 # Vulkan dependency
 find_package(Vulkan REQUIRED)
-target_include_directories(${target} SYSTEM PUBLIC ${VULKAN_INCLUDE_DIR})
 
 # Choose windowing system
 if(WIN32)
@@ -128,6 +127,7 @@ target_link_libraries(${target} PUBLIC
     ${REAPER_CORE_BIN}
     ${REAPER_MESH_BIN}
     ${REAPER_COMMON_BIN}
+    Vulkan::Vulkan
     fmt
     gli
     glm
