@@ -169,7 +169,10 @@ function(reaper_add_tests library testfiles)
         reaper_configure_warnings(${REAPER_TEST_BIN} ON)
         reaper_configure_coverage(${REAPER_TEST_BIN})
 
-        target_link_libraries(${REAPER_TEST_BIN} PRIVATE doctest ${library})
+        target_link_libraries(${REAPER_TEST_BIN}
+            PUBLIC ${library}
+            PRIVATE doctest
+        )
 
         # Register wih ctest
         add_test(NAME ${REAPER_TEST_BIN} COMMAND $<TARGET_FILE:${REAPER_TEST_BIN}> WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
