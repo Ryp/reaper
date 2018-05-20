@@ -27,7 +27,7 @@ function(add_glslang_spirv_targets generated_files)
         add_custom_command(OUTPUT ${OUTPUT_SPIRV}
             COMMAND ${CMAKE_COMMAND} -E make_directory ${OUTPUT_SPIRV_PATH}
             COMMAND ${VULKAN_GLSLANGVALIDATOR_EXEC} -V ${INPUT_GLSL} -o ${OUTPUT_SPIRV}
-            DEPENDS ${INPUT_GLSL}
+            MAIN_DEPENDENCY ${INPUT_GLSL}
             COMMENT "Compiling GLSL shader ${INPUT_GLSL_REL} into SPIR-V (${OUTPUT_SPIRV_NAME})"
             VERBATIM
         )
