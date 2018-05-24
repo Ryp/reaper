@@ -17,7 +17,7 @@ endif()
 # Then make your desired target depend on them and it will automatically compile your shaders.
 function(add_glslang_spirv_targets generated_files)
     set(OUTPUT_SPIRV_FILES)
-    foreach(INPUT_GLSL ${ARGN})
+    foreach(INPUT_GLSL IN LISTS ARGN)
         # Build the correct output name and path
         file(RELATIVE_PATH INPUT_GLSL_REL "${CMAKE_SOURCE_DIR}/res/shader" ${INPUT_GLSL})
         set(OUTPUT_SPIRV "${CMAKE_BINARY_DIR}/spv/${INPUT_GLSL_REL}.spv")

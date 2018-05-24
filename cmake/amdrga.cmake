@@ -19,7 +19,7 @@ endif()
 # Pass a list of SPIR-V files to generate GCN ISA for in the rest of the arguments.
 function(add_spirv_to_gcn_targets generated_files)
     set(OUTPUT_GCN_FILES)
-    foreach(INPUT_SPIRV ${ARGN})
+    foreach(INPUT_SPIRV IN LISTS ARGN)
         set(OUTPUT_GCN_ISA_FILE "${INPUT_SPIRV}.gcn")
         set(OUTPUT_GCN_STATS_FILE "${INPUT_SPIRV}.gcn-stats")
 
