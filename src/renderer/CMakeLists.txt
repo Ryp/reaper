@@ -87,9 +87,12 @@ set(REAPER_GLSL_SRCS
 
 # Shader compilation
 include(glslang)
-
 add_glslang_spirv_targets(REAPER_SPIRV_OUTPUT ${REAPER_GLSL_SRCS})
 target_sources(${target} PRIVATE ${REAPER_GLSL_SRCS} ${REAPER_SPIRV_OUTPUT})
+
+include(amdrga)
+add_spirv_to_gcn_targets(REAPER_GCN_OUTPUT ${REAPER_SPIRV_OUTPUT})
+target_sources(${target} PRIVATE ${REAPER_GCN_OUTPUT})
 
 # Vulkan dependency
 find_package(Vulkan REQUIRED)

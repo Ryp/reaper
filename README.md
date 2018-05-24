@@ -2,7 +2,7 @@
 
 Reaper is a small C++14 Engine to test stuff.
 
-## Master status
+## Build status (master branch)
 
 | Service | System | Compiler | Status |
 | ------- | ------ | -------- | ------ |
@@ -22,6 +22,7 @@ $ cmake --build build
 - Vulkan
 - Assimp
 - glslangValidator
+- AMD RGA
 - Linux-specific:
     - libunwind
     - libxcb
