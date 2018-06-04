@@ -18,13 +18,19 @@ endif()
 # Set generated_files to the name of the output variable you want to retrieve (and later depend on)
 # Pass a list of SPIR-V files to generate GCN ISA for in the rest of the arguments.
 function(add_spirv_to_gcn_targets generated_files)
+    # On unix we need to manually add spvgen.so to the library path
+    if(UNIX)
+        get_filename_component(AMD_RGA_PATH ${AMD_RGA_EXEC} DIRECTORY)
+        set(UNIX_SPECIFIC "LD_LIBRARY_PATH=${AMD_RGA_PATH}")
+    endif()
+
     set(OUTPUT_GCN_FILES)
     foreach(INPUT_SPIRV IN LISTS ARGN)
         set(OUTPUT_GCN_ISA_FILE "${INPUT_SPIRV}.gcn")
         set(OUTPUT_GCN_STATS_FILE "${INPUT_SPIRV}.gcn-stats")
 
         add_custom_command(OUTPUT ${OUTPUT_GCN_ISA_FILE} ${OUTPUT_GCN_STATS_FILE}
-            COMMAND ${AMD_RGA_EXEC}
+            COMMAND ${UNIX_SPECIFIC} ${AMD_RGA_EXEC}
                 -gfxip 8 -set defaultOutput=0 in.spv=${INPUT_SPIRV}
                 out.vert.isaText=${OUTPUT_GCN_ISA_FILE} out.vert.isaInfo=${OUTPUT_GCN_STATS_FILE}
                 out.geom.isaText=${OUTPUT_GCN_ISA_FILE} out.geom.isaInfo=${OUTPUT_GCN_STATS_FILE}
