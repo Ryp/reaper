@@ -9,9 +9,16 @@ ENV LC_ALL en_US.UTF-8
 
 # Install dependencies
 RUN apt-get update && apt-get install -y                                                                        \
-    wget unzip build-essential cmake gcc                                                                        \
+    wget unzip build-essential gcc                                                                              \
     libassimp-dev libvulkan-dev libunwind-dev libx11-xcb-dev
 
+# Use CMake 3.11.3 from upstream until it comes from the package manager
+RUN wget https://cmake.org/files/v3.11/cmake-3.11.3-Linux-x86_64.sh                                             \
+    && chmod +x cmake-3.11.3-Linux-x86_64.sh                                                                    \
+    && yes | ./cmake-3.11.3-Linux-x86_64.sh                                                                     \
+    && cp -r cmake-3.11.3-Linux-x86_64/. /usr
+
+# Manually install glslangValidator
 RUN wget https://github.com/KhronosGroup/glslang/releases/download/master-tot/glslang-master-linux-Release.zip  \
     && unzip glslang-master-linux-Release.zip                                                                   \
     && cp bin/glslangValidator /usr/bin/
