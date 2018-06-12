@@ -4,6 +4,10 @@
 #// Copyright (c) 2015-2018 Thibault Schueller
 #// This file is distributed under the MIT License
 #///////////////////////////////////////////////////////////////////////////////
+#
+# Useful resources to keep in mind when reading/editing the build scripts:
+# C++Now 2017: Daniel Pfeifer "Effective CMake"
+# CppCon 2017: Mathieu Ropert "Using Modern CMake Patterns to Enforce a Good Modular Design"
 
 cmake_minimum_required(VERSION 3.11 FATAL_ERROR)
 
