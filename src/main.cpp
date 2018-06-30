@@ -42,8 +42,6 @@ int main(int /*ac*/, char** /*av*/)
 
         delete root.log;
         root.log = nullptr;
-
-        return 0;
     }
 
 #if defined(REAPER_USE_MICROPROFILE)
