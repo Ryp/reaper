@@ -116,7 +116,7 @@ void Win32Window::unmap()
     // FIXME
 }
 
-void Win32Window::pumpEvents(std::vector<Window::Event>& eventOutput)
+void Win32Window::pumpEvents(std::vector<Window::Event>& /*eventOutput*/)
 {
     // Main message loop
     MSG message;
