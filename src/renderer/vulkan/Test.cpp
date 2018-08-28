@@ -22,6 +22,7 @@
 #include "common/ReaperRoot.h"
 
 #include "core/BitTricks.h"
+#include "core/Profile.h"
 
 namespace Reaper
 {
@@ -305,6 +306,7 @@ static void vulkan_test_draw(ReaperRoot& root, VulkanBackend& backend, PipelineI
 
     while (!shouldExit)
     {
+        REAPER_PROFILE_SCOPE("Vulkan", MP_YELLOW);
         log_info(root, "window: pump events");
         window->pumpEvents(events);
         if (!events.empty())
