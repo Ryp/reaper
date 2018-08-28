@@ -5,7 +5,6 @@
 #// This file is distributed under the MIT License
 #///////////////////////////////////////////////////////////////////////////////
 
-include(${CMAKE_SOURCE_DIR}/cmake/Platform.cmake)
 include(${CMAKE_SOURCE_DIR}/cmake/Compiler.cmake)
 include(${CMAKE_SOURCE_DIR}/cmake/clang-tidy.cmake)
 include(${CMAKE_SOURCE_DIR}/cmake/external.cmake)

@@ -17,3 +17,6 @@
 [submodule "external/amd-rga"]
 	path = external/amd-rga
 	url = https://github.com/GPUOpen-Tools/RGA
+[submodule "external/tinyobjloader"]
+	path = external/tinyobjloader
+	url = https://github.com/syoyo/tinyobjloader

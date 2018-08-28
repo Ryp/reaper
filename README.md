@@ -16,13 +16,3 @@ $ git submodule update --init
 $ cmake -H. -B./build
 $ cmake --build build
 ```
-
-## Dependencies
-
-- Vulkan
-- Assimp
-- glslangValidator
-- AMD RGA
-- Linux-specific:
-    - libunwind
-    - libxcb
