@@ -19,18 +19,12 @@ target_sources(${target} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/ModelLoader.h
 )
 
-# Add assimp dependency
-find_package(assimp REQUIRED)
-target_link_libraries(${target} PUBLIC ${ASSIMP_LIBRARY})
-target_include_directories(${target} SYSTEM PUBLIC ${ASSIMP_INCLUDE_DIRS})
-
-if(WIN32)
-    assimp_copy_binaries(${Reaper_BINARY_DIR})
-endif()
+include(tinyobjloader)
 
 target_link_libraries(${target} PUBLIC
     ${REAPER_CORE_BIN}
     glm
+    tinyobjloader
 )
 
 reaper_configure_library(${target} "Mesh")

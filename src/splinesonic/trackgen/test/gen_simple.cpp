@@ -90,7 +90,7 @@ TEST_CASE("Track mesh generation")
     for (u32 i = 0; i < genInfo.length; i++)
     {
         std::ifstream file(assetFile);
-        meshes[i] = ModelLoader::loadOBJAssimp(file);
+        meshes[i] = ModelLoader::loadOBJ(file);
 
         SkinTrackChunkMesh(testTrack.skeletonNodes[i], testTrack.skinning[i], meshes[i], 10.0f);
     }

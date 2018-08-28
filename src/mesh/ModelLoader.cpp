@@ -13,16 +13,14 @@
 #include <string.h>
 #include <vector>
 
-#include <assimp/Importer.hpp>
-#include <assimp/postprocess.h>
-#include <assimp/scene.h>
+#define TINYOBJLOADER_IMPLEMENTATION
+#include "tiny_obj_loader.h"
 
 #include <glm/geometric.hpp>
 
 ModelLoader::ModelLoader()
 {
-    //_loaders["obj"] = &ModelLoader::loadOBJCustom;
-    _loaders["obj"] = &ModelLoader::loadOBJAssimp;
+    _loaders["obj"] = &ModelLoader::loadOBJTinyObjLoader;
 }
 
 void ModelLoader::load(std::string filename, MeshCache& cache)
@@ -44,64 +42,79 @@ void ModelLoader::load(std::string filename, MeshCache& cache)
 
     Mesh mesh = (_loaders.at(extension))(file);
     cache.loadMesh(filename, mesh);
+
+    Assert(mesh.vertices.size(), "loaded empty mesh");
 }
 
-static inline glm::vec3 to_glm3(aiVector3D& v)
+Mesh ModelLoader::loadOBJ(std::ifstream& src)
 {
-    return glm::vec3(v.x, v.y, v.z);
+    return loadOBJTinyObjLoader(src);
 }
 
-static inline glm::vec2 to_glm2(aiVector3D& v)
+// A lot of cache miss with this method.
+Mesh ModelLoader::loadOBJTinyObjLoader(std::ifstream& src)
 {
-    return glm::vec2(v.x, v.y);
-}
+    tinyobj::attrib_t                attrib;
+    std::vector<tinyobj::shape_t>    shapes;
+    std::vector<tinyobj::material_t> materials;
+    std::string                      err;
+    const bool                       triangulate = true;
 
-Mesh ModelLoader::loadOBJAssimp(std::ifstream& src)
-{
-    Mesh             mesh;
-    Assimp::Importer importer;
-    std::string      content(std::istreambuf_iterator<char>(static_cast<std::istream&>(src)),
-                             std::istreambuf_iterator<char>());
-    const aiScene*   scene;
-    aiMesh*          assimpMesh = nullptr;
-    unsigned int     flags =
-        aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenSmoothNormals | aiProcess_CalcTangentSpace;
+    const bool ret = tinyobj::LoadObj(&attrib, &shapes, &materials, &err, &src, nullptr, triangulate);
 
-    scene = importer.ReadFileFromMemory(content.c_str(), content.size(), flags);
+    Assert(err.empty(), err);
+    Assert(ret, "could not load obj");
+    Assert(shapes.size(), "no shapes to load");
 
-    Assert(scene && !(scene->mFlags == AI_SCENE_FLAGS_INCOMPLETE) && scene->mRootNode,
-           std::string("loadOBJAssimp::") + importer.GetErrorString());
+    Mesh mesh;
+    mesh.vertices.reserve(attrib.vertices.size());
+    mesh.normals.reserve(attrib.normals.size());
+    mesh.uvs.reserve(attrib.texcoords.size());
 
-    // Only support simplistic scene structures
-    Assert(scene->HasMeshes(), "loadOBJAssimp::no mesh found");
-
-    assimpMesh = scene->mMeshes[0];
-
-    mesh.vertices.reserve(assimpMesh->mNumVertices);
-    mesh.normals.reserve(assimpMesh->mNumVertices);
-    mesh.tangents.reserve(assimpMesh->mNumVertices);
-    mesh.bitangents.reserve(assimpMesh->mNumVertices);
-    mesh.uvs.reserve(assimpMesh->mNumVertices);
-    for (std::size_t i = 0; i < assimpMesh->mNumVertices; ++i)
+    // Loop over shapes
+    for (size_t s = 0; s < shapes.size(); s++)
     {
-        mesh.vertices.push_back(to_glm3(assimpMesh->mVertices[i]));
-        mesh.normals.push_back(to_glm3(assimpMesh->mNormals[i]));
-        if (assimpMesh->mTangents)
-            mesh.tangents.push_back(to_glm3(assimpMesh->mTangents[i]));
-        if (assimpMesh->mBitangents)
-            mesh.bitangents.push_back(to_glm3(assimpMesh->mBitangents[i]));
-        if (assimpMesh->mTextureCoords[0])
-            mesh.uvs.push_back(to_glm2(assimpMesh->mTextureCoords[0][i]));
-        else
-            mesh.uvs.push_back(glm::vec2(0.0f, 0.0f));
-    }
-    mesh.hasNormals = assimpMesh->mNormals != nullptr;
-    mesh.hasUVs = assimpMesh->mTextureCoords[0] != nullptr;
-    for (std::size_t i = 0; i < assimpMesh->mNumFaces; ++i)
-    {
-        aiFace face = assimpMesh->mFaces[i];
-        for (std::size_t j = 0; j < face.mNumIndices; ++j)
-            mesh.indexes.push_back(face.mIndices[j]);
+        // Loop over faces(polygon)
+        size_t index_offset = 0;
+        for (size_t f = 0; f < shapes[s].mesh.num_face_vertices.size(); f++)
+        {
+            u32 fv = shapes[s].mesh.num_face_vertices[f];
+            Assert(fv == 3, "only triangle faces are supported");
+
+            // Loop over vertices in the face.
+            for (size_t v = 0; v < fv; v++)
+            {
+                // access to vertex
+                const u32              index = index_offset + v;
+                const tinyobj::index_t indexInfo = shapes[s].mesh.indices[index];
+
+                tinyobj::real_t  vx = attrib.vertices[3 * indexInfo.vertex_index + 0];
+                tinyobj::real_t  vy = attrib.vertices[3 * indexInfo.vertex_index + 1];
+                tinyobj::real_t  vz = attrib.vertices[3 * indexInfo.vertex_index + 2];
+                const glm::fvec3 vertex(vx, vy, vz);
+                mesh.vertices.push_back(vertex);
+
+                if (!attrib.normals.empty())
+                {
+                    tinyobj::real_t  nx = attrib.normals[3 * indexInfo.normal_index + 0];
+                    tinyobj::real_t  ny = attrib.normals[3 * indexInfo.normal_index + 1];
+                    tinyobj::real_t  nz = attrib.normals[3 * indexInfo.normal_index + 2];
+                    const glm::fvec3 normal(nx, ny, nz);
+                    mesh.normals.push_back(normal);
+                }
+
+                if (!attrib.texcoords.empty())
+                {
+                    tinyobj::real_t  tx = attrib.texcoords[2 * indexInfo.texcoord_index + 0];
+                    tinyobj::real_t  ty = attrib.texcoords[2 * indexInfo.texcoord_index + 1];
+                    const glm::fvec2 uv(tx, ty);
+                    mesh.uvs.push_back(uv);
+                }
+
+                mesh.indexes.push_back(index);
+            }
+            index_offset += fv;
+        }
     }
     return mesh;
 }

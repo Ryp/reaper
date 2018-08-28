@@ -23,8 +23,10 @@ public:
 public:
     void load(std::string filename, MeshCache& cache);
 
-public:
-    static Mesh loadOBJAssimp(std::ifstream& src);
+    static Mesh loadOBJ(std::ifstream& src);
+
+private:
+    static Mesh loadOBJTinyObjLoader(std::ifstream& src);
     static Mesh loadOBJCustom(std::ifstream& src);
 
 private:
