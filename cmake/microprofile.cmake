@@ -7,7 +7,9 @@
 
 set(MICROPROFILE_BIN microprofile)
 
-set(MICROPROFILE_SRCS
+add_library(${MICROPROFILE_BIN} ${REAPER_BUILD_TYPE})
+
+target_sources(${MICROPROFILE_BIN} PRIVATE
     ${CMAKE_SOURCE_DIR}/external/microprofile.config.h.in
     ${CMAKE_SOURCE_DIR}/external/microprofile/microprofile.config.h
     ${CMAKE_SOURCE_DIR}/external/microprofile/microprofile.cpp
@@ -18,14 +20,12 @@ set(MICROPROFILE_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/external/microprofile)
 
 configure_file(${CMAKE_SOURCE_DIR}/external/microprofile.config.h.in ${MICROPROFILE_INCLUDE_DIR}/microprofile.config.h NEWLINE_STYLE UNIX)
 
-add_library(${MICROPROFILE_BIN} ${REAPER_BUILD_TYPE} ${MICROPROFILE_SRCS})
-reaper_configure_external_target(${MICROPROFILE_BIN} "Microprofile")
+target_include_directories(${MICROPROFILE_BIN} SYSTEM INTERFACE ${MICROPROFILE_INCLUDE_DIR})
 
 # Get microprofile to include our custom conf
 target_compile_definitions(${MICROPROFILE_BIN} PUBLIC MICROPROFILE_USE_CONFIG)
 
-# Set flags for user of the library
-target_include_directories(${MICROPROFILE_BIN} SYSTEM INTERFACE ${MICROPROFILE_INCLUDE_DIR})
+reaper_configure_external_target(${MICROPROFILE_BIN} "Microprofile")
 
 set_target_properties(${MICROPROFILE_BIN} PROPERTIES FOLDER External)
 
