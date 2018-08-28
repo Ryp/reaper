@@ -52,7 +52,7 @@ target_sources(${target} PRIVATE
 # Setup microprofile
 if(REAPER_USE_MICROPROFILE)
     include(microprofile)
-    target_link_libraries(${target} PUBLIC ${MICROPROFILE_BIN})
+    target_link_libraries(${target} PUBLIC microprofile)
     target_compile_definitions(${target} PUBLIC REAPER_USE_MICROPROFILE)
 endif()
 
