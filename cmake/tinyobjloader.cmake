@@ -7,7 +7,7 @@
 
 set(TINYOBJLOADER_BIN tinyobjloader)
 
-add_library(${TINYOBJLOADER_BIN} ${REAPER_BUILD_TYPE})
+add_library(${TINYOBJLOADER_BIN} STATIC)
 
 target_sources(${TINYOBJLOADER_BIN} PRIVATE
     ${CMAKE_SOURCE_DIR}/external/tinyobjloader/tiny_obj_loader.cc

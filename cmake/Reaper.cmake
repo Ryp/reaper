@@ -38,7 +38,7 @@ function(reaper_fill_vs_source_tree target root)
     list(APPEND SOURCE_FILES ${SOURCE_FILES_DEPS})
 
     foreach(FILE IN LISTS SOURCE_FILES)
-        if (${FILE} MATCHES ".*\\.cpp" OR ${FILE} MATCHES ".*\\.inl" OR ${FILE} MATCHES ".*\\.h" OR ${FILE} MATCHES ".*\\.hpp")
+        if (${FILE} MATCHES ".*\\.(cpp|cc|inl|h)")
             source_group(TREE ${CMAKE_SOURCE_DIR} PREFIX "Source Files" FILES ${FILE})
         elseif (${FILE} MATCHES ".*\\.natvis")
             source_group(TREE ${CMAKE_SOURCE_DIR} PREFIX "Natvis" FILES ${FILE})
