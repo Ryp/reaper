@@ -1,6 +1,5 @@
 !.gitignore
 build
-external/downloaded
 
 #Python
 __pycache__/

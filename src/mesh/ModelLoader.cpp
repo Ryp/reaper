@@ -13,7 +13,6 @@
 #include <string.h>
 #include <vector>
 
-#define TINYOBJLOADER_IMPLEMENTATION
 #include "tiny_obj_loader.h"
 
 #include <glm/geometric.hpp>
@@ -43,7 +42,7 @@ void ModelLoader::load(std::string filename, MeshCache& cache)
     Mesh mesh = (_loaders.at(extension))(file);
     cache.loadMesh(filename, mesh);
 
-    Assert(mesh.vertices.size(), "loaded empty mesh");
+    Assert(mesh.vertices.size() > 0, "loaded empty mesh");
 }
 
 Mesh ModelLoader::loadOBJ(std::ifstream& src)
@@ -64,7 +63,7 @@ Mesh ModelLoader::loadOBJTinyObjLoader(std::ifstream& src)
 
     Assert(err.empty(), err);
     Assert(ret, "could not load obj");
-    Assert(shapes.size(), "no shapes to load");
+    Assert(shapes.size() > 0, "no shapes to load");
 
     Mesh mesh;
     mesh.vertices.reserve(attrib.vertices.size());
@@ -85,7 +84,7 @@ Mesh ModelLoader::loadOBJTinyObjLoader(std::ifstream& src)
             for (size_t v = 0; v < fv; v++)
             {
                 // access to vertex
-                const u32              index = index_offset + v;
+                const u32              index = static_cast<u32>(index_offset + v);
                 const tinyobj::index_t indexInfo = shapes[s].mesh.indices[index];
 
                 tinyobj::real_t  vx = attrib.vertices[3 * indexInfo.vertex_index + 0];
