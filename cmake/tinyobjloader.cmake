@@ -18,4 +18,5 @@ target_include_directories(${TINYOBJLOADER_BIN} SYSTEM INTERFACE ${CMAKE_SOURCE_
 
 reaper_configure_external_target(${TINYOBJLOADER_BIN} "TinyObjLoader")
 
+set_target_properties(${TINYOBJLOADER_BIN} PROPERTIES POSITION_INDEPENDENT_CODE ON)
 set_target_properties(${TINYOBJLOADER_BIN} PROPERTIES FOLDER External)
