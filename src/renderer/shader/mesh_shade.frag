@@ -13,4 +13,3 @@ void main()
 {
     outputColor = texture(samplerColor, uv);
 }
-

@@ -21,7 +21,7 @@ vec4 blurH(vec2 invScreenSize)
     {
         color += texture(image, (vec2(gl_FragCoord) + vec2(offset[i], 0.0)) * invScreenSize) * weight[i];
         color += texture(image, (vec2(gl_FragCoord) - vec2(offset[i], 0.0)) * invScreenSize) * weight[i];
-    }   
+    }
     return color;
 }
 
@@ -33,7 +33,7 @@ vec4 blurV(vec2 invScreenSize)
     {
         color += texture(image, (vec2(gl_FragCoord) + vec2(0.0, offset[i])) * invScreenSize) * weight[i];
         color += texture(image, (vec2(gl_FragCoord) - vec2(0.0, offset[i])) * invScreenSize) * weight[i];
-    }   
+    }
     return color;
 }
 

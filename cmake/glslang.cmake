@@ -24,11 +24,14 @@ endif()
 # This function will create SPIR-V targets for each input glsl file and append it
 # to the user-provided 'generated_files' variable.
 # Then make your desired target depend on them and it will automatically compile your shaders.
-function(add_glslang_spirv_targets generated_files)
+function(add_glslang_spirv_targets shader_root_folder generated_files)
+    if(${ARGC} LESS_EQUAL 2)
+        message(FATAL_ERROR "No shaders were passed to the function")
+    endif()
     set(OUTPUT_SPIRV_FILES)
     foreach(INPUT_GLSL IN LISTS ARGN)
         # Build the correct output name and path
-        file(RELATIVE_PATH INPUT_GLSL_REL "${CMAKE_SOURCE_DIR}/res/shader" ${INPUT_GLSL})
+        file(RELATIVE_PATH INPUT_GLSL_REL ${shader_root_folder} ${INPUT_GLSL})
         set(OUTPUT_SPIRV "${CMAKE_BINARY_DIR}/spv/${INPUT_GLSL_REL}.spv")
         get_filename_component(OUTPUT_SPIRV_PATH ${OUTPUT_SPIRV} DIRECTORY)
         get_filename_component(OUTPUT_SPIRV_NAME ${OUTPUT_SPIRV} NAME)
