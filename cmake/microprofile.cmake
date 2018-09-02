@@ -29,7 +29,8 @@ reaper_configure_external_target(${MICROPROFILE_BIN} "Microprofile")
 
 set_target_properties(${MICROPROFILE_BIN} PROPERTIES FOLDER External)
 
-if(WIN32)
+if(UNIX)
+    target_link_libraries(${MICROPROFILE_BIN} PRIVATE pthread)
+elseif(WIN32)
     target_link_libraries(${MICROPROFILE_BIN} PRIVATE ws2_32)
 endif()
-
