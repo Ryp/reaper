@@ -19,6 +19,8 @@ install:
     - ps: cmake --version
     - ps: .\tools\ci\install_vulkan_sdk.ps1
 build_script:
-    - ps: cmake .\ -Bbuild -G "Visual Studio 14 2015 Win64" -DREAPER_GIT_HOOKS_AUTO_UPDATE=OFF -DREAPER_RUN_CLANG_TIDY=OFF
+    - ps: cmake .\ -Bbuild -G "Visual Studio 14 2015 Win64" -DREAPER_BUILD_SHARED_LIBRARIES=OFF -DREAPER_GIT_HOOKS_AUTO_UPDATE=OFF -DREAPER_RUN_CLANG_TIDY=OFF
+    - ps: cmake --build build --config Debug
+    - ps: cmake .\ -Bbuild -G "Visual Studio 14 2015 Win64" -DREAPER_BUILD_SHARED_LIBRARIES=ON -DREAPER_GIT_HOOKS_AUTO_UPDATE=OFF -DREAPER_RUN_CLANG_TIDY=OFF
     - ps: cmake --build build --config Debug
     - ps: cmake --build build --target RUN_TESTS
