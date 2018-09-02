@@ -68,7 +68,7 @@ target_sources(${target} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/window/Window.h
 )
 
-set(REAPER_GLSL_DIR ${CMAKE_SOURCE_DIR}/res/shader)
+set(REAPER_GLSL_DIR ${CMAKE_CURRENT_SOURCE_DIR}/shader)
 set(REAPER_GLSL_SRCS
     ${REAPER_GLSL_DIR}/samples/tri.frag
     ${REAPER_GLSL_DIR}/samples/tri.vert
@@ -87,7 +87,7 @@ set(REAPER_GLSL_SRCS
 
 # Shader compilation
 include(glslang)
-add_glslang_spirv_targets(REAPER_SPIRV_OUTPUT ${REAPER_GLSL_SRCS})
+add_glslang_spirv_targets(${REAPER_GLSL_DIR} REAPER_SPIRV_OUTPUT ${REAPER_GLSL_SRCS})
 target_sources(${target} PRIVATE ${REAPER_GLSL_SRCS} ${REAPER_SPIRV_OUTPUT})
 
 include(amdrga)
