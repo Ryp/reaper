@@ -9,6 +9,27 @@
 
 namespace vk
 {
+const char* GetResultToString(VkResult result)
+{
+    // FIXME Incomplete
+    switch (result)
+    {
+    case VK_SUCCESS:
+        return "VK_SUCCESS";
+    case VK_TIMEOUT:
+        return "VK_TIMEOUT";
+    case VK_ERROR_OUT_OF_HOST_MEMORY:
+        return "VK_ERROR_OUT_OF_HOST_MEMORY";
+    case VK_ERROR_OUT_OF_DEVICE_MEMORY:
+        return "VK_ERROR_OUT_OF_DEVICE_MEMORY";
+    case VK_ERROR_DEVICE_LOST:
+        return "VK_ERROR_DEVICE_LOST";
+    default:
+        AssertUnreachable();
+    }
+    return "Unknown";
+}
+
 const char* GetPresentModeKHRToString(VkPresentModeKHR presentMode)
 {
     switch (presentMode)

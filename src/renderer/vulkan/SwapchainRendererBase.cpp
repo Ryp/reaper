@@ -248,7 +248,7 @@ namespace
         ReaperRoot* root = static_cast<ReaperRoot*>(pUserData);
 
         Assert(root != nullptr);
-        // Assert(false, pMessage);
+        Assert(false);
 
         log_warning(*root, "vulkan: {}", pMessage);
         return VK_FALSE;

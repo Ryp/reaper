@@ -249,7 +249,6 @@ void create_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backend, 
         vkGetSwapchainImagesKHR(backend.device, presentInfo.swapchain, &presentInfo.imageCount, &presentInfo.images[0])
         == VK_SUCCESS);
 
-    // TODO Framebuffer and imageView creation
     VkSemaphoreCreateInfo semaphore_create_info = {
         VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO, // VkStructureType          sType
         nullptr,                                 // const void*              pNext
@@ -263,8 +262,15 @@ void create_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backend, 
 
     Assert(vkCreateSemaphore(backend.device, &semaphore_create_info, nullptr, &presentInfo.imageAvailableSemaphore)
            == VK_SUCCESS);
+
+    log_debug(root, "vulkan: created semaphore with handle: {}",
+              static_cast<void*>(presentInfo.imageAvailableSemaphore));
+
     Assert(vkCreateSemaphore(backend.device, &semaphore_create_info, nullptr, &presentInfo.renderingFinishedSemaphore)
            == VK_SUCCESS);
+
+    log_debug(root, "vulkan: created semaphore with handle: {}",
+              static_cast<void*>(presentInfo.renderingFinishedSemaphore));
 }
 
 void destroy_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backend, PresentationInfo& presentInfo)
@@ -291,15 +297,22 @@ void resize_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backend, 
     // Destroy what needs to be
     Assert(vkDeviceWaitIdle(backend.device) == VK_SUCCESS);
 
+    vkDestroySemaphore(backend.device, presentInfo.imageAvailableSemaphore, nullptr);
+    vkDestroySemaphore(backend.device, presentInfo.renderingFinishedSemaphore, nullptr);
+
     destroy_swapchain_framebuffers(backend, presentInfo);
     destroy_swapchain_renderpass(backend, presentInfo);
 
     vkDestroySwapchainKHR(backend.device, presentInfo.swapchain, nullptr);
     presentInfo.swapchain = VK_NULL_HANDLE;
 
-    // Recreate without breaking the state
-    // TODO change size PROPERLY
-    presentInfo.surfaceExtent = extent;
+    // Reconfigure even if we know most of what we expect/need
+    SwapchainDescriptor swapchainDesc;
+    swapchainDesc.preferredImageCount = presentInfo.imageCount;
+    swapchainDesc.preferredFormat = presentInfo.surfaceFormat;
+    swapchainDesc.preferredExtent = {extent.width, extent.height}; // New extent
+
+    configure_vulkan_wm_swapchain(root, backend, swapchainDesc, presentInfo);
 
     create_vulkan_wm_swapchain(root, backend, presentInfo);
 }
