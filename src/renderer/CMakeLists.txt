@@ -82,6 +82,8 @@ set(REAPER_GLSL_SRCS
     ${REAPER_GLSL_DIR}/blit.vert
     ${REAPER_GLSL_DIR}/mesh_shade.frag
     ${REAPER_GLSL_DIR}/mesh_shade.vert
+    ${REAPER_GLSL_DIR}/mesh_simple.frag
+    ${REAPER_GLSL_DIR}/mesh_simple.vert
     ${REAPER_GLSL_DIR}/test.comp
 )
 
