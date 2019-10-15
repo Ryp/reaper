@@ -1,11 +1,11 @@
 # Find the amd rga spirv compiler library
 #
 # FIXME
-
+set(AMD_RGA_COMMON_PATH ${CMAKE_SOURCE_DIR}/external/amd-rga/Core/VulkanOffline)
 if(UNIX)
-    set(AMD_RGA_PATH ${CMAKE_SOURCE_DIR}/external/amd-rga/Core/Vulkan/rev_1_0_0/Release/lnx64)
+    set(AMD_RGA_PATH ${AMD_RGA_COMMON_PATH}/lnx64)
 elseif(WIN32)
-    set(AMD_RGA_PATH ${CMAKE_SOURCE_DIR}/external/amd-rga/Core/Vulkan/rev_1_0_0/Release/win64)
+    set(AMD_RGA_PATH ${AMD_RGA_COMMON_PATH}/win64)
 endif()
 
 find_program(AMD_RGA_EXEC amdspv HINT ${AMD_RGA_PATH})
@@ -28,10 +28,11 @@ function(add_spirv_to_gcn_targets generated_files)
     foreach(INPUT_SPIRV IN LISTS ARGN)
         set(OUTPUT_GCN_ISA_FILE "${INPUT_SPIRV}.gcn")
         set(OUTPUT_GCN_STATS_FILE "${INPUT_SPIRV}.gcn-stats")
+        set(OUTPUT_GCN_VERSION -gfxip 8)
 
         add_custom_command(OUTPUT ${OUTPUT_GCN_ISA_FILE} ${OUTPUT_GCN_STATS_FILE}
             COMMAND ${UNIX_SPECIFIC} ${AMD_RGA_EXEC}
-                -gfxip 8 -set defaultOutput=0 in.spv=${INPUT_SPIRV}
+                ${OUTPUT_GCN_VERSION} -set defaultOutput=0 in.spv=${INPUT_SPIRV}
                 out.vert.isaText=${OUTPUT_GCN_ISA_FILE} out.vert.isaInfo=${OUTPUT_GCN_STATS_FILE}
                 out.geom.isaText=${OUTPUT_GCN_ISA_FILE} out.geom.isaInfo=${OUTPUT_GCN_STATS_FILE}
                 out.tesc.isaText=${OUTPUT_GCN_ISA_FILE} out.tesc.isaInfo=${OUTPUT_GCN_STATS_FILE}
