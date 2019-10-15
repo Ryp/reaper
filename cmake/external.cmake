@@ -24,6 +24,7 @@ set(GLM_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/external/glm)
 
 add_library(glm INTERFACE)
 target_include_directories(glm SYSTEM INTERFACE ${GLM_INCLUDE_DIR})
+target_compile_definitions(glm INTERFACE GLM_FORCE_DEPTH_ZERO_TO_ONE)
 
 if(MSVC)
     target_sources(glm INTERFACE ${GLM_INCLUDE_DIR}/util/glm.natvis)
