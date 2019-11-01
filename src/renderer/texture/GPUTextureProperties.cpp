@@ -15,10 +15,11 @@ GPUTextureProperties DefaultGPUTextureProperties(u32 width, u32 height, PixelFor
         width,  height,
         1, // depth
         format,
-        1,    // mipCount
-        1,    // layerCount
-        1,    // sampleCount
-        false // isCubemap
+        1, // mipCount
+        1, // layerCount
+        1, // sampleCount
+        0, // usage_flags
+        0, // misc_flags
     };
 }
 } // namespace Reaper

@@ -10,8 +10,33 @@
 #include "renderer/RendererExport.h"
 #include "renderer/format/PixelFormat.h"
 
+#include "core/BitTricks.h"
+
 namespace Reaper
 {
+namespace GPUTextureUsage
+{
+    enum
+    {
+        TransferSrc = bit(0),
+        TransferDst = bit(1),
+        Sampled = bit(2),
+        Storage = bit(3),
+        ColorAttachment = bit(4),
+        DepthStencilAttachment = bit(5),
+        TransientAttachment = bit(6),
+        InputAttachment = bit(7),
+    };
+}
+
+namespace GPUMiscFlags
+{
+    enum
+    {
+        Cubemap = bit(0),
+    };
+}
+
 struct GPUTextureProperties
 {
     u32         width;
@@ -21,14 +46,10 @@ struct GPUTextureProperties
     u32         mipCount;
     u32         layerCount;
     u32         sampleCount;
-    bool        isCubemap;
+    u32         usageFlags;
+    u32         miscFlags;
 };
 
 REAPER_RENDERER_API
 GPUTextureProperties DefaultGPUTextureProperties(u32 width, u32 height, PixelFormat format);
-
-struct GPUTextureUsage
-{
-    bool hey;
-};
 } // namespace Reaper
