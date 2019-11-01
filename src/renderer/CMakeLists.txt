@@ -37,6 +37,8 @@ target_sources(${target} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/texture/TextureLoader.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/texture/TextureLoader.h
 
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Buffer.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Buffer.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Memory.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Memory.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/PresentationSurface.cpp
