@@ -12,6 +12,16 @@
 
 TEST_CASE("Offset alignment")
 {
+    SUBCASE("Basic")
+    {
+        CHECK(0 == alignOffset(0, 16));
+        CHECK(16 == alignOffset(1, 16));
+
+        CHECK(4 == alignOffset(3, 4));
+        CHECK(4 == alignOffset(4, 4));
+        CHECK(5 == alignOffset(5, 1));
+    }
+
     SUBCASE("Alignment16")
     {
         const std::size_t alignmentMultiples = 4;
