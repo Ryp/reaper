@@ -1,8 +1,9 @@
 !.gitignore
+
+# build artefacts
 build
 
-#Python
+# python
 __pycache__/
 *.py[cod]
 *$py.class
-
