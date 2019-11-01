@@ -7,16 +7,40 @@
 
 #pragma once
 
-class GPUStackAllocator
+#include "renderer/vulkan/api/Vulkan.h"
+
+namespace Reaper
+{
+class VirtualStackAllocator
 {
 public:
-    GPUStackAllocator(std::size_t size);
-    ~GPUStackAllocator();
+    VirtualStackAllocator(std::size_t size);
 
 public:
     std::size_t alloc(std::size_t size, std::size_t alignment);
 
 private:
-    std::size_t _size;
-    std::size_t _offset;
+    std::size_t m_size;
+    std::size_t m_offset;
 };
+
+struct GPUAlloc
+{
+    VkDeviceMemory memory;
+    VkDeviceSize   offset;
+    VkDeviceSize   size;
+};
+
+class GPUStackAllocator
+{
+public:
+    GPUStackAllocator(VkDeviceMemory memory, u32 index, std::size_t size);
+
+    GPUAlloc alloc(VkMemoryRequirements requirements);
+
+private:
+    VirtualStackAllocator m_allocator;
+    VkDeviceMemory        m_memory;
+    u32                   m_memoryIndex;
+};
+} // namespace Reaper
