@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 /// Reaper
 ///
-/// Copyright (c) 2015-2018 Thibault Schueller
+/// Copyright (c) 2015-2019 Thibault Schueller
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -20,6 +20,6 @@ using LibSym = FARPROC;
 namespace dynlib
 {
 REAPER_CORE_API LibHandle load(const std::string& library);
-REAPER_CORE_API LibSym getSymbol(LibHandle handle, const std::string& name);
-REAPER_CORE_API void   close(LibHandle handle);
+REAPER_CORE_API LibSym    getSymbol(LibHandle handle, const std::string& name);
+REAPER_CORE_API void      close(LibHandle handle);
 } // namespace dynlib
