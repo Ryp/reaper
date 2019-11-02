@@ -51,27 +51,6 @@ std::vector<MemoryTypeInfo> enumerateHeaps(VkPhysicalDevice device)
     return result;
 }
 
-VkDeviceMemory AllocateMemory(const std::vector<MemoryTypeInfo>& memoryInfos, VkDevice device, const int size)
-{
-    // We take the first HOST_VISIBLE memory
-    for (auto& memoryInfo : memoryInfos)
-    {
-        if (memoryInfo.hostVisible)
-        {
-            VkMemoryAllocateInfo memoryAllocateInfo = {};
-            memoryAllocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-            memoryAllocateInfo.memoryTypeIndex = memoryInfo.index;
-            memoryAllocateInfo.allocationSize = size;
-
-            VkDeviceMemory deviceMemory;
-            vkAllocateMemory(device, &memoryAllocateInfo, nullptr, &deviceMemory);
-            return deviceMemory;
-        }
-    }
-
-    return VK_NULL_HANDLE;
-}
-
 u32 getMemoryType(VkPhysicalDevice device, uint32_t typeBits, VkMemoryPropertyFlags requiredProperties)
 {
     VkPhysicalDeviceMemoryProperties memoryProperties = {};
