@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 /// Reaper
 ///
-/// Copyright (c) 2015-2018 Thibault Schueller
+/// Copyright (c) 2015-2019 Thibault Schueller
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -46,8 +46,8 @@ struct Index
     Index operator-(Index& other) const { return Index(x - other.x, y - other.y); }
 };
 
-REAPER_GAMELOGIC_API CostMap createCostMap(u16 size, CostType initialCost = minimalCost());
-REAPER_GAMELOGIC_API void    destroyCostMap(CostMap& map);
+REAPER_GAMELOGIC_API CostMap  createCostMap(u16 size, CostType initialCost = minimalCost());
+REAPER_GAMELOGIC_API void     destroyCostMap(CostMap& map);
 REAPER_GAMELOGIC_API CostType evalCostMap(const CostMap& map, const Index& index);
 
 struct Brush
