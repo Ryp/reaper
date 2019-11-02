@@ -39,16 +39,18 @@ target_sources(${target} PRIVATE
 
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Buffer.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Buffer.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Image.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Image.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Memory.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Memory.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/PresentationSurface.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/PresentationSurface.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Shader.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Shader.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Swapchain.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Swapchain.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/SwapchainRendererBase.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/SwapchainRendererBase.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Shader.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Shader.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Test.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Test.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/VulkanRenderer.cpp
