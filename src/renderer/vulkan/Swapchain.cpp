@@ -167,7 +167,7 @@ void configure_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backen
                         swapchainDesc.preferredImageCount, imageCount);
 
         Assert(imageCount > 0);
-        Assert(imageCount < 4); // Seems like a reasonable limit
+        Assert(imageCount <= 5); // Seems like a reasonable limit
         presentInfo.imageCount = imageCount;
     }
 
