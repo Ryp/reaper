@@ -7,7 +7,6 @@
 
 #pragma once
 
-#include "renderer/RendererExport.h"
 #include "renderer/format/PixelFormat.h"
 
 #include "core/BitTricks.h"
@@ -50,6 +49,5 @@ struct GPUTextureProperties
     u32         miscFlags;
 };
 
-REAPER_RENDERER_API
 GPUTextureProperties DefaultGPUTextureProperties(u32 width, u32 height, PixelFormat format);
 } // namespace Reaper
