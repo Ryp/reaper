@@ -31,8 +31,4 @@ struct MemoryTypeInfo
 
 std::vector<MemoryTypeInfo> enumerateHeaps(VkPhysicalDevice device);
 
-VkDeviceMemory AllocateMemory(const std::vector<MemoryTypeInfo>& memoryInfos, VkDevice device, const int size);
-
-VkBuffer AllocateBuffer(VkDevice device, const std::size_t size, const VkBufferUsageFlagBits bits);
-
 u32 getMemoryType(VkPhysicalDevice device, uint32_t typeBits, VkMemoryPropertyFlags requiredProperties);
