@@ -62,6 +62,7 @@ namespace
     {
         glm::mat4 model;
         glm::mat4 viewProj;
+        float     timeMs;
     };
 
     void debug_memory_heap_properties(ReaperRoot& root, const VulkanBackend& backend, uint32_t memoryTypeIndex)
@@ -276,9 +277,6 @@ namespace
 
     void update_transform_constant_buffer(UniformBufferObject& ubo, float timeMs, float aspectRatio)
     {
-        // FIXME
-        (void)timeMs;
-
         const glm::vec3 object_position_ws = glm::vec3(0.0f, 0.0f, 0.0f);
         ubo.model = glm::translate(glm::mat4(1.0f), object_position_ws);
 
@@ -289,6 +287,8 @@ namespace
         const float far_plane_distance = 100.f;
         ubo.viewProj =
             glm::perspective(glm::pi<float>() * 0.25f, aspectRatio, near_plane_distance, far_plane_distance) * view;
+
+        ubo.timeMs = timeMs;
     }
 
     void vulkan_test_compute(ReaperRoot& root, VulkanBackend& backend, GlobalResources& resources)
@@ -505,7 +505,6 @@ namespace
         log_info(root, "window: map window");
         window->map();
 
-        float               timeMs = 0.0f;
         UniformBufferObject ubo = {};
 
         const int MaxFrameCount = 0;
@@ -514,8 +513,11 @@ namespace
         bool shouldExit = false;
         int  frameIndex = 0;
 
+        const auto startTime = std::chrono::system_clock::now();
+
         while (!shouldExit)
         {
+            const auto currentTime = std::chrono::system_clock::now();
             {
                 REAPER_PROFILE_SCOPE("Vulkan", MP_YELLOW);
                 log_info(root, "window: pump events");
@@ -625,6 +627,8 @@ namespace
                 log_debug(root, "vulkan: record command buffer");
                 Assert(vkResetCommandBuffer(resources.gfxCmdBuffer, 0) == VK_SUCCESS);
 
+                const auto  timeSecs = std::chrono::duration_cast<std::chrono::milliseconds>(startTime - currentTime);
+                const float timeMs = static_cast<float>(timeSecs.count()) * 0.001;
                 const float aspectRatio =
                     static_cast<float>(backbufferExtent.width) / static_cast<float>(backbufferExtent.height);
                 update_transform_constant_buffer(ubo, timeMs, aspectRatio);
@@ -790,19 +794,19 @@ void vulkan_test(ReaperRoot& root, VulkanBackend& backend)
     VkCommandBufferAllocateInfo cmdBufferAllocInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO, nullptr,
                                                       graphicsCommandPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, 1};
 
-    VkCommandBuffer graphicsCommandBuffer = VK_NULL_HANDLE;
-    Assert(vkAllocateCommandBuffers(backend.device, &cmdBufferAllocInfo, &graphicsCommandBuffer) == VK_SUCCESS);
-    log_debug(root, "vulkan: created command buffer with handle: {}", static_cast<void*>(graphicsCommandBuffer));
+    VkCommandBuffer gfxCmdBuffer = VK_NULL_HANDLE;
+    Assert(vkAllocateCommandBuffers(backend.device, &cmdBufferAllocInfo, &gfxCmdBuffer) == VK_SUCCESS);
+    log_debug(root, "vulkan: created command buffer with handle: {}", static_cast<void*>(gfxCmdBuffer));
 
     {
-        GlobalResources resources = {image, imageView, mainAllocator, descriptorPool, graphicsCommandBuffer};
+        GlobalResources resources = {image, imageView, mainAllocator, descriptorPool, gfxCmdBuffer};
 
         vulkan_test_compute(root, backend, resources);
         vulkan_test_graphics(root, backend, resources);
     }
 
     // cleanup
-    vkFreeCommandBuffers(backend.device, graphicsCommandPool, 1, &graphicsCommandBuffer);
+    vkFreeCommandBuffers(backend.device, graphicsCommandPool, 1, &gfxCmdBuffer);
     vkDestroyCommandPool(backend.device, graphicsCommandPool, nullptr);
 
     vkDestroyDescriptorPool(backend.device, descriptorPool, nullptr);
