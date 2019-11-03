@@ -65,7 +65,7 @@ struct REAPER_RENDERER_API VulkanBackend
 
     PresentationInfo presentInfo;
 
-    VkDebugReportCallbackEXT debugCallback;
+    VkDebugUtilsMessengerEXT debugMessenger;
 
     VulkanBackend();
 };

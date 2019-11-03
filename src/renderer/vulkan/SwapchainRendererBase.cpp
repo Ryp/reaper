@@ -49,7 +49,7 @@ VulkanBackend::VulkanBackend()
     , device(VK_NULL_HANDLE)
     , deviceInfo({VK_NULL_HANDLE, VK_NULL_HANDLE})
     , presentInfo({})
-    , debugCallback(VK_NULL_HANDLE)
+    , debugMessenger(VK_NULL_HANDLE)
 {}
 
 void create_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& backend)
@@ -63,29 +63,29 @@ void create_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& backend)
     vulkan_load_exported_functions(backend.vulkanLib);
     vulkan_load_global_level_functions();
 
-    std::vector<const char*> extensions = {VK_KHR_SURFACE_EXTENSION_NAME, REAPER_VK_SWAPCHAIN_EXTENSION_NAME};
+    std::vector<const char*> instanceExtensions = {VK_KHR_SURFACE_EXTENSION_NAME, REAPER_VK_SWAPCHAIN_EXTENSION_NAME};
 
 #if defined(REAPER_DEBUG)
-    extensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
+    instanceExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 #endif
 
-    log_info(root, "vulkan: using {} instance level extensions", extensions.size());
-    for (auto& e : extensions)
+    log_info(root, "vulkan: using {} instance level extensions", instanceExtensions.size());
+    for (auto& e : instanceExtensions)
         log_debug(root, "- {}", e);
 
-    vulkan_instance_check_extensions(extensions);
+    vulkan_instance_check_extensions(instanceExtensions);
 
-    std::vector<const char*> layers;
+    std::vector<const char*> instanceLayers;
 
-#if defined(REAPER_DEBUG) && !defined(REAPER_PLATFORM_WINDOWS)
-    layers.push_back("VK_LAYER_LUNARG_standard_validation");
+#if defined(REAPER_DEBUG)
+    instanceLayers.push_back("VK_LAYER_LUNARG_standard_validation");
 #endif
 
-    log_info(root, "vulkan: using {} instance level layers", layers.size());
-    for (auto& layer : layers)
+    log_info(root, "vulkan: using {} instance level layers", instanceLayers.size());
+    for (auto& layer : instanceLayers)
         log_debug(root, "- {}", layer);
 
-    vulkan_instance_check_layers(layers);
+    vulkan_instance_check_layers(instanceLayers);
 
     VkApplicationInfo application_info = {
         VK_STRUCTURE_TYPE_APPLICATION_INFO, // VkStructureType            sType
@@ -98,18 +98,15 @@ void create_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& backend)
         REAPER_VK_API_VERSION // uint32_t                   apiVersion
     };
 
-    uint32_t layerCount = static_cast<uint32_t>(layers.size());
-    uint32_t extensionCount = static_cast<uint32_t>(extensions.size());
-
     VkInstanceCreateInfo instance_create_info = {
-        VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,          // VkStructureType            sType
-        nullptr,                                         // const void*                pNext
-        0,                                               // VkInstanceCreateFlags      flags
-        &application_info,                               // const VkApplicationInfo   *pApplicationInfo
-        layerCount,                                      // uint32_t                   enabledLayerCount
-        (layerCount > 0 ? &layers[0] : nullptr),         // const char * const        *ppEnabledLayerNames
-        extensionCount,                                  // uint32_t                   enabledExtensionCount
-        (extensionCount > 0 ? &extensions[0] : nullptr), // const char * const        *ppEnabledExtensionNames
+        VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,      // VkStructureType            sType
+        nullptr,                                     // const void*                pNext
+        0,                                           // VkInstanceCreateFlags      flags
+        &application_info,                           // const VkApplicationInfo   *pApplicationInfo
+        static_cast<u32>(instanceLayers.size()),     // uint32_t                   enabledLayerCount
+        instanceLayers.data(),                       // const char * const        *ppEnabledLayerNames
+        static_cast<u32>(instanceExtensions.size()), // uint32_t                   enabledExtensionCount
+        instanceExtensions.data(),                   // const char * const        *ppEnabledExtensionNames
     };
 
     Assert(vkCreateInstance(&instance_create_info, nullptr, &backend.instance) == VK_SUCCESS,
@@ -236,50 +233,90 @@ void vulkan_instance_check_layers(const std::vector<const char*>& layers)
 
 namespace
 {
-    VkBool32 debugReportCallback(VkDebugReportFlagsEXT /*flags*/,
-                                 VkDebugReportObjectTypeEXT /*objectType*/,
-                                 uint64_t /*object*/,
-                                 size_t /*location*/,
-                                 int32_t /*messageCode*/,
-                                 const char* /*pLayerPrefix*/,
-                                 const char* pMessage,
-                                 void*       pUserData)
+    VkBool32 debugReportCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+                                 VkDebugUtilsMessageTypeFlagsEXT /*messageTypes*/,
+                                 const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+                                 void*                                       pUserData)
     {
         ReaperRoot* root = static_cast<ReaperRoot*>(pUserData);
-
         Assert(root != nullptr);
-        Assert(false);
 
-        log_warning(*root, "vulkan: {}", pMessage);
+        log_debug(*root,
+                  "vulkan debug message: {} ({}): {}",
+                  pCallbackData->pMessageIdName,
+                  pCallbackData->messageIdNumber,
+                  pCallbackData->pMessage);
+
+        u32 queueCount = pCallbackData->queueLabelCount;
+        if (queueCount > 0)
+        {
+            log_debug(*root, "queues labels:");
+            for (u32 i = 0; i < queueCount; i++)
+            {
+                const VkDebugUtilsLabelEXT& queueInfo = pCallbackData->pQueueLabels[i];
+                const char*                 label = queueInfo.pLabelName;
+                log_debug(*root, "- {}", label ? label : "unnamed");
+            }
+        }
+
+        u32 cmdBufferCount = pCallbackData->cmdBufLabelCount;
+        if (cmdBufferCount > 0)
+        {
+            log_debug(*root, "command buffer labels:");
+            for (u32 i = 0; i < cmdBufferCount; i++)
+            {
+                const VkDebugUtilsLabelEXT& cmdBufferInfo = pCallbackData->pCmdBufLabels[i];
+                const char*                 label = cmdBufferInfo.pLabelName;
+                log_debug(*root, "- {}", label ? label : "unnamed");
+            }
+        }
+
+        u32 objetCount = pCallbackData->objectCount;
+        if (objetCount > 0)
+        {
+            log_debug(*root, "oject info:");
+            for (u32 i = 0; i < objetCount; i++)
+            {
+                const VkDebugUtilsObjectNameInfoEXT& objectInfo = pCallbackData->pObjects[i];
+                const char*                          label = objectInfo.pObjectName;
+                log_debug(*root, "- {}, handle = {}", label ? label : "unnamed", objectInfo.objectHandle);
+            }
+        }
+
+        Assert(messageSeverity < VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT);
+
         return VK_FALSE;
     }
 } // namespace
 
 void vulkan_setup_debug_callback(ReaperRoot& root, VulkanBackend& backend)
 {
-    VkDebugReportCallbackCreateInfoEXT callbackCreateInfo;
-    callbackCreateInfo.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CREATE_INFO_EXT;
-    callbackCreateInfo.pNext = nullptr;
-    callbackCreateInfo.flags =
-        VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT | VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT;
-    callbackCreateInfo.pfnCallback = &debugReportCallback;
-    callbackCreateInfo.pUserData = &root;
+    VkDebugUtilsMessengerCreateInfoEXT callbackCreateInfo = {
+        VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
+        nullptr,
+        0,
+        VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT
+            | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,
+        VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT
+            | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_FLAG_BITS_MAX_ENUM_EXT,
+        &debugReportCallback,
+        &root};
 
 #if defined(REAPER_DEBUG)
-    Assert(vkCreateDebugReportCallbackEXT(backend.instance, &callbackCreateInfo, nullptr, &backend.debugCallback)
+    Assert(vkCreateDebugUtilsMessengerEXT(backend.instance, &callbackCreateInfo, nullptr, &backend.debugMessenger)
            == VK_SUCCESS);
 #endif
-}
+} // namespace Reaper
 
 void vulkan_destroy_debug_callback(VulkanBackend& backend)
 {
-    Assert(backend.debugCallback != nullptr);
+    Assert(backend.debugMessenger != nullptr);
 
 #if defined(REAPER_DEBUG)
-    vkDestroyDebugReportCallbackEXT(backend.instance, backend.debugCallback, nullptr);
+    vkDestroyDebugUtilsMessengerEXT(backend.instance, backend.debugMessenger, nullptr);
 #endif
 
-    backend.debugCallback = nullptr;
+    backend.debugMessenger = nullptr;
 }
 
 // Move this up
