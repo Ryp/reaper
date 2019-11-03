@@ -97,6 +97,8 @@ set(REAPER_GLSL_SRCS
     ${REAPER_GLSL_DIR}/mesh_simple.vert
     ${REAPER_GLSL_DIR}/mesh_transformed.frag
     ${REAPER_GLSL_DIR}/mesh_transformed.vert
+    ${REAPER_GLSL_DIR}/mesh_transformed_shaded.frag
+    ${REAPER_GLSL_DIR}/mesh_transformed_shaded.vert
     ${REAPER_GLSL_DIR}/test.comp
 )
 
