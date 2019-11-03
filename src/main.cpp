@@ -32,10 +32,10 @@ int main(int /*ac*/, char** /*av*/)
 
         log_info(root, "engine: startup");
         {
-            if (create_renderer(&root))
+            if (create_renderer(root))
             {
                 vulkan_test(root, *root.renderer->backend);
-                destroy_renderer(&root);
+                destroy_renderer(root);
             }
         }
         log_info(root, "engine: shutdown");
