@@ -35,6 +35,9 @@
 
 #include <glm/gtc/matrix_transform.hpp>
 
+#include <chrono>
+#include <thread>
+
 namespace Reaper
 {
 namespace
@@ -692,6 +695,8 @@ namespace
                                                 &presentResult};
                 Assert(vkQueuePresentKHR(backend.deviceInfo.presentQueue, &presentInfo) == VK_SUCCESS);
                 Assert(presentResult == VK_SUCCESS);
+
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
                 frameIndex++;
                 if (frameIndex == MaxFrameCount)
