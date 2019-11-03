@@ -137,6 +137,12 @@ namespace
                 VK_FORMAT_R32G32B32_SFLOAT, // format
                 0                           // offset
             },
+            {
+                2,                       // location
+                0,                       // binding
+                VK_FORMAT_R32G32_SFLOAT, // format
+                0                        // offset
+            },
         };
 
         std::vector<VkPipelineShaderStageCreateInfo> blitShaderStages = {
@@ -293,7 +299,7 @@ namespace
         ubo.model = model;
 
         const glm::vec3 camera_position_ws = glm::vec3(5.0f, 5.0f, 5.0f);
-        const glm::mat4 view = glm::lookAt(camera_position_ws, object_position_ws, glm::vec3(0, 1, 0));
+        const glm::mat4 view = glm::lookAt(camera_position_ws, object_position_ws, glm::vec3(0, -1, 0));
 
         const float near_plane_distance = 0.1f;
         const float far_plane_distance = 100.f;
@@ -460,7 +466,7 @@ namespace
     void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResources& resources)
     {
         // Read mesh file
-        std::ifstream modelFile("res/model/icosahedron.obj");
+        std::ifstream modelFile("res/model/suzanne.obj");
         const Mesh    mesh = ModelLoader::loadOBJ(modelFile);
 
         // Create vk buffers
@@ -471,6 +477,8 @@ namespace
                                                                sizeof(mesh.vertices[0]), resources.mainAllocator);
         BufferInfo vertexBufferNormal = create_vertex_buffer(root, backend.device, mesh.normals.size(),
                                                              sizeof(mesh.normals[0]), resources.mainAllocator);
+        BufferInfo vertexBufferUV =
+            create_vertex_buffer(root, backend.device, mesh.uvs.size(), sizeof(mesh.uvs[0]), resources.mainAllocator);
         BufferInfo indexBuffer = create_index_buffer(root, backend.device, mesh.indexes.size(), sizeof(mesh.indexes[0]),
                                                      resources.mainAllocator);
 
@@ -478,6 +486,7 @@ namespace
                            mesh.vertices.size() * sizeof(mesh.vertices[0]));
         upload_buffer_data(backend.device, vertexBufferNormal, mesh.normals.data(),
                            mesh.normals.size() * sizeof(mesh.normals[0]));
+        upload_buffer_data(backend.device, vertexBufferUV, mesh.uvs.data(), mesh.uvs.size() * sizeof(mesh.uvs[0]));
         upload_buffer_data(backend.device, indexBuffer, mesh.indexes.data(),
                            mesh.indexes.size() * sizeof(mesh.indexes[0]));
 
@@ -682,6 +691,7 @@ namespace
                 std::vector<VkBuffer> vertexBuffers = {
                     vertexBufferPosition.buffer,
                     vertexBufferNormal.buffer,
+                    vertexBufferUV.buffer,
                 };
                 std::vector<VkDeviceSize> vertexBufferOffsets = {
                     0,
@@ -752,6 +762,7 @@ namespace
         vkDestroyBuffer(backend.device, constantBuffer.buffer, nullptr);
         vkDestroyBuffer(backend.device, vertexBufferPosition.buffer, nullptr);
         vkDestroyBuffer(backend.device, vertexBufferNormal.buffer, nullptr);
+        vkDestroyBuffer(backend.device, vertexBufferUV.buffer, nullptr);
         vkDestroyBuffer(backend.device, indexBuffer.buffer, nullptr);
     }
 } // namespace
