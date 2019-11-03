@@ -1,6 +1,7 @@
 #version 450 core
 
 layout(location = 0) in vec3 in_NormalVS;
+layout(location = 1) in vec2 in_UV;
 
 layout(location = 0) out vec4 out_Color;
 
@@ -16,5 +17,8 @@ void main()
 
     const float NdotL = saturate(dot(normalVS, lightDirectionVS));
 
-    out_Color = vec4(1.0, 0.4, 1.0, 1.0) * NdotL;
+    const vec3 uvChecker = vec3(fract(in_UV * 10.0).xy, 0.5);
+    const vec3 color = uvChecker * max(0.3, NdotL);
+
+    out_Color = vec4(color, 1.0);
 }

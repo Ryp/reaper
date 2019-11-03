@@ -10,8 +10,10 @@ layout(binding = 0) uniform UniformBufferObject
 
 layout(location = 0) in vec3 in_PositionMS;
 layout(location = 1) in vec3 in_NormalMS;
+layout(location = 2) in vec2 in_UV;
 
 layout(location = 0) out vec3 out_NormalVS;
+layout(location = 1) out vec2 out_UV;
 
 out gl_PerVertex
 {
@@ -26,4 +28,5 @@ void main()
 
     gl_Position = positionCS;
     out_NormalVS = uniformBuffer.modelViewInvT * in_NormalMS;
+    out_UV = in_UV;
 }
