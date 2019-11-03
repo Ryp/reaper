@@ -62,6 +62,10 @@ namespace
     {
         glm::mat4 model;
         glm::mat4 viewProj;
+        glm::mat3 modelViewInvT;
+        float     _pad0;
+        float     _pad1;
+        float     _pad2;
         float     timeMs;
     };
 
@@ -105,8 +109,8 @@ namespace
     {
         VkShaderModule        blitShaderFS = VK_NULL_HANDLE;
         VkShaderModule        blitShaderVS = VK_NULL_HANDLE;
-        const char*           fileNameVS = "./build/spv/mesh_transformed.vert.spv";
-        const char*           fileNameFS = "./build/spv/mesh_transformed.frag.spv";
+        const char*           fileNameVS = "./build/spv/mesh_transformed_shaded.vert.spv";
+        const char*           fileNameFS = "./build/spv/mesh_transformed_shaded.frag.spv";
         const char*           entryPoint = "main";
         VkSpecializationInfo* specialization = nullptr;
 
@@ -120,15 +124,22 @@ namespace
             VK_VERTEX_INPUT_RATE_VERTEX // input rate
         };
 
-        constexpr u32                           vertexAttributesCount = 1;
-        const VkVertexInputAttributeDescription vertexAttributes[vertexAttributesCount] = {
-            0,                          // location
-            0,                          // binding
-            VK_FORMAT_R32G32B32_SFLOAT, // format
-            0                           // offset
+        std::vector<VkVertexInputAttributeDescription> vertexAttributes = {
+            {
+                0,                          // location
+                0,                          // binding
+                VK_FORMAT_R32G32B32_SFLOAT, // format
+                0                           // offset
+            },
+            {
+                1,                          // location
+                0,                          // binding
+                VK_FORMAT_R32G32B32_SFLOAT, // format
+                0                           // offset
+            },
         };
 
-        VkPipelineShaderStageCreateInfo blitShaderStages[2] = {
+        std::vector<VkPipelineShaderStageCreateInfo> blitShaderStages = {
             {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_VERTEX_BIT, blitShaderVS,
              entryPoint, specialization},
             {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_FRAGMENT_BIT,
@@ -140,8 +151,8 @@ namespace
             VK_FLAGS_NONE,
             1,
             &vertexInfoShaderBinding,
-            vertexAttributesCount,
-            &vertexAttributes[0]};
+            static_cast<u32>(vertexAttributes.size()),
+            vertexAttributes.data()};
 
         VkPipelineInputAssemblyStateCreateInfo blitInputAssemblyInfo = {
             VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO, nullptr, VK_FLAGS_NONE,
@@ -245,8 +256,8 @@ namespace
         VkGraphicsPipelineCreateInfo blitPipelineCreateInfo = {VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
                                                                nullptr,
                                                                VK_FLAGS_NONE,
-                                                               static_cast<uint32_t>(2),
-                                                               blitShaderStages,
+                                                               static_cast<u32>(blitShaderStages.size()),
+                                                               blitShaderStages.data(),
                                                                &blitVertexInputStateInfo,
                                                                &blitInputAssemblyInfo,
                                                                nullptr,
@@ -278,15 +289,19 @@ namespace
     void update_transform_constant_buffer(UniformBufferObject& ubo, float timeMs, float aspectRatio)
     {
         const glm::vec3 object_position_ws = glm::vec3(0.0f, 0.0f, 0.0f);
-        ubo.model = glm::translate(glm::mat4(1.0f), object_position_ws);
+        const glm::mat3 model = glm::translate(glm::mat4(1.0f), object_position_ws);
+        ubo.model = model;
 
         const glm::vec3 camera_position_ws = glm::vec3(5.0f, 5.0f, 5.0f);
         const glm::mat4 view = glm::lookAt(camera_position_ws, object_position_ws, glm::vec3(0, 1, 0));
 
         const float near_plane_distance = 0.1f;
         const float far_plane_distance = 100.f;
-        ubo.viewProj =
-            glm::perspective(glm::pi<float>() * 0.25f, aspectRatio, near_plane_distance, far_plane_distance) * view;
+        const float fov_radian = glm::pi<float>() * 0.25f;
+        ubo.viewProj = glm::perspective(fov_radian, aspectRatio, near_plane_distance, far_plane_distance) * view;
+
+        const glm::mat3 modelView = glm::mat3(view) * glm::mat3(model);
+        ubo.modelViewInvT = glm::transpose(glm::inverse(modelView));
 
         ubo.timeMs = timeMs;
     }
@@ -452,13 +467,17 @@ namespace
         BufferInfo constantBuffer =
             create_constant_buffer(root, backend.device, sizeof(UniformBufferObject), resources.mainAllocator);
 
-        BufferInfo vertexBuffer = create_vertex_buffer(root, backend.device, mesh.vertices.size(),
-                                                       sizeof(mesh.vertices[0]), resources.mainAllocator);
+        BufferInfo vertexBufferPosition = create_vertex_buffer(root, backend.device, mesh.vertices.size(),
+                                                               sizeof(mesh.vertices[0]), resources.mainAllocator);
+        BufferInfo vertexBufferNormal = create_vertex_buffer(root, backend.device, mesh.normals.size(),
+                                                             sizeof(mesh.normals[0]), resources.mainAllocator);
         BufferInfo indexBuffer = create_index_buffer(root, backend.device, mesh.indexes.size(), sizeof(mesh.indexes[0]),
                                                      resources.mainAllocator);
 
-        upload_buffer_data(backend.device, vertexBuffer, mesh.vertices.data(),
+        upload_buffer_data(backend.device, vertexBufferPosition, mesh.vertices.data(),
                            mesh.vertices.size() * sizeof(mesh.vertices[0]));
+        upload_buffer_data(backend.device, vertexBufferNormal, mesh.normals.data(),
+                           mesh.normals.size() * sizeof(mesh.normals[0]));
         upload_buffer_data(backend.device, indexBuffer, mesh.indexes.data(),
                            mesh.indexes.size() * sizeof(mesh.indexes[0]));
 
@@ -660,10 +679,17 @@ namespace
                 vkCmdSetViewport(resources.gfxCmdBuffer, 0, 1, &blitViewport);
                 vkCmdSetScissor(resources.gfxCmdBuffer, 0, 1, &blitScissor);
 
-                constexpr u32      vertexBufferCount = 1;
-                const VkDeviceSize offsets[vertexBufferCount] = {0};
+                std::vector<VkBuffer> vertexBuffers = {
+                    vertexBufferPosition.buffer,
+                    vertexBufferNormal.buffer,
+                };
+                std::vector<VkDeviceSize> vertexBufferOffsets = {
+                    0,
+                    0,
+                };
                 vkCmdBindIndexBuffer(resources.gfxCmdBuffer, indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
-                vkCmdBindVertexBuffers(resources.gfxCmdBuffer, 0, vertexBufferCount, &vertexBuffer.buffer, offsets);
+                vkCmdBindVertexBuffers(resources.gfxCmdBuffer, 0, vertexBuffers.size(), vertexBuffers.data(),
+                                       vertexBufferOffsets.data());
                 vkCmdBindDescriptorSets(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
                                         blitPipe.pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
 
@@ -724,7 +750,8 @@ namespace
         vkDestroyDescriptorSetLayout(backend.device, blitPipe.descSetLayout, nullptr);
 
         vkDestroyBuffer(backend.device, constantBuffer.buffer, nullptr);
-        vkDestroyBuffer(backend.device, vertexBuffer.buffer, nullptr);
+        vkDestroyBuffer(backend.device, vertexBufferPosition.buffer, nullptr);
+        vkDestroyBuffer(backend.device, vertexBufferNormal.buffer, nullptr);
         vkDestroyBuffer(backend.device, indexBuffer.buffer, nullptr);
     }
 } // namespace
