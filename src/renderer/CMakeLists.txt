@@ -70,7 +70,14 @@ target_sources(${target} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/window/Event.h
     ${CMAKE_CURRENT_SOURCE_DIR}/window/Window.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/window/Window.h
+
+    ${CMAKE_CURRENT_SOURCE_DIR}/renderdoc/RenderDoc.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/renderdoc/RenderDoc.h
 )
+
+if(REAPER_USE_RENDERDOC)
+    target_compile_definitions(${target} PUBLIC REAPER_USE_RENDERDOC)
+endif()
 
 set(REAPER_GLSL_DIR ${CMAKE_CURRENT_SOURCE_DIR}/shader)
 set(REAPER_GLSL_SRCS
