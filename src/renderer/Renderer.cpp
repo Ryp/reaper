@@ -10,10 +10,14 @@
 #include "renderer/vulkan/SwapchainRendererBase.h"
 #include "renderer/vulkan/VulkanRenderer.h"
 
+#include "renderer/renderdoc/RenderDoc.h"
+
 namespace Reaper
 {
 bool create_renderer(ReaperRoot& root)
 {
+    RenderDoc::start_integration(root);
+
     Assert(root.renderer == nullptr);
 
     root.renderer = new Renderer();
@@ -34,6 +38,8 @@ void destroy_renderer(ReaperRoot& root)
     delete root.renderer->backend;
     delete root.renderer;
     root.renderer = nullptr;
+
+    RenderDoc::stop_integration(root);
 }
 
 void run_renderer(ReaperRoot& root)

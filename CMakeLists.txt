@@ -59,6 +59,10 @@ option(REAPER_RUN_CLANG_TIDY            "Run clang-tidy when compiling" ON)
 # Building with coverage info will slow down build and execution times.
 option(REAPER_BUILD_COVERAGE_INFO       "Build with coverage info"      OFF)
 
+# Building with RenderDoc integration support.
+# That allows us to capture frames in-engine and attach RenderDoc later to analyze them.
+option(REAPER_USE_RENDERDOC             "Build with RenderDoc support"  OFF)
+
 # Enable CTest
 if (REAPER_BUILD_TESTS)
     enable_testing()
