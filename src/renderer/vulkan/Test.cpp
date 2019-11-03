@@ -236,9 +236,9 @@ namespace
 
         VkPipelineCache cache = VK_NULL_HANDLE;
 
-        const VkDynamicState             blitDynamicStateViewport = VK_DYNAMIC_STATE_VIEWPORT;
+        const VkDynamicState             dynamicStates[] = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
         VkPipelineDynamicStateCreateInfo blitDynamicState = {
-            VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO, nullptr, 0, 1, &blitDynamicStateViewport,
+            VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO, nullptr, 0, 2, dynamicStates,
         };
 
         VkGraphicsPipelineCreateInfo blitPipelineCreateInfo = {VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
@@ -651,7 +651,10 @@ namespace
                 const VkViewport blitViewport = {
                     0.0f, 0.0f, static_cast<float>(backbufferExtent.width), static_cast<float>(backbufferExtent.height),
                     0.0f, 1.0f};
+                const VkRect2D blitScissor = {{0, 0}, backbufferExtent};
+
                 vkCmdSetViewport(resources.gfxCmdBuffer, 0, 1, &blitViewport);
+                vkCmdSetScissor(resources.gfxCmdBuffer, 0, 1, &blitScissor);
 
                 constexpr u32      vertexBufferCount = 1;
                 const VkDeviceSize offsets[vertexBufferCount] = {0};
