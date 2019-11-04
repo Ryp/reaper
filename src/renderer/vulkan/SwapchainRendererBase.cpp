@@ -87,15 +87,18 @@ void create_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& backend)
 
     vulkan_instance_check_layers(instanceLayers);
 
+    const u32 appVersion = VK_MAKE_VERSION(REAPER_VERSION_MAJOR, REAPER_VERSION_MINOR, REAPER_VERSION_PATCH);
+    const u32 engineVersion = appVersion;
+    const u32 vulkanVersion = REAPER_VK_API_VERSION;
+
     VkApplicationInfo application_info = {
-        VK_STRUCTURE_TYPE_APPLICATION_INFO, // VkStructureType            sType
-        nullptr,                            // const void                *pNext
-        "MyGame",                           // const char                *pApplicationName
-        VK_MAKE_VERSION(
-            REAPER_VERSION_MAJOR, REAPER_VERSION_MINOR, REAPER_VERSION_PATCH), // uint32_t applicationVersion
-        "Reaper",                                                              // const char                *pEngineName
-        VK_MAKE_VERSION(REAPER_VERSION_MAJOR, REAPER_VERSION_MINOR, REAPER_VERSION_PATCH), // uint32_t engineVersion
-        REAPER_VK_API_VERSION // uint32_t                   apiVersion
+        VK_STRUCTURE_TYPE_APPLICATION_INFO, // VkStructureType  sType
+        nullptr,                            // const void*      pNext
+        "MyGame",                           // const char*      pApplicationName
+        appVersion,                         // uint32_t         applicationVersion
+        "Reaper",                           // const char*      pEngineName
+        engineVersion,                      // uint32_t         engineVersion
+        vulkanVersion                       // uint32_t         apiVersion
     };
 
     VkInstanceCreateInfo instance_create_info = {
