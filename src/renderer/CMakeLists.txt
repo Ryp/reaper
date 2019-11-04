@@ -76,7 +76,10 @@ target_sources(${target} PRIVATE
 )
 
 if(REAPER_USE_RENDERDOC)
-    target_compile_definitions(${target} PUBLIC REAPER_USE_RENDERDOC)
+    find_package(RenderDoc REQUIRED)
+    target_link_libraries(${target} PRIVATE RenderDoc::RenderDoc)
+    target_compile_definitions(${target} PRIVATE REAPER_USE_RENDERDOC)
+    target_compile_definitions(${target} PRIVATE REAPER_RENDERDOC_LIB_NAME="${RENDERDOC_LIBRARY}")
 endif()
 
 set(REAPER_GLSL_DIR ${CMAKE_CURRENT_SOURCE_DIR}/shader)
