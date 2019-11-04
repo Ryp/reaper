@@ -656,7 +656,7 @@ namespace
                 Assert(vkResetCommandBuffer(resources.gfxCmdBuffer, 0) == VK_SUCCESS);
 
                 const auto  timeSecs = std::chrono::duration_cast<std::chrono::milliseconds>(startTime - currentTime);
-                const float timeMs = static_cast<float>(timeSecs.count()) * 0.001;
+                const float timeMs = static_cast<float>(timeSecs.count()) * 0.001f;
                 const float aspectRatio =
                     static_cast<float>(backbufferExtent.width) / static_cast<float>(backbufferExtent.height);
                 update_transform_constant_buffer(ubo, timeMs, aspectRatio);
@@ -698,12 +698,12 @@ namespace
                     0,
                 };
                 vkCmdBindIndexBuffer(resources.gfxCmdBuffer, indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
-                vkCmdBindVertexBuffers(resources.gfxCmdBuffer, 0, vertexBuffers.size(), vertexBuffers.data(),
-                                       vertexBufferOffsets.data());
+                vkCmdBindVertexBuffers(resources.gfxCmdBuffer, 0, static_cast<u32>(vertexBuffers.size()),
+                                       vertexBuffers.data(), vertexBufferOffsets.data());
                 vkCmdBindDescriptorSets(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
                                         blitPipe.pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
 
-                vkCmdDrawIndexed(resources.gfxCmdBuffer, mesh.indexes.size(), 1, 0, 0, 0);
+                vkCmdDrawIndexed(resources.gfxCmdBuffer, static_cast<u32>(mesh.indexes.size()), 1, 0, 0, 0);
 
                 vkCmdEndRenderPass(resources.gfxCmdBuffer);
 
