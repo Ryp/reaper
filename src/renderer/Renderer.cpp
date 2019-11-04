@@ -16,7 +16,9 @@ namespace Reaper
 {
 bool create_renderer(ReaperRoot& root)
 {
+#if defined(REAPER_USE_RENDERDOC)
     RenderDoc::start_integration(root);
+#endif
 
     Assert(root.renderer == nullptr);
 
@@ -39,7 +41,9 @@ void destroy_renderer(ReaperRoot& root)
     delete root.renderer;
     root.renderer = nullptr;
 
+#if defined(REAPER_USE_RENDERDOC)
     RenderDoc::stop_integration(root);
+#endif
 }
 
 void run_renderer(ReaperRoot& root)
