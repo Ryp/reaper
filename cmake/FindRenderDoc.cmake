@@ -13,19 +13,19 @@
 # RENDERDOC_LIBRARY
 # RENDERDOC_FOUND
 
-set(RENDERDOC_ROOT CACHE PATH "RenderDoc installation directory")
+# Temporarily override suffixes to allow correct DLL search on WIN32
+set(RENDERDOC_SUFFIXES_SAVE ${CMAKE_FIND_LIBRARY_SUFFIXES})
+
+if(WIN32)
+    # Use a sensible default, but we let you change it since it's in the cache
+    set(RENDERDOC_ROOT "C:/Program Files/RenderDoc" CACHE PATH "RenderDoc installation directory")
+    set(CMAKE_FIND_LIBRARY_SUFFIXES ".dll")
+endif()
 
 find_path(RENDERDOC_INCLUDE_DIR
     NAMES renderdoc.h renderdoc_app.h
     PATHS ${RENDERDOC_ROOT}
     DOC "Include path for RenderDoc's API")
-
-# Temporarily override suffixes to allow correct DLL search on WIN32
-set(RENDERDOC_SUFFIXES_SAVE ${CMAKE_FIND_LIBRARY_SUFFIXES})
-
-if(WIN32)
-    set(CMAKE_FIND_LIBRARY_SUFFIXES ".dll")
-endif()
 
 find_library(RENDERDOC_LIBRARY
     NAMES renderdoc
