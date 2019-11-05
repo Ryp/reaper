@@ -30,9 +30,5 @@ mark_as_advanced(VULKAN_INCLUDE_DIR VULKAN_LIBRARY)
 if(Vulkan_FOUND AND NOT TARGET Vulkan::Vulkan)
     add_library(Vulkan::Vulkan INTERFACE IMPORTED)
     set_target_properties(Vulkan::Vulkan PROPERTIES
-        INTERFACE_INCLUDE_DIRECTORIES "${VULKAN_INCLUDE_DIR}"
-        # FIXME For some reason this does NOT work with Visual Studio (it should)
-        # INTERFACE_SYSTEM_INCLUDE_DIRECTORIES "${VULKAN_INCLUDE_DIR}"
-        # IMPORTED_LOCATION "${VULKAN_LIBRARY}"
-    )
+        INTERFACE_INCLUDE_DIRECTORIES "${VULKAN_INCLUDE_DIR}")
 endif()
