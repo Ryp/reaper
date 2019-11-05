@@ -44,6 +44,6 @@ mark_as_advanced(RENDERDOC_INCLUDE_DIR RENDERDOC_LIBRARY)
 if(RenderDoc_FOUND AND NOT TARGET RenderDoc::RenderDoc)
     add_library(RenderDoc::RenderDoc INTERFACE IMPORTED)
     set_target_properties(RenderDoc::RenderDoc PROPERTIES
-        INTERFACE_SYSTEM_INCLUDE_DIRECTORIES "${RENDERDOC_INCLUDE_DIR}"
+        INTERFACE_INCLUDE_DIRECTORIES "${RENDERDOC_INCLUDE_DIR}"
     )
 endif()
