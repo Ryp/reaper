@@ -246,7 +246,7 @@ namespace
 
         log_debug(*root,
                   "vulkan debug message: {} ({}): {}",
-                  pCallbackData->pMessageIdName,
+                  pCallbackData->pMessageIdName ? pCallbackData->pMessageIdName : "unnamed",
                   pCallbackData->messageIdNumber,
                   pCallbackData->pMessage);
 

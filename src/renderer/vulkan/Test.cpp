@@ -696,7 +696,9 @@ namespace
                 std::vector<VkDeviceSize> vertexBufferOffsets = {
                     0,
                     0,
+                    0,
                 };
+                Assert(vertexBuffers.size() == vertexBufferOffsets.size());
                 vkCmdBindIndexBuffer(resources.gfxCmdBuffer, indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
                 vkCmdBindVertexBuffers(resources.gfxCmdBuffer, 0, static_cast<u32>(vertexBuffers.size()),
                                        vertexBuffers.data(), vertexBufferOffsets.data());
