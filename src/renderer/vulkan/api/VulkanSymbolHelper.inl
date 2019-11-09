@@ -37,16 +37,6 @@ REAPER_VK_INSTANCE_LEVEL_FUNCTION(vkEnumerateDeviceExtensionProperties)
 REAPER_VK_INSTANCE_LEVEL_FUNCTION(vkGetPhysicalDeviceMemoryProperties)
 REAPER_VK_INSTANCE_LEVEL_FUNCTION(vkGetPhysicalDeviceFormatProperties)
 
-// Separate these
-#if defined(REAPER_DEBUG)
-REAPER_VK_INSTANCE_LEVEL_FUNCTION(vkCreateDebugUtilsMessengerEXT)
-REAPER_VK_INSTANCE_LEVEL_FUNCTION(vkDestroyDebugUtilsMessengerEXT)
-REAPER_VK_INSTANCE_LEVEL_FUNCTION(vkCmdBeginDebugUtilsLabelEXT)
-REAPER_VK_INSTANCE_LEVEL_FUNCTION(vkCmdInsertDebugUtilsLabelEXT)
-REAPER_VK_INSTANCE_LEVEL_FUNCTION(vkQueueBeginDebugUtilsLabelEXT)
-REAPER_VK_INSTANCE_LEVEL_FUNCTION(vkQueueInsertDebugUtilsLabelEXT)
-#endif
-
 // Device level functions
 #ifndef REAPER_VK_DEVICE_LEVEL_FUNCTION
 #    define REAPER_VK_DEVICE_LEVEL_FUNCTION(func)
@@ -123,6 +113,10 @@ REAPER_VK_DEVICE_LEVEL_FUNCTION(vkCreateSampler)
 REAPER_VK_DEVICE_LEVEL_FUNCTION(vkDestroySampler)
 
 #include "VulkanSymbolHelperSwapchainKHR.inl"
+
+#if defined(REAPER_DEBUG)
+#    include "VK_EXT_debug_utils.inl"
+#endif
 
 #undef REAPER_VK_EXPORTED_FUNCTION
 #undef REAPER_VK_GLOBAL_LEVEL_FUNCTION
