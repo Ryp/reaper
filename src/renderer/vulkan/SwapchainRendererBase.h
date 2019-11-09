@@ -29,13 +29,11 @@ struct PresentationInfo
     VkImageUsageFlags             usageFlags;
     VkSurfaceTransformFlagBitsKHR transform;
 
-    VkSwapchainKHR             swapchain;
-    VkSemaphore                imageAvailableSemaphore;
-    VkSemaphore                renderingFinishedSemaphore;
-    std::vector<VkImage>       images;
-    std::vector<VkImageView>   imageViews;
-    std::vector<VkFramebuffer> framebuffers;
-    VkRenderPass               renderPass;
+    VkSwapchainKHR           swapchain;
+    VkSemaphore              imageAvailableSemaphore;
+    VkSemaphore              renderingFinishedSemaphore;
+    std::vector<VkImage>     images;
+    std::vector<VkImageView> imageViews;
 };
 
 struct PhysicalDeviceInfo

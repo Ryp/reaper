@@ -255,9 +255,6 @@ void create_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backend, 
         0                                        // VkSemaphoreCreateFlags   flags
     };
 
-    log_debug(root, "vulkan: create present renderpass");
-    create_swapchain_renderpass(backend, presentInfo);
-
     create_swapchain_framebuffers(backend, presentInfo);
 
     Assert(vkCreateSemaphore(backend.device, &semaphore_create_info, nullptr, &presentInfo.imageAvailableSemaphore)
@@ -282,7 +279,6 @@ void destroy_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backend,
     vkDestroySemaphore(backend.device, presentInfo.renderingFinishedSemaphore, nullptr);
 
     destroy_swapchain_framebuffers(backend, presentInfo);
-    destroy_swapchain_renderpass(backend, presentInfo);
 
     vkDestroySwapchainKHR(backend.device, presentInfo.swapchain, nullptr);
     presentInfo.swapchain = VK_NULL_HANDLE;
@@ -301,7 +297,6 @@ void resize_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backend, 
     vkDestroySemaphore(backend.device, presentInfo.renderingFinishedSemaphore, nullptr);
 
     destroy_swapchain_framebuffers(backend, presentInfo);
-    destroy_swapchain_renderpass(backend, presentInfo);
 
     vkDestroySwapchainKHR(backend.device, presentInfo.swapchain, nullptr);
     presentInfo.swapchain = VK_NULL_HANDLE;
@@ -317,70 +312,13 @@ void resize_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backend, 
     create_vulkan_wm_swapchain(root, backend, presentInfo);
 }
 
-void create_swapchain_renderpass(const VulkanBackend& backend, PresentationInfo& presentInfo)
-{
-    VkAttachmentDescription attachment_descriptions[] = {{
-        0,                                // VkAttachmentDescriptionFlags   flags
-        presentInfo.surfaceFormat.format, // VkFormat                       format
-        VK_SAMPLE_COUNT_1_BIT,            // VkSampleCountFlagBits          samples
-        VK_ATTACHMENT_LOAD_OP_CLEAR,      // VkAttachmentLoadOp             loadOp
-        VK_ATTACHMENT_STORE_OP_STORE,     // VkAttachmentStoreOp            storeOp
-        VK_ATTACHMENT_LOAD_OP_DONT_CARE,  // VkAttachmentLoadOp             stencilLoadOp
-        VK_ATTACHMENT_STORE_OP_DONT_CARE, // VkAttachmentStoreOp            stencilStoreOp
-        VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,  // VkImageLayout                  initialLayout;
-        VK_IMAGE_LAYOUT_PRESENT_SRC_KHR   // VkImageLayout                  finalLayout
-    }};
-
-    VkAttachmentReference color_attachment_references[] = {{
-        0,                                       // uint32_t                       attachment
-        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL // VkImageLayout                  layout
-    }};
-
-    VkSubpassDescription subpass_descriptions[] = {{
-        0,                               // VkSubpassDescriptionFlags      flags
-        VK_PIPELINE_BIND_POINT_GRAPHICS, // VkPipelineBindPoint            pipelineBindPoint
-        0,                               // uint32_t                       inputAttachmentCount
-        nullptr,                         // const VkAttachmentReference   *pInputAttachments
-        1,                               // uint32_t                       colorAttachmentCount
-        color_attachment_references,     // const VkAttachmentReference   *pColorAttachments
-        nullptr,                         // const VkAttachmentReference   *pResolveAttachments
-        nullptr,                         // const VkAttachmentReference   *pDepthStencilAttachment
-        0,                               // uint32_t                       preserveAttachmentCount
-        nullptr                          // const uint32_t*                pPreserveAttachments
-    }};
-
-    VkRenderPassCreateInfo render_pass_create_info = {
-        VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO, // VkStructureType                sType
-        nullptr,                                   // const void                    *pNext
-        0,                                         // VkRenderPassCreateFlags        flags
-        1,                                         // uint32_t                       attachmentCount
-        attachment_descriptions,                   // const VkAttachmentDescription *pAttachments
-        1,                                         // uint32_t                       subpassCount
-        subpass_descriptions,                      // const VkSubpassDescription    *pSubpasses
-        0,                                         // uint32_t                       dependencyCount
-        nullptr                                    // const VkSubpassDependency     *pDependencies
-    };
-
-    Assert(vkCreateRenderPass(backend.device, &render_pass_create_info, nullptr, &presentInfo.renderPass)
-           == VK_SUCCESS);
-}
-
-void destroy_swapchain_renderpass(const VulkanBackend& backend, PresentationInfo& presentInfo)
-{
-    vkDestroyRenderPass(backend.device, presentInfo.renderPass, nullptr);
-    presentInfo.renderPass = VK_NULL_HANDLE;
-}
-
 void create_swapchain_framebuffers(const VulkanBackend& backend, PresentationInfo& presentInfo)
 {
     const size_t imgCount = presentInfo.imageCount;
 
     Assert(imgCount > 0);
 
-    presentInfo.framebuffers.resize(imgCount);
     presentInfo.imageViews.resize(imgCount);
-
-    Assert(presentInfo.renderPass != VK_NULL_HANDLE);
 
     for (size_t i = 0; i < imgCount; ++i)
     {
@@ -409,32 +347,14 @@ void create_swapchain_framebuffers(const VulkanBackend& backend, PresentationInf
 
         Assert(vkCreateImageView(backend.device, &image_view_create_info, nullptr, &presentInfo.imageViews[i])
                == VK_SUCCESS);
-
-        VkFramebufferCreateInfo framebuffer_create_info = {
-            VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO, // VkStructureType                sType
-            nullptr,                                   // const void                    *pNext
-            0,                                         // VkFramebufferCreateFlags       flags
-            presentInfo.renderPass,                    // VkRenderPass                   renderPass
-            1,                                         // uint32_t                       attachmentCount
-            &presentInfo.imageViews[i],                // const VkImageView             *pAttachments
-            presentInfo.surfaceExtent.width,           // uint32_t                       width
-            presentInfo.surfaceExtent.height,          // uint32_t                       height
-            1                                          // uint32_t                       layers
-        };
-
-        Assert(vkCreateFramebuffer(backend.device, &framebuffer_create_info, nullptr, &presentInfo.framebuffers[i])
-               == VK_SUCCESS);
     }
 }
 
 void destroy_swapchain_framebuffers(const VulkanBackend& backend, PresentationInfo& presentInfo)
 {
-    for (size_t i = 0; i < presentInfo.framebuffers.size(); i++)
-    {
+    for (size_t i = 0; i < presentInfo.imageViews.size(); i++)
         vkDestroyImageView(backend.device, presentInfo.imageViews[i], nullptr);
-        vkDestroyFramebuffer(backend.device, presentInfo.framebuffers[i], nullptr);
-    }
+
     presentInfo.imageViews.clear();
-    presentInfo.framebuffers.clear();
 }
 } // namespace Reaper
