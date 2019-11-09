@@ -14,11 +14,17 @@
 
 namespace Reaper
 {
+#if defined(REAPER_USE_RENDERDOC)
+// FIXME add this to flags at app startup when proper support is added.
+constexpr bool enable_renderdoc_integration = true;
+#else
+constexpr bool enable_renderdoc_integration = false;
+#endif
+
 bool create_renderer(ReaperRoot& root)
 {
-#if defined(REAPER_USE_RENDERDOC)
-    RenderDoc::start_integration(root);
-#endif
+    if (enable_renderdoc_integration)
+        RenderDoc::start_integration(root);
 
     Assert(root.renderer == nullptr);
 
@@ -41,9 +47,8 @@ void destroy_renderer(ReaperRoot& root)
     delete root.renderer;
     root.renderer = nullptr;
 
-#if defined(REAPER_USE_RENDERDOC)
-    RenderDoc::stop_integration(root);
-#endif
+    if (enable_renderdoc_integration)
+        RenderDoc::stop_integration(root);
 }
 
 void run_renderer(ReaperRoot& root)
