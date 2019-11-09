@@ -109,4 +109,26 @@ VkImageView create_default_image_view(VkDevice device, const ImageInfo& image)
 
     return imageView;
 }
+
+VkImageView create_depth_image_view(VkDevice device, const ImageInfo& image)
+{
+    VkImageSubresourceRange viewRange = {VK_IMAGE_ASPECT_DEPTH_BIT, 0, image.properties.mipCount, 0,
+                                         image.properties.layerCount};
+
+    VkImageViewCreateInfo imageViewInfo = {
+        VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+        nullptr,
+        0, // reserved
+        image.handle,
+        VK_IMAGE_VIEW_TYPE_2D,
+        PixelFormatToVulkan(image.properties.format),
+        VkComponentMapping{VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
+                           VK_COMPONENT_SWIZZLE_IDENTITY},
+        viewRange};
+
+    VkImageView imageView = VK_NULL_HANDLE;
+    Assert(vkCreateImageView(device, &imageViewInfo, nullptr, &imageView) == VK_SUCCESS);
+
+    return imageView;
+}
 } // namespace Reaper

@@ -27,4 +27,5 @@ VkSampleCountFlagBits SampleCountToVulkan(u32 sampleCount);
 VkImageUsageFlags     GetVulkanUsageFlags(u32 usageFlags);
 ImageInfo   CreateVulkanImage(VkDevice device, const GPUTextureProperties& properties, GPUStackAllocator& allocator);
 VkImageView create_default_image_view(VkDevice device, const ImageInfo& image);
+VkImageView create_depth_image_view(VkDevice device, const ImageInfo& image);
 } // namespace Reaper

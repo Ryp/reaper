@@ -55,6 +55,10 @@ target_sources(${target} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/SwapchainRendererBase.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Test.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Test.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/TestCompute.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/TestCompute.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/TestGraphics.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/TestGraphics.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/VulkanRenderer.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/VulkanRenderer.h
 
