@@ -7,25 +7,11 @@
 
 #pragma once
 
-#include "Buffer.h"
-#include "Image.h"
-
-#include "api/Vulkan.h"
-
 namespace Reaper
 {
 struct ReaperRoot;
 struct VulkanBackend;
+struct GlobalResources;
 
-struct GlobalResources
-{
-    ImageInfo         image;
-    VkImageView       imageView;
-    GPUStackAllocator mainAllocator;
-    VkDescriptorPool  descriptorPool;
-    VkCommandBuffer   gfxCmdBuffer;
-};
-
-REAPER_RENDERER_API
-void vulkan_test(ReaperRoot& root, VulkanBackend& backend);
+void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResources& resources);
 } // namespace Reaper
