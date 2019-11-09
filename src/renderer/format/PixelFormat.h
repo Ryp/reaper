@@ -10,6 +10,7 @@
 enum class PixelFormat
 {
     Unknown = 0,
+    D16_UNORM,
     R16G16B16A16_UNORM,
     R16G16B16A16_SFLOAT,
     R8G8B8A8_UNORM,
