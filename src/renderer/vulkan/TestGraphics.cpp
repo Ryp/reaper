@@ -84,7 +84,7 @@ namespace
         }
     }
 
-    VkRenderPass create_render_pass(ReaperRoot& root, VulkanBackend& backend,
+    VkRenderPass create_render_pass(ReaperRoot& /*root*/, VulkanBackend& backend,
                                     const GPUTextureProperties& depthProperties)
     {
         // Create a separate render pass for the offscreen rendering as it may differ from the one used for scene
@@ -154,7 +154,7 @@ namespace
         return renderPass;
     }
 
-    void create_framebuffers(ReaperRoot& root, VulkanBackend& backend, VkRenderPass renderPass,
+    void create_framebuffers(ReaperRoot& /*root*/, VulkanBackend& backend, VkRenderPass renderPass,
                              VkImageView depthBufferView, std::vector<VkFramebuffer>& framebuffers)
     {
         const size_t imgCount = backend.presentInfo.imageCount;
@@ -182,7 +182,7 @@ namespace
         }
     }
 
-    void destroy_framebuffers(ReaperRoot& root, VkDevice device, std::vector<VkFramebuffer>& framebuffers)
+    void destroy_framebuffers(ReaperRoot& /*root*/, VkDevice device, std::vector<VkFramebuffer>& framebuffers)
     {
         for (size_t i = 0; i < framebuffers.size(); i++)
             vkDestroyFramebuffer(device, framebuffers[i], nullptr);

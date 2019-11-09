@@ -117,8 +117,7 @@ namespace
         constexpr u32 xcbMagicMask = 0x7f;
         switch (event->response_type & xcbMagicMask)
         {
-        case XCB_CONFIGURE_NOTIFY:
-        {
+        case XCB_CONFIGURE_NOTIFY: {
             xcb_configure_notify_event_t* configure_event = (xcb_configure_notify_event_t*)event;
             // Extent can be zero!
             // example: running the current window in fullscreen mode while
@@ -128,8 +127,7 @@ namespace
 
             return Window::createResizeEvent(configure_event->width, configure_event->height);
         }
-        case XCB_CLIENT_MESSAGE:
-        {
+        case XCB_CLIENT_MESSAGE: {
             // Close
             /*
             if ((*(xcb_client_message_event_t*)event).data.data32[0] == (*m_deleteWindowReply).atom)
@@ -140,9 +138,8 @@ namespace
             */
             break;
         }
-        case XCB_REPARENT_NOTIFY:
-        {
-            xcb_reparent_notify_event_t* reparent_event = (xcb_reparent_notify_event_t*)event;
+        case XCB_REPARENT_NOTIFY: {
+            // xcb_reparent_notify_event_t* reparent_event = (xcb_reparent_notify_event_t*)event;
             // AssertUnreachable();
             break;
         }
