@@ -10,6 +10,8 @@ VkFormat PixelFormatToVulkan(PixelFormat format)
 {
     switch (format)
     {
+    case PixelFormat::D16_UNORM:
+        return VK_FORMAT_D16_UNORM;
     case PixelFormat::R16G16B16A16_UNORM:
         return VK_FORMAT_R16G16B16A16_UNORM;
     case PixelFormat::R16G16B16A16_SFLOAT:
