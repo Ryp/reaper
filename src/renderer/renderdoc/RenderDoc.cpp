@@ -51,9 +51,6 @@ void start_integration(ReaperRoot& root)
     int major, minor, patch;
     g_renderDocAPI->GetAPIVersion(&major, &minor, &patch);
     log_info(root, "renderdoc: API version {}.{}.{}", major, minor, patch);
-
-    Assert(g_renderDocAPI->SetCaptureOptionU32(eRENDERDOC_Option_DebugOutputMute, 0) == 1);
-    log_info(root, "renderdoc: disable debug output muting");
 }
 
 void stop_integration(ReaperRoot& root)
