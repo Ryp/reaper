@@ -34,7 +34,4 @@ void resize_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backend, 
 
 void create_swapchain_framebuffers(const VulkanBackend& backend, PresentationInfo& presentInfo);
 void destroy_swapchain_framebuffers(const VulkanBackend& backend, PresentationInfo& presentInfo);
-
-void create_swapchain_renderpass(const VulkanBackend& backend, PresentationInfo& presentInfo);
-void destroy_swapchain_renderpass(const VulkanBackend& backend, PresentationInfo& presentInfo);
 } // namespace Reaper
