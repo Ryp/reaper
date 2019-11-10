@@ -49,7 +49,7 @@ endfunction()
 
 # Helper function that add default compilation flags for reaper targets
 function(reaper_configure_warnings target enabled)
-    set(REAPER_WARNING_AS_ERRORS OFF)
+    set(REAPER_WARNING_AS_ERRORS ON)
     set(REAPER_DEBUG_FLAGS)
     set(REAPER_RELEASE_FLAGS)
     if(${enabled})
@@ -63,12 +63,14 @@ function(reaper_configure_warnings target enabled)
                 list(APPEND REAPER_DEBUG_FLAGS "/WX")
             endif()
         elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+            # NOTE: cotire pch generation outputs false positives for this warning
+            # "-Wmissing-include-dirs"
             list(APPEND REAPER_DEBUG_FLAGS
-                "-Wall" "-Wextra" "-Wundef" "-Wshadow" "-funsigned-char"
-                "-Wchar-subscripts" "-Wcast-align" "-Wwrite-strings" "-Wunused" "-Wuninitialized"
+                "-Wall" "-Wextra" "-Wundef" "-Wunused" "-Wshadow" "-funsigned-char"
+                "-Wchar-subscripts" "-Wcast-align" "-Wwrite-strings" "-Wuninitialized"
                 "-Wpointer-arith" "-Wredundant-decls" "-Winline" "-Wformat"
-                "-Wformat-security" "-Winit-self" "-Wdeprecated-declarations"
-                "-Wmissing-include-dirs" "-Wmissing-declarations")
+                "-Wformat-security" "-Winit-self"
+                "-Wdeprecated-declarations" "-Wmissing-declarations")
             if(REAPER_WARNING_AS_ERRORS)
                 list(APPEND REAPER_DEBUG_FLAGS "-Werror")
             endif()
