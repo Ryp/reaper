@@ -36,7 +36,7 @@ GPUStackAllocator::GPUStackAllocator(VkDeviceMemory memory, u32 index, std::size
 
 GPUAlloc GPUStackAllocator::alloc(VkMemoryRequirements requirements)
 {
-    Assert(m_memoryIndex & requirements.memoryTypeBits, "Incompatible memory type");
+    Assert((m_memoryIndex & requirements.memoryTypeBits) > 0, "Incompatible memory type");
 
     const std::size_t offset = m_allocator.alloc(requirements.size, requirements.alignment);
 

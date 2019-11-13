@@ -13,7 +13,10 @@ cmake_minimum_required(VERSION 3.11 FATAL_ERROR)
 
 # Avoid source tree pollution
 if(CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
-    message(FATAL_ERROR "In-source builds are discouraged. Make a separate folder for building:\nmkdir build; cd build; cmake ..;cd ..\nBefore that, remove the files already created:\nrm -rf CMakeCache.txt CMakeFiles")
+    message(FATAL_ERROR
+        " In-source builds are discouraged. Tell CMake to use a separate folder:\n"
+        " $ rm -rf CMakeCache.txt CMakeFiles\n"
+        " $ cmake -H. -Bbuild")
 endif()
 
 get_property(REAPER_MULTI_CONFIG GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
@@ -37,9 +40,6 @@ project(Reaper
     VERSION 0.1.0
     LANGUAGES CXX
     DESCRIPTION "Tiny C++ Engine")
-
-# Export compile commands in a json file. Useful for clang-based tools
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # This will automatically keep git hooks up-to-date. Do NOT disable this option
 # if you intent to push code from your local copy.
@@ -65,10 +65,19 @@ option(REAPER_BUILD_COVERAGE_INFO       "Build with coverage info"      OFF)
 # That allows us to capture frames in-engine and attach RenderDoc later to analyze them.
 option(REAPER_USE_RENDERDOC             "Build with RenderDoc support"  OFF)
 
-# Enable CTest
-if (REAPER_BUILD_TESTS)
-    enable_testing()
-endif()
+# Override binary output paths
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${Reaper_BINARY_DIR})
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${Reaper_BINARY_DIR})
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${Reaper_BINARY_DIR})
+
+# The CXX_STANDARD property is a requirement
+set(CXX_STANDARD_REQUIRED ON)
+
+# Export compile commands in a json file. Useful for clang-based tools
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+# Enable folder support (useful for Visual Studio)
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 # Select linkage type
 if(REAPER_BUILD_SHARED_LIBRARIES)
@@ -77,16 +86,10 @@ else()
     set(REAPER_BUILD_TYPE STATIC)
 endif()
 
-# The CXX_STANDARD property is a requirement
-set(CXX_STANDARD_REQUIRED ON)
-
-# Enable folder support (useful for Visual Studio)
-set_property(GLOBAL PROPERTY USE_FOLDERS ON)
-
-# Override binary output paths
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${Reaper_BINARY_DIR})
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${Reaper_BINARY_DIR})
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${Reaper_BINARY_DIR})
+# Enable CTest
+if (REAPER_BUILD_TESTS)
+    enable_testing()
+endif()
 
 # Provide custom cmake scripts
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
