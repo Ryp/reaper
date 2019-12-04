@@ -14,6 +14,7 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/core/Version.h.in ${CMAKE_CURRENT_SOU
 add_subdirectory(core)
 add_subdirectory(math)
 add_subdirectory(mesh)
+add_subdirectory(input)
 add_subdirectory(common)
 add_subdirectory(gamelogic)
 add_subdirectory(renderer)
@@ -52,6 +53,7 @@ target_link_libraries(${REAPER_BIN} PRIVATE
     ${REAPER_MATH_BIN}
     ${REAPER_MESH_BIN}
     ${REAPER_RENDERER_BIN}
+    ${REAPER_INPUT_BIN}
 )
 
 # Configure main VS projet
