@@ -71,6 +71,11 @@ function(reaper_configure_warnings target enabled)
                 "-Wpointer-arith" "-Wredundant-decls" "-Winline" "-Wformat"
                 "-Wformat-security" "-Winit-self"
                 "-Wdeprecated-declarations" "-Wmissing-declarations")
+
+            if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+                list(APPEND REAPER_DEBUG_FLAGS "-Wcomma")
+            endif()
+
             if(REAPER_WARNING_AS_ERRORS)
                 list(APPEND REAPER_DEBUG_FLAGS "-Werror")
             endif()
