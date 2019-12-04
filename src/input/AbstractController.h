@@ -7,12 +7,14 @@
 
 #pragma once
 
+#include "InputExport.h"
+
 #include <vector>
 
-class AbstractController
+class REAPER_INPUT_API AbstractController
 {
 public:
-    AbstractController(int buttons, int axes);
+    AbstractController(int button_count, int axis_count);
     virtual ~AbstractController();
 
 public:
@@ -36,7 +38,7 @@ protected:
     };
     using Axe = float;
 
-protected:
-    std::vector<Button> _buttons;
-    std::vector<Axe>    _axes;
+public:
+    std::vector<Button> buttons;
+    std::vector<Axe>    axes;
 };

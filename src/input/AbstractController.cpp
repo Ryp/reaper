@@ -7,9 +7,9 @@
 
 #include "AbstractController.h"
 
-AbstractController::AbstractController(int buttons, int axes)
-    : _buttons(buttons)
-    , _axes(axes)
+AbstractController::AbstractController(int button_count, int axis_count)
+    : buttons(button_count)
+    , axes(axis_count)
 {}
 
 AbstractController::~AbstractController()
@@ -19,35 +19,35 @@ void AbstractController::reset()
 {
     Button b({false, false, false, false});
 
-    for (auto& button : _buttons)
+    for (auto& button : buttons)
         button = b;
-    for (auto& axe : _axes)
+    for (auto& axe : axes)
         axe = 0.0f;
 }
 
 bool AbstractController::isHeld(unsigned int idx) const
 {
-    return (_buttons[idx].held);
+    return (buttons[idx].held);
 }
 
 bool AbstractController::isPressed(unsigned int idx) const
 {
-    return (_buttons[idx].pressed);
+    return (buttons[idx].pressed);
 }
 
 bool AbstractController::isReleased(unsigned int idx) const
 {
-    return (_buttons[idx].released);
+    return (buttons[idx].released);
 }
 
 float AbstractController::getAxis(unsigned int idx) const
 {
-    return (_axes[idx]);
+    return (axes[idx]);
 }
 
 void AbstractController::update()
 {
-    for (auto& button : _buttons)
+    for (auto& button : buttons)
     {
         button.pressed = !button.held && button.new_held;
         button.released = button.held && !button.new_held;

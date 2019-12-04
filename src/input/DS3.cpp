@@ -5,7 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "SixAxisController.h"
+#include "DS3.h"
 
 #include <cmath>
 #include <cstdint>
@@ -16,9 +16,9 @@
 #include <sys/ioctl.h>
 #include <unistd.h>
 
-const float SixAxisController::AxisDeadzone = 0.12f;
+const float DS3::AxisDeadzone = 0.12f;
 
-SixAxisController::SixAxisController(const std::string& device)
+DS3::DS3(const std::string& device)
     : AbstractController(TotalButtonsNumber, TotalAxesNumber)
     , _device(device)
     , _connected(connect())
@@ -26,7 +26,7 @@ SixAxisController::SixAxisController(const std::string& device)
     AbstractController::reset();
 }
 
-void SixAxisController::update()
+void DS3::update()
 {
     float           val;
     struct js_event event;
@@ -39,21 +39,21 @@ void SixAxisController::update()
         if (event.type == JS_EVENT_AXIS)
         {
             val = static_cast<float>(event.value) / static_cast<float>(AxisAbsoluteResolution);
-            _axes[event.number] = ((fabs(val) < AxisDeadzone) ? (0.0f) : (val));
+            axes[event.number] = ((fabs(val) < AxisDeadzone) ? (0.0f) : (val));
         }
         else if (event.type == JS_EVENT_BUTTON)
-            _buttons[event.number].new_held = event.value != 0;
+            buttons[event.number].new_held = event.value != 0;
     }
     AbstractController::update();
 }
 
-void SixAxisController::destroy()
+void DS3::destroy()
 {
     if (_connected && (close(_fd) == -1))
         AssertUnreachable();
 }
 
-bool SixAxisController::connect()
+bool DS3::connect()
 {
     char deviceName[256];
 

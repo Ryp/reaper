@@ -9,6 +9,8 @@
 
 #include <string>
 
+#include "InputExport.h"
+
 #include "AbstractController.h"
 
 /*
@@ -16,7 +18,7 @@
  * (tested on USB with several controllers)
  */
 
-class SixAxisController : public AbstractController
+class REAPER_INPUT_API DS3 : public AbstractController
 {
 public:
     enum Buttons
@@ -79,8 +81,8 @@ public:
     static const float AxisDeadzone;
 
 public:
-    SixAxisController(const std::string& device);
-    ~SixAxisController() = default;
+    DS3(const std::string& device);
+    ~DS3() = default;
 
 public:
     virtual void update() override;
