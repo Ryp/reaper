@@ -25,14 +25,14 @@ struct VS_OUTPUT
 VS_OUTPUT main(VS_INPUT input)
 {
     const float3 positionMS = input.PositionMS * (1.0 + 0.2 * sin(uniformBuffer.timeMs * 0.2));
-    const float4 positionWS = uniformBuffer.model * float4(positionMS, 1.0);
-    const float4 positionCS = uniformBuffer.viewProj * positionWS;
+    const float4 positionWS = float4(positionMS, 1.0) * uniformBuffer.model;
+    const float4 positionCS = positionWS * uniformBuffer.viewProj;
 
     VS_OUTPUT output;
 
     output.positionCS = positionCS;
 
-    output.NormalVS = uniformBuffer.modelViewInvT * input.NormalMS;
+    output.NormalVS = input.NormalMS * uniformBuffer.modelViewInvT;
     output.UV = input.UV;
 
     return output;
