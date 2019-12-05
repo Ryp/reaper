@@ -88,36 +88,43 @@ if(REAPER_USE_RENDERDOC)
     target_compile_definitions(${target} PRIVATE REAPER_RENDERDOC_LIB_NAME="${RENDERDOC_LIBRARY}")
 endif()
 
-set(REAPER_GLSL_DIR ${CMAKE_CURRENT_SOURCE_DIR}/shader)
+set(REAPER_SHADER_DIR ${CMAKE_CURRENT_SOURCE_DIR}/shader)
 set(REAPER_GLSL_SRCS
-    ${REAPER_GLSL_DIR}/samples/tri.frag
-    ${REAPER_GLSL_DIR}/samples/tri.vert
-    ${REAPER_GLSL_DIR}/samples/push_constants.frag
-    ${REAPER_GLSL_DIR}/samples/push_constants.vert
-    ${REAPER_GLSL_DIR}/samples/texture.frag
-    ${REAPER_GLSL_DIR}/samples/texture.vert
-    ${REAPER_GLSL_DIR}/samples/uniform.frag
-    ${REAPER_GLSL_DIR}/samples/uniform.vert
-    ${REAPER_GLSL_DIR}/blit.frag
-    ${REAPER_GLSL_DIR}/blit.vert
-    ${REAPER_GLSL_DIR}/mesh_shade.frag
-    ${REAPER_GLSL_DIR}/mesh_shade.vert
-    ${REAPER_GLSL_DIR}/mesh_simple.frag
-    ${REAPER_GLSL_DIR}/mesh_simple.vert
-    ${REAPER_GLSL_DIR}/mesh_transformed.frag
-    ${REAPER_GLSL_DIR}/mesh_transformed.vert
-    ${REAPER_GLSL_DIR}/mesh_transformed_shaded.frag
-    ${REAPER_GLSL_DIR}/mesh_transformed_shaded.vert
-    ${REAPER_GLSL_DIR}/test.comp
+    ${REAPER_SHADER_DIR}/samples/tri.frag
+    ${REAPER_SHADER_DIR}/samples/tri.vert
+    ${REAPER_SHADER_DIR}/samples/push_constants.frag
+    ${REAPER_SHADER_DIR}/samples/push_constants.vert
+    ${REAPER_SHADER_DIR}/samples/texture.frag
+    ${REAPER_SHADER_DIR}/samples/texture.vert
+    ${REAPER_SHADER_DIR}/samples/uniform.frag
+    ${REAPER_SHADER_DIR}/samples/uniform.vert
+    ${REAPER_SHADER_DIR}/blit.frag
+    ${REAPER_SHADER_DIR}/blit.vert
+    ${REAPER_SHADER_DIR}/mesh_shade.frag
+    ${REAPER_SHADER_DIR}/mesh_shade.vert
+    ${REAPER_SHADER_DIR}/mesh_simple.frag
+    ${REAPER_SHADER_DIR}/mesh_simple.vert
+    ${REAPER_SHADER_DIR}/mesh_transformed.frag
+    ${REAPER_SHADER_DIR}/mesh_transformed.vert
+    ${REAPER_SHADER_DIR}/test.comp
+)
+
+set(REAPER_HLSL_SRCS
+    ${REAPER_SHADER_DIR}/mesh_transformed_shaded.frag
+    ${REAPER_SHADER_DIR}/mesh_transformed_shaded.vert
 )
 
 # Shader compilation
 include(glslang)
-add_glslang_spirv_targets(${REAPER_GLSL_DIR} REAPER_SPIRV_OUTPUT ${REAPER_GLSL_SRCS})
-target_sources(${target} PRIVATE ${REAPER_GLSL_SRCS} ${REAPER_SPIRV_OUTPUT})
+
+add_glslang_spirv_targets(${REAPER_SHADER_DIR} FALSE REAPER_GLSL_SPIRV_OUTPUT ${REAPER_GLSL_SRCS})
+target_sources(${target} PRIVATE ${REAPER_GLSL_SRCS} ${REAPER_GLSL_SPIRV_OUTPUT})
+
+add_glslang_spirv_targets(${REAPER_SHADER_DIR} TRUE REAPER_HLSL_SPIRV_OUTPUT ${REAPER_HLSL_SRCS})
+target_sources(${target} PRIVATE ${REAPER_HLSL_SRCS} ${REAPER_HLSL_SPIRV_OUTPUT})
 
 include(amdrga)
-add_spirv_to_gcn_targets(REAPER_GCN_OUTPUT ${REAPER_SPIRV_OUTPUT})
+add_spirv_to_gcn_targets(REAPER_GCN_OUTPUT ${REAPER_GLSL_SPIRV_OUTPUT} ${REAPER_HLSL_SPIRV_OUTPUT})
 target_sources(${target} PRIVATE ${REAPER_GCN_OUTPUT})
 
 # Vulkan dependency
