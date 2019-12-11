@@ -31,3 +31,9 @@ if(MSVC)
 endif()
 
 #///////////////////////////////////////////////////////////////////////////////
+
+add_library(span INTERFACE)
+target_include_directories(span SYSTEM INTERFACE ${CMAKE_SOURCE_DIR}/external/span-lite/include)
+#target_compile_definitions(span INTERFACE span_CONFIG_SELECT_SPAN=span_SPAN_STD)
+
+#///////////////////////////////////////////////////////////////////////////////
