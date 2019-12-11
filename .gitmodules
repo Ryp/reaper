@@ -20,3 +20,6 @@
 [submodule "external/tinyobjloader"]
 	path = external/tinyobjloader
 	url = https://github.com/syoyo/tinyobjloader
+[submodule "external/span-lite"]
+	path = external/span-lite
+	url = https://github.com/martinmoene/span-lite
