@@ -9,7 +9,6 @@
 
 #include "ReaperRoot.h"
 
-#define FMT_HEADER_ONLY
 #include "fmt/format.h"
 
 namespace Reaper
