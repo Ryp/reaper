@@ -12,6 +12,7 @@ target_include_directories(doctest SYSTEM INTERFACE ${CMAKE_SOURCE_DIR}/external
 
 add_library(fmt INTERFACE)
 target_include_directories(fmt SYSTEM INTERFACE ${CMAKE_SOURCE_DIR}/external/fmt)
+target_compile_definitions(fmt INTERFACE FMT_HEADER_ONLY)
 
 #///////////////////////////////////////////////////////////////////////////////
 
