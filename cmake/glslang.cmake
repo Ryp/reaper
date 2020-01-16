@@ -49,7 +49,7 @@ function(add_glslang_spirv_targets shader_root_folder use_hlsl generated_files)
         if(${use_hlsl})
             add_custom_command(OUTPUT ${OUTPUT_SPIRV}
                 COMMAND ${CMAKE_COMMAND} -E make_directory ${OUTPUT_SPIRV_PATH}
-                COMMAND ${VULKAN_GLSLANGVALIDATOR_EXEC} -e main -V -D ${INPUT_GLSL} -o ${OUTPUT_SPIRV}.unoptimized
+                COMMAND ${VULKAN_GLSLANGVALIDATOR_EXEC} -g -e main -V -D ${INPUT_GLSL} -o ${OUTPUT_SPIRV}.unoptimized
                 COMMAND ${VULKAN_SPIRV_OPT_EXEC} ${OUTPUT_SPIRV}.unoptimized --legalize-hlsl -Os -o ${OUTPUT_SPIRV}
                 COMMAND ${VULKAN_SPIRV_VAL_EXEC} ${OUTPUT_SPIRV}
                 MAIN_DEPENDENCY ${INPUT_GLSL}
@@ -58,7 +58,7 @@ function(add_glslang_spirv_targets shader_root_folder use_hlsl generated_files)
         else()
             add_custom_command(OUTPUT ${OUTPUT_SPIRV}
                 COMMAND ${CMAKE_COMMAND} -E make_directory ${OUTPUT_SPIRV_PATH}
-                COMMAND ${VULKAN_GLSLANGVALIDATOR_EXEC} -V ${INPUT_GLSL} -o ${OUTPUT_SPIRV}.unoptimized
+                COMMAND ${VULKAN_GLSLANGVALIDATOR_EXEC} -g -V ${INPUT_GLSL} -o ${OUTPUT_SPIRV}.unoptimized
                 COMMAND ${VULKAN_SPIRV_OPT_EXEC} ${OUTPUT_SPIRV}.unoptimized -Os -o ${OUTPUT_SPIRV}
                 COMMAND ${VULKAN_SPIRV_VAL_EXEC} ${OUTPUT_SPIRV}
                 MAIN_DEPENDENCY ${INPUT_GLSL}
