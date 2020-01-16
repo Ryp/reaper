@@ -1,0 +1,48 @@
+// This is a template filled with sed
+digraph FrameGraph
+{
+    //rankdir=LR // Horizontal graph
+
+    // Resources
+    node [shape=box,style="filled,rounded"]
+
+    {
+        node [fillcolor="#CAE1FF"]
+        // marker-res
+    }
+
+    // Passes
+    node [shape=box,style=filled]
+
+    {
+        node [fillcolor="#FEA500"]
+        // marker-renderpass
+    }
+
+    {
+        node [fillcolor="#C3494E"]
+        // marker-side-effect-renderpass
+    }
+
+    // Edges
+    edge [color=black]
+
+    // Renderpass inputs
+    {
+        // marker-used-input
+    }
+
+    // Renderpass outputs
+    {
+        // edge [color=lightblue]
+        // marker-used-output
+    }
+
+    // Pruned items
+    {
+        //edge [color=gray,style=dotted]
+        edge [color=gray]
+        // marker-unused-input
+        // marker-unused-output
+    }
+}
