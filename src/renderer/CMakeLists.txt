@@ -28,6 +28,14 @@ target_sources(${target} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/format/PixelFormat.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/format/PixelFormat.h
 
+    ${CMAKE_CURRENT_SOURCE_DIR}/graph/FrameGraphBasicTypes.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/graph/FrameGraphBuilder.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/graph/FrameGraphBuilder.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/graph/FrameGraph.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/graph/FrameGraph.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/graph/GraphDebug.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/graph/GraphDebug.h
+
     ${CMAKE_CURRENT_SOURCE_DIR}/texture/GPUTextureProperties.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/texture/GPUTextureProperties.h
     ${CMAKE_CURRENT_SOURCE_DIR}/texture/Texture.cpp
@@ -112,6 +120,7 @@ set(REAPER_GLSL_SRCS
 set(REAPER_HLSL_SRCS
     ${REAPER_SHADER_DIR}/mesh_transformed_shaded.frag
     ${REAPER_SHADER_DIR}/mesh_transformed_shaded.vert
+    ${REAPER_SHADER_DIR}/cull_triangle_batch.comp
 )
 
 # Shader compilation
@@ -163,10 +172,12 @@ target_link_libraries(${target} PUBLIC
     ${REAPER_CORE_BIN}
     ${REAPER_MESH_BIN}
     ${REAPER_COMMON_BIN}
+    ${REAPER_INPUT_BIN}
     Vulkan::Vulkan
     fmt
     gli
     glm
+    span
 )
 
 reaper_configure_library(${target} "Renderer")
@@ -176,6 +187,7 @@ cotire(${target})
 
 reaper_add_tests(${target}
     #${CMAKE_CURRENT_SOURCE_DIR}/test/culling.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/test/graph.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test/mesh_loading.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test/renderer.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test/scene.cpp

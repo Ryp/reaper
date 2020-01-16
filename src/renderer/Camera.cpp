@@ -31,7 +31,7 @@ void Camera::update(Mode mode)
 {
     if (mode == Spherical)
         _direction = glm::vec3(cos(_yaw) * cos(_pitch), sin(_pitch), sin(_yaw) * cos(_pitch));
-    _viewMatrix = glm::lookAt(_position, _position + _direction * 10.0f, glm::vec3(0, 1, 0));
+    _viewMatrix = glm::lookAt(_position, _position + _direction * 10.f, glm::vec3(0, 1, 0));
 }
 
 void Camera::reset()
