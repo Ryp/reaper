@@ -50,12 +50,4 @@ void destroy_renderer(ReaperRoot& root)
     if (enable_renderdoc_integration)
         RenderDoc::stop_integration(root);
 }
-
-void run_renderer(ReaperRoot& root)
-{
-    Assert(root.renderer != nullptr);
-    Assert(root.renderer->backend != nullptr);
-
-    test_vulkan_renderer(root, *root.renderer->backend);
-}
 } // namespace Reaper
