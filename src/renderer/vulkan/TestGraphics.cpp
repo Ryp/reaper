@@ -21,9 +21,13 @@
 
 #include "allocator/GPUStackAllocator.h"
 
+#include "renderer/GPUBufferProperties.h"
 #include "renderer/texture/GPUTextureProperties.h"
 #include "renderer/window/Event.h"
 #include "renderer/window/Window.h"
+
+#include "input/DS4.h"
+#include "renderer/Camera.h"
 
 #include "mesh/Mesh.h"
 #include "mesh/ModelLoader.h"
@@ -45,6 +49,75 @@ namespace Reaper
 {
 namespace
 {
+    struct CullPipelineInfo
+    {
+        VkPipeline            pipeline;
+        VkPipelineLayout      pipelineLayout;
+        VkDescriptorSetLayout descSetLayout;
+    };
+
+    CullPipelineInfo vulkan_create_cull_pipeline(ReaperRoot& root, VulkanBackend& backend)
+    {
+        std::array<VkDescriptorSetLayoutBinding, 2> descriptorSetLayoutBinding;
+        descriptorSetLayoutBinding[0] = {0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr};
+        descriptorSetLayoutBinding[1] = {1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr};
+
+        VkDescriptorSetLayoutCreateInfo descriptorSetLayoutInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+                                                                   nullptr, 0, 2, descriptorSetLayoutBinding.data()};
+
+        VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
+        Assert(vkCreateDescriptorSetLayout(backend.device, &descriptorSetLayoutInfo, nullptr, &descriptorSetLayout)
+               == VK_SUCCESS);
+
+        log_debug(root, "vulkan: created descriptor set layout with handle: {}",
+                  static_cast<void*>(descriptorSetLayout));
+
+        VkPipelineLayoutCreateInfo pipelineLayoutInfo = {
+            VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO, nullptr, VK_FLAGS_NONE, 1, &descriptorSetLayout, 0, nullptr};
+
+        VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
+        Assert(vkCreatePipelineLayout(backend.device, &pipelineLayoutInfo, nullptr, &pipelineLayout) == VK_SUCCESS);
+
+        log_debug(root, "vulkan: created pipeline layout with handle: {}", static_cast<void*>(pipelineLayout));
+
+        VkShaderModule        computeShader = VK_NULL_HANDLE;
+        const char*           fileName = "./build/spv/cull_triangle_batch.comp.spv";
+        const char*           entryPoint = "main";
+        VkSpecializationInfo* specialization = nullptr;
+
+        vulkan_create_shader_module(computeShader, backend.device, fileName);
+
+        VkPipelineShaderStageCreateInfo shaderStage = {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+                                                       nullptr,
+                                                       0,
+                                                       VK_SHADER_STAGE_COMPUTE_BIT,
+                                                       computeShader,
+                                                       entryPoint,
+                                                       specialization};
+
+        VkComputePipelineCreateInfo pipelineCreateInfo = {VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
+                                                          nullptr,
+                                                          0,
+                                                          shaderStage,
+                                                          pipelineLayout,
+                                                          VK_NULL_HANDLE, // do not care about pipeline derivatives
+                                                          0};
+
+        VkPipeline      pipeline = VK_NULL_HANDLE;
+        VkPipelineCache cache = VK_NULL_HANDLE;
+
+        Assert(vkCreateComputePipelines(backend.device, cache, 1, &pipelineCreateInfo, nullptr, &pipeline)
+               == VK_SUCCESS);
+
+        vkDestroyShaderModule(backend.device, computeShader, nullptr);
+
+        log_debug(root, "vulkan: created compute pipeline with handle: {}", static_cast<void*>(pipeline));
+
+        return CullPipelineInfo{pipeline, pipelineLayout, descriptorSetLayout};
+    }
+
+    constexpr bool UseReverseZ = true;
+
     struct BlitPipelineInfo
     {
         VkPipeline            pipeline;
@@ -52,15 +125,43 @@ namespace
         VkDescriptorSetLayout descSetLayout;
     };
 
+    struct float4
+    {
+        float x;
+        float y;
+        float z;
+        float w;
+    };
+
+    VkClearValue VkClearColor(float4 color)
+    {
+        VkClearValue clearValue;
+
+        clearValue.color.float32[0] = color.x;
+        clearValue.color.float32[1] = color.y;
+        clearValue.color.float32[2] = color.z;
+        clearValue.color.float32[3] = color.w;
+
+        return clearValue;
+    }
+
+    VkClearValue VkClearDepthStencil(float depth, u32 stencil)
+    {
+        VkClearValue clearValue;
+
+        clearValue.depthStencil.depth = depth;
+        clearValue.depthStencil.stencil = stencil;
+
+        return clearValue;
+    }
+
+    static_assert(sizeof(glm::mat3) == 9 * 4);
     struct UniformBufferObject
     {
-        glm::mat4 model;
-        glm::mat4 viewProj;
-        glm::mat3 modelViewInvT;
-        float     _pad0;
-        float     _pad1;
-        float     _pad2;
-        float     timeMs;
+        glm::mat4   model;
+        glm::mat4   viewProj;
+        glm::mat3x4 modelViewInvT;
+        float       timeMs;
     };
 
     void vulkan_cmd_transition_swapchain_layout(VulkanBackend& backend, VkCommandBuffer commandBuffer)
@@ -88,12 +189,17 @@ namespace
     VkRenderPass create_render_pass(ReaperRoot& /*root*/, VulkanBackend& backend,
                                     const GPUTextureProperties& depthProperties)
     {
+        // FIXME build this at swapchain creation
+        GPUTextureProperties swapchainProperties = depthProperties;
+        swapchainProperties.usageFlags = GPUTextureUsage::Swapchain;
+        swapchainProperties.miscFlags = 0;
+
         // Create a separate render pass for the offscreen rendering as it may differ from the one used for scene
         // rendering
         std::array<VkAttachmentDescription, 2> attachmentDescriptions = {};
         // Color attachment
-        attachmentDescriptions[0].format = backend.presentInfo.surfaceFormat.format;
-        attachmentDescriptions[0].samples = VK_SAMPLE_COUNT_1_BIT;
+        attachmentDescriptions[0].format = backend.presentInfo.surfaceFormat.format; // FIXME
+        attachmentDescriptions[0].samples = SampleCountToVulkan(swapchainProperties.sampleCount);
         attachmentDescriptions[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
         attachmentDescriptions[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
         attachmentDescriptions[0].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
@@ -103,7 +209,7 @@ namespace
 
         // Depth attachment
         attachmentDescriptions[1].format = PixelFormatToVulkan(depthProperties.format);
-        attachmentDescriptions[1].samples = VK_SAMPLE_COUNT_1_BIT;
+        attachmentDescriptions[1].samples = SampleCountToVulkan(depthProperties.sampleCount);
         attachmentDescriptions[1].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
         attachmentDescriptions[1].storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
         attachmentDescriptions[1].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
@@ -275,7 +381,7 @@ namespace
             VK_FALSE,
             VK_POLYGON_MODE_FILL,
             VK_CULL_MODE_BACK_BIT,
-            VK_FRONT_FACE_CLOCKWISE, // FIXME
+            VK_FRONT_FACE_COUNTER_CLOCKWISE,
             VK_FALSE,
             0.0f,
             0.0f,
@@ -299,7 +405,7 @@ namespace
             0,
             true, // depth test
             true, // depth write
-            VK_COMPARE_OP_LESS,
+            UseReverseZ ? VK_COMPARE_OP_GREATER : VK_COMPARE_OP_LESS,
             false,
             false,
             VkStencilOpState{},
@@ -392,23 +498,39 @@ namespace
         return BlitPipelineInfo{pipeline, pipelineLayout, descriptorSetLayoutCB};
     }
 
-    void update_transform_constant_buffer(UniformBufferObject& ubo, float timeMs, float aspectRatio)
+    void update_transform_constant_buffer(UniformBufferObject& ubo, float timeMs, float aspectRatio,
+                                          const glm::mat4& view)
     {
         const glm::vec3 object_position_ws = glm::vec3(0.0f, 0.0f, 0.0f);
-        const glm::mat3 model = glm::translate(glm::mat4(1.0f), object_position_ws);
+        const glm::mat4 model = glm::translate(glm::mat4(1.0f), object_position_ws);
         ubo.model = model;
-
-        const glm::vec3 camera_position_ws = glm::vec3(5.0f, 5.0f, 5.0f);
-        const glm::mat4 view = glm::lookAt(camera_position_ws, object_position_ws, glm::vec3(0, -1, 0));
 
         const float near_plane_distance = 0.1f;
         const float far_plane_distance = 100.f;
         const float fov_radian = glm::pi<float>() * 0.25f;
-        ubo.viewProj = glm::perspective(fov_radian, aspectRatio, near_plane_distance, far_plane_distance) * view;
 
-        const glm::mat3 modelView = glm::mat3(view) * glm::mat3(model);
-        ubo.modelViewInvT =
-            glm::mat3(modelView); // Assumption that our 3x3 submatrix is orthonormal (no skew/non-uniform scaling)
+        glm::mat4 projection = glm::perspective(fov_radian, aspectRatio, near_plane_distance, far_plane_distance);
+
+        // Flip viewport Y
+        projection[1] = -projection[1];
+
+        if (UseReverseZ)
+        {
+            // NOTE: we might want to do it by hand to limit precision loss
+            glm::mat4 reverse_z_transform(1.f);
+            reverse_z_transform[3][2] = 1.f;
+            reverse_z_transform[2][2] = -1.f;
+
+            projection = reverse_z_transform * projection;
+        }
+
+        ubo.viewProj = projection * view;
+
+        const glm::mat4 modelView = view * model;
+
+        // Assumption that our 3x3 submatrix is orthonormal (no skew/non-uniform scaling)
+        ubo.modelViewInvT = modelView;
+
         // ubo.modelViewInvT = glm::transpose(glm::inverse(glm::mat3(modelView))); // Assumption that our 3x3 submatrix
         // is orthogonal
 
@@ -424,23 +546,56 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
 
     // Create vk buffers
     BufferInfo constantBuffer =
-        create_constant_buffer(root, backend.device, sizeof(UniformBufferObject), resources.mainAllocator);
+        create_buffer(root, backend.device, "Constant buffer",
+                      DefaultGPUBufferProperties(1, sizeof(UniformBufferObject), GPUBufferUsage::UniformBuffer),
+                      resources.mainAllocator);
 
-    BufferInfo vertexBufferPosition = create_vertex_buffer(root, backend.device, mesh.vertices.size(),
-                                                           sizeof(mesh.vertices[0]), resources.mainAllocator);
-    BufferInfo vertexBufferNormal = create_vertex_buffer(root, backend.device, mesh.normals.size(),
-                                                         sizeof(mesh.normals[0]), resources.mainAllocator);
+    BufferInfo vertexBufferPosition = create_buffer(
+        root, backend.device, "Position buffer",
+        DefaultGPUBufferProperties(mesh.vertices.size(), sizeof(mesh.vertices[0]), GPUBufferUsage::VertexBuffer),
+        resources.mainAllocator);
+    BufferInfo vertexBufferNormal = create_buffer(
+        root, backend.device, "Normal buffer",
+        DefaultGPUBufferProperties(mesh.normals.size(), sizeof(mesh.normals[0]), GPUBufferUsage::VertexBuffer),
+        resources.mainAllocator);
     BufferInfo vertexBufferUV =
-        create_vertex_buffer(root, backend.device, mesh.uvs.size(), sizeof(mesh.uvs[0]), resources.mainAllocator);
-    BufferInfo indexBuffer = create_index_buffer(root, backend.device, mesh.indexes.size(), sizeof(mesh.indexes[0]),
-                                                 resources.mainAllocator);
+        create_buffer(root, backend.device, "UV buffer",
+                      DefaultGPUBufferProperties(mesh.uvs.size(), sizeof(mesh.uvs[0]), GPUBufferUsage::VertexBuffer),
+                      resources.mainAllocator);
+    BufferInfo staticIndexBuffer = create_buffer(
+        root, backend.device, "Index buffer",
+        DefaultGPUBufferProperties(mesh.indexes.size(), sizeof(mesh.indexes[0]), GPUBufferUsage::StorageBuffer),
+        resources.mainAllocator);
 
     upload_buffer_data(backend.device, vertexBufferPosition, mesh.vertices.data(),
                        mesh.vertices.size() * sizeof(mesh.vertices[0]));
     upload_buffer_data(backend.device, vertexBufferNormal, mesh.normals.data(),
                        mesh.normals.size() * sizeof(mesh.normals[0]));
     upload_buffer_data(backend.device, vertexBufferUV, mesh.uvs.data(), mesh.uvs.size() * sizeof(mesh.uvs[0]));
-    upload_buffer_data(backend.device, indexBuffer, mesh.indexes.data(), mesh.indexes.size() * sizeof(mesh.indexes[0]));
+    upload_buffer_data(backend.device, staticIndexBuffer, mesh.indexes.data(),
+                       mesh.indexes.size() * sizeof(mesh.indexes[0]));
+
+    const u32  indirectCalls = 1;
+    BufferInfo indirectDrawBuffer = create_buffer(
+        root, backend.device, "Indirect draw buffer",
+        DefaultGPUBufferProperties(indirectCalls, sizeof(VkDrawIndexedIndirectCommand), GPUBufferUsage::IndirectBuffer),
+        resources.mainAllocator);
+
+    VkDrawIndexedIndirectCommand drawCommand = {};
+    drawCommand.indexCount = static_cast<u32>(mesh.indexes.size());
+    drawCommand.instanceCount = 1;
+    drawCommand.firstIndex = 0;
+    drawCommand.vertexOffset = 0;
+    drawCommand.firstInstance = 0;
+
+    upload_buffer_data(backend.device, indirectDrawBuffer, &drawCommand,
+                       indirectCalls * sizeof(VkDrawIndexedIndirectCommand));
+
+    BufferInfo dynamicIndexBuffer =
+        create_buffer(root, backend.device, "Dynamic index buffer",
+                      DefaultGPUBufferProperties(mesh.indexes.size(), sizeof(mesh.indexes[0]),
+                                                 GPUBufferUsage::IndexBuffer | GPUBufferUsage::StorageBuffer),
+                      resources.mainAllocator);
 
     // Create depth buffer
     GPUTextureProperties properties = DefaultGPUTextureProperties(
@@ -463,21 +618,67 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
         0 // Not signaled by default
     };
 
+    CullPipelineInfo cullPipe = vulkan_create_cull_pipeline(root, backend);
+    VkDescriptorSet  cullPassDescriptorSet = VK_NULL_HANDLE;
+    {
+        VkDescriptorSetAllocateInfo descriptorSetAllocInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr,
+                                                              resources.descriptorPool, 1, &cullPipe.descSetLayout};
+
+        Assert(vkAllocateDescriptorSets(backend.device, &descriptorSetAllocInfo, &cullPassDescriptorSet) == VK_SUCCESS);
+        log_debug(root, "vulkan: created descriptor set with handle: {}", static_cast<void*>(cullPassDescriptorSet));
+
+        const VkDescriptorBufferInfo descriptorSetUniformBuffer = {staticIndexBuffer.buffer, 0,
+                                                                   staticIndexBuffer.alloc.size};
+        const VkDescriptorBufferInfo descriptorSetStorageBuffer = {dynamicIndexBuffer.buffer, 0,
+                                                                   dynamicIndexBuffer.alloc.size};
+
+        std::array<VkWriteDescriptorSet, 2> cullPassDescriptorSetWrites;
+        cullPassDescriptorSetWrites[0] = {
+            VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+            nullptr,
+            cullPassDescriptorSet,
+            0, // 0th binding
+            0, // not an array
+            1, // not an array
+            VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+            nullptr,
+            &descriptorSetUniformBuffer,
+            nullptr,
+        };
+        cullPassDescriptorSetWrites[1] = {
+            VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+            nullptr,
+            cullPassDescriptorSet,
+            1, // binding
+            0, // not an array
+            1, // not an array
+            VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+            nullptr,
+            &descriptorSetStorageBuffer,
+            nullptr,
+        };
+
+        vkUpdateDescriptorSets(backend.device, static_cast<u32>(cullPassDescriptorSetWrites.size()),
+                               cullPassDescriptorSetWrites.data(), 0, nullptr);
+    }
+
     BlitPipelineInfo blitPipe = vulkan_create_blit_pipeline(root, backend, offscreenRenderPass);
-    VkDescriptorSet  descriptorSet = VK_NULL_HANDLE;
+    VkDescriptorSet  pixelConstantsDescriptorSet = VK_NULL_HANDLE;
     {
         VkDescriptorSetAllocateInfo descriptorSetAllocInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr,
                                                               resources.descriptorPool, 1, &blitPipe.descSetLayout};
 
-        Assert(vkAllocateDescriptorSets(backend.device, &descriptorSetAllocInfo, &descriptorSet) == VK_SUCCESS);
-        log_debug(root, "vulkan: created descriptor set with handle: {}", static_cast<void*>(descriptorSet));
+        Assert(vkAllocateDescriptorSets(backend.device, &descriptorSetAllocInfo, &pixelConstantsDescriptorSet)
+               == VK_SUCCESS);
+        log_debug(root, "vulkan: created descriptor set with handle: {}",
+                  static_cast<void*>(pixelConstantsDescriptorSet));
 
         VkDescriptorBufferInfo descriptorSetCB = {constantBuffer.buffer, 0, constantBuffer.alloc.size};
 
         VkWriteDescriptorSet descriptorSetWrite = {
             VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
             nullptr,
-            descriptorSet,
+            pixelConstantsDescriptorSet,
             0, // 0th binding
             0, // not an array
             1, // not an array
@@ -508,7 +709,13 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
     bool shouldExit = false;
     int  frameIndex = 0;
 
+    DS4    ds4("/dev/input/js0");
+    Camera camera;
+    camera.setPosition(glm::vec3(-5.f, 0.f, 0.f));
+    camera.setDirection(glm::vec3(1.f, 0.f, 0.f));
+
     const auto startTime = std::chrono::system_clock::now();
+    auto       lastFrameStart = std::chrono::system_clock::now();
 
     while (!shouldExit)
     {
@@ -531,6 +738,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                     // FIXME the allocator does not support freeing so we'll run out of memory if we're constantly
                     // resizing
                     {
+                        vkQueueWaitIdle(backend.deviceInfo.presentQueue);
                         destroy_framebuffers(root, backend.device, framebuffers);
 
                         vkDestroyImageView(backend.device, depthBufferView, nullptr);
@@ -607,7 +815,10 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
 
             log_debug(root, "vulkan: image index = {}", imageIndex);
 
-            std::array<VkClearValue, 2> clearValues = {VkClearValue{1.0f, 0.8f, 0.4f, 0.0f}, VkClearValue{1.0f, 0}};
+            const float                 depthClearValue = UseReverseZ ? 0.f : 1.f;
+            const float4                clearColor = {1.0f, 0.8f, 0.4f, 0.0f};
+            std::array<VkClearValue, 2> clearValues = {VkClearColor(clearColor),
+                                                       VkClearDepthStencil(depthClearValue, 0)};
             const VkExtent2D            backbufferExtent = backend.presentInfo.surfaceExtent;
             VkRect2D                    blitPassRect = {{0, 0}, backbufferExtent};
 
@@ -645,11 +856,46 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
             log_debug(root, "vulkan: record command buffer");
             Assert(vkResetCommandBuffer(resources.gfxCmdBuffer, 0) == VK_SUCCESS);
 
-            const auto  timeSecs = std::chrono::duration_cast<std::chrono::milliseconds>(startTime - currentTime);
+            const auto timeSecs = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - startTime);
+            const auto timeDeltaMs =
+                std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - lastFrameStart);
             const float timeMs = static_cast<float>(timeSecs.count()) * 0.001f;
+            const float timeDtSecs = static_cast<float>(timeDeltaMs.count()) * 0.001f;
             const float aspectRatio =
                 static_cast<float>(backbufferExtent.width) / static_cast<float>(backbufferExtent.height);
-            update_transform_constant_buffer(ubo, timeMs, aspectRatio);
+
+            ds4.update();
+            constexpr float yaw_sensitivity = 2.6f;
+            constexpr float pitch_sensitivity = 2.5f; // radian per sec
+            constexpr float translation_speed = 8.0f; // game units per sec
+
+            const float yaw_diff = ds4.getAxis(DS4::RightAnalogY);
+            const float pitch_diff = ds4.getAxis(DS4::RightAnalogX);
+
+            const glm::mat4 inv_view_matrix = glm::inverse(camera.getViewMatrix());
+            const glm::vec3 forward = inv_view_matrix * glm::vec4(0.f, 0.f, 1.f, 0.f);
+            const glm::vec3 side = inv_view_matrix * glm::vec4(1.f, 0.f, 0.f, 0.f);
+
+            const float fwd_diff = ds4.getAxis(DS4::LeftAnalogY);
+            const float side_diff = ds4.getAxis(DS4::LeftAnalogX);
+
+            glm::vec3   translation = forward * fwd_diff + side * side_diff;
+            const float magnitudeSq = glm::dot(translation, translation);
+
+            if (magnitudeSq > 1.f)
+                translation *= 1.f / glm::sqrt(magnitudeSq);
+
+            log_debug(root, "input: fwd = {}, side = {}", fwd_diff, side_diff);
+            log_debug(root, "input: yaw = {}, pitch = {}", yaw_diff, pitch_diff);
+
+            const glm::vec3 camera_offset = translation * translation_speed * timeDtSecs;
+
+            camera.translate(camera_offset);
+            camera.rotate(yaw_diff * yaw_sensitivity * timeDtSecs, pitch_diff * pitch_sensitivity * timeDtSecs);
+            camera.update(Camera::Spherical);
+
+            const glm::mat4 view = camera.getViewMatrix();
+            update_transform_constant_buffer(ubo, timeMs, aspectRatio, view);
             upload_buffer_data(backend.device, constantBuffer, &ubo, sizeof(UniformBufferObject));
 
             VkCommandBufferBeginInfo cmdBufferBeginInfo = {
@@ -666,36 +912,51 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                 mustTransitionSwapchain = false;
             }
 
+            vkCmdBindPipeline(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, cullPipe.pipeline);
+            {
+                vkCmdBindDescriptorSets(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, cullPipe.pipelineLayout,
+                                        0, 1, &cullPassDescriptorSet, 0, nullptr);
+
+                vkCmdDispatch(resources.gfxCmdBuffer, 1, 1, 1);
+            }
+
             vkCmdBeginRenderPass(resources.gfxCmdBuffer, &blitRenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
             vkCmdBindPipeline(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, blitPipe.pipeline);
+            {
+                const VkViewport blitViewport = {
+                    0.0f, 0.0f, static_cast<float>(backbufferExtent.width), static_cast<float>(backbufferExtent.height),
+                    0.0f, 1.0f};
+                const VkRect2D blitScissor = {{0, 0}, backbufferExtent};
 
-            const VkViewport blitViewport = {
-                0.0f, 0.0f, static_cast<float>(backbufferExtent.width), static_cast<float>(backbufferExtent.height),
-                0.0f, 1.0f};
-            const VkRect2D blitScissor = {{0, 0}, backbufferExtent};
+                vkCmdSetViewport(resources.gfxCmdBuffer, 0, 1, &blitViewport);
+                vkCmdSetScissor(resources.gfxCmdBuffer, 0, 1, &blitScissor);
 
-            vkCmdSetViewport(resources.gfxCmdBuffer, 0, 1, &blitViewport);
-            vkCmdSetScissor(resources.gfxCmdBuffer, 0, 1, &blitScissor);
+                std::vector<VkBuffer> vertexBuffers = {
+                    vertexBufferPosition.buffer,
+                    vertexBufferNormal.buffer,
+                    vertexBufferUV.buffer,
+                };
+                std::vector<VkDeviceSize> vertexBufferOffsets = {
+                    0,
+                    0,
+                    0,
+                };
+                Assert(vertexBuffers.size() == vertexBufferOffsets.size());
+                vkCmdBindIndexBuffer(resources.gfxCmdBuffer, dynamicIndexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+                vkCmdBindVertexBuffers(resources.gfxCmdBuffer, 0, static_cast<u32>(vertexBuffers.size()),
+                                       vertexBuffers.data(), vertexBufferOffsets.data());
+                vkCmdBindDescriptorSets(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                        blitPipe.pipelineLayout, 0, 1, &pixelConstantsDescriptorSet, 0, nullptr);
 
-            std::vector<VkBuffer> vertexBuffers = {
-                vertexBufferPosition.buffer,
-                vertexBufferNormal.buffer,
-                vertexBufferUV.buffer,
-            };
-            std::vector<VkDeviceSize> vertexBufferOffsets = {
-                0,
-                0,
-                0,
-            };
-            Assert(vertexBuffers.size() == vertexBufferOffsets.size());
-            vkCmdBindIndexBuffer(resources.gfxCmdBuffer, indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
-            vkCmdBindVertexBuffers(resources.gfxCmdBuffer, 0, static_cast<u32>(vertexBuffers.size()),
-                                   vertexBuffers.data(), vertexBufferOffsets.data());
-            vkCmdBindDescriptorSets(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, blitPipe.pipelineLayout, 0,
-                                    1, &descriptorSet, 0, nullptr);
-
-            vkCmdDrawIndexed(resources.gfxCmdBuffer, static_cast<u32>(mesh.indexes.size()), 1, 0, 0, 0);
+                {
+                    const u32 offset = 0;
+                    const u32 drawCount = 1;
+                    const u32 stride = sizeof(VkDrawIndexedIndirectCommand);
+                    vkCmdDrawIndexedIndirect(resources.gfxCmdBuffer, indirectDrawBuffer.buffer, offset, drawCount,
+                                             stride);
+                }
+            }
 
             vkCmdEndRenderPass(resources.gfxCmdBuffer);
 
@@ -738,6 +999,8 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                 shouldExit = true;
         }
         MicroProfileFlip(nullptr);
+
+        lastFrameStart = currentTime;
     }
 
     vkQueueWaitIdle(backend.deviceInfo.presentQueue);
@@ -751,6 +1014,10 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
     vkDestroyPipelineLayout(backend.device, blitPipe.pipelineLayout, nullptr);
     vkDestroyDescriptorSetLayout(backend.device, blitPipe.descSetLayout, nullptr);
 
+    vkDestroyPipeline(backend.device, cullPipe.pipeline, nullptr);
+    vkDestroyPipelineLayout(backend.device, cullPipe.pipelineLayout, nullptr);
+    vkDestroyDescriptorSetLayout(backend.device, cullPipe.descSetLayout, nullptr);
+
     destroy_framebuffers(root, backend.device, framebuffers);
 
     vkDestroyRenderPass(backend.device, offscreenRenderPass, nullptr);
@@ -758,7 +1025,10 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
     vkDestroyImageView(backend.device, depthBufferView, nullptr);
     vkDestroyImage(backend.device, depthBuffer.handle, nullptr);
 
-    vkDestroyBuffer(backend.device, indexBuffer.buffer, nullptr);
+    vkDestroyBuffer(backend.device, dynamicIndexBuffer.buffer, nullptr);
+    vkDestroyBuffer(backend.device, indirectDrawBuffer.buffer, nullptr);
+
+    vkDestroyBuffer(backend.device, staticIndexBuffer.buffer, nullptr);
     vkDestroyBuffer(backend.device, vertexBufferPosition.buffer, nullptr);
     vkDestroyBuffer(backend.device, vertexBufferNormal.buffer, nullptr);
     vkDestroyBuffer(backend.device, vertexBufferUV.buffer, nullptr);

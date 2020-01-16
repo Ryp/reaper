@@ -94,6 +94,7 @@ void vulkan_test(ReaperRoot& root, VulkanBackend& backend)
     std::vector<VkDescriptorPoolSize> descriptorPoolSizes = {{VK_DESCRIPTOR_TYPE_SAMPLER, 10},
                                                              {VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 10},
                                                              {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 10},
+                                                             {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 10},
                                                              {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 10}};
 
     VkDescriptorPoolCreateInfo poolInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,

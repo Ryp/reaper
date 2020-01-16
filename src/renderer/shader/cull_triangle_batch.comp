@@ -1,0 +1,87 @@
+// GDC 2016 - Optimizing the Graphics Pipeline with Compute
+
+#define USE_INTRINSICS 0
+
+[[vk::binding(0, 0)]]
+ByteAddressBuffer IndexBufferIn;
+
+[[vk::binding(1, 0)]]
+RWByteAddressBuffer IndexBufferOut;
+
+#if !USE_INTRINSICS
+uint2 ballot(bool condition)
+{
+    return 0; // FIXME ???
+}
+
+// Returns an execution mask with the first lane_id bits to 1.
+uint2 active_lane_execution_mask(uint lane_id)
+{
+    uint2 lane_mask;
+
+    lane_mask.x = (lane_id >= 32) ? ~0 : ((1 << lane_id) - 1);
+    lane_mask.y = (lane_id < 32)  ?  0 : ((1 << (lane_id - 32)) - 1);
+
+    return lane_mask;
+}
+
+uint bit_count(uint2 mask)
+{
+    const uint bit_count_x = countbits(mask.x);
+    const uint bit_count_y = countbits(mask.y);
+
+    return bit_count_x + bit_count_y;
+}
+
+uint mbcnt64(uint2 mask, uint lane_id)
+{
+    const uint2 lane_mask = active_lane_execution_mask(lane_id);
+
+    return bit_count(mask & lane_mask);
+}
+#endif
+
+static const uint3 thread_count = uint3(1024, 1, 1);
+
+[numthreads(thread_count.x, thread_count.y, thread_count.z)]
+void main(uint3 gtid : SV_GroupThreadID,
+          uint3 gid  : SV_GroupID,
+          uint3 dtid : SV_DispatchThreadID,
+          uint  gi   : SV_GroupIndex)
+{
+    const uint triangle_index = dtid.x * 3;
+
+    if (triangle_index % 2 == 0)
+    {
+        const uint index0 = IndexBufferIn.Load((triangle_index + 0) * 4);
+        const uint index1 = IndexBufferIn.Load((triangle_index + 1) * 4);
+        const uint index2 = IndexBufferIn.Load((triangle_index + 2) * 4);
+
+        IndexBufferOut.Store((triangle_index + 0) * 4, index0);
+        IndexBufferOut.Store((triangle_index + 1) * 4, index1);
+        IndexBufferOut.Store((triangle_index + 2) * 4, index2);
+    }
+    else
+    {
+        IndexBufferOut.Store((triangle_index + 0) * 4, 0);
+        IndexBufferOut.Store((triangle_index + 1) * 4, 0);
+        IndexBufferOut.Store((triangle_index + 2) * 4, 0);
+    }
+#if 0
+    const bool is_visible = true;
+
+    // Write result to output and do index buffer compaction
+    const uint2 is_visible_ballot = ballot(is_visible);
+
+#if USE_INTRINSICS
+    const uint compacted_index = mbcnt64(is_visible_ballot);
+#else
+    const uint compacted_index = mbcnt64(is_visible_ballot, gi);
+#endif
+
+    if (is_visible)
+    {
+        // IndexBufferOut.Store(compacted_index * 4);
+    }
+#endif
+}

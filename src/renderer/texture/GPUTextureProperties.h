@@ -15,7 +15,7 @@ namespace Reaper
 {
 namespace GPUTextureUsage
 {
-    enum
+    enum Type : u32
     {
         TransferSrc = bit(0),
         TransferDst = bit(1),
@@ -25,6 +25,7 @@ namespace GPUTextureUsage
         DepthStencilAttachment = bit(5),
         TransientAttachment = bit(6),
         InputAttachment = bit(7),
+        Swapchain = bit(8),
     };
 }
 
@@ -49,5 +50,6 @@ struct GPUTextureProperties
     u32         miscFlags;
 };
 
+REAPER_RENDERER_API
 GPUTextureProperties DefaultGPUTextureProperties(u32 width, u32 height, PixelFormat format);
 } // namespace Reaper
