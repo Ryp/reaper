@@ -7,3 +7,6 @@ build
 __pycache__/
 *.py[cod]
 *$py.class
+
+# user
+compile_commands.json
