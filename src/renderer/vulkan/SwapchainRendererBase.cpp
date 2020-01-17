@@ -21,6 +21,25 @@
 #include "PresentationSurface.h"
 #include "renderer/window/Window.h"
 
+// Name of the library to dynamically load to get vulkan symbols
+#if defined(REAPER_PLATFORM_LINUX) || defined(REAPER_PLATFORM_MACOSX)
+#    define REAPER_VK_LIB_NAME "libvulkan.so"
+#elif defined(REAPER_PLATFORM_WINDOWS)
+#    define REAPER_VK_LIB_NAME "vulkan-1.dll"
+#endif
+
+// Version of the API to query when loading vulkan symbols
+#define REAPER_VK_API_VERSION VK_MAKE_VERSION(1, 1, 0)
+
+// Decide which swapchain extension to use
+#if defined(VK_USE_PLATFORM_WIN32_KHR)
+#    define REAPER_VK_SWAPCHAIN_EXTENSION_NAME VK_KHR_WIN32_SURFACE_EXTENSION_NAME
+#elif defined(VK_USE_PLATFORM_XCB_KHR)
+#    define REAPER_VK_SWAPCHAIN_EXTENSION_NAME VK_KHR_XCB_SURFACE_EXTENSION_NAME
+#elif defined(VK_USE_PLATFORM_XLIB_KHR)
+#    define REAPER_VK_SWAPCHAIN_EXTENSION_NAME VK_KHR_XLIB_SURFACE_EXTENSION_NAME
+#endif
+
 namespace Reaper
 {
 void vulkan_instance_check_extensions(const std::vector<const char*>& extensions);
@@ -38,8 +57,14 @@ bool vulkan_check_physical_device(IWindow*                        window,
                                   uint32_t&                       queue_family_index,
                                   uint32_t&                       selected_present_queue_family_index);
 
-void vulkan_choose_physical_device(ReaperRoot& root, VulkanBackend& backend, PhysicalDeviceInfo& physicalDeviceInfo);
-void vulkan_create_logical_device(ReaperRoot& root, VulkanBackend& backend);
+void vulkan_choose_physical_device(ReaperRoot&                     root,
+                                   VulkanBackend&                  backend,
+                                   const std::vector<const char*>& device_extensions,
+                                   PhysicalDeviceInfo&             physicalDeviceInfo);
+
+void vulkan_create_logical_device(ReaperRoot&                     root,
+                                  VulkanBackend&                  backend,
+                                  const std::vector<const char*>& device_extensions);
 
 VulkanBackend::VulkanBackend()
     : vulkanLib(nullptr)
@@ -141,11 +166,17 @@ void create_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& backend)
     log_debug(root, "vulkan: creating presentation surface");
     vulkan_create_presentation_surface(backend.instance, backend.presentInfo.surface, window);
 
+    std::vector<const char*> device_extensions = {
+        VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+        VK_EXT_SHADER_SUBGROUP_BALLOT_EXTENSION_NAME,
+        VK_EXT_SHADER_SUBGROUP_VOTE_EXTENSION_NAME,
+    };
+
     log_debug(root, "vulkan: choosing physical device");
-    vulkan_choose_physical_device(root, backend, backend.physicalDeviceInfo);
+    vulkan_choose_physical_device(root, backend, device_extensions, backend.physicalDeviceInfo);
 
     log_debug(root, "vulkan: creating logical device");
-    vulkan_create_logical_device(root, backend);
+    vulkan_create_logical_device(root, backend, device_extensions);
 
     SwapchainDescriptor swapchainDesc;
     swapchainDesc.preferredImageCount = 2; // Double buffering
@@ -363,7 +394,7 @@ bool vulkan_check_physical_device(IWindow*                        window,
     vkGetPhysicalDeviceProperties(physical_device, &device_properties);
     vkGetPhysicalDeviceFeatures(physical_device, &device_features);
 
-    Assert(device_properties.apiVersion >= VK_MAKE_VERSION(1, 0, 0));
+    Assert(device_properties.apiVersion >= REAPER_VK_API_VERSION);
     Assert(device_properties.limits.maxImageDimension2D >= 4096);
     Assert(device_features.shaderClipDistance == VK_TRUE); // This is just checked, not enabled
 
@@ -450,7 +481,10 @@ namespace
     }
 } // namespace
 
-void vulkan_choose_physical_device(ReaperRoot& root, VulkanBackend& backend, PhysicalDeviceInfo& physicalDeviceInfo)
+void vulkan_choose_physical_device(ReaperRoot&                     root,
+                                   VulkanBackend&                  backend,
+                                   const std::vector<const char*>& device_extensions,
+                                   PhysicalDeviceInfo&             physicalDeviceInfo)
 {
     uint32_t deviceCount = 0;
 
@@ -466,16 +500,13 @@ void vulkan_choose_physical_device(ReaperRoot& root, VulkanBackend& backend, Phy
     uint32_t selected_queue_family_index = UINT32_MAX;
     uint32_t selected_present_queue_family_index = UINT32_MAX;
 
-    // Duplicated two times TODO merge
-    std::vector<const char*> extensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
-
     VkPhysicalDevice chosenPhysicalDevice = VK_NULL_HANDLE;
     for (auto& device : availableDevices)
     {
         if (vulkan_check_physical_device(root.renderer->window,
                                          device,
                                          backend.presentInfo.surface,
-                                         extensions,
+                                         device_extensions,
                                          selected_queue_family_index,
                                          selected_present_queue_family_index))
         {
@@ -525,7 +556,9 @@ void vulkan_choose_physical_device(ReaperRoot& root, VulkanBackend& backend, Phy
     backend.physicalDevice = chosenPhysicalDevice;
 }
 
-void vulkan_create_logical_device(ReaperRoot& root, VulkanBackend& backend)
+void vulkan_create_logical_device(ReaperRoot&                     root,
+                                  VulkanBackend&                  backend,
+                                  const std::vector<const char*>& device_extensions)
 {
     std::vector<VkDeviceQueueCreateInfo> queue_create_infos;
     std::vector<float>                   queue_priorities = {1.0f};
@@ -554,8 +587,6 @@ void vulkan_create_logical_device(ReaperRoot& root, VulkanBackend& backend)
     Assert(!queue_create_infos.empty());
     Assert(!queue_priorities.empty());
     Assert(queue_priorities.size() == queue_create_infos.size());
-
-    std::vector<const char*> device_extensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 
     uint32_t queueCreateCount = static_cast<uint32_t>(queue_create_infos.size());
     uint32_t deviceExtensionCount = static_cast<uint32_t>(device_extensions.size());
