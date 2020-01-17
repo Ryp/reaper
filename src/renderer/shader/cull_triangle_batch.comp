@@ -51,21 +51,27 @@ void main(uint3 gtid : SV_GroupThreadID,
 {
     const uint triangle_index = dtid.x * 3;
 
-    if (triangle_index % 2 == 0)
-    {
-        const uint index0 = IndexBufferIn.Load((triangle_index + 0) * 4);
-        const uint index1 = IndexBufferIn.Load((triangle_index + 1) * 4);
-        const uint index2 = IndexBufferIn.Load((triangle_index + 2) * 4);
+    const uint magic_index = IndexBufferIn.Load((triangle_index + 0) * 4);
+    const bool predicate = (magic_index != 0);
 
-        IndexBufferOut.Store((triangle_index + 0) * 4, index0);
-        IndexBufferOut.Store((triangle_index + 1) * 4, index1);
-        IndexBufferOut.Store((triangle_index + 2) * 4, index2);
-    }
-    else
+    if (WaveActiveAllTrue(predicate))
     {
-        IndexBufferOut.Store((triangle_index + 0) * 4, 0);
-        IndexBufferOut.Store((triangle_index + 1) * 4, 0);
-        IndexBufferOut.Store((triangle_index + 2) * 4, 0);
+        if (triangle_index % 2 == 0)
+        {
+            const uint index0 = IndexBufferIn.Load((triangle_index + 0) * 4);
+            const uint index1 = IndexBufferIn.Load((triangle_index + 1) * 4);
+            const uint index2 = IndexBufferIn.Load((triangle_index + 2) * 4);
+
+            IndexBufferOut.Store((triangle_index + 0) * 4, index0);
+            IndexBufferOut.Store((triangle_index + 1) * 4, index1);
+            IndexBufferOut.Store((triangle_index + 2) * 4, index2);
+        }
+        else
+        {
+            IndexBufferOut.Store((triangle_index + 0) * 4, 0);
+            IndexBufferOut.Store((triangle_index + 1) * 4, 0);
+            IndexBufferOut.Store((triangle_index + 2) * 4, 0);
+        }
     }
 #if 0
     const bool is_visible = true;
