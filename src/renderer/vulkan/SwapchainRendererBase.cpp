@@ -554,6 +554,7 @@ void vulkan_choose_physical_device(ReaperRoot&                     root,
     }
 
     backend.physicalDevice = chosenPhysicalDevice;
+    backend.physicalDeviceProperties = physicalDeviceProperties;
 }
 
 void vulkan_create_logical_device(ReaperRoot&                     root,
@@ -589,23 +590,25 @@ void vulkan_create_logical_device(ReaperRoot&                     root,
     Assert(queue_priorities.size() == queue_create_infos.size());
 
     uint32_t queueCreateCount = static_cast<uint32_t>(queue_create_infos.size());
-    uint32_t deviceExtensionCount = static_cast<uint32_t>(device_extensions.size());
 
     log_info(root, "vulkan: using {} device level extensions", device_extensions.size());
     for (auto& e : device_extensions)
         log_debug(root, "- {}", e);
 
+    VkPhysicalDeviceFeatures deviceFeatures = {};
+    deviceFeatures.multiDrawIndirect = true;
+
     VkDeviceCreateInfo device_create_info = {
-        VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO, // VkStructureType                    sType
-        nullptr,                              // const void                        *pNext
-        0,                                    // VkDeviceCreateFlags                flags
-        queueCreateCount,                     // uint32_t                           queueCreateInfoCount
-        &queue_create_infos[0],               // const VkDeviceQueueCreateInfo     *pQueueCreateInfos
-        0,                                    // uint32_t                           enabledLayerCount
-        nullptr,                              // const char * const                *ppEnabledLayerNames
-        deviceExtensionCount,                 // uint32_t                           enabledExtensionCount
-        (deviceExtensionCount > 0 ? &device_extensions[0] : nullptr), // const char * const *ppEnabledExtensionNames
-        nullptr // const VkPhysicalDeviceFeatures    *pEnabledFeatures
+        VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,       // VkStructureType                    sType
+        nullptr,                                    // const void                        *pNext
+        0,                                          // VkDeviceCreateFlags                flags
+        queueCreateCount,                           // uint32_t                           queueCreateInfoCount
+        &queue_create_infos[0],                     // const VkDeviceQueueCreateInfo     *pQueueCreateInfos
+        0,                                          // uint32_t                           enabledLayerCount
+        nullptr,                                    // const char * const                *ppEnabledLayerNames
+        static_cast<u32>(device_extensions.size()), // uint32_t                           enabledExtensionCount
+        device_extensions.data(),                   // const char * const *ppEnabledExtensionNames
+        &deviceFeatures                             // const VkPhysicalDeviceFeatures    *pEnabledFeatures
     };
 
     Assert(vkCreateDevice(backend.physicalDevice, &device_create_info, nullptr, &backend.device) == VK_SUCCESS,
