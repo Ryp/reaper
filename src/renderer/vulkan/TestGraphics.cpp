@@ -586,21 +586,27 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
     upload_buffer_data(backend.device, staticIndexBuffer, mesh.indexes.data(),
                        mesh.indexes.size() * sizeof(mesh.indexes[0]));
 
-    const u32  indirectCalls = 1;
-    BufferInfo indirectDrawBuffer = create_buffer(
-        root, backend.device, "Indirect draw buffer",
-        DefaultGPUBufferProperties(indirectCalls, sizeof(VkDrawIndexedIndirectCommand), GPUBufferUsage::IndirectBuffer),
-        resources.mainAllocator);
+    const u32  indirectDrawCount = 3;
+    BufferInfo indirectDrawBuffer =
+        create_buffer(root, backend.device, "Indirect draw buffer",
+                      DefaultGPUBufferProperties(indirectDrawCount, sizeof(VkDrawIndexedIndirectCommand),
+                                                 GPUBufferUsage::IndirectBuffer),
+                      resources.mainAllocator);
 
-    VkDrawIndexedIndirectCommand drawCommand = {};
-    drawCommand.indexCount = static_cast<u32>(mesh.indexes.size());
-    drawCommand.instanceCount = 1;
-    drawCommand.firstIndex = 0;
-    drawCommand.vertexOffset = 0;
-    drawCommand.firstInstance = 0;
+    Assert(indirectDrawCount < backend.physicalDeviceProperties.limits.maxDrawIndirectCount);
 
-    upload_buffer_data(backend.device, indirectDrawBuffer, &drawCommand,
-                       indirectCalls * sizeof(VkDrawIndexedIndirectCommand));
+    std::array<VkDrawIndexedIndirectCommand, indirectDrawCount> drawCommands;
+    for (u32 i = 0; i < indirectDrawCount; i++)
+    {
+        drawCommands[i].indexCount = static_cast<u32>(mesh.indexes.size());
+        drawCommands[i].instanceCount = 1;
+        drawCommands[i].firstIndex = 0;
+        drawCommands[i].vertexOffset = 0;
+        drawCommands[i].firstInstance = i;
+    }
+
+    upload_buffer_data(backend.device, indirectDrawBuffer, drawCommands.data(),
+                       indirectDrawCount * sizeof(VkDrawIndexedIndirectCommand));
 
     BufferInfo dynamicIndexBuffer =
         create_buffer(root, backend.device, "Dynamic index buffer",
@@ -980,11 +986,8 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                                         blitPipe.pipelineLayout, 0, 1, &pixelConstantsDescriptorSet, 0, nullptr);
 
                 {
-                    const u32 offset = 0;
-                    const u32 drawCount = 1;
-                    const u32 stride = sizeof(VkDrawIndexedIndirectCommand);
-                    vkCmdDrawIndexedIndirect(resources.gfxCmdBuffer, indirectDrawBuffer.buffer, offset, drawCount,
-                                             stride);
+                    vkCmdDrawIndexedIndirect(resources.gfxCmdBuffer, indirectDrawBuffer.buffer, 0, indirectDrawCount,
+                                             sizeof(VkDrawIndexedIndirectCommand));
                 }
             }
 

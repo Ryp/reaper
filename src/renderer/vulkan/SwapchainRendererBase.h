@@ -55,8 +55,9 @@ struct REAPER_RENDERER_API VulkanBackend
     LibHandle  vulkanLib;
     VkInstance instance;
 
-    VkPhysicalDevice   physicalDevice;
-    PhysicalDeviceInfo physicalDeviceInfo;
+    VkPhysicalDevice           physicalDevice;
+    VkPhysicalDeviceProperties physicalDeviceProperties;
+    PhysicalDeviceInfo         physicalDeviceInfo;
 
     VkDevice   device;
     DeviceInfo deviceInfo;
