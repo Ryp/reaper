@@ -3,10 +3,21 @@
 #define USE_INTRINSICS 0
 
 [[vk::binding(0, 0)]]
-ByteAddressBuffer IndexBufferIn;
+ByteAddressBuffer Indices;
 
 [[vk::binding(1, 0)]]
-RWByteAddressBuffer IndexBufferOut;
+ByteAddressBuffer VertexPositions;
+
+struct CullInstanceParams
+{
+    float4x4 ms_to_cs_matrix;
+};
+
+[[vk::binding(2, 0)]]
+StructuredBuffer<CullInstanceParams> instance_params;
+
+[[vk::binding(3, 0)]]
+RWByteAddressBuffer IndicesOut;
 
 #if !USE_INTRINSICS
 uint2 ballot(bool condition)
@@ -51,27 +62,39 @@ void main(uint3 gtid : SV_GroupThreadID,
 {
     const uint triangle_index = dtid.x * 3;
 
-    const uint magic_index = IndexBufferIn.Load((triangle_index + 0) * 4);
-    const bool predicate = (magic_index != 0);
+    const float4x4 ms_to_cs_matrix = instance_params[gid.x].ms_to_cs_matrix;
 
-    if (WaveActiveAllTrue(predicate))
+    const uint index0 = Indices.Load((triangle_index + 0) * 4);
+    const uint index1 = Indices.Load((triangle_index + 1) * 4);
+    const uint index2 = Indices.Load((triangle_index + 2) * 4);
+
+    const uint vertex_size_in_bytes = 3 * 4;
+
+    // FIXME Load4 can load outside of allocated address
+    const float3 vpos0_ms = asfloat(VertexPositions.Load4(index0 * vertex_size_in_bytes).xyz);
+    const float3 vpos1_ms = asfloat(VertexPositions.Load4(index1 * vertex_size_in_bytes).xyz);
+    const float3 vpos2_ms = asfloat(VertexPositions.Load4(index2 * vertex_size_in_bytes).xyz);
+
+    const float3 vpos0_cs = mul(float4(vpos0_ms, 1.0), ms_to_cs_matrix).xyz;
+    const float3 vpos1_cs = mul(float4(vpos1_ms, 1.0), ms_to_cs_matrix).xyz;
+    const float3 vpos2_cs = mul(float4(vpos2_ms, 1.0), ms_to_cs_matrix).xyz;
+
+    const float3 v0v1_cs = vpos1_cs - vpos0_cs;
+    const float3 v0v2_cs = vpos2_cs - vpos0_cs;
+
+    const bool is_visible = cross(v0v1_cs, v0v2_cs).z >= 0.f;
+
+    if (is_visible)
     {
-        if (triangle_index % 2 == 0)
-        {
-            const uint index0 = IndexBufferIn.Load((triangle_index + 0) * 4);
-            const uint index1 = IndexBufferIn.Load((triangle_index + 1) * 4);
-            const uint index2 = IndexBufferIn.Load((triangle_index + 2) * 4);
-
-            IndexBufferOut.Store((triangle_index + 0) * 4, index0);
-            IndexBufferOut.Store((triangle_index + 1) * 4, index1);
-            IndexBufferOut.Store((triangle_index + 2) * 4, index2);
-        }
-        else
-        {
-            IndexBufferOut.Store((triangle_index + 0) * 4, 0);
-            IndexBufferOut.Store((triangle_index + 1) * 4, 0);
-            IndexBufferOut.Store((triangle_index + 2) * 4, 0);
-        }
+        IndicesOut.Store((triangle_index + 0) * 4, index0);
+        IndicesOut.Store((triangle_index + 1) * 4, index1);
+        IndicesOut.Store((triangle_index + 2) * 4, index2);
+    }
+    else
+    {
+        IndicesOut.Store((triangle_index + 0) * 4, 0);
+        IndicesOut.Store((triangle_index + 1) * 4, 0);
+        IndicesOut.Store((triangle_index + 2) * 4, 0);
     }
 #if 0
     const bool is_visible = true;
@@ -87,7 +110,7 @@ void main(uint3 gtid : SV_GroupThreadID,
 
     if (is_visible)
     {
-        // IndexBufferOut.Store(compacted_index * 4);
+        // IndicesOut.Store(compacted_index * 4);
     }
 #endif
 }
