@@ -597,6 +597,7 @@ void vulkan_create_logical_device(ReaperRoot&                     root,
 
     VkPhysicalDeviceFeatures deviceFeatures = {};
     deviceFeatures.multiDrawIndirect = true;
+    deviceFeatures.drawIndirectFirstInstance = true;
 
     VkDeviceCreateInfo device_create_info = {
         VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,       // VkStructureType                    sType
