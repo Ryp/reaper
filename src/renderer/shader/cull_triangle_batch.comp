@@ -1,7 +1,3 @@
-// GDC 2016 - Optimizing the Graphics Pipeline with Compute
-
-#define USE_INTRINSICS 0
-
 [[vk::binding(0, 0)]]
 ByteAddressBuffer Indices;
 
@@ -19,38 +15,10 @@ StructuredBuffer<CullInstanceParams> instance_params;
 [[vk::binding(3, 0)]]
 RWByteAddressBuffer IndicesOut;
 
-#if !USE_INTRINSICS
-uint2 ballot(bool condition)
-{
-    return 0; // FIXME ???
-}
+[[vk::binding(4, 0)]]
+RWByteAddressBuffer IndirectDrawCommandOut;
 
-// Returns an execution mask with the first lane_id bits to 1.
-uint2 active_lane_execution_mask(uint lane_id)
-{
-    uint2 lane_mask;
-
-    lane_mask.x = (lane_id >= 32) ? ~0 : ((1 << lane_id) - 1);
-    lane_mask.y = (lane_id < 32)  ?  0 : ((1 << (lane_id - 32)) - 1);
-
-    return lane_mask;
-}
-
-uint bit_count(uint2 mask)
-{
-    const uint bit_count_x = countbits(mask.x);
-    const uint bit_count_y = countbits(mask.y);
-
-    return bit_count_x + bit_count_y;
-}
-
-uint mbcnt64(uint2 mask, uint lane_id)
-{
-    const uint2 lane_mask = active_lane_execution_mask(lane_id);
-
-    return bit_count(mask & lane_mask);
-}
-#endif
+groupshared uint lds_total_triangle_count;
 
 static const uint3 thread_count = uint3(1024, 1, 1);
 
@@ -60,13 +28,17 @@ void main(uint3 gtid : SV_GroupThreadID,
           uint3 dtid : SV_DispatchThreadID,
           uint  gi   : SV_GroupIndex)
 {
-    const uint triangle_index = dtid.x * 3;
+    if (gi == 0)
+        lds_total_triangle_count = 0;
 
-    const float4x4 ms_to_cs_matrix = instance_params[gid.x].ms_to_cs_matrix;
+    // FIXME can we remove it?
+    GroupMemoryBarrierWithGroupSync();
 
-    const uint index0 = Indices.Load((triangle_index + 0) * 4);
-    const uint index1 = Indices.Load((triangle_index + 1) * 4);
-    const uint index2 = Indices.Load((triangle_index + 2) * 4);
+    const uint input_triangle_index = dtid.x * 3;
+
+    const uint index0 = Indices.Load((input_triangle_index + 0) * 4);
+    const uint index1 = Indices.Load((input_triangle_index + 1) * 4);
+    const uint index2 = Indices.Load((input_triangle_index + 2) * 4);
 
     const uint vertex_size_in_bytes = 3 * 4;
 
@@ -74,6 +46,9 @@ void main(uint3 gtid : SV_GroupThreadID,
     const float3 vpos0_ms = asfloat(VertexPositions.Load4(index0 * vertex_size_in_bytes).xyz);
     const float3 vpos1_ms = asfloat(VertexPositions.Load4(index1 * vertex_size_in_bytes).xyz);
     const float3 vpos2_ms = asfloat(VertexPositions.Load4(index2 * vertex_size_in_bytes).xyz);
+
+    // FIXME get correct instance matrix
+    const float4x4 ms_to_cs_matrix = instance_params[0].ms_to_cs_matrix;
 
     const float3 vpos0_cs = mul(float4(vpos0_ms, 1.0), ms_to_cs_matrix).xyz;
     const float3 vpos1_cs = mul(float4(vpos1_ms, 1.0), ms_to_cs_matrix).xyz;
@@ -84,33 +59,37 @@ void main(uint3 gtid : SV_GroupThreadID,
 
     const bool is_visible = cross(v0v1_cs, v0v2_cs).z >= 0.f;
 
-    if (is_visible)
-    {
-        IndicesOut.Store((triangle_index + 0) * 4, index0);
-        IndicesOut.Store((triangle_index + 1) * 4, index1);
-        IndicesOut.Store((triangle_index + 2) * 4, index2);
-    }
-    else
-    {
-        IndicesOut.Store((triangle_index + 0) * 4, 0);
-        IndicesOut.Store((triangle_index + 1) * 4, 0);
-        IndicesOut.Store((triangle_index + 2) * 4, 0);
-    }
-#if 0
-    const bool is_visible = true;
+    const uint visible_count = WaveActiveCountBits(is_visible);
+    const uint visible_prefix_count = WavePrefixCountBits(is_visible);
 
-    // Write result to output and do index buffer compaction
-    const uint2 is_visible_ballot = ballot(is_visible);
+    const uint lane_cout = WaveGetLaneCount();
 
-#if USE_INTRINSICS
-    const uint compacted_index = mbcnt64(is_visible_ballot);
-#else
-    const uint compacted_index = mbcnt64(is_visible_ballot, gi);
-#endif
+    // Synchronize waves
+    uint global_output_index;
+
+    if (gi % lane_cout == 0)
+    {
+        InterlockedAdd(lds_total_triangle_count, visible_count, global_output_index);
+    }
+
+    global_output_index = WaveReadLaneAt(global_output_index, 0);
+
+    const uint output_triangle_index = global_output_index + visible_prefix_count - 1;
 
     if (is_visible)
     {
-        // IndicesOut.Store(compacted_index * 4);
+        IndicesOut.Store((output_triangle_index * 3 + 0) * 4, index0);
+        IndicesOut.Store((output_triangle_index * 3 + 1) * 4, index1);
+        IndicesOut.Store((output_triangle_index * 3 + 2) * 4, index2);
     }
-#endif
+
+    GroupMemoryBarrierWithGroupSync();
+
+    if (gi == 0)
+    {
+        const uint index_count_offset = 0;
+        IndirectDrawCommandOut.Store((index_count_offset + 0) * 4, lds_total_triangle_count * 3);
+        IndirectDrawCommandOut.Store((index_count_offset + 5) * 4, lds_total_triangle_count * 3);
+        IndirectDrawCommandOut.Store((index_count_offset + 10) * 4, lds_total_triangle_count * 3);
+    }
 }

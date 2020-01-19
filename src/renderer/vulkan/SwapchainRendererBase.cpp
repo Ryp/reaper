@@ -388,10 +388,14 @@ bool vulkan_check_physical_device(IWindow*                        window,
 
     vulkan_device_check_extensions(extensions, physical_device);
 
-    VkPhysicalDeviceProperties device_properties;
-    VkPhysicalDeviceFeatures   device_features;
+    VkPhysicalDeviceProperties2 device_properties2;
+    device_properties2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
 
-    vkGetPhysicalDeviceProperties(physical_device, &device_properties);
+    vkGetPhysicalDeviceProperties2(physical_device, &device_properties2);
+    VkPhysicalDeviceProperties& device_properties = device_properties2.properties;
+
+    VkPhysicalDeviceFeatures device_features;
+
     vkGetPhysicalDeviceFeatures(physical_device, &device_features);
 
     Assert(device_properties.apiVersion >= REAPER_VK_API_VERSION);
@@ -523,8 +527,31 @@ void vulkan_choose_physical_device(ReaperRoot&                     root,
     vkGetPhysicalDeviceMemoryProperties(chosenPhysicalDevice, &physicalDeviceInfo.memory);
 
     // re-fetch device infos TODO avoid
-    VkPhysicalDeviceProperties physicalDeviceProperties;
-    vkGetPhysicalDeviceProperties(chosenPhysicalDevice, &physicalDeviceProperties);
+    VkPhysicalDeviceSubgroupProperties subgroupProperties;
+    subgroupProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SUBGROUP_PROPERTIES;
+    subgroupProperties.pNext = nullptr;
+
+    VkPhysicalDeviceProperties2 physicalDeviceProperties2;
+    physicalDeviceProperties2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
+    physicalDeviceProperties2.pNext = &subgroupProperties;
+
+    vkGetPhysicalDeviceProperties2(chosenPhysicalDevice, &physicalDeviceProperties2);
+
+    Assert(subgroupProperties.supportedOperations & VK_SUBGROUP_FEATURE_BASIC_BIT);
+    Assert(subgroupProperties.supportedOperations & VK_SUBGROUP_FEATURE_BALLOT_BIT);
+    Assert(subgroupProperties.supportedOperations & VK_SUBGROUP_FEATURE_VOTE_BIT);
+    Assert(subgroupProperties.supportedOperations & VK_SUBGROUP_FEATURE_SHUFFLE_BIT);
+    // VK_SUBGROUP_FEATURE_BASIC_BIT = 0x00000001,
+    // VK_SUBGROUP_FEATURE_VOTE_BIT = 0x00000002,
+    // VK_SUBGROUP_FEATURE_ARITHMETIC_BIT = 0x00000004,
+    // VK_SUBGROUP_FEATURE_BALLOT_BIT = 0x00000008,
+    // VK_SUBGROUP_FEATURE_SHUFFLE_BIT = 0x00000010,
+    // VK_SUBGROUP_FEATURE_SHUFFLE_RELATIVE_BIT = 0x00000020,
+    // VK_SUBGROUP_FEATURE_CLUSTERED_BIT = 0x00000040,
+    // VK_SUBGROUP_FEATURE_QUAD_BIT = 0x00000080,
+    // VK_SUBGROUP_FEATURE_PARTITIONED_BIT_NV = 0x00000100,
+
+    const VkPhysicalDeviceProperties physicalDeviceProperties = physicalDeviceProperties2.properties;
 
     log_info(root, "vulkan: selecting device '{}'", physicalDeviceProperties.deviceName);
     log_debug(root, "- type = {}", vulkan_physical_device_type_name(physicalDeviceProperties.deviceType));
