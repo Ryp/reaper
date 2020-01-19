@@ -471,12 +471,14 @@ namespace
             &blitBlendAttachmentState,
             {0.0f, 0.0f, 0.0f, 0.0f}};
 
-        std::array<VkDescriptorSetLayoutBinding, 2> descriptorSetLayoutBinding;
-        descriptorSetLayoutBinding[0] = {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr};
-        descriptorSetLayoutBinding[1] = {1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr};
+        std::array<VkDescriptorSetLayoutBinding, 2> descriptorSetLayoutBinding = {
+            VkDescriptorSetLayoutBinding{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
+            VkDescriptorSetLayoutBinding{1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
+        };
 
-        VkDescriptorSetLayoutCreateInfo descriptorSetLayoutInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-                                                                   nullptr, 0, 2, descriptorSetLayoutBinding.data()};
+        VkDescriptorSetLayoutCreateInfo descriptorSetLayoutInfo = {
+            VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, nullptr, 0,
+            static_cast<u32>(descriptorSetLayoutBinding.size()), descriptorSetLayoutBinding.data()};
 
         VkDescriptorSetLayout descriptorSetLayoutCB = VK_NULL_HANDLE;
         Assert(vkCreateDescriptorSetLayout(backend.device, &descriptorSetLayoutInfo, nullptr, &descriptorSetLayoutCB)
