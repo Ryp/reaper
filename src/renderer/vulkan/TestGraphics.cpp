@@ -473,7 +473,7 @@ namespace
 
         std::array<VkDescriptorSetLayoutBinding, 2> descriptorSetLayoutBinding;
         descriptorSetLayoutBinding[0] = {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr};
-        descriptorSetLayoutBinding[1] = {1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr};
+        descriptorSetLayoutBinding[1] = {1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr};
 
         VkDescriptorSetLayoutCreateInfo descriptorSetLayoutInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
                                                                    nullptr, 0, 2, descriptorSetLayoutBinding.data()};
@@ -562,22 +562,6 @@ namespace
 
         pass_params.timeMs = timeMs;
     }
-
-    void update_instance_params(InstanceParams& instance_params, const glm::mat4& view)
-    {
-        const glm::vec3 object_position_ws = glm::vec3(0.0f, 0.0f, 0.0f);
-        const glm::mat4 model = glm::translate(glm::mat4(1.0f), object_position_ws);
-
-        instance_params.model = model;
-
-        const glm::mat4 modelView = view * model;
-
-        // Assumption that our 3x3 submatrix is orthonormal (no skew/non-uniform scaling)
-        instance_params.modelViewInvT = modelView;
-
-        // instance_params.modelViewInvT = glm::transpose(glm::inverse(glm::mat3(modelView))); // Assumption that our
-        // 3x3 submatrix is orthogonal
-    }
 } // namespace
 
 void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResources& resources)
@@ -586,13 +570,16 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
     std::ifstream modelFile("res/model/suzanne.obj");
     const Mesh    mesh = ModelLoader::loadOBJ(modelFile);
 
+    const u32 instanceCount = 3;
+
     // Create vk buffers
     BufferInfo passConstantBuffer = create_buffer(
         root, backend.device, "Pass Constant buffer",
         DefaultGPUBufferProperties(1, sizeof(PassParams), GPUBufferUsage::UniformBuffer), resources.mainAllocator);
-    BufferInfo instanceConstantBuffer = create_buffer(
-        root, backend.device, "Instance Constant buffer",
-        DefaultGPUBufferProperties(1, sizeof(InstanceParams), GPUBufferUsage::UniformBuffer), resources.mainAllocator);
+    BufferInfo instanceConstantBuffer =
+        create_buffer(root, backend.device, "Instance Constant buffer",
+                      DefaultGPUBufferProperties(instanceCount, sizeof(InstanceParams), GPUBufferUsage::StorageBuffer),
+                      resources.mainAllocator);
 
     BufferInfo vertexBufferPosition =
         create_buffer(root, backend.device, "Position buffer",
@@ -620,7 +607,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
     upload_buffer_data(backend.device, staticIndexBuffer, mesh.indexes.data(),
                        mesh.indexes.size() * sizeof(mesh.indexes[0]));
 
-    const u32 indirectDrawCount = 3;
+    const u32 indirectDrawCount = instanceCount;
 
     BufferInfo indirectDrawBuffer =
         create_buffer(root, backend.device, "Indirect draw buffer",
@@ -726,7 +713,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
         std::array<VkWriteDescriptorSet, 2> drawPassDescriptorSetWrites = {
             create_buffer_descriptor_write(pixelConstantsDescriptorSet, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
                                            &drawDescPassParams),
-            create_buffer_descriptor_write(pixelConstantsDescriptorSet, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+            create_buffer_descriptor_write(pixelConstantsDescriptorSet, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                                            &drawDescInstanceParams),
         };
 
@@ -745,7 +732,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
     window->map();
 
     PassParams                                        pass_params = {};
-    InstanceParams                                    instance_params = {};
+    std::array<InstanceParams, instanceCount>         instance_params = {};
     std::array<CullInstanceParams, indirectDrawCount> cull_instance_params = {};
 
     const int MaxFrameCount = 0;
@@ -941,16 +928,30 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
 
             const glm::mat4 view = camera.getViewMatrix();
             update_pass_params(pass_params, timeMs, aspectRatio, view);
-            update_instance_params(instance_params, view);
+
+            Assert(instanceCount == indirectDrawCount);
 
             for (u32 i = 0; i < indirectDrawCount; i++)
             {
-                cull_instance_params[i].ms_to_cs_matrix = pass_params.viewProj * instance_params.model;
+                const glm::vec3 object_position_ws = glm::vec3(4.5, 0.5, 1.2) * static_cast<float>(i);
+                const glm::mat4 model = glm::translate(glm::mat4(1.0f), object_position_ws);
+
+                instance_params[i].model = model;
+
+                const glm::mat4 modelView = view * model;
+                // Assumption that our 3x3 submatrix is orthonormal (no skew/non-uniform scaling)
+                instance_params[i].modelViewInvT = modelView;
+
+                // instance_params[i].modelViewInvT = glm::transpose(glm::inverse(glm::mat3(modelView))); // Assumption
+                // that our 3x3 submatrix is orthogonal
+
+                cull_instance_params[i].ms_to_cs_matrix = pass_params.viewProj * model;
             }
 
             upload_buffer_data(backend.device, passConstantBuffer, &pass_params, sizeof(PassParams));
-            upload_buffer_data(backend.device, instanceConstantBuffer, &instance_params, sizeof(InstanceParams));
-            upload_buffer_data(backend.device, cullInstanceParamsBuffer, &cull_instance_params,
+            upload_buffer_data(backend.device, instanceConstantBuffer, instance_params.data(),
+                               instance_params.size() * sizeof(InstanceParams));
+            upload_buffer_data(backend.device, cullInstanceParamsBuffer, cull_instance_params.data(),
                                cull_instance_params.size() * sizeof(CullInstanceParams));
 
             VkCommandBufferBeginInfo cmdBufferBeginInfo = {
