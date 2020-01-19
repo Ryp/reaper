@@ -210,7 +210,7 @@ namespace
             VkImageMemoryBarrier swapchainImageBarrierInfo = {
                 VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
                 nullptr,
-                0, // VK_ACCESS_SHADER_WRITE_BIT ?
+                0,
                 VK_ACCESS_MEMORY_READ_BIT,
                 VK_IMAGE_LAYOUT_UNDEFINED,
                 VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
@@ -974,6 +974,18 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
 
                 vkCmdDispatch(resources.gfxCmdBuffer, 1, 1, 1);
             }
+
+            std::array<VkMemoryBarrier, 1> memoryBarriers = {VkMemoryBarrier{
+                VK_STRUCTURE_TYPE_MEMORY_BARRIER,
+                nullptr,
+                VK_ACCESS_SHADER_WRITE_BIT,
+                VK_ACCESS_INDEX_READ_BIT | VK_ACCESS_INDIRECT_COMMAND_READ_BIT,
+            }};
+
+            vkCmdPipelineBarrier(resources.gfxCmdBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                                 VK_PIPELINE_STAGE_VERTEX_INPUT_BIT | VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT, 0,
+                                 static_cast<u32>(memoryBarriers.size()), memoryBarriers.data(), 0, nullptr, 0,
+                                 nullptr);
 
             vkCmdBeginRenderPass(resources.gfxCmdBuffer, &blitRenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
