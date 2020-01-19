@@ -58,11 +58,12 @@ namespace
 
     CullPipelineInfo vulkan_create_cull_pipeline(ReaperRoot& root, VulkanBackend& backend)
     {
-        std::array<VkDescriptorSetLayoutBinding, 4> descriptorSetLayoutBinding = {
+        std::array<VkDescriptorSetLayoutBinding, 5> descriptorSetLayoutBinding = {
             VkDescriptorSetLayoutBinding{0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
             VkDescriptorSetLayoutBinding{1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
             VkDescriptorSetLayoutBinding{2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
             VkDescriptorSetLayoutBinding{3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+            VkDescriptorSetLayoutBinding{4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
         };
 
         VkDescriptorSetLayoutCreateInfo descriptorSetLayoutInfo = {
@@ -624,7 +625,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
     BufferInfo indirectDrawBuffer =
         create_buffer(root, backend.device, "Indirect draw buffer",
                       DefaultGPUBufferProperties(indirectDrawCount, sizeof(VkDrawIndexedIndirectCommand),
-                                                 GPUBufferUsage::IndirectBuffer),
+                                                 GPUBufferUsage::IndirectBuffer | GPUBufferUsage::StorageBuffer),
                       resources.mainAllocator);
 
     Assert(indirectDrawCount < backend.physicalDeviceProperties.limits.maxDrawIndirectCount);
@@ -687,8 +688,10 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
         const VkDescriptorBufferInfo cullDescVertexPositions = default_descriptor_buffer_info(vertexBufferPosition);
         const VkDescriptorBufferInfo cullDescInstanceParams = default_descriptor_buffer_info(cullInstanceParamsBuffer);
         const VkDescriptorBufferInfo cullDescIncidesOut = default_descriptor_buffer_info(dynamicIndexBuffer);
+        const VkDescriptorBufferInfo cullDescIndirectDrawCommandOut =
+            default_descriptor_buffer_info(indirectDrawBuffer);
 
-        std::array<VkWriteDescriptorSet, 4> cullPassDescriptorSetWrites = {
+        std::array<VkWriteDescriptorSet, 5> cullPassDescriptorSetWrites = {
             create_buffer_descriptor_write(cullPassDescriptorSet, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                                            &cullDescIndices),
             create_buffer_descriptor_write(cullPassDescriptorSet, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
@@ -697,6 +700,9 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                                            &cullDescInstanceParams),
             create_buffer_descriptor_write(cullPassDescriptorSet, 3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                                            &cullDescIncidesOut),
+            create_buffer_descriptor_write(cullPassDescriptorSet, 4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                                           &cullDescIndirectDrawCommandOut),
+
         };
 
         vkUpdateDescriptorSets(backend.device, static_cast<u32>(cullPassDescriptorSetWrites.size()),
