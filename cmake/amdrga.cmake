@@ -26,8 +26,10 @@ function(add_spirv_to_gcn_targets generated_files)
 
     set(OUTPUT_GCN_FILES)
     foreach(INPUT_SPIRV IN LISTS ARGN)
-        set(OUTPUT_GCN_ISA_FILE "${INPUT_SPIRV}.gcn")
-        set(OUTPUT_GCN_STATS_FILE "${INPUT_SPIRV}.gcn-stats")
+        get_filename_component(INPUT_BASE ${INPUT_SPIRV} NAME_WLE)
+
+        set(OUTPUT_GCN_ISA_FILE "${INPUT_BASE}.gcn")
+        set(OUTPUT_GCN_STATS_FILE "${INPUT_BASE}.gcn-stats")
         set(OUTPUT_GCN_VERSION -gfxip 8)
 
         add_custom_command(OUTPUT ${OUTPUT_GCN_ISA_FILE} ${OUTPUT_GCN_STATS_FILE}

@@ -44,7 +44,7 @@ void vulkan_test_compute(ReaperRoot& root, VulkanBackend& backend, GlobalResourc
 
     // TODO make this a real shader
     VkShaderModule        computeShader = VK_NULL_HANDLE;
-    const char*           fileName = "./build/spv/test.comp.glsl.spv";
+    const char*           fileName = "./build/spv/test.comp.spv";
     const char*           entryPoint = "main";
     VkSpecializationInfo* specialization = nullptr;
 

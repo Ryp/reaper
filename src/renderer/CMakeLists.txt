@@ -97,43 +97,37 @@ if(REAPER_USE_RENDERDOC)
 endif()
 
 set(REAPER_SHADER_DIR ${CMAKE_CURRENT_SOURCE_DIR}/shader)
-set(REAPER_GLSL_SRCS
-    ${REAPER_SHADER_DIR}/samples/tri.frag.glsl
-    ${REAPER_SHADER_DIR}/samples/tri.vert.glsl
+set(REAPER_SHADER_SRCS
     ${REAPER_SHADER_DIR}/samples/push_constants.frag.glsl
     ${REAPER_SHADER_DIR}/samples/push_constants.vert.glsl
     ${REAPER_SHADER_DIR}/samples/texture.frag.glsl
     ${REAPER_SHADER_DIR}/samples/texture.vert.glsl
+    ${REAPER_SHADER_DIR}/samples/tri.frag.glsl
+    ${REAPER_SHADER_DIR}/samples/tri.vert.glsl
     ${REAPER_SHADER_DIR}/samples/uniform.frag.glsl
     ${REAPER_SHADER_DIR}/samples/uniform.vert.glsl
     ${REAPER_SHADER_DIR}/blit.frag.glsl
     ${REAPER_SHADER_DIR}/blit.vert.glsl
+    ${REAPER_SHADER_DIR}/cull_triangle_batch.comp.hlsl
     ${REAPER_SHADER_DIR}/mesh_shade.frag.glsl
     ${REAPER_SHADER_DIR}/mesh_shade.vert.glsl
     ${REAPER_SHADER_DIR}/mesh_simple.frag.glsl
     ${REAPER_SHADER_DIR}/mesh_simple.vert.glsl
     ${REAPER_SHADER_DIR}/mesh_transformed.frag.glsl
-    ${REAPER_SHADER_DIR}/mesh_transformed.vert.glsl
-    ${REAPER_SHADER_DIR}/test.comp.glsl
-)
-
-set(REAPER_HLSL_SRCS
     ${REAPER_SHADER_DIR}/mesh_transformed_shaded.frag.hlsl
     ${REAPER_SHADER_DIR}/mesh_transformed_shaded.vert.hlsl
-    ${REAPER_SHADER_DIR}/cull_triangle_batch.comp.hlsl
+    ${REAPER_SHADER_DIR}/mesh_transformed.vert.glsl
+    ${REAPER_SHADER_DIR}/test.comp.glsl
 )
 
 # Shader compilation
 include(glslang)
 
-add_glslang_spirv_targets(${REAPER_SHADER_DIR} FALSE REAPER_GLSL_SPIRV_OUTPUT ${REAPER_GLSL_SRCS})
-target_sources(${target} PRIVATE ${REAPER_GLSL_SRCS} ${REAPER_GLSL_SPIRV_OUTPUT})
-
-add_glslang_spirv_targets(${REAPER_SHADER_DIR} TRUE REAPER_HLSL_SPIRV_OUTPUT ${REAPER_HLSL_SRCS})
-target_sources(${target} PRIVATE ${REAPER_HLSL_SRCS} ${REAPER_HLSL_SPIRV_OUTPUT})
+add_glslang_spirv_targets(${REAPER_SHADER_DIR} REAPER_SPIRV_OUTPUT ${REAPER_SHADER_SRCS})
+target_sources(${target} PRIVATE ${REAPER_SHADER_SRCS} ${REAPER_SPIRV_OUTPUT})
 
 include(amdrga)
-add_spirv_to_gcn_targets(REAPER_GCN_OUTPUT ${REAPER_GLSL_SPIRV_OUTPUT} ${REAPER_HLSL_SPIRV_OUTPUT})
+add_spirv_to_gcn_targets(REAPER_GCN_OUTPUT ${REAPER_SPIRV_OUTPUT})
 target_sources(${target} PRIVATE ${REAPER_GCN_OUTPUT})
 
 # Vulkan dependency
