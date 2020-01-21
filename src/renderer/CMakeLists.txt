@@ -98,29 +98,29 @@ endif()
 
 set(REAPER_SHADER_DIR ${CMAKE_CURRENT_SOURCE_DIR}/shader)
 set(REAPER_GLSL_SRCS
-    ${REAPER_SHADER_DIR}/samples/tri.frag
-    ${REAPER_SHADER_DIR}/samples/tri.vert
-    ${REAPER_SHADER_DIR}/samples/push_constants.frag
-    ${REAPER_SHADER_DIR}/samples/push_constants.vert
-    ${REAPER_SHADER_DIR}/samples/texture.frag
-    ${REAPER_SHADER_DIR}/samples/texture.vert
-    ${REAPER_SHADER_DIR}/samples/uniform.frag
-    ${REAPER_SHADER_DIR}/samples/uniform.vert
-    ${REAPER_SHADER_DIR}/blit.frag
-    ${REAPER_SHADER_DIR}/blit.vert
-    ${REAPER_SHADER_DIR}/mesh_shade.frag
-    ${REAPER_SHADER_DIR}/mesh_shade.vert
-    ${REAPER_SHADER_DIR}/mesh_simple.frag
-    ${REAPER_SHADER_DIR}/mesh_simple.vert
-    ${REAPER_SHADER_DIR}/mesh_transformed.frag
-    ${REAPER_SHADER_DIR}/mesh_transformed.vert
-    ${REAPER_SHADER_DIR}/test.comp
+    ${REAPER_SHADER_DIR}/samples/tri.frag.glsl
+    ${REAPER_SHADER_DIR}/samples/tri.vert.glsl
+    ${REAPER_SHADER_DIR}/samples/push_constants.frag.glsl
+    ${REAPER_SHADER_DIR}/samples/push_constants.vert.glsl
+    ${REAPER_SHADER_DIR}/samples/texture.frag.glsl
+    ${REAPER_SHADER_DIR}/samples/texture.vert.glsl
+    ${REAPER_SHADER_DIR}/samples/uniform.frag.glsl
+    ${REAPER_SHADER_DIR}/samples/uniform.vert.glsl
+    ${REAPER_SHADER_DIR}/blit.frag.glsl
+    ${REAPER_SHADER_DIR}/blit.vert.glsl
+    ${REAPER_SHADER_DIR}/mesh_shade.frag.glsl
+    ${REAPER_SHADER_DIR}/mesh_shade.vert.glsl
+    ${REAPER_SHADER_DIR}/mesh_simple.frag.glsl
+    ${REAPER_SHADER_DIR}/mesh_simple.vert.glsl
+    ${REAPER_SHADER_DIR}/mesh_transformed.frag.glsl
+    ${REAPER_SHADER_DIR}/mesh_transformed.vert.glsl
+    ${REAPER_SHADER_DIR}/test.comp.glsl
 )
 
 set(REAPER_HLSL_SRCS
-    ${REAPER_SHADER_DIR}/mesh_transformed_shaded.frag
-    ${REAPER_SHADER_DIR}/mesh_transformed_shaded.vert
-    ${REAPER_SHADER_DIR}/cull_triangle_batch.comp
+    ${REAPER_SHADER_DIR}/mesh_transformed_shaded.frag.hlsl
+    ${REAPER_SHADER_DIR}/mesh_transformed_shaded.vert.hlsl
+    ${REAPER_SHADER_DIR}/cull_triangle_batch.comp.hlsl
 )
 
 # Shader compilation
