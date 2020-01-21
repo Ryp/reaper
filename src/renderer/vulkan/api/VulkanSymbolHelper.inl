@@ -121,6 +121,8 @@ REAPER_VK_DEVICE_LEVEL_FUNCTION(vkDestroySampler)
 #    include "VK_EXT_debug_utils.inl"
 #endif
 
+#include "VK_KHR_draw_indirect_count.inl"
+
 #undef REAPER_VK_EXPORTED_FUNCTION
 #undef REAPER_VK_GLOBAL_LEVEL_FUNCTION
 #undef REAPER_VK_INSTANCE_LEVEL_FUNCTION
