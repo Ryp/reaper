@@ -16,7 +16,10 @@ StructuredBuffer<CullInstanceParams> instance_params;
 RWByteAddressBuffer IndicesOut;
 
 [[vk::binding(4, 0)]]
-RWByteAddressBuffer IndirectDrawCommandOut;
+RWByteAddressBuffer DrawCommandOut;
+
+[[vk::binding(5, 0)]]
+RWByteAddressBuffer DrawCountOut;
 
 groupshared uint lds_total_triangle_count;
 
@@ -88,8 +91,11 @@ void main(uint3 gtid : SV_GroupThreadID,
     if (gi == 0)
     {
         const uint index_count_offset = 0;
-        IndirectDrawCommandOut.Store((index_count_offset + 0) * 4, lds_total_triangle_count * 3);
-        IndirectDrawCommandOut.Store((index_count_offset + 5) * 4, lds_total_triangle_count * 3);
-        IndirectDrawCommandOut.Store((index_count_offset + 10) * 4, lds_total_triangle_count * 3);
+        DrawCommandOut.Store((index_count_offset + 0) * 4, lds_total_triangle_count * 3);
+        DrawCommandOut.Store((index_count_offset + 5) * 4, lds_total_triangle_count * 3);
+        DrawCommandOut.Store((index_count_offset + 10) * 4, lds_total_triangle_count * 3);
+
+        const uint dummy_draw_count = 2; // FIXME set to 2 to demonstrate the feature
+        DrawCountOut.Store(0, dummy_draw_count);
     }
 }
