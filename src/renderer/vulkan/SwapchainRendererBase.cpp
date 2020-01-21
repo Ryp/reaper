@@ -170,6 +170,7 @@ void create_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& backend)
         VK_KHR_SWAPCHAIN_EXTENSION_NAME,
         VK_EXT_SHADER_SUBGROUP_BALLOT_EXTENSION_NAME,
         VK_EXT_SHADER_SUBGROUP_VOTE_EXTENSION_NAME,
+        VK_KHR_DRAW_INDIRECT_COUNT_EXTENSION_NAME,
     };
 
     log_debug(root, "vulkan: choosing physical device");
