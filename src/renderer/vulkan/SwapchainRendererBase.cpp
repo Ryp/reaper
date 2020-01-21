@@ -90,7 +90,7 @@ void create_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& backend)
 
     std::vector<const char*> instanceExtensions = {VK_KHR_SURFACE_EXTENSION_NAME, REAPER_VK_SWAPCHAIN_EXTENSION_NAME};
 
-#if defined(REAPER_DEBUG)
+#if REAPER_DEBUG
     instanceExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 #endif
 
@@ -102,7 +102,7 @@ void create_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& backend)
 
     std::vector<const char*> instanceLayers;
 
-#if defined(REAPER_DEBUG)
+#if REAPER_DEBUG
     instanceLayers.push_back("VK_LAYER_LUNARG_standard_validation");
 #endif
 
@@ -142,7 +142,7 @@ void create_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& backend)
 
     vulkan_load_instance_level_functions(backend.instance);
 
-#if defined(REAPER_DEBUG)
+#if REAPER_DEBUG
     log_debug(root, "vulkan: attaching debug callback");
     vulkan_setup_debug_callback(root, backend);
 #endif
@@ -210,7 +210,7 @@ void destroy_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& backend)
     delete root.renderer->window;
     root.renderer->window = nullptr;
 
-#if defined(REAPER_DEBUG)
+#if REAPER_DEBUG
     log_debug(root, "vulkan: detaching debug callback");
     vulkan_destroy_debug_callback(backend);
 #endif
@@ -336,7 +336,7 @@ void vulkan_setup_debug_callback(ReaperRoot& root, VulkanBackend& backend)
         &debugReportCallback,
         &root};
 
-#if defined(REAPER_DEBUG)
+#if REAPER_DEBUG
     Assert(vkCreateDebugUtilsMessengerEXT(backend.instance, &callbackCreateInfo, nullptr, &backend.debugMessenger)
            == VK_SUCCESS);
 #endif
@@ -346,7 +346,7 @@ void vulkan_destroy_debug_callback(VulkanBackend& backend)
 {
     Assert(backend.debugMessenger != nullptr);
 
-#if defined(REAPER_DEBUG)
+#if REAPER_DEBUG
     vkDestroyDebugUtilsMessengerEXT(backend.instance, backend.debugMessenger, nullptr);
 #endif
 

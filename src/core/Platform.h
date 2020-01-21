@@ -36,12 +36,14 @@
 
 // NDEBUG must be defined (or not) by the build system
 #if !defined(NDEBUG)
-#    define REAPER_DEBUG
+#    define REAPER_DEBUG 1
+#else
+#    define REAPER_DEBUG 0
 #endif
 
 constexpr bool isDebugBuild()
 {
-#if defined(REAPER_DEBUG)
+#if REAPER_DEBUG
     return true;
 #else
     return false;
