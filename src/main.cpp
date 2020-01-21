@@ -15,7 +15,8 @@
 #include "core/Profile.h"
 
 // Log all of stdout and stderr to a file
-#define REAPER_LOG_OUTPUT 1
+// FIXME does not work, disabled
+#define REAPER_LOG_OUTPUT 0
 
 int main(int /*ac*/, char** /*av*/)
 {
