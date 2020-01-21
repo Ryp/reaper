@@ -16,7 +16,7 @@ inline CastType checked_cast(T ptr)
 {
     static_assert(std::is_pointer<T>::value, "input value is not a pointer");
     static_assert(std::is_pointer<CastType>::value, "cast type is not of pointer type");
-#if defined(REAPER_DEBUG)
+#if REAPER_DEBUG
     CastType cast_ptr = dynamic_cast<CastType>(ptr);
     Assert(cast_ptr != nullptr);
     return cast_ptr;

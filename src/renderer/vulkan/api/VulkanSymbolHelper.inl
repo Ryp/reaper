@@ -117,7 +117,7 @@ REAPER_VK_DEVICE_LEVEL_FUNCTION(vkDestroySampler)
 
 #include "VulkanSymbolHelperSwapchainKHR.inl"
 
-#if defined(REAPER_DEBUG)
+#if REAPER_DEBUG
 #    include "VK_EXT_debug_utils.inl"
 #endif
 
