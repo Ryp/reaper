@@ -14,7 +14,7 @@ env:
         - DOCKER_IMAGE=ubuntu-18.04
         - DOCKER_CONTAINER=builder
 install:
-    - cp tools/ci/Dockerfile.${DOCKER_IMAGE} Dockerfile
+    - cp tools/ci/${DOCKER_IMAGE}/Dockerfile .
     - docker build . -t ${DOCKER_IMAGE}
     - docker run -i -d --name=${DOCKER_CONTAINER} -v $(pwd):/repo ${DOCKER_IMAGE}
 script:

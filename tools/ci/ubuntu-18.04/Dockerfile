@@ -12,7 +12,7 @@ RUN apt-get update && apt-get install -y                                        
     wget unzip build-essential gcc                                                                              \
     libassimp-dev libvulkan-dev libunwind-dev libx11-xcb-dev
 
-# Use CMake 3.11.3 from upstream until it comes from the package manager
+# Use recent from upstream until it comes from the package manager
 RUN wget https://cmake.org/files/v3.16/cmake-3.16.1-Linux-x86_64.sh                                             \
     && chmod +x cmake-3.16.1-Linux-x86_64.sh                                                                    \
     && yes | ./cmake-3.16.1-Linux-x86_64.sh                                                                     \
