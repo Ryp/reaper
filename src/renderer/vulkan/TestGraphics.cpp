@@ -86,7 +86,7 @@ namespace
         log_debug(root, "vulkan: created pipeline layout with handle: {}", static_cast<void*>(pipelineLayout));
 
         VkShaderModule        computeShader = VK_NULL_HANDLE;
-        const char*           fileName = "./build/spv/cull_triangle_batch.comp.hlsl.spv";
+        const char*           fileName = "./build/spv/cull_triangle_batch.comp.spv";
         const char*           entryPoint = "main";
         VkSpecializationInfo* specialization = nullptr;
 
@@ -339,8 +339,8 @@ namespace
     {
         VkShaderModule        blitShaderFS = VK_NULL_HANDLE;
         VkShaderModule        blitShaderVS = VK_NULL_HANDLE;
-        const char*           fileNameVS = "./build/spv/mesh_transformed_shaded.vert.hlsl.spv";
-        const char*           fileNameFS = "./build/spv/mesh_transformed_shaded.frag.hlsl.spv";
+        const char*           fileNameVS = "./build/spv/mesh_transformed_shaded.vert.spv";
+        const char*           fileNameFS = "./build/spv/mesh_transformed_shaded.frag.spv";
         const char*           entryPoint = "main";
         VkSpecializationInfo* specialization = nullptr;
 

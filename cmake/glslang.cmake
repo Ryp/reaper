@@ -32,7 +32,7 @@ endif()
 # This function will create SPIR-V targets for each input glsl file and append it
 # to the user-provided 'generated_files' variable.
 # Then make your desired target depend on them and it will automatically compile your shaders.
-function(add_glslang_spirv_targets shader_root_folder use_hlsl generated_files)
+function(add_glslang_spirv_targets shader_root_folder generated_files)
     if(${ARGC} LESS_EQUAL 2)
         message(FATAL_ERROR "No shaders were passed to the function")
     endif()
@@ -40,13 +40,18 @@ function(add_glslang_spirv_targets shader_root_folder use_hlsl generated_files)
     foreach(INPUT_SHADER IN LISTS ARGN)
         # Build the correct output name and path
         file(RELATIVE_PATH INPUT_SHADER_REL ${shader_root_folder} ${INPUT_SHADER})
-        set(OUTPUT_SPIRV "${CMAKE_BINARY_DIR}/spv/${INPUT_SHADER_REL}.spv")
+        get_filename_component(INPUT_SHADER_REL_WLE ${INPUT_SHADER_REL} NAME_WLE)
+
+        set(OUTPUT_SPIRV "${CMAKE_BINARY_DIR}/spv/${INPUT_SHADER_REL_WLE}.spv")
+
         get_filename_component(OUTPUT_SPIRV_PATH ${OUTPUT_SPIRV} DIRECTORY)
         get_filename_component(OUTPUT_SPIRV_NAME ${OUTPUT_SPIRV} NAME)
 
-        # Watch GDC 2018 - HLSL in Vulkan
-        # https://www.youtube.com/watch?v=42lqJ-iXc7g
-        if(${use_hlsl})
+        get_filename_component(INPUT_SHADER_EXTENSION ${INPUT_SHADER} LAST_EXT)
+
+        if(INPUT_SHADER_EXTENSION STREQUAL ".hlsl")
+            # Watch GDC 2018 - HLSL in Vulkan
+            # https://www.youtube.com/watch?v=42lqJ-iXc7g
             add_custom_command(OUTPUT ${OUTPUT_SPIRV}
                 COMMAND ${CMAKE_COMMAND} -E make_directory ${OUTPUT_SPIRV_PATH}
                 COMMAND ${VULKAN_GLSLANGVALIDATOR_EXEC} --target-env spirv1.3 -g -e main -V -D ${INPUT_SHADER} -o ${OUTPUT_SPIRV}.unoptimized
@@ -55,7 +60,7 @@ function(add_glslang_spirv_targets shader_root_folder use_hlsl generated_files)
                 MAIN_DEPENDENCY ${INPUT_SHADER}
                 COMMENT "Compiling HLSL shader ${INPUT_SHADER_REL} to SPIR-V (${OUTPUT_SPIRV_NAME})"
                 VERBATIM)
-        else()
+        elseif(INPUT_SHADER_EXTENSION STREQUAL ".glsl")
             add_custom_command(OUTPUT ${OUTPUT_SPIRV}
                 COMMAND ${CMAKE_COMMAND} -E make_directory ${OUTPUT_SPIRV_PATH}
                 COMMAND ${VULKAN_GLSLANGVALIDATOR_EXEC} --target-env spirv1.3 -g -V ${INPUT_SHADER} -o ${OUTPUT_SPIRV}.unoptimized
@@ -64,6 +69,8 @@ function(add_glslang_spirv_targets shader_root_folder use_hlsl generated_files)
                 MAIN_DEPENDENCY ${INPUT_SHADER}
                 COMMENT "Compiling GLSL shader ${INPUT_SHADER_REL} to SPIR-V (${OUTPUT_SPIRV_NAME})"
                 VERBATIM)
+        else()
+            message(FATAL_ERROR "Unknown shader type for ${INPUT_SHADER_REL}")
         endif()
 
         list(APPEND OUTPUT_SPIRV_FILES ${OUTPUT_SPIRV})
