@@ -13,6 +13,10 @@ find_program(VULKAN_SPIRV_OPT_EXEC spirv-opt HINTS
     "$ENV{VULKAN_SDK}/Bin"
     "$ENV{VK_SDK_PATH}/Bin")
 
+find_program(VULKAN_SPIRV_DIS_EXEC spirv-dis HINTS
+    "$ENV{VULKAN_SDK}/Bin"
+    "$ENV{VK_SDK_PATH}/Bin")
+
 find_program(VULKAN_SPIRV_VAL_EXEC spirv-val HINTS
     "$ENV{VULKAN_SDK}/Bin"
     "$ENV{VK_SDK_PATH}/Bin")
@@ -23,6 +27,10 @@ endif()
 
 if(NOT VULKAN_SPIRV_OPT_EXEC)
     message(FATAL_ERROR "${VULKAN_SPIRV_OPT_EXEC} not found")
+endif()
+
+if(NOT VULKAN_SPIRV_DIS_EXEC)
+    message(FATAL_ERROR "${VULKAN_SPIRV_DIS_EXEC} not found")
 endif()
 
 if(NOT VULKAN_SPIRV_VAL_EXEC)
@@ -56,6 +64,7 @@ function(add_glslang_spirv_targets shader_root_folder generated_files)
                 COMMAND ${CMAKE_COMMAND} -E make_directory ${OUTPUT_SPIRV_PATH}
                 COMMAND ${VULKAN_GLSLANGVALIDATOR_EXEC} --target-env spirv1.3 -g -e main -V -D ${INPUT_SHADER} -o ${OUTPUT_SPIRV}.unoptimized
                 COMMAND ${VULKAN_SPIRV_OPT_EXEC} ${OUTPUT_SPIRV}.unoptimized --legalize-hlsl -Os -o ${OUTPUT_SPIRV}
+                COMMAND ${VULKAN_SPIRV_DIS_EXEC} ${OUTPUT_SPIRV} -o ${OUTPUT_SPIRV}.txt
                 COMMAND ${VULKAN_SPIRV_VAL_EXEC} ${OUTPUT_SPIRV}
                 MAIN_DEPENDENCY ${INPUT_SHADER}
                 COMMENT "Compiling HLSL shader ${INPUT_SHADER_REL} to SPIR-V (${OUTPUT_SPIRV_NAME})"
