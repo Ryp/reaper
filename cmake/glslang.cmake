@@ -74,6 +74,7 @@ function(add_glslang_spirv_targets shader_root_folder generated_files)
                 COMMAND ${CMAKE_COMMAND} -E make_directory ${OUTPUT_SPIRV_PATH}
                 COMMAND ${VULKAN_GLSLANGVALIDATOR_EXEC} --target-env spirv1.3 -g -V ${INPUT_SHADER} -o ${OUTPUT_SPIRV}.unoptimized
                 COMMAND ${VULKAN_SPIRV_OPT_EXEC} ${OUTPUT_SPIRV}.unoptimized -Os -o ${OUTPUT_SPIRV}
+                COMMAND ${VULKAN_SPIRV_DIS_EXEC} ${OUTPUT_SPIRV} -o ${OUTPUT_SPIRV}.txt
                 COMMAND ${VULKAN_SPIRV_VAL_EXEC} ${OUTPUT_SPIRV}
                 MAIN_DEPENDENCY ${INPUT_SHADER}
                 COMMENT "Compiling GLSL shader ${INPUT_SHADER_REL} to SPIR-V (${OUTPUT_SPIRV_NAME})"
