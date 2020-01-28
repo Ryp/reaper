@@ -17,7 +17,7 @@ AbstractController::~AbstractController()
 
 void AbstractController::reset()
 {
-    Button b({false, false, false, false});
+    Button b = {false, false, false, false};
 
     for (auto& button : buttons)
         button = b;

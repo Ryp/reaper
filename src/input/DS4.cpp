@@ -11,10 +11,12 @@
 #include <cstdint>
 #include <cstring>
 
-#include <fcntl.h>
-#include <linux/joystick.h>
-#include <sys/ioctl.h>
-#include <unistd.h>
+#if defined(REAPER_PLATFOR_LINUX)
+#    include <fcntl.h>
+#    include <linux/joystick.h>
+#    include <sys/ioctl.h>
+#    include <unistd.h>
+#endif
 
 const float DS4::AxisDeadzone = 0.12f;
 
@@ -28,6 +30,7 @@ DS4::DS4(const std::string& device)
 
 void DS4::update()
 {
+#if defined(REAPER_PLATFOR_LINUX)
     float           val;
     struct js_event event;
 
@@ -44,17 +47,21 @@ void DS4::update()
         else if (event.type == JS_EVENT_BUTTON)
             buttons[event.number].new_held = event.value != 0;
     }
+#endif
     AbstractController::update();
 }
 
 void DS4::destroy()
 {
+#if defined(REAPER_PLATFOR_LINUX)
     if (_connected && (close(_fd) == -1))
         AssertUnreachable();
+#endif
 }
 
 bool DS4::connect()
 {
+#if defined(REAPER_PLATFOR_LINUX)
     char deviceName[256];
 
     _fd = open(_device.c_str(), O_RDONLY | O_NONBLOCK);
@@ -64,5 +71,6 @@ bool DS4::connect()
     Assert(std::string("Sony Interactive Entertainment Wireless Controller") == deviceName, "not a DS4 controller");
     update();
     AbstractController::reset();
+#endif
     return true;
 }

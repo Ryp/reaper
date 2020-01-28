@@ -11,10 +11,12 @@
 #include <cstdint>
 #include <cstring>
 
-#include <fcntl.h>
-#include <linux/joystick.h>
-#include <sys/ioctl.h>
-#include <unistd.h>
+#if defined(REAPER_PLATFOR_LINUX)
+#    include <fcntl.h>
+#    include <linux/joystick.h>
+#    include <sys/ioctl.h>
+#    include <unistd.h>
+#endif
 
 const float DS3::AxisDeadzone = 0.12f;
 
@@ -28,6 +30,7 @@ DS3::DS3(const std::string& device)
 
 void DS3::update()
 {
+#if defined(REAPER_PLATFOR_LINUX)
     float           val;
     struct js_event event;
 
@@ -44,17 +47,21 @@ void DS3::update()
         else if (event.type == JS_EVENT_BUTTON)
             buttons[event.number].new_held = event.value != 0;
     }
+#endif
     AbstractController::update();
 }
 
 void DS3::destroy()
 {
+#if defined(REAPER_PLATFOR_LINUX)
     if (_connected && (close(_fd) == -1))
         AssertUnreachable();
+#endif
 }
 
 bool DS3::connect()
 {
+#if defined(REAPER_PLATFOR_LINUX)
     char deviceName[256];
 
     _fd = open(_device.c_str(), O_RDONLY | O_NONBLOCK);
@@ -65,5 +72,6 @@ bool DS3::connect()
     Assert(std::string("Sony PLAYSTATION(R)3 Controller") == deviceName, "not a playstation 3 controller");
     update();
     AbstractController::reset();
+#endif
     return true;
 }
