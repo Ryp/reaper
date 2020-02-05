@@ -33,7 +33,7 @@ struct VS_OUTPUT
 
 VS_OUTPUT main(VS_INPUT input, uint instance_id : SV_InstanceID)
 {
-    const float3 positionMS = input.PositionMS * (1.0 + 0.3 * sin(pass_params.timeMs * 0.2));
+    const float3 positionMS = input.PositionMS;
     const float4 positionWS = float4(positionMS, 1.0) * instance_params[instance_id].model;
     const float4 positionCS = positionWS * pass_params.viewProj;
 

@@ -49,6 +49,24 @@ namespace Reaper
 {
 namespace
 {
+    u32 group_count(u32 batch_size, u32 group_size)
+    {
+        Assert(batch_size > 0);
+
+        return (batch_size - 1) / group_size + 1;
+    }
+
+    static constexpr u32 ComputeCullingBatchSize = 256;
+
+    struct CullPushConstants
+    {
+        u32 commandIndex;
+        u32 triangleCount;
+        u32 firstIndex;
+    };
+
+    static constexpr u32 CullPushConstantSize = 3 * sizeof(u32);
+
     struct CullPipelineInfo
     {
         VkPipeline            pipeline;
@@ -78,8 +96,15 @@ namespace
         log_debug(root, "vulkan: created descriptor set layout with handle: {}",
                   static_cast<void*>(descriptorSetLayout));
 
-        VkPipelineLayoutCreateInfo pipelineLayoutInfo = {
-            VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO, nullptr, VK_FLAGS_NONE, 1, &descriptorSetLayout, 0, nullptr};
+        const VkPushConstantRange cullPushConstantRange = {VK_SHADER_STAGE_COMPUTE_BIT, 0, CullPushConstantSize};
+
+        VkPipelineLayoutCreateInfo pipelineLayoutInfo = {VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+                                                         nullptr,
+                                                         VK_FLAGS_NONE,
+                                                         1,
+                                                         &descriptorSetLayout,
+                                                         1,
+                                                         &cullPushConstantRange};
 
         VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
         Assert(vkCreatePipelineLayout(backend.device, &pipelineLayoutInfo, nullptr, &pipelineLayout) == VK_SUCCESS);
@@ -573,7 +598,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
     std::ifstream modelFile("res/model/suzanne.obj");
     const Mesh    mesh = ModelLoader::loadOBJ(modelFile);
 
-    const u32 instanceCount = 3;
+    const u32 instanceCount = 6;
 
     // Create vk buffers
     BufferInfo passConstantBuffer = create_buffer(
@@ -610,42 +635,30 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
     upload_buffer_data(backend.device, staticIndexBuffer, mesh.indexes.data(),
                        mesh.indexes.size() * sizeof(mesh.indexes[0]));
 
-    const u32 indirectDrawCount = instanceCount;
+    const u32 maxIndirectDrawCount = 100;
 
     BufferInfo indirectDrawBuffer =
         create_buffer(root, backend.device, "Indirect draw buffer",
-                      DefaultGPUBufferProperties(indirectDrawCount, sizeof(VkDrawIndexedIndirectCommand),
+                      DefaultGPUBufferProperties(maxIndirectDrawCount, sizeof(VkDrawIndexedIndirectCommand),
                                                  GPUBufferUsage::IndirectBuffer | GPUBufferUsage::StorageBuffer),
                       resources.mainAllocator);
 
     BufferInfo indirectDrawCountBuffer = create_buffer(
         root, backend.device, "Indirect draw count buffer",
-        DefaultGPUBufferProperties(1, sizeof(u32), GPUBufferUsage::IndirectBuffer | GPUBufferUsage::StorageBuffer),
-        resources.mainAllocator);
+        DefaultGPUBufferProperties(4, sizeof(u32), GPUBufferUsage::IndirectBuffer | GPUBufferUsage::StorageBuffer),
+        resources.mainAllocator); // FIXME size 4 hardcoded
 
-    Assert(indirectDrawCount < backend.physicalDeviceProperties.limits.maxDrawIndirectCount);
-
-    std::array<VkDrawIndexedIndirectCommand, indirectDrawCount> drawCommands;
-    for (u32 i = 0; i < indirectDrawCount; i++)
-    {
-        drawCommands[i].indexCount = static_cast<u32>(mesh.indexes.size());
-        drawCommands[i].instanceCount = 1;
-        drawCommands[i].firstIndex = 0;
-        drawCommands[i].vertexOffset = 0;
-        drawCommands[i].firstInstance = i;
-    }
-
-    upload_buffer_data(backend.device, indirectDrawBuffer, drawCommands.data(),
-                       indirectDrawCount * sizeof(VkDrawIndexedIndirectCommand));
+    Assert(maxIndirectDrawCount < backend.physicalDeviceProperties.limits.maxDrawIndirectCount);
 
     BufferInfo cullInstanceParamsBuffer = create_buffer(
         root, backend.device, "Cull Instance constant buffer",
-        DefaultGPUBufferProperties(indirectDrawCount, sizeof(CullInstanceParams), GPUBufferUsage::StorageBuffer),
+        DefaultGPUBufferProperties(instanceCount, sizeof(CullInstanceParams), GPUBufferUsage::StorageBuffer),
         resources.mainAllocator);
 
+    const u32  dynamicIndexBufferSize = static_cast<u32>(100_kiB);
     BufferInfo dynamicIndexBuffer =
         create_buffer(root, backend.device, "Dynamic index buffer",
-                      DefaultGPUBufferProperties(mesh.indexes.size(), sizeof(mesh.indexes[0]),
+                      DefaultGPUBufferProperties(dynamicIndexBufferSize, 1,
                                                  GPUBufferUsage::IndexBuffer | GPUBufferUsage::StorageBuffer),
                       resources.mainAllocator);
 
@@ -740,13 +753,14 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
     log_info(root, "window: map window");
     window->map();
 
-    PassParams                                        pass_params = {};
-    std::array<InstanceParams, instanceCount>         instance_params = {};
-    std::array<CullInstanceParams, indirectDrawCount> cull_instance_params = {};
+    PassParams                                    pass_params = {};
+    std::array<InstanceParams, instanceCount>     instance_params = {};
+    std::array<CullInstanceParams, instanceCount> cull_instance_params = {};
 
     const int MaxFrameCount = 0;
 
     bool mustTransitionSwapchain = true;
+    bool saveMyLaptop = true;
     bool shouldExit = false;
     int  frameIndex = 0;
 
@@ -878,7 +892,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                 VkResult waitResult;
                 {
                     REAPER_PROFILE_SCOPE("Vulkan", MP_ORANGE);
-                    const u64 waitTimeoutUs = 10000000;
+                    const u64 waitTimeoutUs = 100000000;
                     waitResult = vkWaitForFences(backend.device, 1, &drawFence, VK_TRUE, waitTimeoutUs);
                 }
 
@@ -938,12 +952,14 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
             const glm::mat4 view = camera.getViewMatrix();
             update_pass_params(pass_params, timeMs, aspectRatio, view);
 
-            Assert(instanceCount == indirectDrawCount);
-
-            for (u32 i = 0; i < indirectDrawCount; i++)
+            for (u32 i = 0; i < instanceCount; i++)
             {
-                const glm::vec3 object_position_ws = glm::vec3(4.5, 0.5, 1.2) * static_cast<float>(i);
-                const glm::mat4 model = glm::translate(glm::mat4(1.0f), object_position_ws);
+                const float     ratio = static_cast<float>(i) / static_cast<float>(instanceCount) * 3.1415f * 2.f;
+                const glm::vec3 object_position_ws =
+                    glm::vec3(glm::cos(ratio + timeMs), glm::cos(ratio), glm::sin(ratio));
+                const glm::mat4 model = glm::rotate(
+                    glm::scale(glm::translate(glm::mat4(1.0f), object_position_ws), glm::vec3(0.4f, 0.4f, 0.4f)),
+                    timeMs + ratio, glm::vec3(0.f, 1.f, 1.f));
 
                 instance_params[i].model = model;
 
@@ -982,7 +998,33 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                 vkCmdBindDescriptorSets(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, cullPipe.pipelineLayout,
                                         0, 1, &cullPassDescriptorSet, 0, nullptr);
 
-                vkCmdDispatch(resources.gfxCmdBuffer, 1, 1, 1);
+                std::array<VkMemoryBarrier, 1> memoryBarriers = {VkMemoryBarrier{
+                    VK_STRUCTURE_TYPE_MEMORY_BARRIER,
+                    nullptr,
+                    VK_ACCESS_SHADER_WRITE_BIT,
+                    VK_ACCESS_SHADER_READ_BIT,
+                }};
+
+                for (u32 i = 0; i < instanceCount; i++)
+                {
+                    const u32 index_count = static_cast<u32>(mesh.indexes.size());
+                    Assert(index_count % 3 == 0);
+
+                    CullPushConstants consts;
+                    consts.commandIndex = i;
+                    consts.triangleCount = index_count / 3;
+                    consts.firstIndex = 0;
+
+                    vkCmdPushConstants(resources.gfxCmdBuffer, cullPipe.pipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0,
+                                       CullPushConstantSize, &consts);
+                    vkCmdDispatch(resources.gfxCmdBuffer, group_count(consts.triangleCount, ComputeCullingBatchSize), 1,
+                                  1);
+
+                    vkCmdPipelineBarrier(resources.gfxCmdBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                                         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0,
+                                         static_cast<u32>(memoryBarriers.size()), memoryBarriers.data(), 0, nullptr, 0,
+                                         nullptr);
+                }
             }
 
             std::array<VkMemoryBarrier, 1> memoryBarriers = {VkMemoryBarrier{
@@ -1028,7 +1070,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
 
                 {
                     vkCmdDrawIndexedIndirectCountKHR(resources.gfxCmdBuffer, indirectDrawBuffer.buffer, 0,
-                                                     indirectDrawCountBuffer.buffer, 0, indirectDrawCount,
+                                                     indirectDrawCountBuffer.buffer, 0, maxIndirectDrawCount,
                                                      sizeof(VkDrawIndexedIndirectCommand));
                 }
             }
@@ -1067,7 +1109,8 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
             Assert(vkQueuePresentKHR(backend.deviceInfo.presentQueue, &presentInfo) == VK_SUCCESS);
             Assert(presentResult == VK_SUCCESS);
 
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            if (saveMyLaptop)
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
             frameIndex++;
             if (frameIndex == MaxFrameCount)
