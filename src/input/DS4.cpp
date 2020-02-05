@@ -7,11 +7,13 @@
 
 #include "DS4.h"
 
+#include "core/Platform.h"
+
 #include <cmath>
 #include <cstdint>
 #include <cstring>
 
-#if defined(REAPER_PLATFOR_LINUX)
+#if defined(REAPER_PLATFORM_LINUX)
 #    include <fcntl.h>
 #    include <linux/joystick.h>
 #    include <sys/ioctl.h>
@@ -30,7 +32,7 @@ DS4::DS4(const std::string& device)
 
 void DS4::update()
 {
-#if defined(REAPER_PLATFOR_LINUX)
+#if defined(REAPER_PLATFORM_LINUX)
     float           val;
     struct js_event event;
 
@@ -53,7 +55,7 @@ void DS4::update()
 
 void DS4::destroy()
 {
-#if defined(REAPER_PLATFOR_LINUX)
+#if defined(REAPER_PLATFORM_LINUX)
     if (_connected && (close(_fd) == -1))
         AssertUnreachable();
 #endif
@@ -61,7 +63,7 @@ void DS4::destroy()
 
 bool DS4::connect()
 {
-#if defined(REAPER_PLATFOR_LINUX)
+#if defined(REAPER_PLATFORM_LINUX)
     char deviceName[256];
 
     _fd = open(_device.c_str(), O_RDONLY | O_NONBLOCK);
