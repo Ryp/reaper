@@ -7,8 +7,12 @@
 
 #include "Shader.h"
 
+#include "Debug.h"
+
 #include "core/fs/FileLoading.h"
 
+namespace Reaper
+{
 using namespace vk;
 
 void vulkan_create_shader_module(VkShaderModule& shaderModule, VkDevice device, const std::string& fileName)
@@ -20,4 +24,7 @@ void vulkan_create_shader_module(VkShaderModule& shaderModule, VkDevice device, 
                                                           reinterpret_cast<const uint32_t*>(&fileContents[0])};
 
     Assert(vkCreateShaderModule(device, &shader_module_create_info, nullptr, &shaderModule) == VK_SUCCESS);
+
+    VulkanSetDebugName(device, shaderModule, fileName.c_str());
 }
+} // namespace Reaper

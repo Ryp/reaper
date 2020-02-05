@@ -11,4 +11,7 @@
 
 #include "api/Vulkan.h"
 
+namespace Reaper
+{
 void vulkan_create_shader_module(VkShaderModule& shaderModule, VkDevice device, const std::string& fileName);
+} // namespace Reaper
