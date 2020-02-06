@@ -1,5 +1,9 @@
 #include "lib/base.hlsl"
 
+#define ENABLE_BACKFACE_CULLING 1
+
+static const uint ComputeCullingBatchSize = 256;
+
 struct CullInstanceParams
 {
     float4x4 ms_to_cs_matrix;
@@ -11,8 +15,6 @@ struct PushConstants
     uint triangleCount;
     uint firstIndex;
 };
-
-static const uint ComputeCullingBatchSize = 256;
 
 //------------------------------------------------------------------------------
 // Input
@@ -32,20 +34,22 @@ VK_BINDING(5, 0) globallycoherent RWByteAddressBuffer DrawCountOut;
 
 //------------------------------------------------------------------------------
 
+groupshared uint lds_triangle_count;
+groupshared uint lds_triangle_offset;
+
 [numthreads(ComputeCullingBatchSize, 1, 1)]
 void main(/*uint3 gtid : SV_GroupThreadID,*/
           /*uint3 gid  : SV_GroupID,*/
           uint3 dtid : SV_DispatchThreadID,
-          /*uint  gi   : SV_GroupIndex*/)
+          uint  gi   : SV_GroupIndex)
 {
-    if (dtid.x == 0)
+    if (gi == 0)
     {
-        DrawCountOut.Store(8, 0xFFFFFFFF);
-        DrawCountOut.Store(12, 0);
+        lds_triangle_count = 0;
+        lds_triangle_offset = 0;
     }
 
-    AllMemoryBarrierWithGroupSync(); // FIXME
-    //GroupMemoryBarrierWithGroupSync();
+    GroupMemoryBarrierWithGroupSync();
 
     const uint input_triangle_index_offset = consts.firstIndex + dtid.x * 3;
 
@@ -72,27 +76,34 @@ void main(/*uint3 gtid : SV_GroupThreadID,*/
     const bool is_ccw = cross(v0v1_cs, v0v2_cs).z <= 0.f;
     const bool is_enabled = dtid.x < consts.triangleCount;
 
+#if ENABLE_BACKFACE_CULLING
     const bool is_visible = is_ccw && is_enabled;
-    //const bool is_visible = is_enabled;
+#else
+    const bool is_visible = is_enabled;
+#endif
 
     const uint visible_count = WaveActiveCountBits(is_visible);
     const uint visible_prefix_count = WavePrefixCountBits(is_visible);
 
-    // Synchronize waves
     uint wave_triangle_offset;
 
     if (WaveIsFirstLane())
     {
-        DrawCountOut.InterlockedAdd(4, visible_count, wave_triangle_offset);
-
-        DrawCountOut.InterlockedMin(8, wave_triangle_offset);
-
-        DrawCountOut.InterlockedAdd(12, visible_count);
+        InterlockedAdd(lds_triangle_count, visible_count, wave_triangle_offset);
     }
 
     wave_triangle_offset = WaveReadLaneFirst(wave_triangle_offset);
 
-    const uint output_triangle_index = wave_triangle_offset + visible_prefix_count - 1;
+    GroupMemoryBarrierWithGroupSync();
+
+    if (gi == 0)
+    {
+        DrawCountOut.InterlockedAdd(4, lds_triangle_count, lds_triangle_offset);
+    }
+
+    GroupMemoryBarrierWithGroupSync();
+
+    const uint output_triangle_index = lds_triangle_offset + wave_triangle_offset + visible_prefix_count - 1;
 
     if (is_visible)
     {
@@ -101,20 +112,17 @@ void main(/*uint3 gtid : SV_GroupThreadID,*/
         IndicesOut.Store((output_triangle_index * 3 + 2) * 4, index2);
     }
 
-    AllMemoryBarrierWithGroupSync();
-
-    if (dtid.x == 0)
+    if (gi == 0)
     {
         uint draw_command_index;
         DrawCountOut.InterlockedAdd(0, uint(1), draw_command_index); // FIXME Cast is needed for glslang
 
         uint min_triangle_offset = DrawCountOut.Load(8);
-        uint triangle_count = DrawCountOut.Load(12);
 
         const uint draw_command_size = 5;
-        DrawCommandOut.Store((draw_command_index * draw_command_size + 0) * 4, triangle_count * 3);
+        DrawCommandOut.Store((draw_command_index * draw_command_size + 0) * 4, lds_triangle_count * 3);
         DrawCommandOut.Store((draw_command_index * draw_command_size + 1) * 4, 1);
-        DrawCommandOut.Store((draw_command_index * draw_command_size + 2) * 4, min_triangle_offset * 3);
+        DrawCommandOut.Store((draw_command_index * draw_command_size + 2) * 4, lds_triangle_offset * 3);
         DrawCommandOut.Store((draw_command_index * draw_command_size + 3) * 4, 0);
         DrawCommandOut.Store((draw_command_index * draw_command_size + 4) * 4, consts.instance_id);
     }
