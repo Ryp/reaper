@@ -7,7 +7,7 @@ struct CullInstanceParams
 
 struct PushConstants
 {
-    uint commandIndex;
+    uint instance_id;
     uint triangleCount;
     uint firstIndex;
 };
@@ -40,13 +40,6 @@ void main(/*uint3 gtid : SV_GroupThreadID,*/
 {
     if (dtid.x == 0)
     {
-        // FIXME Clear each frame
-        if (consts.commandIndex == 0)
-        {
-            DrawCountOut.Store(0, 0);
-            DrawCountOut.Store(4, 0);
-        }
-
         DrawCountOut.Store(8, 0xFFFFFFFF);
         DrawCountOut.Store(12, 0);
     }
@@ -67,7 +60,7 @@ void main(/*uint3 gtid : SV_GroupThreadID,*/
     const float3 vpos1_ms = asfloat(VertexPositions.Load4(index1 * vertex_size_in_bytes).xyz);
     const float3 vpos2_ms = asfloat(VertexPositions.Load4(index2 * vertex_size_in_bytes).xyz);
 
-    const float4x4 ms_to_cs_matrix = instance_params[consts.commandIndex].ms_to_cs_matrix;
+    const float4x4 ms_to_cs_matrix = instance_params[consts.instance_id].ms_to_cs_matrix;
 
     const float4 vpos0_cs = float4(vpos0_ms, 1.0) * ms_to_cs_matrix;
     const float4 vpos1_cs = float4(vpos1_ms, 1.0) * ms_to_cs_matrix;
@@ -123,6 +116,6 @@ void main(/*uint3 gtid : SV_GroupThreadID,*/
         DrawCommandOut.Store((draw_command_index * draw_command_size + 1) * 4, 1);
         DrawCommandOut.Store((draw_command_index * draw_command_size + 2) * 4, min_triangle_offset * 3);
         DrawCommandOut.Store((draw_command_index * draw_command_size + 3) * 4, 0);
-        DrawCommandOut.Store((draw_command_index * draw_command_size + 4) * 4, consts.commandIndex);
+        DrawCommandOut.Store((draw_command_index * draw_command_size + 4) * 4, consts.instance_id);
     }
 }
