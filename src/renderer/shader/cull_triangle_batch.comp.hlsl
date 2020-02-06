@@ -97,7 +97,7 @@ void main(/*uint3 gtid : SV_GroupThreadID,*/
         DrawCountOut.InterlockedAdd(12, visible_count);
     }
 
-    wave_triangle_offset = WaveReadLaneAt(wave_triangle_offset, 0);
+    wave_triangle_offset = WaveReadLaneFirst(wave_triangle_offset);
 
     const uint output_triangle_index = wave_triangle_offset + visible_prefix_count - 1;
 
