@@ -70,10 +70,15 @@ void main(/*uint3 gtid : SV_GroupThreadID,*/
     const float4 vpos1_cs = float4(vpos1_ms, 1.0) * ms_to_cs_matrix;
     const float4 vpos2_cs = float4(vpos2_ms, 1.0) * ms_to_cs_matrix;
 
-    const float3 v0v1_cs = vpos1_cs.xyz - vpos0_cs.xyz;
-    const float3 v0v2_cs = vpos2_cs.xyz - vpos0_cs.xyz;
+    const float3 vpos0_ndc = vpos0_cs.xyz / vpos0_cs.w;
+    const float3 vpos1_ndc = vpos1_cs.xyz / vpos1_cs.w;
+    const float3 vpos2_ndc = vpos2_cs.xyz / vpos2_cs.w;
 
-    const bool is_ccw = cross(v0v1_cs, v0v2_cs).z <= 0.f;
+    const float3 v0v1_ndc = vpos1_ndc - vpos0_ndc;
+    const float3 v0v2_ndc = vpos2_ndc - vpos0_ndc;
+
+    const bool is_ccw = cross(v0v1_ndc, v0v2_ndc).z <= 0.f;
+
     const bool is_enabled = dtid.x < consts.triangleCount;
 
 #if ENABLE_BACKFACE_CULLING
