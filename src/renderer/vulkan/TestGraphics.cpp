@@ -643,10 +643,12 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                                                  GPUBufferUsage::IndirectBuffer | GPUBufferUsage::StorageBuffer),
                       resources.mainAllocator);
 
-    BufferInfo indirectDrawCountBuffer = create_buffer(
-        root, backend.device, "Indirect draw count buffer",
-        DefaultGPUBufferProperties(4, sizeof(u32), GPUBufferUsage::IndirectBuffer | GPUBufferUsage::StorageBuffer),
-        resources.mainAllocator); // FIXME size 4 hardcoded
+    const u32  indirectDrawCountSize = 4; // FIXME
+    BufferInfo indirectDrawCountBuffer =
+        create_buffer(root, backend.device, "Indirect draw count buffer",
+                      DefaultGPUBufferProperties(indirectDrawCountSize, sizeof(u32),
+                                                 GPUBufferUsage::IndirectBuffer | GPUBufferUsage::StorageBuffer),
+                      resources.mainAllocator);
 
     Assert(maxIndirectDrawCount < backend.physicalDeviceProperties.limits.maxDrawIndirectCount);
 
@@ -978,6 +980,9 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                                instance_params.size() * sizeof(InstanceParams));
             upload_buffer_data(backend.device, cullInstanceParamsBuffer, cull_instance_params.data(),
                                cull_instance_params.size() * sizeof(CullInstanceParams));
+
+            std::array<u32, indirectDrawCountSize> zero = {};
+            upload_buffer_data(backend.device, indirectDrawCountBuffer, zero.data(), zero.size() * sizeof(u32));
 
             VkCommandBufferBeginInfo cmdBufferBeginInfo = {
                 VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, nullptr,
