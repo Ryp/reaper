@@ -643,7 +643,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                                                  GPUBufferUsage::IndirectBuffer | GPUBufferUsage::StorageBuffer),
                       resources.mainAllocator);
 
-    const u32  indirectDrawCountSize = 4; // FIXME
+    const u32  indirectDrawCountSize = 2; // Second uint is for keeping track of total triangles
     BufferInfo indirectDrawCountBuffer =
         create_buffer(root, backend.device, "Indirect draw count buffer",
                       DefaultGPUBufferProperties(indirectDrawCountSize, sizeof(u32),
