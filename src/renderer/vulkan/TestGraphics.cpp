@@ -595,7 +595,7 @@ namespace
 void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResources& resources)
 {
     // Read mesh file
-    std::ifstream modelFile("res/model/suzanne.obj");
+    std::ifstream modelFile("res/model/ship.obj");
     const Mesh    mesh = ModelLoader::loadOBJ(modelFile);
 
     const u32 instanceCount = 6;
@@ -635,7 +635,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
     upload_buffer_data(backend.device, staticIndexBuffer, mesh.indexes.data(),
                        mesh.indexes.size() * sizeof(mesh.indexes[0]));
 
-    const u32 maxIndirectDrawCount = 100;
+    const u32 maxIndirectDrawCount = 2000;
 
     BufferInfo indirectDrawBuffer =
         create_buffer(root, backend.device, "Indirect draw buffer",
@@ -657,7 +657,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
         DefaultGPUBufferProperties(instanceCount, sizeof(CullInstanceParams), GPUBufferUsage::StorageBuffer),
         resources.mainAllocator);
 
-    const u32  dynamicIndexBufferSize = static_cast<u32>(100_kiB);
+    const u32  dynamicIndexBufferSize = static_cast<u32>(2000_kiB);
     BufferInfo dynamicIndexBuffer =
         create_buffer(root, backend.device, "Dynamic index buffer",
                       DefaultGPUBufferProperties(dynamicIndexBufferSize, 1,
@@ -765,6 +765,8 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
     bool saveMyLaptop = true;
     bool shouldExit = false;
     int  frameIndex = 0;
+    bool freezeCulling = false;
+    bool pauseAnimation = false;
 
     DS4    ds4("/dev/input/js0");
     Camera camera;
@@ -922,12 +924,23 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                 static_cast<float>(backbufferExtent.width) / static_cast<float>(backbufferExtent.height);
 
             ds4.update();
+
+            if (ds4.isPressed(DS4::L1))
+            {
+                pauseAnimation = !pauseAnimation;
+            }
+
+            if (ds4.isPressed(DS4::Square))
+            {
+                freezeCulling = !freezeCulling;
+            }
+
             constexpr float yaw_sensitivity = 2.6f;
             constexpr float pitch_sensitivity = 2.5f; // radian per sec
             constexpr float translation_speed = 8.0f; // game units per sec
 
             const float yaw_diff = ds4.getAxis(DS4::RightAnalogY);
-            const float pitch_diff = ds4.getAxis(DS4::RightAnalogX);
+            const float pitch_diff = -ds4.getAxis(DS4::RightAnalogX);
 
             const glm::mat4 inv_view_matrix = glm::inverse(camera.getViewMatrix());
             const glm::vec3 forward = inv_view_matrix * glm::vec4(0.f, 0.f, 1.f, 0.f);
@@ -952,16 +965,20 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
             camera.update(Camera::Spherical);
 
             const glm::mat4 view = camera.getViewMatrix();
-            update_pass_params(pass_params, timeMs, aspectRatio, view);
+
+            float animationTimeMs = pauseAnimation ? 0.f : timeMs;
+
+            update_pass_params(pass_params, animationTimeMs, aspectRatio, view);
 
             for (u32 i = 0; i < instanceCount; i++)
             {
                 const float     ratio = static_cast<float>(i) / static_cast<float>(instanceCount) * 3.1415f * 2.f;
                 const glm::vec3 object_position_ws =
-                    glm::vec3(glm::cos(ratio + timeMs), glm::cos(ratio), glm::sin(ratio));
-                const glm::mat4 model = glm::rotate(
-                    glm::scale(glm::translate(glm::mat4(1.0f), object_position_ws), glm::vec3(0.4f, 0.4f, 0.4f)),
-                    timeMs + ratio, glm::vec3(0.f, 1.f, 1.f));
+                    glm::vec3(glm::cos(ratio + animationTimeMs), glm::cos(ratio), glm::sin(ratio));
+                const float     uniform_scale = 0.0005f;
+                const glm::mat4 model = glm::rotate(glm::scale(glm::translate(glm::mat4(1.0f), object_position_ws),
+                                                               glm::vec3(uniform_scale, uniform_scale, uniform_scale)),
+                                                    animationTimeMs + ratio, glm::vec3(0.f, 1.f, 1.f));
 
                 instance_params[i].model = model;
 
@@ -981,8 +998,11 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
             upload_buffer_data(backend.device, cullInstanceParamsBuffer, cull_instance_params.data(),
                                cull_instance_params.size() * sizeof(CullInstanceParams));
 
-            std::array<u32, indirectDrawCountSize> zero = {};
-            upload_buffer_data(backend.device, indirectDrawCountBuffer, zero.data(), zero.size() * sizeof(u32));
+            if (!freezeCulling)
+            {
+                std::array<u32, indirectDrawCountSize> zero = {};
+                upload_buffer_data(backend.device, indirectDrawCountBuffer, zero.data(), zero.size() * sizeof(u32));
+            }
 
             VkCommandBufferBeginInfo cmdBufferBeginInfo = {
                 VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, nullptr,
@@ -998,8 +1018,10 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                 mustTransitionSwapchain = false;
             }
 
-            vkCmdBindPipeline(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, cullPipe.pipeline);
+            if (!freezeCulling)
             {
+                vkCmdBindPipeline(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, cullPipe.pipeline);
+
                 vkCmdBindDescriptorSets(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, cullPipe.pipelineLayout,
                                         0, 1, &cullPassDescriptorSet, 0, nullptr);
 
