@@ -11,7 +11,6 @@ struct CullInstanceParams
 
 struct PushConstants
 {
-    uint instance_id;
     uint triangleCount;
     uint firstIndex;
 };
@@ -41,7 +40,7 @@ groupshared uint lds_triangle_offset;
 
 [numthreads(ComputeCullingBatchSize, 1, 1)]
 void main(/*uint3 gtid : SV_GroupThreadID,*/
-          /*uint3 gid  : SV_GroupID,*/
+          uint3 gid  : SV_GroupID,
           uint3 dtid : SV_DispatchThreadID,
           uint  gi   : SV_GroupIndex)
 {
@@ -66,7 +65,8 @@ void main(/*uint3 gtid : SV_GroupThreadID,*/
     const float3 vpos1_ms = asfloat(VertexPositions.Load4(index1 * vertex_size_in_bytes).xyz);
     const float3 vpos2_ms = asfloat(VertexPositions.Load4(index2 * vertex_size_in_bytes).xyz);
 
-    const float4x4 ms_to_cs_matrix = instance_params[consts.instance_id].ms_to_cs_matrix;
+    const uint instance_id = gid.y;
+    const float4x4 ms_to_cs_matrix = instance_params[instance_id].ms_to_cs_matrix;
 
     const float4 vpos0_cs = float4(vpos0_ms, 1.0) * ms_to_cs_matrix;
     const float4 vpos1_cs = float4(vpos1_ms, 1.0) * ms_to_cs_matrix;
@@ -131,6 +131,6 @@ void main(/*uint3 gtid : SV_GroupThreadID,*/
         DrawCommandOut.Store((draw_command_index * draw_command_size + 1) * 4, 1);
         DrawCommandOut.Store((draw_command_index * draw_command_size + 2) * 4, lds_triangle_offset * 3);
         DrawCommandOut.Store((draw_command_index * draw_command_size + 3) * 4, 0);
-        DrawCommandOut.Store((draw_command_index * draw_command_size + 4) * 4, consts.instance_id);
+        DrawCommandOut.Store((draw_command_index * draw_command_size + 4) * 4, instance_id);
     }
 }
