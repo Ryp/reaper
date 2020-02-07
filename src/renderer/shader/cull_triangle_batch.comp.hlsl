@@ -1,5 +1,7 @@
 #include "lib/base.hlsl"
 
+#include "share/culling.hlsl"
+
 #define ENABLE_BACKFACE_CULLING 1
 
 static const uint ComputeCullingBatchSize = 256;
@@ -9,18 +11,12 @@ struct CullInstanceParams
     float4x4 ms_to_cs_matrix;
 };
 
-struct PushConstants
-{
-    uint triangleCount;
-    uint firstIndex;
-};
-
 //------------------------------------------------------------------------------
 // Input
 
 VK_CONSTANT(0) const bool spec_cull_cw = true;
 
-VK_PUSH_CONSTANT() ConstantBuffer<PushConstants> consts;
+VK_PUSH_CONSTANT() ConstantBuffer<CullPushConstants> consts;
 
 VK_BINDING(0, 0) ByteAddressBuffer Indices;
 VK_BINDING(1, 0) ByteAddressBuffer VertexPositions;
