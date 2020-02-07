@@ -1,21 +1,9 @@
-// FIXME padding
-struct PassParams
-{
-    float4x4 viewProj;
-    float timeMs;
-};
+#include "lib/base.hlsl"
 
-[[vk::binding(0, 0)]]
-ConstantBuffer<PassParams> pass_params;
+#include "share/draw.hlsl"
 
-struct InstanceParams
-{
-    float4x4 model;
-    float3x3 modelViewInvT;
-};
-
-[[vk::binding(1, 0)]]
-StructuredBuffer<InstanceParams> instance_params;
+VK_BINDING(0, 0) ConstantBuffer<DrawPassParams> pass_params;
+VK_BINDING(1, 0) StructuredBuffer<DrawInstanceParams> instance_params;
 
 struct VS_INPUT
 {

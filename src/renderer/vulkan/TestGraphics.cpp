@@ -46,6 +46,7 @@
 #include <thread>
 
 #include "renderer/shader/share/culling.hlsl"
+#include "renderer/shader/share/draw.hlsl"
 
 namespace Reaper
 {
@@ -191,20 +192,6 @@ namespace
             nullptr,
         };
     }
-
-    // FIXME padding
-    static_assert(sizeof(glm::mat3) == 9 * 4);
-    struct PassParams
-    {
-        glm::mat4 viewProj;
-        float     timeMs;
-    };
-
-    struct InstanceParams
-    {
-        glm::mat4   model;
-        glm::mat3x4 modelViewInvT;
-    };
 
     void vulkan_cmd_transition_swapchain_layout(VulkanBackend& backend, VkCommandBuffer commandBuffer)
     {
@@ -543,7 +530,7 @@ namespace
         return BlitPipelineInfo{pipeline, pipelineLayout, descriptorSetLayoutCB};
     }
 
-    void update_pass_params(PassParams& pass_params, float timeMs, float aspectRatio, const glm::mat4& view)
+    void update_pass_params(DrawPassParams& draw_pass_params, float timeMs, float aspectRatio, const glm::mat4& view)
     {
         const float near_plane_distance = 0.1f;
         const float far_plane_distance = 100.f;
@@ -564,9 +551,9 @@ namespace
             projection = reverse_z_transform * projection;
         }
 
-        pass_params.viewProj = projection * view;
+        draw_pass_params.viewProj = projection * view;
 
-        pass_params.timeMs = timeMs;
+        draw_pass_params.timeMs = timeMs;
     }
 } // namespace
 
@@ -579,13 +566,13 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
     const u32 instanceCount = 6;
 
     // Create vk buffers
-    BufferInfo passConstantBuffer = create_buffer(
-        root, backend.device, "Pass Constant buffer",
-        DefaultGPUBufferProperties(1, sizeof(PassParams), GPUBufferUsage::UniformBuffer), resources.mainAllocator);
-    BufferInfo instanceConstantBuffer =
-        create_buffer(root, backend.device, "Instance Constant buffer",
-                      DefaultGPUBufferProperties(instanceCount, sizeof(InstanceParams), GPUBufferUsage::StorageBuffer),
-                      resources.mainAllocator);
+    BufferInfo drawPassConstantBuffer = create_buffer(
+        root, backend.device, "Draw Pass Constant buffer",
+        DefaultGPUBufferProperties(1, sizeof(DrawPassParams), GPUBufferUsage::UniformBuffer), resources.mainAllocator);
+    BufferInfo drawInstanceConstantBuffer = create_buffer(
+        root, backend.device, "Draw Instance Constant buffer",
+        DefaultGPUBufferProperties(instanceCount, sizeof(DrawInstanceParams), GPUBufferUsage::StorageBuffer),
+        resources.mainAllocator);
 
     BufferInfo vertexBufferPosition =
         create_buffer(root, backend.device, "Position buffer",
@@ -631,13 +618,13 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
     Assert(maxIndirectDrawCount < backend.physicalDeviceProperties.limits.maxDrawIndirectCount);
 
     BufferInfo cullInstanceParamsBuffer = create_buffer(
-        root, backend.device, "Cull Instance constant buffer",
+        root, backend.device, "Culling instance constant buffer",
         DefaultGPUBufferProperties(instanceCount, sizeof(CullInstanceParams), GPUBufferUsage::StorageBuffer),
         resources.mainAllocator);
 
     const u32  dynamicIndexBufferSize = static_cast<u32>(2000_kiB);
     BufferInfo dynamicIndexBuffer =
-        create_buffer(root, backend.device, "Dynamic index buffer",
+        create_buffer(root, backend.device, "Culling dynamic index buffer",
                       DefaultGPUBufferProperties(dynamicIndexBufferSize, 1,
                                                  GPUBufferUsage::IndexBuffer | GPUBufferUsage::StorageBuffer),
                       resources.mainAllocator);
@@ -709,8 +696,9 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
         log_debug(root, "vulkan: created descriptor set with handle: {}",
                   static_cast<void*>(pixelConstantsDescriptorSet));
 
-        const VkDescriptorBufferInfo drawDescPassParams = default_descriptor_buffer_info(passConstantBuffer);
-        const VkDescriptorBufferInfo drawDescInstanceParams = default_descriptor_buffer_info(instanceConstantBuffer);
+        const VkDescriptorBufferInfo drawDescPassParams = default_descriptor_buffer_info(drawPassConstantBuffer);
+        const VkDescriptorBufferInfo drawDescInstanceParams =
+            default_descriptor_buffer_info(drawInstanceConstantBuffer);
 
         std::array<VkWriteDescriptorSet, 2> drawPassDescriptorSetWrites = {
             create_buffer_descriptor_write(pixelConstantsDescriptorSet, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
@@ -733,8 +721,8 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
     log_info(root, "window: map window");
     window->map();
 
-    PassParams                                    pass_params = {};
-    std::array<InstanceParams, instanceCount>     instance_params = {};
+    DrawPassParams                                draw_pass_params = {};
+    std::array<DrawInstanceParams, instanceCount> draw_instance_params = {};
     std::array<CullInstanceParams, instanceCount> cull_instance_params = {};
 
     const int MaxFrameCount = 0;
@@ -943,7 +931,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
 
             float animationTimeMs = pauseAnimation ? 0.f : timeMs;
 
-            update_pass_params(pass_params, animationTimeMs, aspectRatio, view);
+            update_pass_params(draw_pass_params, animationTimeMs, aspectRatio, view);
 
             for (u32 i = 0; i < instanceCount; i++)
             {
@@ -955,21 +943,21 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                                                                glm::vec3(uniform_scale, uniform_scale, uniform_scale)),
                                                     animationTimeMs + ratio, glm::vec3(0.f, 1.f, 1.f));
 
-                instance_params[i].model = model;
+                draw_instance_params[i].model = model;
 
                 const glm::mat4 modelView = view * model;
                 // Assumption that our 3x3 submatrix is orthonormal (no skew/non-uniform scaling)
-                instance_params[i].modelViewInvT = modelView;
+                draw_instance_params[i].modelViewInvT = modelView;
 
-                // instance_params[i].modelViewInvT = glm::transpose(glm::inverse(glm::mat3(modelView))); // Assumption
-                // that our 3x3 submatrix is orthogonal
+                // draw_instance_params[i].modelViewInvT = glm::transpose(glm::inverse(glm::mat3(modelView))); //
+                // Assumption that our 3x3 submatrix is orthogonal
 
-                cull_instance_params[i].ms_to_cs_matrix = pass_params.viewProj * model;
+                cull_instance_params[i].ms_to_cs_matrix = draw_pass_params.viewProj * model;
             }
 
-            upload_buffer_data(backend.device, passConstantBuffer, &pass_params, sizeof(PassParams));
-            upload_buffer_data(backend.device, instanceConstantBuffer, instance_params.data(),
-                               instance_params.size() * sizeof(InstanceParams));
+            upload_buffer_data(backend.device, drawPassConstantBuffer, &draw_pass_params, sizeof(DrawPassParams));
+            upload_buffer_data(backend.device, drawInstanceConstantBuffer, draw_instance_params.data(),
+                               draw_instance_params.size() * sizeof(DrawInstanceParams));
             upload_buffer_data(backend.device, cullInstanceParamsBuffer, cull_instance_params.data(),
                                cull_instance_params.size() * sizeof(CullInstanceParams));
 
@@ -1139,7 +1127,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
     vkDestroyBuffer(backend.device, vertexBufferNormal.buffer, nullptr);
     vkDestroyBuffer(backend.device, vertexBufferUV.buffer, nullptr);
 
-    vkDestroyBuffer(backend.device, passConstantBuffer.buffer, nullptr);
-    vkDestroyBuffer(backend.device, instanceConstantBuffer.buffer, nullptr);
+    vkDestroyBuffer(backend.device, drawPassConstantBuffer.buffer, nullptr);
+    vkDestroyBuffer(backend.device, drawInstanceConstantBuffer.buffer, nullptr);
 }
 } // namespace Reaper
