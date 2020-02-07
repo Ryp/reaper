@@ -60,12 +60,11 @@ namespace
 
     struct CullPushConstants
     {
-        u32 commandIndex;
         u32 triangleCount;
         u32 firstIndex;
     };
 
-    static constexpr u32 CullPushConstantSize = 3 * sizeof(u32);
+    static constexpr u32 CullPushConstantSize = 2 * sizeof(u32);
 
     struct CullPipelineInfo
     {
@@ -955,9 +954,6 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
             if (magnitudeSq > 1.f)
                 translation *= 1.f / glm::sqrt(magnitudeSq);
 
-            log_debug(root, "input: fwd = {}, side = {}", fwd_diff, side_diff);
-            log_debug(root, "input: yaw = {}, pitch = {}", yaw_diff, pitch_diff);
-
             const glm::vec3 camera_offset = translation * translation_speed * timeDtSecs;
 
             camera.translate(camera_offset);
@@ -1025,33 +1021,17 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                 vkCmdBindDescriptorSets(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, cullPipe.pipelineLayout,
                                         0, 1, &cullPassDescriptorSet, 0, nullptr);
 
-                std::array<VkMemoryBarrier, 1> memoryBarriers = {VkMemoryBarrier{
-                    VK_STRUCTURE_TYPE_MEMORY_BARRIER,
-                    nullptr,
-                    VK_ACCESS_SHADER_WRITE_BIT,
-                    VK_ACCESS_SHADER_READ_BIT,
-                }};
+                const u32 index_count = static_cast<u32>(mesh.indexes.size());
+                Assert(index_count % 3 == 0);
 
-                for (u32 i = 0; i < instanceCount; i++)
-                {
-                    const u32 index_count = static_cast<u32>(mesh.indexes.size());
-                    Assert(index_count % 3 == 0);
+                CullPushConstants consts;
+                consts.triangleCount = index_count / 3;
+                consts.firstIndex = 0;
 
-                    CullPushConstants consts;
-                    consts.commandIndex = i;
-                    consts.triangleCount = index_count / 3;
-                    consts.firstIndex = 0;
-
-                    vkCmdPushConstants(resources.gfxCmdBuffer, cullPipe.pipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0,
-                                       CullPushConstantSize, &consts);
-                    vkCmdDispatch(resources.gfxCmdBuffer, group_count(consts.triangleCount, ComputeCullingBatchSize), 1,
-                                  1);
-
-                    vkCmdPipelineBarrier(resources.gfxCmdBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                                         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0,
-                                         static_cast<u32>(memoryBarriers.size()), memoryBarriers.data(), 0, nullptr, 0,
-                                         nullptr);
-                }
+                vkCmdPushConstants(resources.gfxCmdBuffer, cullPipe.pipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0,
+                                   CullPushConstantSize, &consts);
+                vkCmdDispatch(resources.gfxCmdBuffer, group_count(consts.triangleCount, ComputeCullingBatchSize),
+                              instanceCount, 1);
             }
 
             std::array<VkMemoryBarrier, 1> memoryBarriers = {VkMemoryBarrier{
