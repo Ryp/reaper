@@ -2,8 +2,6 @@
 
 #include "share/culling.hlsl"
 
-static const uint ComputeCullingBatchSize = 256;
-
 //------------------------------------------------------------------------------
 // Input
 
@@ -28,7 +26,7 @@ VK_BINDING(5, 0) globallycoherent RWByteAddressBuffer DrawCountOut;
 groupshared uint lds_triangle_count;
 groupshared uint lds_triangle_offset;
 
-[numthreads(ComputeCullingBatchSize, 1, 1)]
+[numthreads(ComputeCullingGroupSize, 1, 1)]
 void main(/*uint3 gtid : SV_GroupThreadID,*/
           uint3 gid  : SV_GroupID,
           uint3 dtid : SV_DispatchThreadID,

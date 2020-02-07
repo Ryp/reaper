@@ -10,6 +10,8 @@
 
 #include "types.hlsl"
 
+static const sl_uint ComputeCullingGroupSize = 256;
+
 struct CullPushConstants
 {
     sl_uint triangleCount;
