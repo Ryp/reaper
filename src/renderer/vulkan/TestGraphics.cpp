@@ -58,8 +58,6 @@ namespace
         return (batch_size - 1) / group_size + 1;
     }
 
-    static constexpr u32 CullPushConstantSize = 2 * sizeof(u32);
-
     struct CullPipelineInfo
     {
         VkPipeline            pipeline;
@@ -149,15 +147,7 @@ namespace
         VkDescriptorSetLayout descSetLayout;
     };
 
-    struct float4
-    {
-        float x;
-        float y;
-        float z;
-        float w;
-    };
-
-    VkClearValue VkClearColor(float4 color)
+    VkClearValue VkClearColor(const glm::fvec4& color)
     {
         VkClearValue clearValue;
 
@@ -863,7 +853,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
             log_debug(root, "vulkan: image index = {}", imageIndex);
 
             const float                 depthClearValue = UseReverseZ ? 0.f : 1.f;
-            const float4                clearColor = {1.0f, 0.8f, 0.4f, 0.0f};
+            const glm::fvec4            clearColor = {1.0f, 0.8f, 0.4f, 0.0f};
             std::array<VkClearValue, 2> clearValues = {VkClearColor(clearColor),
                                                        VkClearDepthStencil(depthClearValue, 0)};
             const VkExtent2D            backbufferExtent = backend.presentInfo.surfaceExtent;
