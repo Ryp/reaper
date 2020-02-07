@@ -2,8 +2,6 @@
 
 #include "share/culling.hlsl"
 
-#define ENABLE_BACKFACE_CULLING 1
-
 static const uint ComputeCullingBatchSize = 256;
 
 struct CullInstanceParams
@@ -14,7 +12,8 @@ struct CullInstanceParams
 //------------------------------------------------------------------------------
 // Input
 
-VK_CONSTANT(0) const bool spec_cull_cw = true;
+VK_CONSTANT(0) const bool spec_enable_backface_culling = true;
+VK_CONSTANT(1) const bool spec_cull_cw = true;
 
 VK_PUSH_CONSTANT() ConstantBuffer<CullPushConstants> consts;
 
@@ -79,13 +78,8 @@ void main(/*uint3 gtid : SV_GroupThreadID,*/
         cross(v0v1_ndc, v0v2_ndc).z <= 0.f :
         cross(v0v1_ndc, v0v2_ndc).z >= 0.f;
 
-    const bool is_enabled = dtid.x < consts.triangleCount;
-
-#if ENABLE_BACKFACE_CULLING
-    const bool is_visible = is_front_face && is_enabled;
-#else
-    const bool is_visible = is_enabled;
-#endif
+    const bool is_lane_enabled = dtid.x < consts.triangleCount;
+    const bool is_visible = is_lane_enabled && (spec_enable_backface_culling ? is_front_face : true);
 
     const uint visible_count = WaveActiveCountBits(is_visible);
     const uint visible_prefix_count = WavePrefixCountBits(is_visible);
