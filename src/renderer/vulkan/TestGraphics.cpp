@@ -58,7 +58,6 @@ namespace
         return (batch_size - 1) / group_size + 1;
     }
 
-    static constexpr u32 ComputeCullingBatchSize = 256;
     static constexpr u32 CullPushConstantSize = 2 * sizeof(u32);
 
     struct CullPipelineInfo
@@ -1020,7 +1019,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
 
                 vkCmdPushConstants(resources.gfxCmdBuffer, cullPipe.pipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0,
                                    sizeof(consts), &consts);
-                vkCmdDispatch(resources.gfxCmdBuffer, group_count(consts.triangleCount, ComputeCullingBatchSize),
+                vkCmdDispatch(resources.gfxCmdBuffer, group_count(consts.triangleCount, ComputeCullingGroupSize),
                               instanceCount, 1);
             }
 
