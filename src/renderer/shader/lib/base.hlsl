@@ -30,10 +30,12 @@
 // Vulkan compat
 #if REAPER_USE_VULKAN_BINDING
     #define VK_PUSH_CONSTANT()          [[vk::push_constant]]
+    #define VK_CONSTANT(_index)         [[vk::constant_id(_index)]]
     #define VK_BINDING(_binding, _set)  [[vk::binding(_binding, _set)]]
 #else
     // Not supported
     #define VK_PUSH_CONSTANT()
+    #define VK_CONSTANT(_index)
     #define VK_BINDING(_binding, _set)
 #endif
 

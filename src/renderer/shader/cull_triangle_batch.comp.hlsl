@@ -19,6 +19,8 @@ struct PushConstants
 //------------------------------------------------------------------------------
 // Input
 
+VK_CONSTANT(0) const bool spec_cull_cw = true;
+
 VK_PUSH_CONSTANT() ConstantBuffer<PushConstants> consts;
 
 VK_BINDING(0, 0) ByteAddressBuffer Indices;
@@ -77,12 +79,14 @@ void main(/*uint3 gtid : SV_GroupThreadID,*/
     const float3 v0v1_ndc = vpos1_ndc - vpos0_ndc;
     const float3 v0v2_ndc = vpos2_ndc - vpos0_ndc;
 
-    const bool is_ccw = cross(v0v1_ndc, v0v2_ndc).z <= 0.f;
+    const bool is_front_face = spec_cull_cw ?
+        cross(v0v1_ndc, v0v2_ndc).z <= 0.f :
+        cross(v0v1_ndc, v0v2_ndc).z >= 0.f;
 
     const bool is_enabled = dtid.x < consts.triangleCount;
 
 #if ENABLE_BACKFACE_CULLING
-    const bool is_visible = is_ccw && is_enabled;
+    const bool is_visible = is_front_face && is_enabled;
 #else
     const bool is_visible = is_enabled;
 #endif
