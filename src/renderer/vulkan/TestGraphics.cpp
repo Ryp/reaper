@@ -45,6 +45,8 @@
 #include <chrono>
 #include <thread>
 
+#include "renderer/shader/share/culling.hlsl"
+
 namespace Reaper
 {
 namespace
@@ -57,13 +59,6 @@ namespace
     }
 
     static constexpr u32 ComputeCullingBatchSize = 256;
-
-    struct CullPushConstants
-    {
-        u32 triangleCount;
-        u32 firstIndex;
-    };
-
     static constexpr u32 CullPushConstantSize = 2 * sizeof(u32);
 
     struct CullPipelineInfo
@@ -95,7 +90,7 @@ namespace
         log_debug(root, "vulkan: created descriptor set layout with handle: {}",
                   static_cast<void*>(descriptorSetLayout));
 
-        const VkPushConstantRange cullPushConstantRange = {VK_SHADER_STAGE_COMPUTE_BIT, 0, CullPushConstantSize};
+        const VkPushConstantRange cullPushConstantRange = {VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(CullPushConstants)};
 
         VkPipelineLayoutCreateInfo pipelineLayoutInfo = {VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
                                                          nullptr,
@@ -1029,7 +1024,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                 consts.firstIndex = 0;
 
                 vkCmdPushConstants(resources.gfxCmdBuffer, cullPipe.pipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0,
-                                   CullPushConstantSize, &consts);
+                                   sizeof(consts), &consts);
                 vkCmdDispatch(resources.gfxCmdBuffer, group_count(consts.triangleCount, ComputeCullingBatchSize),
                               instanceCount, 1);
             }

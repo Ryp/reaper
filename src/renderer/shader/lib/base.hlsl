@@ -9,6 +9,9 @@
 #ifndef LIB_BASE_INCLUDED
 #define LIB_BASE_INCLUDED
 
+// This define is useful when sharing code with the c++ side.
+#define REAPER_SHADER_CODE
+
 // Available platforms
 #define REAPER_PLATFORM_PC      0
 #define REAPER_PLATFORM_ORBIS   1
