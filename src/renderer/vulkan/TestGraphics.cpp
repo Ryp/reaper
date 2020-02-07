@@ -8,6 +8,7 @@
 #include "TestGraphics.h"
 
 #include "Buffer.h"
+#include "ComputeHelper.h"
 #include "Debug.h"
 #include "Image.h"
 #include "Memory.h"
@@ -52,13 +53,6 @@ namespace Reaper
 {
 namespace
 {
-    u32 group_count(u32 batch_size, u32 group_size)
-    {
-        Assert(batch_size > 0);
-
-        return (batch_size - 1) / group_size + 1;
-    }
-
     struct CullPipelineInfo
     {
         VkPipeline            pipeline;
