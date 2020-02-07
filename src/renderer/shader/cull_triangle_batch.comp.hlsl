@@ -126,8 +126,6 @@ void main(/*uint3 gtid : SV_GroupThreadID,*/
         uint draw_command_index;
         DrawCountOut.InterlockedAdd(0, uint(1), draw_command_index); // FIXME Cast is needed for glslang
 
-        uint min_triangle_offset = DrawCountOut.Load(8);
-
         const uint draw_command_size = 5;
         DrawCommandOut.Store((draw_command_index * draw_command_size + 0) * 4, lds_triangle_count * 3);
         DrawCommandOut.Store((draw_command_index * draw_command_size + 1) * 4, 1);
