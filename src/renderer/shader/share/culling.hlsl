@@ -16,4 +16,9 @@ struct CullPushConstants
     sl_uint firstIndex;
 };
 
+struct CullInstanceParams
+{
+    sl_float4x4 ms_to_cs_matrix;
+};
+
 #endif

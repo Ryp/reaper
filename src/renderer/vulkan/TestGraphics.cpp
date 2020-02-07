@@ -217,11 +217,6 @@ namespace
         glm::mat3x4 modelViewInvT;
     };
 
-    struct CullInstanceParams
-    {
-        glm::mat4 ms_to_cs_matrix;
-    };
-
     void vulkan_cmd_transition_swapchain_layout(VulkanBackend& backend, VkCommandBuffer commandBuffer)
     {
         for (u32 swapchainImageIndex = 0; swapchainImageIndex < static_cast<u32>(backend.presentInfo.images.size());

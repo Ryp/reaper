@@ -4,11 +4,6 @@
 
 static const uint ComputeCullingBatchSize = 256;
 
-struct CullInstanceParams
-{
-    float4x4 ms_to_cs_matrix;
-};
-
 //------------------------------------------------------------------------------
 // Input
 
