@@ -9,9 +9,11 @@
 #define SHARE_TYPES_INCLUDED
 
 #ifdef REAPER_SHADER_CODE
-    #define sl_uint uint
+    #define sl_uint     uint
+    #define sl_float4x4 float4x4
 #else
-    using sl_uint = u32;
+    using sl_uint       = u32;
+    using sl_float4x4   = glm::mat4;
 #endif
 
 #endif
