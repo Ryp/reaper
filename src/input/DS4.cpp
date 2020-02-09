@@ -70,7 +70,7 @@ bool DS4::connect()
     if (_fd == -1)
         return false;
     Assert(ioctl(_fd, JSIOCGNAME(256), deviceName) != -1, "could not retrieve device name");
-    Assert(std::string("Sony Interactive Entertainment Wireless Controller") == deviceName, "not a DS4 controller");
+
     update();
     AbstractController::reset();
 #endif
