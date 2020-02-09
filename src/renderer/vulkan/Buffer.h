@@ -8,18 +8,20 @@
 #pragma once
 
 #include "allocator/GPUStackAllocator.h"
+
 #include "api/Vulkan.h"
+
+#include "renderer/GPUBufferProperties.h"
 
 namespace Reaper
 {
 struct ReaperRoot;
 
-struct GPUBufferProperties;
-
 struct BufferInfo
 {
-    VkBuffer buffer;
-    GPUAlloc alloc;
+    VkBuffer            buffer;
+    GPUBufferProperties descriptor;
+    GPUAlloc            alloc;
 };
 
 BufferInfo create_buffer(ReaperRoot& root, VkDevice device, const char* debug_string,
