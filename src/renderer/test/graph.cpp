@@ -211,5 +211,5 @@ TEST_CASE("Frame Graph")
 
     builder.Build();
 
-    DumpFrameGraph(frameGraph);
+    // DumpFrameGraph(frameGraph);
 }
