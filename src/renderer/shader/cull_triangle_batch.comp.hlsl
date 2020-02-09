@@ -1,4 +1,5 @@
 #include "lib/base.hlsl"
+#include "lib/indirect_command.hlsl"
 
 #include "share/culling.hlsl"
 
@@ -109,11 +110,10 @@ void main(/*uint3 gtid : SV_GroupThreadID,*/
         uint draw_command_index;
         DrawCountOut.InterlockedAdd(0, uint(1), draw_command_index); // FIXME Cast is needed for glslang
 
-        const uint draw_command_size = 5;
-        DrawCommandOut.Store((draw_command_index * draw_command_size + 0) * 4, lds_triangle_count * 3);
-        DrawCommandOut.Store((draw_command_index * draw_command_size + 1) * 4, 1);
-        DrawCommandOut.Store((draw_command_index * draw_command_size + 2) * 4, lds_triangle_offset * 3);
-        DrawCommandOut.Store((draw_command_index * draw_command_size + 3) * 4, 0);
-        DrawCommandOut.Store((draw_command_index * draw_command_size + 4) * 4, instance_id);
+        DrawCommandOut.Store((draw_command_index * IndirectDrawCommandSize + 0) * 4, lds_triangle_count * 3);
+        DrawCommandOut.Store((draw_command_index * IndirectDrawCommandSize + 1) * 4, 1);
+        DrawCommandOut.Store((draw_command_index * IndirectDrawCommandSize + 2) * 4, lds_triangle_offset * 3);
+        DrawCommandOut.Store((draw_command_index * IndirectDrawCommandSize + 3) * 4, 0);
+        DrawCommandOut.Store((draw_command_index * IndirectDrawCommandSize + 4) * 4, instance_id);
     }
 }
