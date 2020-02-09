@@ -65,7 +65,7 @@ BufferInfo create_buffer(ReaperRoot& root, VkDevice device, const char* debug_st
 
     Assert(vkBindBufferMemory(device, buffer, alloc.memory, alloc.offset) == VK_SUCCESS);
 
-    return {buffer, alloc};
+    return {buffer, properties, alloc};
 }
 
 void upload_buffer_data(VkDevice device, const BufferInfo& buffer, const void* data, std::size_t size)
