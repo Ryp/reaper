@@ -1,0 +1,36 @@
+////////////////////////////////////////////////////////////////////////////////
+/// Reaper
+///
+/// Copyright (c) 2015-2020 Thibault Schueller
+/// This file is distributed under the MIT License
+////////////////////////////////////////////////////////////////////////////////
+
+#ifndef LIB_INDIRECT_COMMAND_INCLUDED
+#define LIB_INDIRECT_COMMAND_INCLUDED
+
+static const uint IndirectDrawCommandSize = 5;
+
+struct IndirectDrawCommand
+{
+    uint indexCount;
+    uint instanceCount;
+    uint firstIndex;
+    int  vertexOffset;
+    uint firstInstance;
+};
+
+static const uint IndirectDispatchCommandSize = 3;
+
+struct IndirectDispatchCommand
+{
+    uint x;
+    uint y;
+    uint z;
+};
+
+uint group_count(uint batch_size, uint group_size)
+{
+    return (batch_size - 1) / group_size + 1;
+}
+
+#endif

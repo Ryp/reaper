@@ -46,6 +46,7 @@
 #include <chrono>
 #include <thread>
 
+#include "renderer/shader/share/compaction.hlsl"
 #include "renderer/shader/share/culling.hlsl"
 #include "renderer/shader/share/draw.hlsl"
 
@@ -53,6 +54,19 @@ namespace Reaper
 {
 namespace
 {
+    void cmd_insert_compute_to_compute_barrier(VkCommandBuffer cmdBuffer)
+    {
+        std::array<VkMemoryBarrier, 1> memoryBarriers = {VkMemoryBarrier{
+            VK_STRUCTURE_TYPE_MEMORY_BARRIER,
+            nullptr,
+            VK_ACCESS_SHADER_WRITE_BIT,
+            VK_ACCESS_SHADER_READ_BIT,
+        }};
+
+        vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0,
+                             static_cast<u32>(memoryBarriers.size()), memoryBarriers.data(), 0, nullptr, 0, nullptr);
+    }
+
     struct CullPipelineInfo
     {
         VkPipeline            pipeline;
@@ -133,6 +147,147 @@ namespace
         return CullPipelineInfo{pipeline, pipelineLayout, descriptorSetLayout};
     }
 
+    struct CompactionPrepPipelineInfo
+    {
+        VkPipeline            pipeline;
+        VkPipelineLayout      pipelineLayout;
+        VkDescriptorSetLayout descSetLayout;
+    };
+
+    CompactionPrepPipelineInfo vulkan_create_compaction_prep_pipeline(ReaperRoot& root, VulkanBackend& backend)
+    {
+        std::array<VkDescriptorSetLayoutBinding, 3> descriptorSetLayoutBinding = {
+            VkDescriptorSetLayoutBinding{0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+            VkDescriptorSetLayoutBinding{1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+            VkDescriptorSetLayoutBinding{2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+        };
+
+        VkDescriptorSetLayoutCreateInfo descriptorSetLayoutInfo = {
+            VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, nullptr, 0,
+            static_cast<u32>(descriptorSetLayoutBinding.size()), descriptorSetLayoutBinding.data()};
+
+        VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
+        Assert(vkCreateDescriptorSetLayout(backend.device, &descriptorSetLayoutInfo, nullptr, &descriptorSetLayout)
+               == VK_SUCCESS);
+
+        log_debug(root, "vulkan: created descriptor set layout with handle: {}",
+                  static_cast<void*>(descriptorSetLayout));
+
+        VkPipelineLayoutCreateInfo pipelineLayoutInfo = {
+            VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO, nullptr, VK_FLAGS_NONE, 1, &descriptorSetLayout, 0, nullptr};
+
+        VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
+        Assert(vkCreatePipelineLayout(backend.device, &pipelineLayoutInfo, nullptr, &pipelineLayout) == VK_SUCCESS);
+
+        log_debug(root, "vulkan: created pipeline layout with handle: {}", static_cast<void*>(pipelineLayout));
+
+        VkShaderModule        computeShader = VK_NULL_HANDLE;
+        const char*           fileName = "./build/spv/compaction_prepare_indirect_dispatch.comp.spv";
+        const char*           entryPoint = "main";
+        VkSpecializationInfo* specialization = nullptr;
+
+        vulkan_create_shader_module(computeShader, backend.device, fileName);
+
+        VkPipelineShaderStageCreateInfo shaderStage = {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+                                                       nullptr,
+                                                       0,
+                                                       VK_SHADER_STAGE_COMPUTE_BIT,
+                                                       computeShader,
+                                                       entryPoint,
+                                                       specialization};
+
+        VkComputePipelineCreateInfo pipelineCreateInfo = {VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
+                                                          nullptr,
+                                                          0,
+                                                          shaderStage,
+                                                          pipelineLayout,
+                                                          VK_NULL_HANDLE, // do not care about pipeline derivatives
+                                                          0};
+
+        VkPipeline      pipeline = VK_NULL_HANDLE;
+        VkPipelineCache cache = VK_NULL_HANDLE;
+
+        Assert(vkCreateComputePipelines(backend.device, cache, 1, &pipelineCreateInfo, nullptr, &pipeline)
+               == VK_SUCCESS);
+
+        vkDestroyShaderModule(backend.device, computeShader, nullptr);
+
+        log_debug(root, "vulkan: created compute pipeline with handle: {}", static_cast<void*>(pipeline));
+
+        return CompactionPrepPipelineInfo{pipeline, pipelineLayout, descriptorSetLayout};
+    }
+
+    struct CompactionPipelineInfo
+    {
+        VkPipeline            pipeline;
+        VkPipelineLayout      pipelineLayout;
+        VkDescriptorSetLayout descSetLayout;
+    };
+
+    CompactionPipelineInfo vulkan_create_compaction_pipeline(ReaperRoot& root, VulkanBackend& backend)
+    {
+        std::array<VkDescriptorSetLayoutBinding, 4> descriptorSetLayoutBinding = {
+            VkDescriptorSetLayoutBinding{0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+            VkDescriptorSetLayoutBinding{1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+            VkDescriptorSetLayoutBinding{2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+            VkDescriptorSetLayoutBinding{3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+        };
+
+        VkDescriptorSetLayoutCreateInfo descriptorSetLayoutInfo = {
+            VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, nullptr, 0,
+            static_cast<u32>(descriptorSetLayoutBinding.size()), descriptorSetLayoutBinding.data()};
+
+        VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
+        Assert(vkCreateDescriptorSetLayout(backend.device, &descriptorSetLayoutInfo, nullptr, &descriptorSetLayout)
+               == VK_SUCCESS);
+
+        log_debug(root, "vulkan: created descriptor set layout with handle: {}",
+                  static_cast<void*>(descriptorSetLayout));
+
+        VkPipelineLayoutCreateInfo pipelineLayoutInfo = {
+            VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO, nullptr, VK_FLAGS_NONE, 1, &descriptorSetLayout, 0, nullptr};
+
+        VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
+        Assert(vkCreatePipelineLayout(backend.device, &pipelineLayoutInfo, nullptr, &pipelineLayout) == VK_SUCCESS);
+
+        log_debug(root, "vulkan: created pipeline layout with handle: {}", static_cast<void*>(pipelineLayout));
+
+        VkShaderModule        computeShader = VK_NULL_HANDLE;
+        const char*           fileName = "./build/spv/draw_command_compaction.comp.spv";
+        const char*           entryPoint = "main";
+        VkSpecializationInfo* specialization = nullptr;
+
+        vulkan_create_shader_module(computeShader, backend.device, fileName);
+
+        VkPipelineShaderStageCreateInfo shaderStage = {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+                                                       nullptr,
+                                                       0,
+                                                       VK_SHADER_STAGE_COMPUTE_BIT,
+                                                       computeShader,
+                                                       entryPoint,
+                                                       specialization};
+
+        VkComputePipelineCreateInfo pipelineCreateInfo = {VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
+                                                          nullptr,
+                                                          0,
+                                                          shaderStage,
+                                                          pipelineLayout,
+                                                          VK_NULL_HANDLE, // do not care about pipeline derivatives
+                                                          0};
+
+        VkPipeline      pipeline = VK_NULL_HANDLE;
+        VkPipelineCache cache = VK_NULL_HANDLE;
+
+        Assert(vkCreateComputePipelines(backend.device, cache, 1, &pipelineCreateInfo, nullptr, &pipeline)
+               == VK_SUCCESS);
+
+        vkDestroyShaderModule(backend.device, computeShader, nullptr);
+
+        log_debug(root, "vulkan: created compute pipeline with handle: {}", static_cast<void*>(pipeline));
+
+        return CompactionPipelineInfo{pipeline, pipelineLayout, descriptorSetLayout};
+    }
+
     constexpr bool UseReverseZ = true;
 
     struct BlitPipelineInfo
@@ -187,7 +342,7 @@ namespace
         };
     }
 
-    void vulkan_cmd_transition_swapchain_layout(VulkanBackend& backend, VkCommandBuffer commandBuffer)
+    void cmd_transition_swapchain_layout(VulkanBackend& backend, VkCommandBuffer commandBuffer)
     {
         for (u32 swapchainImageIndex = 0; swapchainImageIndex < static_cast<u32>(backend.presentInfo.images.size());
              swapchainImageIndex++)
@@ -602,6 +757,12 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                                                  GPUBufferUsage::IndirectBuffer | GPUBufferUsage::StorageBuffer),
                       resources.mainAllocator);
 
+    BufferInfo compactIndirectDrawBuffer =
+        create_buffer(root, backend.device, "Compact indirect draw buffer",
+                      DefaultGPUBufferProperties(maxIndirectDrawCount, sizeof(VkDrawIndexedIndirectCommand),
+                                                 GPUBufferUsage::IndirectBuffer | GPUBufferUsage::StorageBuffer),
+                      resources.mainAllocator);
+
     const u32  indirectDrawCountSize = 2; // Second uint is for keeping track of total triangles
     BufferInfo indirectDrawCountBuffer =
         create_buffer(root, backend.device, "Indirect draw count buffer",
@@ -609,7 +770,18 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                                                  GPUBufferUsage::IndirectBuffer | GPUBufferUsage::StorageBuffer),
                       resources.mainAllocator);
 
+    BufferInfo compactIndirectDrawCountBuffer = create_buffer(
+        root, backend.device, "Compact indirect draw count buffer",
+        DefaultGPUBufferProperties(1, sizeof(u32), GPUBufferUsage::IndirectBuffer | GPUBufferUsage::StorageBuffer),
+        resources.mainAllocator);
+
     Assert(maxIndirectDrawCount < backend.physicalDeviceProperties.limits.maxDrawIndirectCount);
+
+    BufferInfo compactionIndirectDispatchBuffer =
+        create_buffer(root, backend.device, "Compact indirect dispatch buffer",
+                      DefaultGPUBufferProperties(1, sizeof(VkDispatchIndirectCommand),
+                                                 GPUBufferUsage::IndirectBuffer | GPUBufferUsage::StorageBuffer),
+                      resources.mainAllocator);
 
     BufferInfo cullInstanceParamsBuffer = create_buffer(
         root, backend.device, "Culling instance constant buffer",
@@ -679,6 +851,73 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                                cullPassDescriptorSetWrites.data(), 0, nullptr);
     }
 
+    CompactionPrepPipelineInfo compactPrepPipe = vulkan_create_compaction_prep_pipeline(root, backend);
+    VkDescriptorSet            compactPrepPassDescriptorSet = VK_NULL_HANDLE;
+    {
+        VkDescriptorSetAllocateInfo descriptorSetAllocInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr,
+                                                              resources.descriptorPool, 1,
+                                                              &compactPrepPipe.descSetLayout};
+
+        Assert(vkAllocateDescriptorSets(backend.device, &descriptorSetAllocInfo, &compactPrepPassDescriptorSet)
+               == VK_SUCCESS);
+        log_debug(root, "vulkan: created descriptor set with handle: {}",
+                  static_cast<void*>(compactPrepPassDescriptorSet));
+
+        const VkDescriptorBufferInfo compactionDescDrawCommandCount =
+            default_descriptor_buffer_info(indirectDrawCountBuffer);
+        const VkDescriptorBufferInfo compactionDescDispatchCommandOut =
+            default_descriptor_buffer_info(compactionIndirectDispatchBuffer);
+        const VkDescriptorBufferInfo compactionDescDrawCommandCountOut =
+            default_descriptor_buffer_info(compactIndirectDrawCountBuffer);
+
+        std::array<VkWriteDescriptorSet, 3> compactionPassDescriptorSetWrites = {
+            create_buffer_descriptor_write(compactPrepPassDescriptorSet, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                                           &compactionDescDrawCommandCount),
+            create_buffer_descriptor_write(compactPrepPassDescriptorSet, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                                           &compactionDescDispatchCommandOut),
+            create_buffer_descriptor_write(compactPrepPassDescriptorSet, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                                           &compactionDescDrawCommandCountOut),
+        };
+
+        vkUpdateDescriptorSets(backend.device, static_cast<u32>(compactionPassDescriptorSetWrites.size()),
+                               compactionPassDescriptorSetWrites.data(), 0, nullptr);
+    }
+
+    CompactionPipelineInfo compactionPipe = vulkan_create_compaction_pipeline(root, backend);
+    VkDescriptorSet        compactionPassDescriptorSet = VK_NULL_HANDLE;
+    {
+        VkDescriptorSetAllocateInfo descriptorSetAllocInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr,
+                                                              resources.descriptorPool, 1,
+                                                              &compactionPipe.descSetLayout};
+
+        Assert(vkAllocateDescriptorSets(backend.device, &descriptorSetAllocInfo, &compactionPassDescriptorSet)
+               == VK_SUCCESS);
+        log_debug(root, "vulkan: created descriptor set with handle: {}",
+                  static_cast<void*>(compactionPassDescriptorSet));
+
+        const VkDescriptorBufferInfo compactionDescCommand = default_descriptor_buffer_info(indirectDrawBuffer);
+        const VkDescriptorBufferInfo compactionDescCommandCount =
+            default_descriptor_buffer_info(indirectDrawCountBuffer);
+        const VkDescriptorBufferInfo compactionDescCommandOut =
+            default_descriptor_buffer_info(compactIndirectDrawBuffer);
+        const VkDescriptorBufferInfo compactionDescCommandCountOut =
+            default_descriptor_buffer_info(compactIndirectDrawCountBuffer);
+
+        std::array<VkWriteDescriptorSet, 4> compactionPassDescriptorSetWrites = {
+            create_buffer_descriptor_write(compactionPassDescriptorSet, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                                           &compactionDescCommand),
+            create_buffer_descriptor_write(compactionPassDescriptorSet, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                                           &compactionDescCommandCount),
+            create_buffer_descriptor_write(compactionPassDescriptorSet, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                                           &compactionDescCommandOut),
+            create_buffer_descriptor_write(compactionPassDescriptorSet, 3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                                           &compactionDescCommandCountOut),
+        };
+
+        vkUpdateDescriptorSets(backend.device, static_cast<u32>(compactionPassDescriptorSetWrites.size()),
+                               compactionPassDescriptorSetWrites.data(), 0, nullptr);
+    }
+
     BlitPipelineInfo blitPipe = vulkan_create_blit_pipeline(root, backend, offscreenRenderPass);
     VkDescriptorSet  pixelConstantsDescriptorSet = VK_NULL_HANDLE;
     {
@@ -726,6 +965,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
     bool shouldExit = false;
     int  frameIndex = 0;
     bool freezeCulling = false;
+    bool useCompactedDraw = true;
     bool pauseAnimation = false;
 
     DS4    ds4("/dev/input/js0");
@@ -971,7 +1211,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
 
             if (mustTransitionSwapchain)
             {
-                vulkan_cmd_transition_swapchain_layout(backend, resources.gfxCmdBuffer);
+                cmd_transition_swapchain_layout(backend, resources.gfxCmdBuffer);
                 mustTransitionSwapchain = false;
             }
 
@@ -995,17 +1235,44 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                               instanceCount, 1);
             }
 
-            std::array<VkMemoryBarrier, 1> memoryBarriers = {VkMemoryBarrier{
-                VK_STRUCTURE_TYPE_MEMORY_BARRIER,
-                nullptr,
-                VK_ACCESS_SHADER_WRITE_BIT,
-                VK_ACCESS_INDEX_READ_BIT | VK_ACCESS_INDIRECT_COMMAND_READ_BIT,
-            }};
+            cmd_insert_compute_to_compute_barrier(resources.gfxCmdBuffer);
 
-            vkCmdPipelineBarrier(resources.gfxCmdBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                                 VK_PIPELINE_STAGE_VERTEX_INPUT_BIT | VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT, 0,
-                                 static_cast<u32>(memoryBarriers.size()), memoryBarriers.data(), 0, nullptr, 0,
-                                 nullptr);
+            // Compaction prepare pass
+            {
+                vkCmdBindPipeline(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, compactPrepPipe.pipeline);
+
+                vkCmdBindDescriptorSets(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE,
+                                        compactPrepPipe.pipelineLayout, 0, 1, &compactPrepPassDescriptorSet, 0,
+                                        nullptr);
+
+                vkCmdDispatch(resources.gfxCmdBuffer, 1, 1, 1);
+            }
+
+            cmd_insert_compute_to_compute_barrier(resources.gfxCmdBuffer);
+
+            // Compaction pass
+            {
+                vkCmdBindPipeline(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, compactionPipe.pipeline);
+
+                vkCmdBindDescriptorSets(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE,
+                                        compactionPipe.pipelineLayout, 0, 1, &compactionPassDescriptorSet, 0, nullptr);
+
+                vkCmdDispatchIndirect(resources.gfxCmdBuffer, compactionIndirectDispatchBuffer.buffer, 0);
+            }
+
+            {
+                std::array<VkMemoryBarrier, 1> memoryBarriers = {VkMemoryBarrier{
+                    VK_STRUCTURE_TYPE_MEMORY_BARRIER,
+                    nullptr,
+                    VK_ACCESS_SHADER_WRITE_BIT,
+                    VK_ACCESS_INDEX_READ_BIT | VK_ACCESS_INDIRECT_COMMAND_READ_BIT,
+                }};
+
+                vkCmdPipelineBarrier(resources.gfxCmdBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                                     VK_PIPELINE_STAGE_VERTEX_INPUT_BIT | VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT, 0,
+                                     static_cast<u32>(memoryBarriers.size()), memoryBarriers.data(), 0, nullptr, 0,
+                                     nullptr);
+            }
 
             vkCmdBeginRenderPass(resources.gfxCmdBuffer, &blitRenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
@@ -1036,10 +1303,18 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                 vkCmdBindDescriptorSets(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
                                         blitPipe.pipelineLayout, 0, 1, &pixelConstantsDescriptorSet, 0, nullptr);
 
+                if (useCompactedDraw)
                 {
-                    vkCmdDrawIndexedIndirectCountKHR(resources.gfxCmdBuffer, indirectDrawBuffer.buffer, 0,
-                                                     indirectDrawCountBuffer.buffer, 0, maxIndirectDrawCount,
-                                                     sizeof(VkDrawIndexedIndirectCommand));
+                    vkCmdDrawIndexedIndirectCountKHR(resources.gfxCmdBuffer, compactIndirectDrawBuffer.buffer, 0,
+                                                     compactIndirectDrawCountBuffer.buffer, 0,
+                                                     compactIndirectDrawBuffer.descriptor.elementCount,
+                                                     compactIndirectDrawBuffer.descriptor.elementSize);
+                }
+                else
+                {
+                    vkCmdDrawIndexedIndirectCountKHR(
+                        resources.gfxCmdBuffer, indirectDrawBuffer.buffer, 0, indirectDrawCountBuffer.buffer, 0,
+                        indirectDrawBuffer.descriptor.elementCount, indirectDrawBuffer.descriptor.elementSize);
                 }
             }
 
@@ -1104,12 +1379,24 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
     vkDestroyPipelineLayout(backend.device, cullPipe.pipelineLayout, nullptr);
     vkDestroyDescriptorSetLayout(backend.device, cullPipe.descSetLayout, nullptr);
 
+    vkDestroyPipeline(backend.device, compactPrepPipe.pipeline, nullptr);
+    vkDestroyPipelineLayout(backend.device, compactPrepPipe.pipelineLayout, nullptr);
+    vkDestroyDescriptorSetLayout(backend.device, compactPrepPipe.descSetLayout, nullptr);
+
+    vkDestroyPipeline(backend.device, compactionPipe.pipeline, nullptr);
+    vkDestroyPipelineLayout(backend.device, compactionPipe.pipelineLayout, nullptr);
+    vkDestroyDescriptorSetLayout(backend.device, compactionPipe.descSetLayout, nullptr);
+
     destroy_framebuffers(root, backend.device, framebuffers);
 
     vkDestroyRenderPass(backend.device, offscreenRenderPass, nullptr);
 
     vkDestroyImageView(backend.device, depthBufferView, nullptr);
     vkDestroyImage(backend.device, depthBuffer.handle, nullptr);
+
+    vkDestroyBuffer(backend.device, compactionIndirectDispatchBuffer.buffer, nullptr);
+    vkDestroyBuffer(backend.device, compactIndirectDrawCountBuffer.buffer, nullptr);
+    vkDestroyBuffer(backend.device, compactIndirectDrawBuffer.buffer, nullptr);
 
     vkDestroyBuffer(backend.device, cullInstanceParamsBuffer.buffer, nullptr);
     vkDestroyBuffer(backend.device, dynamicIndexBuffer.buffer, nullptr);

@@ -108,7 +108,9 @@ set(REAPER_SHADER_SRCS
     ${REAPER_SHADER_DIR}/samples/uniform.vert.glsl
     ${REAPER_SHADER_DIR}/blit.frag.glsl
     ${REAPER_SHADER_DIR}/blit.vert.glsl
+    ${REAPER_SHADER_DIR}/compaction_prepare_indirect_dispatch.comp.hlsl
     ${REAPER_SHADER_DIR}/cull_triangle_batch.comp.hlsl
+    ${REAPER_SHADER_DIR}/draw_command_compaction.comp.hlsl
     ${REAPER_SHADER_DIR}/mesh_shade.frag.glsl
     ${REAPER_SHADER_DIR}/mesh_shade.vert.glsl
     ${REAPER_SHADER_DIR}/mesh_simple.frag.glsl
