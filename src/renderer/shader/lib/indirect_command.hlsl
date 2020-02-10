@@ -19,6 +19,18 @@ struct IndirectDrawCommand
     uint firstInstance;
 };
 
+void store_draw_command(RWByteAddressBuffer DrawCommandOut, uint offset, IndirectDrawCommand command)
+{
+    const uint4 command_data = uint4(
+        command.instanceCount,
+        command.firstIndex,
+        asuint(command.vertexOffset),
+        command.firstInstance);
+
+    DrawCommandOut.Store(offset, command.indexCount);
+    DrawCommandOut.Store4(offset + 4, command_data);
+}
+
 static const uint IndirectDispatchCommandSize = 3;
 
 struct IndirectDispatchCommand

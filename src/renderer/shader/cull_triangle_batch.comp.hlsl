@@ -105,10 +105,13 @@ void main(/*uint3 gtid : SV_GroupThreadID,*/
         uint draw_command_index;
         DrawCountOut.InterlockedAdd(0, uint(1), draw_command_index); // FIXME Cast is needed for glslang
 
-        DrawCommandOut.Store((draw_command_index * IndirectDrawCommandSize + 0) * 4, lds_triangle_count * 3);
-        DrawCommandOut.Store((draw_command_index * IndirectDrawCommandSize + 1) * 4, 1);
-        DrawCommandOut.Store((draw_command_index * IndirectDrawCommandSize + 2) * 4, lds_triangle_offset * 3);
-        DrawCommandOut.Store((draw_command_index * IndirectDrawCommandSize + 3) * 4, 0);
-        DrawCommandOut.Store((draw_command_index * IndirectDrawCommandSize + 4) * 4, instance_id);
+        IndirectDrawCommand command;
+        command.indexCount = lds_triangle_count * 3;
+        command.instanceCount = 1;
+        command.firstIndex = lds_triangle_offset * 3;
+        command.vertexOffset = 0;
+        command.firstInstance = instance_id;
+
+        store_draw_command(DrawCommandOut, draw_command_index * IndirectDrawCommandSize * 4, command);
     }
 }
