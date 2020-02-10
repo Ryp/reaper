@@ -43,16 +43,13 @@ void main(/*uint3 gtid : SV_GroupThreadID,*/
 
     const uint input_triangle_index_offset = consts.firstIndex + dtid.x * 3;
 
-    const uint index0 = Indices.Load((input_triangle_index_offset + 0) * 4);
-    const uint index1 = Indices.Load((input_triangle_index_offset + 1) * 4);
-    const uint index2 = Indices.Load((input_triangle_index_offset + 2) * 4);
+    const uint3 indices = Indices.Load3(input_triangle_index_offset * 4);
 
     const uint vertex_size_in_bytes = 3 * 4;
 
-    // FIXME Load4 can load outside of allocated address
-    const float3 vpos0_ms = asfloat(VertexPositions.Load4(index0 * vertex_size_in_bytes).xyz);
-    const float3 vpos1_ms = asfloat(VertexPositions.Load4(index1 * vertex_size_in_bytes).xyz);
-    const float3 vpos2_ms = asfloat(VertexPositions.Load4(index2 * vertex_size_in_bytes).xyz);
+    const float3 vpos0_ms = asfloat(VertexPositions.Load3(indices.x * vertex_size_in_bytes).xyz);
+    const float3 vpos1_ms = asfloat(VertexPositions.Load3(indices.y * vertex_size_in_bytes).xyz);
+    const float3 vpos2_ms = asfloat(VertexPositions.Load3(indices.z * vertex_size_in_bytes).xyz);
 
     const uint instance_id = gid.y;
     const float4x4 ms_to_cs_matrix = instance_params[instance_id].ms_to_cs_matrix;
@@ -100,9 +97,7 @@ void main(/*uint3 gtid : SV_GroupThreadID,*/
 
     if (is_visible)
     {
-        IndicesOut.Store((output_triangle_index * 3 + 0) * 4, index0);
-        IndicesOut.Store((output_triangle_index * 3 + 1) * 4, index1);
-        IndicesOut.Store((output_triangle_index * 3 + 2) * 4, index2);
+        IndicesOut.Store3(output_triangle_index * 3 * 4, indices);
     }
 
     if (gi == 0)
