@@ -30,7 +30,7 @@ struct IndirectDispatchCommand
 
 uint group_count(uint batch_size, uint group_size)
 {
-    return (batch_size - 1) / group_size + 1;
+    return (batch_size + group_size - 1) / group_size;
 }
 
 #endif
