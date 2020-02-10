@@ -28,7 +28,7 @@ struct IndirectDispatchCommand
     uint z;
 };
 
-uint group_count(uint batch_size, uint group_size)
+uint div_round_up(uint batch_size, uint group_size)
 {
     return (batch_size + group_size - 1) / group_size;
 }
