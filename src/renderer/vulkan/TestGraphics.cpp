@@ -1231,7 +1231,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
 
                 vkCmdPushConstants(resources.gfxCmdBuffer, cullPipe.pipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0,
                                    sizeof(consts), &consts);
-                vkCmdDispatch(resources.gfxCmdBuffer, group_count(consts.triangleCount, ComputeCullingGroupSize),
+                vkCmdDispatch(resources.gfxCmdBuffer, div_round_up(consts.triangleCount, ComputeCullingGroupSize),
                               instanceCount, 1);
             }
 

@@ -14,7 +14,7 @@ void main()
     const uint command_count = DrawCount.Load(0);
 
     IndirectDispatchCommand dispatchCommand;
-    dispatchCommand.x = group_count(command_count, CompactionGroupSize);
+    dispatchCommand.x = div_round_up(command_count, CompactionGroupSize);
     dispatchCommand.y = 1;
     dispatchCommand.z = 1;
 
