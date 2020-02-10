@@ -7,7 +7,6 @@
 
 #include "Test.h"
 
-#include "TestCompute.h"
 #include "TestGraphics.h"
 
 #include "Debug.h"
@@ -127,7 +126,6 @@ void vulkan_test(ReaperRoot& root, VulkanBackend& backend)
     {
         GlobalResources resources = {image, imageView, mainAllocator, descriptorPool, gfxCmdBuffer};
 
-        vulkan_test_compute(root, backend, resources);
         vulkan_test_graphics(root, backend, resources);
     }
 
