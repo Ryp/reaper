@@ -7,9 +7,9 @@ VK_BINDING(1, 0) StructuredBuffer<DrawInstanceParams> instance_params;
 
 struct VS_INPUT
 {
-    float3 PositionMS;
-    float3 NormalMS;
-    float2 UV;
+    VK_LOCATION(0) float3 PositionMS;
+    VK_LOCATION(1) float3 NormalMS;
+    VK_LOCATION(2) float2 UV;
 };
 
 struct VS_OUTPUT

@@ -35,11 +35,13 @@
     #define VK_PUSH_CONSTANT()          [[vk::push_constant]]
     #define VK_CONSTANT(_index)         [[vk::constant_id(_index)]]
     #define VK_BINDING(_binding, _set)  [[vk::binding(_binding, _set)]]
+    #define VK_LOCATION(_location)      [[vk::location(_location)]]
 #else
     // Not supported
     #define VK_PUSH_CONSTANT()
     #define VK_CONSTANT(_index)
     #define VK_BINDING(_binding, _set)
+    #define VK_LOCATION(_location)
 #endif
 
 #endif
