@@ -54,9 +54,9 @@ void main(/*uint3 gtid : SV_GroupThreadID,*/
     const uint instance_id = gid.y;
     const float4x4 ms_to_cs_matrix = instance_params[instance_id].ms_to_cs_matrix;
 
-    const float4 vpos0_cs = float4(vpos0_ms, 1.0) * ms_to_cs_matrix;
-    const float4 vpos1_cs = float4(vpos1_ms, 1.0) * ms_to_cs_matrix;
-    const float4 vpos2_cs = float4(vpos2_ms, 1.0) * ms_to_cs_matrix;
+    const float4 vpos0_cs = ms_to_cs_matrix * float4(vpos0_ms, 1.0);
+    const float4 vpos1_cs = ms_to_cs_matrix * float4(vpos1_ms, 1.0);
+    const float4 vpos2_cs = ms_to_cs_matrix * float4(vpos2_ms, 1.0);
 
     const float3 vpos0_ndc = vpos0_cs.xyz / vpos0_cs.w;
     const float3 vpos1_ndc = vpos1_cs.xyz / vpos1_cs.w;
