@@ -36,6 +36,8 @@ target_sources(${target} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/graph/GraphDebug.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/graph/GraphDebug.h
 
+    ${CMAKE_CURRENT_SOURCE_DIR}/hlsl/Types.h
+
     ${CMAKE_CURRENT_SOURCE_DIR}/texture/GPUTextureProperties.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/texture/GPUTextureProperties.h
     ${CMAKE_CURRENT_SOURCE_DIR}/texture/Texture.cpp
@@ -187,6 +189,8 @@ reaper_add_tests(${target}
     ${CMAKE_CURRENT_SOURCE_DIR}/test/mesh_loading.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test/renderer.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test/scene.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/test/hlsl/float_vector.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/test/hlsl/float_matrix.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test/texture_loading.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test/window.cpp
 )

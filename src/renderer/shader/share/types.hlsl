@@ -8,42 +8,30 @@
 #ifndef SHARE_TYPES_INCLUDED
 #define SHARE_TYPES_INCLUDED
 
+// NOTE: Not all HLSL types are supported.
+// It should be trivial to add it for missing one if they are ever used.
 #ifdef REAPER_SHADER_CODE
-    #define sl_int      int
-    #define sl_int2     int2
-    #define sl_int3     int3
-    #define sl_int4     int4
+    #define hlsl_bool   bool
 
-    #define sl_uint     uint
-    #define sl_uint2    uint2
-    #define sl_uint3    uint3
-    #define sl_uint4    uint4
+    #define hlsl_int    int
+    #define hlsl_int2   int2
+    #define hlsl_int3   int3
+    #define hlsl_int4   int4
 
-    #define sl_float    float
-    #define sl_float2   float2
-    #define sl_float3   float3
-    #define sl_float4   float4
+    #define hlsl_uint   uint
+    #define hlsl_uint2  uint2
+    #define hlsl_uint3  uint3
+    #define hlsl_uint4  uint4
 
-    #define sl_float4x4 float4x4
-    #define sl_float3x3 float3x3
+    #define hlsl_float  float
+    #define hlsl_float2 float2
+    #define hlsl_float3 float3
+    #define hlsl_float4 float4
+
+    #define hlsl_float3x3 float3x3
+    #define hlsl_float4x4 float4x4
 #else
-    using sl_int    = i32;
-    using sl_int2   = glm::ivec2;
-    using sl_int3   = glm::ivec3;
-    using sl_int4   = glm::ivec4;
-
-    using sl_uint   = u32;
-    using sl_uint2  = glm::uvec2;
-    using sl_uint3  = glm::uvec3;
-    using sl_uint4  = glm::uvec4;
-
-    using sl_float  = float;
-    using sl_float2 = glm::fvec2;
-    using sl_float3 = glm::fvec3;
-    using sl_float4 = glm::fvec4;
-
-    using sl_float4x4   = glm::fmat4;
-    using sl_float3x3   = glm::fmat3x4; // FIXME padding
+    #include "renderer/hlsl/Types.h"
 #endif
 
 #endif
