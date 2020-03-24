@@ -22,14 +22,14 @@ struct VS_OUTPUT
 VS_OUTPUT main(VS_INPUT input, uint instance_id : SV_InstanceID)
 {
     const float3 positionMS = input.PositionMS;
-    const float4 positionWS = float4(positionMS, 1.0) * instance_params[instance_id].model;
-    const float4 positionCS = positionWS * pass_params.viewProj;
+    const float4 positionWS = instance_params[instance_id].model * float4(positionMS, 1.0);
+    const float4 positionCS = pass_params.viewProj * positionWS;
 
     VS_OUTPUT output;
 
     output.positionCS = positionCS;
 
-    output.NormalVS = input.NormalMS * instance_params[instance_id].normal_ms_to_vs_matrix;
+    output.NormalVS = instance_params[instance_id].normal_ms_to_vs_matrix * input.NormalMS;
 
     output.UV = input.UV;
 

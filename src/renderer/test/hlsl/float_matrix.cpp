@@ -19,15 +19,15 @@ TEST_CASE("HLSL float matrix types")
 
         hlsl_float3x3 identity = glm::fmat3();
 
-        CHECK_EQ(identity.col0.x, 1.f);
-        CHECK_EQ(identity.col1.y, 1.f);
-        CHECK_EQ(identity.col2.z, 1.f);
+        CHECK_EQ(identity.row0.x, 1.f);
+        CHECK_EQ(identity.row1.y, 1.f);
+        CHECK_EQ(identity.row2.z, 1.f);
 
-        CHECK_EQ(identity.col0.y, 0.f);
-        CHECK_EQ(identity.col0.z, 0.f);
+        CHECK_EQ(identity.row0.y, 0.f);
+        CHECK_EQ(identity.row0.z, 0.f);
 
-        CHECK_EQ(identity.col2.x, 0.f);
-        CHECK_EQ(identity.col2.y, 0.f);
+        CHECK_EQ(identity.row2.x, 0.f);
+        CHECK_EQ(identity.row2.y, 0.f);
     }
 
     SUBCASE("hlsl_float4x4")
@@ -37,17 +37,17 @@ TEST_CASE("HLSL float matrix types")
 
         hlsl_float4x4 identity = glm::fmat4();
 
-        CHECK_EQ(identity.col0.x, 1.f);
-        CHECK_EQ(identity.col1.y, 1.f);
-        CHECK_EQ(identity.col2.z, 1.f);
-        CHECK_EQ(identity.col3.w, 1.f);
+        CHECK_EQ(identity.row0.x, 1.f);
+        CHECK_EQ(identity.row1.y, 1.f);
+        CHECK_EQ(identity.row2.z, 1.f);
+        CHECK_EQ(identity.row3.w, 1.f);
 
-        CHECK_EQ(identity.col0.y, 0.f);
-        CHECK_EQ(identity.col0.z, 0.f);
+        CHECK_EQ(identity.row0.y, 0.f);
+        CHECK_EQ(identity.row0.z, 0.f);
 
-        CHECK_EQ(identity.col2.x, 0.f);
-        CHECK_EQ(identity.col2.y, 0.f);
+        CHECK_EQ(identity.row2.x, 0.f);
+        CHECK_EQ(identity.row2.y, 0.f);
 
-        CHECK_EQ(identity.col3.z, 0.f);
+        CHECK_EQ(identity.row3.z, 0.f);
     }
 }
