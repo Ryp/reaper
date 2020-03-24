@@ -10,17 +10,17 @@
 
 #include "types.hlsl"
 
-static const sl_uint ComputeCullingGroupSize = 256;
+static const hlsl_uint ComputeCullingGroupSize = 256;
 
 struct CullPushConstants
 {
-    sl_uint triangleCount;
-    sl_uint firstIndex;
+    hlsl_uint triangleCount;
+    hlsl_uint firstIndex;
 };
 
 struct CullInstanceParams
 {
-    sl_float4x4 ms_to_cs_matrix;
+    hlsl_float4x4 ms_to_cs_matrix;
 };
 
 #endif

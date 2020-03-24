@@ -29,7 +29,8 @@ VS_OUTPUT main(VS_INPUT input, uint instance_id : SV_InstanceID)
 
     output.positionCS = positionCS;
 
-    output.NormalVS = input.NormalMS * instance_params[instance_id].modelViewInvT;
+    output.NormalVS = input.NormalMS * instance_params[instance_id].normal_ms_to_vs_matrix;
+
     output.UV = input.UV;
 
     return output;

@@ -12,14 +12,17 @@
 
 struct DrawPassParams
 {
-    sl_float4x4 viewProj;
-    sl_float    timeMs;
+    hlsl_float4x4 viewProj;
+    hlsl_float3   light_position_vs;
+    hlsl_float    timeMs;
+    hlsl_float3   light_direction_vs;
+    hlsl_float    _pad;
 };
 
 struct DrawInstanceParams
 {
-    sl_float4x4 model;
-    sl_float3x3 modelViewInvT;
+    hlsl_float4x4 model;
+    hlsl_float3x3 normal_ms_to_vs_matrix;
 };
 
 #endif

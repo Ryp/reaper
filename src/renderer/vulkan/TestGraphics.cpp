@@ -408,7 +408,7 @@ namespace
         vulkan_create_shader_module(blitShaderFS, backend.device, fileNameFS);
         vulkan_create_shader_module(blitShaderVS, backend.device, fileNameVS);
 
-        const u32                             meshVertexStride = sizeof(float) * 3; // Position only
+        const u32                             meshVertexStride = sizeof(hlsl_float3);
         const VkVertexInputBindingDescription vertexInfoShaderBinding = {
             0,                          // binding
             meshVertexStride,           // stride
@@ -533,7 +533,8 @@ namespace
             {0.0f, 0.0f, 0.0f, 0.0f}};
 
         std::array<VkDescriptorSetLayoutBinding, 2> descriptorSetLayoutBinding = {
-            VkDescriptorSetLayoutBinding{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
+            VkDescriptorSetLayoutBinding{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1,
+                                         VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
             VkDescriptorSetLayoutBinding{1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
         };
 
@@ -624,13 +625,24 @@ namespace
         draw_pass_params.viewProj = projection * view;
 
         draw_pass_params.timeMs = timeMs;
+
+        {
+            glm::fvec3 light_position_ws(1.f, 1.f, 1.f);
+            glm::fvec3 light_direction_ws(glm::cos(timeMs), 1.f, 0.f);
+
+            glm::fvec3 light_position_vs = view * glm::fvec4(light_position_ws, 1.f);
+            glm::fvec3 light_direction_vs = view * glm::fvec4(light_direction_ws, 0.f);
+
+            draw_pass_params.light_position_vs = light_position_vs;
+            draw_pass_params.light_direction_vs = glm::normalize(light_direction_vs);
+        }
     }
 } // namespace
 
 void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResources& resources)
 {
     // Read mesh file
-    std::ifstream modelFile("res/model/ship.obj");
+    std::ifstream modelFile("res/model/suzanne.obj");
     const Mesh    mesh = ModelLoader::loadOBJ(modelFile);
 
     const u32 instanceCount = 6;
@@ -1093,7 +1105,8 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                 const float     ratio = static_cast<float>(i) / static_cast<float>(instanceCount) * 3.1415f * 2.f;
                 const glm::vec3 object_position_ws =
                     glm::vec3(glm::cos(ratio + animationTimeMs), glm::cos(ratio), glm::sin(ratio));
-                const float     uniform_scale = 0.0005f;
+                // const float     uniform_scale = 0.0005f;
+                const float     uniform_scale = 0.4f;
                 const glm::mat4 model = glm::rotate(glm::scale(glm::translate(glm::mat4(1.0f), object_position_ws),
                                                                glm::vec3(uniform_scale, uniform_scale, uniform_scale)),
                                                     animationTimeMs + ratio, glm::vec3(0.f, 1.f, 1.f));
@@ -1102,12 +1115,9 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
 
                 const glm::mat4 modelView = view * model;
                 // Assumption that our 3x3 submatrix is orthonormal (no skew/non-uniform scaling)
-                draw_instance_params[i].modelViewInvT = modelView;
+                draw_instance_params[i].normal_ms_to_vs_matrix = glm::mat3(modelView);
 
-                // draw_instance_params[i].modelViewInvT = glm::transpose(glm::inverse(glm::mat3(modelView))); //
-                // Assumption that our 3x3 submatrix is orthogonal
-
-                cull_instance_params[i].ms_to_cs_matrix = draw_pass_params.viewProj * model;
+                cull_instance_params[i].ms_to_cs_matrix = glm::mat4(draw_pass_params.viewProj) * model;
             }
 
             upload_buffer_data(backend.device, drawPassConstantBuffer, &draw_pass_params, sizeof(DrawPassParams));
@@ -1274,7 +1284,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
             Assert(presentResult == VK_SUCCESS);
 
             if (saveMyLaptop)
-                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                std::this_thread::sleep_for(std::chrono::milliseconds(60));
 
             frameIndex++;
             if (frameIndex == MaxFrameCount)
