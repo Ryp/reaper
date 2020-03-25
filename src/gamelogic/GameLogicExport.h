@@ -12,7 +12,7 @@
 #include "core/Compiler.h"
 
 #if defined(REAPER_BUILD_SHARED)
-#    if defined(reaper_gamelogic_EXPORTS)
+#    if defined(REAPER_GAMELOGIC_EXPORT)
 #        define REAPER_GAMELOGIC_API REAPER_EXPORT
 #    else
 #        define REAPER_GAMELOGIC_API REAPER_IMPORT
