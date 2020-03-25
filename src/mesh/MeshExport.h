@@ -12,7 +12,7 @@
 #include "core/Compiler.h"
 
 #if defined(REAPER_BUILD_SHARED)
-#    if defined(reaper_mesh_EXPORTS)
+#    if defined(REAPER_MESH_EXPORT)
 #        define REAPER_MESH_API REAPER_EXPORT
 #    else
 #        define REAPER_MESH_API REAPER_IMPORT

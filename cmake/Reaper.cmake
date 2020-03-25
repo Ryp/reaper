@@ -33,11 +33,13 @@ endfunction()
 function(reaper_generate_export_header target project_label)
     # Construct export macro name
     string(TOUPPER ${target} TARGET_UPPERCASE)
-    set(LIBRARY_API_MACRO ${TARGET_UPPERCASE}_API)
 
     # Construct the macro that is used in to tell if the library is being built
-    # or just imported. The naming convention is CMake specific.
-    set(LIBRARY_BUILDING_MACRO ${target}_EXPORTS)
+    # or just imported.
+    set(LIBRARY_BUILDING_MACRO ${TARGET_UPPERCASE}_EXPORT)
+    set_target_properties(${target} PROPERTIES DEFINE_SYMBOL ${LIBRARY_BUILDING_MACRO})
+
+    set(LIBRARY_API_MACRO ${TARGET_UPPERCASE}_API)
 
     # Generate the file from the template.
     set(REAPER_EXPORT_TEMPLATE_PATH ${CMAKE_SOURCE_DIR}/src/LibraryExport.h.in)
