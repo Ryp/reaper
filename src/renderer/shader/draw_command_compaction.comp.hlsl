@@ -18,10 +18,10 @@ VK_BINDING(3, 0) globallycoherent RWByteAddressBuffer DrawCountOut;
 //------------------------------------------------------------------------------
 
 [numthreads(CompactionGroupSize, 1, 1)]
-void main(/*uint3 gtid : SV_GroupThreadID,*/
-          /*uint3 gid  : SV_GroupID,*/
+void main(uint3 gtid : SV_GroupThreadID,
+          uint3 gid  : SV_GroupID,
           uint3 dtid : SV_DispatchThreadID,
-          /*uint  gi   : SV_GroupIndex*/)
+          uint  gi   : SV_GroupIndex)
 {
     // We could Load() once per wave
     const uint command_count = DrawCount.Load(0);
