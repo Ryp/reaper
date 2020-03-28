@@ -191,6 +191,7 @@ reaper_add_tests(${target}
     ${CMAKE_CURRENT_SOURCE_DIR}/test/scene.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test/hlsl/float_vector.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test/hlsl/float_matrix.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/test/hlsl/struct.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test/texture_loading.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test/window.cpp
 )
