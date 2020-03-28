@@ -76,6 +76,9 @@ set(CXX_STANDARD_REQUIRED ON)
 # Export compile commands in a json file. Useful for clang-based tools
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# Enable verbose Makefile output. Useful for debugging
+#set(CMAKE_VERBOSE_MAKEFILE ON)
+
 # Enable folder support (useful for Visual Studio)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
