@@ -25,7 +25,7 @@ TEST_CASE("HLSL float vector types")
     SUBCASE("hlsl_float2")
     {
         static_assert(sizeof(hlsl_float2) == 2 * sizeof(float));
-        // static_assert(alignof(hlsl_float2) == 2 * sizeof(float));
+        static_assert(alignof(hlsl_float2) == 2 * sizeof(float));
 
         hlsl_float2 zeroed = {};
 
