@@ -628,7 +628,7 @@ namespace
 
         {
             glm::fvec3 light_position_ws(1.f, 1.f, 1.f);
-            glm::fvec3 light_direction_ws(glm::cos(timeMs), 1.f, 0.f);
+            glm::fvec3 light_direction_ws(0.f, 1.f, glm::cos(timeMs));
 
             glm::fvec3 light_position_vs = view * glm::fvec4(light_position_ws, 1.f);
             glm::fvec3 light_direction_vs = view * glm::fvec4(light_direction_ws, 0.f);
