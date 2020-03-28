@@ -37,6 +37,7 @@ target_sources(${target} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/graph/GraphDebug.h
 
     ${CMAKE_CURRENT_SOURCE_DIR}/hlsl/Types.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/hlsl/Types.inl
 
     ${CMAKE_CURRENT_SOURCE_DIR}/texture/GPUTextureProperties.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/texture/GPUTextureProperties.h

@@ -108,6 +108,25 @@ struct alignas(16) hlsl_matrix3x3_row_major
 };
 
 template <typename T>
+struct alignas(16) hlsl_matrix3x3_col_major
+{
+    hlsl_vector3_with_padding<T> element[3];
+
+    hlsl_matrix3x3_col_major() = default;
+    hlsl_matrix3x3_col_major(const glm::tmat3x3<T>& other)
+    {
+        this->element[0] = glm::column(other, 0);
+        this->element[1] = glm::column(other, 1);
+        this->element[2] = glm::column(other, 2);
+    }
+
+    operator glm::tmat3x3<float>() const
+    {
+        return glm::colMajor3(glm::tvec3<T>(element[0]), glm::tvec3<T>(element[1]), glm::tvec3<T>(element[2]));
+    }
+};
+
+template <typename T>
 struct alignas(16) hlsl_matrix4x4_row_major
 {
     hlsl_vector4<T> element[4];
