@@ -57,7 +57,7 @@ void vulkan_test(ReaperRoot& root, VulkanBackend& backend)
 
     // Create main memory pool
     VkDeviceMemory mainMemPoom = VK_NULL_HANDLE;
-    const u32      mainMemPoolIndex = 1; // FIXME
+    const u32      mainMemPoolIndex = 0; // FIXME
     const u64      mainMemPoolSize = 100_MiB;
 
     const VkMemoryAllocateInfo mainMemPoolAllocInfo = {VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, nullptr, mainMemPoolSize,

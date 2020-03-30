@@ -1236,14 +1236,14 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
 
                 if (useCompactedDraw)
                 {
-                    vkCmdDrawIndexedIndirectCountKHR(resources.gfxCmdBuffer, compactIndirectDrawBuffer.buffer, 0,
-                                                     compactIndirectDrawCountBuffer.buffer, 0,
-                                                     compactIndirectDrawBuffer.descriptor.elementCount,
-                                                     compactIndirectDrawBuffer.descriptor.elementSize);
+                    vkCmdDrawIndexedIndirectCount(resources.gfxCmdBuffer, compactIndirectDrawBuffer.buffer, 0,
+                                                  compactIndirectDrawCountBuffer.buffer, 0,
+                                                  compactIndirectDrawBuffer.descriptor.elementCount,
+                                                  compactIndirectDrawBuffer.descriptor.elementSize);
                 }
                 else
                 {
-                    vkCmdDrawIndexedIndirectCountKHR(
+                    vkCmdDrawIndexedIndirectCount(
                         resources.gfxCmdBuffer, indirectDrawBuffer.buffer, 0, indirectDrawCountBuffer.buffer, 0,
                         indirectDrawBuffer.descriptor.elementCount, indirectDrawBuffer.descriptor.elementSize);
                 }
