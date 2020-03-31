@@ -137,6 +137,8 @@ endif()
 set(REAPER_SPIRV_VERSION spirv1.3)
 set(REAPER_VULKAN_VERSION vulkan1.1)
 set(REAPER_SHADER_ENTRY_POINT main)
+set(REAPER_DXC_SM_MAJOR 6)
+set(REAPER_DXC_SM_MINOR 0)
 
 # Loop variables
 set(REAPER_SPIRV_OUTPUT)
@@ -161,12 +163,11 @@ foreach(INPUT_SHADER IN LISTS REAPER_SHADER_SRCS)
         if(REAPER_HLSL_USE_DXC)
             get_filename_component(SHADER_TYPE_EXTENSION ${INPUT_SHADER} NAME_WLE)
             get_filename_component(SHADER_TYPE_EXTENSION ${SHADER_TYPE_EXTENSION} LAST_EXT)
-
-            dxc_get_shader_model_string(${SHADER_TYPE_EXTENSION} 6 0 SHADER_MODEL_STRING)
+            dxc_get_shader_model_string(${SHADER_TYPE_EXTENSION} ${REAPER_DXC_SM_MAJOR} ${REAPER_DXC_SM_MINOR} SHADER_MODEL_STRING)
 
             add_custom_command(OUTPUT ${OUTPUT_SPIRV}
                 COMMAND ${CMAKE_COMMAND} -E make_directory ${OUTPUT_SPIRV_PATH}
-                COMMAND ${DXC_EXEC} -nologo -T ${SHADER_MODEL_STRING} -spirv -fspv-target-env=${REAPER_VULKAN_VERSION} -E ${REAPER_SHADER_ENTRY_POINT} ${INPUT_SHADER} -I${REAPER_SHADER_DIR} -Fo ${OUTPUT_SPIRV}.unoptimized
+                COMMAND ${DXC_EXEC} -nologo -T ${SHADER_MODEL_STRING} -spirv -fspv-target-env=${REAPER_VULKAN_VERSION} -D_DXC -Zi -E ${REAPER_SHADER_ENTRY_POINT} ${INPUT_SHADER} -I${REAPER_SHADER_DIR} -Fo ${OUTPUT_SPIRV}.unoptimized
                 COMMAND ${VULKAN_SPIRV_OPT_EXEC} ${OUTPUT_SPIRV}.unoptimized --legalize-hlsl -Os -o ${OUTPUT_SPIRV}
                 COMMAND ${VULKAN_SPIRV_DIS_EXEC} ${OUTPUT_SPIRV} -o ${OUTPUT_SPIRV}asm
                 COMMAND ${VULKAN_SPIRV_VAL_EXEC} ${OUTPUT_SPIRV}
