@@ -103,7 +103,7 @@ namespace
         log_debug(root, "vulkan: created pipeline layout with handle: {}", static_cast<void*>(pipelineLayout));
 
         VkShaderModule        computeShader = VK_NULL_HANDLE;
-        const char*           fileName = "./build/spv/compaction_prepare_indirect_dispatch.comp.spv";
+        const char*           fileName = "./build/shader/compaction_prepare_indirect_dispatch.comp.spv";
         const char*           entryPoint = "main";
         VkSpecializationInfo* specialization = nullptr;
 
@@ -174,7 +174,7 @@ namespace
         log_debug(root, "vulkan: created pipeline layout with handle: {}", static_cast<void*>(pipelineLayout));
 
         VkShaderModule        computeShader = VK_NULL_HANDLE;
-        const char*           fileName = "./build/spv/draw_command_compaction.comp.spv";
+        const char*           fileName = "./build/shader/draw_command_compaction.comp.spv";
         const char*           entryPoint = "main";
         VkSpecializationInfo* specialization = nullptr;
 
@@ -400,8 +400,8 @@ namespace
     {
         VkShaderModule        blitShaderFS = VK_NULL_HANDLE;
         VkShaderModule        blitShaderVS = VK_NULL_HANDLE;
-        const char*           fileNameVS = "./build/spv/mesh_transformed_shaded.vert.spv";
-        const char*           fileNameFS = "./build/spv/mesh_transformed_shaded.frag.spv";
+        const char*           fileNameVS = "./build/shader/mesh_transformed_shaded.vert.spv";
+        const char*           fileNameFS = "./build/shader/mesh_transformed_shaded.frag.spv";
         const char*           entryPoint = "main";
         VkSpecializationInfo* specialization = nullptr;
 
@@ -1111,7 +1111,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                                                                glm::vec3(uniform_scale, uniform_scale, uniform_scale)),
                                                     animationTimeMs + ratio, glm::vec3(0.f, 1.f, 1.f));
 
-                draw_instance_params[i].model = model;
+                draw_instance_params[i].model = glm::mat4x3(model);
 
                 const glm::mat4 modelView = view * model;
                 // Assumption that our 3x3 submatrix is orthonormal (no skew/non-uniform scaling)

@@ -108,21 +108,24 @@ struct alignas(16) hlsl_matrix3x3_row_major
 };
 
 template <typename T>
-struct alignas(16) hlsl_matrix3x3_col_major
+struct alignas(16) hlsl_matrix3x4_row_major
 {
-    hlsl_vector3_with_padding<T> element[3];
+    hlsl_vector4<T> element[3];
 
-    hlsl_matrix3x3_col_major() = default;
-    hlsl_matrix3x3_col_major(const glm::tmat3x3<T>& other)
+    hlsl_matrix3x4_row_major() = default;
+    hlsl_matrix3x4_row_major(const glm::tmat4x3<T>& other)
     {
-        this->element[0] = glm::column(other, 0);
-        this->element[1] = glm::column(other, 1);
-        this->element[2] = glm::column(other, 2);
+        this->element[0] = glm::row(other, 0);
+        this->element[1] = glm::row(other, 1);
+        this->element[2] = glm::row(other, 2);
     }
 
-    operator glm::tmat3x3<float>() const
+    operator glm::tmat4x3<float>() const
     {
-        return glm::colMajor3(glm::tvec3<T>(element[0]), glm::tvec3<T>(element[1]), glm::tvec3<T>(element[2]));
+        return glm::tmat4x3<float>(glm::tvec3<T>(element[0].x, element[1].x, element[2].x),
+                                   glm::tvec3<T>(element[0].y, element[1].y, element[2].y),
+                                   glm::tvec3<T>(element[0].z, element[1].z, element[2].z),
+                                   glm::tvec3<T>(element[0].w, element[1].w, element[2].w));
     }
 };
 
@@ -143,27 +146,6 @@ struct alignas(16) hlsl_matrix4x4_row_major
     operator glm::tmat4x4<float>() const
     {
         return glm::rowMajor4(glm::tvec4<T>(element[0]), glm::tvec4<T>(element[1]), glm::tvec4<T>(element[2]),
-                              glm::tvec4<T>(element[3]));
-    }
-};
-
-template <typename T>
-struct alignas(16) hlsl_matrix4x4_col_major
-{
-    hlsl_vector4<T> element[4];
-
-    hlsl_matrix4x4_col_major() = default;
-    hlsl_matrix4x4_col_major(const glm::tmat4x4<T>& other)
-    {
-        this->element[0] = glm::column(other, 0);
-        this->element[1] = glm::column(other, 1);
-        this->element[2] = glm::column(other, 2);
-        this->element[3] = glm::column(other, 3);
-    }
-
-    operator glm::tmat4x4<float>() const
-    {
-        return glm::colMajor4(glm::tvec4<T>(element[0]), glm::tvec4<T>(element[1]), glm::tvec4<T>(element[2]),
                               glm::tvec4<T>(element[3]));
     }
 };

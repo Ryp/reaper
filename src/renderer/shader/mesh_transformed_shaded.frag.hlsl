@@ -8,8 +8,8 @@ VK_BINDING(0, 0) ConstantBuffer<DrawPassParams> pass_params;
 struct PS_INPUT
 {
     float4 positionCS : SV_Position;
-    float3 NormalVS;
-    float2 UV;
+    float3 NormalVS : TEXCOORD0;
+    float2 UV : TEXCOORD1;
 };
 
 struct PS_OUTPUT
