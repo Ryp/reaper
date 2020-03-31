@@ -21,7 +21,7 @@ struct DrawPassParams
 
 struct DrawInstanceParams
 {
-    hlsl_float4x4 model;
+    hlsl_float3x4 model;
     hlsl_float3x3 normal_ms_to_vs_matrix;
 };
 

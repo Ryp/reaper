@@ -7,29 +7,29 @@ VK_BINDING(1, 0) StructuredBuffer<DrawInstanceParams> instance_params;
 
 struct VS_INPUT
 {
-    VK_LOCATION(0) float3 PositionMS;
-    VK_LOCATION(1) float3 NormalMS;
-    VK_LOCATION(2) float2 UV;
+    VK_LOCATION(0) float3 PositionMS : TEXCOORD0;
+    VK_LOCATION(1) float3 NormalMS  : TEXCOORD1;
+    VK_LOCATION(2) float2 UV : TEXCOORD2;
 };
 
 struct VS_OUTPUT
 {
     float4 positionCS : SV_Position;
-    float3 NormalVS;
-    float2 UV;
+    float3 NormalVS : TEXCOORD0;
+    float2 UV : TEXCOORD1;
 };
 
 VS_OUTPUT main(VS_INPUT input, uint instance_id : SV_InstanceID)
 {
     const float3 positionMS = input.PositionMS;
-    const float4 positionWS = instance_params[instance_id].model * float4(positionMS, 1.0);
-    const float4 positionCS = pass_params.viewProj * positionWS;
+    const float3 positionWS = mul(instance_params[instance_id].model, float4(positionMS, 1.0));
+    const float4 positionCS = mul(pass_params.viewProj, float4(positionWS.xyz, 1.0));
 
     VS_OUTPUT output;
 
     output.positionCS = positionCS;
 
-    output.NormalVS = instance_params[instance_id].normal_ms_to_vs_matrix * input.NormalMS;
+    output.NormalVS = mul(instance_params[instance_id].normal_ms_to_vs_matrix, input.NormalMS);
 
     output.UV = input.UV;
 

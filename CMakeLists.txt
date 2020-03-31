@@ -65,6 +65,10 @@ option(REAPER_BUILD_COVERAGE_INFO       "Build with coverage info"      OFF)
 # That allows us to capture frames in-engine and attach RenderDoc later to analyze them.
 option(REAPER_USE_RENDERDOC             "Build with RenderDoc support"  OFF)
 
+# This is experimental.
+# See dxc.cmake for setup intructions
+option(REAPER_HLSL_USE_DXC              "Build HLSL shaders with DXC"   OFF)
+
 # Override binary output paths
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${Reaper_BINARY_DIR})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${Reaper_BINARY_DIR})
@@ -77,7 +81,7 @@ set(CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Enable verbose Makefile output. Useful for debugging
-#set(CMAKE_VERBOSE_MAKEFILE ON)
+set(CMAKE_VERBOSE_MAKEFILE OFF)
 
 # Enable folder support (useful for Visual Studio)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)

@@ -58,7 +58,7 @@ CullPipelineInfo create_cull_pipeline(ReaperRoot& root, VulkanBackend& backend)
     log_debug(root, "vulkan: created pipeline layout with handle: {}", static_cast<void*>(pipelineLayout));
 
     VkShaderModule        computeShader = VK_NULL_HANDLE;
-    const char*           fileName = "./build/spv/cull_triangle_batch.comp.spv";
+    const char*           fileName = "./build/shader/cull_triangle_batch.comp.spv";
     const char*           entryPoint = "main";
     VkSpecializationInfo* specialization = nullptr;
 

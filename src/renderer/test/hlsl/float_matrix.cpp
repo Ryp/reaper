@@ -30,6 +30,28 @@ TEST_CASE("HLSL float matrix types")
         CHECK_EQ(identity.element[2].y, 0.f);
     }
 
+    SUBCASE("hlsl_float3x4")
+    {
+        static_assert(alignof(hlsl_float3x4) == 4 * sizeof(float));
+        static_assert(sizeof(hlsl_float3x4) == 12 * sizeof(float));
+
+        hlsl_float3x4 identity = glm::fmat4x3();
+
+        CHECK_EQ(identity.element[0].x, 1.f);
+        CHECK_EQ(identity.element[1].y, 1.f);
+        CHECK_EQ(identity.element[2].z, 1.f);
+
+        CHECK_EQ(identity.element[0].y, 0.f);
+        CHECK_EQ(identity.element[0].z, 0.f);
+
+        CHECK_EQ(identity.element[2].x, 0.f);
+        CHECK_EQ(identity.element[2].y, 0.f);
+
+        CHECK_EQ(identity.element[0].w, 0.f);
+        CHECK_EQ(identity.element[1].w, 0.f);
+        CHECK_EQ(identity.element[2].w, 0.f);
+    }
+
     SUBCASE("hlsl_float4x4")
     {
         static_assert(alignof(hlsl_float4x4) == 4 * sizeof(float));
