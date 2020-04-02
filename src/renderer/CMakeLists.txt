@@ -123,6 +123,7 @@ set(REAPER_SHADER_SRCS
     ${REAPER_SHADER_DIR}/mesh_transformed_shaded.vert.hlsl
     ${REAPER_SHADER_DIR}/mesh_transformed.vert.glsl
     ${REAPER_SHADER_DIR}/test.comp.glsl
+    ${REAPER_SHADER_DIR}/matrix_row_major_codegen_bug.comp.hlsl
 )
 
 # Shader compilation

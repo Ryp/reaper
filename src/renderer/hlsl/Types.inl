@@ -11,6 +11,9 @@
 #include <glm/gtc/matrix_access.hpp>
 #include <glm/gtx/matrix_major_storage.hpp>
 
+#include <array>
+#include <type_traits>
+
 template <typename T>
 struct alignas(8) hlsl_vector2
 {
@@ -88,64 +91,122 @@ struct alignas(16) hlsl_vector4
     operator glm::tvec4<T>() const { return glm::tvec4<T>(x, y, z, w); }
 };
 
-template <typename T>
-struct alignas(16) hlsl_matrix3x3_row_major
+constexpr bool ColumnMajor = false;
+constexpr bool RowMajor = true;
+
+template <bool Storage, typename T>
+struct alignas(16) hlsl_matrix3x3
 {
     hlsl_vector3_with_padding<T> element[3];
 
-    hlsl_matrix3x3_row_major() = default;
-    hlsl_matrix3x3_row_major(const glm::tmat3x3<T>& other)
+    hlsl_matrix3x3() = default;
+    hlsl_matrix3x3(const glm::tmat3x3<T>& other)
     {
-        this->element[0] = glm::row(other, 0);
-        this->element[1] = glm::row(other, 1);
-        this->element[2] = glm::row(other, 2);
+        if constexpr (Storage == RowMajor)
+        {
+            this->element[0] = glm::row(other, 0);
+            this->element[1] = glm::row(other, 1);
+            this->element[2] = glm::row(other, 2);
+        }
+        else
+        {
+            this->element[0] = glm::column(other, 0);
+            this->element[1] = glm::column(other, 1);
+            this->element[2] = glm::column(other, 2);
+        }
     }
 
     operator glm::tmat3x3<float>() const
     {
-        return glm::rowMajor3(glm::tvec3<T>(element[0]), glm::tvec3<T>(element[1]), glm::tvec3<T>(element[2]));
+        if constexpr (Storage == RowMajor)
+            return glm::rowMajor3(glm::tvec3<T>(element[0]), glm::tvec3<T>(element[1]), glm::tvec3<T>(element[2]));
+        else
+            return glm::colMajor3(glm::tvec3<T>(element[0]), glm::tvec3<T>(element[1]), glm::tvec3<T>(element[2]));
     }
 };
 
-template <typename T>
-struct alignas(16) hlsl_matrix3x4_row_major
+template <bool Storage, typename T>
+struct alignas(16) hlsl_matrix3x4
 {
-    hlsl_vector4<T> element[3];
+    // Template madness because row major and column major don't have the same storage
+    // but we still want to specify storage using a template.
+    using Matrix3x4RowMajorStorage = std::array<hlsl_vector4<T>, 3>;
+    using Matrix3x4ColMajorStorage = std::array<hlsl_vector3_with_padding<T>, 4>;
+    using Matrix3x4Storage =
+        typename std::conditional<Storage, Matrix3x4RowMajorStorage, Matrix3x4ColMajorStorage>::type;
 
-    hlsl_matrix3x4_row_major() = default;
-    hlsl_matrix3x4_row_major(const glm::tmat4x3<T>& other)
+    Matrix3x4Storage element;
+
+    hlsl_matrix3x4() = default;
+    hlsl_matrix3x4(const glm::tmat4x3<T>& other)
     {
-        this->element[0] = glm::row(other, 0);
-        this->element[1] = glm::row(other, 1);
-        this->element[2] = glm::row(other, 2);
+        if constexpr (Storage == RowMajor)
+        {
+            this->element[0] = glm::row(other, 0);
+            this->element[1] = glm::row(other, 1);
+            this->element[2] = glm::row(other, 2);
+        }
+        else
+        {
+            this->element[0] = glm::column(other, 0);
+            this->element[1] = glm::column(other, 1);
+            this->element[2] = glm::column(other, 2);
+            this->element[3] = glm::column(other, 3);
+        }
     }
 
     operator glm::tmat4x3<float>() const
     {
-        return glm::tmat4x3<float>(glm::tvec3<T>(element[0].x, element[1].x, element[2].x),
-                                   glm::tvec3<T>(element[0].y, element[1].y, element[2].y),
-                                   glm::tvec3<T>(element[0].z, element[1].z, element[2].z),
-                                   glm::tvec3<T>(element[0].w, element[1].w, element[2].w));
+        if constexpr (Storage == RowMajor)
+        {
+            return glm::tmat4x3<float>(glm::tvec3<T>(element[0].x, element[1].x, element[2].x),
+                                       glm::tvec3<T>(element[0].y, element[1].y, element[2].y),
+                                       glm::tvec3<T>(element[0].z, element[1].z, element[2].z),
+                                       glm::tvec3<T>(element[0].w, element[1].w, element[2].w));
+        }
+        else
+        {
+            return glm::tmat4x3<float>(glm::tvec3<T>(element[0]), glm::tvec3<T>(element[1]), glm::tvec3<T>(element[2]),
+                                       glm::tvec3<T>(element[3]));
+        }
     }
 };
 
-template <typename T>
-struct alignas(16) hlsl_matrix4x4_row_major
+template <bool Storage, typename T>
+struct alignas(16) hlsl_matrix4x4
 {
     hlsl_vector4<T> element[4];
 
-    hlsl_matrix4x4_row_major() = default;
-    hlsl_matrix4x4_row_major(const glm::tmat4x4<T>& other)
+    hlsl_matrix4x4() = default;
+    hlsl_matrix4x4(const glm::tmat4x4<T>& other)
     {
-        this->element[0] = glm::row(other, 0);
-        this->element[1] = glm::row(other, 1);
-        this->element[2] = glm::row(other, 2);
-        this->element[3] = glm::row(other, 3);
+        if constexpr (Storage == RowMajor)
+        {
+            this->element[0] = glm::row(other, 0);
+            this->element[1] = glm::row(other, 1);
+            this->element[2] = glm::row(other, 2);
+            this->element[3] = glm::row(other, 3);
+        }
+        else
+        {
+            this->element[0] = glm::column(other, 0);
+            this->element[1] = glm::column(other, 1);
+            this->element[2] = glm::column(other, 2);
+            this->element[3] = glm::column(other, 3);
+        }
     }
 
     operator glm::tmat4x4<float>() const
     {
-        return glm::rowMajor4(glm::tvec4<T>(element[0]), glm::tvec4<T>(element[1]), glm::tvec4<T>(element[2]),
-                              glm::tvec4<T>(element[3]));
+        if constexpr (Storage == RowMajor)
+        {
+            return glm::rowMajor4(glm::tvec4<T>(element[0]), glm::tvec4<T>(element[1]), glm::tvec4<T>(element[2]),
+                                  glm::tvec4<T>(element[3]));
+        }
+        else
+        {
+            return glm::colMajor4(glm::tvec4<T>(element[0]), glm::tvec4<T>(element[1]), glm::tvec4<T>(element[2]),
+                                  glm::tvec4<T>(element[3]));
+        }
     }
 };
