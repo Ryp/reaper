@@ -1,6 +1,6 @@
 # Reaper
 
-Reaper is a small C++14 Engine to test stuff.
+Reaper is a small C++ test engine.
 
 ## Build status (master branch)
 
