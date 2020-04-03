@@ -91,10 +91,13 @@ struct alignas(16) hlsl_vector4
     operator glm::tvec4<T>() const { return glm::tvec4<T>(x, y, z, w); }
 };
 
-constexpr bool ColumnMajor = false;
-constexpr bool RowMajor = true;
+enum MatrixStorage
+{
+    ColumnMajor,
+    RowMajor
+};
 
-template <bool Storage, typename T>
+template <MatrixStorage Storage, typename T>
 struct alignas(16) hlsl_matrix3x3
 {
     hlsl_vector3_with_padding<T> element[3];
@@ -125,7 +128,7 @@ struct alignas(16) hlsl_matrix3x3
     }
 };
 
-template <bool Storage, typename T>
+template <MatrixStorage Storage, typename T>
 struct alignas(16) hlsl_matrix3x4
 {
     // Template madness because row major and column major don't have the same storage
@@ -133,7 +136,7 @@ struct alignas(16) hlsl_matrix3x4
     using Matrix3x4RowMajorStorage = std::array<hlsl_vector4<T>, 3>;
     using Matrix3x4ColMajorStorage = std::array<hlsl_vector3_with_padding<T>, 4>;
     using Matrix3x4Storage =
-        typename std::conditional<Storage, Matrix3x4RowMajorStorage, Matrix3x4ColMajorStorage>::type;
+        std::conditional_t<Storage == RowMajor, Matrix3x4RowMajorStorage, Matrix3x4ColMajorStorage>;
 
     Matrix3x4Storage element;
 
@@ -172,7 +175,7 @@ struct alignas(16) hlsl_matrix3x4
     }
 };
 
-template <bool Storage, typename T>
+template <MatrixStorage Storage, typename T>
 struct alignas(16) hlsl_matrix4x4
 {
     hlsl_vector4<T> element[4];
