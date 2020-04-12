@@ -135,11 +135,8 @@ if(REAPER_HLSL_USE_DXC)
 endif()
 
 # FIXME share this between CMake and the corresponding C++ code
-set(REAPER_SPIRV_VERSION spirv1.3)
 set(REAPER_VULKAN_VERSION vulkan1.1)
 set(REAPER_SHADER_ENTRY_POINT main)
-set(REAPER_DXC_SM_MAJOR 6)
-set(REAPER_DXC_SM_MINOR 0)
 
 # Loop variables
 set(REAPER_SPIRV_OUTPUT)
@@ -162,6 +159,8 @@ foreach(INPUT_SHADER IN LISTS REAPER_SHADER_SRCS)
         # Watch GDC 2018 - HLSL in Vulkan
         # https://www.youtube.com/watch?v=42lqJ-iXc7g
         if(REAPER_HLSL_USE_DXC)
+            set(REAPER_DXC_SM_MAJOR 6)
+            set(REAPER_DXC_SM_MINOR 0)
             get_filename_component(SHADER_TYPE_EXTENSION ${INPUT_SHADER} NAME_WLE)
             get_filename_component(SHADER_TYPE_EXTENSION ${SHADER_TYPE_EXTENSION} LAST_EXT)
             dxc_get_shader_model_string(${SHADER_TYPE_EXTENSION} ${REAPER_DXC_SM_MAJOR} ${REAPER_DXC_SM_MINOR} SHADER_MODEL_STRING)
@@ -178,7 +177,8 @@ foreach(INPUT_SHADER IN LISTS REAPER_SHADER_SRCS)
         else()
             add_custom_command(OUTPUT ${OUTPUT_SPIRV}
                 COMMAND ${CMAKE_COMMAND} -E make_directory ${OUTPUT_SPIRV_PATH}
-                COMMAND ${VULKAN_GLSLANGVALIDATOR_EXEC} --target-env ${REAPER_SPIRV_VERSION} -g -e ${REAPER_SHADER_ENTRY_POINT} -V -D ${INPUT_SHADER} -I${REAPER_SHADER_DIR} -o ${OUTPUT_SPIRV}.unoptimized
+                # https://github.com/KhronosGroup/glslang/issues/1461
+                COMMAND ${VULKAN_GLSLANGVALIDATOR_EXEC} --target-env ${REAPER_VULKAN_VERSION} -g -e ${REAPER_SHADER_ENTRY_POINT} -V -D ${INPUT_SHADER} -I${REAPER_SHADER_DIR} -o ${OUTPUT_SPIRV}.unoptimized
                 COMMAND ${VULKAN_SPIRV_OPT_EXEC} ${OUTPUT_SPIRV}.unoptimized --legalize-hlsl -Os -o ${OUTPUT_SPIRV}
                 COMMAND ${VULKAN_SPIRV_DIS_EXEC} ${OUTPUT_SPIRV} -o ${OUTPUT_SPIRV}asm
                 COMMAND ${VULKAN_SPIRV_VAL_EXEC} ${OUTPUT_SPIRV}
@@ -191,7 +191,7 @@ foreach(INPUT_SHADER IN LISTS REAPER_SHADER_SRCS)
     elseif(INPUT_SHADER_EXTENSION STREQUAL ".glsl")
         add_custom_command(OUTPUT ${OUTPUT_SPIRV}
             COMMAND ${CMAKE_COMMAND} -E make_directory ${OUTPUT_SPIRV_PATH}
-            COMMAND ${VULKAN_GLSLANGVALIDATOR_EXEC} --target-env ${REAPER_SPIRV_VERSION} -g -V ${INPUT_SHADER} -I${REAPER_SHADER_DIR} -o ${OUTPUT_SPIRV}.unoptimized
+            COMMAND ${VULKAN_GLSLANGVALIDATOR_EXEC} --target-env ${REAPER_VULKAN_VERSION} -g -V ${INPUT_SHADER} -I${REAPER_SHADER_DIR} -o ${OUTPUT_SPIRV}.unoptimized
             COMMAND ${VULKAN_SPIRV_OPT_EXEC} ${OUTPUT_SPIRV}.unoptimized -Os -o ${OUTPUT_SPIRV}
             COMMAND ${VULKAN_SPIRV_DIS_EXEC} ${OUTPUT_SPIRV} -o ${OUTPUT_SPIRV}asm
             COMMAND ${VULKAN_SPIRV_VAL_EXEC} ${OUTPUT_SPIRV}
