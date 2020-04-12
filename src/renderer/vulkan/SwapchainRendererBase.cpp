@@ -103,7 +103,7 @@ void create_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& backend)
     std::vector<const char*> instanceLayers;
 
 #if REAPER_DEBUG
-    instanceLayers.push_back("VK_LAYER_LUNARG_standard_validation");
+    instanceLayers.push_back("VK_LAYER_KHRONOS_validation");
 #endif
 
     log_info(root, "vulkan: using {} instance level layers", instanceLayers.size());
