@@ -389,7 +389,7 @@ bool vulkan_check_physical_device(IWindow*                        window,
 
     vulkan_device_check_extensions(extensions, physical_device);
 
-    VkPhysicalDeviceProperties2 device_properties2;
+    VkPhysicalDeviceProperties2 device_properties2 = {};
     device_properties2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
 
     vkGetPhysicalDeviceProperties2(physical_device, &device_properties2);
