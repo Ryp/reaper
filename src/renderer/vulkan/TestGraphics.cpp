@@ -622,19 +622,18 @@ namespace
             projection = reverse_z_transform * projection;
         }
 
+        draw_pass_params.view = glm::mat4x3(view);
+        draw_pass_params.proj = projection;
         draw_pass_params.viewProj = projection * view;
 
         draw_pass_params.timeMs = timeMs;
 
         {
             glm::fvec3 light_position_ws(1.f, 1.f, 1.f);
-            glm::fvec3 light_direction_ws(0.f, 1.f, glm::cos(timeMs));
 
             glm::fvec3 light_position_vs = view * glm::fvec4(light_position_ws, 1.f);
-            glm::fvec3 light_direction_vs = view * glm::fvec4(light_direction_ws, 0.f);
 
             draw_pass_params.light_position_vs = light_position_vs;
-            draw_pass_params.light_direction_vs = glm::normalize(light_direction_vs);
         }
     }
 } // namespace
