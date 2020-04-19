@@ -408,11 +408,22 @@ namespace
         vulkan_create_shader_module(blitShaderFS, backend.device, fileNameFS);
         vulkan_create_shader_module(blitShaderVS, backend.device, fileNameVS);
 
-        const u32                             meshVertexStride = sizeof(hlsl_float3);
-        const VkVertexInputBindingDescription vertexInfoShaderBinding = {
-            0,                          // binding
-            meshVertexStride,           // stride
-            VK_VERTEX_INPUT_RATE_VERTEX // input rate
+        std::vector<VkVertexInputBindingDescription> vertexInfoShaderBinding = {
+            {
+                0,                          // binding
+                sizeof(hlsl_float3),        // stride
+                VK_VERTEX_INPUT_RATE_VERTEX // input rate
+            },
+            {
+                1,                          // binding
+                sizeof(hlsl_float3),        // stride
+                VK_VERTEX_INPUT_RATE_VERTEX // input rate
+            },
+            {
+                2,                          // binding
+                sizeof(hlsl_float2),        // stride
+                VK_VERTEX_INPUT_RATE_VERTEX // input rate
+            },
         };
 
         std::vector<VkVertexInputAttributeDescription> vertexAttributes = {
@@ -424,13 +435,13 @@ namespace
             },
             {
                 1,                          // location
-                0,                          // binding
+                1,                          // binding
                 VK_FORMAT_R32G32B32_SFLOAT, // format
                 0                           // offset
             },
             {
                 2,                       // location
-                0,                       // binding
+                2,                       // binding
                 VK_FORMAT_R32G32_SFLOAT, // format
                 0                        // offset
             },
@@ -446,8 +457,8 @@ namespace
             VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
             nullptr,
             VK_FLAGS_NONE,
-            1,
-            &vertexInfoShaderBinding,
+            static_cast<u32>(vertexInfoShaderBinding.size()),
+            vertexInfoShaderBinding.data(),
             static_cast<u32>(vertexAttributes.size()),
             vertexAttributes.data()};
 
@@ -599,7 +610,7 @@ namespace
         vkDestroyShaderModule(backend.device, blitShaderFS, nullptr);
 
         return BlitPipelineInfo{pipeline, pipelineLayout, descriptorSetLayoutCB};
-    }
+    } // namespace
 
     void update_pass_params(DrawPassParams& draw_pass_params, float timeMs, float aspectRatio, const glm::mat4& view)
     {
