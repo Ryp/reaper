@@ -640,7 +640,7 @@ namespace
         draw_pass_params.timeMs = timeMs;
 
         {
-            glm::fvec3 light_position_ws(1.f, 1.f, 1.f);
+            glm::fvec3 light_position_ws(-1.f, 1.f, 1.f);
 
             glm::fvec3 light_position_vs = view * glm::fvec4(light_position_ws, 1.f);
 
@@ -1116,7 +1116,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                 const glm::vec3 object_position_ws =
                     glm::vec3(glm::cos(ratio + animationTimeMs), glm::cos(ratio), glm::sin(ratio));
                 // const float     uniform_scale = 0.0005f;
-                const float     uniform_scale = 0.4f;
+                const float     uniform_scale = 1.0f;
                 const glm::mat4 model = glm::rotate(glm::scale(glm::translate(glm::mat4(1.0f), object_position_ws),
                                                                glm::vec3(uniform_scale, uniform_scale, uniform_scale)),
                                                     animationTimeMs + ratio, glm::vec3(0.f, 1.f, 1.f));
