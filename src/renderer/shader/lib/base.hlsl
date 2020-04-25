@@ -17,7 +17,7 @@
 #define REAPER_PLATFORM_ORBIS   1
 
 // Detect platform
-#ifdef __PSSL__
+#ifdef __ORBIS__
     #include "platform_orbis.hlsl"
     #define REAPER_PLATFORM REAPER_PLATFORM_ORBIS
     #define REAPER_USE_VULKAN_BINDING 0
