@@ -394,13 +394,20 @@ bool vulkan_check_physical_device(IWindow*                        window,
     vkGetPhysicalDeviceProperties2(physical_device, &device_properties2);
     VkPhysicalDeviceProperties& device_properties = device_properties2.properties;
 
-    VkPhysicalDeviceFeatures device_features;
+    // NOTE:
+    // For some reason the validation layer barks at us if we don't initialize sType to this value.
+    // This shouldn't be the case since vkGetPhysicalDeviceFeatures2 should overwrite it.
+    VkPhysicalDeviceFeatures2 device_features2 = {};
+    device_features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
 
-    vkGetPhysicalDeviceFeatures(physical_device, &device_features);
+    // NOTE:
+    // Even if VkPhysicalDeviceVulkan12Features is used during device creation,
+    // Vulkan 1.2 does NOT force vkGetPhysicalDeviceFeatures2 to include it in the pNext chain.
+    vkGetPhysicalDeviceFeatures2(physical_device, &device_features2);
 
     Assert(device_properties.apiVersion >= REAPER_VK_API_VERSION);
     Assert(device_properties.limits.maxImageDimension2D >= 4096);
-    Assert(device_features.shaderClipDistance == VK_TRUE); // This is just checked, not enabled
+    Assert(device_features2.features.shaderClipDistance == VK_TRUE); // This is just checked, not enabled
 
     uint32_t queue_families_count = 0;
     vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_families_count, nullptr);
@@ -626,9 +633,19 @@ void vulkan_create_logical_device(ReaperRoot&                     root,
     deviceFeatures.multiDrawIndirect = true;
     deviceFeatures.drawIndirectFirstInstance = true;
 
+    VkPhysicalDeviceVulkan12Features device_features_1_2 = {};
+    device_features_1_2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+    device_features_1_2.pNext = nullptr;
+    device_features_1_2.drawIndirectCount = true;
+
+    VkPhysicalDeviceFeatures2 deviceFeatures2 = {};
+    deviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+    deviceFeatures2.pNext = &device_features_1_2;
+    deviceFeatures2.features = deviceFeatures;
+
     VkDeviceCreateInfo device_create_info = {
         VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,       // VkStructureType                    sType
-        nullptr,                                    // const void                        *pNext
+        &deviceFeatures2,                           // const void                        *pNext
         0,                                          // VkDeviceCreateFlags                flags
         queueCreateCount,                           // uint32_t                           queueCreateInfoCount
         &queue_create_infos[0],                     // const VkDeviceQueueCreateInfo     *pQueueCreateInfos
@@ -636,7 +653,7 @@ void vulkan_create_logical_device(ReaperRoot&                     root,
         nullptr,                                    // const char * const                *ppEnabledLayerNames
         static_cast<u32>(device_extensions.size()), // uint32_t                           enabledExtensionCount
         device_extensions.data(),                   // const char * const *ppEnabledExtensionNames
-        &deviceFeatures                             // const VkPhysicalDeviceFeatures    *pEnabledFeatures
+        nullptr                                     // const VkPhysicalDeviceFeatures    *pEnabledFeatures
     };
 
     Assert(vkCreateDevice(backend.physicalDevice, &device_create_info, nullptr, &backend.device) == VK_SUCCESS,
