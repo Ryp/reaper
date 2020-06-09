@@ -37,3 +37,15 @@ add_library(span INTERFACE)
 target_include_directories(span SYSTEM INTERFACE ${CMAKE_SOURCE_DIR}/external/span-lite/include)
 
 #///////////////////////////////////////////////////////////////////////////////
+
+add_library(amd-vma INTERFACE)
+
+set(VMA_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/external/amd-vma)
+
+target_include_directories(amd-vma SYSTEM INTERFACE ${VMA_INCLUDE_DIR}/src)
+
+if(MSVC)
+    target_sources(amd-vma INTERFACE ${VMA_INCLUDE_DIR}/src/vk_mem_alloc.natvis)
+endif()
+
+#///////////////////////////////////////////////////////////////////////////////
