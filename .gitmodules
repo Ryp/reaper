@@ -23,3 +23,6 @@
 [submodule "external/span-lite"]
 	path = external/span-lite
 	url = https://github.com/martinmoene/span-lite
+[submodule "external/amd-vma"]
+	path = external/amd-vma
+	url = https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator
