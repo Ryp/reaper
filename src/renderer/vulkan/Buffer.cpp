@@ -36,7 +36,7 @@ namespace
 } // namespace
 
 BufferInfo create_buffer(ReaperRoot& root, VkDevice device, const char* debug_string,
-                         const GPUBufferProperties& properties, GPUStackAllocator& allocator)
+                         const GPUBufferProperties& properties, VmaAllocator& allocator)
 {
     const VkBufferCreateInfo bufferInfo = {VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
                                            nullptr,
@@ -47,39 +47,37 @@ BufferInfo create_buffer(ReaperRoot& root, VkDevice device, const char* debug_st
                                            0,
                                            nullptr};
 
-    VkBuffer buffer = VK_NULL_HANDLE;
-    Assert(vkCreateBuffer(device, &bufferInfo, nullptr, &buffer) == VK_SUCCESS);
+    VmaAllocationCreateInfo allocInfo = {};
+    allocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+
+    VkBuffer      buffer;
+    VmaAllocation allocation;
+    vmaCreateBuffer(allocator, &bufferInfo, &allocInfo, &buffer, &allocation, nullptr);
+
+    log_debug(root, "vulkan: created buffer with handle: {}", static_cast<void*>(buffer));
 
     VulkanSetDebugName(device, buffer, debug_string);
 
-    // FIXME Debug usage
-    log_debug(root, "vulkan: created buffer with handle: {}", static_cast<void*>(buffer));
-
-    VkMemoryRequirements memoryRequirements;
-    vkGetBufferMemoryRequirements(device, buffer, &memoryRequirements);
-
-    log_debug(root, "- buffer memory requirements: size = {}, alignment = {}, types = {:#b}", memoryRequirements.size,
-              memoryRequirements.alignment, memoryRequirements.memoryTypeBits);
-
-    const GPUAlloc alloc = allocator.alloc(memoryRequirements);
-
-    Assert(vkBindBufferMemory(device, buffer, alloc.memory, alloc.offset) == VK_SUCCESS);
-
-    return {buffer, properties, alloc};
+    return {buffer, properties, allocation};
 }
 
-void upload_buffer_data(VkDevice device, const BufferInfo& buffer, const void* data, std::size_t size)
+void upload_buffer_data(VkDevice device, const VmaAllocator& allocator, const BufferInfo& buffer, const void* data,
+                        std::size_t size)
 {
     u8* writePtr = nullptr;
 
-    Assert(vkMapMemory(device, buffer.alloc.memory, buffer.alloc.offset, buffer.alloc.size, 0,
+    VmaAllocationInfo allocation_info;
+    vmaGetAllocationInfo(allocator, buffer.allocation, &allocation_info);
+
+    Assert(vkMapMemory(device, allocation_info.deviceMemory, allocation_info.offset, allocation_info.size, 0,
                        reinterpret_cast<void**>(&writePtr))
            == VK_SUCCESS);
 
-    Assert(size <= buffer.alloc.size, fmt::format("copy src of size {} on dst of size {}", size, buffer.alloc.size));
+    Assert(size <= allocation_info.size,
+           fmt::format("copy src of size {} on dst of size {}", size, allocation_info.size));
 
     memcpy(writePtr, data, size);
 
-    vkUnmapMemory(device, buffer.alloc.memory);
+    vkUnmapMemory(device, allocation_info.deviceMemory);
 }
 } // namespace Reaper

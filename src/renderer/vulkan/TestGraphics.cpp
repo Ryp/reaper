@@ -242,7 +242,7 @@ namespace
 
     VkDescriptorBufferInfo default_descriptor_buffer_info(const BufferInfo& bufferInfo)
     {
-        return {bufferInfo.buffer, 0, bufferInfo.alloc.size};
+        return {bufferInfo.buffer, 0, VK_WHOLE_SIZE};
     }
 
     VkWriteDescriptorSet create_buffer_descriptor_write(VkDescriptorSet descriptorSet, u32 binding,
@@ -660,36 +660,37 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
     // Create vk buffers
     BufferInfo drawPassConstantBuffer = create_buffer(
         root, backend.device, "Draw Pass Constant buffer",
-        DefaultGPUBufferProperties(1, sizeof(DrawPassParams), GPUBufferUsage::UniformBuffer), resources.mainAllocator);
+        DefaultGPUBufferProperties(1, sizeof(DrawPassParams), GPUBufferUsage::UniformBuffer), backend.vma_instance);
     BufferInfo drawInstanceConstantBuffer = create_buffer(
         root, backend.device, "Draw Instance Constant buffer",
         DefaultGPUBufferProperties(instanceCount, sizeof(DrawInstanceParams), GPUBufferUsage::StorageBuffer),
-        resources.mainAllocator);
+        backend.vma_instance);
 
     BufferInfo vertexBufferPosition =
         create_buffer(root, backend.device, "Position buffer",
                       DefaultGPUBufferProperties(mesh.vertices.size(), sizeof(mesh.vertices[0]),
                                                  GPUBufferUsage::VertexBuffer | GPUBufferUsage::StorageBuffer),
-                      resources.mainAllocator);
+                      backend.vma_instance);
     BufferInfo vertexBufferNormal = create_buffer(
         root, backend.device, "Normal buffer",
         DefaultGPUBufferProperties(mesh.normals.size(), sizeof(mesh.normals[0]), GPUBufferUsage::VertexBuffer),
-        resources.mainAllocator);
+        backend.vma_instance);
     BufferInfo vertexBufferUV =
         create_buffer(root, backend.device, "UV buffer",
                       DefaultGPUBufferProperties(mesh.uvs.size(), sizeof(mesh.uvs[0]), GPUBufferUsage::VertexBuffer),
-                      resources.mainAllocator);
+                      backend.vma_instance);
     BufferInfo staticIndexBuffer = create_buffer(
         root, backend.device, "Index buffer",
         DefaultGPUBufferProperties(mesh.indexes.size(), sizeof(mesh.indexes[0]), GPUBufferUsage::StorageBuffer),
-        resources.mainAllocator);
+        backend.vma_instance);
 
-    upload_buffer_data(backend.device, vertexBufferPosition, mesh.vertices.data(),
+    upload_buffer_data(backend.device, backend.vma_instance, vertexBufferPosition, mesh.vertices.data(),
                        mesh.vertices.size() * sizeof(mesh.vertices[0]));
-    upload_buffer_data(backend.device, vertexBufferNormal, mesh.normals.data(),
+    upload_buffer_data(backend.device, backend.vma_instance, vertexBufferNormal, mesh.normals.data(),
                        mesh.normals.size() * sizeof(mesh.normals[0]));
-    upload_buffer_data(backend.device, vertexBufferUV, mesh.uvs.data(), mesh.uvs.size() * sizeof(mesh.uvs[0]));
-    upload_buffer_data(backend.device, staticIndexBuffer, mesh.indexes.data(),
+    upload_buffer_data(backend.device, backend.vma_instance, vertexBufferUV, mesh.uvs.data(),
+                       mesh.uvs.size() * sizeof(mesh.uvs[0]));
+    upload_buffer_data(backend.device, backend.vma_instance, staticIndexBuffer, mesh.indexes.data(),
                        mesh.indexes.size() * sizeof(mesh.indexes[0]));
 
     const u32 maxIndirectDrawCount = 2000;
@@ -698,25 +699,25 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
         create_buffer(root, backend.device, "Indirect draw buffer",
                       DefaultGPUBufferProperties(maxIndirectDrawCount, sizeof(VkDrawIndexedIndirectCommand),
                                                  GPUBufferUsage::IndirectBuffer | GPUBufferUsage::StorageBuffer),
-                      resources.mainAllocator);
+                      backend.vma_instance);
 
     BufferInfo compactIndirectDrawBuffer =
         create_buffer(root, backend.device, "Compact indirect draw buffer",
                       DefaultGPUBufferProperties(maxIndirectDrawCount, sizeof(VkDrawIndexedIndirectCommand),
                                                  GPUBufferUsage::IndirectBuffer | GPUBufferUsage::StorageBuffer),
-                      resources.mainAllocator);
+                      backend.vma_instance);
 
     const u32  indirectDrawCountSize = 2; // Second uint is for keeping track of total triangles
     BufferInfo indirectDrawCountBuffer =
         create_buffer(root, backend.device, "Indirect draw count buffer",
                       DefaultGPUBufferProperties(indirectDrawCountSize, sizeof(u32),
                                                  GPUBufferUsage::IndirectBuffer | GPUBufferUsage::StorageBuffer),
-                      resources.mainAllocator);
+                      backend.vma_instance);
 
     BufferInfo compactIndirectDrawCountBuffer = create_buffer(
         root, backend.device, "Compact indirect draw count buffer",
         DefaultGPUBufferProperties(1, sizeof(u32), GPUBufferUsage::IndirectBuffer | GPUBufferUsage::StorageBuffer),
-        resources.mainAllocator);
+        backend.vma_instance);
 
     Assert(maxIndirectDrawCount < backend.physicalDeviceProperties.limits.maxDrawIndirectCount);
 
@@ -724,19 +725,19 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
         create_buffer(root, backend.device, "Compact indirect dispatch buffer",
                       DefaultGPUBufferProperties(1, sizeof(VkDispatchIndirectCommand),
                                                  GPUBufferUsage::IndirectBuffer | GPUBufferUsage::StorageBuffer),
-                      resources.mainAllocator);
+                      backend.vma_instance);
 
     BufferInfo cullInstanceParamsBuffer = create_buffer(
         root, backend.device, "Culling instance constant buffer",
         DefaultGPUBufferProperties(instanceCount, sizeof(CullInstanceParams), GPUBufferUsage::StorageBuffer),
-        resources.mainAllocator);
+        backend.vma_instance);
 
     const u32  dynamicIndexBufferSize = static_cast<u32>(2000_kiB);
     BufferInfo dynamicIndexBuffer =
         create_buffer(root, backend.device, "Culling dynamic index buffer",
                       DefaultGPUBufferProperties(dynamicIndexBufferSize, 1,
                                                  GPUBufferUsage::IndexBuffer | GPUBufferUsage::StorageBuffer),
-                      resources.mainAllocator);
+                      backend.vma_instance);
 
     // Create depth buffer
     GPUTextureProperties properties = DefaultGPUTextureProperties(
@@ -1130,16 +1131,18 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                 cull_instance_params[i].ms_to_cs_matrix = glm::mat4(draw_pass_params.viewProj) * model;
             }
 
-            upload_buffer_data(backend.device, drawPassConstantBuffer, &draw_pass_params, sizeof(DrawPassParams));
-            upload_buffer_data(backend.device, drawInstanceConstantBuffer, draw_instance_params.data(),
-                               draw_instance_params.size() * sizeof(DrawInstanceParams));
-            upload_buffer_data(backend.device, cullInstanceParamsBuffer, cull_instance_params.data(),
-                               cull_instance_params.size() * sizeof(CullInstanceParams));
+            upload_buffer_data(backend.device, backend.vma_instance, drawPassConstantBuffer, &draw_pass_params,
+                               sizeof(DrawPassParams));
+            upload_buffer_data(backend.device, backend.vma_instance, drawInstanceConstantBuffer,
+                               draw_instance_params.data(), draw_instance_params.size() * sizeof(DrawInstanceParams));
+            upload_buffer_data(backend.device, backend.vma_instance, cullInstanceParamsBuffer,
+                               cull_instance_params.data(), cull_instance_params.size() * sizeof(CullInstanceParams));
 
             if (!freezeCulling)
             {
                 std::array<u32, indirectDrawCountSize> zero = {};
-                upload_buffer_data(backend.device, indirectDrawCountBuffer, zero.data(), zero.size() * sizeof(u32));
+                upload_buffer_data(backend.device, backend.vma_instance, indirectDrawCountBuffer, zero.data(),
+                                   zero.size() * sizeof(u32));
             }
 
             VkCommandBufferBeginInfo cmdBufferBeginInfo = {
@@ -1335,21 +1338,23 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
     vkDestroyImageView(backend.device, depthBufferView, nullptr);
     vkDestroyImage(backend.device, depthBuffer.handle, nullptr);
 
-    vkDestroyBuffer(backend.device, compactionIndirectDispatchBuffer.buffer, nullptr);
-    vkDestroyBuffer(backend.device, compactIndirectDrawCountBuffer.buffer, nullptr);
-    vkDestroyBuffer(backend.device, compactIndirectDrawBuffer.buffer, nullptr);
+    vmaDestroyBuffer(backend.vma_instance, compactionIndirectDispatchBuffer.buffer,
+                     compactionIndirectDispatchBuffer.allocation);
+    vmaDestroyBuffer(backend.vma_instance, compactIndirectDrawCountBuffer.buffer,
+                     compactIndirectDrawCountBuffer.allocation);
+    vmaDestroyBuffer(backend.vma_instance, compactIndirectDrawBuffer.buffer, compactIndirectDrawBuffer.allocation);
 
-    vkDestroyBuffer(backend.device, cullInstanceParamsBuffer.buffer, nullptr);
-    vkDestroyBuffer(backend.device, dynamicIndexBuffer.buffer, nullptr);
-    vkDestroyBuffer(backend.device, indirectDrawCountBuffer.buffer, nullptr);
-    vkDestroyBuffer(backend.device, indirectDrawBuffer.buffer, nullptr);
+    vmaDestroyBuffer(backend.vma_instance, cullInstanceParamsBuffer.buffer, cullInstanceParamsBuffer.allocation);
+    vmaDestroyBuffer(backend.vma_instance, dynamicIndexBuffer.buffer, dynamicIndexBuffer.allocation);
+    vmaDestroyBuffer(backend.vma_instance, indirectDrawCountBuffer.buffer, indirectDrawCountBuffer.allocation);
+    vmaDestroyBuffer(backend.vma_instance, indirectDrawBuffer.buffer, indirectDrawBuffer.allocation);
 
-    vkDestroyBuffer(backend.device, staticIndexBuffer.buffer, nullptr);
-    vkDestroyBuffer(backend.device, vertexBufferPosition.buffer, nullptr);
-    vkDestroyBuffer(backend.device, vertexBufferNormal.buffer, nullptr);
-    vkDestroyBuffer(backend.device, vertexBufferUV.buffer, nullptr);
+    vmaDestroyBuffer(backend.vma_instance, staticIndexBuffer.buffer, staticIndexBuffer.allocation);
+    vmaDestroyBuffer(backend.vma_instance, vertexBufferPosition.buffer, vertexBufferPosition.allocation);
+    vmaDestroyBuffer(backend.vma_instance, vertexBufferNormal.buffer, vertexBufferNormal.allocation);
+    vmaDestroyBuffer(backend.vma_instance, vertexBufferUV.buffer, vertexBufferUV.allocation);
 
-    vkDestroyBuffer(backend.device, drawPassConstantBuffer.buffer, nullptr);
-    vkDestroyBuffer(backend.device, drawInstanceConstantBuffer.buffer, nullptr);
+    vmaDestroyBuffer(backend.vma_instance, drawPassConstantBuffer.buffer, drawPassConstantBuffer.allocation);
+    vmaDestroyBuffer(backend.vma_instance, drawInstanceConstantBuffer.buffer, drawInstanceConstantBuffer.allocation);
 }
 } // namespace Reaper

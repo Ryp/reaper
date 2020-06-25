@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include "allocator/GPUStackAllocator.h"
+#include "allocator/AMDVulkanMemoryAllocator.h"
 
 #include "api/Vulkan.h"
 
@@ -21,11 +21,12 @@ struct BufferInfo
 {
     VkBuffer            buffer;
     GPUBufferProperties descriptor;
-    GPUAlloc            alloc;
+    VmaAllocation       allocation;
 };
 
 BufferInfo create_buffer(ReaperRoot& root, VkDevice device, const char* debug_string,
-                         const GPUBufferProperties& properties, GPUStackAllocator& allocator);
+                         const GPUBufferProperties& properties, VmaAllocator& allocator);
 
-void upload_buffer_data(VkDevice device, const BufferInfo& buffer, const void* data, std::size_t size);
+void upload_buffer_data(VkDevice device, const VmaAllocator& allocator, const BufferInfo& buffer, const void* data,
+                        std::size_t size);
 } // namespace Reaper

@@ -9,6 +9,8 @@
 
 #include <vector>
 
+#include "allocator/AMDVulkanMemoryAllocator.h"
+
 #include "api/Vulkan.h"
 #include "core/DynamicLibrary.h"
 #include "renderer/Renderer.h"
@@ -61,6 +63,8 @@ struct REAPER_RENDERER_API VulkanBackend
 
     VkDevice   device;
     DeviceInfo deviceInfo;
+
+    VmaAllocator vma_instance;
 
     PresentationInfo presentInfo;
 
