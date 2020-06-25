@@ -178,6 +178,14 @@ void create_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& backend)
     log_debug(root, "vulkan: creating logical device");
     vulkan_create_logical_device(root, backend, device_extensions);
 
+    log_debug(root, "vulkan: create gpu memory allocator");
+    VmaAllocatorCreateInfo allocatorInfo = {};
+    allocatorInfo.physicalDevice = backend.physicalDevice;
+    allocatorInfo.device = backend.device;
+    allocatorInfo.instance = backend.instance;
+
+    vmaCreateAllocator(&allocatorInfo, &backend.vma_instance);
+
     SwapchainDescriptor swapchainDesc;
     swapchainDesc.preferredImageCount = 2; // Double buffering
     swapchainDesc.preferredFormat = {VK_FORMAT_B8G8R8A8_UNORM, VK_COLORSPACE_SRGB_NONLINEAR_KHR};
@@ -196,10 +204,13 @@ void destroy_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& backend)
     REAPER_PROFILE_SCOPE("Vulkan", MP_RED1);
     log_info(root, "vulkan: destroying backend");
 
-    destroy_vulkan_wm_swapchain(root, backend, backend.presentInfo);
-
     log_debug(root, "vulkan: waiting for current work to finish");
     Assert(vkDeviceWaitIdle(backend.device) == VK_SUCCESS);
+
+    destroy_vulkan_wm_swapchain(root, backend, backend.presentInfo);
+
+    log_debug(root, "vulkan: destroy gpu memory allocator");
+    vmaDestroyAllocator(backend.vma_instance);
 
     log_debug(root, "vulkan: destroying logical device");
     vkDestroyDevice(backend.device, nullptr);

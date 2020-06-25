@@ -74,6 +74,7 @@ target_sources(${target} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/VulkanRenderer.h
 
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/allocator/AMDVulkanMemoryAllocator.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/allocator/AMDVulkanMemoryAllocator.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/allocator/GPUStackAllocator.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/allocator/GPUStackAllocator.h
 

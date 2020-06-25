@@ -5,7 +5,9 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
+#pragma once
+
 #include "renderer/vulkan/api/Vulkan.h"
 
-#define VMA_IMPLEMENTATION
+// NOTE: do NOT include this yourself
 #include <vk_mem_alloc.h>
