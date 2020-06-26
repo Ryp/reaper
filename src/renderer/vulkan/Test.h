@@ -19,11 +19,10 @@ struct VulkanBackend;
 
 struct GlobalResources
 {
-    ImageInfo         image;
-    VkImageView       imageView;
-    GPUStackAllocator mainAllocator;
-    VkDescriptorPool  descriptorPool;
-    VkCommandBuffer   gfxCmdBuffer;
+    ImageInfo        image;
+    VkImageView      imageView;
+    VkDescriptorPool descriptorPool;
+    VkCommandBuffer  gfxCmdBuffer;
 };
 
 REAPER_RENDERER_API

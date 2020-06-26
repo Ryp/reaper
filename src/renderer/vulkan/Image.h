@@ -13,7 +13,6 @@
 
 #include "renderer/format/PixelFormat.h"
 #include "renderer/texture/GPUTextureProperties.h"
-#include "renderer/vulkan/allocator/GPUStackAllocator.h"
 
 namespace Reaper
 {

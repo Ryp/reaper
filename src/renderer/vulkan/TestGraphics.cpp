@@ -21,8 +21,6 @@
 #include "api/Vulkan.h"
 #include "api/VulkanStringConversion.h"
 
-#include "allocator/GPUStackAllocator.h"
-
 #include "renderer/GPUBufferProperties.h"
 #include "renderer/texture/GPUTextureProperties.h"
 #include "renderer/window/Event.h"
