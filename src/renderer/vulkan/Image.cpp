@@ -1,8 +1,12 @@
 #include "Image.h"
 
+#include "common/Log.h"
+#include "common/ReaperRoot.h"
+
 #include "SwapchainRendererBase.h"
 
 #include "renderer/texture/GPUTextureProperties.h"
+#include "renderer/vulkan/Debug.h"
 
 namespace Reaper
 {
@@ -494,7 +498,8 @@ VkImageUsageFlags GetVulkanUsageFlags(u32 usageFlags)
     return flags;
 }
 
-ImageInfo CreateVulkanImage(VkDevice device, const GPUTextureProperties& properties, GPUStackAllocator& allocator)
+ImageInfo create_image(ReaperRoot& root, VkDevice device, const char* debug_string,
+                       const GPUTextureProperties& properties, VmaAllocator& allocator)
 {
     const VkExtent3D    extent = {properties.width, properties.height, properties.depth};
     const VkImageTiling tilingMode = VK_IMAGE_TILING_OPTIMAL;
@@ -515,17 +520,18 @@ ImageInfo CreateVulkanImage(VkDevice device, const GPUTextureProperties& propert
                                          nullptr,
                                          VK_IMAGE_LAYOUT_UNDEFINED};
 
-    VkImage image = VK_NULL_HANDLE;
-    Assert(vkCreateImage(device, &imageInfo, nullptr, &image) == VK_SUCCESS);
+    VmaAllocationCreateInfo allocInfo = {};
+    allocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
 
-    VkMemoryRequirements memoryRequirements;
-    vkGetImageMemoryRequirements(device, image, &memoryRequirements);
+    VkImage       image;
+    VmaAllocation allocation;
+    Assert(vmaCreateImage(allocator, &imageInfo, &allocInfo, &image, &allocation, nullptr) == VK_SUCCESS);
 
-    const GPUAlloc alloc = allocator.alloc(memoryRequirements);
+    log_debug(root, "vulkan: created image with handle: {}", static_cast<void*>(image));
 
-    Assert(vkBindImageMemory(device, image, alloc.memory, alloc.offset) == VK_SUCCESS);
+    VulkanSetDebugName(device, image, debug_string);
 
-    return {image, alloc, properties};
+    return {image, allocation, properties};
 }
 
 VkImageView create_default_image_view(VkDevice device, const ImageInfo& image)

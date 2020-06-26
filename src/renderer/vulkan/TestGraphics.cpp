@@ -744,8 +744,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
         backend.presentInfo.surfaceExtent.width, backend.presentInfo.surfaceExtent.height, PixelFormat::D16_UNORM);
     properties.usageFlags = GPUTextureUsage::DepthStencilAttachment;
 
-    ImageInfo depthBuffer = CreateVulkanImage(backend.device, properties, resources.mainAllocator);
-    log_debug(root, "vulkan: created image with handle: {}", static_cast<void*>(depthBuffer.handle));
+    ImageInfo depthBuffer = create_image(root, backend.device, "Main Depth Buffer", properties, backend.vma_instance);
 
     VkImageView depthBufferView = create_depth_image_view(backend.device, depthBuffer);
     log_debug(root, "vulkan: created image view with handle: {}", static_cast<void*>(depthBufferView));
@@ -945,7 +944,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                         destroy_framebuffers(root, backend.device, framebuffers);
 
                         vkDestroyImageView(backend.device, depthBufferView, nullptr);
-                        vkDestroyImage(backend.device, depthBuffer.handle, nullptr);
+                        vmaDestroyImage(backend.vma_instance, depthBuffer.handle, depthBuffer.allocation);
 
                         resize_vulkan_wm_swapchain(root, backend, backend.presentInfo, {width, height});
 
@@ -960,7 +959,8 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                         log_debug(root, "- mips = {}, layers = {}, samples = {}", properties.mipCount,
                                   properties.layerCount, properties.sampleCount);
 
-                        depthBuffer = CreateVulkanImage(backend.device, properties, resources.mainAllocator);
+                        depthBuffer =
+                            create_image(root, backend.device, "Main Depth Buffer", properties, backend.vma_instance);
                         depthBufferView = create_depth_image_view(backend.device, depthBuffer);
 
                         create_framebuffers(root, backend, offscreenRenderPass, depthBufferView, framebuffers);
@@ -1336,7 +1336,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
     vkDestroyRenderPass(backend.device, offscreenRenderPass, nullptr);
 
     vkDestroyImageView(backend.device, depthBufferView, nullptr);
-    vkDestroyImage(backend.device, depthBuffer.handle, nullptr);
+    vmaDestroyImage(backend.vma_instance, depthBuffer.handle, depthBuffer.allocation);
 
     vmaDestroyBuffer(backend.vma_instance, compactionIndirectDispatchBuffer.buffer,
                      compactionIndirectDispatchBuffer.allocation);
