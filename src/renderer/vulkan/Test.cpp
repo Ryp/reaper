@@ -82,8 +82,7 @@ void vulkan_test(ReaperRoot& root, VulkanBackend& backend)
     log_debug(root, "- mips = {}, layers = {}, samples = {}", properties.mipCount, properties.layerCount,
               properties.sampleCount);
 
-    const ImageInfo image = CreateVulkanImage(backend.device, properties, mainAllocator);
-    log_debug(root, "vulkan: created image with handle: {}", static_cast<void*>(image.handle));
+    const ImageInfo image = create_image(root, backend.device, "Some image", properties, backend.vma_instance);
 
     VkImageView imageView = create_default_image_view(backend.device, image);
     log_debug(root, "vulkan: created image view with handle: {}", static_cast<void*>(imageView));
@@ -136,7 +135,7 @@ void vulkan_test(ReaperRoot& root, VulkanBackend& backend)
     vkDestroyDescriptorPool(backend.device, descriptorPool, nullptr);
 
     vkDestroyImageView(backend.device, imageView, nullptr);
-    vkDestroyImage(backend.device, image.handle, nullptr);
+    vmaDestroyImage(backend.vma_instance, image.handle, image.allocation);
 
     vkFreeMemory(backend.device, mainMemPoom, nullptr);
 

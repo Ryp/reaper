@@ -52,7 +52,7 @@ BufferInfo create_buffer(ReaperRoot& root, VkDevice device, const char* debug_st
 
     VkBuffer      buffer;
     VmaAllocation allocation;
-    vmaCreateBuffer(allocator, &bufferInfo, &allocInfo, &buffer, &allocation, nullptr);
+    Assert(vmaCreateBuffer(allocator, &bufferInfo, &allocInfo, &buffer, &allocation, nullptr) == VK_SUCCESS);
 
     log_debug(root, "vulkan: created buffer with handle: {}", static_cast<void*>(buffer));
 
