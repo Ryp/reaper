@@ -16,8 +16,6 @@
 
 #include "api/VulkanStringConversion.h"
 
-#include "allocator/GPUStackAllocator.h"
-
 #include "renderer/texture/GPUTextureProperties.h"
 #include "renderer/window/Event.h"
 #include "renderer/window/Window.h"
@@ -71,8 +69,6 @@ void vulkan_test(ReaperRoot& root, VulkanBackend& backend)
 
     debug_memory_heap_properties(root, backend, mainMemPoolIndex);
 
-    GPUStackAllocator mainAllocator(mainMemPoom, (1 << mainMemPoolIndex), mainMemPoolSize);
-
     // Create a texture
     GPUTextureProperties properties = DefaultGPUTextureProperties(800, 600, PixelFormat::R16G16B16A16_UNORM);
     properties.usageFlags = GPUTextureUsage::Sampled | GPUTextureUsage::Storage | GPUTextureUsage::ColorAttachment;
@@ -123,7 +119,7 @@ void vulkan_test(ReaperRoot& root, VulkanBackend& backend)
     log_debug(root, "vulkan: created command buffer with handle: {}", static_cast<void*>(gfxCmdBuffer));
 
     {
-        GlobalResources resources = {image, imageView, mainAllocator, descriptorPool, gfxCmdBuffer};
+        GlobalResources resources = {image, imageView, descriptorPool, gfxCmdBuffer};
 
         vulkan_test_graphics(root, backend, resources);
     }

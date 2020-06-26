@@ -19,8 +19,6 @@
 
 #include "renderer/texture/TextureLoader.h"
 
-#include "allocator/GPUStackAllocator.h"
-
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
