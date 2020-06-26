@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 /// Reaper
 ///
-/// Copyright (c) 2015-2019 Thibault Schueller
+/// Copyright (c) 2015-2020 Thibault Schueller
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -67,8 +67,7 @@ bool XLibWindow::renderLoop(AbstractRenderer* renderer)
             switch (event.type)
             {
             // Process events
-            case ConfigureNotify:
-            {
+            case ConfigureNotify: {
                 static int width = event.xconfigure.width;
                 static int height = event.xconfigure.height;
 
