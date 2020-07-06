@@ -642,7 +642,9 @@ namespace
 
             glm::fvec3 light_position_vs = view * glm::fvec4(light_position_ws, 1.f);
 
-            draw_pass_params.light_position_vs = light_position_vs;
+            draw_pass_params.point_light.position_vs = light_position_vs;
+            draw_pass_params.point_light.intensity = 8.f;
+            draw_pass_params.point_light.color = glm::fvec3(0.8f, 0.5f, 0.2f);
         }
     }
 } // namespace

@@ -27,7 +27,9 @@ struct PS_OUTPUT
 
 PS_OUTPUT main(PS_INPUT input)
 {
-    const float3 object_to_light_vs = pass_params.light_position_vs - input.PositionVS;
+    const PointLightProperties point_light = pass_params.point_light;
+
+    const float3 object_to_light_vs = point_light.position_vs - input.PositionVS;
     const float3 light_direction_vs = normalize(object_to_light_vs);
 
     const float light_distance_sq = dot(object_to_light_vs, object_to_light_vs);
@@ -37,10 +39,7 @@ PS_OUTPUT main(PS_INPUT input)
 
     const float NdotL = saturate(dot(normal_vs, light_direction_vs));
 
-    const float3 light_color = float3(0.8, 0.5, 0.2);
-    const float light_intensity = 8.f;
-
-    const float3 light_radiance = light_color * light_intensity * light_distance_fade;
+    const float3 light_incoming_radiance = point_light.color * point_light.intensity * light_distance_fade;
 
     const float3 object_albedo = float3(0.9, 0.9, 0.9);
 
@@ -50,8 +49,8 @@ PS_OUTPUT main(PS_INPUT input)
 
     const float3 view_direction_vs = -normalize(input.PositionVS);
 
-    const float3 diffuse = light_radiance * NdotL;
-    const float3 specular = light_radiance * specular_brdf(material, normal_vs, view_direction_vs, light_direction_vs);
+    const float3 diffuse = light_incoming_radiance * NdotL;
+    const float3 specular = light_incoming_radiance * specular_brdf(material, normal_vs, view_direction_vs, light_direction_vs);
 
     PS_OUTPUT output;
 
