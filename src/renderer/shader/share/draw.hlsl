@@ -10,8 +10,17 @@
 
 #include "types.hlsl"
 
+struct PointLightProperties
+{
+    hlsl_float3 position_vs;
+    hlsl_float  intensity;
+    hlsl_float3 color;
+    hlsl_float  _pad;
+};
+
 struct DrawPassParams
 {
+    PointLightProperties point_light;
     hlsl_float3x4 view;
     hlsl_float4x4 proj;
     hlsl_float4x4 viewProj;
