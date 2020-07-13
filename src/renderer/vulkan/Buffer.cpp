@@ -48,7 +48,8 @@ BufferInfo create_buffer(ReaperRoot& root, VkDevice device, const char* debug_st
                                            nullptr};
 
     VmaAllocationCreateInfo allocInfo = {};
-    allocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+    allocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU; // FIXME Use staging to upload static content
+    // allocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
 
     VkBuffer      buffer;
     VmaAllocation allocation;

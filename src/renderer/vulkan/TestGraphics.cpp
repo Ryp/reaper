@@ -17,6 +17,7 @@
 #include "Swapchain.h"
 #include "SwapchainRendererBase.h"
 #include "Test.h"
+#include "TestShadowMap.h"
 
 #include "api/Vulkan.h"
 #include "api/VulkanStringConversion.h"
@@ -48,6 +49,7 @@
 #include "renderer/shader/share/compaction.hlsl"
 #include "renderer/shader/share/culling.hlsl"
 #include "renderer/shader/share/draw.hlsl"
+#include "renderer/shader/share/shadow_map_pass.hlsl"
 
 namespace Reaper
 {
@@ -208,6 +210,7 @@ namespace
     }
 
     constexpr bool UseReverseZ = true;
+    constexpr u32  ShadowMapResolution = 1024;
 
     struct BlitPipelineInfo
     {
@@ -283,8 +286,8 @@ namespace
         }
     }
 
-    VkRenderPass create_render_pass(ReaperRoot& /*root*/, VulkanBackend& backend,
-                                    const GPUTextureProperties& depthProperties)
+    VkRenderPass create_main_raster_pass(ReaperRoot& /*root*/, VulkanBackend& backend,
+                                         const GPUTextureProperties& depthProperties)
     {
         // FIXME build this at swapchain creation
         GPUTextureProperties swapchainProperties = depthProperties;
@@ -294,28 +297,31 @@ namespace
         // Create a separate render pass for the offscreen rendering as it may differ from the one used for scene
         // rendering
         std::array<VkAttachmentDescription, 2> attachmentDescriptions = {};
+        constexpr u32                          color_index = 0;
+        constexpr u32                          depth_index = 1;
+
         // Color attachment
-        attachmentDescriptions[0].format = backend.presentInfo.surfaceFormat.format; // FIXME
-        attachmentDescriptions[0].samples = SampleCountToVulkan(swapchainProperties.sampleCount);
-        attachmentDescriptions[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-        attachmentDescriptions[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-        attachmentDescriptions[0].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-        attachmentDescriptions[0].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        attachmentDescriptions[0].initialLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-        attachmentDescriptions[0].finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+        attachmentDescriptions[color_index].format = backend.presentInfo.surfaceFormat.format; // FIXME
+        attachmentDescriptions[color_index].samples = SampleCountToVulkan(swapchainProperties.sampleCount);
+        attachmentDescriptions[color_index].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        attachmentDescriptions[color_index].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        attachmentDescriptions[color_index].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        attachmentDescriptions[color_index].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        attachmentDescriptions[color_index].initialLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+        attachmentDescriptions[color_index].finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
         // Depth attachment
-        attachmentDescriptions[1].format = PixelFormatToVulkan(depthProperties.format);
-        attachmentDescriptions[1].samples = SampleCountToVulkan(depthProperties.sampleCount);
-        attachmentDescriptions[1].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-        attachmentDescriptions[1].storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        attachmentDescriptions[1].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-        attachmentDescriptions[1].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        attachmentDescriptions[1].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        attachmentDescriptions[1].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+        attachmentDescriptions[depth_index].format = PixelFormatToVulkan(depthProperties.format);
+        attachmentDescriptions[depth_index].samples = SampleCountToVulkan(depthProperties.sampleCount);
+        attachmentDescriptions[depth_index].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        attachmentDescriptions[depth_index].storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        attachmentDescriptions[depth_index].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        attachmentDescriptions[depth_index].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        attachmentDescriptions[depth_index].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        attachmentDescriptions[depth_index].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-        VkAttachmentReference colorReference = {0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
-        VkAttachmentReference depthReference = {1, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL};
+        VkAttachmentReference colorReference = {color_index, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
+        VkAttachmentReference depthReference = {depth_index, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL};
 
         VkSubpassDescription subpassDescription = {};
         subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
@@ -326,21 +332,21 @@ namespace
         // Use subpass dependencies for layout transitions
         std::array<VkSubpassDependency, 2> dependencies;
 
-        dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
-        dependencies[0].dstSubpass = 0;
-        dependencies[0].srcStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-        dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-        dependencies[0].srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
-        dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-        dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+        dependencies[color_index].srcSubpass = VK_SUBPASS_EXTERNAL;
+        dependencies[color_index].dstSubpass = 0;
+        dependencies[color_index].srcStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+        dependencies[color_index].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        dependencies[color_index].srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
+        dependencies[color_index].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+        dependencies[color_index].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
-        dependencies[1].srcSubpass = 0;
-        dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
-        dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-        dependencies[1].dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-        dependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-        dependencies[1].dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-        dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+        dependencies[depth_index].srcSubpass = 0;
+        dependencies[depth_index].dstSubpass = VK_SUBPASS_EXTERNAL;
+        dependencies[depth_index].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        dependencies[depth_index].dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+        dependencies[depth_index].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+        dependencies[depth_index].dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+        dependencies[depth_index].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
         // Create the actual renderpass
         VkRenderPassCreateInfo renderPassInfo = {};
@@ -610,7 +616,8 @@ namespace
         return BlitPipelineInfo{pipeline, pipelineLayout, descriptorSetLayoutCB};
     } // namespace
 
-    void update_pass_params(DrawPassParams& draw_pass_params, float timeMs, float aspectRatio, const glm::mat4& view)
+    void update_pass_params(ShadowMapPassParams& shadow_pass_params, DrawPassParams& draw_pass_params, float timeMs,
+                            float aspectRatio, const glm::mat4& view)
     {
         const float near_plane_distance = 0.1f;
         const float far_plane_distance = 100.f;
@@ -646,6 +653,10 @@ namespace
             draw_pass_params.point_light.intensity = 8.f;
             draw_pass_params.point_light.color = glm::fvec3(0.8f, 0.5f, 0.2f);
         }
+
+        {
+            shadow_pass_params.viewProj = draw_pass_params.viewProj;
+        }
     }
 } // namespace
 
@@ -658,6 +669,15 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
     const u32 instanceCount = 6;
 
     // Create vk buffers
+    BufferInfo shadowMapPassConstantBuffer =
+        create_buffer(root, backend.device, "Shadow Map Pass Constant buffer",
+                      DefaultGPUBufferProperties(1, sizeof(ShadowMapPassParams), GPUBufferUsage::UniformBuffer),
+                      backend.vma_instance);
+    BufferInfo shadowMapInstanceConstantBuffer = create_buffer(
+        root, backend.device, "Shadow Map Instance Constant buffer",
+        DefaultGPUBufferProperties(instanceCount, sizeof(ShadowMapInstanceParams), GPUBufferUsage::StorageBuffer),
+        backend.vma_instance);
+
     BufferInfo drawPassConstantBuffer = create_buffer(
         root, backend.device, "Draw Pass Constant buffer",
         DefaultGPUBufferProperties(1, sizeof(DrawPassParams), GPUBufferUsage::UniformBuffer), backend.vma_instance);
@@ -740,24 +760,26 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                       backend.vma_instance);
 
     // Create depth buffer
-    GPUTextureProperties properties = DefaultGPUTextureProperties(
+    GPUTextureProperties depthProperties = DefaultGPUTextureProperties(
         backend.presentInfo.surfaceExtent.width, backend.presentInfo.surfaceExtent.height, PixelFormat::D16_UNORM);
-    properties.usageFlags = GPUTextureUsage::DepthStencilAttachment;
+    depthProperties.usageFlags = GPUTextureUsage::DepthStencilAttachment;
 
-    ImageInfo depthBuffer = create_image(root, backend.device, "Main Depth Buffer", properties, backend.vma_instance);
+    ImageInfo depthBuffer =
+        create_image(root, backend.device, "Main Depth Buffer", depthProperties, backend.vma_instance);
 
     VkImageView depthBufferView = create_depth_image_view(backend.device, depthBuffer);
     log_debug(root, "vulkan: created image view with handle: {}", static_cast<void*>(depthBufferView));
 
-    VkRenderPass               offscreenRenderPass = create_render_pass(root, backend, depthBuffer.properties);
-    std::vector<VkFramebuffer> framebuffers;
-    create_framebuffers(root, backend, offscreenRenderPass, depthBufferView, framebuffers);
+    // Create shadow map
+    GPUTextureProperties shadowMapProperties =
+        DefaultGPUTextureProperties(ShadowMapResolution, ShadowMapResolution, PixelFormat::D16_UNORM);
+    shadowMapProperties.usageFlags =
+        GPUTextureUsage::DepthStencilAttachment | GPUTextureUsage::InputAttachment | GPUTextureUsage::Sampled;
 
-    // Create fence
-    VkFenceCreateInfo fenceInfo = {
-        VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, nullptr,
-        0 // Not signaled by default
-    };
+    ImageInfo shadowMap = create_image(root, backend.device, "Shadow Map", shadowMapProperties, backend.vma_instance);
+
+    VkImageView shadowMapView = create_depth_image_view(backend.device, shadowMap);
+    log_debug(root, "vulkan: created image view with handle: {}", static_cast<void*>(shadowMapView));
 
     CullPipelineInfo cullPipe = create_cull_pipeline(root, backend);
     VkDescriptorSet  cullPassDescriptorSet = VK_NULL_HANDLE;
@@ -861,6 +883,59 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                                compactionPassDescriptorSetWrites.data(), 0, nullptr);
     }
 
+    // Shadow Pass
+    VkRenderPass  shadowMapPass = create_shadow_raster_pass(root, backend, shadowMap.properties);
+    VkFramebuffer shadowMapFramebuffer = VK_NULL_HANDLE;
+    {
+        VkFramebufferCreateInfo shadowMapFramebufferInfo = {
+            VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO, // VkStructureType                sType
+            nullptr,                                   // const void                    *pNext
+            0,                                         // VkFramebufferCreateFlags       flags
+            shadowMapPass,                             // VkRenderPass                   renderPass
+            1,                                         // uint32_t                       attachmentCount
+            &shadowMapView,                            // const VkImageView             *pAttachments
+            shadowMap.properties.width,                // uint32_t                       width
+            shadowMap.properties.height,               // uint32_t                       height
+            1                                          // uint32_t                       layers
+        };
+
+        Assert(vkCreateFramebuffer(backend.device, &shadowMapFramebufferInfo, nullptr, &shadowMapFramebuffer)
+               == VK_SUCCESS);
+    }
+
+    ShadowMapPipelineInfo shadowMapPipe = create_shadow_map_pipeline(root, backend, shadowMapPass, ShadowMapResolution);
+    VkDescriptorSet       shadowMapPassDescriptorSet = VK_NULL_HANDLE;
+    {
+        VkDescriptorSetAllocateInfo descriptorSetAllocInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr,
+                                                              resources.descriptorPool, 1,
+                                                              &shadowMapPipe.descSetLayout};
+
+        Assert(vkAllocateDescriptorSets(backend.device, &descriptorSetAllocInfo, &shadowMapPassDescriptorSet)
+               == VK_SUCCESS);
+        log_debug(root, "vulkan: created descriptor set with handle: {}",
+                  static_cast<void*>(shadowMapPassDescriptorSet));
+
+        const VkDescriptorBufferInfo shadowMapDescPassParams =
+            default_descriptor_buffer_info(shadowMapPassConstantBuffer);
+        const VkDescriptorBufferInfo shadowMapDescInstanceParams =
+            default_descriptor_buffer_info(shadowMapInstanceConstantBuffer);
+
+        std::array<VkWriteDescriptorSet, 2> shadowMapPassDescriptorSetWrites = {
+            create_buffer_descriptor_write(shadowMapPassDescriptorSet, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                                           &shadowMapDescPassParams),
+            create_buffer_descriptor_write(shadowMapPassDescriptorSet, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                                           &shadowMapDescInstanceParams),
+        };
+
+        vkUpdateDescriptorSets(backend.device, static_cast<u32>(shadowMapPassDescriptorSetWrites.size()),
+                               shadowMapPassDescriptorSetWrites.data(), 0, nullptr);
+    }
+
+    // Main Pass
+    VkRenderPass               offscreenRenderPass = create_main_raster_pass(root, backend, depthBuffer.properties);
+    std::vector<VkFramebuffer> framebuffers;
+    create_framebuffers(root, backend, offscreenRenderPass, depthBufferView, framebuffers);
+
     BlitPipelineInfo blitPipe = vulkan_create_blit_pipeline(root, backend, offscreenRenderPass);
     VkDescriptorSet  pixelConstantsDescriptorSet = VK_NULL_HANDLE;
     {
@@ -887,6 +962,12 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                                drawPassDescriptorSetWrites.data(), 0, nullptr);
     }
 
+    // Create fence
+    VkFenceCreateInfo fenceInfo = {
+        VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, nullptr,
+        0 // Not signaled by default
+    };
+
     VkFence drawFence = VK_NULL_HANDLE;
     vkCreateFence(backend.device, &fenceInfo, nullptr, &drawFence);
     log_debug(root, "vulkan: created fence with handle: {}", static_cast<void*>(drawFence));
@@ -897,9 +978,13 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
     log_info(root, "window: map window");
     window->map();
 
+    std::array<CullInstanceParams, instanceCount> cull_instance_params = {};
+
     DrawPassParams                                draw_pass_params = {};
     std::array<DrawInstanceParams, instanceCount> draw_instance_params = {};
-    std::array<CullInstanceParams, instanceCount> cull_instance_params = {};
+
+    ShadowMapPassParams                                shadow_pass_params = {};
+    std::array<ShadowMapInstanceParams, instanceCount> shadow_instance_params = {};
 
     const int MaxFrameCount = 0;
 
@@ -948,19 +1033,19 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
 
                         resize_vulkan_wm_swapchain(root, backend, backend.presentInfo, {width, height});
 
-                        properties = DefaultGPUTextureProperties(backend.presentInfo.surfaceExtent.width,
-                                                                 backend.presentInfo.surfaceExtent.height,
-                                                                 PixelFormat::D16_UNORM);
-                        properties.usageFlags = GPUTextureUsage::DepthStencilAttachment;
+                        depthProperties = DefaultGPUTextureProperties(backend.presentInfo.surfaceExtent.width,
+                                                                      backend.presentInfo.surfaceExtent.height,
+                                                                      PixelFormat::D16_UNORM);
+                        depthProperties.usageFlags = GPUTextureUsage::DepthStencilAttachment;
 
-                        log_debug(root, "vulkan: creating new image: extent = {}x{}x{}, format = {}", properties.width,
-                                  properties.height, properties.depth,
-                                  static_cast<u32>(properties.format)); // FIXME print format
-                        log_debug(root, "- mips = {}, layers = {}, samples = {}", properties.mipCount,
-                                  properties.layerCount, properties.sampleCount);
+                        log_debug(root, "vulkan: creating new image: extent = {}x{}x{}, format = {}",
+                                  depthProperties.width, depthProperties.height, depthProperties.depth,
+                                  static_cast<u32>(depthProperties.format)); // FIXME print format
+                        log_debug(root, "- mips = {}, layers = {}, samples = {}", depthProperties.mipCount,
+                                  depthProperties.layerCount, depthProperties.sampleCount);
 
-                        depthBuffer =
-                            create_image(root, backend.device, "Main Depth Buffer", properties, backend.vma_instance);
+                        depthBuffer = create_image(root, backend.device, "Main Depth Buffer", depthProperties,
+                                                   backend.vma_instance);
                         depthBufferView = create_depth_image_view(backend.device, depthBuffer);
 
                         create_framebuffers(root, backend, offscreenRenderPass, depthBufferView, framebuffers);
@@ -1109,7 +1194,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
 
             float animationTimeMs = pauseAnimation ? 0.f : timeMs;
 
-            update_pass_params(draw_pass_params, animationTimeMs, aspectRatio, view);
+            update_pass_params(shadow_pass_params, draw_pass_params, animationTimeMs, aspectRatio, view);
 
             for (u32 i = 0; i < instanceCount; i++)
             {
@@ -1123,6 +1208,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                                                     animationTimeMs + ratio, glm::vec3(0.f, 1.f, 1.f));
 
                 draw_instance_params[i].model = glm::mat4x3(model);
+                shadow_instance_params[i].model = glm::mat4x3(model);
 
                 const glm::mat4 modelView = view * model;
                 // Assumption that our 3x3 submatrix is orthonormal (no skew/non-uniform scaling)
@@ -1133,8 +1219,13 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
 
             upload_buffer_data(backend.device, backend.vma_instance, drawPassConstantBuffer, &draw_pass_params,
                                sizeof(DrawPassParams));
+            upload_buffer_data(backend.device, backend.vma_instance, shadowMapPassConstantBuffer, &shadow_pass_params,
+                               sizeof(ShadowMapPassParams));
             upload_buffer_data(backend.device, backend.vma_instance, drawInstanceConstantBuffer,
                                draw_instance_params.data(), draw_instance_params.size() * sizeof(DrawInstanceParams));
+            upload_buffer_data(backend.device, backend.vma_instance, shadowMapInstanceConstantBuffer,
+                               shadow_instance_params.data(),
+                               shadow_instance_params.size() * sizeof(ShadowMapInstanceParams));
             upload_buffer_data(backend.device, backend.vma_instance, cullInstanceParamsBuffer,
                                cull_instance_params.data(), cull_instance_params.size() * sizeof(CullInstanceParams));
 
@@ -1218,6 +1309,53 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                                      nullptr);
             }
 
+            // Shadow pass
+            {
+                VkClearValue clearValue = VkClearDepthStencil(UseReverseZ ? 0.f : 1.f, 0); // FIXME
+                VkRect2D     passRect = {{0, 0}, {shadowMap.properties.width, shadowMap.properties.height}};
+
+                VkRenderPassBeginInfo shadowMapRenderPassBeginInfo = {VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+                                                                      nullptr,
+                                                                      shadowMapPass,
+                                                                      shadowMapFramebuffer,
+                                                                      passRect,
+                                                                      1,
+                                                                      &clearValue};
+
+                vkCmdBeginRenderPass(resources.gfxCmdBuffer, &shadowMapRenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+                vkCmdBindPipeline(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, shadowMapPipe.pipeline);
+
+                std::vector<VkBuffer> vertexBuffers = {
+                    vertexBufferPosition.buffer,
+                };
+                std::vector<VkDeviceSize> vertexBufferOffsets = {0};
+
+                Assert(vertexBuffers.size() == vertexBufferOffsets.size());
+                vkCmdBindIndexBuffer(resources.gfxCmdBuffer, dynamicIndexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+                vkCmdBindVertexBuffers(resources.gfxCmdBuffer, 0, static_cast<u32>(vertexBuffers.size()),
+                                       vertexBuffers.data(), vertexBufferOffsets.data());
+                vkCmdBindDescriptorSets(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                        shadowMapPipe.pipelineLayout, 0, 1, &shadowMapPassDescriptorSet, 0, nullptr);
+
+                if (useCompactedDraw)
+                {
+                    vkCmdDrawIndexedIndirectCount(resources.gfxCmdBuffer, compactIndirectDrawBuffer.buffer, 0,
+                                                  compactIndirectDrawCountBuffer.buffer, 0,
+                                                  compactIndirectDrawBuffer.descriptor.elementCount,
+                                                  compactIndirectDrawBuffer.descriptor.elementSize);
+                }
+                else
+                {
+                    vkCmdDrawIndexedIndirectCount(
+                        resources.gfxCmdBuffer, indirectDrawBuffer.buffer, 0, indirectDrawCountBuffer.buffer, 0,
+                        indirectDrawBuffer.descriptor.elementCount, indirectDrawBuffer.descriptor.elementSize);
+                }
+
+                vkCmdEndRenderPass(resources.gfxCmdBuffer);
+            }
+
+            // Draw pass
             vkCmdBeginRenderPass(resources.gfxCmdBuffer, &blitRenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
             vkCmdBindPipeline(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, blitPipe.pipeline);
@@ -1319,6 +1457,10 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
     vkDestroyPipelineLayout(backend.device, blitPipe.pipelineLayout, nullptr);
     vkDestroyDescriptorSetLayout(backend.device, blitPipe.descSetLayout, nullptr);
 
+    vkDestroyPipeline(backend.device, shadowMapPipe.pipeline, nullptr);
+    vkDestroyPipelineLayout(backend.device, shadowMapPipe.pipelineLayout, nullptr);
+    vkDestroyDescriptorSetLayout(backend.device, shadowMapPipe.descSetLayout, nullptr);
+
     vkDestroyPipeline(backend.device, cullPipe.pipeline, nullptr);
     vkDestroyPipelineLayout(backend.device, cullPipe.pipelineLayout, nullptr);
     vkDestroyDescriptorSetLayout(backend.device, cullPipe.descSetLayout, nullptr);
@@ -1334,6 +1476,11 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
     destroy_framebuffers(root, backend.device, framebuffers);
 
     vkDestroyRenderPass(backend.device, offscreenRenderPass, nullptr);
+
+    vkDestroyFramebuffer(backend.device, shadowMapFramebuffer, nullptr);
+    vkDestroyRenderPass(backend.device, shadowMapPass, nullptr);
+    vkDestroyImageView(backend.device, shadowMapView, nullptr);
+    vmaDestroyImage(backend.vma_instance, shadowMap.handle, shadowMap.allocation);
 
     vkDestroyImageView(backend.device, depthBufferView, nullptr);
     vmaDestroyImage(backend.vma_instance, depthBuffer.handle, depthBuffer.allocation);
@@ -1356,5 +1503,9 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
 
     vmaDestroyBuffer(backend.vma_instance, drawPassConstantBuffer.buffer, drawPassConstantBuffer.allocation);
     vmaDestroyBuffer(backend.vma_instance, drawInstanceConstantBuffer.buffer, drawInstanceConstantBuffer.allocation);
+
+    vmaDestroyBuffer(backend.vma_instance, shadowMapPassConstantBuffer.buffer, shadowMapPassConstantBuffer.allocation);
+    vmaDestroyBuffer(backend.vma_instance, shadowMapInstanceConstantBuffer.buffer,
+                     shadowMapInstanceConstantBuffer.allocation);
 }
 } // namespace Reaper

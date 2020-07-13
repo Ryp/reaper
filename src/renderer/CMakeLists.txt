@@ -70,6 +70,8 @@ target_sources(${target} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Test.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/TestGraphics.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/TestGraphics.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/TestShadowMap.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/TestShadowMap.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/VulkanRenderer.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/VulkanRenderer.h
 
@@ -124,6 +126,8 @@ set(REAPER_SHADER_SRCS
     ${REAPER_SHADER_DIR}/mesh_transformed_shaded.frag.hlsl
     ${REAPER_SHADER_DIR}/mesh_transformed_shaded.vert.hlsl
     ${REAPER_SHADER_DIR}/mesh_transformed.vert.glsl
+    ${REAPER_SHADER_DIR}/render_shadow.frag.hlsl
+    ${REAPER_SHADER_DIR}/render_shadow.vert.hlsl
     ${REAPER_SHADER_DIR}/test.comp.glsl
     ${REAPER_SHADER_DIR}/matrix_row_major_codegen_bug.comp.hlsl
 )
