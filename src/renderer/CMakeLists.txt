@@ -50,8 +50,6 @@ target_sources(${target} PRIVATE
 
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Buffer.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Buffer.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Culling.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Culling.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Debug.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Debug.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Image.cpp
@@ -68,10 +66,6 @@ target_sources(${target} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/SwapchainRendererBase.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Test.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Test.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/TestGraphics.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/TestGraphics.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/TestShadowMap.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/TestShadowMap.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/VulkanRenderer.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/VulkanRenderer.h
 
@@ -86,6 +80,13 @@ target_sources(${target} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/api/VulkanStringConversion.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/api/VulkanStringConversion.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/api/VulkanSymbolHelper.inl
+
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/TestGraphics.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/TestGraphics.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/ShadowMap.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/ShadowMap.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/Culling.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/Culling.h
 
     ${CMAKE_CURRENT_SOURCE_DIR}/window/Event.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/window/Event.h
