@@ -7,8 +7,8 @@
 
 #include "Culling.h"
 
-#include "Shader.h"
-#include "SwapchainRendererBase.h"
+#include "renderer/vulkan/Shader.h"
+#include "renderer/vulkan/SwapchainRendererBase.h"
 
 #include "common/Log.h"
 #include "common/ReaperRoot.h"

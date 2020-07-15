@@ -7,14 +7,14 @@
 
 #include "Test.h"
 
-#include "TestGraphics.h"
-
 #include "Debug.h"
 #include "Memory.h"
 #include "Swapchain.h"
 #include "SwapchainRendererBase.h"
 
 #include "api/VulkanStringConversion.h"
+
+#include "renderpass/TestGraphics.h"
 
 #include "renderer/texture/GPUTextureProperties.h"
 #include "renderer/window/Event.h"

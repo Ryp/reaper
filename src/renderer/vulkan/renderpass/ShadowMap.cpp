@@ -5,13 +5,13 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "TestShadowMap.h"
+#include "ShadowMap.h"
 
-#include "Image.h"
-#include "Shader.h"
-#include "SwapchainRendererBase.h"
+#include "renderer/vulkan/Image.h"
+#include "renderer/vulkan/Shader.h"
+#include "renderer/vulkan/SwapchainRendererBase.h"
 
-#include "api/Vulkan.h"
+#include "renderer/vulkan/api/Vulkan.h"
 
 #include "renderer/texture/GPUTextureProperties.h"
 

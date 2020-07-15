@@ -7,24 +7,19 @@
 
 #pragma once
 
-#include "api/Vulkan.h"
+#include "renderer/vulkan/api/Vulkan.h"
 
 namespace Reaper
 {
 struct ReaperRoot;
 struct VulkanBackend;
-struct GPUTextureProperties;
 
-struct ShadowMapPipelineInfo
+struct CullPipelineInfo
 {
     VkPipeline            pipeline;
     VkPipelineLayout      pipelineLayout;
     VkDescriptorSetLayout descSetLayout;
 };
 
-VkRenderPass create_shadow_raster_pass(ReaperRoot& root, VulkanBackend& backend,
-                                       const GPUTextureProperties& shadowMapProperties);
-
-ShadowMapPipelineInfo create_shadow_map_pipeline(ReaperRoot& root, VulkanBackend& backend, VkRenderPass renderPass,
-                                                 u32 shadowMapRes);
+CullPipelineInfo create_cull_pipeline(ReaperRoot& root, VulkanBackend& backend);
 } // namespace Reaper
