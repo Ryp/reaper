@@ -1250,49 +1250,53 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                 mustTransitionSwapchain = false;
             }
 
-            if (!freezeCulling)
+            // Culling
             {
-                vkCmdBindPipeline(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, cullPipe.pipeline);
+                if (!freezeCulling)
+                {
+                    vkCmdBindPipeline(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, cullPipe.pipeline);
 
-                vkCmdBindDescriptorSets(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, cullPipe.pipelineLayout,
-                                        0, 1, &cullPassDescriptorSet, 0, nullptr);
+                    vkCmdBindDescriptorSets(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE,
+                                            cullPipe.pipelineLayout, 0, 1, &cullPassDescriptorSet, 0, nullptr);
 
-                const u32 index_count = static_cast<u32>(mesh.indexes.size());
-                Assert(index_count % 3 == 0);
+                    const u32 index_count = static_cast<u32>(mesh.indexes.size());
+                    Assert(index_count % 3 == 0);
 
-                CullPushConstants consts;
-                consts.triangleCount = index_count / 3;
-                consts.firstIndex = 0;
+                    CullPushConstants consts;
+                    consts.triangleCount = index_count / 3;
+                    consts.firstIndex = 0;
 
-                vkCmdPushConstants(resources.gfxCmdBuffer, cullPipe.pipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0,
-                                   sizeof(consts), &consts);
-                vkCmdDispatch(resources.gfxCmdBuffer, div_round_up(consts.triangleCount, ComputeCullingGroupSize),
-                              instanceCount, 1);
-            }
+                    vkCmdPushConstants(resources.gfxCmdBuffer, cullPipe.pipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0,
+                                       sizeof(consts), &consts);
+                    vkCmdDispatch(resources.gfxCmdBuffer, div_round_up(consts.triangleCount, ComputeCullingGroupSize),
+                                  instanceCount, 1);
+                }
 
-            cmd_insert_compute_to_compute_barrier(resources.gfxCmdBuffer);
+                cmd_insert_compute_to_compute_barrier(resources.gfxCmdBuffer);
 
-            // Compaction prepare pass
-            {
-                vkCmdBindPipeline(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, compactPrepPipe.pipeline);
+                // Compaction prepare pass
+                {
+                    vkCmdBindPipeline(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, compactPrepPipe.pipeline);
 
-                vkCmdBindDescriptorSets(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE,
-                                        compactPrepPipe.pipelineLayout, 0, 1, &compactPrepPassDescriptorSet, 0,
-                                        nullptr);
+                    vkCmdBindDescriptorSets(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE,
+                                            compactPrepPipe.pipelineLayout, 0, 1, &compactPrepPassDescriptorSet, 0,
+                                            nullptr);
 
-                vkCmdDispatch(resources.gfxCmdBuffer, 1, 1, 1);
-            }
+                    vkCmdDispatch(resources.gfxCmdBuffer, 1, 1, 1);
+                }
 
-            cmd_insert_compute_to_compute_barrier(resources.gfxCmdBuffer);
+                cmd_insert_compute_to_compute_barrier(resources.gfxCmdBuffer);
 
-            // Compaction pass
-            {
-                vkCmdBindPipeline(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, compactionPipe.pipeline);
+                // Compaction pass
+                {
+                    vkCmdBindPipeline(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, compactionPipe.pipeline);
 
-                vkCmdBindDescriptorSets(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE,
-                                        compactionPipe.pipelineLayout, 0, 1, &compactionPassDescriptorSet, 0, nullptr);
+                    vkCmdBindDescriptorSets(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE,
+                                            compactionPipe.pipelineLayout, 0, 1, &compactionPassDescriptorSet, 0,
+                                            nullptr);
 
-                vkCmdDispatchIndirect(resources.gfxCmdBuffer, compactionIndirectDispatchBuffer.buffer, 0);
+                    vkCmdDispatchIndirect(resources.gfxCmdBuffer, compactionIndirectDispatchBuffer.buffer, 0);
+                }
             }
 
             {
