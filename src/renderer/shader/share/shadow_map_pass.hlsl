@@ -12,12 +12,12 @@
 
 struct ShadowMapPassParams
 {
-    hlsl_float4x4 viewProj;
+    hlsl_float4x4 dummy;
 };
 
 struct ShadowMapInstanceParams
 {
-    hlsl_float3x4 model;
+    hlsl_float4x4 ms_to_cs_matrix;
 };
 
 #endif

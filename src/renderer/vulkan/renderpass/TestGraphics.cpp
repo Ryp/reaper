@@ -23,6 +23,7 @@
 #include "renderer/vulkan/api/VulkanStringConversion.h"
 
 #include "renderer/GPUBufferProperties.h"
+#include "renderer/PrepareBuckets.h"
 #include "renderer/texture/GPUTextureProperties.h"
 #include "renderer/window/Event.h"
 #include "renderer/window/Window.h"
@@ -45,11 +46,6 @@
 #include <array>
 #include <chrono>
 #include <thread>
-
-#include "renderer/shader/share/compaction.hlsl"
-#include "renderer/shader/share/culling.hlsl"
-#include "renderer/shader/share/draw.hlsl"
-#include "renderer/shader/share/shadow_map_pass.hlsl"
 
 namespace Reaper
 {
@@ -614,49 +610,6 @@ namespace
         vkDestroyShaderModule(backend.device, blitShaderFS, nullptr);
 
         return BlitPipelineInfo{pipeline, pipelineLayout, descriptorSetLayoutCB};
-    } // namespace
-
-    void update_pass_params(ShadowMapPassParams& shadow_pass_params, DrawPassParams& draw_pass_params, float timeMs,
-                            float aspectRatio, const glm::mat4& view)
-    {
-        const float near_plane_distance = 0.1f;
-        const float far_plane_distance = 100.f;
-        const float fov_radian = glm::pi<float>() * 0.25f;
-
-        glm::mat4 projection = glm::perspective(fov_radian, aspectRatio, near_plane_distance, far_plane_distance);
-
-        // Flip viewport Y
-        projection[1] = -projection[1];
-
-        if (UseReverseZ)
-        {
-            // NOTE: we might want to do it by hand to limit precision loss
-            glm::mat4 reverse_z_transform(1.f);
-            reverse_z_transform[3][2] = 1.f;
-            reverse_z_transform[2][2] = -1.f;
-
-            projection = reverse_z_transform * projection;
-        }
-
-        draw_pass_params.view = glm::mat4x3(view);
-        draw_pass_params.proj = projection;
-        draw_pass_params.viewProj = projection * view;
-
-        draw_pass_params.timeMs = timeMs;
-
-        {
-            glm::fvec3 light_position_ws(-1.f, 1.f, 1.f);
-
-            glm::fvec3 light_position_vs = view * glm::fvec4(light_position_ws, 1.f);
-
-            draw_pass_params.point_light.position_vs = light_position_vs;
-            draw_pass_params.point_light.intensity = 8.f;
-            draw_pass_params.point_light.color = glm::fvec3(0.8f, 0.5f, 0.2f);
-        }
-
-        {
-            shadow_pass_params.viewProj = draw_pass_params.viewProj;
-        }
     }
 } // namespace
 
@@ -978,14 +931,6 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
     log_info(root, "window: map window");
     window->map();
 
-    std::array<CullInstanceParams, instanceCount> cull_instance_params = {};
-
-    DrawPassParams                                draw_pass_params = {};
-    std::array<DrawInstanceParams, instanceCount> draw_instance_params = {};
-
-    ShadowMapPassParams                                shadow_pass_params = {};
-    std::array<ShadowMapInstanceParams, instanceCount> shadow_instance_params = {};
-
     const int MaxFrameCount = 0;
 
     bool mustTransitionSwapchain = true;
@@ -1000,6 +945,9 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
     Camera camera;
     camera.setPosition(glm::vec3(-5.f, 0.f, 0.f));
     camera.setDirection(glm::vec3(1.f, 0.f, 0.f));
+
+    SceneGraph scene;
+    build_scene_graph(scene);
 
     const auto startTime = std::chrono::system_clock::now();
     auto       lastFrameStart = std::chrono::system_clock::now();
@@ -1194,40 +1142,24 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
 
             float animationTimeMs = pauseAnimation ? 0.f : timeMs;
 
-            update_pass_params(shadow_pass_params, draw_pass_params, animationTimeMs, aspectRatio, view);
+            update_scene_graph(scene, animationTimeMs, aspectRatio, view);
 
-            for (u32 i = 0; i < instanceCount; i++)
-            {
-                const float     ratio = static_cast<float>(i) / static_cast<float>(instanceCount) * 3.1415f * 2.f;
-                const glm::vec3 object_position_ws =
-                    glm::vec3(glm::cos(ratio + animationTimeMs), glm::cos(ratio), glm::sin(ratio));
-                // const float     uniform_scale = 0.0005f;
-                const float     uniform_scale = 1.0f;
-                const glm::mat4 model = glm::rotate(glm::scale(glm::translate(glm::mat4(1.0f), object_position_ws),
-                                                               glm::vec3(uniform_scale, uniform_scale, uniform_scale)),
-                                                    animationTimeMs + ratio, glm::vec3(0.f, 1.f, 1.f));
+            PreparedData prepared;
+            prepare_scene(scene, prepared);
 
-                draw_instance_params[i].model = glm::mat4x3(model);
-                shadow_instance_params[i].model = glm::mat4x3(model);
-
-                const glm::mat4 modelView = view * model;
-                // Assumption that our 3x3 submatrix is orthonormal (no skew/non-uniform scaling)
-                draw_instance_params[i].normal_ms_to_vs_matrix = glm::mat3(modelView);
-
-                cull_instance_params[i].ms_to_cs_matrix = glm::mat4(draw_pass_params.viewProj) * model;
-            }
-
-            upload_buffer_data(backend.device, backend.vma_instance, drawPassConstantBuffer, &draw_pass_params,
+            upload_buffer_data(backend.device, backend.vma_instance, drawPassConstantBuffer, &prepared.draw_pass_params,
                                sizeof(DrawPassParams));
-            upload_buffer_data(backend.device, backend.vma_instance, shadowMapPassConstantBuffer, &shadow_pass_params,
-                               sizeof(ShadowMapPassParams));
+            upload_buffer_data(backend.device, backend.vma_instance, shadowMapPassConstantBuffer,
+                               &prepared.shadow_pass_params, sizeof(ShadowMapPassParams));
             upload_buffer_data(backend.device, backend.vma_instance, drawInstanceConstantBuffer,
-                               draw_instance_params.data(), draw_instance_params.size() * sizeof(DrawInstanceParams));
+                               prepared.draw_instance_params.data(),
+                               prepared.draw_instance_params.size() * sizeof(DrawInstanceParams));
             upload_buffer_data(backend.device, backend.vma_instance, shadowMapInstanceConstantBuffer,
-                               shadow_instance_params.data(),
-                               shadow_instance_params.size() * sizeof(ShadowMapInstanceParams));
+                               prepared.shadow_instance_params.data(),
+                               prepared.shadow_instance_params.size() * sizeof(ShadowMapInstanceParams));
             upload_buffer_data(backend.device, backend.vma_instance, cullInstanceParamsBuffer,
-                               cull_instance_params.data(), cull_instance_params.size() * sizeof(CullInstanceParams));
+                               prepared.cull_instance_params.data(),
+                               prepared.cull_instance_params.size() * sizeof(CullInstanceParams));
 
             if (!freezeCulling)
             {

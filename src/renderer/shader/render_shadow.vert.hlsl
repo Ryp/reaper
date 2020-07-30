@@ -18,8 +18,7 @@ struct VS_OUTPUT
 VS_OUTPUT main(VS_INPUT input, uint instance_id : SV_InstanceID)
 {
     const float3 positionMS = input.PositionMS;
-    const float3 positionWS = mul(instance_params[instance_id].model, float4(positionMS, 1.0));
-    const float4 positionCS = mul(pass_params.viewProj, float4(positionWS, 1.0));
+    const float4 positionCS = mul(instance_params[instance_id].ms_to_cs_matrix, float4(positionMS, 1.0));
 
     VS_OUTPUT output;
 

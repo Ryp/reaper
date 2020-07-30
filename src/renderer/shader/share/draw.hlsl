@@ -23,9 +23,8 @@ struct DrawPassParams
     PointLightProperties point_light;
     hlsl_float3x4 view;
     hlsl_float4x4 proj;
-    hlsl_float4x4 viewProj;
+    hlsl_float4x4 view_proj;
     hlsl_float3   light_position_vs;
-    hlsl_float    timeMs;
 };
 
 struct DrawInstanceParams
