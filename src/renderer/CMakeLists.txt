@@ -11,6 +11,9 @@ set(REAPER_RENDERER_BIN ${target} PARENT_SCOPE)
 add_library(${target} ${REAPER_BUILD_TYPE})
 
 target_sources(${target} PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/PrepareBuckets.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/PrepareBuckets.h
+
     ${CMAKE_CURRENT_SOURCE_DIR}/Camera.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Camera.h
 

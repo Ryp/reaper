@@ -3,7 +3,7 @@
 layout(binding = 0) uniform UniformBufferObject
 {
     mat4 model;
-    mat4 viewProj;
+    mat4 view_proj;
     float timeMs;
 } uniformBuffer;
 
@@ -18,7 +18,7 @@ void main()
 {
     const vec3 positionMS = in_PositionMS * (1.0 + 0.2 * sin(uniformBuffer.timeMs * 0.2));
     const vec4 positionWS = uniformBuffer.model * vec4(positionMS, 1.0);
-    const vec4 positionCS = uniformBuffer.viewProj * positionWS;
+    const vec4 positionCS = uniformBuffer.view_proj * positionWS;
 
     gl_Position = positionCS;
 }
