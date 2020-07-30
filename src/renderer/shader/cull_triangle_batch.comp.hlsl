@@ -51,8 +51,9 @@ void main(/*uint3 gtid : SV_GroupThreadID,*/
     const float3 vpos1_ms = asfloat(VertexPositions.Load3(indices.y * vertex_size_in_bytes));
     const float3 vpos2_ms = asfloat(VertexPositions.Load3(indices.z * vertex_size_in_bytes));
 
-    const uint instance_id = gid.y;
-    const float4x4 ms_to_cs_matrix = instance_params[instance_id].ms_to_cs_matrix;
+    const uint cull_instance_id = gid.y;
+    const float4x4 ms_to_cs_matrix = instance_params[cull_instance_id].ms_to_cs_matrix;
+    const uint instance_id = instance_params[cull_instance_id].instance_id;
 
     const float4 vpos0_cs = mul(ms_to_cs_matrix, float4(vpos0_ms, 1.0));
     const float4 vpos1_cs = mul(ms_to_cs_matrix, float4(vpos1_ms, 1.0));
