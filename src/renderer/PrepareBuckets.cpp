@@ -106,11 +106,9 @@ void update_scene_graph(SceneGraph& scene, float time_ms, float aspect_ratio, co
     {
         light.projection_matrix = build_perspective_matrix(0.1f, 100.f, 1.f, glm::pi<float>() * 0.25f);
 
-        const glm::vec3 up_ws = glm::vec3(0.f, 1.f, 0.f);
-        const glm::vec3 light_position_ws = glm::vec3(-1.f, 1.f, 1.f);
-        glm::mat4x3     light_transform = glm::lookAt(light_position_ws, glm::vec3(0.f, 0.f, 0.f), up_ws);
-        light_transform = glm::column(light_transform, 3, light_position_ws);
-        // const glm::mat4x3 light_transform = glm::translate(glm::mat4(1.f), light_position_ws) * light_orientation ;
+        const glm::vec3   up_ws = glm::vec3(0.f, 1.f, 0.f);
+        const glm::vec3   light_position_ws = glm::vec3(-1.f, 1.f, 1.f);
+        const glm::mat4x3 light_transform = glm::lookAt(light_position_ws, glm::vec3(0.f, 0.f, 0.f), up_ws);
 
         Node& light_node = scene.nodes[light.scene_node];
         light_node.transform_matrix = light_transform;
@@ -123,12 +121,15 @@ void prepare_scene(SceneGraph& scene, PreparedData& prepared)
     const Node& light_node = scene.nodes[scene.lights.front().scene_node];
 
     // Main + culling pass
+    const glm::mat4 main_camera_view_proj = scene.camera.projection_matrix * glm::mat4(camera_node.transform_matrix);
+
     prepared.draw_pass_params.view = camera_node.transform_matrix;
     prepared.draw_pass_params.proj = scene.camera.projection_matrix;
-    prepared.draw_pass_params.view_proj = scene.camera.projection_matrix * glm::mat4(camera_node.transform_matrix);
+    prepared.draw_pass_params.view_proj = main_camera_view_proj;
 
     {
-        const glm::vec3 light_position_ws = light_node.transform_matrix * glm::vec4(0.f, 0.f, 0.f, 1.0f);
+        const glm::vec3 light_position_ws =
+            glm::inverse(glm::mat4(light_node.transform_matrix)) * glm::vec4(0.f, 0.f, 0.f, 1.0f);
         const glm::vec3 light_position_vs = camera_node.transform_matrix * glm::fvec4(light_position_ws, 1.f);
 
         prepared.draw_pass_params.point_light.position_vs = light_position_vs;
@@ -151,8 +152,7 @@ void prepare_scene(SceneGraph& scene, PreparedData& prepared)
         prepared.draw_instance_params.push_back(draw_instance);
 
         CullInstanceParams cull_instance;
-        cull_instance.ms_to_cs_matrix =
-            glm::mat4(prepared.draw_pass_params.view_proj) * glm::mat4(node.transform_matrix);
+        cull_instance.ms_to_cs_matrix = main_camera_view_proj * glm::mat4(node.transform_matrix);
 
         prepared.cull_instance_params.push_back(cull_instance);
     }

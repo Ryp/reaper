@@ -1292,10 +1292,11 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
             }
 
             // Draw pass
-            vkCmdBeginRenderPass(resources.gfxCmdBuffer, &blitRenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-            vkCmdBindPipeline(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, blitPipe.pipeline);
             {
+                vkCmdBeginRenderPass(resources.gfxCmdBuffer, &blitRenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+                vkCmdBindPipeline(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, blitPipe.pipeline);
+
                 const VkViewport blitViewport = {
                     0.0f, 0.0f, static_cast<float>(backbufferExtent.width), static_cast<float>(backbufferExtent.height),
                     0.0f, 1.0f};
@@ -1334,9 +1335,9 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                         resources.gfxCmdBuffer, indirectDrawBuffer.buffer, 0, indirectDrawCountBuffer.buffer, 0,
                         indirectDrawBuffer.descriptor.elementCount, indirectDrawBuffer.descriptor.elementSize);
                 }
-            }
 
-            vkCmdEndRenderPass(resources.gfxCmdBuffer);
+                vkCmdEndRenderPass(resources.gfxCmdBuffer);
+            }
 
             Assert(vkEndCommandBuffer(resources.gfxCmdBuffer) == VK_SUCCESS);
             // Stop recording
