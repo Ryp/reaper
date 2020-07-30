@@ -205,6 +205,9 @@ namespace
         return CompactionPipelineInfo{pipeline, pipelineLayout, descriptorSetLayout};
     }
 
+    constexpr u32  CullInstanceCountMax = 512;
+    constexpr u32  ShadowInstanceCountMax = 512;
+    constexpr u32  DrawInstanceCountMax = 512;
     constexpr bool UseReverseZ = true;
     constexpr u32  ShadowMapResolution = 1024;
 
@@ -619,24 +622,23 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
     std::ifstream modelFile("res/model/suzanne.obj");
     const Mesh    mesh = ModelLoader::loadOBJ(modelFile);
 
-    const u32 instanceCount = 6;
-
     // Create vk buffers
     BufferInfo shadowMapPassConstantBuffer =
         create_buffer(root, backend.device, "Shadow Map Pass Constant buffer",
                       DefaultGPUBufferProperties(1, sizeof(ShadowMapPassParams), GPUBufferUsage::UniformBuffer),
                       backend.vma_instance);
-    BufferInfo shadowMapInstanceConstantBuffer = create_buffer(
-        root, backend.device, "Shadow Map Instance Constant buffer",
-        DefaultGPUBufferProperties(instanceCount, sizeof(ShadowMapInstanceParams), GPUBufferUsage::StorageBuffer),
-        backend.vma_instance);
+    BufferInfo shadowMapInstanceConstantBuffer =
+        create_buffer(root, backend.device, "Shadow Map Instance Constant buffer",
+                      DefaultGPUBufferProperties(ShadowInstanceCountMax, sizeof(ShadowMapInstanceParams),
+                                                 GPUBufferUsage::StorageBuffer),
+                      backend.vma_instance);
 
     BufferInfo drawPassConstantBuffer = create_buffer(
         root, backend.device, "Draw Pass Constant buffer",
         DefaultGPUBufferProperties(1, sizeof(DrawPassParams), GPUBufferUsage::UniformBuffer), backend.vma_instance);
     BufferInfo drawInstanceConstantBuffer = create_buffer(
         root, backend.device, "Draw Instance Constant buffer",
-        DefaultGPUBufferProperties(instanceCount, sizeof(DrawInstanceParams), GPUBufferUsage::StorageBuffer),
+        DefaultGPUBufferProperties(DrawInstanceCountMax, sizeof(DrawInstanceParams), GPUBufferUsage::StorageBuffer),
         backend.vma_instance);
 
     BufferInfo vertexBufferPosition =
@@ -702,7 +704,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
 
     BufferInfo cullInstanceParamsBuffer = create_buffer(
         root, backend.device, "Culling instance constant buffer",
-        DefaultGPUBufferProperties(instanceCount, sizeof(CullInstanceParams), GPUBufferUsage::StorageBuffer),
+        DefaultGPUBufferProperties(CullInstanceCountMax, sizeof(CullInstanceParams), GPUBufferUsage::StorageBuffer),
         backend.vma_instance);
 
     const u32  dynamicIndexBufferSize = static_cast<u32>(2000_kiB);
@@ -1147,6 +1149,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
             PreparedData prepared;
             prepare_scene(scene, prepared);
 
+            // FIXME do partial copies
             upload_buffer_data(backend.device, backend.vma_instance, drawPassConstantBuffer, &prepared.draw_pass_params,
                                sizeof(DrawPassParams));
             upload_buffer_data(backend.device, backend.vma_instance, shadowMapPassConstantBuffer,
@@ -1200,6 +1203,8 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
 
                     vkCmdPushConstants(resources.gfxCmdBuffer, cullPipe.pipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0,
                                        sizeof(consts), &consts);
+
+                    const u32 instanceCount = 6;
                     vkCmdDispatch(resources.gfxCmdBuffer, div_round_up(consts.triangleCount, ComputeCullingGroupSize),
                                   instanceCount, 1);
                 }

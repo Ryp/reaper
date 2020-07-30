@@ -15,21 +15,26 @@ namespace Reaper
 {
 constexpr bool UseReverseZ = true;
 constexpr u32  MeshInstanceCount = 6;
+constexpr u32  InvalidMeshInstanceId = -1;
 
 void build_scene_graph(SceneGraph& scene)
 {
     {
         // Dummy node
         Node node = {};
-        node.mesh = (GirugaMesh*)0xFF; // FIXME get it from the asset streamer or something
 
         for (u32 i = 0; i < MeshInstanceCount; i++)
+        {
+            node.instance_id = i;
             scene.nodes.push_back(node);
+        }
     }
 
     {
         // Add to scene
         Node light_node = {};
+        light_node.instance_id = InvalidMeshInstanceId;
+
         scene.nodes.push_back(light_node);
 
         Light main_light;
@@ -44,6 +49,8 @@ void build_scene_graph(SceneGraph& scene)
     {
         // Dummy node
         Node camera_node = {};
+        camera_node.instance_id = InvalidMeshInstanceId;
+
         scene.nodes.push_back(camera_node);
 
         scene.camera.scene_node = scene.nodes.size() - 1; // FIXME
@@ -139,7 +146,7 @@ void prepare_scene(SceneGraph& scene, PreparedData& prepared)
 
     for (const auto& node : scene.nodes)
     {
-        if (node.mesh == nullptr)
+        if (node.instance_id == InvalidMeshInstanceId)
             continue;
 
         // Assumption that our 3x3 submatrix is orthonormal (no skew/non-uniform scaling)
@@ -153,6 +160,7 @@ void prepare_scene(SceneGraph& scene, PreparedData& prepared)
 
         CullInstanceParams cull_instance;
         cull_instance.ms_to_cs_matrix = main_camera_view_proj * glm::mat4(node.transform_matrix);
+        cull_instance.instance_id = node.instance_id;
 
         prepared.cull_instance_params.push_back(cull_instance);
     }
@@ -162,7 +170,7 @@ void prepare_scene(SceneGraph& scene, PreparedData& prepared)
 
     for (const auto& node : scene.nodes)
     {
-        if (node.mesh == nullptr)
+        if (node.instance_id == InvalidMeshInstanceId)
             continue;
 
         const glm::mat4 light_view_proj_matrix =
@@ -172,6 +180,12 @@ void prepare_scene(SceneGraph& scene, PreparedData& prepared)
         shadow_instance.ms_to_cs_matrix = light_view_proj_matrix * glm::mat4(node.transform_matrix);
 
         prepared.shadow_instance_params.push_back(shadow_instance);
+
+        CullInstanceParams cull_instance;
+        cull_instance.ms_to_cs_matrix = shadow_instance.ms_to_cs_matrix;
+        cull_instance.instance_id = node.instance_id;
+
+        prepared.cull_instance_params.push_back(cull_instance);
     }
 }
 } // namespace Reaper

@@ -16,8 +16,6 @@
 
 namespace Reaper
 {
-struct GirugaMesh;
-
 struct Light
 {
     glm::mat4 projection_matrix;
@@ -29,7 +27,7 @@ struct Light
 struct Node
 {
     glm::mat4x3 transform_matrix;
-    GirugaMesh* mesh;
+    u32         instance_id;
 };
 
 struct SceneCamera
