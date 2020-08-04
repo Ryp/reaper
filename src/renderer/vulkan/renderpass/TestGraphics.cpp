@@ -1160,9 +1160,11 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
             upload_buffer_data(backend.device, backend.vma_instance, shadowMapInstanceConstantBuffer,
                                prepared.shadow_instance_params.data(),
                                prepared.shadow_instance_params.size() * sizeof(ShadowMapInstanceParams));
+
+            // FIXME
             upload_buffer_data(backend.device, backend.vma_instance, cullInstanceParamsBuffer,
-                               prepared.cull_instance_params.data(),
-                               prepared.cull_instance_params.size() * sizeof(CullInstanceParams));
+                               prepared.cull_passes.front().cull_instance_params.data(),
+                               prepared.cull_passes.front().cull_instance_params.size() * sizeof(CullInstanceParams));
 
             if (!freezeCulling)
             {

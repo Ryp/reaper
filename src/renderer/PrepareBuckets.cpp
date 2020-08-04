@@ -125,7 +125,6 @@ void update_scene_graph(SceneGraph& scene, float time_ms, float aspect_ratio, co
 void prepare_scene(SceneGraph& scene, PreparedData& prepared)
 {
     const Node& camera_node = scene.nodes[scene.camera.scene_node];
-    const Node& light_node = scene.nodes[scene.lights.front().scene_node];
 
     // Main + culling pass
     const glm::mat4 main_camera_view_proj = scene.camera.projection_matrix * glm::mat4(camera_node.transform_matrix);
@@ -135,6 +134,8 @@ void prepare_scene(SceneGraph& scene, PreparedData& prepared)
     prepared.draw_pass_params.view_proj = main_camera_view_proj;
 
     {
+        const Node& light_node = scene.nodes[scene.lights.front().scene_node];
+
         const glm::vec3 light_position_ws =
             glm::inverse(glm::mat4(light_node.transform_matrix)) * glm::vec4(0.f, 0.f, 0.f, 1.0f);
         const glm::vec3 light_position_vs = camera_node.transform_matrix * glm::fvec4(light_position_ws, 1.f);
@@ -144,48 +145,58 @@ void prepare_scene(SceneGraph& scene, PreparedData& prepared)
         prepared.draw_pass_params.point_light.color = glm::fvec3(0.8f, 0.5f, 0.2f);
     }
 
-    for (const auto& node : scene.nodes)
     {
-        if (node.instance_id == InvalidMeshInstanceId)
-            continue;
+        CullPassData& cull_pass = prepared.cull_passes.emplace_back();
 
-        // Assumption that our 3x3 submatrix is orthonormal (no skew/non-uniform scaling)
-        // FIXME use 4x3 matrices directly
-        const glm::mat4x3 modelView = glm::mat4(camera_node.transform_matrix) * glm::mat4(node.transform_matrix);
+        for (const auto& node : scene.nodes)
+        {
+            if (node.instance_id == InvalidMeshInstanceId)
+                continue;
 
-        DrawInstanceParams draw_instance;
-        draw_instance.model = node.transform_matrix, draw_instance.normal_ms_to_vs_matrix = glm::mat3(modelView);
+            // Assumption that our 3x3 submatrix is orthonormal (no skew/non-uniform scaling)
+            // FIXME use 4x3 matrices directly
+            const glm::mat4x3 modelView = glm::mat4(camera_node.transform_matrix) * glm::mat4(node.transform_matrix);
 
-        prepared.draw_instance_params.push_back(draw_instance);
+            DrawInstanceParams draw_instance;
+            draw_instance.model = node.transform_matrix, draw_instance.normal_ms_to_vs_matrix = glm::mat3(modelView);
 
-        CullInstanceParams cull_instance;
-        cull_instance.ms_to_cs_matrix = main_camera_view_proj * glm::mat4(node.transform_matrix);
-        cull_instance.instance_id = node.instance_id;
+            prepared.draw_instance_params.push_back(draw_instance);
 
-        prepared.cull_instance_params.push_back(cull_instance);
+            CullInstanceParams cull_instance;
+            cull_instance.ms_to_cs_matrix = main_camera_view_proj * glm::mat4(node.transform_matrix);
+            cull_instance.instance_id = node.instance_id;
+
+            cull_pass.cull_instance_params.push_back(cull_instance);
+        }
     }
 
     // Shadow pass
-    prepared.shadow_pass_params.dummy = glm::mat4(1.f);
-
-    for (const auto& node : scene.nodes)
+    for (const auto& light : scene.lights)
     {
-        if (node.instance_id == InvalidMeshInstanceId)
-            continue;
+        const Node& light_node = scene.nodes[light.scene_node];
 
-        const glm::mat4 light_view_proj_matrix =
-            scene.lights.front().projection_matrix * glm::mat4(light_node.transform_matrix);
+        CullPassData& cull_pass = prepared.cull_passes.emplace_back();
 
-        ShadowMapInstanceParams shadow_instance;
-        shadow_instance.ms_to_cs_matrix = light_view_proj_matrix * glm::mat4(node.transform_matrix);
+        prepared.shadow_pass_params.dummy = glm::mat4(1.f);
 
-        prepared.shadow_instance_params.push_back(shadow_instance);
+        for (const auto& node : scene.nodes)
+        {
+            if (node.instance_id == InvalidMeshInstanceId)
+                continue;
 
-        CullInstanceParams cull_instance;
-        cull_instance.ms_to_cs_matrix = shadow_instance.ms_to_cs_matrix;
-        cull_instance.instance_id = node.instance_id;
+            const glm::mat4 light_view_proj_matrix = light.projection_matrix * glm::mat4(light_node.transform_matrix);
 
-        prepared.cull_instance_params.push_back(cull_instance);
+            ShadowMapInstanceParams shadow_instance;
+            shadow_instance.ms_to_cs_matrix = light_view_proj_matrix * glm::mat4(node.transform_matrix);
+
+            prepared.shadow_instance_params.push_back(shadow_instance);
+
+            CullInstanceParams cull_instance;
+            cull_instance.ms_to_cs_matrix = shadow_instance.ms_to_cs_matrix;
+            cull_instance.instance_id = node.instance_id;
+
+            cull_pass.cull_instance_params.push_back(cull_instance);
+        }
     }
 }
 } // namespace Reaper
