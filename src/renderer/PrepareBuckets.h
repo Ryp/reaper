@@ -47,9 +47,14 @@ struct SceneGraph
 void build_scene_graph(SceneGraph& scene);
 void update_scene_graph(SceneGraph& scene, float time_ms, float aspect_ratio, const glm::mat4x3& view_matrix);
 
+struct CullPassData
+{
+    std::vector<CullInstanceParams> cull_instance_params;
+};
+
 struct PreparedData
 {
-    std::vector<CullInstanceParams>      cull_instance_params;
+    std::vector<CullPassData>            cull_passes;
     DrawPassParams                       draw_pass_params;
     std::vector<DrawInstanceParams>      draw_instance_params;
     ShadowMapPassParams                  shadow_pass_params;
