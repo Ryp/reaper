@@ -14,6 +14,8 @@
 #include "renderer/shader/share/draw.hlsl"
 #include "renderer/shader/share/shadow_map_pass.hlsl"
 
+struct Mesh;
+
 namespace Reaper
 {
 struct Light
@@ -28,6 +30,7 @@ struct Node
 {
     glm::mat4x3 transform_matrix;
     u32         instance_id;
+    const Mesh* mesh;
 };
 
 struct SceneCamera
@@ -44,12 +47,19 @@ struct SceneGraph
     SceneCamera        camera;
 };
 
-void build_scene_graph(SceneGraph& scene);
+void build_scene_graph(SceneGraph& scene, const Mesh* mesh);
 void update_scene_graph(SceneGraph& scene, float time_ms, float aspect_ratio, const glm::mat4x3& view_matrix);
+
+struct CullCmd
+{
+    u32               instanceCount;
+    CullPushConstants push_constants;
+};
 
 struct CullPassData
 {
     std::vector<CullInstanceParams> cull_instance_params;
+    std::vector<CullCmd>            cull_cmds;
 };
 
 struct PreparedData

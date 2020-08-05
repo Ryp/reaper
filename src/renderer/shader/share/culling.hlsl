@@ -16,6 +16,7 @@ struct CullPushConstants
 {
     hlsl_uint triangleCount;
     hlsl_uint firstIndex;
+    hlsl_uint firstInstance;
 };
 
 struct CullInstanceParams
