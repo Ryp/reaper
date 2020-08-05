@@ -7,6 +7,8 @@
 
 #include "PrepareBuckets.h"
 
+#include "mesh/Mesh.h"
+
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "math/Constants.h"
@@ -17,41 +19,30 @@ constexpr bool UseReverseZ = true;
 constexpr u32  MeshInstanceCount = 6;
 constexpr u32  InvalidMeshInstanceId = -1;
 
-void build_scene_graph(SceneGraph& scene)
+void build_scene_graph(SceneGraph& scene, const Mesh* mesh)
 {
+    for (u32 i = 0; i < MeshInstanceCount; i++)
     {
-        // Dummy node
-        Node node = {};
-
-        for (u32 i = 0; i < MeshInstanceCount; i++)
-        {
-            node.instance_id = i;
-            scene.nodes.push_back(node);
-        }
+        Node& node = scene.nodes.emplace_back();
+        node.instance_id = i;
+        node.mesh = mesh;
     }
 
     {
         // Add to scene
-        Node light_node = {};
+        Node& light_node = scene.nodes.emplace_back();
         light_node.instance_id = InvalidMeshInstanceId;
 
-        scene.nodes.push_back(light_node);
-
-        Light main_light;
-
+        Light& main_light = scene.lights.emplace_back();
         main_light.color = glm::fvec3(0.8f, 0.5f, 0.2f);
         main_light.intensity = 8.f;
         main_light.scene_node = scene.nodes.size() - 1; // FIXME
-
-        scene.lights.push_back(main_light);
     }
 
     {
         // Dummy node
-        Node camera_node = {};
+        Node& camera_node = scene.nodes.emplace_back();
         camera_node.instance_id = InvalidMeshInstanceId;
-
-        scene.nodes.push_back(camera_node);
 
         scene.camera.scene_node = scene.nodes.size() - 1; // FIXME
     }
@@ -157,16 +148,26 @@ void prepare_scene(SceneGraph& scene, PreparedData& prepared)
             // FIXME use 4x3 matrices directly
             const glm::mat4x3 modelView = glm::mat4(camera_node.transform_matrix) * glm::mat4(node.transform_matrix);
 
-            DrawInstanceParams draw_instance;
+            DrawInstanceParams& draw_instance = prepared.draw_instance_params.emplace_back();
             draw_instance.model = node.transform_matrix, draw_instance.normal_ms_to_vs_matrix = glm::mat3(modelView);
 
-            prepared.draw_instance_params.push_back(draw_instance);
-
-            CullInstanceParams cull_instance;
+            CullInstanceParams& cull_instance = cull_pass.cull_instance_params.emplace_back();
             cull_instance.ms_to_cs_matrix = main_camera_view_proj * glm::mat4(node.transform_matrix);
             cull_instance.instance_id = node.instance_id;
 
-            cull_pass.cull_instance_params.push_back(cull_instance);
+            Assert(node.mesh);
+
+            const u32 index_count = static_cast<u32>(node.mesh->indexes.size());
+            Assert(index_count % 3 == 0);
+
+            CullPushConstants consts;
+            consts.triangleCount = index_count / 3;
+            consts.firstIndex = 0;
+            consts.firstInstance = cull_pass.cull_instance_params.size() - 1; // FIXME
+
+            CullCmd& command = cull_pass.cull_cmds.emplace_back();
+            command.instanceCount = 1; // FIXME Support batching
+            command.push_constants = consts;
         }
     }
 

@@ -949,7 +949,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
     camera.setDirection(glm::vec3(1.f, 0.f, 0.f));
 
     SceneGraph scene;
-    build_scene_graph(scene);
+    build_scene_graph(scene, &mesh);
 
     const auto startTime = std::chrono::system_clock::now();
     auto       lastFrameStart = std::chrono::system_clock::now();
@@ -1196,19 +1196,22 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                     vkCmdBindDescriptorSets(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE,
                                             cullPipe.pipelineLayout, 0, 1, &cullPassDescriptorSet, 0, nullptr);
 
-                    const u32 index_count = static_cast<u32>(mesh.indexes.size());
-                    Assert(index_count % 3 == 0);
+                    const CullPassData& cull_pass = prepared.cull_passes.front(); // FIXME
 
-                    CullPushConstants consts;
-                    consts.triangleCount = index_count / 3;
-                    consts.firstIndex = 0;
+                    for (const CullCmd& command : cull_pass.cull_cmds)
+                    {
+                        const u32 index_count = static_cast<u32>(mesh.indexes.size());
+                        Assert(index_count % 3 == 0);
 
-                    vkCmdPushConstants(resources.gfxCmdBuffer, cullPipe.pipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0,
-                                       sizeof(consts), &consts);
+                        const CullPushConstants& consts = command.push_constants;
 
-                    const u32 instanceCount = 6;
-                    vkCmdDispatch(resources.gfxCmdBuffer, div_round_up(consts.triangleCount, ComputeCullingGroupSize),
-                                  instanceCount, 1);
+                        vkCmdPushConstants(resources.gfxCmdBuffer, cullPipe.pipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT,
+                                           0, sizeof(consts), &consts);
+
+                        vkCmdDispatch(resources.gfxCmdBuffer,
+                                      div_round_up(consts.triangleCount, ComputeCullingGroupSize),
+                                      command.instanceCount, 1);
+                    }
                 }
 
                 cmd_insert_compute_to_compute_barrier(resources.gfxCmdBuffer);
