@@ -7,6 +7,8 @@
 
 #include "Culling.h"
 
+#include "renderer/PrepareBuckets.h"
+
 #include "renderer/vulkan/Shader.h"
 #include "renderer/vulkan/SwapchainRendererBase.h"
 
@@ -90,5 +92,94 @@ CullPipelineInfo create_cull_pipeline(ReaperRoot& root, VulkanBackend& backend)
     log_debug(root, "vulkan: created compute pipeline with handle: {}", static_cast<void*>(pipeline));
 
     return CullPipelineInfo{pipeline, pipelineLayout, descriptorSetLayout};
+}
+
+// Second uint is for keeping track of total triangles
+constexpr u32 IndirectDrawCountSize = 2;
+constexpr u32 CullInstanceCountMax = 512;
+constexpr u32 MaxIndirectDrawCount = 2000;
+constexpr u32 DynamicIndexBufferSize = static_cast<u32>(2000_kiB);
+
+CullResources create_culling_resources(ReaperRoot& root, VulkanBackend& backend)
+{
+    CullResources resources;
+
+    resources.cullInstanceParamsBuffer = create_buffer(
+        root, backend.device, "Culling instance constant buffer",
+        DefaultGPUBufferProperties(CullInstanceCountMax, sizeof(CullInstanceParams), GPUBufferUsage::StorageBuffer),
+        backend.vma_instance);
+
+    resources.indirectDrawCountBuffer =
+        create_buffer(root, backend.device, "Indirect draw count buffer",
+                      DefaultGPUBufferProperties(IndirectDrawCountSize, sizeof(u32),
+                                                 GPUBufferUsage::IndirectBuffer | GPUBufferUsage::StorageBuffer),
+                      backend.vma_instance);
+
+    resources.dynamicIndexBuffer =
+        create_buffer(root, backend.device, "Culling dynamic index buffer",
+                      DefaultGPUBufferProperties(DynamicIndexBufferSize, 1,
+                                                 GPUBufferUsage::IndexBuffer | GPUBufferUsage::StorageBuffer),
+                      backend.vma_instance);
+
+    resources.indirectDrawBuffer =
+        create_buffer(root, backend.device, "Indirect draw buffer",
+                      DefaultGPUBufferProperties(MaxIndirectDrawCount, sizeof(VkDrawIndexedIndirectCommand),
+                                                 GPUBufferUsage::IndirectBuffer | GPUBufferUsage::StorageBuffer),
+                      backend.vma_instance);
+
+    resources.compactIndirectDrawBuffer =
+        create_buffer(root, backend.device, "Compact indirect draw buffer",
+                      DefaultGPUBufferProperties(MaxIndirectDrawCount, sizeof(VkDrawIndexedIndirectCommand),
+                                                 GPUBufferUsage::IndirectBuffer | GPUBufferUsage::StorageBuffer),
+                      backend.vma_instance);
+
+    resources.compactIndirectDrawCountBuffer = create_buffer(
+        root, backend.device, "Compact indirect draw count buffer",
+        DefaultGPUBufferProperties(1, sizeof(u32), GPUBufferUsage::IndirectBuffer | GPUBufferUsage::StorageBuffer),
+        backend.vma_instance);
+
+    Assert(MaxIndirectDrawCount < backend.physicalDeviceProperties.limits.maxDrawIndirectCount);
+
+    resources.compactionIndirectDispatchBuffer =
+        create_buffer(root, backend.device, "Compact indirect dispatch buffer",
+                      DefaultGPUBufferProperties(1, sizeof(VkDispatchIndirectCommand),
+                                                 GPUBufferUsage::IndirectBuffer | GPUBufferUsage::StorageBuffer),
+                      backend.vma_instance);
+
+    return resources;
+}
+
+void destroy_culling_resources(VulkanBackend& backend, CullResources& resources)
+{
+    vmaDestroyBuffer(backend.vma_instance, resources.indirectDrawCountBuffer.buffer,
+                     resources.indirectDrawCountBuffer.allocation);
+    vmaDestroyBuffer(backend.vma_instance, resources.cullInstanceParamsBuffer.buffer,
+                     resources.cullInstanceParamsBuffer.allocation);
+    vmaDestroyBuffer(backend.vma_instance, resources.dynamicIndexBuffer.buffer,
+                     resources.dynamicIndexBuffer.allocation);
+    vmaDestroyBuffer(backend.vma_instance, resources.indirectDrawBuffer.buffer,
+                     resources.indirectDrawBuffer.allocation);
+    vmaDestroyBuffer(backend.vma_instance, resources.compactIndirectDrawBuffer.buffer,
+                     resources.compactIndirectDrawBuffer.allocation);
+    vmaDestroyBuffer(backend.vma_instance, resources.compactionIndirectDispatchBuffer.buffer,
+                     resources.compactionIndirectDispatchBuffer.allocation);
+    vmaDestroyBuffer(backend.vma_instance, resources.compactIndirectDrawCountBuffer.buffer,
+                     resources.compactIndirectDrawCountBuffer.allocation);
+}
+
+void culling_prepare_buffers(const CullOptions& options, VulkanBackend& backend, const PreparedData& prepared,
+                             CullResources& resources)
+{
+    // FIXME
+    upload_buffer_data(backend.device, backend.vma_instance, resources.cullInstanceParamsBuffer,
+                       prepared.cull_passes.front().cull_instance_params.data(),
+                       prepared.cull_passes.front().cull_instance_params.size() * sizeof(CullInstanceParams));
+
+    if (!options.freeze_culling)
+    {
+        std::array<u32, IndirectDrawCountSize> zero = {};
+        upload_buffer_data(backend.device, backend.vma_instance, resources.indirectDrawCountBuffer, zero.data(),
+                           zero.size() * sizeof(u32));
+    }
 }
 } // namespace Reaper
