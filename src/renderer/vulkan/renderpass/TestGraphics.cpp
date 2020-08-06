@@ -205,7 +205,6 @@ namespace
         return CompactionPipelineInfo{pipeline, pipelineLayout, descriptorSetLayout};
     }
 
-    constexpr u32  CullInstanceCountMax = 512;
     constexpr u32  ShadowInstanceCountMax = 512;
     constexpr u32  DrawInstanceCountMax = 512;
     constexpr bool UseReverseZ = true;
@@ -668,51 +667,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
     upload_buffer_data(backend.device, backend.vma_instance, staticIndexBuffer, mesh.indexes.data(),
                        mesh.indexes.size() * sizeof(mesh.indexes[0]));
 
-    const u32 maxIndirectDrawCount = 2000;
-
-    BufferInfo indirectDrawBuffer =
-        create_buffer(root, backend.device, "Indirect draw buffer",
-                      DefaultGPUBufferProperties(maxIndirectDrawCount, sizeof(VkDrawIndexedIndirectCommand),
-                                                 GPUBufferUsage::IndirectBuffer | GPUBufferUsage::StorageBuffer),
-                      backend.vma_instance);
-
-    BufferInfo compactIndirectDrawBuffer =
-        create_buffer(root, backend.device, "Compact indirect draw buffer",
-                      DefaultGPUBufferProperties(maxIndirectDrawCount, sizeof(VkDrawIndexedIndirectCommand),
-                                                 GPUBufferUsage::IndirectBuffer | GPUBufferUsage::StorageBuffer),
-                      backend.vma_instance);
-
-    const u32  indirectDrawCountSize = 2; // Second uint is for keeping track of total triangles
-    BufferInfo indirectDrawCountBuffer =
-        create_buffer(root, backend.device, "Indirect draw count buffer",
-                      DefaultGPUBufferProperties(indirectDrawCountSize, sizeof(u32),
-                                                 GPUBufferUsage::IndirectBuffer | GPUBufferUsage::StorageBuffer),
-                      backend.vma_instance);
-
-    BufferInfo compactIndirectDrawCountBuffer = create_buffer(
-        root, backend.device, "Compact indirect draw count buffer",
-        DefaultGPUBufferProperties(1, sizeof(u32), GPUBufferUsage::IndirectBuffer | GPUBufferUsage::StorageBuffer),
-        backend.vma_instance);
-
-    Assert(maxIndirectDrawCount < backend.physicalDeviceProperties.limits.maxDrawIndirectCount);
-
-    BufferInfo compactionIndirectDispatchBuffer =
-        create_buffer(root, backend.device, "Compact indirect dispatch buffer",
-                      DefaultGPUBufferProperties(1, sizeof(VkDispatchIndirectCommand),
-                                                 GPUBufferUsage::IndirectBuffer | GPUBufferUsage::StorageBuffer),
-                      backend.vma_instance);
-
-    BufferInfo cullInstanceParamsBuffer = create_buffer(
-        root, backend.device, "Culling instance constant buffer",
-        DefaultGPUBufferProperties(CullInstanceCountMax, sizeof(CullInstanceParams), GPUBufferUsage::StorageBuffer),
-        backend.vma_instance);
-
-    const u32  dynamicIndexBufferSize = static_cast<u32>(2000_kiB);
-    BufferInfo dynamicIndexBuffer =
-        create_buffer(root, backend.device, "Culling dynamic index buffer",
-                      DefaultGPUBufferProperties(dynamicIndexBufferSize, 1,
-                                                 GPUBufferUsage::IndexBuffer | GPUBufferUsage::StorageBuffer),
-                      backend.vma_instance);
+    CullResources cull_resources = create_culling_resources(root, backend);
 
     // Create depth buffer
     GPUTextureProperties depthProperties = DefaultGPUTextureProperties(
@@ -747,10 +702,14 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
 
         const VkDescriptorBufferInfo cullDescIndices = default_descriptor_buffer_info(staticIndexBuffer);
         const VkDescriptorBufferInfo cullDescVertexPositions = default_descriptor_buffer_info(vertexBufferPosition);
-        const VkDescriptorBufferInfo cullDescInstanceParams = default_descriptor_buffer_info(cullInstanceParamsBuffer);
-        const VkDescriptorBufferInfo cullDescIndicesOut = default_descriptor_buffer_info(dynamicIndexBuffer);
-        const VkDescriptorBufferInfo cullDescDrawCommandOut = default_descriptor_buffer_info(indirectDrawBuffer);
-        const VkDescriptorBufferInfo cullDescDrawCountOut = default_descriptor_buffer_info(indirectDrawCountBuffer);
+        const VkDescriptorBufferInfo cullDescInstanceParams =
+            default_descriptor_buffer_info(cull_resources.cullInstanceParamsBuffer);
+        const VkDescriptorBufferInfo cullDescIndicesOut =
+            default_descriptor_buffer_info(cull_resources.dynamicIndexBuffer);
+        const VkDescriptorBufferInfo cullDescDrawCommandOut =
+            default_descriptor_buffer_info(cull_resources.indirectDrawBuffer);
+        const VkDescriptorBufferInfo cullDescDrawCountOut =
+            default_descriptor_buffer_info(cull_resources.indirectDrawCountBuffer);
 
         std::array<VkWriteDescriptorSet, 6> cullPassDescriptorSetWrites = {
             create_buffer_descriptor_write(cullPassDescriptorSet, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
@@ -784,11 +743,11 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                   static_cast<void*>(compactPrepPassDescriptorSet));
 
         const VkDescriptorBufferInfo compactionDescDrawCommandCount =
-            default_descriptor_buffer_info(indirectDrawCountBuffer);
+            default_descriptor_buffer_info(cull_resources.indirectDrawCountBuffer);
         const VkDescriptorBufferInfo compactionDescDispatchCommandOut =
-            default_descriptor_buffer_info(compactionIndirectDispatchBuffer);
+            default_descriptor_buffer_info(cull_resources.compactionIndirectDispatchBuffer);
         const VkDescriptorBufferInfo compactionDescDrawCommandCountOut =
-            default_descriptor_buffer_info(compactIndirectDrawCountBuffer);
+            default_descriptor_buffer_info(cull_resources.compactIndirectDrawCountBuffer);
 
         std::array<VkWriteDescriptorSet, 3> compactionPassDescriptorSetWrites = {
             create_buffer_descriptor_write(compactPrepPassDescriptorSet, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
@@ -815,13 +774,14 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
         log_debug(root, "vulkan: created descriptor set with handle: {}",
                   static_cast<void*>(compactionPassDescriptorSet));
 
-        const VkDescriptorBufferInfo compactionDescCommand = default_descriptor_buffer_info(indirectDrawBuffer);
+        const VkDescriptorBufferInfo compactionDescCommand =
+            default_descriptor_buffer_info(cull_resources.indirectDrawBuffer);
         const VkDescriptorBufferInfo compactionDescCommandCount =
-            default_descriptor_buffer_info(indirectDrawCountBuffer);
+            default_descriptor_buffer_info(cull_resources.indirectDrawCountBuffer);
         const VkDescriptorBufferInfo compactionDescCommandOut =
-            default_descriptor_buffer_info(compactIndirectDrawBuffer);
+            default_descriptor_buffer_info(cull_resources.compactIndirectDrawBuffer);
         const VkDescriptorBufferInfo compactionDescCommandCountOut =
-            default_descriptor_buffer_info(compactIndirectDrawCountBuffer);
+            default_descriptor_buffer_info(cull_resources.compactIndirectDrawCountBuffer);
 
         std::array<VkWriteDescriptorSet, 4> compactionPassDescriptorSetWrites = {
             create_buffer_descriptor_write(compactionPassDescriptorSet, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
@@ -939,9 +899,11 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
     bool saveMyLaptop = true;
     bool shouldExit = false;
     int  frameIndex = 0;
-    bool freezeCulling = false;
-    bool useCompactedDraw = true;
     bool pauseAnimation = false;
+
+    CullOptions cull_options;
+    cull_options.freeze_culling = false;
+    cull_options.use_compacted_draw = true;
 
     DS4    ds4("/dev/input/js0");
     Camera camera;
@@ -1111,7 +1073,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
 
             if (ds4.isPressed(DS4::Square))
             {
-                freezeCulling = !freezeCulling;
+                cull_options.freeze_culling = !cull_options.freeze_culling;
             }
 
             constexpr float yaw_sensitivity = 2.6f;
@@ -1161,17 +1123,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                                prepared.shadow_instance_params.data(),
                                prepared.shadow_instance_params.size() * sizeof(ShadowMapInstanceParams));
 
-            // FIXME
-            upload_buffer_data(backend.device, backend.vma_instance, cullInstanceParamsBuffer,
-                               prepared.cull_passes.front().cull_instance_params.data(),
-                               prepared.cull_passes.front().cull_instance_params.size() * sizeof(CullInstanceParams));
-
-            if (!freezeCulling)
-            {
-                std::array<u32, indirectDrawCountSize> zero = {};
-                upload_buffer_data(backend.device, backend.vma_instance, indirectDrawCountBuffer, zero.data(),
-                                   zero.size() * sizeof(u32));
-            }
+            culling_prepare_buffers(cull_options, backend, prepared, cull_resources);
 
             VkCommandBufferBeginInfo cmdBufferBeginInfo = {
                 VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, nullptr,
@@ -1189,7 +1141,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
 
             // Culling
             {
-                if (!freezeCulling)
+                if (!cull_options.freeze_culling)
                 {
                     vkCmdBindPipeline(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, cullPipe.pipeline);
 
@@ -1200,16 +1152,11 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
 
                     for (const CullCmd& command : cull_pass.cull_cmds)
                     {
-                        const u32 index_count = static_cast<u32>(mesh.indexes.size());
-                        Assert(index_count % 3 == 0);
-
-                        const CullPushConstants& consts = command.push_constants;
-
                         vkCmdPushConstants(resources.gfxCmdBuffer, cullPipe.pipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT,
-                                           0, sizeof(consts), &consts);
+                                           0, sizeof(command.push_constants), &command.push_constants);
 
                         vkCmdDispatch(resources.gfxCmdBuffer,
-                                      div_round_up(consts.triangleCount, ComputeCullingGroupSize),
+                                      div_round_up(command.push_constants.triangleCount, ComputeCullingGroupSize),
                                       command.instanceCount, 1);
                     }
                 }
@@ -1237,7 +1184,8 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                                             compactionPipe.pipelineLayout, 0, 1, &compactionPassDescriptorSet, 0,
                                             nullptr);
 
-                    vkCmdDispatchIndirect(resources.gfxCmdBuffer, compactionIndirectDispatchBuffer.buffer, 0);
+                    vkCmdDispatchIndirect(resources.gfxCmdBuffer,
+                                          cull_resources.compactionIndirectDispatchBuffer.buffer, 0);
                 }
             }
 
@@ -1278,24 +1226,27 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                 std::vector<VkDeviceSize> vertexBufferOffsets = {0};
 
                 Assert(vertexBuffers.size() == vertexBufferOffsets.size());
-                vkCmdBindIndexBuffer(resources.gfxCmdBuffer, dynamicIndexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+                vkCmdBindIndexBuffer(resources.gfxCmdBuffer, cull_resources.dynamicIndexBuffer.buffer, 0,
+                                     VK_INDEX_TYPE_UINT32);
                 vkCmdBindVertexBuffers(resources.gfxCmdBuffer, 0, static_cast<u32>(vertexBuffers.size()),
                                        vertexBuffers.data(), vertexBufferOffsets.data());
                 vkCmdBindDescriptorSets(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
                                         shadowMapPipe.pipelineLayout, 0, 1, &shadowMapPassDescriptorSet, 0, nullptr);
 
-                if (useCompactedDraw)
+                if (cull_options.use_compacted_draw)
                 {
-                    vkCmdDrawIndexedIndirectCount(resources.gfxCmdBuffer, compactIndirectDrawBuffer.buffer, 0,
-                                                  compactIndirectDrawCountBuffer.buffer, 0,
-                                                  compactIndirectDrawBuffer.descriptor.elementCount,
-                                                  compactIndirectDrawBuffer.descriptor.elementSize);
+                    vkCmdDrawIndexedIndirectCount(resources.gfxCmdBuffer,
+                                                  cull_resources.compactIndirectDrawBuffer.buffer, 0,
+                                                  cull_resources.compactIndirectDrawCountBuffer.buffer, 0,
+                                                  cull_resources.compactIndirectDrawBuffer.descriptor.elementCount,
+                                                  cull_resources.compactIndirectDrawBuffer.descriptor.elementSize);
                 }
                 else
                 {
-                    vkCmdDrawIndexedIndirectCount(
-                        resources.gfxCmdBuffer, indirectDrawBuffer.buffer, 0, indirectDrawCountBuffer.buffer, 0,
-                        indirectDrawBuffer.descriptor.elementCount, indirectDrawBuffer.descriptor.elementSize);
+                    vkCmdDrawIndexedIndirectCount(resources.gfxCmdBuffer, cull_resources.indirectDrawBuffer.buffer, 0,
+                                                  cull_resources.indirectDrawCountBuffer.buffer, 0,
+                                                  cull_resources.indirectDrawBuffer.descriptor.elementCount,
+                                                  cull_resources.indirectDrawBuffer.descriptor.elementSize);
                 }
 
                 vkCmdEndRenderPass(resources.gfxCmdBuffer);
@@ -1326,24 +1277,27 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                     0,
                 };
                 Assert(vertexBuffers.size() == vertexBufferOffsets.size());
-                vkCmdBindIndexBuffer(resources.gfxCmdBuffer, dynamicIndexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+                vkCmdBindIndexBuffer(resources.gfxCmdBuffer, cull_resources.dynamicIndexBuffer.buffer, 0,
+                                     VK_INDEX_TYPE_UINT32);
                 vkCmdBindVertexBuffers(resources.gfxCmdBuffer, 0, static_cast<u32>(vertexBuffers.size()),
                                        vertexBuffers.data(), vertexBufferOffsets.data());
                 vkCmdBindDescriptorSets(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
                                         blitPipe.pipelineLayout, 0, 1, &pixelConstantsDescriptorSet, 0, nullptr);
 
-                if (useCompactedDraw)
+                if (cull_options.use_compacted_draw)
                 {
-                    vkCmdDrawIndexedIndirectCount(resources.gfxCmdBuffer, compactIndirectDrawBuffer.buffer, 0,
-                                                  compactIndirectDrawCountBuffer.buffer, 0,
-                                                  compactIndirectDrawBuffer.descriptor.elementCount,
-                                                  compactIndirectDrawBuffer.descriptor.elementSize);
+                    vkCmdDrawIndexedIndirectCount(resources.gfxCmdBuffer,
+                                                  cull_resources.compactIndirectDrawBuffer.buffer, 0,
+                                                  cull_resources.compactIndirectDrawCountBuffer.buffer, 0,
+                                                  cull_resources.compactIndirectDrawBuffer.descriptor.elementCount,
+                                                  cull_resources.compactIndirectDrawBuffer.descriptor.elementSize);
                 }
                 else
                 {
-                    vkCmdDrawIndexedIndirectCount(
-                        resources.gfxCmdBuffer, indirectDrawBuffer.buffer, 0, indirectDrawCountBuffer.buffer, 0,
-                        indirectDrawBuffer.descriptor.elementCount, indirectDrawBuffer.descriptor.elementSize);
+                    vkCmdDrawIndexedIndirectCount(resources.gfxCmdBuffer, cull_resources.indirectDrawBuffer.buffer, 0,
+                                                  cull_resources.indirectDrawCountBuffer.buffer, 0,
+                                                  cull_resources.indirectDrawBuffer.descriptor.elementCount,
+                                                  cull_resources.indirectDrawBuffer.descriptor.elementSize);
                 }
 
                 vkCmdEndRenderPass(resources.gfxCmdBuffer);
@@ -1432,16 +1386,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
     vkDestroyImageView(backend.device, depthBufferView, nullptr);
     vmaDestroyImage(backend.vma_instance, depthBuffer.handle, depthBuffer.allocation);
 
-    vmaDestroyBuffer(backend.vma_instance, compactionIndirectDispatchBuffer.buffer,
-                     compactionIndirectDispatchBuffer.allocation);
-    vmaDestroyBuffer(backend.vma_instance, compactIndirectDrawCountBuffer.buffer,
-                     compactIndirectDrawCountBuffer.allocation);
-    vmaDestroyBuffer(backend.vma_instance, compactIndirectDrawBuffer.buffer, compactIndirectDrawBuffer.allocation);
-
-    vmaDestroyBuffer(backend.vma_instance, cullInstanceParamsBuffer.buffer, cullInstanceParamsBuffer.allocation);
-    vmaDestroyBuffer(backend.vma_instance, dynamicIndexBuffer.buffer, dynamicIndexBuffer.allocation);
-    vmaDestroyBuffer(backend.vma_instance, indirectDrawCountBuffer.buffer, indirectDrawCountBuffer.allocation);
-    vmaDestroyBuffer(backend.vma_instance, indirectDrawBuffer.buffer, indirectDrawBuffer.allocation);
+    destroy_culling_resources(backend, cull_resources);
 
     vmaDestroyBuffer(backend.vma_instance, staticIndexBuffer.buffer, staticIndexBuffer.allocation);
     vmaDestroyBuffer(backend.vma_instance, vertexBufferPosition.buffer, vertexBufferPosition.allocation);

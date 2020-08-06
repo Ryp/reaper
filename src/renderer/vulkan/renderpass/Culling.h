@@ -7,7 +7,10 @@
 
 #pragma once
 
+#include "renderer/vulkan/Buffer.h"
 #include "renderer/vulkan/api/Vulkan.h"
+
+#include <vector>
 
 namespace Reaper
 {
@@ -22,4 +25,36 @@ struct CullPipelineInfo
 };
 
 CullPipelineInfo create_cull_pipeline(ReaperRoot& root, VulkanBackend& backend);
+
+struct CullPassResources
+{
+    VkDescriptorSet descriptor_set;
+};
+
+struct CullResources
+{
+    std::vector<CullPassResources> passes;
+
+    BufferInfo cullInstanceParamsBuffer;
+    BufferInfo indirectDrawCountBuffer;
+    BufferInfo dynamicIndexBuffer;
+    BufferInfo indirectDrawBuffer;
+    BufferInfo compactIndirectDrawBuffer;
+    BufferInfo compactIndirectDrawCountBuffer;
+    BufferInfo compactionIndirectDispatchBuffer;
+};
+
+CullResources create_culling_resources(ReaperRoot& root, VulkanBackend& backend);
+void          destroy_culling_resources(VulkanBackend& backend, CullResources& resources);
+
+struct PreparedData;
+
+struct CullOptions
+{
+    bool freeze_culling;
+    bool use_compacted_draw;
+};
+
+void culling_prepare_buffers(const CullOptions& options, VulkanBackend& backend, const PreparedData& prepared,
+                             CullResources& resources);
 } // namespace Reaper
