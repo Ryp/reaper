@@ -47,6 +47,19 @@ struct CullResources
 CullResources create_culling_resources(ReaperRoot& root, VulkanBackend& backend);
 void          destroy_culling_resources(VulkanBackend& backend, CullResources& resources);
 
+VkDescriptorSet create_culling_descriptor_sets(ReaperRoot& root, VulkanBackend& backend, CullResources& cull_resources,
+                                               VkDescriptorSetLayout layout, VkDescriptorPool descriptor_pool,
+                                               BufferInfo& staticIndexBuffer, BufferInfo& vertexBufferPosition,
+                                               u32 pass_index);
+
+VkDescriptorSet create_culling_compact_prep_descriptor_sets(ReaperRoot& root, VulkanBackend& backend,
+                                                            CullResources& cull_resources, VkDescriptorSetLayout layout,
+                                                            VkDescriptorPool descriptor_pool);
+
+VkDescriptorSet create_culling_compact_descriptor_sets(ReaperRoot& root, VulkanBackend& backend,
+                                                       CullResources& cull_resources, VkDescriptorSetLayout layout,
+                                                       VkDescriptorPool descriptor_pool);
+
 struct PreparedData;
 
 struct CullOptions
