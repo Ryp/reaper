@@ -692,111 +692,25 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
     log_debug(root, "vulkan: created image view with handle: {}", static_cast<void*>(shadowMapView));
 
     CullPipelineInfo cullPipe = create_cull_pipeline(root, backend);
-    VkDescriptorSet  cullPassDescriptorSet = VK_NULL_HANDLE;
     {
-        VkDescriptorSetAllocateInfo descriptorSetAllocInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr,
-                                                              resources.descriptorPool, 1, &cullPipe.descSetLayout};
-
-        Assert(vkAllocateDescriptorSets(backend.device, &descriptorSetAllocInfo, &cullPassDescriptorSet) == VK_SUCCESS);
-        log_debug(root, "vulkan: created descriptor set with handle: {}", static_cast<void*>(cullPassDescriptorSet));
-
-        const VkDescriptorBufferInfo cullDescIndices = default_descriptor_buffer_info(staticIndexBuffer);
-        const VkDescriptorBufferInfo cullDescVertexPositions = default_descriptor_buffer_info(vertexBufferPosition);
-        const VkDescriptorBufferInfo cullDescInstanceParams =
-            default_descriptor_buffer_info(cull_resources.cullInstanceParamsBuffer);
-        const VkDescriptorBufferInfo cullDescIndicesOut =
-            default_descriptor_buffer_info(cull_resources.dynamicIndexBuffer);
-        const VkDescriptorBufferInfo cullDescDrawCommandOut =
-            default_descriptor_buffer_info(cull_resources.indirectDrawBuffer);
-        const VkDescriptorBufferInfo cullDescDrawCountOut =
-            default_descriptor_buffer_info(cull_resources.indirectDrawCountBuffer);
-
-        std::array<VkWriteDescriptorSet, 6> cullPassDescriptorSetWrites = {
-            create_buffer_descriptor_write(cullPassDescriptorSet, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                                           &cullDescIndices),
-            create_buffer_descriptor_write(cullPassDescriptorSet, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                                           &cullDescVertexPositions),
-            create_buffer_descriptor_write(cullPassDescriptorSet, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                                           &cullDescInstanceParams),
-            create_buffer_descriptor_write(cullPassDescriptorSet, 3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                                           &cullDescIndicesOut),
-            create_buffer_descriptor_write(cullPassDescriptorSet, 4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                                           &cullDescDrawCommandOut),
-            create_buffer_descriptor_write(cullPassDescriptorSet, 5, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                                           &cullDescDrawCountOut),
-        };
-
-        vkUpdateDescriptorSets(backend.device, static_cast<u32>(cullPassDescriptorSetWrites.size()),
-                               cullPassDescriptorSetWrites.data(), 0, nullptr);
+        const u32 pass_count = 2;
+        for (u32 pass_index = 0; pass_index < pass_count; pass_index++)
+        {
+            // FIXME use pass index
+            CullPassResources& cull_pass_resources = cull_resources.passes.emplace_back();
+            cull_pass_resources.descriptor_set = create_culling_descriptor_sets(
+                root, backend, cull_resources, cullPipe.descSetLayout, resources.descriptorPool, staticIndexBuffer,
+                vertexBufferPosition, pass_index);
+        }
     }
 
     CompactionPrepPipelineInfo compactPrepPipe = vulkan_create_compaction_prep_pipeline(root, backend);
-    VkDescriptorSet            compactPrepPassDescriptorSet = VK_NULL_HANDLE;
-    {
-        VkDescriptorSetAllocateInfo descriptorSetAllocInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr,
-                                                              resources.descriptorPool, 1,
-                                                              &compactPrepPipe.descSetLayout};
-
-        Assert(vkAllocateDescriptorSets(backend.device, &descriptorSetAllocInfo, &compactPrepPassDescriptorSet)
-               == VK_SUCCESS);
-        log_debug(root, "vulkan: created descriptor set with handle: {}",
-                  static_cast<void*>(compactPrepPassDescriptorSet));
-
-        const VkDescriptorBufferInfo compactionDescDrawCommandCount =
-            default_descriptor_buffer_info(cull_resources.indirectDrawCountBuffer);
-        const VkDescriptorBufferInfo compactionDescDispatchCommandOut =
-            default_descriptor_buffer_info(cull_resources.compactionIndirectDispatchBuffer);
-        const VkDescriptorBufferInfo compactionDescDrawCommandCountOut =
-            default_descriptor_buffer_info(cull_resources.compactIndirectDrawCountBuffer);
-
-        std::array<VkWriteDescriptorSet, 3> compactionPassDescriptorSetWrites = {
-            create_buffer_descriptor_write(compactPrepPassDescriptorSet, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                                           &compactionDescDrawCommandCount),
-            create_buffer_descriptor_write(compactPrepPassDescriptorSet, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                                           &compactionDescDispatchCommandOut),
-            create_buffer_descriptor_write(compactPrepPassDescriptorSet, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                                           &compactionDescDrawCommandCountOut),
-        };
-
-        vkUpdateDescriptorSets(backend.device, static_cast<u32>(compactionPassDescriptorSetWrites.size()),
-                               compactionPassDescriptorSetWrites.data(), 0, nullptr);
-    }
+    VkDescriptorSet            compactPrepPassDescriptorSet = create_culling_compact_prep_descriptor_sets(
+        root, backend, cull_resources, compactPrepPipe.descSetLayout, resources.descriptorPool);
 
     CompactionPipelineInfo compactionPipe = vulkan_create_compaction_pipeline(root, backend);
-    VkDescriptorSet        compactionPassDescriptorSet = VK_NULL_HANDLE;
-    {
-        VkDescriptorSetAllocateInfo descriptorSetAllocInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr,
-                                                              resources.descriptorPool, 1,
-                                                              &compactionPipe.descSetLayout};
-
-        Assert(vkAllocateDescriptorSets(backend.device, &descriptorSetAllocInfo, &compactionPassDescriptorSet)
-               == VK_SUCCESS);
-        log_debug(root, "vulkan: created descriptor set with handle: {}",
-                  static_cast<void*>(compactionPassDescriptorSet));
-
-        const VkDescriptorBufferInfo compactionDescCommand =
-            default_descriptor_buffer_info(cull_resources.indirectDrawBuffer);
-        const VkDescriptorBufferInfo compactionDescCommandCount =
-            default_descriptor_buffer_info(cull_resources.indirectDrawCountBuffer);
-        const VkDescriptorBufferInfo compactionDescCommandOut =
-            default_descriptor_buffer_info(cull_resources.compactIndirectDrawBuffer);
-        const VkDescriptorBufferInfo compactionDescCommandCountOut =
-            default_descriptor_buffer_info(cull_resources.compactIndirectDrawCountBuffer);
-
-        std::array<VkWriteDescriptorSet, 4> compactionPassDescriptorSetWrites = {
-            create_buffer_descriptor_write(compactionPassDescriptorSet, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                                           &compactionDescCommand),
-            create_buffer_descriptor_write(compactionPassDescriptorSet, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                                           &compactionDescCommandCount),
-            create_buffer_descriptor_write(compactionPassDescriptorSet, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                                           &compactionDescCommandOut),
-            create_buffer_descriptor_write(compactionPassDescriptorSet, 3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                                           &compactionDescCommandCountOut),
-        };
-
-        vkUpdateDescriptorSets(backend.device, static_cast<u32>(compactionPassDescriptorSetWrites.size()),
-                               compactionPassDescriptorSetWrites.data(), 0, nullptr);
-    }
+    VkDescriptorSet        compactionPassDescriptorSet = create_culling_compact_descriptor_sets(
+        root, backend, cull_resources, compactionPipe.descSetLayout, resources.descriptorPool);
 
     // Shadow Pass
     VkRenderPass  shadowMapPass = create_shadow_raster_pass(root, backend, shadowMap.properties);
@@ -1145,19 +1059,27 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                 {
                     vkCmdBindPipeline(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, cullPipe.pipeline);
 
-                    vkCmdBindDescriptorSets(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE,
-                                            cullPipe.pipelineLayout, 0, 1, &cullPassDescriptorSet, 0, nullptr);
+                    const u32 pass_count = prepared.cull_passes.size();
 
-                    const CullPassData& cull_pass = prepared.cull_passes.front(); // FIXME
-
-                    for (const CullCmd& command : cull_pass.cull_cmds)
+                    for (u32 pass_index = 0; pass_index < pass_count; pass_index++)
                     {
-                        vkCmdPushConstants(resources.gfxCmdBuffer, cullPipe.pipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT,
-                                           0, sizeof(command.push_constants), &command.push_constants);
+                        const CullPassResources& cull_pass_resources = cull_resources.passes[pass_index];
+                        const CullPassData&      cull_pass = prepared.cull_passes[pass_index];
 
-                        vkCmdDispatch(resources.gfxCmdBuffer,
-                                      div_round_up(command.push_constants.triangleCount, ComputeCullingGroupSize),
-                                      command.instanceCount, 1);
+                        vkCmdBindDescriptorSets(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE,
+                                                cullPipe.pipelineLayout, 0, 1, &cull_pass_resources.descriptor_set, 0,
+                                                nullptr);
+
+                        for (const CullCmd& command : cull_pass.cull_cmds)
+                        {
+                            vkCmdPushConstants(resources.gfxCmdBuffer, cullPipe.pipelineLayout,
+                                               VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(command.push_constants),
+                                               &command.push_constants);
+
+                            vkCmdDispatch(resources.gfxCmdBuffer,
+                                          div_round_up(command.push_constants.triangleCount, ComputeCullingGroupSize),
+                                          command.instanceCount, 1);
+                        }
                     }
                 }
 

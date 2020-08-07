@@ -23,6 +23,33 @@
 
 namespace Reaper
 {
+namespace
+{
+    // FIXME
+    VkDescriptorBufferInfo default_descriptor_buffer_info(const BufferInfo& bufferInfo)
+    {
+        return {bufferInfo.buffer, 0, VK_WHOLE_SIZE};
+    }
+
+    VkWriteDescriptorSet create_buffer_descriptor_write(VkDescriptorSet descriptorSet, u32 binding,
+                                                        VkDescriptorType              descriptorType,
+                                                        const VkDescriptorBufferInfo* bufferInfo)
+    {
+        return {
+            VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+            nullptr,
+            descriptorSet,
+            binding,
+            0,
+            1,
+            descriptorType,
+            nullptr,
+            bufferInfo,
+            nullptr,
+        };
+    }
+} // namespace
+
 CullPipelineInfo create_cull_pipeline(ReaperRoot& root, VulkanBackend& backend)
 {
     std::array<VkDescriptorSetLayoutBinding, 6> descriptorSetLayoutBinding = {
@@ -147,6 +174,123 @@ CullResources create_culling_resources(ReaperRoot& root, VulkanBackend& backend)
                       backend.vma_instance);
 
     return resources;
+}
+
+VkDescriptorSet create_culling_descriptor_sets(ReaperRoot& root, VulkanBackend& backend, CullResources& cull_resources,
+                                               VkDescriptorSetLayout layout, VkDescriptorPool descriptor_pool,
+                                               BufferInfo& staticIndexBuffer, BufferInfo& vertexBufferPosition,
+                                               u32 pass_index)
+{
+    VkDescriptorSetAllocateInfo descriptorSetAllocInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr,
+                                                          descriptor_pool, 1, &layout};
+
+    VkDescriptorSet cullPassDescriptorSet = VK_NULL_HANDLE;
+
+    Assert(vkAllocateDescriptorSets(backend.device, &descriptorSetAllocInfo, &cullPassDescriptorSet) == VK_SUCCESS);
+    log_debug(root, "vulkan: created descriptor set with handle: {}", static_cast<void*>(cullPassDescriptorSet));
+
+    const VkDescriptorBufferInfo cullDescIndices = default_descriptor_buffer_info(staticIndexBuffer);
+    const VkDescriptorBufferInfo cullDescVertexPositions = default_descriptor_buffer_info(vertexBufferPosition);
+    const VkDescriptorBufferInfo cullDescInstanceParams =
+        default_descriptor_buffer_info(cull_resources.cullInstanceParamsBuffer);
+    const VkDescriptorBufferInfo cullDescIndicesOut = default_descriptor_buffer_info(cull_resources.dynamicIndexBuffer);
+    const VkDescriptorBufferInfo cullDescDrawCommandOut =
+        default_descriptor_buffer_info(cull_resources.indirectDrawBuffer);
+    const VkDescriptorBufferInfo cullDescDrawCountOut =
+        default_descriptor_buffer_info(cull_resources.indirectDrawCountBuffer);
+
+    std::array<VkWriteDescriptorSet, 6> cullPassDescriptorSetWrites = {
+        create_buffer_descriptor_write(cullPassDescriptorSet, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &cullDescIndices),
+        create_buffer_descriptor_write(cullPassDescriptorSet, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                                       &cullDescVertexPositions),
+        create_buffer_descriptor_write(cullPassDescriptorSet, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                                       &cullDescInstanceParams),
+        create_buffer_descriptor_write(cullPassDescriptorSet, 3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                                       &cullDescIndicesOut),
+        create_buffer_descriptor_write(cullPassDescriptorSet, 4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                                       &cullDescDrawCommandOut),
+        create_buffer_descriptor_write(cullPassDescriptorSet, 5, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                                       &cullDescDrawCountOut),
+    };
+
+    vkUpdateDescriptorSets(backend.device, static_cast<u32>(cullPassDescriptorSetWrites.size()),
+                           cullPassDescriptorSetWrites.data(), 0, nullptr);
+
+    return cullPassDescriptorSet;
+}
+
+VkDescriptorSet create_culling_compact_prep_descriptor_sets(ReaperRoot& root, VulkanBackend& backend,
+                                                            CullResources& cull_resources, VkDescriptorSetLayout layout,
+                                                            VkDescriptorPool descriptor_pool)
+{
+    VkDescriptorSetAllocateInfo descriptorSetAllocInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr,
+                                                          descriptor_pool, 1, &layout};
+
+    VkDescriptorSet compactPrepPassDescriptorSet = VK_NULL_HANDLE;
+
+    Assert(vkAllocateDescriptorSets(backend.device, &descriptorSetAllocInfo, &compactPrepPassDescriptorSet)
+           == VK_SUCCESS);
+    log_debug(root, "vulkan: created descriptor set with handle: {}", static_cast<void*>(compactPrepPassDescriptorSet));
+
+    const VkDescriptorBufferInfo compactionDescDrawCommandCount =
+        default_descriptor_buffer_info(cull_resources.indirectDrawCountBuffer);
+    const VkDescriptorBufferInfo compactionDescDispatchCommandOut =
+        default_descriptor_buffer_info(cull_resources.compactionIndirectDispatchBuffer);
+    const VkDescriptorBufferInfo compactionDescDrawCommandCountOut =
+        default_descriptor_buffer_info(cull_resources.compactIndirectDrawCountBuffer);
+
+    std::array<VkWriteDescriptorSet, 3> compactionPassDescriptorSetWrites = {
+        create_buffer_descriptor_write(compactPrepPassDescriptorSet, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                                       &compactionDescDrawCommandCount),
+        create_buffer_descriptor_write(compactPrepPassDescriptorSet, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                                       &compactionDescDispatchCommandOut),
+        create_buffer_descriptor_write(compactPrepPassDescriptorSet, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                                       &compactionDescDrawCommandCountOut),
+    };
+
+    vkUpdateDescriptorSets(backend.device, static_cast<u32>(compactionPassDescriptorSetWrites.size()),
+                           compactionPassDescriptorSetWrites.data(), 0, nullptr);
+
+    return compactPrepPassDescriptorSet;
+}
+
+VkDescriptorSet create_culling_compact_descriptor_sets(ReaperRoot& root, VulkanBackend& backend,
+                                                       CullResources& cull_resources, VkDescriptorSetLayout layout,
+                                                       VkDescriptorPool descriptor_pool)
+{
+    VkDescriptorSetAllocateInfo descriptorSetAllocInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr,
+                                                          descriptor_pool, 1, &layout};
+
+    VkDescriptorSet compactionPassDescriptorSet = VK_NULL_HANDLE;
+
+    Assert(vkAllocateDescriptorSets(backend.device, &descriptorSetAllocInfo, &compactionPassDescriptorSet)
+           == VK_SUCCESS);
+    log_debug(root, "vulkan: created descriptor set with handle: {}", static_cast<void*>(compactionPassDescriptorSet));
+
+    const VkDescriptorBufferInfo compactionDescCommand =
+        default_descriptor_buffer_info(cull_resources.indirectDrawBuffer);
+    const VkDescriptorBufferInfo compactionDescCommandCount =
+        default_descriptor_buffer_info(cull_resources.indirectDrawCountBuffer);
+    const VkDescriptorBufferInfo compactionDescCommandOut =
+        default_descriptor_buffer_info(cull_resources.compactIndirectDrawBuffer);
+    const VkDescriptorBufferInfo compactionDescCommandCountOut =
+        default_descriptor_buffer_info(cull_resources.compactIndirectDrawCountBuffer);
+
+    std::array<VkWriteDescriptorSet, 4> compactionPassDescriptorSetWrites = {
+        create_buffer_descriptor_write(compactionPassDescriptorSet, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                                       &compactionDescCommand),
+        create_buffer_descriptor_write(compactionPassDescriptorSet, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                                       &compactionDescCommandCount),
+        create_buffer_descriptor_write(compactionPassDescriptorSet, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                                       &compactionDescCommandOut),
+        create_buffer_descriptor_write(compactionPassDescriptorSet, 3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                                       &compactionDescCommandCountOut),
+    };
+
+    vkUpdateDescriptorSets(backend.device, static_cast<u32>(compactionPassDescriptorSetWrites.size()),
+                           compactionPassDescriptorSetWrites.data(), 0, nullptr);
+
+    return compactionPassDescriptorSet;
 }
 
 void destroy_culling_resources(VulkanBackend& backend, CullResources& resources)
