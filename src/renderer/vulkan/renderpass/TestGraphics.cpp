@@ -1162,18 +1162,18 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
 
                 Assert(vertexBuffers.size() == vertexBufferOffsets.size());
                 vkCmdBindIndexBuffer(resources.gfxCmdBuffer, cull_resources.dynamicIndexBuffer.buffer, 0,
-                                     VK_INDEX_TYPE_UINT32);
+                                     get_vk_culling_index_type());
                 vkCmdBindVertexBuffers(resources.gfxCmdBuffer, 0, static_cast<u32>(vertexBuffers.size()),
                                        vertexBuffers.data(), vertexBufferOffsets.data());
                 vkCmdBindDescriptorSets(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
                                         shadowMapPipe.pipelineLayout, 0, 1, &shadowMapPassDescriptorSet, 0, nullptr);
 
                 const u32 draw_buffer_offset = pass_index * MaxIndirectDrawCount * sizeof(VkDrawIndexedIndirectCommand);
-                const u32 draw_buffer_count_offset = pass_index * IndirectDrawCountCount * sizeof(u32);
                 const u32 draw_buffer_max_count = MaxIndirectDrawCount;
 
                 if (cull_options.use_compacted_draw)
                 {
+                    const u32 draw_buffer_count_offset = pass_index * 1 * sizeof(u32);
                     vkCmdDrawIndexedIndirectCount(
                         resources.gfxCmdBuffer, cull_resources.compactIndirectDrawBuffer.buffer, draw_buffer_offset,
                         cull_resources.compactIndirectDrawCountBuffer.buffer, draw_buffer_count_offset,
@@ -1181,6 +1181,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                 }
                 else
                 {
+                    const u32 draw_buffer_count_offset = pass_index * IndirectDrawCountCount * sizeof(u32);
                     vkCmdDrawIndexedIndirectCount(resources.gfxCmdBuffer, cull_resources.indirectDrawBuffer.buffer,
                                                   draw_buffer_offset, cull_resources.indirectDrawCountBuffer.buffer,
                                                   draw_buffer_count_offset, draw_buffer_max_count,
@@ -1218,18 +1219,18 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                 };
                 Assert(vertexBuffers.size() == vertexBufferOffsets.size());
                 vkCmdBindIndexBuffer(resources.gfxCmdBuffer, cull_resources.dynamicIndexBuffer.buffer, 0,
-                                     VK_INDEX_TYPE_UINT32);
+                                     get_vk_culling_index_type());
                 vkCmdBindVertexBuffers(resources.gfxCmdBuffer, 0, static_cast<u32>(vertexBuffers.size()),
                                        vertexBuffers.data(), vertexBufferOffsets.data());
                 vkCmdBindDescriptorSets(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
                                         blitPipe.pipelineLayout, 0, 1, &pixelConstantsDescriptorSet, 0, nullptr);
 
                 const u32 draw_buffer_offset = pass_index * MaxIndirectDrawCount * sizeof(VkDrawIndexedIndirectCommand);
-                const u32 draw_buffer_count_offset = pass_index * IndirectDrawCountCount * sizeof(u32);
                 const u32 draw_buffer_max_count = MaxIndirectDrawCount;
 
                 if (cull_options.use_compacted_draw)
                 {
+                    const u32 draw_buffer_count_offset = pass_index * 1 * sizeof(u32);
                     vkCmdDrawIndexedIndirectCount(
                         resources.gfxCmdBuffer, cull_resources.compactIndirectDrawBuffer.buffer, draw_buffer_offset,
                         cull_resources.compactIndirectDrawCountBuffer.buffer, draw_buffer_count_offset,
@@ -1237,6 +1238,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                 }
                 else
                 {
+                    const u32 draw_buffer_count_offset = pass_index * IndirectDrawCountCount * sizeof(u32);
                     vkCmdDrawIndexedIndirectCount(resources.gfxCmdBuffer, cull_resources.indirectDrawBuffer.buffer,
                                                   draw_buffer_offset, cull_resources.indirectDrawCountBuffer.buffer,
                                                   draw_buffer_count_offset, draw_buffer_max_count,
