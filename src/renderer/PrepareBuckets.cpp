@@ -7,6 +7,8 @@
 
 #include "PrepareBuckets.h"
 
+#include "renderer/vulkan/renderpass/CullingConstants.h"
+
 #include "mesh/Mesh.h"
 
 #include <glm/gtc/matrix_transform.hpp>
@@ -30,21 +32,25 @@ void build_scene_graph(SceneGraph& scene, const Mesh* mesh)
 
     {
         // Add to scene
-        Node& light_node = scene.nodes.emplace_back();
+        Node&     light_node = scene.nodes.emplace_back();
+        const u32 light_node_index = scene.nodes.size() - 1;
+
         light_node.instance_id = InvalidMeshInstanceId;
 
         Light& main_light = scene.lights.emplace_back();
         main_light.color = glm::fvec3(0.8f, 0.5f, 0.2f);
         main_light.intensity = 8.f;
-        main_light.scene_node = scene.nodes.size() - 1; // FIXME
+        main_light.scene_node = light_node_index;
     }
 
     {
         // Dummy node
-        Node& camera_node = scene.nodes.emplace_back();
+        Node&     camera_node = scene.nodes.emplace_back();
+        const u32 camera_node_index = scene.nodes.size() - 1;
+
         camera_node.instance_id = InvalidMeshInstanceId;
 
-        scene.camera.scene_node = scene.nodes.size() - 1; // FIXME
+        scene.camera.scene_node = camera_node_index;
     }
 }
 
@@ -113,6 +119,28 @@ void update_scene_graph(SceneGraph& scene, float time_ms, float aspect_ratio, co
     }
 }
 
+namespace
+{
+    void insert_cull_cmd(CullPassData& cull_pass, const Node& node, u32 pass_index, u32 cull_instance_index_start,
+                         u32 cull_instance_count)
+    {
+        Assert(node.mesh);
+
+        const u32 index_count = static_cast<u32>(node.mesh->indexes.size());
+        Assert(index_count % 3 == 0);
+
+        CullPushConstants consts;
+        consts.triangleCount = index_count / 3;
+        consts.firstIndex = 0;
+        consts.outputIndexOffset = pass_index * (DynamicIndexBufferSize / IndexSizeBytes);
+        consts.firstInstance = cull_instance_index_start;
+
+        CullCmd& command = cull_pass.cull_cmds.emplace_back();
+        command.instanceCount = cull_instance_count;
+        command.push_constants = consts;
+    }
+} // namespace
+
 void prepare_scene(SceneGraph& scene, PreparedData& prepared)
 {
     const Node& camera_node = scene.nodes[scene.camera.scene_node];
@@ -138,6 +166,7 @@ void prepare_scene(SceneGraph& scene, PreparedData& prepared)
 
     {
         CullPassData& cull_pass = prepared.cull_passes.emplace_back();
+        const u32     pass_index = prepared.cull_passes.size() - 1;
 
         for (const auto& node : scene.nodes)
         {
@@ -151,23 +180,13 @@ void prepare_scene(SceneGraph& scene, PreparedData& prepared)
             DrawInstanceParams& draw_instance = prepared.draw_instance_params.emplace_back();
             draw_instance.model = node.transform_matrix, draw_instance.normal_ms_to_vs_matrix = glm::mat3(modelView);
 
-            CullInstanceParams& cull_instance = cull_pass.cull_instance_params.emplace_back();
+            CullInstanceParams& cull_instance = prepared.cull_instance_params.emplace_back();
+            const u32           cull_instance_index = prepared.cull_instance_params.size() - 1;
+
             cull_instance.ms_to_cs_matrix = main_camera_view_proj * glm::mat4(node.transform_matrix);
             cull_instance.instance_id = node.instance_id;
 
-            Assert(node.mesh);
-
-            const u32 index_count = static_cast<u32>(node.mesh->indexes.size());
-            Assert(index_count % 3 == 0);
-
-            CullPushConstants consts;
-            consts.triangleCount = index_count / 3;
-            consts.firstIndex = 0;
-            consts.firstInstance = cull_pass.cull_instance_params.size() - 1; // FIXME
-
-            CullCmd& command = cull_pass.cull_cmds.emplace_back();
-            command.instanceCount = 1; // FIXME Support batching
-            command.push_constants = consts;
+            insert_cull_cmd(cull_pass, node, pass_index, cull_instance_index, 1);
         }
     }
 
@@ -177,6 +196,7 @@ void prepare_scene(SceneGraph& scene, PreparedData& prepared)
         const Node& light_node = scene.nodes[light.scene_node];
 
         CullPassData& cull_pass = prepared.cull_passes.emplace_back();
+        const u32     pass_index = prepared.cull_passes.size() - 1;
 
         prepared.shadow_pass_params.dummy = glm::mat4(1.f);
 
@@ -187,16 +207,16 @@ void prepare_scene(SceneGraph& scene, PreparedData& prepared)
 
             const glm::mat4 light_view_proj_matrix = light.projection_matrix * glm::mat4(light_node.transform_matrix);
 
-            ShadowMapInstanceParams shadow_instance;
+            ShadowMapInstanceParams& shadow_instance = prepared.shadow_instance_params.emplace_back();
             shadow_instance.ms_to_cs_matrix = light_view_proj_matrix * glm::mat4(node.transform_matrix);
 
-            prepared.shadow_instance_params.push_back(shadow_instance);
+            CullInstanceParams& cull_instance = prepared.cull_instance_params.emplace_back();
+            const u32           cull_instance_index = prepared.cull_instance_params.size() - 1;
 
-            CullInstanceParams cull_instance;
             cull_instance.ms_to_cs_matrix = shadow_instance.ms_to_cs_matrix;
             cull_instance.instance_id = node.instance_id;
 
-            cull_pass.cull_instance_params.push_back(cull_instance);
+            insert_cull_cmd(cull_pass, node, pass_index, cull_instance_index, 1);
         }
     }
 }

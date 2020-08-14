@@ -109,7 +109,7 @@ void main(/*uint3 gtid : SV_GroupThreadID,*/
         IndirectDrawCommand command;
         command.indexCount = lds_triangle_count * 3;
         command.instanceCount = 1;
-        command.firstIndex = lds_triangle_offset * 3;
+        command.firstIndex = consts.outputIndexOffset + lds_triangle_offset * 3;
         command.vertexOffset = 0;
         command.firstInstance = instance_id;
 

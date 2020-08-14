@@ -8,6 +8,7 @@
 #include "TestGraphics.h"
 
 #include "Culling.h"
+#include "CullingConstants.h"
 #include "ShadowMap.h"
 
 #include "renderer/vulkan/Buffer.h"
@@ -691,26 +692,26 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
     VkImageView shadowMapView = create_depth_image_view(backend.device, shadowMap);
     log_debug(root, "vulkan: created image view with handle: {}", static_cast<void*>(shadowMapView));
 
-    CullPipelineInfo cullPipe = create_cull_pipeline(root, backend);
+    CullPipelineInfo           cullPipe = create_cull_pipeline(root, backend);
+    CompactionPrepPipelineInfo compactPrepPipe = vulkan_create_compaction_prep_pipeline(root, backend);
+    CompactionPipelineInfo     compactionPipe = vulkan_create_compaction_pipeline(root, backend);
     {
         const u32 pass_count = 2;
         for (u32 pass_index = 0; pass_index < pass_count; pass_index++)
         {
             // FIXME use pass index
             CullPassResources& cull_pass_resources = cull_resources.passes.emplace_back();
-            cull_pass_resources.descriptor_set = create_culling_descriptor_sets(
+            cull_pass_resources.cull_descriptor_set = create_culling_descriptor_sets(
                 root, backend, cull_resources, cullPipe.descSetLayout, resources.descriptorPool, staticIndexBuffer,
                 vertexBufferPosition, pass_index);
+
+            cull_pass_resources.compact_prep_descriptor_set = create_culling_compact_prep_descriptor_sets(
+                root, backend, cull_resources, compactPrepPipe.descSetLayout, resources.descriptorPool, pass_index);
+
+            cull_pass_resources.compact_descriptor_set = create_culling_compact_descriptor_sets(
+                root, backend, cull_resources, compactionPipe.descSetLayout, resources.descriptorPool, pass_index);
         }
     }
-
-    CompactionPrepPipelineInfo compactPrepPipe = vulkan_create_compaction_prep_pipeline(root, backend);
-    VkDescriptorSet            compactPrepPassDescriptorSet = create_culling_compact_prep_descriptor_sets(
-        root, backend, cull_resources, compactPrepPipe.descSetLayout, resources.descriptorPool);
-
-    CompactionPipelineInfo compactionPipe = vulkan_create_compaction_pipeline(root, backend);
-    VkDescriptorSet        compactionPassDescriptorSet = create_culling_compact_descriptor_sets(
-        root, backend, cull_resources, compactionPipe.descSetLayout, resources.descriptorPool);
 
     // Shadow Pass
     VkRenderPass  shadowMapPass = create_shadow_raster_pass(root, backend, shadowMap.properties);
@@ -1055,11 +1056,11 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
 
             // Culling
             {
+                const u32 pass_count = prepared.cull_passes.size();
+
                 if (!cull_options.freeze_culling)
                 {
                     vkCmdBindPipeline(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, cullPipe.pipeline);
-
-                    const u32 pass_count = prepared.cull_passes.size();
 
                     for (u32 pass_index = 0; pass_index < pass_count; pass_index++)
                     {
@@ -1067,8 +1068,8 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                         const CullPassData&      cull_pass = prepared.cull_passes[pass_index];
 
                         vkCmdBindDescriptorSets(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE,
-                                                cullPipe.pipelineLayout, 0, 1, &cull_pass_resources.descriptor_set, 0,
-                                                nullptr);
+                                                cullPipe.pipelineLayout, 0, 1, &cull_pass_resources.cull_descriptor_set,
+                                                0, nullptr);
 
                         for (const CullCmd& command : cull_pass.cull_cmds)
                         {
@@ -1089,11 +1090,16 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                 {
                     vkCmdBindPipeline(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, compactPrepPipe.pipeline);
 
-                    vkCmdBindDescriptorSets(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE,
-                                            compactPrepPipe.pipelineLayout, 0, 1, &compactPrepPassDescriptorSet, 0,
-                                            nullptr);
+                    for (u32 pass_index = 0; pass_index < pass_count; pass_index++)
+                    {
+                        const CullPassResources& cull_pass_resources = cull_resources.passes[pass_index];
 
-                    vkCmdDispatch(resources.gfxCmdBuffer, 1, 1, 1);
+                        vkCmdBindDescriptorSets(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE,
+                                                compactPrepPipe.pipelineLayout, 0, 1,
+                                                &cull_pass_resources.compact_prep_descriptor_set, 0, nullptr);
+
+                        vkCmdDispatch(resources.gfxCmdBuffer, 1, 1, 1);
+                    }
                 }
 
                 cmd_insert_compute_to_compute_barrier(resources.gfxCmdBuffer);
@@ -1102,12 +1108,17 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                 {
                     vkCmdBindPipeline(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, compactionPipe.pipeline);
 
-                    vkCmdBindDescriptorSets(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE,
-                                            compactionPipe.pipelineLayout, 0, 1, &compactionPassDescriptorSet, 0,
-                                            nullptr);
+                    for (u32 pass_index = 0; pass_index < pass_count; pass_index++)
+                    {
+                        const CullPassResources& cull_pass_resources = cull_resources.passes[pass_index];
 
-                    vkCmdDispatchIndirect(resources.gfxCmdBuffer,
-                                          cull_resources.compactionIndirectDispatchBuffer.buffer, 0);
+                        vkCmdBindDescriptorSets(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE,
+                                                compactionPipe.pipelineLayout, 0, 1,
+                                                &cull_pass_resources.compact_descriptor_set, 0, nullptr);
+
+                        vkCmdDispatchIndirect(resources.gfxCmdBuffer,
+                                              cull_resources.compactionIndirectDispatchBuffer.buffer, 0);
+                    }
                 }
             }
 
@@ -1127,6 +1138,8 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
 
             // Shadow pass
             {
+                const u32 pass_index = 1; // FIXME
+
                 VkClearValue clearValue = VkClearDepthStencil(UseReverseZ ? 0.f : 1.f, 0); // FIXME
                 VkRect2D     passRect = {{0, 0}, {shadowMap.properties.width, shadowMap.properties.height}};
 
@@ -1155,19 +1168,22 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                 vkCmdBindDescriptorSets(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
                                         shadowMapPipe.pipelineLayout, 0, 1, &shadowMapPassDescriptorSet, 0, nullptr);
 
+                const u32 draw_buffer_offset = pass_index * MaxIndirectDrawCount * sizeof(VkDrawIndexedIndirectCommand);
+                const u32 draw_buffer_count_offset = pass_index * IndirectDrawCountCount * sizeof(u32);
+                const u32 draw_buffer_max_count = MaxIndirectDrawCount;
+
                 if (cull_options.use_compacted_draw)
                 {
-                    vkCmdDrawIndexedIndirectCount(resources.gfxCmdBuffer,
-                                                  cull_resources.compactIndirectDrawBuffer.buffer, 0,
-                                                  cull_resources.compactIndirectDrawCountBuffer.buffer, 0,
-                                                  cull_resources.compactIndirectDrawBuffer.descriptor.elementCount,
-                                                  cull_resources.compactIndirectDrawBuffer.descriptor.elementSize);
+                    vkCmdDrawIndexedIndirectCount(
+                        resources.gfxCmdBuffer, cull_resources.compactIndirectDrawBuffer.buffer, draw_buffer_offset,
+                        cull_resources.compactIndirectDrawCountBuffer.buffer, draw_buffer_count_offset,
+                        draw_buffer_max_count, cull_resources.compactIndirectDrawBuffer.descriptor.elementSize);
                 }
                 else
                 {
-                    vkCmdDrawIndexedIndirectCount(resources.gfxCmdBuffer, cull_resources.indirectDrawBuffer.buffer, 0,
-                                                  cull_resources.indirectDrawCountBuffer.buffer, 0,
-                                                  cull_resources.indirectDrawBuffer.descriptor.elementCount,
+                    vkCmdDrawIndexedIndirectCount(resources.gfxCmdBuffer, cull_resources.indirectDrawBuffer.buffer,
+                                                  draw_buffer_offset, cull_resources.indirectDrawCountBuffer.buffer,
+                                                  draw_buffer_count_offset, draw_buffer_max_count,
                                                   cull_resources.indirectDrawBuffer.descriptor.elementSize);
                 }
 
@@ -1176,6 +1192,8 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
 
             // Draw pass
             {
+                const u32 pass_index = 0; // FIXME
+
                 vkCmdBeginRenderPass(resources.gfxCmdBuffer, &blitRenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
                 vkCmdBindPipeline(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, blitPipe.pipeline);
@@ -1206,19 +1224,22 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                 vkCmdBindDescriptorSets(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
                                         blitPipe.pipelineLayout, 0, 1, &pixelConstantsDescriptorSet, 0, nullptr);
 
+                const u32 draw_buffer_offset = pass_index * MaxIndirectDrawCount * sizeof(VkDrawIndexedIndirectCommand);
+                const u32 draw_buffer_count_offset = pass_index * IndirectDrawCountCount * sizeof(u32);
+                const u32 draw_buffer_max_count = MaxIndirectDrawCount;
+
                 if (cull_options.use_compacted_draw)
                 {
-                    vkCmdDrawIndexedIndirectCount(resources.gfxCmdBuffer,
-                                                  cull_resources.compactIndirectDrawBuffer.buffer, 0,
-                                                  cull_resources.compactIndirectDrawCountBuffer.buffer, 0,
-                                                  cull_resources.compactIndirectDrawBuffer.descriptor.elementCount,
-                                                  cull_resources.compactIndirectDrawBuffer.descriptor.elementSize);
+                    vkCmdDrawIndexedIndirectCount(
+                        resources.gfxCmdBuffer, cull_resources.compactIndirectDrawBuffer.buffer, draw_buffer_offset,
+                        cull_resources.compactIndirectDrawCountBuffer.buffer, draw_buffer_count_offset,
+                        draw_buffer_max_count, cull_resources.compactIndirectDrawBuffer.descriptor.elementSize);
                 }
                 else
                 {
-                    vkCmdDrawIndexedIndirectCount(resources.gfxCmdBuffer, cull_resources.indirectDrawBuffer.buffer, 0,
-                                                  cull_resources.indirectDrawCountBuffer.buffer, 0,
-                                                  cull_resources.indirectDrawBuffer.descriptor.elementCount,
+                    vkCmdDrawIndexedIndirectCount(resources.gfxCmdBuffer, cull_resources.indirectDrawBuffer.buffer,
+                                                  draw_buffer_offset, cull_resources.indirectDrawCountBuffer.buffer,
+                                                  draw_buffer_count_offset, draw_buffer_max_count,
                                                   cull_resources.indirectDrawBuffer.descriptor.elementSize);
                 }
 

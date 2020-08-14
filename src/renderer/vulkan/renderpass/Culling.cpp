@@ -7,6 +7,8 @@
 
 #include "Culling.h"
 
+#include "CullingConstants.h"
+
 #include "renderer/PrepareBuckets.h"
 
 #include "renderer/vulkan/Shader.h"
@@ -25,6 +27,21 @@ namespace Reaper
 {
 namespace
 {
+    struct GPUBufferView
+    {
+        u32 elementOffset;
+        u32 elementCount;
+    };
+
+    VkDescriptorBufferInfo get_vk_descriptor_buffer_info(const BufferInfo& bufferInfo, const GPUBufferView& view)
+    {
+        return {
+            bufferInfo.buffer,
+            bufferInfo.descriptor.elementSize * view.elementOffset,
+            bufferInfo.descriptor.elementSize * view.elementCount,
+        };
+    }
+
     // FIXME
     VkDescriptorBufferInfo default_descriptor_buffer_info(const BufferInfo& bufferInfo)
     {
@@ -121,12 +138,6 @@ CullPipelineInfo create_cull_pipeline(ReaperRoot& root, VulkanBackend& backend)
     return CullPipelineInfo{pipeline, pipelineLayout, descriptorSetLayout};
 }
 
-// Second uint is for keeping track of total triangles
-constexpr u32 IndirectDrawCountSize = 2;
-constexpr u32 CullInstanceCountMax = 512;
-constexpr u32 MaxIndirectDrawCount = 2000;
-constexpr u32 DynamicIndexBufferSize = static_cast<u32>(2000_kiB);
-
 CullResources create_culling_resources(ReaperRoot& root, VulkanBackend& backend)
 {
     CullResources resources;
@@ -138,38 +149,39 @@ CullResources create_culling_resources(ReaperRoot& root, VulkanBackend& backend)
 
     resources.indirectDrawCountBuffer =
         create_buffer(root, backend.device, "Indirect draw count buffer",
-                      DefaultGPUBufferProperties(IndirectDrawCountSize, sizeof(u32),
+                      DefaultGPUBufferProperties(IndirectDrawCountCount * MaxCullPassCount, sizeof(u32),
                                                  GPUBufferUsage::IndirectBuffer | GPUBufferUsage::StorageBuffer),
                       backend.vma_instance);
 
     resources.dynamicIndexBuffer =
         create_buffer(root, backend.device, "Culling dynamic index buffer",
-                      DefaultGPUBufferProperties(DynamicIndexBufferSize, 1,
+                      DefaultGPUBufferProperties(DynamicIndexBufferSize * MaxCullPassCount, 1,
                                                  GPUBufferUsage::IndexBuffer | GPUBufferUsage::StorageBuffer),
                       backend.vma_instance);
 
-    resources.indirectDrawBuffer =
-        create_buffer(root, backend.device, "Indirect draw buffer",
-                      DefaultGPUBufferProperties(MaxIndirectDrawCount, sizeof(VkDrawIndexedIndirectCommand),
-                                                 GPUBufferUsage::IndirectBuffer | GPUBufferUsage::StorageBuffer),
-                      backend.vma_instance);
-
-    resources.compactIndirectDrawBuffer =
-        create_buffer(root, backend.device, "Compact indirect draw buffer",
-                      DefaultGPUBufferProperties(MaxIndirectDrawCount, sizeof(VkDrawIndexedIndirectCommand),
-                                                 GPUBufferUsage::IndirectBuffer | GPUBufferUsage::StorageBuffer),
-                      backend.vma_instance);
-
-    resources.compactIndirectDrawCountBuffer = create_buffer(
-        root, backend.device, "Compact indirect draw count buffer",
-        DefaultGPUBufferProperties(1, sizeof(u32), GPUBufferUsage::IndirectBuffer | GPUBufferUsage::StorageBuffer),
+    resources.indirectDrawBuffer = create_buffer(
+        root, backend.device, "Indirect draw buffer",
+        DefaultGPUBufferProperties(MaxIndirectDrawCount * MaxCullPassCount, sizeof(VkDrawIndexedIndirectCommand),
+                                   GPUBufferUsage::IndirectBuffer | GPUBufferUsage::StorageBuffer),
         backend.vma_instance);
+
+    resources.compactIndirectDrawBuffer = create_buffer(
+        root, backend.device, "Compact indirect draw buffer",
+        DefaultGPUBufferProperties(MaxIndirectDrawCount * MaxCullPassCount, sizeof(VkDrawIndexedIndirectCommand),
+                                   GPUBufferUsage::IndirectBuffer | GPUBufferUsage::StorageBuffer),
+        backend.vma_instance);
+
+    resources.compactIndirectDrawCountBuffer =
+        create_buffer(root, backend.device, "Compact indirect draw count buffer",
+                      DefaultGPUBufferProperties(1 * MaxCullPassCount, sizeof(u32),
+                                                 GPUBufferUsage::IndirectBuffer | GPUBufferUsage::StorageBuffer),
+                      backend.vma_instance);
 
     Assert(MaxIndirectDrawCount < backend.physicalDeviceProperties.limits.maxDrawIndirectCount);
 
     resources.compactionIndirectDispatchBuffer =
         create_buffer(root, backend.device, "Compact indirect dispatch buffer",
-                      DefaultGPUBufferProperties(1, sizeof(VkDispatchIndirectCommand),
+                      DefaultGPUBufferProperties(1 * MaxCullPassCount, sizeof(VkDispatchIndirectCommand),
                                                  GPUBufferUsage::IndirectBuffer | GPUBufferUsage::StorageBuffer),
                       backend.vma_instance);
 
@@ -193,11 +205,13 @@ VkDescriptorSet create_culling_descriptor_sets(ReaperRoot& root, VulkanBackend& 
     const VkDescriptorBufferInfo cullDescVertexPositions = default_descriptor_buffer_info(vertexBufferPosition);
     const VkDescriptorBufferInfo cullDescInstanceParams =
         default_descriptor_buffer_info(cull_resources.cullInstanceParamsBuffer);
-    const VkDescriptorBufferInfo cullDescIndicesOut = default_descriptor_buffer_info(cull_resources.dynamicIndexBuffer);
-    const VkDescriptorBufferInfo cullDescDrawCommandOut =
-        default_descriptor_buffer_info(cull_resources.indirectDrawBuffer);
+    const VkDescriptorBufferInfo cullDescIndicesOut = get_vk_descriptor_buffer_info(
+        cull_resources.dynamicIndexBuffer, GPUBufferView{pass_index * DynamicIndexBufferSize, DynamicIndexBufferSize});
+    const VkDescriptorBufferInfo cullDescDrawCommandOut = get_vk_descriptor_buffer_info(
+        cull_resources.indirectDrawBuffer, GPUBufferView{pass_index * MaxIndirectDrawCount, MaxIndirectDrawCount});
     const VkDescriptorBufferInfo cullDescDrawCountOut =
-        default_descriptor_buffer_info(cull_resources.indirectDrawCountBuffer);
+        get_vk_descriptor_buffer_info(cull_resources.indirectDrawCountBuffer,
+                                      GPUBufferView{pass_index * IndirectDrawCountCount, IndirectDrawCountCount});
 
     std::array<VkWriteDescriptorSet, 6> cullPassDescriptorSetWrites = {
         create_buffer_descriptor_write(cullPassDescriptorSet, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &cullDescIndices),
@@ -221,7 +235,7 @@ VkDescriptorSet create_culling_descriptor_sets(ReaperRoot& root, VulkanBackend& 
 
 VkDescriptorSet create_culling_compact_prep_descriptor_sets(ReaperRoot& root, VulkanBackend& backend,
                                                             CullResources& cull_resources, VkDescriptorSetLayout layout,
-                                                            VkDescriptorPool descriptor_pool)
+                                                            VkDescriptorPool descriptor_pool, u32 pass_index)
 {
     VkDescriptorSetAllocateInfo descriptorSetAllocInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr,
                                                           descriptor_pool, 1, &layout};
@@ -233,11 +247,12 @@ VkDescriptorSet create_culling_compact_prep_descriptor_sets(ReaperRoot& root, Vu
     log_debug(root, "vulkan: created descriptor set with handle: {}", static_cast<void*>(compactPrepPassDescriptorSet));
 
     const VkDescriptorBufferInfo compactionDescDrawCommandCount =
-        default_descriptor_buffer_info(cull_resources.indirectDrawCountBuffer);
+        get_vk_descriptor_buffer_info(cull_resources.indirectDrawCountBuffer,
+                                      GPUBufferView{pass_index * IndirectDrawCountCount, IndirectDrawCountCount});
     const VkDescriptorBufferInfo compactionDescDispatchCommandOut =
-        default_descriptor_buffer_info(cull_resources.compactionIndirectDispatchBuffer);
+        get_vk_descriptor_buffer_info(cull_resources.compactionIndirectDispatchBuffer, GPUBufferView{pass_index, 1});
     const VkDescriptorBufferInfo compactionDescDrawCommandCountOut =
-        default_descriptor_buffer_info(cull_resources.compactIndirectDrawCountBuffer);
+        get_vk_descriptor_buffer_info(cull_resources.compactIndirectDrawCountBuffer, GPUBufferView{pass_index, 1});
 
     std::array<VkWriteDescriptorSet, 3> compactionPassDescriptorSetWrites = {
         create_buffer_descriptor_write(compactPrepPassDescriptorSet, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
@@ -256,7 +271,7 @@ VkDescriptorSet create_culling_compact_prep_descriptor_sets(ReaperRoot& root, Vu
 
 VkDescriptorSet create_culling_compact_descriptor_sets(ReaperRoot& root, VulkanBackend& backend,
                                                        CullResources& cull_resources, VkDescriptorSetLayout layout,
-                                                       VkDescriptorPool descriptor_pool)
+                                                       VkDescriptorPool descriptor_pool, u32 pass_index)
 {
     VkDescriptorSetAllocateInfo descriptorSetAllocInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr,
                                                           descriptor_pool, 1, &layout};
@@ -267,14 +282,16 @@ VkDescriptorSet create_culling_compact_descriptor_sets(ReaperRoot& root, VulkanB
            == VK_SUCCESS);
     log_debug(root, "vulkan: created descriptor set with handle: {}", static_cast<void*>(compactionPassDescriptorSet));
 
-    const VkDescriptorBufferInfo compactionDescCommand =
-        default_descriptor_buffer_info(cull_resources.indirectDrawBuffer);
+    const VkDescriptorBufferInfo compactionDescCommand = get_vk_descriptor_buffer_info(
+        cull_resources.indirectDrawBuffer, GPUBufferView{pass_index * MaxIndirectDrawCount, MaxIndirectDrawCount});
     const VkDescriptorBufferInfo compactionDescCommandCount =
-        default_descriptor_buffer_info(cull_resources.indirectDrawCountBuffer);
+        get_vk_descriptor_buffer_info(cull_resources.indirectDrawCountBuffer,
+                                      GPUBufferView{pass_index * IndirectDrawCountCount, IndirectDrawCountCount});
     const VkDescriptorBufferInfo compactionDescCommandOut =
-        default_descriptor_buffer_info(cull_resources.compactIndirectDrawBuffer);
+        get_vk_descriptor_buffer_info(cull_resources.compactIndirectDrawBuffer,
+                                      GPUBufferView{pass_index * MaxIndirectDrawCount, MaxIndirectDrawCount});
     const VkDescriptorBufferInfo compactionDescCommandCountOut =
-        default_descriptor_buffer_info(cull_resources.compactIndirectDrawCountBuffer);
+        get_vk_descriptor_buffer_info(cull_resources.compactIndirectDrawCountBuffer, GPUBufferView{pass_index, 1});
 
     std::array<VkWriteDescriptorSet, 4> compactionPassDescriptorSetWrites = {
         create_buffer_descriptor_write(compactionPassDescriptorSet, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
@@ -314,14 +331,13 @@ void destroy_culling_resources(VulkanBackend& backend, CullResources& resources)
 void culling_prepare_buffers(const CullOptions& options, VulkanBackend& backend, const PreparedData& prepared,
                              CullResources& resources)
 {
-    // FIXME
     upload_buffer_data(backend.device, backend.vma_instance, resources.cullInstanceParamsBuffer,
-                       prepared.cull_passes.front().cull_instance_params.data(),
-                       prepared.cull_passes.front().cull_instance_params.size() * sizeof(CullInstanceParams));
+                       prepared.cull_instance_params.data(),
+                       prepared.cull_instance_params.size() * sizeof(CullInstanceParams));
 
     if (!options.freeze_culling)
     {
-        std::array<u32, IndirectDrawCountSize> zero = {};
+        std::array<u32, IndirectDrawCountCount* MaxCullPassCount> zero = {};
         upload_buffer_data(backend.device, backend.vma_instance, resources.indirectDrawCountBuffer, zero.data(),
                            zero.size() * sizeof(u32));
     }
