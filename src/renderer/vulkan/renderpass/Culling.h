@@ -28,7 +28,9 @@ CullPipelineInfo create_cull_pipeline(ReaperRoot& root, VulkanBackend& backend);
 
 struct CullPassResources
 {
-    VkDescriptorSet descriptor_set;
+    VkDescriptorSet cull_descriptor_set;
+    VkDescriptorSet compact_prep_descriptor_set;
+    VkDescriptorSet compact_descriptor_set;
 };
 
 struct CullResources
@@ -54,11 +56,11 @@ VkDescriptorSet create_culling_descriptor_sets(ReaperRoot& root, VulkanBackend& 
 
 VkDescriptorSet create_culling_compact_prep_descriptor_sets(ReaperRoot& root, VulkanBackend& backend,
                                                             CullResources& cull_resources, VkDescriptorSetLayout layout,
-                                                            VkDescriptorPool descriptor_pool);
+                                                            VkDescriptorPool descriptor_pool, u32 pass_index);
 
 VkDescriptorSet create_culling_compact_descriptor_sets(ReaperRoot& root, VulkanBackend& backend,
                                                        CullResources& cull_resources, VkDescriptorSetLayout layout,
-                                                       VkDescriptorPool descriptor_pool);
+                                                       VkDescriptorPool descriptor_pool, u32 pass_index);
 
 struct PreparedData;
 

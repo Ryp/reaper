@@ -58,13 +58,13 @@ struct CullCmd
 
 struct CullPassData
 {
-    std::vector<CullInstanceParams> cull_instance_params;
-    std::vector<CullCmd>            cull_cmds;
+    std::vector<CullCmd> cull_cmds;
 };
 
 struct PreparedData
 {
     std::vector<CullPassData>            cull_passes;
+    std::vector<CullInstanceParams>      cull_instance_params;
     DrawPassParams                       draw_pass_params;
     std::vector<DrawInstanceParams>      draw_instance_params;
     ShadowMapPassParams                  shadow_pass_params;
