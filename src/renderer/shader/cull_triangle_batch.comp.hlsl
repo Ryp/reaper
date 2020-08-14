@@ -6,8 +6,9 @@
 //------------------------------------------------------------------------------
 // Input
 
-VK_CONSTANT(0) const bool spec_enable_backface_culling = true;
-VK_CONSTANT(1) const bool spec_cull_cw = true;
+VK_CONSTANT(0) const bool spec_cull_cw = true;
+VK_CONSTANT(1) const bool spec_enable_backface_culling = true;
+VK_CONSTANT(2) const bool spec_enable_frustum_culling = true;
 
 VK_PUSH_CONSTANT() ConstantBuffer<CullPushConstants> consts;
 
@@ -63,15 +64,34 @@ void main(/*uint3 gtid : SV_GroupThreadID,*/
     const float3 vpos1_ndc = vpos1_cs.xyz / vpos1_cs.w;
     const float3 vpos2_ndc = vpos2_cs.xyz / vpos2_cs.w;
 
-    const float3 v0v1_ndc = vpos1_ndc - vpos0_ndc;
-    const float3 v0v2_ndc = vpos2_ndc - vpos0_ndc;
-
-    const bool is_front_face = spec_cull_cw ?
-        cross(v0v1_ndc, v0v2_ndc).z <= 0.f :
-        cross(v0v1_ndc, v0v2_ndc).z >= 0.f;
-
     const bool is_lane_enabled = dtid.x < consts.triangleCount;
-    const bool is_visible = is_lane_enabled && (spec_enable_backface_culling ? is_front_face : true);
+    bool is_visible = is_lane_enabled;
+
+    if (spec_enable_backface_culling)
+    {
+        const float3 v0v1_ndc = vpos1_ndc - vpos0_ndc;
+        const float3 v0v2_ndc = vpos2_ndc - vpos0_ndc;
+
+        const bool is_front_face = spec_cull_cw ?
+            cross(v0v1_ndc, v0v2_ndc).z <= 0.f :
+            cross(v0v1_ndc, v0v2_ndc).z >= 0.f;
+
+        is_visible = is_visible && is_front_face;
+    }
+
+    if (spec_enable_frustum_culling)
+    {
+        const float3 vpos012x_ndc = float3(vpos0_ndc.x, vpos1_ndc.x, vpos2_ndc.x);
+        const float3 vpos012y_ndc = float3(vpos0_ndc.y, vpos1_ndc.y, vpos2_ndc.y);
+        const float3 vpos012z_ndc = float3(vpos0_ndc.z, vpos1_ndc.z, vpos2_ndc.z);
+
+        const bool x_cull_test = all(vpos012x_ndc < -1.0) || all(vpos012x_ndc > 1.0);
+        const bool y_cull_test = all(vpos012y_ndc < -1.0) || all(vpos012y_ndc > 1.0);
+        const bool z_cull_test = all(vpos012z_ndc < 0.0)  || all(vpos012z_ndc > 1.0);
+
+        const bool frustum_test = !(x_cull_test || y_cull_test || z_cull_test);
+        is_visible = is_visible && frustum_test;
+    }
 
     const uint visible_count = WaveActiveCountBits(is_visible);
     const uint visible_prefix_count = WavePrefixCountBits(is_visible);
