@@ -7,8 +7,6 @@
 
 #include "Culling.h"
 
-#include "CullingConstants.h"
-
 #include "renderer/PrepareBuckets.h"
 
 #include "renderer/vulkan/Shader.h"

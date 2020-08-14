@@ -7,6 +7,8 @@
 
 #pragma once
 
+#include "CullingConstants.h"
+
 #include "renderer/vulkan/Buffer.h"
 #include "renderer/vulkan/api/Vulkan.h"
 
@@ -14,6 +16,17 @@
 
 namespace Reaper
 {
+constexpr VkIndexType get_vk_culling_index_type()
+{
+    if constexpr (IndexSizeBytes == 2)
+        return VK_INDEX_TYPE_UINT16;
+    else
+    {
+        static_assert(IndexSizeBytes == 4, "Invalid index size");
+        return VK_INDEX_TYPE_UINT32;
+    }
+}
+
 struct ReaperRoot;
 struct VulkanBackend;
 
