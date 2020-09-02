@@ -33,10 +33,12 @@ namespace
 
     VkDescriptorBufferInfo get_vk_descriptor_buffer_info(const BufferInfo& bufferInfo, const GPUBufferView& view)
     {
+        Assert(bufferInfo.descriptor.stride > 0);
+
         return {
             bufferInfo.buffer,
-            bufferInfo.descriptor.elementSize * view.elementOffset,
-            bufferInfo.descriptor.elementSize * view.elementCount,
+            bufferInfo.descriptor.stride * view.elementOffset,
+            bufferInfo.descriptor.stride * view.elementCount,
         };
     }
 
@@ -67,13 +69,14 @@ namespace
 
 CullPipelineInfo create_cull_pipeline(ReaperRoot& root, VulkanBackend& backend)
 {
-    std::array<VkDescriptorSetLayoutBinding, 6> descriptorSetLayoutBinding = {
-        VkDescriptorSetLayoutBinding{0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+    std::array<VkDescriptorSetLayoutBinding, 7> descriptorSetLayoutBinding = {
+        VkDescriptorSetLayoutBinding{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
         VkDescriptorSetLayoutBinding{1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
         VkDescriptorSetLayoutBinding{2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
         VkDescriptorSetLayoutBinding{3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
         VkDescriptorSetLayoutBinding{4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
         VkDescriptorSetLayoutBinding{5, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+        VkDescriptorSetLayoutBinding{6, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
     };
 
     VkDescriptorSetLayoutCreateInfo descriptorSetLayoutInfo = {
@@ -140,6 +143,11 @@ CullResources create_culling_resources(ReaperRoot& root, VulkanBackend& backend)
 {
     CullResources resources;
 
+    resources.cullPassConstantBuffer = create_buffer(
+        root, backend.device, "Cull Pass Constant buffer",
+        DefaultGPUBufferProperties(MaxCullPassCount, sizeof(CullPassParams), GPUBufferUsage::UniformBuffer),
+        backend.vma_instance);
+
     resources.cullInstanceParamsBuffer = create_buffer(
         root, backend.device, "Culling instance constant buffer",
         DefaultGPUBufferProperties(CullInstanceCountMax, sizeof(CullInstanceParams), GPUBufferUsage::StorageBuffer),
@@ -199,6 +207,8 @@ VkDescriptorSet create_culling_descriptor_sets(ReaperRoot& root, VulkanBackend& 
     Assert(vkAllocateDescriptorSets(backend.device, &descriptorSetAllocInfo, &cullPassDescriptorSet) == VK_SUCCESS);
     log_debug(root, "vulkan: created descriptor set with handle: {}", static_cast<void*>(cullPassDescriptorSet));
 
+    const VkDescriptorBufferInfo cullDescPassParams =
+        get_vk_descriptor_buffer_info(cull_resources.cullPassConstantBuffer, GPUBufferView{pass_index, 1});
     const VkDescriptorBufferInfo cullDescIndices = default_descriptor_buffer_info(staticIndexBuffer);
     const VkDescriptorBufferInfo cullDescVertexPositions = default_descriptor_buffer_info(vertexBufferPosition);
     const VkDescriptorBufferInfo cullDescInstanceParams =
@@ -211,17 +221,19 @@ VkDescriptorSet create_culling_descriptor_sets(ReaperRoot& root, VulkanBackend& 
         get_vk_descriptor_buffer_info(cull_resources.indirectDrawCountBuffer,
                                       GPUBufferView{pass_index * IndirectDrawCountCount, IndirectDrawCountCount});
 
-    std::array<VkWriteDescriptorSet, 6> cullPassDescriptorSetWrites = {
-        create_buffer_descriptor_write(cullPassDescriptorSet, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &cullDescIndices),
-        create_buffer_descriptor_write(cullPassDescriptorSet, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                                       &cullDescVertexPositions),
+    std::array<VkWriteDescriptorSet, 7> cullPassDescriptorSetWrites = {
+        create_buffer_descriptor_write(cullPassDescriptorSet, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                                       &cullDescPassParams),
+        create_buffer_descriptor_write(cullPassDescriptorSet, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &cullDescIndices),
         create_buffer_descriptor_write(cullPassDescriptorSet, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                                       &cullDescInstanceParams),
+                                       &cullDescVertexPositions),
         create_buffer_descriptor_write(cullPassDescriptorSet, 3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                                       &cullDescIndicesOut),
+                                       &cullDescInstanceParams),
         create_buffer_descriptor_write(cullPassDescriptorSet, 4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                                       &cullDescDrawCommandOut),
+                                       &cullDescIndicesOut),
         create_buffer_descriptor_write(cullPassDescriptorSet, 5, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                                       &cullDescDrawCommandOut),
+        create_buffer_descriptor_write(cullPassDescriptorSet, 6, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                                        &cullDescDrawCountOut),
     };
 
@@ -310,6 +322,8 @@ VkDescriptorSet create_culling_compact_descriptor_sets(ReaperRoot& root, VulkanB
 
 void destroy_culling_resources(VulkanBackend& backend, CullResources& resources)
 {
+    vmaDestroyBuffer(backend.vma_instance, resources.cullPassConstantBuffer.buffer,
+                     resources.cullPassConstantBuffer.allocation);
     vmaDestroyBuffer(backend.vma_instance, resources.indirectDrawCountBuffer.buffer,
                      resources.indirectDrawCountBuffer.allocation);
     vmaDestroyBuffer(backend.vma_instance, resources.cullInstanceParamsBuffer.buffer,
@@ -332,6 +346,9 @@ void culling_prepare_buffers(const CullOptions& options, VulkanBackend& backend,
     upload_buffer_data(backend.device, backend.vma_instance, resources.cullInstanceParamsBuffer,
                        prepared.cull_instance_params.data(),
                        prepared.cull_instance_params.size() * sizeof(CullInstanceParams));
+
+    upload_buffer_data(backend.device, backend.vma_instance, resources.cullPassConstantBuffer,
+                       prepared.cull_pass_params.data(), prepared.cull_pass_params.size() * sizeof(CullPassParams));
 
     if (!options.freeze_culling)
     {

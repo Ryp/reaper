@@ -50,6 +50,7 @@ struct CullResources
 {
     std::vector<CullPassResources> passes;
 
+    BufferInfo cullPassConstantBuffer;
     BufferInfo cullInstanceParamsBuffer;
     BufferInfo indirectDrawCountBuffer;
     BufferInfo dynamicIndexBuffer;
