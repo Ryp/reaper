@@ -35,8 +35,9 @@ struct Node
 
 struct SceneCamera
 {
-    glm::mat4 projection_matrix;
-    u32       scene_node;
+    glm::mat4  projection_matrix;
+    glm::uvec2 viewport_extent;
+    u32        scene_node;
 };
 
 struct SceneGraph
@@ -48,7 +49,7 @@ struct SceneGraph
 };
 
 void build_scene_graph(SceneGraph& scene, const Mesh* mesh);
-void update_scene_graph(SceneGraph& scene, float time_ms, float aspect_ratio, const glm::mat4x3& view_matrix);
+void update_scene_graph(SceneGraph& scene, float time_ms, glm::uvec2 viewport_extent, const glm::mat4x3& view_matrix);
 
 struct CullCmd
 {
@@ -63,10 +64,13 @@ struct CullPassData
 
 struct PreparedData
 {
-    std::vector<CullPassData>            cull_passes;
-    std::vector<CullInstanceParams>      cull_instance_params;
-    DrawPassParams                       draw_pass_params;
-    std::vector<DrawInstanceParams>      draw_instance_params;
+    std::vector<CullPassData>       cull_passes;
+    std::vector<CullPassParams>     cull_pass_params;
+    std::vector<CullInstanceParams> cull_instance_params;
+
+    DrawPassParams                  draw_pass_params;
+    std::vector<DrawInstanceParams> draw_instance_params;
+
     ShadowMapPassParams                  shadow_pass_params;
     std::vector<ShadowMapInstanceParams> shadow_instance_params;
 };

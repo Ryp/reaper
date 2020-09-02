@@ -36,12 +36,32 @@ namespace
 } // namespace
 
 BufferInfo create_buffer(ReaperRoot& root, VkDevice device, const char* debug_string,
-                         const GPUBufferProperties& properties, VmaAllocator& allocator)
+                         const GPUBufferProperties& input_properties, VmaAllocator& allocator)
 {
+    GPUBufferProperties properties = input_properties;
+
+    // Uniform buffers require extra care on the CPU side.
+    // There's a minimum buffer offset we need to take into account.
+    // That means there's potentially extra padding between elements regardless
+    // of the initial element size.
+    if (properties.usageFlags & GPUBufferUsage::UniformBuffer)
+    {
+        // const u64 minUniformBufferOffsetAlignment =
+        // backend.physicalDeviceProperties.limits.minUniformBufferOffsetAlignment;
+        const u32 minUniformBufferOffsetAlignment = 0x40; // FIXME
+        const u32 stride = std::max(properties.elementSize, minUniformBufferOffsetAlignment);
+
+        properties.stride = stride;
+    }
+    else
+    {
+        properties.stride = properties.elementSize;
+    }
+
     const VkBufferCreateInfo bufferInfo = {VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
                                            nullptr,
                                            VK_FLAGS_NONE,
-                                           properties.elementCount * properties.elementSize,
+                                           properties.elementCount * properties.stride,
                                            BufferUsageToVulkan(properties.usageFlags),
                                            VK_SHARING_MODE_EXCLUSIVE,
                                            0,
@@ -77,7 +97,19 @@ void upload_buffer_data(VkDevice device, const VmaAllocator& allocator, const Bu
     Assert(size <= allocation_info.size,
            fmt::format("copy src of size {} on dst of size {}", size, allocation_info.size));
 
-    memcpy(writePtr, data, size);
+    if (buffer.descriptor.elementSize == buffer.descriptor.stride)
+    {
+        memcpy(writePtr, data, size);
+    }
+    else
+    {
+        for (u32 i = 0; i < buffer.descriptor.elementCount; i++)
+        {
+            const char* data_char = static_cast<const char*>(data);
+            memcpy(writePtr + i * buffer.descriptor.stride, data_char + i * buffer.descriptor.elementSize,
+                   buffer.descriptor.elementSize);
+        }
+    }
 
     vkUnmapMemory(device, allocation_info.deviceMemory);
 }

@@ -9,6 +9,7 @@
 
 #include "Culling.h"
 #include "CullingConstants.h"
+#include "ShadowConstants.h"
 #include "ShadowMap.h"
 
 #include "renderer/vulkan/Buffer.h"
@@ -209,7 +210,6 @@ namespace
     constexpr u32  ShadowInstanceCountMax = 512;
     constexpr u32  DrawInstanceCountMax = 512;
     constexpr bool UseReverseZ = true;
-    constexpr u32  ShadowMapResolution = 1024;
 
     struct BlitPipelineInfo
     {
@@ -974,10 +974,9 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
             const auto timeSecs = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - startTime);
             const auto timeDeltaMs =
                 std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - lastFrameStart);
-            const float timeMs = static_cast<float>(timeSecs.count()) * 0.001f;
-            const float timeDtSecs = static_cast<float>(timeDeltaMs.count()) * 0.001f;
-            const float aspectRatio =
-                static_cast<float>(backbufferExtent.width) / static_cast<float>(backbufferExtent.height);
+            const float      timeMs = static_cast<float>(timeSecs.count()) * 0.001f;
+            const float      timeDtSecs = static_cast<float>(timeDeltaMs.count()) * 0.001f;
+            const glm::uvec2 backbuffer_viewport_extent(backbufferExtent.width, backbufferExtent.height);
 
             ds4.update();
 
@@ -1017,11 +1016,11 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
             camera.rotate(yaw_diff * yaw_sensitivity * timeDtSecs, pitch_diff * pitch_sensitivity * timeDtSecs);
             camera.update(Camera::Spherical);
 
-            const glm::mat4 view = camera.getViewMatrix();
+            const glm::mat4 view_matrix = camera.getViewMatrix();
 
             float animationTimeMs = pauseAnimation ? 0.f : timeMs;
 
-            update_scene_graph(scene, animationTimeMs, aspectRatio, view);
+            update_scene_graph(scene, animationTimeMs, backbuffer_viewport_extent, view_matrix);
 
             PreparedData prepared;
             prepare_scene(scene, prepared);

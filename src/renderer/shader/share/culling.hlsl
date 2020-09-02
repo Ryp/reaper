@@ -20,6 +20,12 @@ struct CullPushConstants
     hlsl_uint firstInstance;
 };
 
+struct CullPassParams
+{
+    hlsl_float2 output_size_ts;
+    hlsl_float2 _pad;
+};
+
 struct CullInstanceParams
 {
     hlsl_float4x4 ms_to_cs_matrix;

@@ -44,4 +44,6 @@
     #define VK_LOCATION(_location)
 #endif
 
+#include "common.hlsl"
+
 #endif

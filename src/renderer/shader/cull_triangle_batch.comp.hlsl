@@ -9,19 +9,22 @@
 VK_CONSTANT(0) const bool spec_cull_cw = true;
 VK_CONSTANT(1) const bool spec_enable_backface_culling = true;
 VK_CONSTANT(2) const bool spec_enable_frustum_culling = true;
+VK_CONSTANT(3) const bool spec_enable_small_triangle_culling = true;
 
 VK_PUSH_CONSTANT() ConstantBuffer<CullPushConstants> consts;
 
-VK_BINDING(0, 0) ByteAddressBuffer Indices;
-VK_BINDING(1, 0) ByteAddressBuffer VertexPositions;
-VK_BINDING(2, 0) StructuredBuffer<CullInstanceParams> instance_params;
+VK_BINDING(0, 0) ConstantBuffer<CullPassParams> pass_params;
+
+VK_BINDING(1, 0) ByteAddressBuffer Indices;
+VK_BINDING(2, 0) ByteAddressBuffer VertexPositions;
+VK_BINDING(3, 0) StructuredBuffer<CullInstanceParams> instance_params;
 
 //------------------------------------------------------------------------------
 // Output
 
-VK_BINDING(3, 0) RWByteAddressBuffer IndicesOut;
-VK_BINDING(4, 0) RWByteAddressBuffer DrawCommandOut;
-VK_BINDING(5, 0) globallycoherent RWByteAddressBuffer DrawCountOut;
+VK_BINDING(4, 0) RWByteAddressBuffer IndicesOut;
+VK_BINDING(5, 0) RWByteAddressBuffer DrawCommandOut;
+VK_BINDING(6, 0) globallycoherent RWByteAddressBuffer DrawCountOut;
 
 //------------------------------------------------------------------------------
 
@@ -87,10 +90,28 @@ void main(/*uint3 gtid : SV_GroupThreadID,*/
 
         const bool x_cull_test = all(vpos012x_ndc < -1.0) || all(vpos012x_ndc > 1.0);
         const bool y_cull_test = all(vpos012y_ndc < -1.0) || all(vpos012y_ndc > 1.0);
+
+        // TODO Bench this test, the ALU cost might not be worth it.
         const bool z_cull_test = all(vpos012z_ndc < 0.0)  || all(vpos012z_ndc > 1.0);
 
         const bool frustum_test = !(x_cull_test || y_cull_test || z_cull_test);
         is_visible = is_visible && frustum_test;
+    }
+
+    if (spec_enable_small_triangle_culling)
+    {
+        const float3 vpos012x_ndc = float3(vpos0_ndc.x, vpos1_ndc.x, vpos2_ndc.x);
+        const float3 vpos012y_ndc = float3(vpos0_ndc.y, vpos1_ndc.y, vpos2_ndc.y);
+
+        const float2 vpos012_ndc_min = float2(min3(vpos012x_ndc), min3(vpos012y_ndc));
+        const float2 vpos012_ndc_max = float2(max3(vpos012x_ndc), max3(vpos012y_ndc));
+
+        const float2 vpos012_ts_min = ndc_to_ts(vpos012_ndc_min, pass_params.output_size_ts);
+        const float2 vpos012_ts_max = ndc_to_ts(vpos012_ndc_max, pass_params.output_size_ts);
+
+        const bool small_triangle_test = !any(round(vpos012_ts_min) == round(vpos012_ts_max));
+
+        is_visible = is_visible && small_triangle_test;
     }
 
     const uint visible_count = WaveActiveCountBits(is_visible);

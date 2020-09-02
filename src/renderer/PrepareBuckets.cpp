@@ -8,6 +8,7 @@
 #include "PrepareBuckets.h"
 
 #include "renderer/vulkan/renderpass/CullingConstants.h"
+#include "renderer/vulkan/renderpass/ShadowConstants.h"
 
 #include "mesh/Mesh.h"
 
@@ -77,7 +78,7 @@ namespace
     }
 } // namespace
 
-void update_scene_graph(SceneGraph& scene, float time_ms, float aspect_ratio, const glm::mat4x3& view_matrix)
+void update_scene_graph(SceneGraph& scene, float time_ms, glm::uvec2 viewport_extent, const glm::mat4x3& view_matrix)
 {
     // Update meshes
     for (u32 i = 0; i < MeshInstanceCount; i++)
@@ -98,7 +99,9 @@ void update_scene_graph(SceneGraph& scene, float time_ms, float aspect_ratio, co
         const float near_plane_distance = 0.1f;
         const float far_plane_distance = 100.f;
         const float fov_radian = glm::pi<float>() * 0.25f;
+        const float aspect_ratio = static_cast<float>(viewport_extent.x) / static_cast<float>(viewport_extent.y);
 
+        scene.camera.viewport_extent = viewport_extent;
         scene.camera.projection_matrix =
             build_perspective_matrix(near_plane_distance, far_plane_distance, aspect_ratio, fov_radian);
 
@@ -168,6 +171,9 @@ void prepare_scene(SceneGraph& scene, PreparedData& prepared)
         CullPassData& cull_pass = prepared.cull_passes.emplace_back();
         const u32     pass_index = prepared.cull_passes.size() - 1;
 
+        CullPassParams& cull_pass_params = prepared.cull_pass_params.emplace_back();
+        cull_pass_params.output_size_ts = glm::fvec2(scene.camera.viewport_extent);
+
         for (const auto& node : scene.nodes)
         {
             if (node.instance_id == InvalidMeshInstanceId)
@@ -197,6 +203,9 @@ void prepare_scene(SceneGraph& scene, PreparedData& prepared)
 
         CullPassData& cull_pass = prepared.cull_passes.emplace_back();
         const u32     pass_index = prepared.cull_passes.size() - 1;
+
+        CullPassParams& cull_pass_params = prepared.cull_pass_params.emplace_back();
+        cull_pass_params.output_size_ts = glm::vec2(ShadowMapResolution, ShadowMapResolution);
 
         prepared.shadow_pass_params.dummy = glm::mat4(1.f);
 
