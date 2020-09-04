@@ -113,4 +113,22 @@ void upload_buffer_data(VkDevice device, const VmaAllocator& allocator, const Bu
 
     vkUnmapMemory(device, allocation_info.deviceMemory);
 }
+
+VkWriteDescriptorSet create_buffer_descriptor_write(VkDescriptorSet descriptorSet, u32 binding,
+                                                    VkDescriptorType              descriptorType,
+                                                    const VkDescriptorBufferInfo* bufferInfo)
+{
+    return {
+        VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+        nullptr,
+        descriptorSet,
+        binding,
+        0,
+        1,
+        descriptorType,
+        nullptr,
+        bufferInfo,
+        nullptr,
+    };
+}
 } // namespace Reaper

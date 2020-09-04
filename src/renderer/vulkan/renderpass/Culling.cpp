@@ -47,24 +47,6 @@ namespace
     {
         return {bufferInfo.buffer, 0, VK_WHOLE_SIZE};
     }
-
-    VkWriteDescriptorSet create_buffer_descriptor_write(VkDescriptorSet descriptorSet, u32 binding,
-                                                        VkDescriptorType              descriptorType,
-                                                        const VkDescriptorBufferInfo* bufferInfo)
-    {
-        return {
-            VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-            nullptr,
-            descriptorSet,
-            binding,
-            0,
-            1,
-            descriptorType,
-            nullptr,
-            bufferInfo,
-            nullptr,
-        };
-    }
 } // namespace
 
 CullPipelineInfo create_cull_pipeline(ReaperRoot& root, VulkanBackend& backend)

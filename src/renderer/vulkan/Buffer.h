@@ -29,4 +29,8 @@ BufferInfo create_buffer(ReaperRoot& root, VkDevice device, const char* debug_st
 
 void upload_buffer_data(VkDevice device, const VmaAllocator& allocator, const BufferInfo& buffer, const void* data,
                         std::size_t size);
+
+VkWriteDescriptorSet create_buffer_descriptor_write(VkDescriptorSet descriptorSet, u32 binding,
+                                                    VkDescriptorType              descriptorType,
+                                                    const VkDescriptorBufferInfo* bufferInfo);
 } // namespace Reaper
