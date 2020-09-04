@@ -245,42 +245,6 @@ namespace
         return {bufferInfo.buffer, 0, VK_WHOLE_SIZE};
     }
 
-    VkWriteDescriptorSet create_buffer_descriptor_write(VkDescriptorSet descriptorSet, u32 binding,
-                                                        VkDescriptorType              descriptorType,
-                                                        const VkDescriptorBufferInfo* bufferInfo)
-    {
-        return {
-            VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-            nullptr,
-            descriptorSet,
-            binding,
-            0,
-            1,
-            descriptorType,
-            nullptr,
-            bufferInfo,
-            nullptr,
-        };
-    }
-
-    VkWriteDescriptorSet create_image_descriptor_write(VkDescriptorSet descriptorSet, u32 binding,
-                                                       VkDescriptorType             descriptorType,
-                                                       const VkDescriptorImageInfo* imageInfo)
-    {
-        return {
-            VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-            nullptr,
-            descriptorSet,
-            binding,
-            0,
-            1,
-            descriptorType,
-            imageInfo,
-            nullptr,
-            nullptr,
-        };
-    }
-
     void cmd_transition_swapchain_layout(VulkanBackend& backend, VkCommandBuffer commandBuffer)
     {
         for (u32 swapchainImageIndex = 0; swapchainImageIndex < static_cast<u32>(backend.presentInfo.images.size());
