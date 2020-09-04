@@ -12,6 +12,7 @@
 
 struct PointLightProperties
 {
+    hlsl_float4x4 light_ws_to_cs; // FIXME xy could be in uv-space already
     hlsl_float3 position_vs;
     hlsl_float  intensity;
     hlsl_float3 color;
@@ -24,7 +25,6 @@ struct DrawPassParams
     hlsl_float3x4 view;
     hlsl_float4x4 proj;
     hlsl_float4x4 view_proj;
-    hlsl_float3   light_position_vs;
 };
 
 struct DrawInstanceParams

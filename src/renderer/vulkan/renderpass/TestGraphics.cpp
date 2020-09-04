@@ -263,6 +263,24 @@ namespace
         };
     }
 
+    VkWriteDescriptorSet create_image_descriptor_write(VkDescriptorSet descriptorSet, u32 binding,
+                                                       VkDescriptorType             descriptorType,
+                                                       const VkDescriptorImageInfo* imageInfo)
+    {
+        return {
+            VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+            nullptr,
+            descriptorSet,
+            binding,
+            0,
+            1,
+            descriptorType,
+            imageInfo,
+            nullptr,
+            nullptr,
+        };
+    }
+
     void cmd_transition_swapchain_layout(VulkanBackend& backend, VkCommandBuffer commandBuffer)
     {
         for (u32 swapchainImageIndex = 0; swapchainImageIndex < static_cast<u32>(backend.presentInfo.images.size());
@@ -546,10 +564,12 @@ namespace
             &blitBlendAttachmentState,
             {0.0f, 0.0f, 0.0f, 0.0f}};
 
-        std::array<VkDescriptorSetLayoutBinding, 2> descriptorSetLayoutBinding = {
+        std::array<VkDescriptorSetLayoutBinding, 4> descriptorSetLayoutBinding = {
             VkDescriptorSetLayoutBinding{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1,
                                          VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
             VkDescriptorSetLayoutBinding{1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
+            VkDescriptorSetLayoutBinding{2, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+            VkDescriptorSetLayoutBinding{3, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
         };
 
         VkDescriptorSetLayoutCreateInfo descriptorSetLayoutInfo = {
@@ -689,6 +709,28 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
 
     ImageInfo shadowMap = create_image(root, backend.device, "Shadow Map", shadowMapProperties, backend.vma_instance);
 
+    VkSampler           shadowMapSampler = VK_NULL_HANDLE;
+    VkSamplerCreateInfo shadowMapSamplerCreateInfo = {};
+    shadowMapSamplerCreateInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+    shadowMapSamplerCreateInfo.magFilter = VK_FILTER_LINEAR;
+    shadowMapSamplerCreateInfo.minFilter = VK_FILTER_LINEAR;
+    shadowMapSamplerCreateInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+    shadowMapSamplerCreateInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+    shadowMapSamplerCreateInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+    shadowMapSamplerCreateInfo.anisotropyEnable = VK_FALSE;
+    shadowMapSamplerCreateInfo.maxAnisotropy = 16;
+    shadowMapSamplerCreateInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK; // FIXME
+    shadowMapSamplerCreateInfo.unnormalizedCoordinates = VK_FALSE;
+    shadowMapSamplerCreateInfo.compareEnable = VK_FALSE;
+    shadowMapSamplerCreateInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+    shadowMapSamplerCreateInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+    shadowMapSamplerCreateInfo.mipLodBias = 0.f;
+    shadowMapSamplerCreateInfo.minLod = 0.f;
+    shadowMapSamplerCreateInfo.maxLod = FLT_MAX;
+
+    Assert(vkCreateSampler(backend.device, &shadowMapSamplerCreateInfo, nullptr, &shadowMapSampler) == VK_SUCCESS);
+    log_debug(root, "vulkan: created sampler with handle: {}", static_cast<void*>(shadowMapSampler));
+
     VkImageView shadowMapView = create_depth_image_view(backend.device, shadowMap);
     log_debug(root, "vulkan: created image view with handle: {}", static_cast<void*>(shadowMapView));
 
@@ -780,12 +822,20 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
         const VkDescriptorBufferInfo drawDescPassParams = default_descriptor_buffer_info(drawPassConstantBuffer);
         const VkDescriptorBufferInfo drawDescInstanceParams =
             default_descriptor_buffer_info(drawInstanceConstantBuffer);
+        const VkDescriptorImageInfo drawDescShadowMapTexture = {VK_NULL_HANDLE, shadowMapView,
+                                                                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
+        const VkDescriptorImageInfo drawDescShadowMapSampler = {shadowMapSampler, VK_NULL_HANDLE,
+                                                                VK_IMAGE_LAYOUT_UNDEFINED};
 
-        std::array<VkWriteDescriptorSet, 2> drawPassDescriptorSetWrites = {
+        std::array<VkWriteDescriptorSet, 4> drawPassDescriptorSetWrites = {
             create_buffer_descriptor_write(pixelConstantsDescriptorSet, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
                                            &drawDescPassParams),
             create_buffer_descriptor_write(pixelConstantsDescriptorSet, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                                            &drawDescInstanceParams),
+            create_image_descriptor_write(pixelConstantsDescriptorSet, 2, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+                                          &drawDescShadowMapTexture),
+            create_image_descriptor_write(pixelConstantsDescriptorSet, 3, VK_DESCRIPTOR_TYPE_SAMPLER,
+                                          &drawDescShadowMapSampler),
         };
 
         vkUpdateDescriptorSets(backend.device, static_cast<u32>(drawPassDescriptorSetWrites.size()),
@@ -1190,6 +1240,24 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                 vkCmdEndRenderPass(resources.gfxCmdBuffer);
             }
 
+            {
+                VkImageMemoryBarrier shadowMapImageBarrierInfo = {
+                    VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+                    nullptr,
+                    0,
+                    VK_ACCESS_MEMORY_READ_BIT,
+                    VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+                    VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                    backend.physicalDeviceInfo.graphicsQueueIndex,
+                    backend.physicalDeviceInfo.graphicsQueueIndex,
+                    shadowMap.handle,
+                    {VK_IMAGE_ASPECT_DEPTH_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS}};
+
+                vkCmdPipelineBarrier(resources.gfxCmdBuffer, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                                     VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, nullptr, 0, nullptr, 1,
+                                     &shadowMapImageBarrierInfo);
+            }
+
             // Draw pass
             {
                 const u32 pass_index = 0; // FIXME
@@ -1324,6 +1392,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
 
     vkDestroyFramebuffer(backend.device, shadowMapFramebuffer, nullptr);
     vkDestroyRenderPass(backend.device, shadowMapPass, nullptr);
+    vkDestroySampler(backend.device, shadowMapSampler, nullptr);
     vkDestroyImageView(backend.device, shadowMapView, nullptr);
     vmaDestroyImage(backend.vma_instance, shadowMap.handle, shadowMap.allocation);
 
