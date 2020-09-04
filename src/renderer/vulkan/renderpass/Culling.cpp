@@ -41,12 +41,6 @@ namespace
             bufferInfo.descriptor.stride * view.elementCount,
         };
     }
-
-    // FIXME
-    VkDescriptorBufferInfo default_descriptor_buffer_info(const BufferInfo& bufferInfo)
-    {
-        return {bufferInfo.buffer, 0, VK_WHOLE_SIZE};
-    }
 } // namespace
 
 CullPipelineInfo create_cull_pipeline(ReaperRoot& root, VulkanBackend& backend)

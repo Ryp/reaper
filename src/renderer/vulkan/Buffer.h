@@ -33,4 +33,6 @@ void upload_buffer_data(VkDevice device, const VmaAllocator& allocator, const Bu
 VkWriteDescriptorSet create_buffer_descriptor_write(VkDescriptorSet descriptorSet, u32 binding,
                                                     VkDescriptorType              descriptorType,
                                                     const VkDescriptorBufferInfo* bufferInfo);
+
+VkDescriptorBufferInfo default_descriptor_buffer_info(const BufferInfo& bufferInfo);
 } // namespace Reaper

@@ -240,11 +240,6 @@ namespace
         return clearValue;
     }
 
-    VkDescriptorBufferInfo default_descriptor_buffer_info(const BufferInfo& bufferInfo)
-    {
-        return {bufferInfo.buffer, 0, VK_WHOLE_SIZE};
-    }
-
     void cmd_transition_swapchain_layout(VulkanBackend& backend, VkCommandBuffer commandBuffer)
     {
         for (u32 swapchainImageIndex = 0; swapchainImageIndex < static_cast<u32>(backend.presentInfo.images.size());
