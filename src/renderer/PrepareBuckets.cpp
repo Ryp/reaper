@@ -114,7 +114,7 @@ void update_scene_graph(SceneGraph& scene, float time_ms, glm::uvec2 viewport_ex
         light.projection_matrix = build_perspective_matrix(0.1f, 100.f, 1.f, glm::pi<float>() * 0.25f);
 
         const glm::vec3   up_ws = glm::vec3(0.f, 1.f, 0.f);
-        const glm::vec3   light_position_ws = glm::vec3(-1.f, 1.f, 1.f);
+        const glm::vec3   light_position_ws = glm::vec3(-2.f, 2.f, 2.f);
         const glm::mat4x3 light_transform = glm::lookAt(light_position_ws, glm::vec3(0.f, 0.f, 0.f), up_ws);
 
         Node& light_node = scene.nodes[light.scene_node];
@@ -156,12 +156,16 @@ void prepare_scene(SceneGraph& scene, PreparedData& prepared)
     prepared.draw_pass_params.view_proj = main_camera_view_proj;
 
     {
-        const Node& light_node = scene.nodes[scene.lights.front().scene_node];
+        const Light& light = scene.lights.front(); // FIXME
+        const Node&  light_node = scene.nodes[light.scene_node];
 
         const glm::vec3 light_position_ws =
             glm::inverse(glm::mat4(light_node.transform_matrix)) * glm::vec4(0.f, 0.f, 0.f, 1.0f);
         const glm::vec3 light_position_vs = camera_node.transform_matrix * glm::fvec4(light_position_ws, 1.f);
 
+        const glm::mat4 light_view_proj_matrix = light.projection_matrix * glm::mat4(light_node.transform_matrix);
+
+        prepared.draw_pass_params.point_light.light_ws_to_cs = light_view_proj_matrix;
         prepared.draw_pass_params.point_light.position_vs = light_position_vs;
         prepared.draw_pass_params.point_light.intensity = 8.f;
         prepared.draw_pass_params.point_light.color = glm::fvec3(0.8f, 0.5f, 0.2f);

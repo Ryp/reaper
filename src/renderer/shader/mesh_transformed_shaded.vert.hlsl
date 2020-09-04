@@ -18,6 +18,7 @@ struct VS_OUTPUT
     float3 PositionVS : TEXCOORD0;
     float3 NormalVS : TEXCOORD1;
     float2 UV : TEXCOORD2;
+    float3 PositionWS : TEXCOORD3;
 };
 
 VS_OUTPUT main(VS_INPUT input, uint instance_id : SV_InstanceID)
@@ -33,6 +34,7 @@ VS_OUTPUT main(VS_INPUT input, uint instance_id : SV_InstanceID)
     output.PositionVS = positionVS;
     output.NormalVS = normalize(mul(instance_params[instance_id].normal_ms_to_vs_matrix, input.NormalMS));
     output.UV = input.UV;
+    output.PositionWS = positionWS;
 
     return output;
 }
