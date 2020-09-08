@@ -22,39 +22,6 @@ constexpr bool UseReverseZ = true;
 constexpr u32  MeshInstanceCount = 6;
 constexpr u32  InvalidMeshInstanceId = -1;
 
-void build_scene_graph(SceneGraph& scene, const Mesh* mesh)
-{
-    for (u32 i = 0; i < MeshInstanceCount; i++)
-    {
-        Node& node = scene.nodes.emplace_back();
-        node.instance_id = i;
-        node.mesh = mesh;
-    }
-
-    {
-        // Add to scene
-        Node&     light_node = scene.nodes.emplace_back();
-        const u32 light_node_index = scene.nodes.size() - 1;
-
-        light_node.instance_id = InvalidMeshInstanceId;
-
-        Light& main_light = scene.lights.emplace_back();
-        main_light.color = glm::fvec3(0.8f, 0.5f, 0.2f);
-        main_light.intensity = 8.f;
-        main_light.scene_node = light_node_index;
-    }
-
-    {
-        // Dummy node
-        Node&     camera_node = scene.nodes.emplace_back();
-        const u32 camera_node_index = scene.nodes.size() - 1;
-
-        camera_node.instance_id = InvalidMeshInstanceId;
-
-        scene.camera.scene_node = camera_node_index;
-    }
-}
-
 namespace
 {
     glm::mat4 build_perspective_matrix(float near_plane, float far_plane, float aspect_ratio, float fov_radian)
@@ -77,6 +44,68 @@ namespace
         return projection;
     }
 } // namespace
+
+void build_scene_graph(SceneGraph& scene, const Mesh* mesh)
+{
+    for (u32 i = 0; i < MeshInstanceCount; i++)
+    {
+        Node& node = scene.nodes.emplace_back();
+        node.instance_id = i;
+        node.mesh = mesh;
+    }
+
+    // Add lights
+    {
+        const glm::mat4 light_projection_matrix = build_perspective_matrix(0.1f, 100.f, 1.f, glm::pi<float>() * 0.25f);
+        const glm::vec3 light_target_ws = glm::vec3(0.f, 0.f, 0.f);
+        const glm::vec3 up_ws = glm::vec3(0.f, 1.f, 0.f);
+
+        // Add 1st light
+        {
+            Node&     light_node = scene.nodes.emplace_back();
+            const u32 light_node_index = scene.nodes.size() - 1;
+
+            const glm::vec3 light_position_ws = glm::vec3(-2.f, 2.f, 2.f);
+
+            light_node.instance_id = InvalidMeshInstanceId;
+            light_node.transform_matrix = glm::lookAt(light_position_ws, light_target_ws, up_ws);
+
+            Light& light = scene.lights.emplace_back();
+            light.color = glm::fvec3(0.2f, 0.5f, 0.8f);
+            light.intensity = 8.f;
+            light.scene_node = light_node_index;
+            light.projection_matrix = light_projection_matrix;
+        }
+
+        // Add 2nd light
+        if (false)
+        {
+            Node&     light_node = scene.nodes.emplace_back();
+            const u32 light_node_index = scene.nodes.size() - 1;
+
+            const glm::vec3 light_position_ws = glm::vec3(-2.f, -2.f, -2.f);
+
+            light_node.instance_id = InvalidMeshInstanceId;
+            light_node.transform_matrix = glm::lookAt(light_position_ws, light_target_ws, up_ws);
+
+            Light& light = scene.lights.emplace_back();
+            light.color = glm::fvec3(0.8f, 0.5f, 0.2f);
+            light.intensity = 8.f;
+            light.scene_node = light_node_index;
+            light.projection_matrix = light_projection_matrix;
+        }
+    }
+
+    // Add camera
+    {
+        Node&     camera_node = scene.nodes.emplace_back();
+        const u32 camera_node_index = scene.nodes.size() - 1;
+
+        camera_node.instance_id = InvalidMeshInstanceId;
+
+        scene.camera.scene_node = camera_node_index;
+    }
+}
 
 void update_scene_graph(SceneGraph& scene, float time_ms, glm::uvec2 viewport_extent, const glm::mat4x3& view_matrix)
 {
@@ -107,18 +136,6 @@ void update_scene_graph(SceneGraph& scene, float time_ms, glm::uvec2 viewport_ex
 
         Node& camera_node = scene.nodes[scene.camera.scene_node];
         camera_node.transform_matrix = view_matrix;
-    }
-
-    for (Light& light : scene.lights)
-    {
-        light.projection_matrix = build_perspective_matrix(0.1f, 100.f, 1.f, glm::pi<float>() * 0.25f);
-
-        const glm::vec3   up_ws = glm::vec3(0.f, 1.f, 0.f);
-        const glm::vec3   light_position_ws = glm::vec3(-2.f, 2.f, 2.f);
-        const glm::mat4x3 light_transform = glm::lookAt(light_position_ws, glm::vec3(0.f, 0.f, 0.f), up_ws);
-
-        Node& light_node = scene.nodes[light.scene_node];
-        light_node.transform_matrix = light_transform;
     }
 }
 

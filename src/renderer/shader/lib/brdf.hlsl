@@ -48,6 +48,7 @@ float LightingFuncGGX_REF(float3 N, float3 V, float3 L, float roughness, float F
 
 struct StandardMaterial
 {
+    float3 albedo;
     float roughness;
     float f0;
 };

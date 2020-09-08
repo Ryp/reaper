@@ -29,50 +29,66 @@ struct PS_OUTPUT
     float4 color : SV_Target0;
 };
 
-PS_OUTPUT main(PS_INPUT input)
+struct t_light_output
 {
-    const PointLightProperties point_light = pass_params.point_light;
+    float3 diffuse;
+    float3 specular;
+};
 
-    const float3 object_to_light_vs = point_light.position_vs - input.PositionVS;
+t_light_output shade_point_light(
+    PointLightProperties point_light, StandardMaterial material,
+    float3 object_position_vs, float3 object_normal_vs, float3 view_direction_vs)
+{
+    const float3 object_to_light_vs = point_light.position_vs - object_position_vs;
     const float3 light_direction_vs = normalize(object_to_light_vs);
 
     const float light_distance_sq = dot(object_to_light_vs, object_to_light_vs);
     const float light_distance_fade = rcp(1.0 + light_distance_sq);
 
-    const float3 normal_vs = normalize(input.NormalVS);
-
-    const float NdotL = saturate(dot(normal_vs, light_direction_vs));
+    const float NdotL = saturate(dot(object_normal_vs, light_direction_vs));
 
     const float3 light_incoming_radiance = point_light.color * point_light.intensity * light_distance_fade;
 
-    const float3 object_albedo = float3(0.9, 0.9, 0.9);
+    t_light_output output;
+    output.diffuse = light_incoming_radiance * NdotL;
+    output.specular = light_incoming_radiance * specular_brdf(material, object_normal_vs, view_direction_vs, light_direction_vs);
+
+    return output;
+}
+
+float sample_shadow_map(float4x4 light_transform_ws_to_cs, float3 object_position_ws)
+{
+    const float4 position_shadow_map_cs = mul(light_transform_ws_to_cs, float4(object_position_ws, 1.0));
+    const float3 position_shadow_map_ndc = position_shadow_map_cs.xyz / position_shadow_map_cs.w;
+    const float2 position_shadow_map_uv = ndc_to_uv(position_shadow_map_ndc.xy);
+
+    const float shadow_map_depth_ndc = t_shadow_map.Sample(shadow_map_sampler, position_shadow_map_uv);
+
+    const float shadow_depth_bias = 0.001;
+
+    // FIXME handle reverse depth toggle
+    if (position_shadow_map_ndc.z + shadow_depth_bias < shadow_map_depth_ndc)
+        return 0.0;
+    else
+        return 1.0;
+}
+
+PS_OUTPUT main(PS_INPUT input)
+{
+    const PointLightProperties point_light = pass_params.point_light;
+
+    const float3 view_direction_vs = -normalize(input.PositionVS);
+    const float3 normal_vs = normalize(input.NormalVS);
 
     StandardMaterial material;
+    material.albedo = float3(0.9, 0.9, 0.9);
     material.roughness = 0.5;
     material.f0 = 0.1;
 
-    const float3 view_direction_vs = -normalize(input.PositionVS);
+    const t_light_output lighting = shade_point_light(point_light, material, input.PositionVS, normal_vs, view_direction_vs);
+    const float shadow_term = sample_shadow_map(point_light.light_ws_to_cs, input.PositionWS);
 
-    const float3 diffuse = light_incoming_radiance * NdotL;
-    const float3 specular = light_incoming_radiance * specular_brdf(material, normal_vs, view_direction_vs, light_direction_vs);
-
-    float3 shaded_color = object_albedo * (diffuse + specular);
-
-    // Apply shadow
-    {
-        const float4 position_shadow_map_cs = mul(point_light.light_ws_to_cs, float4(input.PositionWS, 1.0));
-        const float3 position_shadow_map_ndc = position_shadow_map_cs.xyz / position_shadow_map_cs.w;
-        const float2 position_shadow_map_uv = ndc_to_uv(position_shadow_map_ndc.xy);
-
-        const float shadow_map_depth_ndc = t_shadow_map.Sample(shadow_map_sampler, position_shadow_map_uv);
-
-        const float3 ambient_color = float3(0.0, 0.0, 0.0);
-        const float shadow_depth_bias = 0.001;
-
-        // FIXME handle reverse depth toggle
-        if (position_shadow_map_ndc.z + shadow_depth_bias < shadow_map_depth_ndc)
-            shaded_color = ambient_color;
-    }
+    const float3 shaded_color = material.albedo * (lighting.diffuse + lighting.specular) * shadow_term;
 
     PS_OUTPUT output;
 
