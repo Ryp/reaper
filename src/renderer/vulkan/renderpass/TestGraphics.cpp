@@ -678,10 +678,11 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
     shadowMapSamplerCreateInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
     shadowMapSamplerCreateInfo.anisotropyEnable = VK_FALSE;
     shadowMapSamplerCreateInfo.maxAnisotropy = 16;
-    shadowMapSamplerCreateInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK; // FIXME
+    shadowMapSamplerCreateInfo.borderColor =
+        UseReverseZ ? VK_BORDER_COLOR_INT_OPAQUE_BLACK : VK_BORDER_COLOR_INT_OPAQUE_WHITE;
     shadowMapSamplerCreateInfo.unnormalizedCoordinates = VK_FALSE;
-    shadowMapSamplerCreateInfo.compareEnable = VK_FALSE;
-    shadowMapSamplerCreateInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+    shadowMapSamplerCreateInfo.compareEnable = VK_TRUE;
+    shadowMapSamplerCreateInfo.compareOp = UseReverseZ ? VK_COMPARE_OP_GREATER : VK_COMPARE_OP_LESS;
     shadowMapSamplerCreateInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
     shadowMapSamplerCreateInfo.mipLodBias = 0.f;
     shadowMapSamplerCreateInfo.minLod = 0.f;

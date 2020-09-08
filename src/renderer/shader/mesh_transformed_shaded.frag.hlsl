@@ -13,7 +13,7 @@ VK_CONSTANT(1) const uint spec_debug_mode = debug_mode_none;
 VK_BINDING(0, 0) ConstantBuffer<DrawPassParams> pass_params;
 
 VK_BINDING(2, 0) Texture2D<float> t_shadow_map;
-VK_BINDING(3, 0) SamplerState shadow_map_sampler;
+VK_BINDING(3, 0) SamplerComparisonState shadow_map_sampler;
 
 struct PS_INPUT
 {
@@ -62,15 +62,10 @@ float sample_shadow_map(float4x4 light_transform_ws_to_cs, float3 object_positio
     const float3 position_shadow_map_ndc = position_shadow_map_cs.xyz / position_shadow_map_cs.w;
     const float2 position_shadow_map_uv = ndc_to_uv(position_shadow_map_ndc.xy);
 
-    const float shadow_map_depth_ndc = t_shadow_map.Sample(shadow_map_sampler, position_shadow_map_uv);
-
     const float shadow_depth_bias = 0.001;
+    const float shadow_pcf = t_shadow_map.SampleCmp(shadow_map_sampler, position_shadow_map_uv, position_shadow_map_ndc.z + shadow_depth_bias);
 
-    // FIXME handle reverse depth toggle
-    if (position_shadow_map_ndc.z + shadow_depth_bias < shadow_map_depth_ndc)
-        return 0.0;
-    else
-        return 1.0;
+    return shadow_pcf;
 }
 
 PS_OUTPUT main(PS_INPUT input)
