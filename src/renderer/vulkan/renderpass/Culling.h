@@ -39,6 +39,24 @@ struct CullPipelineInfo
 
 CullPipelineInfo create_cull_pipeline(ReaperRoot& root, VulkanBackend& backend);
 
+struct CompactionPrepPipelineInfo
+{
+    VkPipeline            pipeline;
+    VkPipelineLayout      pipelineLayout;
+    VkDescriptorSetLayout descSetLayout;
+};
+
+CompactionPrepPipelineInfo create_compaction_prep_pipeline(ReaperRoot& root, VulkanBackend& backend);
+
+struct CompactionPipelineInfo
+{
+    VkPipeline            pipeline;
+    VkPipelineLayout      pipelineLayout;
+    VkDescriptorSetLayout descSetLayout;
+};
+
+CompactionPipelineInfo create_compaction_pipeline(ReaperRoot& root, VulkanBackend& backend);
+
 struct CullPassResources
 {
     VkDescriptorSet cull_descriptor_set;
