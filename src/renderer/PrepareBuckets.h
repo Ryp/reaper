@@ -59,6 +59,8 @@ struct CullCmd
 
 struct CullPassData
 {
+    u32 pass_index;
+
     std::vector<CullCmd> cull_cmds;
 };
 

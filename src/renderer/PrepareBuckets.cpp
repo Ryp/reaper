@@ -141,7 +141,7 @@ void update_scene_graph(SceneGraph& scene, float time_ms, glm::uvec2 viewport_ex
 
 namespace
 {
-    void insert_cull_cmd(CullPassData& cull_pass, const Node& node, u32 pass_index, u32 cull_instance_index_start,
+    void insert_cull_cmd(CullPassData& cull_pass, const Node& node, u32 cull_instance_index_start,
                          u32 cull_instance_count)
     {
         Assert(node.mesh);
@@ -152,7 +152,7 @@ namespace
         CullPushConstants consts;
         consts.triangleCount = index_count / 3;
         consts.firstIndex = 0;
-        consts.outputIndexOffset = pass_index * (DynamicIndexBufferSize / IndexSizeBytes);
+        consts.outputIndexOffset = cull_pass.pass_index * (DynamicIndexBufferSize / IndexSizeBytes);
         consts.firstInstance = cull_instance_index_start;
 
         CullCmd& command = cull_pass.cull_cmds.emplace_back();
@@ -192,6 +192,8 @@ void prepare_scene(SceneGraph& scene, PreparedData& prepared)
         CullPassData& cull_pass = prepared.cull_passes.emplace_back();
         const u32     pass_index = prepared.cull_passes.size() - 1;
 
+        cull_pass.pass_index = pass_index;
+
         CullPassParams& cull_pass_params = prepared.cull_pass_params.emplace_back();
         cull_pass_params.output_size_ts = glm::fvec2(scene.camera.viewport_extent);
 
@@ -213,7 +215,7 @@ void prepare_scene(SceneGraph& scene, PreparedData& prepared)
             cull_instance.ms_to_cs_matrix = main_camera_view_proj * glm::mat4(node.transform_matrix);
             cull_instance.instance_id = node.instance_id;
 
-            insert_cull_cmd(cull_pass, node, pass_index, cull_instance_index, 1);
+            insert_cull_cmd(cull_pass, node, cull_instance_index, 1);
         }
     }
 
@@ -224,6 +226,8 @@ void prepare_scene(SceneGraph& scene, PreparedData& prepared)
 
         CullPassData& cull_pass = prepared.cull_passes.emplace_back();
         const u32     pass_index = prepared.cull_passes.size() - 1;
+
+        cull_pass.pass_index = pass_index;
 
         CullPassParams& cull_pass_params = prepared.cull_pass_params.emplace_back();
         cull_pass_params.output_size_ts = glm::vec2(ShadowMapResolution, ShadowMapResolution);
@@ -246,7 +250,7 @@ void prepare_scene(SceneGraph& scene, PreparedData& prepared)
             cull_instance.ms_to_cs_matrix = shadow_instance.ms_to_cs_matrix;
             cull_instance.instance_id = node.instance_id;
 
-            insert_cull_cmd(cull_pass, node, pass_index, cull_instance_index, 1);
+            insert_cull_cmd(cull_pass, node, cull_instance_index, 1);
         }
     }
 }
