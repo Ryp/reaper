@@ -27,4 +27,12 @@ VkRenderPass create_shadow_raster_pass(ReaperRoot& root, VulkanBackend& backend,
 
 ShadowMapPipelineInfo create_shadow_map_pipeline(ReaperRoot& root, VulkanBackend& backend, VkRenderPass renderPass,
                                                  u32 shadowMapRes);
+
+struct ShadowMapResources
+{
+    VkSampler shadowMapSampler;
+};
+
+ShadowMapResources create_shadow_map_resources(ReaperRoot& root, VulkanBackend& backend);
+void               destroy_shadow_map_resources(VulkanBackend& backend, ShadowMapResources& resources);
 } // namespace Reaper

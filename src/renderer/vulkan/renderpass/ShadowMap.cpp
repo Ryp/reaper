@@ -257,4 +257,37 @@ ShadowMapPipelineInfo create_shadow_map_pipeline(ReaperRoot& root, VulkanBackend
 
     return ShadowMapPipelineInfo{pipeline, pipelineLayout, descriptorSetLayoutCB};
 }
+
+ShadowMapResources create_shadow_map_resources(ReaperRoot& root, VulkanBackend& backend)
+{
+    VkSampler           shadowMapSampler = VK_NULL_HANDLE;
+    VkSamplerCreateInfo shadowMapSamplerCreateInfo = {};
+    shadowMapSamplerCreateInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+    shadowMapSamplerCreateInfo.magFilter = VK_FILTER_LINEAR;
+    shadowMapSamplerCreateInfo.minFilter = VK_FILTER_LINEAR;
+    shadowMapSamplerCreateInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+    shadowMapSamplerCreateInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+    shadowMapSamplerCreateInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+    shadowMapSamplerCreateInfo.anisotropyEnable = VK_FALSE;
+    shadowMapSamplerCreateInfo.maxAnisotropy = 16;
+    shadowMapSamplerCreateInfo.borderColor =
+        UseReverseZ ? VK_BORDER_COLOR_INT_OPAQUE_BLACK : VK_BORDER_COLOR_INT_OPAQUE_WHITE;
+    shadowMapSamplerCreateInfo.unnormalizedCoordinates = VK_FALSE;
+    shadowMapSamplerCreateInfo.compareEnable = VK_TRUE;
+    shadowMapSamplerCreateInfo.compareOp = UseReverseZ ? VK_COMPARE_OP_GREATER : VK_COMPARE_OP_LESS;
+    shadowMapSamplerCreateInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+    shadowMapSamplerCreateInfo.mipLodBias = 0.f;
+    shadowMapSamplerCreateInfo.minLod = 0.f;
+    shadowMapSamplerCreateInfo.maxLod = FLT_MAX;
+
+    Assert(vkCreateSampler(backend.device, &shadowMapSamplerCreateInfo, nullptr, &shadowMapSampler) == VK_SUCCESS);
+    log_debug(root, "vulkan: created sampler with handle: {}", static_cast<void*>(shadowMapSampler));
+
+    return ShadowMapResources{shadowMapSampler};
+}
+
+void destroy_shadow_map_resources(VulkanBackend& backend, ShadowMapResources& resources)
+{
+    vkDestroySampler(backend.device, resources.shadowMapSampler, nullptr);
+}
 } // namespace Reaper
