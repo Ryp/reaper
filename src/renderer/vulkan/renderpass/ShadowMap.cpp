@@ -7,6 +7,8 @@
 
 #include "ShadowMap.h"
 
+#include "ShadowConstants.h"
+
 #include "renderer/vulkan/Image.h"
 #include "renderer/vulkan/Shader.h"
 #include "renderer/vulkan/SwapchainRendererBase.h"
@@ -20,11 +22,12 @@
 
 #include <array>
 
-#include "renderer/shader/share/types.hlsl"
+#include "renderer/shader/share/shadow_map_pass.hlsl"
 
 namespace Reaper
 {
 constexpr bool UseReverseZ = true;
+constexpr u32  ShadowInstanceCountMax = 512;
 
 VkRenderPass create_shadow_raster_pass(ReaperRoot& /*root*/, VulkanBackend& backend,
                                        const GPUTextureProperties& shadowMapProperties)
@@ -260,6 +263,46 @@ ShadowMapPipelineInfo create_shadow_map_pipeline(ReaperRoot& root, VulkanBackend
 
 ShadowMapResources create_shadow_map_resources(ReaperRoot& root, VulkanBackend& backend)
 {
+    GPUTextureProperties shadowMapProperties =
+        DefaultGPUTextureProperties(ShadowMapResolution, ShadowMapResolution, PixelFormat::D16_UNORM);
+    shadowMapProperties.usageFlags =
+        GPUTextureUsage::DepthStencilAttachment | GPUTextureUsage::InputAttachment | GPUTextureUsage::Sampled;
+
+    VkRenderPass shadowMapPass = create_shadow_raster_pass(root, backend, shadowMapProperties);
+
+    BufferInfo shadowMapPassConstantBuffer =
+        create_buffer(root, backend.device, "Shadow Map Pass Constant buffer",
+                      DefaultGPUBufferProperties(1, sizeof(ShadowMapPassParams), GPUBufferUsage::UniformBuffer),
+                      backend.vma_instance);
+    BufferInfo shadowMapInstanceConstantBuffer =
+        create_buffer(root, backend.device, "Shadow Map Instance Constant buffer",
+                      DefaultGPUBufferProperties(ShadowInstanceCountMax, sizeof(ShadowMapInstanceParams),
+                                                 GPUBufferUsage::StorageBuffer),
+                      backend.vma_instance);
+
+    ImageInfo shadowMap = create_image(root, backend.device, "Shadow Map", shadowMapProperties, backend.vma_instance);
+
+    VkImageView shadowMapView = create_depth_image_view(backend.device, shadowMap);
+    log_debug(root, "vulkan: created image view with handle: {}", static_cast<void*>(shadowMapView));
+
+    VkFramebuffer shadowMapFramebuffer = VK_NULL_HANDLE;
+    {
+        VkFramebufferCreateInfo shadowMapFramebufferInfo = {
+            VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO, // VkStructureType                sType
+            nullptr,                                   // const void                    *pNext
+            0,                                         // VkFramebufferCreateFlags       flags
+            shadowMapPass,                             // VkRenderPass                   renderPass
+            1,                                         // uint32_t                       attachmentCount
+            &shadowMapView,                            // const VkImageView             *pAttachments
+            shadowMap.properties.width,                // uint32_t                       width
+            shadowMap.properties.height,               // uint32_t                       height
+            1                                          // uint32_t                       layers
+        };
+
+        Assert(vkCreateFramebuffer(backend.device, &shadowMapFramebufferInfo, nullptr, &shadowMapFramebuffer)
+               == VK_SUCCESS);
+    }
+
     VkSampler           shadowMapSampler = VK_NULL_HANDLE;
     VkSamplerCreateInfo shadowMapSamplerCreateInfo = {};
     shadowMapSamplerCreateInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -283,11 +326,29 @@ ShadowMapResources create_shadow_map_resources(ReaperRoot& root, VulkanBackend& 
     Assert(vkCreateSampler(backend.device, &shadowMapSamplerCreateInfo, nullptr, &shadowMapSampler) == VK_SUCCESS);
     log_debug(root, "vulkan: created sampler with handle: {}", static_cast<void*>(shadowMapSampler));
 
-    return ShadowMapResources{shadowMapSampler};
+    return ShadowMapResources{shadowMapPass,
+                              shadowMapPassConstantBuffer,
+                              shadowMapInstanceConstantBuffer,
+                              shadowMap,
+                              shadowMapView,
+                              shadowMapFramebuffer,
+                              shadowMapSampler};
 }
 
 void destroy_shadow_map_resources(VulkanBackend& backend, ShadowMapResources& resources)
 {
+    vmaDestroyImage(backend.vma_instance, resources.shadowMap.handle, resources.shadowMap.allocation);
+    vkDestroyImageView(backend.device, resources.shadowMapView, nullptr);
+
+    vkDestroyFramebuffer(backend.device, resources.shadowMapFramebuffer, nullptr);
+
     vkDestroySampler(backend.device, resources.shadowMapSampler, nullptr);
+
+    vmaDestroyBuffer(backend.vma_instance, resources.shadowMapPassConstantBuffer.buffer,
+                     resources.shadowMapPassConstantBuffer.allocation);
+    vmaDestroyBuffer(backend.vma_instance, resources.shadowMapInstanceConstantBuffer.buffer,
+                     resources.shadowMapInstanceConstantBuffer.allocation);
+
+    vkDestroyRenderPass(backend.device, resources.shadowMapPass, nullptr);
 }
 } // namespace Reaper

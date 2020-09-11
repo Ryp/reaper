@@ -7,6 +7,8 @@
 
 #pragma once
 
+#include "renderer/vulkan/Buffer.h"
+#include "renderer/vulkan/Image.h"
 #include "renderer/vulkan/api/Vulkan.h"
 
 namespace Reaper
@@ -30,7 +32,15 @@ ShadowMapPipelineInfo create_shadow_map_pipeline(ReaperRoot& root, VulkanBackend
 
 struct ShadowMapResources
 {
-    VkSampler shadowMapSampler;
+    VkRenderPass shadowMapPass;
+
+    BufferInfo shadowMapPassConstantBuffer;
+    BufferInfo shadowMapInstanceConstantBuffer;
+
+    ImageInfo     shadowMap;
+    VkImageView   shadowMapView;
+    VkFramebuffer shadowMapFramebuffer;
+    VkSampler     shadowMapSampler;
 };
 
 ShadowMapResources create_shadow_map_resources(ReaperRoot& root, VulkanBackend& backend);
