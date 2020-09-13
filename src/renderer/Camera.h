@@ -7,42 +7,18 @@
 
 #pragma once
 
-#include <glm/glm.hpp>
+#include "glm/mat4x4.hpp"
+#include "glm/vec3.hpp"
 
-class Camera
+namespace Reaper
 {
-public:
-    enum Mode
-    {
-        Spherical,
-        Cartesian
-    };
-    static const float PitchDeadzone;
-
-public:
-    Camera(const glm::vec3& position = glm::vec3(), const glm::vec3& direction = glm::vec3(1, 0, 0), float yaw = 0.0f,
-           float pitch = 0.0f);
-    virtual ~Camera();
-
-public:
-    void update(Mode mode);
-    void reset();
-
-public:
-    glm::mat4& getViewMatrix();
-
-public:
-    void setDirection(const glm::vec3& direction);
-    void setRotation(float yaw, float pitch);
-    void rotate(float yaw, float pitch);
-    void setPosition(const glm::vec3& position);
-    void translate(const glm::vec3& v);
-    void move(float front, float lateral, float up);
-
-protected:
-    glm::mat4 _viewMatrix;
-    glm::vec3 _position;
-    glm::vec3 _direction;
-    float     _yaw;
-    float     _pitch;
+struct CameraState
+{
+    glm::vec3 position;
+    float     yaw;
+    float     pitch;
 };
+
+glm::mat4 compute_camera_view_matrix(const CameraState& state);
+void      update_camera_state(CameraState& state, glm::vec2 yaw_pitch_delta, glm::vec2 forward_side_delta);
+} // namespace Reaper

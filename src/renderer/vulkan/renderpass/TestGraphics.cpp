@@ -25,6 +25,7 @@
 #include "renderer/vulkan/api/Vulkan.h"
 #include "renderer/vulkan/api/VulkanStringConversion.h"
 
+#include "renderer/Camera.h"
 #include "renderer/GPUBufferProperties.h"
 #include "renderer/PrepareBuckets.h"
 #include "renderer/texture/GPUTextureProperties.h"
@@ -32,7 +33,6 @@
 #include "renderer/window/Window.h"
 
 #include "input/DS4.h"
-#include "renderer/Camera.h"
 
 #include "mesh/Mesh.h"
 #include "mesh/ModelLoader.h"
@@ -318,16 +318,16 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
     cull_options.freeze_culling = false;
     cull_options.use_compacted_draw = true;
 
-    DS4    ds4("/dev/input/js0");
-    Camera camera;
-    camera.setPosition(glm::vec3(-5.f, 0.f, 0.f));
-    camera.setDirection(glm::vec3(1.f, 0.f, 0.f));
+    DS4 ds4("/dev/input/js0");
+
+    CameraState camera_state = {};
+    camera_state.position = glm::vec3(-5.f, 0.f, 0.f);
 
     SceneGraph scene;
     build_scene_graph(scene, &mesh);
 
     const auto startTime = std::chrono::system_clock::now();
-    auto       lastFrameStart = std::chrono::system_clock::now();
+    auto       lastFrameStart = startTime;
 
     while (!shouldExit)
     {
@@ -488,33 +488,14 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                 cull_options.freeze_culling = !cull_options.freeze_culling;
             }
 
-            constexpr float yaw_sensitivity = 2.6f;
-            constexpr float pitch_sensitivity = 2.5f; // radian per sec
-            constexpr float translation_speed = 8.0f; // game units per sec
+            const glm::vec2 yaw_pitch_delta =
+                glm::vec2(ds4.getAxis(DS4::RightAnalogY), -ds4.getAxis(DS4::RightAnalogX)) * timeDtSecs;
+            const glm::vec2 forward_side_delta =
+                glm::vec2(ds4.getAxis(DS4::LeftAnalogY), ds4.getAxis(DS4::LeftAnalogX)) * timeDtSecs;
 
-            const float yaw_diff = ds4.getAxis(DS4::RightAnalogY);
-            const float pitch_diff = -ds4.getAxis(DS4::RightAnalogX);
+            update_camera_state(camera_state, yaw_pitch_delta, forward_side_delta);
 
-            const glm::mat4 inv_view_matrix = glm::inverse(camera.getViewMatrix());
-            const glm::vec3 forward = inv_view_matrix * glm::vec4(0.f, 0.f, 1.f, 0.f);
-            const glm::vec3 side = inv_view_matrix * glm::vec4(1.f, 0.f, 0.f, 0.f);
-
-            const float fwd_diff = ds4.getAxis(DS4::LeftAnalogY);
-            const float side_diff = ds4.getAxis(DS4::LeftAnalogX);
-
-            glm::vec3   translation = forward * fwd_diff + side * side_diff;
-            const float magnitudeSq = glm::dot(translation, translation);
-
-            if (magnitudeSq > 1.f)
-                translation *= 1.f / glm::sqrt(magnitudeSq);
-
-            const glm::vec3 camera_offset = translation * translation_speed * timeDtSecs;
-
-            camera.translate(camera_offset);
-            camera.rotate(yaw_diff * yaw_sensitivity * timeDtSecs, pitch_diff * pitch_sensitivity * timeDtSecs);
-            camera.update(Camera::Spherical);
-
-            const glm::mat4 view_matrix = camera.getViewMatrix();
+            const glm::mat4 view_matrix = compute_camera_view_matrix(camera_state);
 
             float animationTimeMs = pauseAnimation ? 0.f : timeMs;
 

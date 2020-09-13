@@ -7,89 +7,44 @@
 
 #include "Camera.h"
 
-#include <cmath>
+#include <glm/gtc/matrix_transform.hpp>
 
-#include <glm/gtc/constants.hpp>
-#include <glm/gtx/transform.hpp>
-
-const float Camera::PitchDeadzone = 0.001f;
-
-Camera::Camera(const glm::vec3& pos, const glm::vec3& direction, float yaw, float pitch)
-    : _viewMatrix(glm::mat4(1.0))
-    , _position(pos)
-    , _direction(direction)
-    , _yaw(yaw)
-    , _pitch(pitch)
+namespace Reaper
 {
-    update(Cartesian);
+glm::mat4 compute_camera_view_matrix(const CameraState& state)
+{
+    const float cos_yaw = glm::cos(state.yaw);
+    const float sin_yaw = glm::sin(state.yaw);
+    const float cos_pitch = glm::cos(state.pitch);
+    const float sin_pitch = glm::sin(state.pitch);
+
+    const glm::vec3 direction = glm::vec3(cos_yaw * cos_pitch, sin_pitch, sin_yaw * cos_pitch);
+    return glm::lookAt(state.position, state.position + direction * 10.f, glm::vec3(0, 1, 0));
 }
 
-Camera::~Camera()
-{}
-
-void Camera::update(Mode mode)
+void update_camera_state(CameraState& state, glm::vec2 yaw_pitch_delta, glm::vec2 forward_side_delta)
 {
-    if (mode == Spherical)
-        _direction = glm::vec3(cos(_yaw) * cos(_pitch), sin(_pitch), sin(_yaw) * cos(_pitch));
-    _viewMatrix = glm::lookAt(_position, _position + _direction * 10.f, glm::vec3(0, 1, 0));
-}
+    // FIXME cache this info
+    const glm::mat4 previous_view_matrix = compute_camera_view_matrix(state);
 
-void Camera::reset()
-{
-    _yaw = 0.0f;
-    _pitch = 0.0f;
-    update(Spherical);
-}
+    constexpr float yaw_sensitivity = 2.6f;
+    constexpr float pitch_sensitivity = 2.5f; // radian per sec
+    constexpr float translation_speed = 8.0f; // game units per sec
 
-glm::mat4& Camera::getViewMatrix()
-{
-    return (_viewMatrix);
-}
+    const glm::mat4 previous_view_matrix_inv = glm::inverse(previous_view_matrix);
+    const glm::vec3 forward = previous_view_matrix_inv * glm::vec4(0.f, 0.f, 1.f, 0.f);
+    const glm::vec3 side = previous_view_matrix_inv * glm::vec4(1.f, 0.f, 0.f, 0.f);
 
-void Camera::setDirection(const glm::vec3& direction)
-{
-    _direction = glm::normalize(direction);
-}
+    glm::vec3   translation = forward * forward_side_delta.x + side * forward_side_delta.y;
+    const float magnitudeSq = glm::dot(translation, translation);
 
-void Camera::setRotation(float yaw, float pitch)
-{
-    _yaw = fmod(yaw, glm::pi<float>() * 2.0f);
-    _pitch = fmod(pitch + glm::half_pi<float>(), glm::pi<float>()) - glm::half_pi<float>();
-    _direction = glm::vec3(cos(_yaw) * cos(_pitch), sin(_pitch), sin(_yaw) * cos(_pitch));
-}
+    if (magnitudeSq > 1.f)
+        translation *= 1.f / glm::sqrt(magnitudeSq);
 
-void Camera::rotate(float yaw, float pitch)
-{
-    float newPitch = _pitch + pitch;
-    if (newPitch < (-glm::half_pi<float>() + PitchDeadzone))
-        _pitch = -glm::half_pi<float>() + PitchDeadzone;
-    else if (newPitch > (glm::half_pi<float>() - PitchDeadzone))
-        _pitch = glm::half_pi<float>() - PitchDeadzone;
-    else
-        _pitch = newPitch;
-    _yaw = fmod(_yaw + yaw, glm::pi<float>() * 2.0f);
-}
+    const glm::vec3 camera_offset = translation * translation_speed;
 
-void Camera::setPosition(const glm::vec3& position)
-{
-    _position = position;
+    state.position += camera_offset;
+    state.yaw += yaw_pitch_delta.x * yaw_sensitivity;
+    state.pitch += yaw_pitch_delta.y * pitch_sensitivity;
 }
-
-void Camera::translate(const glm::vec3& v)
-{
-    _position += v;
-}
-
-void Camera::move(float front, float lateral, float up)
-{
-    glm::vec3 side = _direction;
-
-    _position += _direction * front;
-    side[1] = side[0];
-    side[0] = side[2];
-    side[2] = -side[1];
-    side[1] = 0.0f;
-    side = glm::normalize(side);
-    _position += side * lateral;
-    _position += glm::vec3(0.0f, 1.0f, 0.0f) * up;
-}
+} // namespace Reaper
