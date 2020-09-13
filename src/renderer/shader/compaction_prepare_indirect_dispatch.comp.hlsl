@@ -19,7 +19,9 @@ void main()
     dispatchCommand.z = 1;
 
     // Write indirect dispatch command
-    IndirectDispatchOut.Store3(0, dispatchCommand);
+    IndirectDispatchOut.Store(0, dispatchCommand.x);
+    IndirectDispatchOut.Store(4, dispatchCommand.y);
+    IndirectDispatchOut.Store(8, dispatchCommand.z);
 
     // Reset draw count for the next pass
     DrawCountOut.Store(0, 0);
