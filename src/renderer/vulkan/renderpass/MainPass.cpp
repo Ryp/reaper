@@ -14,14 +14,14 @@
 #include "common/Log.h"
 #include "common/ReaperRoot.h"
 
-#include "renderer/shader/share/types.hlsl"
+#include "renderer/shader/share/draw.hlsl"
 
 namespace Reaper
 {
+constexpr u32  DrawInstanceCountMax = 512;
 constexpr bool UseReverseZ = true;
 
-VkRenderPass create_main_raster_pass(ReaperRoot& /*root*/, VulkanBackend& backend,
-                                     const GPUTextureProperties& depthProperties)
+VkRenderPass create_main_pass(ReaperRoot& /*root*/, VulkanBackend& backend, const GPUTextureProperties& depthProperties)
 {
     // FIXME build this at swapchain creation
     GPUTextureProperties swapchainProperties = depthProperties;
@@ -98,7 +98,7 @@ VkRenderPass create_main_raster_pass(ReaperRoot& /*root*/, VulkanBackend& backen
     return renderPass;
 }
 
-BlitPipelineInfo create_blit_pipeline(ReaperRoot& root, VulkanBackend& backend, VkRenderPass renderPass)
+BlitPipelineInfo create_main_pipeline(ReaperRoot& root, VulkanBackend& backend, VkRenderPass renderPass)
 {
     VkShaderModule        blitShaderFS = VK_NULL_HANDLE;
     VkShaderModule        blitShaderVS = VK_NULL_HANDLE;
@@ -305,5 +305,29 @@ BlitPipelineInfo create_blit_pipeline(ReaperRoot& root, VulkanBackend& backend, 
     vkDestroyShaderModule(backend.device, blitShaderFS, nullptr);
 
     return BlitPipelineInfo{pipeline, pipelineLayout, descriptorSetLayoutCB};
+}
+
+MainPassResources create_main_pass_resources(ReaperRoot& root, VulkanBackend& backend)
+{
+    BufferInfo drawPassConstantBuffer = create_buffer(
+        root, backend.device, "Draw Pass Constant buffer",
+        DefaultGPUBufferProperties(1, sizeof(DrawPassParams), GPUBufferUsage::UniformBuffer), backend.vma_instance);
+    BufferInfo drawInstanceConstantBuffer = create_buffer(
+        root, backend.device, "Draw Instance Constant buffer",
+        DefaultGPUBufferProperties(DrawInstanceCountMax, sizeof(DrawInstanceParams), GPUBufferUsage::StorageBuffer),
+        backend.vma_instance);
+
+    return MainPassResources{
+        drawPassConstantBuffer,
+        drawInstanceConstantBuffer,
+    };
+}
+
+void destroy_main_pass_resources(VulkanBackend& backend, MainPassResources& resources)
+{
+    vmaDestroyBuffer(backend.vma_instance, resources.drawPassConstantBuffer.buffer,
+                     resources.drawPassConstantBuffer.allocation);
+    vmaDestroyBuffer(backend.vma_instance, resources.drawInstanceConstantBuffer.buffer,
+                     resources.drawInstanceConstantBuffer.allocation);
 }
 } // namespace Reaper

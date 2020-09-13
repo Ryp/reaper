@@ -67,7 +67,6 @@ namespace
                              static_cast<u32>(memoryBarriers.size()), memoryBarriers.data(), 0, nullptr, 0, nullptr);
     }
 
-    constexpr u32  DrawInstanceCountMax = 512;
     constexpr bool UseReverseZ = true;
 
     VkClearValue VkClearColor(const glm::vec4& color)
@@ -157,14 +156,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
     std::ifstream modelFile("res/model/suzanne.obj");
     const Mesh    mesh = ModelLoader::loadOBJ(modelFile);
 
-    // Create vk buffers
-    BufferInfo drawPassConstantBuffer = create_buffer(
-        root, backend.device, "Draw Pass Constant buffer",
-        DefaultGPUBufferProperties(1, sizeof(DrawPassParams), GPUBufferUsage::UniformBuffer), backend.vma_instance);
-    BufferInfo drawInstanceConstantBuffer = create_buffer(
-        root, backend.device, "Draw Instance Constant buffer",
-        DefaultGPUBufferProperties(DrawInstanceCountMax, sizeof(DrawInstanceParams), GPUBufferUsage::StorageBuffer),
-        backend.vma_instance);
+    MainPassResources main_pass_resources = create_main_pass_resources(root, backend);
 
     BufferInfo vertexBufferPosition =
         create_buffer(root, backend.device, "Position buffer",
@@ -259,24 +251,25 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
     }
 
     // Main Pass
-    VkRenderPass               offscreenRenderPass = create_main_raster_pass(root, backend, depthBuffer.properties);
+    VkRenderPass               mainRenderPass = create_main_pass(root, backend, depthBuffer.properties);
     std::vector<VkFramebuffer> framebuffers;
-    create_framebuffers(root, backend, offscreenRenderPass, depthBufferView, framebuffers);
+    create_framebuffers(root, backend, mainRenderPass, depthBufferView, framebuffers);
 
-    BlitPipelineInfo blitPipe = create_blit_pipeline(root, backend, offscreenRenderPass);
+    BlitPipelineInfo mainPipe = create_main_pipeline(root, backend, mainRenderPass);
     VkDescriptorSet  pixelConstantsDescriptorSet = VK_NULL_HANDLE;
     {
         VkDescriptorSetAllocateInfo descriptorSetAllocInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr,
-                                                              resources.descriptorPool, 1, &blitPipe.descSetLayout};
+                                                              resources.descriptorPool, 1, &mainPipe.descSetLayout};
 
         Assert(vkAllocateDescriptorSets(backend.device, &descriptorSetAllocInfo, &pixelConstantsDescriptorSet)
                == VK_SUCCESS);
         log_debug(root, "vulkan: created descriptor set with handle: {}",
                   static_cast<void*>(pixelConstantsDescriptorSet));
 
-        const VkDescriptorBufferInfo drawDescPassParams = default_descriptor_buffer_info(drawPassConstantBuffer);
+        const VkDescriptorBufferInfo drawDescPassParams =
+            default_descriptor_buffer_info(main_pass_resources.drawPassConstantBuffer);
         const VkDescriptorBufferInfo drawDescInstanceParams =
-            default_descriptor_buffer_info(drawInstanceConstantBuffer);
+            default_descriptor_buffer_info(main_pass_resources.drawInstanceConstantBuffer);
         const VkDescriptorImageInfo drawDescShadowMapTexture = {VK_NULL_HANDLE, shadowMapResources.shadowMapView,
                                                                 VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
         const VkDescriptorImageInfo drawDescShadowMapSampler = {shadowMapResources.shadowMapSampler, VK_NULL_HANDLE,
@@ -380,7 +373,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                                                    backend.vma_instance);
                         depthBufferView = create_depth_image_view(backend.device, depthBuffer);
 
-                        create_framebuffers(root, backend, offscreenRenderPass, depthBufferView, framebuffers);
+                        create_framebuffers(root, backend, mainRenderPass, depthBufferView, framebuffers);
                     }
                     mustTransitionSwapchain = true;
                 }
@@ -444,7 +437,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
 
             VkRenderPassBeginInfo blitRenderPassBeginInfo = {VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
                                                              nullptr,
-                                                             offscreenRenderPass,
+                                                             mainRenderPass,
                                                              framebuffers[imageIndex],
                                                              blitPassRect,
                                                              static_cast<u32>(clearValues.size()),
@@ -531,11 +524,11 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
             prepare_scene(scene, prepared);
 
             // FIXME do partial copies
-            upload_buffer_data(backend.device, backend.vma_instance, drawPassConstantBuffer, &prepared.draw_pass_params,
-                               sizeof(DrawPassParams));
+            upload_buffer_data(backend.device, backend.vma_instance, main_pass_resources.drawPassConstantBuffer,
+                               &prepared.draw_pass_params, sizeof(DrawPassParams));
             upload_buffer_data(backend.device, backend.vma_instance, shadowMapResources.shadowMapPassConstantBuffer,
                                &prepared.shadow_pass_params, sizeof(ShadowMapPassParams));
-            upload_buffer_data(backend.device, backend.vma_instance, drawInstanceConstantBuffer,
+            upload_buffer_data(backend.device, backend.vma_instance, main_pass_resources.drawInstanceConstantBuffer,
                                prepared.draw_instance_params.data(),
                                prepared.draw_instance_params.size() * sizeof(DrawInstanceParams));
             upload_buffer_data(backend.device, backend.vma_instance, shadowMapResources.shadowMapInstanceConstantBuffer,
@@ -721,7 +714,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
 
                 vkCmdBeginRenderPass(resources.gfxCmdBuffer, &blitRenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-                vkCmdBindPipeline(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, blitPipe.pipeline);
+                vkCmdBindPipeline(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mainPipe.pipeline);
 
                 const VkViewport blitViewport = {
                     0.0f, 0.0f, static_cast<float>(backbufferExtent.width), static_cast<float>(backbufferExtent.height),
@@ -747,7 +740,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                 vkCmdBindVertexBuffers(resources.gfxCmdBuffer, 0, static_cast<u32>(vertexBuffers.size()),
                                        vertexBuffers.data(), vertexBufferOffsets.data());
                 vkCmdBindDescriptorSets(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                        blitPipe.pipelineLayout, 0, 1, &pixelConstantsDescriptorSet, 0, nullptr);
+                                        mainPipe.pipelineLayout, 0, 1, &pixelConstantsDescriptorSet, 0, nullptr);
 
                 const u32 draw_buffer_offset = pass_index * MaxIndirectDrawCount * sizeof(VkDrawIndexedIndirectCommand);
                 const u32 draw_buffer_max_count = MaxIndirectDrawCount;
@@ -823,9 +816,9 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
 
     vkDestroyFence(backend.device, drawFence, nullptr);
 
-    vkDestroyPipeline(backend.device, blitPipe.pipeline, nullptr);
-    vkDestroyPipelineLayout(backend.device, blitPipe.pipelineLayout, nullptr);
-    vkDestroyDescriptorSetLayout(backend.device, blitPipe.descSetLayout, nullptr);
+    vkDestroyPipeline(backend.device, mainPipe.pipeline, nullptr);
+    vkDestroyPipelineLayout(backend.device, mainPipe.pipelineLayout, nullptr);
+    vkDestroyDescriptorSetLayout(backend.device, mainPipe.descSetLayout, nullptr);
 
     vkDestroyPipeline(backend.device, shadowMapPipe.pipeline, nullptr);
     vkDestroyPipelineLayout(backend.device, shadowMapPipe.pipelineLayout, nullptr);
@@ -845,7 +838,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
 
     destroy_framebuffers(root, backend.device, framebuffers);
 
-    vkDestroyRenderPass(backend.device, offscreenRenderPass, nullptr);
+    vkDestroyRenderPass(backend.device, mainRenderPass, nullptr);
 
     destroy_shadow_map_resources(backend, shadowMapResources);
 
@@ -859,7 +852,6 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
     vmaDestroyBuffer(backend.vma_instance, vertexBufferNormal.buffer, vertexBufferNormal.allocation);
     vmaDestroyBuffer(backend.vma_instance, vertexBufferUV.buffer, vertexBufferUV.allocation);
 
-    vmaDestroyBuffer(backend.vma_instance, drawPassConstantBuffer.buffer, drawPassConstantBuffer.allocation);
-    vmaDestroyBuffer(backend.vma_instance, drawInstanceConstantBuffer.buffer, drawInstanceConstantBuffer.allocation);
+    destroy_main_pass_resources(backend, main_pass_resources);
 }
 } // namespace Reaper
