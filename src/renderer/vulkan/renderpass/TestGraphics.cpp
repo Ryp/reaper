@@ -249,9 +249,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
     vkCreateFence(backend.device, &fenceInfo, nullptr, &drawFence);
     log_debug(root, "vulkan: created fence with handle: {}", static_cast<void*>(drawFence));
 
-    IWindow*                   window = root.renderer->window;
-    std::vector<Window::Event> events;
-
+    IWindow* window = root.renderer->window;
     log_info(root, "window: map window");
     window->map();
 
@@ -284,12 +282,12 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
         {
             REAPER_PROFILE_SCOPE("Vulkan", MP_YELLOW);
             log_info(root, "window: pump events");
-            window->pumpEvents(events);
-            if (!events.empty())
-            {
-                // Should be front but whatever
-                Window::Event event = events.back();
 
+            std::vector<Window::Event> events;
+            window->pumpEvents(events);
+
+            for (const auto& event : events)
+            {
                 if (event.type == Window::EventType::Resize)
                 {
                     const u32 width = event.message.resize.width;
@@ -316,8 +314,6 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                 {
                     log_warning(root, "window: an unknown event has been caught and will not be handled");
                 }
-
-                events.pop_back();
             }
 
             log_debug(root, "vulkan: begin frame {}", frameIndex);
@@ -711,6 +707,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
             if (frameIndex == MaxFrameCount)
                 shouldExit = true;
         }
+
         MicroProfileFlip(nullptr);
 
         lastFrameStart = currentTime;
