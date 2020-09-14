@@ -23,7 +23,6 @@
 #include "renderer/vulkan/api/VulkanStringConversion.h"
 
 #include "renderer/Camera.h"
-#include "renderer/GPUBufferProperties.h"
 #include "renderer/PrepareBuckets.h"
 #include "renderer/texture/GPUTextureProperties.h"
 #include "renderer/window/Event.h"
@@ -153,7 +152,9 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
     std::ifstream modelFile("res/model/suzanne.obj");
     const Mesh    mesh = ModelLoader::loadOBJ(modelFile);
 
-    MainPassResources main_pass_resources = create_main_pass_resources(root, backend);
+    const glm::uvec2  swapchain_extent(backend.presentInfo.surfaceExtent.width,
+                                      backend.presentInfo.surfaceExtent.height);
+    MainPassResources main_pass_resources = create_main_pass_resources(root, backend, swapchain_extent);
 
     BufferInfo vertexBufferPosition =
         create_buffer(root, backend.device, "Position buffer",
@@ -183,17 +184,6 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                        mesh.indexes.size() * sizeof(mesh.indexes[0]));
 
     CullResources cull_resources = create_culling_resources(root, backend);
-
-    // Create depth buffer
-    GPUTextureProperties depthProperties = DefaultGPUTextureProperties(
-        backend.presentInfo.surfaceExtent.width, backend.presentInfo.surfaceExtent.height, PixelFormat::D16_UNORM);
-    depthProperties.usageFlags = GPUTextureUsage::DepthStencilAttachment;
-
-    ImageInfo depthBuffer =
-        create_image(root, backend.device, "Main Depth Buffer", depthProperties, backend.vma_instance);
-
-    VkImageView depthBufferView = create_depth_image_view(backend.device, depthBuffer);
-    log_debug(root, "vulkan: created image view with handle: {}", static_cast<void*>(depthBufferView));
 
     CullPipelineInfo           cullPipe = create_cull_pipeline(root, backend);
     CompactionPrepPipelineInfo compactPrepPipe = create_compaction_prep_pipeline(root, backend);
@@ -248,9 +238,9 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
     }
 
     // Main Pass
-    VkRenderPass               mainRenderPass = create_main_pass(root, backend, depthBuffer.properties);
+    VkRenderPass mainRenderPass = create_main_pass(root, backend, main_pass_resources.depthBuffer.properties);
     std::vector<VkFramebuffer> framebuffers;
-    create_framebuffers(root, backend, mainRenderPass, depthBufferView, framebuffers);
+    create_framebuffers(root, backend, mainRenderPass, main_pass_resources.depthBufferView, framebuffers);
 
     BlitPipelineInfo mainPipe = create_main_pipeline(root, backend, mainRenderPass);
     VkDescriptorSet  pixelConstantsDescriptorSet = VK_NULL_HANDLE;
@@ -344,33 +334,18 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                     const u32 height = event.message.resize.height;
                     log_debug(root, "window: resize event, width = {}, height = {}", width, height);
 
-                    // FIXME the allocator does not support freeing so we'll run out of memory if we're constantly
-                    // resizing
                     {
                         vkQueueWaitIdle(backend.deviceInfo.presentQueue);
                         destroy_framebuffers(root, backend.device, framebuffers);
 
-                        vkDestroyImageView(backend.device, depthBufferView, nullptr);
-                        vmaDestroyImage(backend.vma_instance, depthBuffer.handle, depthBuffer.allocation);
-
                         resize_vulkan_wm_swapchain(root, backend, backend.presentInfo, {width, height});
 
-                        depthProperties = DefaultGPUTextureProperties(backend.presentInfo.surfaceExtent.width,
-                                                                      backend.presentInfo.surfaceExtent.height,
-                                                                      PixelFormat::D16_UNORM);
-                        depthProperties.usageFlags = GPUTextureUsage::DepthStencilAttachment;
+                        const glm::uvec2 new_swapchain_extent(backend.presentInfo.surfaceExtent.width,
+                                                              backend.presentInfo.surfaceExtent.height);
+                        resize_main_pass_depth_buffer(root, backend, main_pass_resources, new_swapchain_extent);
 
-                        log_debug(root, "vulkan: creating new image: extent = {}x{}x{}, format = {}",
-                                  depthProperties.width, depthProperties.height, depthProperties.depth,
-                                  static_cast<u32>(depthProperties.format)); // FIXME print format
-                        log_debug(root, "- mips = {}, layers = {}, samples = {}", depthProperties.mipCount,
-                                  depthProperties.layerCount, depthProperties.sampleCount);
-
-                        depthBuffer = create_image(root, backend.device, "Main Depth Buffer", depthProperties,
-                                                   backend.vma_instance);
-                        depthBufferView = create_depth_image_view(backend.device, depthBuffer);
-
-                        create_framebuffers(root, backend, mainRenderPass, depthBufferView, framebuffers);
+                        create_framebuffers(root, backend, mainRenderPass, main_pass_resources.depthBufferView,
+                                            framebuffers);
                     }
                     mustTransitionSwapchain = true;
                 }
@@ -815,9 +790,6 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
     vkDestroyRenderPass(backend.device, mainRenderPass, nullptr);
 
     destroy_shadow_map_resources(backend, shadowMapResources);
-
-    vkDestroyImageView(backend.device, depthBufferView, nullptr);
-    vmaDestroyImage(backend.vma_instance, depthBuffer.handle, depthBuffer.allocation);
 
     destroy_culling_resources(backend, cull_resources);
 

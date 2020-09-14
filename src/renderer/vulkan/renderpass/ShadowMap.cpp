@@ -282,8 +282,7 @@ ShadowMapResources create_shadow_map_resources(ReaperRoot& root, VulkanBackend& 
 
     ImageInfo shadowMap = create_image(root, backend.device, "Shadow Map", shadowMapProperties, backend.vma_instance);
 
-    VkImageView shadowMapView = create_depth_image_view(backend.device, shadowMap);
-    log_debug(root, "vulkan: created image view with handle: {}", static_cast<void*>(shadowMapView));
+    VkImageView shadowMapView = create_depth_image_view(root, backend.device, shadowMap);
 
     VkFramebuffer shadowMapFramebuffer = VK_NULL_HANDLE;
     {
