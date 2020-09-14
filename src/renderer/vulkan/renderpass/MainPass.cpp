@@ -98,7 +98,7 @@ VkRenderPass create_main_pass(ReaperRoot& /*root*/, VulkanBackend& backend, cons
     return renderPass;
 }
 
-BlitPipelineInfo create_main_pipeline(ReaperRoot& root, VulkanBackend& backend, VkRenderPass renderPass)
+MainPipelineInfo create_main_pipeline(ReaperRoot& root, VulkanBackend& backend, VkRenderPass renderPass)
 {
     VkShaderModule        blitShaderFS = VK_NULL_HANDLE;
     VkShaderModule        blitShaderVS = VK_NULL_HANDLE;
@@ -304,7 +304,7 @@ BlitPipelineInfo create_main_pipeline(ReaperRoot& root, VulkanBackend& backend, 
     vkDestroyShaderModule(backend.device, blitShaderVS, nullptr);
     vkDestroyShaderModule(backend.device, blitShaderFS, nullptr);
 
-    return BlitPipelineInfo{pipeline, pipelineLayout, descriptorSetLayoutCB};
+    return MainPipelineInfo{pipeline, pipelineLayout, descriptorSetLayoutCB};
 }
 
 namespace
@@ -327,6 +327,42 @@ namespace
         resources.depthBuffer = {};
         resources.depthBufferView = VK_NULL_HANDLE;
     }
+
+    void create_framebuffers(ReaperRoot& /*root*/, VulkanBackend& backend, VkRenderPass renderPass,
+                             VkImageView depthBufferView, std::vector<VkFramebuffer>& framebuffers)
+    {
+        const size_t imgCount = backend.presentInfo.imageCount;
+
+        framebuffers.resize(imgCount);
+
+        for (size_t i = 0; i < imgCount; ++i)
+        {
+            std::array<const VkImageView, 2> imageViews = {backend.presentInfo.imageViews[i], depthBufferView};
+
+            VkFramebufferCreateInfo framebuffer_create_info = {
+                VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO, // VkStructureType                sType
+                nullptr,                                   // const void                    *pNext
+                0,                                         // VkFramebufferCreateFlags       flags
+                renderPass,                                // VkRenderPass                   renderPass
+                static_cast<u32>(imageViews.size()),       // uint32_t                       attachmentCount
+                imageViews.data(),                         // const VkImageView             *pAttachments
+                backend.presentInfo.surfaceExtent.width,   // uint32_t                       width
+                backend.presentInfo.surfaceExtent.height,  // uint32_t                       height
+                1                                          // uint32_t                       layers
+            };
+
+            Assert(vkCreateFramebuffer(backend.device, &framebuffer_create_info, nullptr, &framebuffers[i])
+                   == VK_SUCCESS);
+        }
+    }
+
+    void destroy_framebuffers(VkDevice device, std::vector<VkFramebuffer>& framebuffers)
+    {
+        for (auto& framebuffer : framebuffers)
+            vkDestroyFramebuffer(device, framebuffer, nullptr);
+
+        framebuffers.clear();
+    }
 } // namespace
 
 MainPassResources create_main_pass_resources(ReaperRoot& root, VulkanBackend& backend, glm::uvec2 extent)
@@ -344,23 +380,34 @@ MainPassResources create_main_pass_resources(ReaperRoot& root, VulkanBackend& ba
 
     create_depth_buffer(root, backend, resources, extent);
 
+    resources.mainRenderPass = create_main_pass(root, backend, resources.depthBuffer.properties);
+
+    create_framebuffers(root, backend, resources.mainRenderPass, resources.depthBufferView, resources.framebuffers);
+
     return resources;
 }
 
 void destroy_main_pass_resources(VulkanBackend& backend, MainPassResources& resources)
 {
+    destroy_framebuffers(backend.device, resources.framebuffers);
+
+    vkDestroyRenderPass(backend.device, resources.mainRenderPass, nullptr);
+
+    destroy_depth_buffer(backend, resources);
+
     vmaDestroyBuffer(backend.vma_instance, resources.drawPassConstantBuffer.buffer,
                      resources.drawPassConstantBuffer.allocation);
     vmaDestroyBuffer(backend.vma_instance, resources.drawInstanceConstantBuffer.buffer,
                      resources.drawInstanceConstantBuffer.allocation);
-
-    destroy_depth_buffer(backend, resources);
 }
 
 void resize_main_pass_depth_buffer(ReaperRoot& root, VulkanBackend& backend, MainPassResources& resources,
                                    glm::uvec2 extent)
 {
+    destroy_framebuffers(backend.device, resources.framebuffers);
     destroy_depth_buffer(backend, resources);
+
     create_depth_buffer(root, backend, resources, extent);
+    create_framebuffers(root, backend, resources.mainRenderPass, resources.depthBufferView, resources.framebuffers);
 }
 } // namespace Reaper

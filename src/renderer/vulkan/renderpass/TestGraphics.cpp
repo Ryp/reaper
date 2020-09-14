@@ -109,41 +109,6 @@ namespace
         }
     }
 
-    void create_framebuffers(ReaperRoot& /*root*/, VulkanBackend& backend, VkRenderPass renderPass,
-                             VkImageView depthBufferView, std::vector<VkFramebuffer>& framebuffers)
-    {
-        const size_t imgCount = backend.presentInfo.imageCount;
-
-        framebuffers.resize(imgCount);
-
-        for (size_t i = 0; i < imgCount; ++i)
-        {
-            std::array<const VkImageView, 2> imageViews = {backend.presentInfo.imageViews[i], depthBufferView};
-
-            VkFramebufferCreateInfo framebuffer_create_info = {
-                VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO, // VkStructureType                sType
-                nullptr,                                   // const void                    *pNext
-                0,                                         // VkFramebufferCreateFlags       flags
-                renderPass,                                // VkRenderPass                   renderPass
-                static_cast<u32>(imageViews.size()),       // uint32_t                       attachmentCount
-                imageViews.data(),                         // const VkImageView             *pAttachments
-                backend.presentInfo.surfaceExtent.width,   // uint32_t                       width
-                backend.presentInfo.surfaceExtent.height,  // uint32_t                       height
-                1                                          // uint32_t                       layers
-            };
-
-            Assert(vkCreateFramebuffer(backend.device, &framebuffer_create_info, nullptr, &framebuffers[i])
-                   == VK_SUCCESS);
-        }
-    }
-
-    void destroy_framebuffers(ReaperRoot& /*root*/, VkDevice device, std::vector<VkFramebuffer>& framebuffers)
-    {
-        for (size_t i = 0; i < framebuffers.size(); i++)
-            vkDestroyFramebuffer(device, framebuffers[i], nullptr);
-
-        framebuffers.clear();
-    }
 } // namespace
 
 void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResources& resources)
@@ -151,10 +116,6 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
     // Read mesh file
     std::ifstream modelFile("res/model/suzanne.obj");
     const Mesh    mesh = ModelLoader::loadOBJ(modelFile);
-
-    const glm::uvec2  swapchain_extent(backend.presentInfo.surfaceExtent.width,
-                                      backend.presentInfo.surfaceExtent.height);
-    MainPassResources main_pass_resources = create_main_pass_resources(root, backend, swapchain_extent);
 
     BufferInfo vertexBufferPosition =
         create_buffer(root, backend.device, "Position buffer",
@@ -183,6 +144,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
     upload_buffer_data(backend.device, backend.vma_instance, staticIndexBuffer, mesh.indexes.data(),
                        mesh.indexes.size() * sizeof(mesh.indexes[0]));
 
+    // Culling Pass
     CullResources cull_resources = create_culling_resources(root, backend);
 
     CullPipelineInfo           cullPipe = create_cull_pipeline(root, backend);
@@ -238,11 +200,11 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
     }
 
     // Main Pass
-    VkRenderPass mainRenderPass = create_main_pass(root, backend, main_pass_resources.depthBuffer.properties);
-    std::vector<VkFramebuffer> framebuffers;
-    create_framebuffers(root, backend, mainRenderPass, main_pass_resources.depthBufferView, framebuffers);
+    const glm::uvec2  swapchain_extent(backend.presentInfo.surfaceExtent.width,
+                                      backend.presentInfo.surfaceExtent.height);
+    MainPassResources main_pass_resources = create_main_pass_resources(root, backend, swapchain_extent);
 
-    BlitPipelineInfo mainPipe = create_main_pipeline(root, backend, mainRenderPass);
+    MainPipelineInfo mainPipe = create_main_pipeline(root, backend, main_pass_resources.mainRenderPass);
     VkDescriptorSet  pixelConstantsDescriptorSet = VK_NULL_HANDLE;
     {
         VkDescriptorSetAllocateInfo descriptorSetAllocInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr,
@@ -336,16 +298,12 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
 
                     {
                         vkQueueWaitIdle(backend.deviceInfo.presentQueue);
-                        destroy_framebuffers(root, backend.device, framebuffers);
 
                         resize_vulkan_wm_swapchain(root, backend, backend.presentInfo, {width, height});
 
                         const glm::uvec2 new_swapchain_extent(backend.presentInfo.surfaceExtent.width,
                                                               backend.presentInfo.surfaceExtent.height);
                         resize_main_pass_depth_buffer(root, backend, main_pass_resources, new_swapchain_extent);
-
-                        create_framebuffers(root, backend, mainRenderPass, main_pass_resources.depthBufferView,
-                                            framebuffers);
                     }
                     mustTransitionSwapchain = true;
                 }
@@ -409,8 +367,8 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
 
             VkRenderPassBeginInfo blitRenderPassBeginInfo = {VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
                                                              nullptr,
-                                                             mainRenderPass,
-                                                             framebuffers[imageIndex],
+                                                             main_pass_resources.mainRenderPass,
+                                                             main_pass_resources.framebuffers[imageIndex],
                                                              blitPassRect,
                                                              static_cast<u32>(clearValues.size()),
                                                              clearValues.data()};
@@ -785,19 +743,13 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
     vkDestroyPipelineLayout(backend.device, compactionPipe.pipelineLayout, nullptr);
     vkDestroyDescriptorSetLayout(backend.device, compactionPipe.descSetLayout, nullptr);
 
-    destroy_framebuffers(root, backend.device, framebuffers);
-
-    vkDestroyRenderPass(backend.device, mainRenderPass, nullptr);
-
+    destroy_main_pass_resources(backend, main_pass_resources);
     destroy_shadow_map_resources(backend, shadowMapResources);
-
     destroy_culling_resources(backend, cull_resources);
 
     vmaDestroyBuffer(backend.vma_instance, staticIndexBuffer.buffer, staticIndexBuffer.allocation);
     vmaDestroyBuffer(backend.vma_instance, vertexBufferPosition.buffer, vertexBufferPosition.allocation);
     vmaDestroyBuffer(backend.vma_instance, vertexBufferNormal.buffer, vertexBufferNormal.allocation);
     vmaDestroyBuffer(backend.vma_instance, vertexBufferUV.buffer, vertexBufferUV.allocation);
-
-    destroy_main_pass_resources(backend, main_pass_resources);
 }
 } // namespace Reaper

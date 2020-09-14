@@ -13,9 +13,11 @@
 
 #include <glm/vec2.hpp>
 
+#include <vector>
+
 namespace Reaper
 {
-struct BlitPipelineInfo
+struct MainPipelineInfo
 {
     VkPipeline            pipeline;
     VkPipelineLayout      pipelineLayout;
@@ -29,7 +31,7 @@ struct GPUTextureProperties;
 VkRenderPass create_main_pass(ReaperRoot& /*root*/, VulkanBackend& backend,
                               const GPUTextureProperties& depthProperties);
 
-BlitPipelineInfo create_main_pipeline(ReaperRoot& root, VulkanBackend& backend, VkRenderPass renderPass);
+MainPipelineInfo create_main_pipeline(ReaperRoot& root, VulkanBackend& backend, VkRenderPass renderPass);
 
 struct MainPassResources
 {
@@ -38,6 +40,10 @@ struct MainPassResources
 
     ImageInfo   depthBuffer;
     VkImageView depthBufferView;
+
+    VkRenderPass mainRenderPass;
+
+    std::vector<VkFramebuffer> framebuffers;
 };
 
 MainPassResources create_main_pass_resources(ReaperRoot& root, VulkanBackend& backend, glm::uvec2 extent);
