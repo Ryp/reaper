@@ -540,7 +540,7 @@ ImageInfo create_image(ReaperRoot& root, VkDevice device, const char* debug_stri
     return {image, allocation, properties};
 }
 
-VkImageView create_default_image_view(VkDevice device, const ImageInfo& image)
+VkImageView create_default_image_view(ReaperRoot& root, VkDevice device, const ImageInfo& image)
 {
     VkImageSubresourceRange viewRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, image.properties.mipCount, 0,
                                          image.properties.layerCount};
@@ -558,6 +558,8 @@ VkImageView create_default_image_view(VkDevice device, const ImageInfo& image)
 
     VkImageView imageView = VK_NULL_HANDLE;
     Assert(vkCreateImageView(device, &imageViewInfo, nullptr, &imageView) == VK_SUCCESS);
+
+    log_debug(root, "vulkan: created image view with handle: {}", static_cast<void*>(imageView));
 
     return imageView;
 }

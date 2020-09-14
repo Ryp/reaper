@@ -19,11 +19,11 @@ struct VulkanBackend;
 
 struct GlobalResources
 {
-    ImageInfo        image;
-    VkImageView      imageView;
     VkDescriptorPool descriptorPool;
     VkCommandBuffer  gfxCmdBuffer;
 };
+
+void debug_memory_heap_properties(ReaperRoot& root, const VulkanBackend& backend, uint32_t memoryTypeIndex);
 
 REAPER_RENDERER_API
 void vulkan_test(ReaperRoot& root, VulkanBackend& backend);

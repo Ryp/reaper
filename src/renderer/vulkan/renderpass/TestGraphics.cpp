@@ -130,7 +130,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
         create_buffer(root, backend.device, "UV buffer",
                       DefaultGPUBufferProperties(mesh.uvs.size(), sizeof(mesh.uvs[0]), GPUBufferUsage::VertexBuffer),
                       backend.vma_instance);
-    BufferInfo staticIndexBuffer = create_buffer(
+    BufferInfo indexBuffer = create_buffer(
         root, backend.device, "Index buffer",
         DefaultGPUBufferProperties(mesh.indexes.size(), sizeof(mesh.indexes[0]), GPUBufferUsage::StorageBuffer),
         backend.vma_instance);
@@ -141,7 +141,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                        mesh.normals.size() * sizeof(mesh.normals[0]));
     upload_buffer_data(backend.device, backend.vma_instance, vertexBufferUV, mesh.uvs.data(),
                        mesh.uvs.size() * sizeof(mesh.uvs[0]));
-    upload_buffer_data(backend.device, backend.vma_instance, staticIndexBuffer, mesh.indexes.data(),
+    upload_buffer_data(backend.device, backend.vma_instance, indexBuffer, mesh.indexes.data(),
                        mesh.indexes.size() * sizeof(mesh.indexes[0]));
 
     // Culling Pass
@@ -156,9 +156,9 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
         {
             // FIXME use pass index
             CullPassResources& cull_pass_resources = cull_resources.passes.emplace_back();
-            cull_pass_resources.cull_descriptor_set = create_culling_descriptor_sets(
-                root, backend, cull_resources, cullPipe.descSetLayout, resources.descriptorPool, staticIndexBuffer,
-                vertexBufferPosition, pass_index);
+            cull_pass_resources.cull_descriptor_set =
+                create_culling_descriptor_sets(root, backend, cull_resources, cullPipe.descSetLayout,
+                                               resources.descriptorPool, indexBuffer, vertexBufferPosition, pass_index);
 
             cull_pass_resources.compact_prep_descriptor_set = create_culling_compact_prep_descriptor_sets(
                 root, backend, cull_resources, compactPrepPipe.descSetLayout, resources.descriptorPool, pass_index);
@@ -744,7 +744,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
     destroy_shadow_map_resources(backend, shadowMapResources);
     destroy_culling_resources(backend, cull_resources);
 
-    vmaDestroyBuffer(backend.vma_instance, staticIndexBuffer.buffer, staticIndexBuffer.allocation);
+    vmaDestroyBuffer(backend.vma_instance, indexBuffer.buffer, indexBuffer.allocation);
     vmaDestroyBuffer(backend.vma_instance, vertexBufferPosition.buffer, vertexBufferPosition.allocation);
     vmaDestroyBuffer(backend.vma_instance, vertexBufferNormal.buffer, vertexBufferNormal.allocation);
     vmaDestroyBuffer(backend.vma_instance, vertexBufferUV.buffer, vertexBufferUV.allocation);
