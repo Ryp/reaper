@@ -523,6 +523,12 @@ ImageInfo create_image(ReaperRoot& root, VkDevice device, const char* debug_stri
     VmaAllocationCreateInfo allocInfo = {};
     allocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
 
+    log_debug(root, "vulkan: creating new image: extent = {}x{}x{}, format = {}", properties.width, properties.height,
+              properties.depth,
+              static_cast<u32>(properties.format)); // FIXME print format
+    log_debug(root, "- mips = {}, layers = {}, samples = {}", properties.mipCount, properties.layerCount,
+              properties.sampleCount);
+
     VkImage       image;
     VmaAllocation allocation;
     Assert(vmaCreateImage(allocator, &imageInfo, &allocInfo, &image, &allocation, nullptr) == VK_SUCCESS);
@@ -556,7 +562,7 @@ VkImageView create_default_image_view(VkDevice device, const ImageInfo& image)
     return imageView;
 }
 
-VkImageView create_depth_image_view(VkDevice device, const ImageInfo& image)
+VkImageView create_depth_image_view(ReaperRoot& root, VkDevice device, const ImageInfo& image)
 {
     VkImageSubresourceRange viewRange = {VK_IMAGE_ASPECT_DEPTH_BIT, 0, image.properties.mipCount, 0,
                                          image.properties.layerCount};
@@ -574,6 +580,8 @@ VkImageView create_depth_image_view(VkDevice device, const ImageInfo& image)
 
     VkImageView imageView = VK_NULL_HANDLE;
     Assert(vkCreateImageView(device, &imageViewInfo, nullptr, &imageView) == VK_SUCCESS);
+
+    log_debug(root, "vulkan: created image view with handle: {}", static_cast<void*>(imageView));
 
     return imageView;
 }

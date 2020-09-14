@@ -8,7 +8,10 @@
 #pragma once
 
 #include "renderer/vulkan/Buffer.h"
+#include "renderer/vulkan/Image.h"
 #include "renderer/vulkan/api/Vulkan.h"
+
+#include <glm/vec2.hpp>
 
 namespace Reaper
 {
@@ -32,8 +35,14 @@ struct MainPassResources
 {
     BufferInfo drawPassConstantBuffer;
     BufferInfo drawInstanceConstantBuffer;
+
+    ImageInfo   depthBuffer;
+    VkImageView depthBufferView;
 };
 
-MainPassResources create_main_pass_resources(ReaperRoot& root, VulkanBackend& backend);
+MainPassResources create_main_pass_resources(ReaperRoot& root, VulkanBackend& backend, glm::uvec2 extent);
 void              destroy_main_pass_resources(VulkanBackend& backend, MainPassResources& resources);
+
+void resize_main_pass_depth_buffer(ReaperRoot& root, VulkanBackend& backend, MainPassResources& resources,
+                                   glm::uvec2 extent);
 } // namespace Reaper

@@ -307,20 +307,44 @@ BlitPipelineInfo create_main_pipeline(ReaperRoot& root, VulkanBackend& backend, 
     return BlitPipelineInfo{pipeline, pipelineLayout, descriptorSetLayoutCB};
 }
 
-MainPassResources create_main_pass_resources(ReaperRoot& root, VulkanBackend& backend)
+namespace
 {
-    BufferInfo drawPassConstantBuffer = create_buffer(
+    void create_depth_buffer(ReaperRoot& root, VulkanBackend& backend, MainPassResources& resources, glm::uvec2 extent)
+    {
+        GPUTextureProperties depthProperties = DefaultGPUTextureProperties(extent.x, extent.y, PixelFormat::D16_UNORM);
+        depthProperties.usageFlags = GPUTextureUsage::DepthStencilAttachment;
+
+        resources.depthBuffer =
+            create_image(root, backend.device, "Main Depth Buffer", depthProperties, backend.vma_instance);
+        resources.depthBufferView = create_depth_image_view(root, backend.device, resources.depthBuffer);
+    }
+
+    void destroy_depth_buffer(VulkanBackend& backend, MainPassResources& resources)
+    {
+        vkDestroyImageView(backend.device, resources.depthBufferView, nullptr);
+        vmaDestroyImage(backend.vma_instance, resources.depthBuffer.handle, resources.depthBuffer.allocation);
+
+        resources.depthBuffer = {};
+        resources.depthBufferView = VK_NULL_HANDLE;
+    }
+} // namespace
+
+MainPassResources create_main_pass_resources(ReaperRoot& root, VulkanBackend& backend, glm::uvec2 extent)
+{
+    MainPassResources resources = {};
+
+    resources.drawPassConstantBuffer = create_buffer(
         root, backend.device, "Draw Pass Constant buffer",
         DefaultGPUBufferProperties(1, sizeof(DrawPassParams), GPUBufferUsage::UniformBuffer), backend.vma_instance);
-    BufferInfo drawInstanceConstantBuffer = create_buffer(
+
+    resources.drawInstanceConstantBuffer = create_buffer(
         root, backend.device, "Draw Instance Constant buffer",
         DefaultGPUBufferProperties(DrawInstanceCountMax, sizeof(DrawInstanceParams), GPUBufferUsage::StorageBuffer),
         backend.vma_instance);
 
-    return MainPassResources{
-        drawPassConstantBuffer,
-        drawInstanceConstantBuffer,
-    };
+    create_depth_buffer(root, backend, resources, extent);
+
+    return resources;
 }
 
 void destroy_main_pass_resources(VulkanBackend& backend, MainPassResources& resources)
@@ -329,5 +353,14 @@ void destroy_main_pass_resources(VulkanBackend& backend, MainPassResources& reso
                      resources.drawPassConstantBuffer.allocation);
     vmaDestroyBuffer(backend.vma_instance, resources.drawInstanceConstantBuffer.buffer,
                      resources.drawInstanceConstantBuffer.allocation);
+
+    destroy_depth_buffer(backend, resources);
+}
+
+void resize_main_pass_depth_buffer(ReaperRoot& root, VulkanBackend& backend, MainPassResources& resources,
+                                   glm::uvec2 extent)
+{
+    destroy_depth_buffer(backend, resources);
+    create_depth_buffer(root, backend, resources, extent);
 }
 } // namespace Reaper
