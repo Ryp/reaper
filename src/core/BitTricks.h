@@ -7,6 +7,11 @@
 
 #pragma once
 
+inline void toggle(bool& value)
+{
+    value = !value;
+}
+
 // Return integer with bit n set to 1
 constexpr u32 bit(u32 n)
 {

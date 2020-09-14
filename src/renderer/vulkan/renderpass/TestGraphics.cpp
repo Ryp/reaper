@@ -13,12 +13,9 @@
 #include "ShadowConstants.h"
 #include "ShadowMap.h"
 
-#include "renderer/vulkan/Buffer.h"
 #include "renderer/vulkan/ComputeHelper.h"
 #include "renderer/vulkan/Debug.h"
-#include "renderer/vulkan/Image.h"
 #include "renderer/vulkan/Memory.h"
-#include "renderer/vulkan/Shader.h"
 #include "renderer/vulkan/Swapchain.h"
 #include "renderer/vulkan/SwapchainRendererBase.h"
 #include "renderer/vulkan/Test.h"
@@ -54,6 +51,8 @@ namespace Reaper
 {
 namespace
 {
+    constexpr bool UseReverseZ = true;
+
     void cmd_insert_compute_to_compute_barrier(VkCommandBuffer cmdBuffer)
     {
         std::array<VkMemoryBarrier, 1> memoryBarriers = {VkMemoryBarrier{
@@ -66,8 +65,6 @@ namespace
         vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0,
                              static_cast<u32>(memoryBarriers.size()), memoryBarriers.data(), 0, nullptr, 0, nullptr);
     }
-
-    constexpr bool UseReverseZ = true;
 
     VkClearValue VkClearColor(const glm::vec4& color)
     {
@@ -479,14 +476,10 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
             ds4.update();
 
             if (ds4.isPressed(DS4::L1))
-            {
-                pauseAnimation = !pauseAnimation;
-            }
+                toggle(pauseAnimation);
 
             if (ds4.isPressed(DS4::Square))
-            {
-                cull_options.freeze_culling = !cull_options.freeze_culling;
-            }
+                toggle(cull_options.freeze_culling);
 
             const glm::vec2 yaw_pitch_delta =
                 glm::vec2(ds4.getAxis(DS4::RightAnalogY), -ds4.getAxis(DS4::RightAnalogX)) * timeDtSecs;
