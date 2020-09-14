@@ -30,7 +30,7 @@ VkSampleCountFlagBits SampleCountToVulkan(u32 sampleCount);
 VkImageUsageFlags     GetVulkanUsageFlags(u32 usageFlags);
 ImageInfo             create_image(ReaperRoot& root, VkDevice device, const char* debug_string,
                                    const GPUTextureProperties& properties, VmaAllocator& allocator);
-VkImageView           create_default_image_view(VkDevice device, const ImageInfo& image);
+VkImageView           create_default_image_view(ReaperRoot& root, VkDevice device, const ImageInfo& image);
 VkImageView           create_depth_image_view(ReaperRoot& root, VkDevice device, const ImageInfo& image);
 
 VkWriteDescriptorSet create_image_descriptor_write(VkDescriptorSet descriptorSet, u32 binding,

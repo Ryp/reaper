@@ -32,56 +32,23 @@
 
 namespace Reaper
 {
-namespace
+void debug_memory_heap_properties(ReaperRoot& root, const VulkanBackend& backend, uint32_t memoryTypeIndex)
 {
-    void debug_memory_heap_properties(ReaperRoot& root, const VulkanBackend& backend, uint32_t memoryTypeIndex)
+    const VkMemoryType& memoryType = backend.physicalDeviceInfo.memory.memoryTypes[memoryTypeIndex];
+
+    log_debug(root, "vulkan: selecting memory heap {} with these properties:", memoryType.heapIndex);
+    for (u32 i = 0; i < sizeof(VkMemoryPropertyFlags) * 8; i++)
     {
-        const VkMemoryType& memoryType = backend.physicalDeviceInfo.memory.memoryTypes[memoryTypeIndex];
+        const VkMemoryPropertyFlags flag = 1 << i;
 
-        log_debug(root, "vulkan: selecting memory heap {} with these properties:", memoryType.heapIndex);
-        for (u32 i = 0; i < sizeof(VkMemoryPropertyFlags) * 8; i++)
-        {
-            const VkMemoryPropertyFlags flag = 1 << i;
-
-            if (memoryType.propertyFlags & flag)
-                log_debug(root, "- {}", GetMemoryPropertyFlagBitToString(flag));
-        }
+        if (memoryType.propertyFlags & flag)
+            log_debug(root, "- {}", GetMemoryPropertyFlagBitToString(flag));
     }
-} // namespace
+}
 
 void vulkan_test(ReaperRoot& root, VulkanBackend& backend)
 {
     log_info(root, "test ////////////////////////////////////////");
-
-    // Create main memory pool
-    VkDeviceMemory mainMemPoom = VK_NULL_HANDLE;
-    const u32      mainMemPoolIndex = 0; // FIXME
-    const u64      mainMemPoolSize = 100_MiB;
-
-    const VkMemoryAllocateInfo mainMemPoolAllocInfo = {VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, nullptr, mainMemPoolSize,
-                                                       mainMemPoolIndex};
-
-    Assert(vkAllocateMemory(backend.device, &mainMemPoolAllocInfo, nullptr, &mainMemPoom) == VK_SUCCESS);
-    log_debug(root, "vulkan: allocated memory: handle = {}, size = {}, index = {}", static_cast<void*>(mainMemPoom),
-              mainMemPoolSize, mainMemPoolIndex);
-
-    VulkanSetDebugName(backend.device, mainMemPoom, "Main memory pool");
-
-    debug_memory_heap_properties(root, backend, mainMemPoolIndex);
-
-    // Create a texture
-    GPUTextureProperties properties = DefaultGPUTextureProperties(800, 600, PixelFormat::R16G16B16A16_UNORM);
-    properties.usageFlags = GPUTextureUsage::Sampled | GPUTextureUsage::Storage | GPUTextureUsage::ColorAttachment;
-
-    log_debug(root, "vulkan: creating new image: extent = {}x{}x{}, format = {}", properties.width, properties.height,
-              properties.depth, static_cast<u32>(properties.format)); // FIXME print format
-    log_debug(root, "- mips = {}, layers = {}, samples = {}", properties.mipCount, properties.layerCount,
-              properties.sampleCount);
-
-    const ImageInfo image = create_image(root, backend.device, "Some image", properties, backend.vma_instance);
-
-    VkImageView imageView = create_default_image_view(backend.device, image);
-    log_debug(root, "vulkan: created image view with handle: {}", static_cast<void*>(imageView));
 
     // Create descriptor pool
     constexpr u32                     MaxDescriptorSets = 100; // FIXME
@@ -119,7 +86,7 @@ void vulkan_test(ReaperRoot& root, VulkanBackend& backend)
     log_debug(root, "vulkan: created command buffer with handle: {}", static_cast<void*>(gfxCmdBuffer));
 
     {
-        GlobalResources resources = {image, imageView, descriptorPool, gfxCmdBuffer};
+        GlobalResources resources = {descriptorPool, gfxCmdBuffer};
 
         vulkan_test_graphics(root, backend, resources);
     }
@@ -129,11 +96,6 @@ void vulkan_test(ReaperRoot& root, VulkanBackend& backend)
     vkDestroyCommandPool(backend.device, graphicsCommandPool, nullptr);
 
     vkDestroyDescriptorPool(backend.device, descriptorPool, nullptr);
-
-    vkDestroyImageView(backend.device, imageView, nullptr);
-    vmaDestroyImage(backend.vma_instance, image.handle, image.allocation);
-
-    vkFreeMemory(backend.device, mainMemPoom, nullptr);
 
     log_info(root, "test ////////////////////////////////////////");
 }
