@@ -429,15 +429,11 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
             // FIXME do partial copies
             upload_buffer_data(backend.device, backend.vma_instance, main_pass_resources.drawPassConstantBuffer,
                                &prepared.draw_pass_params, sizeof(DrawPassParams));
-            upload_buffer_data(backend.device, backend.vma_instance, shadowMapResources.shadowMapPassConstantBuffer,
-                               &prepared.shadow_pass_params, sizeof(ShadowMapPassParams));
             upload_buffer_data(backend.device, backend.vma_instance, main_pass_resources.drawInstanceConstantBuffer,
                                prepared.draw_instance_params.data(),
                                prepared.draw_instance_params.size() * sizeof(DrawInstanceParams));
-            upload_buffer_data(backend.device, backend.vma_instance, shadowMapResources.shadowMapInstanceConstantBuffer,
-                               prepared.shadow_instance_params.data(),
-                               prepared.shadow_instance_params.size() * sizeof(ShadowMapInstanceParams));
 
+            shadow_map_prepare_buffers(backend, prepared, shadowMapResources);
             culling_prepare_buffers(cull_options, backend, prepared, cull_resources);
 
             VkCommandBufferBeginInfo cmdBufferBeginInfo = {

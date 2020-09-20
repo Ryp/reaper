@@ -45,4 +45,8 @@ struct ShadowMapResources
 
 ShadowMapResources create_shadow_map_resources(ReaperRoot& root, VulkanBackend& backend);
 void               destroy_shadow_map_resources(VulkanBackend& backend, ShadowMapResources& resources);
+
+struct PreparedData;
+
+void shadow_map_prepare_buffers(VulkanBackend& backend, const PreparedData& prepared, ShadowMapResources& resources);
 } // namespace Reaper

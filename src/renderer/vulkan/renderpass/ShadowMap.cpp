@@ -9,13 +9,12 @@
 
 #include "ShadowConstants.h"
 
+#include "renderer/PrepareBuckets.h"
+#include "renderer/texture/GPUTextureProperties.h"
 #include "renderer/vulkan/Image.h"
 #include "renderer/vulkan/Shader.h"
 #include "renderer/vulkan/SwapchainRendererBase.h"
-
 #include "renderer/vulkan/api/Vulkan.h"
-
-#include "renderer/texture/GPUTextureProperties.h"
 
 #include "common/Log.h"
 #include "common/ReaperRoot.h"
@@ -349,5 +348,14 @@ void destroy_shadow_map_resources(VulkanBackend& backend, ShadowMapResources& re
                      resources.shadowMapInstanceConstantBuffer.allocation);
 
     vkDestroyRenderPass(backend.device, resources.shadowMapPass, nullptr);
+}
+
+void shadow_map_prepare_buffers(VulkanBackend& backend, const PreparedData& prepared, ShadowMapResources& resources)
+{
+    upload_buffer_data(backend.device, backend.vma_instance, resources.shadowMapPassConstantBuffer,
+                       &prepared.shadow_pass_params, sizeof(ShadowMapPassParams));
+    upload_buffer_data(backend.device, backend.vma_instance, resources.shadowMapInstanceConstantBuffer,
+                       prepared.shadow_instance_params.data(),
+                       prepared.shadow_instance_params.size() * sizeof(ShadowMapInstanceParams));
 }
 } // namespace Reaper
