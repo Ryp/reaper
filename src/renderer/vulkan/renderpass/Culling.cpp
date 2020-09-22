@@ -25,23 +25,6 @@ namespace Reaper
 {
 namespace
 {
-    struct GPUBufferView
-    {
-        u32 elementOffset;
-        u32 elementCount;
-    };
-
-    VkDescriptorBufferInfo get_vk_descriptor_buffer_info(const BufferInfo& bufferInfo, const GPUBufferView& view)
-    {
-        Assert(bufferInfo.descriptor.stride > 0);
-
-        return {
-            bufferInfo.buffer,
-            bufferInfo.descriptor.stride * view.elementOffset,
-            bufferInfo.descriptor.stride * view.elementCount,
-        };
-    }
-
     VkDescriptorSet create_culling_descriptor_sets(ReaperRoot& root, VulkanBackend& backend,
                                                    CullResources& cull_resources, VkDescriptorSetLayout layout,
                                                    BufferInfo& staticIndexBuffer, BufferInfo& vertexBufferPosition,
