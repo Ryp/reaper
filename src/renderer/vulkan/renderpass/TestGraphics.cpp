@@ -405,11 +405,10 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
             PreparedData prepared;
             prepare_scene(scene, prepared);
 
-            // FIXME
+            // NOTE: double buffer this or something
             Assert(vkResetDescriptorPool(backend.device, backend.frame_descriptor_pool, VK_FLAGS_NONE) == VK_SUCCESS);
 
             cull_resources.passes.clear();
-            // FIXME cache those resources (if possible)
             for (const CullPassData& cull_pass : prepared.cull_passes)
             {
                 CullPassResources& cull_pass_resources = cull_resources.passes.emplace_back();
@@ -417,7 +416,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                     root, backend, cull_resources, cull_pass.pass_index, indexBuffer, vertexBufferPosition);
             }
 
-            // FIXME do partial copies
+            // NOTE: do partial copies if possible
             upload_buffer_data(backend.device, backend.vma_instance, main_pass_resources.drawPassConstantBuffer,
                                &prepared.draw_pass_params, sizeof(DrawPassParams));
             upload_buffer_data(backend.device, backend.vma_instance, main_pass_resources.drawInstanceConstantBuffer,
@@ -525,10 +524,11 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
 
             // Shadow pass
             {
-                const u32 pass_index = 1; // FIXME
+                const u32 pass_index = prepared.shadow_culling_pass_index;
 
-                VkClearValue clearValue = VkClearDepthStencil(UseReverseZ ? 0.f : 1.f, 0); // FIXME
-                VkRect2D     passRect = {
+                VkClearValue clearValue =
+                    VkClearDepthStencil(UseReverseZ ? 0.f : 1.f, 0); // NOTE: handle reverse Z more gracefully
+                VkRect2D passRect = {
                     {0, 0},
                     {shadowMapResources.shadowMap.properties.width, shadowMapResources.shadowMap.properties.height}};
 
@@ -600,7 +600,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
 
             // Draw pass
             {
-                const u32 pass_index = 0; // FIXME
+                const u32 pass_index = prepared.draw_culling_pass_index;
 
                 vkCmdBeginRenderPass(resources.gfxCmdBuffer, &blitRenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 

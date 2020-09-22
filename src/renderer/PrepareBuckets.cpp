@@ -190,12 +190,12 @@ void prepare_scene(SceneGraph& scene, PreparedData& prepared)
 
     {
         CullPassData& cull_pass = prepared.cull_passes.emplace_back();
-        const u32     pass_index = prepared.cull_passes.size() - 1;
-
-        cull_pass.pass_index = pass_index;
+        cull_pass.pass_index = prepared.cull_passes.size() - 1;
 
         CullPassParams& cull_pass_params = prepared.cull_pass_params.emplace_back();
         cull_pass_params.output_size_ts = glm::fvec2(scene.camera.viewport_extent);
+
+        prepared.draw_culling_pass_index = cull_pass.pass_index;
 
         for (const auto& node : scene.nodes)
         {
@@ -225,13 +225,12 @@ void prepare_scene(SceneGraph& scene, PreparedData& prepared)
         const Node& light_node = scene.nodes[light.scene_node];
 
         CullPassData& cull_pass = prepared.cull_passes.emplace_back();
-        const u32     pass_index = prepared.cull_passes.size() - 1;
-
-        cull_pass.pass_index = pass_index;
+        cull_pass.pass_index = prepared.cull_passes.size() - 1;
 
         CullPassParams& cull_pass_params = prepared.cull_pass_params.emplace_back();
         cull_pass_params.output_size_ts = glm::vec2(ShadowMapResolution, ShadowMapResolution);
 
+        prepared.shadow_culling_pass_index = cull_pass.pass_index;
         prepared.shadow_pass_params.dummy = glm::mat4(1.f);
 
         for (const auto& node : scene.nodes)
