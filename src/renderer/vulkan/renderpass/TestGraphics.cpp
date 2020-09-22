@@ -108,7 +108,6 @@ namespace
                                  0, 0, nullptr, 0, nullptr, 1, &swapchainImageBarrierInfo);
         }
     }
-
 } // namespace
 
 void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResources& resources)
@@ -147,27 +146,6 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
     // Culling Pass
     CullResources cull_resources = create_culling_resources(root, backend);
 
-    CullPipelineInfo           cullPipe = create_cull_pipeline(root, backend);
-    CompactionPrepPipelineInfo compactPrepPipe = create_compaction_prep_pipeline(root, backend);
-    CompactionPipelineInfo     compactionPipe = create_compaction_pipeline(root, backend);
-    {
-        const u32 pass_count = 2;
-        for (u32 pass_index = 0; pass_index < pass_count; pass_index++)
-        {
-            // FIXME use pass index
-            CullPassResources& cull_pass_resources = cull_resources.passes.emplace_back();
-            cull_pass_resources.cull_descriptor_set =
-                create_culling_descriptor_sets(root, backend, cull_resources, cullPipe.descSetLayout,
-                                               resources.descriptorPool, indexBuffer, vertexBufferPosition, pass_index);
-
-            cull_pass_resources.compact_prep_descriptor_set = create_culling_compact_prep_descriptor_sets(
-                root, backend, cull_resources, compactPrepPipe.descSetLayout, resources.descriptorPool, pass_index);
-
-            cull_pass_resources.compact_descriptor_set = create_culling_compact_descriptor_sets(
-                root, backend, cull_resources, compactionPipe.descSetLayout, resources.descriptorPool, pass_index);
-        }
-    }
-
     // Shadow Pass
     ShadowMapResources    shadowMapResources = create_shadow_map_resources(root, backend);
     ShadowMapPipelineInfo shadowMapPipe =
@@ -175,7 +153,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
     VkDescriptorSet shadowMapPassDescriptorSet = VK_NULL_HANDLE;
     {
         VkDescriptorSetAllocateInfo descriptorSetAllocInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr,
-                                                              resources.descriptorPool, 1,
+                                                              backend.global_descriptor_pool, 1,
                                                               &shadowMapPipe.descSetLayout};
 
         Assert(vkAllocateDescriptorSets(backend.device, &descriptorSetAllocInfo, &shadowMapPassDescriptorSet)
@@ -208,7 +186,8 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
     VkDescriptorSet  pixelConstantsDescriptorSet = VK_NULL_HANDLE;
     {
         VkDescriptorSetAllocateInfo descriptorSetAllocInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr,
-                                                              resources.descriptorPool, 1, &mainPipe.descSetLayout};
+                                                              backend.global_descriptor_pool, 1,
+                                                              &mainPipe.descSetLayout};
 
         Assert(vkAllocateDescriptorSets(backend.device, &descriptorSetAllocInfo, &pixelConstantsDescriptorSet)
                == VK_SUCCESS);
@@ -426,6 +405,18 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
             PreparedData prepared;
             prepare_scene(scene, prepared);
 
+            // FIXME
+            Assert(vkResetDescriptorPool(backend.device, backend.frame_descriptor_pool, VK_FLAGS_NONE) == VK_SUCCESS);
+
+            cull_resources.passes.clear();
+            // FIXME cache those resources (if possible)
+            for (const CullPassData& cull_pass : prepared.cull_passes)
+            {
+                CullPassResources& cull_pass_resources = cull_resources.passes.emplace_back();
+                cull_pass_resources = create_culling_pass_descriptor_sets(
+                    root, backend, cull_resources, cull_pass.pass_index, indexBuffer, vertexBufferPosition);
+            }
+
             // FIXME do partial copies
             upload_buffer_data(backend.device, backend.vma_instance, main_pass_resources.drawPassConstantBuffer,
                                &prepared.draw_pass_params, sizeof(DrawPassParams));
@@ -452,24 +443,22 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
 
             // Culling
             {
-                const u32 pass_count = prepared.cull_passes.size();
-
                 if (!cull_options.freeze_culling)
                 {
-                    vkCmdBindPipeline(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, cullPipe.pipeline);
+                    vkCmdBindPipeline(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE,
+                                      cull_resources.cullPipe.pipeline);
 
-                    for (u32 pass_index = 0; pass_index < pass_count; pass_index++)
+                    for (const CullPassData& cull_pass : prepared.cull_passes)
                     {
-                        const CullPassResources& cull_pass_resources = cull_resources.passes[pass_index];
-                        const CullPassData&      cull_pass = prepared.cull_passes[pass_index];
+                        const CullPassResources& cull_pass_resources = cull_resources.passes[cull_pass.pass_index];
 
                         vkCmdBindDescriptorSets(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE,
-                                                cullPipe.pipelineLayout, 0, 1, &cull_pass_resources.cull_descriptor_set,
-                                                0, nullptr);
+                                                cull_resources.cullPipe.pipelineLayout, 0, 1,
+                                                &cull_pass_resources.cull_descriptor_set, 0, nullptr);
 
                         for (const CullCmd& command : cull_pass.cull_cmds)
                         {
-                            vkCmdPushConstants(resources.gfxCmdBuffer, cullPipe.pipelineLayout,
+                            vkCmdPushConstants(resources.gfxCmdBuffer, cull_resources.cullPipe.pipelineLayout,
                                                VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(command.push_constants),
                                                &command.push_constants);
 
@@ -484,14 +473,15 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
 
                 // Compaction prepare pass
                 {
-                    vkCmdBindPipeline(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, compactPrepPipe.pipeline);
+                    vkCmdBindPipeline(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE,
+                                      cull_resources.compactPrepPipe.pipeline);
 
-                    for (u32 pass_index = 0; pass_index < pass_count; pass_index++)
+                    for (const CullPassData& cull_pass : prepared.cull_passes)
                     {
-                        const CullPassResources& cull_pass_resources = cull_resources.passes[pass_index];
+                        const CullPassResources& cull_pass_resources = cull_resources.passes[cull_pass.pass_index];
 
                         vkCmdBindDescriptorSets(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE,
-                                                compactPrepPipe.pipelineLayout, 0, 1,
+                                                cull_resources.compactPrepPipe.pipelineLayout, 0, 1,
                                                 &cull_pass_resources.compact_prep_descriptor_set, 0, nullptr);
 
                         vkCmdDispatch(resources.gfxCmdBuffer, 1, 1, 1);
@@ -502,14 +492,15 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
 
                 // Compaction pass
                 {
-                    vkCmdBindPipeline(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, compactionPipe.pipeline);
+                    vkCmdBindPipeline(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE,
+                                      cull_resources.compactionPipe.pipeline);
 
-                    for (u32 pass_index = 0; pass_index < pass_count; pass_index++)
+                    for (const CullPassData& cull_pass : prepared.cull_passes)
                     {
-                        const CullPassResources& cull_pass_resources = cull_resources.passes[pass_index];
+                        const CullPassResources& cull_pass_resources = cull_resources.passes[cull_pass.pass_index];
 
                         vkCmdBindDescriptorSets(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE,
-                                                compactionPipe.pipelineLayout, 0, 1,
+                                                cull_resources.compactionPipe.pipelineLayout, 0, 1,
                                                 &cull_pass_resources.compact_descriptor_set, 0, nullptr);
 
                         vkCmdDispatchIndirect(resources.gfxCmdBuffer,
@@ -723,18 +714,6 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
     vkDestroyPipeline(backend.device, shadowMapPipe.pipeline, nullptr);
     vkDestroyPipelineLayout(backend.device, shadowMapPipe.pipelineLayout, nullptr);
     vkDestroyDescriptorSetLayout(backend.device, shadowMapPipe.descSetLayout, nullptr);
-
-    vkDestroyPipeline(backend.device, cullPipe.pipeline, nullptr);
-    vkDestroyPipelineLayout(backend.device, cullPipe.pipelineLayout, nullptr);
-    vkDestroyDescriptorSetLayout(backend.device, cullPipe.descSetLayout, nullptr);
-
-    vkDestroyPipeline(backend.device, compactPrepPipe.pipeline, nullptr);
-    vkDestroyPipelineLayout(backend.device, compactPrepPipe.pipelineLayout, nullptr);
-    vkDestroyDescriptorSetLayout(backend.device, compactPrepPipe.descSetLayout, nullptr);
-
-    vkDestroyPipeline(backend.device, compactionPipe.pipeline, nullptr);
-    vkDestroyPipelineLayout(backend.device, compactionPipe.pipelineLayout, nullptr);
-    vkDestroyDescriptorSetLayout(backend.device, compactionPipe.descSetLayout, nullptr);
 
     destroy_main_pass_resources(backend, main_pass_resources);
     destroy_shadow_map_resources(backend, shadowMapResources);

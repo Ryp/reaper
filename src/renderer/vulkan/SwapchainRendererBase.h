@@ -64,6 +64,9 @@ struct REAPER_RENDERER_API VulkanBackend
     VkDevice   device;
     DeviceInfo deviceInfo;
 
+    VkDescriptorPool global_descriptor_pool; // static
+    VkDescriptorPool frame_descriptor_pool;  // resets every frame
+
     VmaAllocator vma_instance;
 
     PresentationInfo presentInfo;
