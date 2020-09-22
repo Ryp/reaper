@@ -12,7 +12,7 @@
 #include <vulkan/vulkan.h>
 
 // You can use this instead of 0 when passing empty flags to vulkan structs
-#define VK_FLAGS_NONE 0
+constexpr u32 VK_FLAGS_NONE = 0;
 
 #define REAPER_VK_USE_SWAPCHAIN_EXTENSIONS
 #include "VulkanFunctions.h"

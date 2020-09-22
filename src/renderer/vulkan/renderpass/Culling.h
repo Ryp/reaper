@@ -37,8 +37,6 @@ struct CullPipelineInfo
     VkDescriptorSetLayout descSetLayout;
 };
 
-CullPipelineInfo create_cull_pipeline(ReaperRoot& root, VulkanBackend& backend);
-
 struct CompactionPrepPipelineInfo
 {
     VkPipeline            pipeline;
@@ -46,16 +44,12 @@ struct CompactionPrepPipelineInfo
     VkDescriptorSetLayout descSetLayout;
 };
 
-CompactionPrepPipelineInfo create_compaction_prep_pipeline(ReaperRoot& root, VulkanBackend& backend);
-
 struct CompactionPipelineInfo
 {
     VkPipeline            pipeline;
     VkPipelineLayout      pipelineLayout;
     VkDescriptorSetLayout descSetLayout;
 };
-
-CompactionPipelineInfo create_compaction_pipeline(ReaperRoot& root, VulkanBackend& backend);
 
 struct CullPassResources
 {
@@ -66,6 +60,11 @@ struct CullPassResources
 
 struct CullResources
 {
+    CullPipelineInfo           cullPipe;
+    CompactionPrepPipelineInfo compactPrepPipe;
+    CompactionPipelineInfo     compactionPipe;
+
+    // These are valid for ONE FRAME ONLY
     std::vector<CullPassResources> passes;
 
     BufferInfo cullPassConstantBuffer;
@@ -81,18 +80,9 @@ struct CullResources
 CullResources create_culling_resources(ReaperRoot& root, VulkanBackend& backend);
 void          destroy_culling_resources(VulkanBackend& backend, CullResources& resources);
 
-VkDescriptorSet create_culling_descriptor_sets(ReaperRoot& root, VulkanBackend& backend, CullResources& cull_resources,
-                                               VkDescriptorSetLayout layout, VkDescriptorPool descriptor_pool,
-                                               BufferInfo& staticIndexBuffer, BufferInfo& vertexBufferPosition,
-                                               u32 pass_index);
-
-VkDescriptorSet create_culling_compact_prep_descriptor_sets(ReaperRoot& root, VulkanBackend& backend,
-                                                            CullResources& cull_resources, VkDescriptorSetLayout layout,
-                                                            VkDescriptorPool descriptor_pool, u32 pass_index);
-
-VkDescriptorSet create_culling_compact_descriptor_sets(ReaperRoot& root, VulkanBackend& backend,
-                                                       CullResources& cull_resources, VkDescriptorSetLayout layout,
-                                                       VkDescriptorPool descriptor_pool, u32 pass_index);
+CullPassResources create_culling_pass_descriptor_sets(ReaperRoot& root, VulkanBackend& backend,
+                                                      CullResources& resources, u32 pass_index, BufferInfo& indexBuffer,
+                                                      BufferInfo& vertexBufferPosition);
 
 struct PreparedData;
 

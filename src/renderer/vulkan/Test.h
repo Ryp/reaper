@@ -19,8 +19,7 @@ struct VulkanBackend;
 
 struct GlobalResources
 {
-    VkDescriptorPool descriptorPool;
-    VkCommandBuffer  gfxCmdBuffer;
+    VkCommandBuffer gfxCmdBuffer;
 };
 
 void debug_memory_heap_properties(ReaperRoot& root, const VulkanBackend& backend, uint32_t memoryTypeIndex);

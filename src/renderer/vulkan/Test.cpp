@@ -50,25 +50,6 @@ void vulkan_test(ReaperRoot& root, VulkanBackend& backend)
 {
     log_info(root, "test ////////////////////////////////////////");
 
-    // Create descriptor pool
-    constexpr u32                     MaxDescriptorSets = 100; // FIXME
-    std::vector<VkDescriptorPoolSize> descriptorPoolSizes = {{VK_DESCRIPTOR_TYPE_SAMPLER, 10},
-                                                             {VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 10},
-                                                             {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 10},
-                                                             {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 10},
-                                                             {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 10}};
-
-    VkDescriptorPoolCreateInfo poolInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-                                           nullptr,
-                                           0, // No special alloc flags
-                                           MaxDescriptorSets,
-                                           static_cast<uint32_t>(descriptorPoolSizes.size()),
-                                           descriptorPoolSizes.data()};
-
-    VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
-    Assert(vkCreateDescriptorPool(backend.device, &poolInfo, nullptr, &descriptorPool) == VK_SUCCESS);
-    log_debug(root, "vulkan: created descriptor pool with handle: {}", static_cast<void*>(descriptorPool));
-
     // Create command buffer
     VkCommandPool           graphicsCommandPool = VK_NULL_HANDLE;
     VkCommandPoolCreateInfo poolCreateInfo = {VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO, nullptr,
@@ -86,7 +67,7 @@ void vulkan_test(ReaperRoot& root, VulkanBackend& backend)
     log_debug(root, "vulkan: created command buffer with handle: {}", static_cast<void*>(gfxCmdBuffer));
 
     {
-        GlobalResources resources = {descriptorPool, gfxCmdBuffer};
+        GlobalResources resources = {gfxCmdBuffer};
 
         vulkan_test_graphics(root, backend, resources);
     }
@@ -94,8 +75,6 @@ void vulkan_test(ReaperRoot& root, VulkanBackend& backend)
     // cleanup
     vkFreeCommandBuffers(backend.device, graphicsCommandPool, 1, &gfxCmdBuffer);
     vkDestroyCommandPool(backend.device, graphicsCommandPool, nullptr);
-
-    vkDestroyDescriptorPool(backend.device, descriptorPool, nullptr);
 
     log_info(root, "test ////////////////////////////////////////");
 }

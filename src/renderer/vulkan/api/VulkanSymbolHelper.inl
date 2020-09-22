@@ -117,6 +117,7 @@ REAPER_VK_DEVICE_LEVEL_FUNCTION(vkGetFenceStatus)
 REAPER_VK_DEVICE_LEVEL_FUNCTION(vkWaitForFences)
 REAPER_VK_DEVICE_LEVEL_FUNCTION(vkCreateSampler)
 REAPER_VK_DEVICE_LEVEL_FUNCTION(vkDestroySampler)
+REAPER_VK_DEVICE_LEVEL_FUNCTION(vkResetDescriptorPool)
 
 #include "VulkanSymbolHelperSwapchainKHR.inl"
 
