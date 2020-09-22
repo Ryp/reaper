@@ -523,9 +523,8 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
             }
 
             // Shadow pass
+            for (const ShadowPassData& shadow_pass : prepared.shadow_passes)
             {
-                const u32 pass_index = prepared.shadow_culling_pass_index;
-
                 VkClearValue clearValue =
                     VkClearDepthStencil(UseReverseZ ? 0.f : 1.f, 0); // NOTE: handle reverse Z more gracefully
                 VkRect2D passRect = {
@@ -557,12 +556,13 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                 vkCmdBindDescriptorSets(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
                                         shadowMapPipe.pipelineLayout, 0, 1, &shadowMapPassDescriptorSet, 0, nullptr);
 
-                const u32 draw_buffer_offset = pass_index * MaxIndirectDrawCount * sizeof(VkDrawIndexedIndirectCommand);
+                const u32 draw_buffer_offset =
+                    shadow_pass.culling_pass_index * MaxIndirectDrawCount * sizeof(VkDrawIndexedIndirectCommand);
                 const u32 draw_buffer_max_count = MaxIndirectDrawCount;
 
                 if (cull_options.use_compacted_draw)
                 {
-                    const u32 draw_buffer_count_offset = pass_index * 1 * sizeof(u32);
+                    const u32 draw_buffer_count_offset = shadow_pass.culling_pass_index * 1 * sizeof(u32);
                     vkCmdDrawIndexedIndirectCount(
                         resources.gfxCmdBuffer, cull_resources.compactIndirectDrawBuffer.buffer, draw_buffer_offset,
                         cull_resources.compactIndirectDrawCountBuffer.buffer, draw_buffer_count_offset,
@@ -570,7 +570,8 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                 }
                 else
                 {
-                    const u32 draw_buffer_count_offset = pass_index * IndirectDrawCountCount * sizeof(u32);
+                    const u32 draw_buffer_count_offset =
+                        shadow_pass.culling_pass_index * IndirectDrawCountCount * sizeof(u32);
                     vkCmdDrawIndexedIndirectCount(resources.gfxCmdBuffer, cull_resources.indirectDrawBuffer.buffer,
                                                   draw_buffer_offset, cull_resources.indirectDrawCountBuffer.buffer,
                                                   draw_buffer_count_offset, draw_buffer_max_count,

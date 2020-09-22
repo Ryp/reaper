@@ -27,6 +27,7 @@ namespace Reaper
 {
 constexpr bool UseReverseZ = true;
 constexpr u32  ShadowInstanceCountMax = 512;
+constexpr u32  MaxShadowPassCount = 4;
 
 VkRenderPass create_shadow_raster_pass(ReaperRoot& /*root*/, VulkanBackend& backend,
                                        const GPUTextureProperties& shadowMapProperties)
@@ -269,10 +270,10 @@ ShadowMapResources create_shadow_map_resources(ReaperRoot& root, VulkanBackend& 
 
     VkRenderPass shadowMapPass = create_shadow_raster_pass(root, backend, shadowMapProperties);
 
-    BufferInfo shadowMapPassConstantBuffer =
-        create_buffer(root, backend.device, "Shadow Map Pass Constant buffer",
-                      DefaultGPUBufferProperties(1, sizeof(ShadowMapPassParams), GPUBufferUsage::UniformBuffer),
-                      backend.vma_instance);
+    BufferInfo shadowMapPassConstantBuffer = create_buffer(
+        root, backend.device, "Shadow Map Pass Constant buffer",
+        DefaultGPUBufferProperties(MaxShadowPassCount, sizeof(ShadowMapPassParams), GPUBufferUsage::UniformBuffer),
+        backend.vma_instance);
     BufferInfo shadowMapInstanceConstantBuffer =
         create_buffer(root, backend.device, "Shadow Map Instance Constant buffer",
                       DefaultGPUBufferProperties(ShadowInstanceCountMax, sizeof(ShadowMapInstanceParams),
@@ -353,7 +354,9 @@ void destroy_shadow_map_resources(VulkanBackend& backend, ShadowMapResources& re
 void shadow_map_prepare_buffers(VulkanBackend& backend, const PreparedData& prepared, ShadowMapResources& resources)
 {
     upload_buffer_data(backend.device, backend.vma_instance, resources.shadowMapPassConstantBuffer,
-                       &prepared.shadow_pass_params, sizeof(ShadowMapPassParams));
+                       prepared.shadow_pass_params.data(),
+                       prepared.shadow_pass_params.size() * sizeof(ShadowMapPassParams));
+
     upload_buffer_data(backend.device, backend.vma_instance, resources.shadowMapInstanceConstantBuffer,
                        prepared.shadow_instance_params.data(),
                        prepared.shadow_instance_params.size() * sizeof(ShadowMapInstanceParams));

@@ -222,16 +222,23 @@ void prepare_scene(SceneGraph& scene, PreparedData& prepared)
     // Shadow pass
     for (const auto& light : scene.lights)
     {
-        const Node& light_node = scene.nodes[light.scene_node];
+        ShadowPassData& shadow_pass = prepared.shadow_passes.emplace_back();
+        shadow_pass.pass_index = prepared.shadow_passes.size() - 1;
+
+        shadow_pass.instance_offset = prepared.shadow_instance_params.size();
 
         CullPassData& cull_pass = prepared.cull_passes.emplace_back();
         cull_pass.pass_index = prepared.cull_passes.size() - 1;
 
+        shadow_pass.culling_pass_index = cull_pass.pass_index;
+
         CullPassParams& cull_pass_params = prepared.cull_pass_params.emplace_back();
         cull_pass_params.output_size_ts = glm::vec2(ShadowMapResolution, ShadowMapResolution);
 
-        prepared.shadow_culling_pass_index = cull_pass.pass_index;
-        prepared.shadow_pass_params.dummy = glm::mat4(1.f);
+        ShadowMapPassParams& shadow_pass_params = prepared.shadow_pass_params.emplace_back();
+        shadow_pass_params.dummy = glm::mat4(1.f);
+
+        const Node& light_node = scene.nodes[light.scene_node];
 
         for (const auto& node : scene.nodes)
         {
@@ -251,6 +258,10 @@ void prepare_scene(SceneGraph& scene, PreparedData& prepared)
 
             insert_cull_cmd(cull_pass, node, cull_instance_index, 1);
         }
+
+        // Count instances we just inserted
+        const u32 shadow_total_instance_count = prepared.shadow_instance_params.size();
+        shadow_pass.instance_count = shadow_total_instance_count - shadow_pass.instance_offset;
     }
 }
 } // namespace Reaper
