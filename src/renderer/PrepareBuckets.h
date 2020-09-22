@@ -64,6 +64,14 @@ struct CullPassData
     std::vector<CullCmd> cull_cmds;
 };
 
+struct ShadowPassData
+{
+    u32 pass_index;
+    u32 instance_offset;
+    u32 instance_count;
+    u32 culling_pass_index;
+};
+
 struct PreparedData
 {
     std::vector<CullPassData>       cull_passes;
@@ -74,8 +82,8 @@ struct PreparedData
     DrawPassParams                  draw_pass_params;
     std::vector<DrawInstanceParams> draw_instance_params;
 
-    u32                                  shadow_culling_pass_index;
-    ShadowMapPassParams                  shadow_pass_params;
+    std::vector<ShadowPassData>          shadow_passes;
+    std::vector<ShadowMapPassParams>     shadow_pass_params;
     std::vector<ShadowMapInstanceParams> shadow_instance_params;
 };
 

@@ -480,12 +480,12 @@ void destroy_culling_resources(VulkanBackend& backend, CullResources& resources)
 void culling_prepare_buffers(const CullOptions& options, VulkanBackend& backend, const PreparedData& prepared,
                              CullResources& resources)
 {
+    upload_buffer_data(backend.device, backend.vma_instance, resources.cullPassConstantBuffer,
+                       prepared.cull_pass_params.data(), prepared.cull_pass_params.size() * sizeof(CullPassParams));
+
     upload_buffer_data(backend.device, backend.vma_instance, resources.cullInstanceParamsBuffer,
                        prepared.cull_instance_params.data(),
                        prepared.cull_instance_params.size() * sizeof(CullInstanceParams));
-
-    upload_buffer_data(backend.device, backend.vma_instance, resources.cullPassConstantBuffer,
-                       prepared.cull_pass_params.data(), prepared.cull_pass_params.size() * sizeof(CullPassParams));
 
     if (!options.freeze_culling)
     {
