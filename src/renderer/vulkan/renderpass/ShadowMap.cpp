@@ -29,237 +29,250 @@ constexpr bool UseReverseZ = true;
 constexpr u32  ShadowInstanceCountMax = 512;
 constexpr u32  MaxShadowPassCount = 4;
 
-VkRenderPass create_shadow_raster_pass(ReaperRoot& /*root*/, VulkanBackend& backend,
-                                       const GPUTextureProperties& shadowMapProperties)
+namespace
 {
-    // Create a separate render pass for the offscreen rendering as it may differ from the one used for scene
-    // rendering
-    std::array<VkAttachmentDescription, 1> attachmentDescriptions = {};
+    VkRenderPass create_shadow_raster_pass(ReaperRoot& /*root*/, VulkanBackend& backend,
+                                           const GPUTextureProperties& shadowMapProperties)
+    {
+        // Create a separate render pass for the offscreen rendering as it may differ from the one used for scene
+        // rendering
+        std::array<VkAttachmentDescription, 1> attachmentDescriptions = {};
 
-    // Depth attachment
-    attachmentDescriptions[0].format = PixelFormatToVulkan(shadowMapProperties.format);
-    attachmentDescriptions[0].samples = SampleCountToVulkan(shadowMapProperties.sampleCount);
-    attachmentDescriptions[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    attachmentDescriptions[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-    attachmentDescriptions[0].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    attachmentDescriptions[0].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    attachmentDescriptions[0].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    attachmentDescriptions[0].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+        // Depth attachment
+        attachmentDescriptions[0].format = PixelFormatToVulkan(shadowMapProperties.format);
+        attachmentDescriptions[0].samples = SampleCountToVulkan(shadowMapProperties.sampleCount);
+        attachmentDescriptions[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        attachmentDescriptions[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        attachmentDescriptions[0].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        attachmentDescriptions[0].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        attachmentDescriptions[0].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        attachmentDescriptions[0].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-    VkAttachmentReference depthReference = {0, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL};
+        VkAttachmentReference depthReference = {0, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL};
 
-    VkSubpassDescription subpassDescription = {};
-    subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-    subpassDescription.colorAttachmentCount = 0;
-    subpassDescription.pColorAttachments = nullptr;
-    subpassDescription.pDepthStencilAttachment = &depthReference;
+        VkSubpassDescription subpassDescription = {};
+        subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+        subpassDescription.colorAttachmentCount = 0;
+        subpassDescription.pColorAttachments = nullptr;
+        subpassDescription.pDepthStencilAttachment = &depthReference;
 
-    // Use subpass dependencies for layout transitions
-    std::array<VkSubpassDependency, 1> dependencies;
+        // Use subpass dependencies for layout transitions
+        std::array<VkSubpassDependency, 1> dependencies;
 
-    dependencies[0].srcSubpass = 0;
-    dependencies[0].dstSubpass = VK_SUBPASS_EXTERNAL;
-    dependencies[0].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    dependencies[0].dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-    dependencies[0].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-    dependencies[0].dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-    dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+        dependencies[0].srcSubpass = 0;
+        dependencies[0].dstSubpass = VK_SUBPASS_EXTERNAL;
+        dependencies[0].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        dependencies[0].dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+        dependencies[0].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+        dependencies[0].dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+        dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
-    // Create the actual renderpass
-    VkRenderPassCreateInfo renderPassInfo = {};
-    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-    renderPassInfo.attachmentCount = static_cast<uint32_t>(attachmentDescriptions.size());
-    renderPassInfo.pAttachments = attachmentDescriptions.data();
-    renderPassInfo.subpassCount = 1;
-    renderPassInfo.pSubpasses = &subpassDescription;
-    renderPassInfo.dependencyCount = static_cast<uint32_t>(dependencies.size());
-    renderPassInfo.pDependencies = dependencies.data();
+        // Create the actual renderpass
+        VkRenderPassCreateInfo renderPassInfo = {};
+        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+        renderPassInfo.attachmentCount = static_cast<uint32_t>(attachmentDescriptions.size());
+        renderPassInfo.pAttachments = attachmentDescriptions.data();
+        renderPassInfo.subpassCount = 1;
+        renderPassInfo.pSubpasses = &subpassDescription;
+        renderPassInfo.dependencyCount = static_cast<uint32_t>(dependencies.size());
+        renderPassInfo.pDependencies = dependencies.data();
 
-    VkRenderPass renderPass = VK_NULL_HANDLE;
-    Assert(vkCreateRenderPass(backend.device, &renderPassInfo, nullptr, &renderPass) == VK_SUCCESS);
+        VkRenderPass renderPass = VK_NULL_HANDLE;
+        Assert(vkCreateRenderPass(backend.device, &renderPassInfo, nullptr, &renderPass) == VK_SUCCESS);
 
-    return renderPass;
-}
+        return renderPass;
+    }
 
-ShadowMapPipelineInfo create_shadow_map_pipeline(ReaperRoot& root, VulkanBackend& backend, VkRenderPass renderPass,
-                                                 u32 shadowMapRes)
-{
-    VkShaderModule        blitShaderFS = VK_NULL_HANDLE;
-    VkShaderModule        blitShaderVS = VK_NULL_HANDLE;
-    const char*           fileNameVS = "./build/shader/render_shadow.vert.spv";
-    const char*           fileNameFS = "./build/shader/render_shadow.frag.spv";
-    const char*           entryPoint = "main";
-    VkSpecializationInfo* specialization = nullptr;
+    ShadowMapPipelineInfo create_shadow_map_pipeline(ReaperRoot& root, VulkanBackend& backend, VkRenderPass renderPass,
+                                                     u32 shadowMapRes)
+    {
+        VkShaderModule        blitShaderFS = VK_NULL_HANDLE;
+        VkShaderModule        blitShaderVS = VK_NULL_HANDLE;
+        const char*           fileNameVS = "./build/shader/render_shadow.vert.spv";
+        const char*           fileNameFS = "./build/shader/render_shadow.frag.spv";
+        const char*           entryPoint = "main";
+        VkSpecializationInfo* specialization = nullptr;
 
-    vulkan_create_shader_module(blitShaderFS, backend.device, fileNameFS);
-    vulkan_create_shader_module(blitShaderVS, backend.device, fileNameVS);
+        vulkan_create_shader_module(blitShaderFS, backend.device, fileNameFS);
+        vulkan_create_shader_module(blitShaderVS, backend.device, fileNameVS);
 
-    std::vector<VkVertexInputBindingDescription> vertexInfoShaderBinding = {
-        {
-            0,                          // binding
-            sizeof(hlsl_float3),        // stride
-            VK_VERTEX_INPUT_RATE_VERTEX // input rate
-        },
-    };
+        std::vector<VkVertexInputBindingDescription> vertexInfoShaderBinding = {
+            {
+                0,                          // binding
+                sizeof(hlsl_float3),        // stride
+                VK_VERTEX_INPUT_RATE_VERTEX // input rate
+            },
+        };
 
-    std::vector<VkVertexInputAttributeDescription> vertexAttributes = {
-        {
-            0,                          // location
-            0,                          // binding
-            VK_FORMAT_R32G32B32_SFLOAT, // format
-            0                           // offset
-        },
-    };
+        std::vector<VkVertexInputAttributeDescription> vertexAttributes = {
+            {
+                0,                          // location
+                0,                          // binding
+                VK_FORMAT_R32G32B32_SFLOAT, // format
+                0                           // offset
+            },
+        };
 
-    std::vector<VkPipelineShaderStageCreateInfo> blitShaderStages = {
-        {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_VERTEX_BIT, blitShaderVS,
-         entryPoint, specialization},
-        {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_FRAGMENT_BIT, blitShaderFS,
-         entryPoint, specialization}};
+        std::vector<VkPipelineShaderStageCreateInfo> blitShaderStages = {
+            {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_VERTEX_BIT, blitShaderVS,
+             entryPoint, specialization},
+            {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_FRAGMENT_BIT,
+             blitShaderFS, entryPoint, specialization}};
 
-    VkPipelineVertexInputStateCreateInfo blitVertexInputStateInfo = {
-        VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
-        nullptr,
-        VK_FLAGS_NONE,
-        static_cast<u32>(vertexInfoShaderBinding.size()),
-        vertexInfoShaderBinding.data(),
-        static_cast<u32>(vertexAttributes.size()),
-        vertexAttributes.data()};
+        VkPipelineVertexInputStateCreateInfo blitVertexInputStateInfo = {
+            VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
+            nullptr,
+            VK_FLAGS_NONE,
+            static_cast<u32>(vertexInfoShaderBinding.size()),
+            vertexInfoShaderBinding.data(),
+            static_cast<u32>(vertexAttributes.size()),
+            vertexAttributes.data()};
 
-    VkPipelineInputAssemblyStateCreateInfo blitInputAssemblyInfo = {
-        VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO, nullptr, VK_FLAGS_NONE,
-        VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, VK_FALSE};
+        VkPipelineInputAssemblyStateCreateInfo blitInputAssemblyInfo = {
+            VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO, nullptr, VK_FLAGS_NONE,
+            VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, VK_FALSE};
 
-    const VkExtent2D shadowMapExtent = {shadowMapRes, shadowMapRes};
+        const VkExtent2D shadowMapExtent = {shadowMapRes, shadowMapRes};
 
-    VkViewport blitViewport = {
-        0.0f, 0.0f, static_cast<float>(shadowMapExtent.width), static_cast<float>(shadowMapExtent.height), 0.0f, 1.0f};
+        VkViewport blitViewport = {
+            0.0f, 0.0f, static_cast<float>(shadowMapExtent.width), static_cast<float>(shadowMapExtent.height),
+            0.0f, 1.0f};
 
-    VkRect2D blitScissors = {{0, 0}, shadowMapExtent};
+        VkRect2D blitScissors = {{0, 0}, shadowMapExtent};
 
-    VkPipelineViewportStateCreateInfo blitViewportStateInfo = {VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
+        VkPipelineViewportStateCreateInfo blitViewportStateInfo = {
+            VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
+            nullptr,
+            VK_FLAGS_NONE,
+            1,
+            &blitViewport,
+            1,
+            &blitScissors};
+
+        VkPipelineRasterizationStateCreateInfo blitRasterStateInfo = {
+            VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
+            nullptr,
+            VK_FLAGS_NONE,
+            VK_FALSE,
+            VK_FALSE,
+            VK_POLYGON_MODE_FILL,
+            VK_CULL_MODE_BACK_BIT,
+            VK_FRONT_FACE_COUNTER_CLOCKWISE,
+            VK_FALSE,
+            0.0f,
+            0.0f,
+            0.0f,
+            1.0f};
+
+        VkPipelineMultisampleStateCreateInfo blitMSStateInfo = {
+            VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
+            nullptr,
+            VK_FLAGS_NONE,
+            VK_SAMPLE_COUNT_1_BIT,
+            VK_FALSE,
+            1.0f,
+            nullptr,
+            VK_FALSE,
+            VK_FALSE};
+
+        const VkPipelineDepthStencilStateCreateInfo blitDepthStencilInfo = {
+            VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
+            nullptr,
+            0,
+            true, // depth test
+            true, // depth write
+            UseReverseZ ? VK_COMPARE_OP_GREATER : VK_COMPARE_OP_LESS,
+            false,
+            false,
+            VkStencilOpState{},
+            VkStencilOpState{},
+            0.f,
+            0.f};
+
+        VkPipelineColorBlendAttachmentState blitBlendAttachmentState = {
+            VK_FALSE,
+            VK_BLEND_FACTOR_ONE,
+            VK_BLEND_FACTOR_ZERO,
+            VK_BLEND_OP_ADD,
+            VK_BLEND_FACTOR_ONE,
+            VK_BLEND_FACTOR_ZERO,
+            VK_BLEND_OP_ADD,
+            VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT};
+
+        VkPipelineColorBlendStateCreateInfo blitBlendStateInfo = {
+            VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
+            nullptr,
+            VK_FLAGS_NONE,
+            VK_FALSE,
+            VK_LOGIC_OP_COPY,
+            1,
+            &blitBlendAttachmentState,
+            {0.0f, 0.0f, 0.0f, 0.0f}};
+
+        std::array<VkDescriptorSetLayoutBinding, 2> descriptorSetLayoutBinding = {
+            VkDescriptorSetLayoutBinding{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1,
+                                         VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+            VkDescriptorSetLayoutBinding{1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
+        };
+
+        VkDescriptorSetLayoutCreateInfo descriptorSetLayoutInfo = {
+            VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, nullptr, 0,
+            static_cast<u32>(descriptorSetLayoutBinding.size()), descriptorSetLayoutBinding.data()};
+
+        VkDescriptorSetLayout descriptorSetLayoutCB = VK_NULL_HANDLE;
+        Assert(vkCreateDescriptorSetLayout(backend.device, &descriptorSetLayoutInfo, nullptr, &descriptorSetLayoutCB)
+               == VK_SUCCESS);
+
+        log_debug(root, "vulkan: created descriptor set layout with handle: {}",
+                  static_cast<void*>(descriptorSetLayoutCB));
+
+        VkPipelineLayoutCreateInfo blitPipelineLayoutInfo = {VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+                                                             nullptr,
+                                                             VK_FLAGS_NONE,
+                                                             1,
+                                                             &descriptorSetLayoutCB,
+                                                             0,
+                                                             nullptr};
+
+        VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
+        Assert(vkCreatePipelineLayout(backend.device, &blitPipelineLayoutInfo, nullptr, &pipelineLayout) == VK_SUCCESS);
+        log_debug(root, "vulkan: created blit pipeline layout with handle: {}", static_cast<void*>(pipelineLayout));
+
+        VkPipelineCache cache = VK_NULL_HANDLE;
+
+        VkGraphicsPipelineCreateInfo blitPipelineCreateInfo = {VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
                                                                nullptr,
                                                                VK_FLAGS_NONE,
-                                                               1,
-                                                               &blitViewport,
-                                                               1,
-                                                               &blitScissors};
+                                                               static_cast<u32>(blitShaderStages.size()),
+                                                               blitShaderStages.data(),
+                                                               &blitVertexInputStateInfo,
+                                                               &blitInputAssemblyInfo,
+                                                               nullptr,
+                                                               &blitViewportStateInfo,
+                                                               &blitRasterStateInfo,
+                                                               &blitMSStateInfo,
+                                                               &blitDepthStencilInfo,
+                                                               &blitBlendStateInfo,
+                                                               nullptr,
+                                                               pipelineLayout,
+                                                               renderPass,
+                                                               0,
+                                                               VK_NULL_HANDLE,
+                                                               -1};
 
-    VkPipelineRasterizationStateCreateInfo blitRasterStateInfo = {
-        VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
-        nullptr,
-        VK_FLAGS_NONE,
-        VK_FALSE,
-        VK_FALSE,
-        VK_POLYGON_MODE_FILL,
-        VK_CULL_MODE_BACK_BIT,
-        VK_FRONT_FACE_COUNTER_CLOCKWISE,
-        VK_FALSE,
-        0.0f,
-        0.0f,
-        0.0f,
-        1.0f};
+        VkPipeline pipeline = VK_NULL_HANDLE;
+        Assert(vkCreateGraphicsPipelines(backend.device, cache, 1, &blitPipelineCreateInfo, nullptr, &pipeline)
+               == VK_SUCCESS);
+        log_debug(root, "vulkan: created blit pipeline with handle: {}", static_cast<void*>(pipeline));
 
-    VkPipelineMultisampleStateCreateInfo blitMSStateInfo = {VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
-                                                            nullptr,
-                                                            VK_FLAGS_NONE,
-                                                            VK_SAMPLE_COUNT_1_BIT,
-                                                            VK_FALSE,
-                                                            1.0f,
-                                                            nullptr,
-                                                            VK_FALSE,
-                                                            VK_FALSE};
+        Assert(backend.physicalDeviceInfo.graphicsQueueIndex == backend.physicalDeviceInfo.presentQueueIndex);
 
-    const VkPipelineDepthStencilStateCreateInfo blitDepthStencilInfo = {
-        VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
-        nullptr,
-        0,
-        true, // depth test
-        true, // depth write
-        UseReverseZ ? VK_COMPARE_OP_GREATER : VK_COMPARE_OP_LESS,
-        false,
-        false,
-        VkStencilOpState{},
-        VkStencilOpState{},
-        0.f,
-        0.f};
+        vkDestroyShaderModule(backend.device, blitShaderVS, nullptr);
+        vkDestroyShaderModule(backend.device, blitShaderFS, nullptr);
 
-    VkPipelineColorBlendAttachmentState blitBlendAttachmentState = {
-        VK_FALSE,
-        VK_BLEND_FACTOR_ONE,
-        VK_BLEND_FACTOR_ZERO,
-        VK_BLEND_OP_ADD,
-        VK_BLEND_FACTOR_ONE,
-        VK_BLEND_FACTOR_ZERO,
-        VK_BLEND_OP_ADD,
-        VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT};
-
-    VkPipelineColorBlendStateCreateInfo blitBlendStateInfo = {VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
-                                                              nullptr,
-                                                              VK_FLAGS_NONE,
-                                                              VK_FALSE,
-                                                              VK_LOGIC_OP_COPY,
-                                                              1,
-                                                              &blitBlendAttachmentState,
-                                                              {0.0f, 0.0f, 0.0f, 0.0f}};
-
-    std::array<VkDescriptorSetLayoutBinding, 2> descriptorSetLayoutBinding = {
-        VkDescriptorSetLayoutBinding{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1,
-                                     VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
-        VkDescriptorSetLayoutBinding{1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
-    };
-
-    VkDescriptorSetLayoutCreateInfo descriptorSetLayoutInfo = {
-        VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, nullptr, 0,
-        static_cast<u32>(descriptorSetLayoutBinding.size()), descriptorSetLayoutBinding.data()};
-
-    VkDescriptorSetLayout descriptorSetLayoutCB = VK_NULL_HANDLE;
-    Assert(vkCreateDescriptorSetLayout(backend.device, &descriptorSetLayoutInfo, nullptr, &descriptorSetLayoutCB)
-           == VK_SUCCESS);
-
-    log_debug(root, "vulkan: created descriptor set layout with handle: {}", static_cast<void*>(descriptorSetLayoutCB));
-
-    VkPipelineLayoutCreateInfo blitPipelineLayoutInfo = {
-        VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO, nullptr, VK_FLAGS_NONE, 1, &descriptorSetLayoutCB, 0, nullptr};
-
-    VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
-    Assert(vkCreatePipelineLayout(backend.device, &blitPipelineLayoutInfo, nullptr, &pipelineLayout) == VK_SUCCESS);
-    log_debug(root, "vulkan: created blit pipeline layout with handle: {}", static_cast<void*>(pipelineLayout));
-
-    VkPipelineCache cache = VK_NULL_HANDLE;
-
-    VkGraphicsPipelineCreateInfo blitPipelineCreateInfo = {VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
-                                                           nullptr,
-                                                           VK_FLAGS_NONE,
-                                                           static_cast<u32>(blitShaderStages.size()),
-                                                           blitShaderStages.data(),
-                                                           &blitVertexInputStateInfo,
-                                                           &blitInputAssemblyInfo,
-                                                           nullptr,
-                                                           &blitViewportStateInfo,
-                                                           &blitRasterStateInfo,
-                                                           &blitMSStateInfo,
-                                                           &blitDepthStencilInfo,
-                                                           &blitBlendStateInfo,
-                                                           nullptr,
-                                                           pipelineLayout,
-                                                           renderPass,
-                                                           0,
-                                                           VK_NULL_HANDLE,
-                                                           -1};
-
-    VkPipeline pipeline = VK_NULL_HANDLE;
-    Assert(vkCreateGraphicsPipelines(backend.device, cache, 1, &blitPipelineCreateInfo, nullptr, &pipeline)
-           == VK_SUCCESS);
-    log_debug(root, "vulkan: created blit pipeline with handle: {}", static_cast<void*>(pipeline));
-
-    Assert(backend.physicalDeviceInfo.graphicsQueueIndex == backend.physicalDeviceInfo.presentQueueIndex);
-
-    vkDestroyShaderModule(backend.device, blitShaderVS, nullptr);
-    vkDestroyShaderModule(backend.device, blitShaderFS, nullptr);
-
-    return ShadowMapPipelineInfo{pipeline, pipelineLayout, descriptorSetLayoutCB};
-}
+        return ShadowMapPipelineInfo{pipeline, pipelineLayout, descriptorSetLayoutCB};
+    }
+} // namespace
 
 ShadowMapResources create_shadow_map_resources(ReaperRoot& root, VulkanBackend& backend)
 {
@@ -268,41 +281,41 @@ ShadowMapResources create_shadow_map_resources(ReaperRoot& root, VulkanBackend& 
     shadowMapProperties.usageFlags =
         GPUTextureUsage::DepthStencilAttachment | GPUTextureUsage::InputAttachment | GPUTextureUsage::Sampled;
 
-    VkRenderPass shadowMapPass = create_shadow_raster_pass(root, backend, shadowMapProperties);
+    ShadowMapResources resources;
 
-    BufferInfo shadowMapPassConstantBuffer = create_buffer(
+    resources.shadowMapPass = create_shadow_raster_pass(root, backend, shadowMapProperties);
+    resources.pipe = create_shadow_map_pipeline(root, backend, resources.shadowMapPass, ShadowMapResolution);
+
+    resources.shadowMapPassConstantBuffer = create_buffer(
         root, backend.device, "Shadow Map Pass Constant buffer",
         DefaultGPUBufferProperties(MaxShadowPassCount, sizeof(ShadowMapPassParams), GPUBufferUsage::UniformBuffer),
         backend.vma_instance);
-    BufferInfo shadowMapInstanceConstantBuffer =
+
+    resources.shadowMapInstanceConstantBuffer =
         create_buffer(root, backend.device, "Shadow Map Instance Constant buffer",
                       DefaultGPUBufferProperties(ShadowInstanceCountMax, sizeof(ShadowMapInstanceParams),
                                                  GPUBufferUsage::StorageBuffer),
                       backend.vma_instance);
 
-    ImageInfo shadowMap = create_image(root, backend.device, "Shadow Map", shadowMapProperties, backend.vma_instance);
+    resources.shadowMap = create_image(root, backend.device, "Shadow Map", shadowMapProperties, backend.vma_instance);
 
-    VkImageView shadowMapView = create_depth_image_view(root, backend.device, shadowMap);
+    resources.shadowMapView = create_depth_image_view(root, backend.device, resources.shadowMap);
 
-    VkFramebuffer shadowMapFramebuffer = VK_NULL_HANDLE;
-    {
-        VkFramebufferCreateInfo shadowMapFramebufferInfo = {
-            VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO, // VkStructureType                sType
-            nullptr,                                   // const void                    *pNext
-            0,                                         // VkFramebufferCreateFlags       flags
-            shadowMapPass,                             // VkRenderPass                   renderPass
-            1,                                         // uint32_t                       attachmentCount
-            &shadowMapView,                            // const VkImageView             *pAttachments
-            shadowMap.properties.width,                // uint32_t                       width
-            shadowMap.properties.height,               // uint32_t                       height
-            1                                          // uint32_t                       layers
-        };
+    VkFramebufferCreateInfo shadowMapFramebufferInfo = {
+        VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO, // VkStructureType                sType
+        nullptr,                                   // const void                    *pNext
+        0,                                         // VkFramebufferCreateFlags       flags
+        resources.shadowMapPass,                   // VkRenderPass                   renderPass
+        1,                                         // uint32_t                       attachmentCount
+        &resources.shadowMapView,                  // const VkImageView             *pAttachments
+        shadowMapProperties.width,                 // uint32_t                       width
+        shadowMapProperties.height,                // uint32_t                       height
+        1                                          // uint32_t                       layers
+    };
 
-        Assert(vkCreateFramebuffer(backend.device, &shadowMapFramebufferInfo, nullptr, &shadowMapFramebuffer)
-               == VK_SUCCESS);
-    }
+    Assert(vkCreateFramebuffer(backend.device, &shadowMapFramebufferInfo, nullptr, &resources.shadowMapFramebuffer)
+           == VK_SUCCESS);
 
-    VkSampler           shadowMapSampler = VK_NULL_HANDLE;
     VkSamplerCreateInfo shadowMapSamplerCreateInfo = {};
     shadowMapSamplerCreateInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
     shadowMapSamplerCreateInfo.magFilter = VK_FILTER_LINEAR;
@@ -322,16 +335,11 @@ ShadowMapResources create_shadow_map_resources(ReaperRoot& root, VulkanBackend& 
     shadowMapSamplerCreateInfo.minLod = 0.f;
     shadowMapSamplerCreateInfo.maxLod = FLT_MAX;
 
-    Assert(vkCreateSampler(backend.device, &shadowMapSamplerCreateInfo, nullptr, &shadowMapSampler) == VK_SUCCESS);
-    log_debug(root, "vulkan: created sampler with handle: {}", static_cast<void*>(shadowMapSampler));
+    Assert(vkCreateSampler(backend.device, &shadowMapSamplerCreateInfo, nullptr, &resources.shadowMapSampler)
+           == VK_SUCCESS);
+    log_debug(root, "vulkan: created sampler with handle: {}", static_cast<void*>(resources.shadowMapSampler));
 
-    return ShadowMapResources{shadowMapPass,
-                              shadowMapPassConstantBuffer,
-                              shadowMapInstanceConstantBuffer,
-                              shadowMap,
-                              shadowMapView,
-                              shadowMapFramebuffer,
-                              shadowMapSampler};
+    return resources;
 }
 
 void destroy_shadow_map_resources(VulkanBackend& backend, ShadowMapResources& resources)
@@ -349,6 +357,43 @@ void destroy_shadow_map_resources(VulkanBackend& backend, ShadowMapResources& re
                      resources.shadowMapInstanceConstantBuffer.allocation);
 
     vkDestroyRenderPass(backend.device, resources.shadowMapPass, nullptr);
+
+    vkDestroyPipeline(backend.device, resources.pipe.pipeline, nullptr);
+    vkDestroyPipelineLayout(backend.device, resources.pipe.pipelineLayout, nullptr);
+    vkDestroyDescriptorSetLayout(backend.device, resources.pipe.descSetLayout, nullptr);
+}
+
+ShadowPassResources create_shadow_map_pass_descriptor_sets(ReaperRoot& root, VulkanBackend& backend,
+                                                           const ShadowMapResources& resources,
+                                                           const ShadowPassData&     shadow_pass)
+{
+    VkDescriptorSetAllocateInfo descriptorSetAllocInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr,
+                                                          backend.frame_descriptor_pool, 1,
+                                                          &resources.pipe.descSetLayout};
+
+    VkDescriptorSet shadowMapPassDescriptorSet = VK_NULL_HANDLE;
+
+    Assert(vkAllocateDescriptorSets(backend.device, &descriptorSetAllocInfo, &shadowMapPassDescriptorSet)
+           == VK_SUCCESS);
+    log_debug(root, "vulkan: created descriptor set with handle: {}", static_cast<void*>(shadowMapPassDescriptorSet));
+
+    const VkDescriptorBufferInfo shadowMapDescPassParams =
+        get_vk_descriptor_buffer_info(resources.shadowMapPassConstantBuffer, GPUBufferView{shadow_pass.pass_index, 1});
+    const VkDescriptorBufferInfo shadowMapDescInstanceParams =
+        get_vk_descriptor_buffer_info(resources.shadowMapInstanceConstantBuffer,
+                                      GPUBufferView{shadow_pass.instance_offset, shadow_pass.instance_count});
+
+    std::array<VkWriteDescriptorSet, 2> shadowMapPassDescriptorSetWrites = {
+        create_buffer_descriptor_write(shadowMapPassDescriptorSet, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                                       &shadowMapDescPassParams),
+        create_buffer_descriptor_write(shadowMapPassDescriptorSet, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                                       &shadowMapDescInstanceParams),
+    };
+
+    vkUpdateDescriptorSets(backend.device, static_cast<u32>(shadowMapPassDescriptorSetWrites.size()),
+                           shadowMapPassDescriptorSetWrites.data(), 0, nullptr);
+
+    return ShadowPassResources{shadowMapPassDescriptorSet};
 }
 
 void shadow_map_prepare_buffers(VulkanBackend& backend, const PreparedData& prepared, ShadowMapResources& resources)

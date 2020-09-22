@@ -11,6 +11,8 @@
 #include "renderer/vulkan/Image.h"
 #include "renderer/vulkan/api/Vulkan.h"
 
+#include <vector>
+
 namespace Reaper
 {
 struct ReaperRoot;
@@ -24,15 +26,19 @@ struct ShadowMapPipelineInfo
     VkDescriptorSetLayout descSetLayout;
 };
 
-VkRenderPass create_shadow_raster_pass(ReaperRoot& root, VulkanBackend& backend,
-                                       const GPUTextureProperties& shadowMapProperties);
-
-ShadowMapPipelineInfo create_shadow_map_pipeline(ReaperRoot& root, VulkanBackend& backend, VkRenderPass renderPass,
-                                                 u32 shadowMapRes);
+struct ShadowPassResources
+{
+    VkDescriptorSet descriptor_set;
+};
 
 struct ShadowMapResources
 {
     VkRenderPass shadowMapPass;
+
+    ShadowMapPipelineInfo pipe;
+
+    // These are valid for ONE FRAME ONLY
+    std::vector<ShadowPassResources> passes;
 
     BufferInfo shadowMapPassConstantBuffer;
     BufferInfo shadowMapInstanceConstantBuffer;
@@ -45,6 +51,12 @@ struct ShadowMapResources
 
 ShadowMapResources create_shadow_map_resources(ReaperRoot& root, VulkanBackend& backend);
 void               destroy_shadow_map_resources(VulkanBackend& backend, ShadowMapResources& resources);
+
+struct ShadowPassData;
+
+ShadowPassResources create_shadow_map_pass_descriptor_sets(ReaperRoot& root, VulkanBackend& backend,
+                                                           const ShadowMapResources& resources,
+                                                           const ShadowPassData&     shadow_pass);
 
 struct PreparedData;
 
