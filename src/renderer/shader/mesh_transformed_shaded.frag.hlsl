@@ -70,8 +70,6 @@ float sample_shadow_map(float4x4 light_transform_ws_to_cs, float3 object_positio
 
 PS_OUTPUT main(PS_INPUT input)
 {
-    const PointLightProperties point_light = pass_params.point_light;
-
     const float3 view_direction_vs = -normalize(input.PositionVS);
     const float3 normal_vs = normalize(input.NormalVS);
 
@@ -80,10 +78,17 @@ PS_OUTPUT main(PS_INPUT input)
     material.roughness = 0.5;
     material.f0 = 0.1;
 
-    const t_light_output lighting = shade_point_light(point_light, material, input.PositionVS, normal_vs, view_direction_vs);
-    const float shadow_term = sample_shadow_map(point_light.light_ws_to_cs, input.PositionWS);
+    float3 shaded_color = 0.0;
 
-    const float3 shaded_color = material.albedo * (lighting.diffuse + lighting.specular) * shadow_term;
+    for (uint i = 0; i < PointLightCount; i++)
+    {
+        const PointLightProperties point_light = pass_params.point_light[i];
+
+        const t_light_output lighting = shade_point_light(point_light, material, input.PositionVS, normal_vs, view_direction_vs);
+        const float shadow_term = sample_shadow_map(point_light.light_ws_to_cs, input.PositionWS);
+
+        shaded_color += material.albedo * (lighting.diffuse + lighting.specular) * shadow_term;
+    }
 
     PS_OUTPUT output;
 

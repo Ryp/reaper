@@ -17,11 +17,15 @@ struct PointLightProperties
     hlsl_float  intensity;
     hlsl_float3 color;
     hlsl_float  _pad;
+    hlsl_float4  _pad0;
+    hlsl_float4  _pad1;
 };
+
+const hlsl_uint PointLightCount = 2;
 
 struct DrawPassParams
 {
-    PointLightProperties point_light;
+    PointLightProperties point_light[PointLightCount];
     hlsl_float3x4 view;
     hlsl_float4x4 proj;
     hlsl_float4x4 view_proj;

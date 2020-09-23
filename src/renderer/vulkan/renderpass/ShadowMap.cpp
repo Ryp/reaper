@@ -297,24 +297,43 @@ ShadowMapResources create_shadow_map_resources(ReaperRoot& root, VulkanBackend& 
                                                  GPUBufferUsage::StorageBuffer),
                       backend.vma_instance);
 
+    // Imageless framebuffer
+    {
+        VkFormat format = PixelFormatToVulkan(shadowMapProperties.format);
+
+        VkFramebufferAttachmentImageInfo shadowMapFramebufferAttachmentInfo = {
+            VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENT_IMAGE_INFO,
+            nullptr,
+            GetVulkanCreateFlags(shadowMapProperties),           // VkImageCreateFlags    flags;
+            GetVulkanUsageFlags(shadowMapProperties.usageFlags), // VkImageUsageFlags     usage;
+            shadowMapProperties.width,                           // uint32_t              width;
+            shadowMapProperties.height,                          // uint32_t              height;
+            shadowMapProperties.layerCount,                      // uint32_t              layerCount;
+            1,                                                   // uint32_t              viewFormatCount;
+            &format                                              // const VkFormat*       pViewFormats;
+        };
+
+        VkFramebufferAttachmentsCreateInfo shadowMapFramebufferAttachmentsInfo = {
+            VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENTS_CREATE_INFO, nullptr, 1, &shadowMapFramebufferAttachmentInfo};
+
+        VkFramebufferCreateInfo shadowMapFramebufferInfo = {
+            VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO, // VkStructureType                sType
+            &shadowMapFramebufferAttachmentsInfo,      // const void                    *pNext
+            VK_FRAMEBUFFER_CREATE_IMAGELESS_BIT,       // VkFramebufferCreateFlags       flags
+            resources.shadowMapPass,                   // VkRenderPass                   renderPass
+            1,                                         // uint32_t                       attachmentCount
+            nullptr,                                   // const VkImageView             *pAttachments
+            shadowMapProperties.width,                 // uint32_t                       width
+            shadowMapProperties.height,                // uint32_t                       height
+            1                                          // uint32_t                       layers
+        };
+
+        Assert(vkCreateFramebuffer(backend.device, &shadowMapFramebufferInfo, nullptr, &resources.shadowMapFramebuffer)
+               == VK_SUCCESS);
+    }
+
     resources.shadowMap = create_image(root, backend.device, "Shadow Map", shadowMapProperties, backend.vma_instance);
-
     resources.shadowMapView = create_depth_image_view(root, backend.device, resources.shadowMap);
-
-    VkFramebufferCreateInfo shadowMapFramebufferInfo = {
-        VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO, // VkStructureType                sType
-        nullptr,                                   // const void                    *pNext
-        0,                                         // VkFramebufferCreateFlags       flags
-        resources.shadowMapPass,                   // VkRenderPass                   renderPass
-        1,                                         // uint32_t                       attachmentCount
-        &resources.shadowMapView,                  // const VkImageView             *pAttachments
-        shadowMapProperties.width,                 // uint32_t                       width
-        shadowMapProperties.height,                // uint32_t                       height
-        1                                          // uint32_t                       layers
-    };
-
-    Assert(vkCreateFramebuffer(backend.device, &shadowMapFramebufferInfo, nullptr, &resources.shadowMapFramebuffer)
-           == VK_SUCCESS);
 
     VkSamplerCreateInfo shadowMapSamplerCreateInfo = {};
     shadowMapSamplerCreateInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;

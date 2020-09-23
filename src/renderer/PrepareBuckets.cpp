@@ -78,7 +78,6 @@ void build_scene_graph(SceneGraph& scene, const Mesh* mesh)
         }
 
         // Add 2nd light
-        if (false)
         {
             Node&     light_node = scene.nodes.emplace_back();
             const u32 light_node_index = scene.nodes.size() - 1;
@@ -172,8 +171,10 @@ void prepare_scene(SceneGraph& scene, PreparedData& prepared)
     prepared.draw_pass_params.proj = scene.camera.projection_matrix;
     prepared.draw_pass_params.view_proj = main_camera_view_proj;
 
+    Assert(scene.lights.size() == PointLightCount);
+    for (u32 i = 0; i < PointLightCount; i++)
     {
-        const Light& light = scene.lights.front(); // FIXME
+        const Light& light = scene.lights[i];
         const Node&  light_node = scene.nodes[light.scene_node];
 
         const glm::vec3 light_position_ws =
@@ -182,10 +183,10 @@ void prepare_scene(SceneGraph& scene, PreparedData& prepared)
 
         const glm::mat4 light_view_proj_matrix = light.projection_matrix * glm::mat4(light_node.transform_matrix);
 
-        prepared.draw_pass_params.point_light.light_ws_to_cs = light_view_proj_matrix;
-        prepared.draw_pass_params.point_light.position_vs = light_position_vs;
-        prepared.draw_pass_params.point_light.intensity = 8.f;
-        prepared.draw_pass_params.point_light.color = glm::fvec3(0.8f, 0.5f, 0.2f);
+        prepared.draw_pass_params.point_light[i].light_ws_to_cs = light_view_proj_matrix;
+        prepared.draw_pass_params.point_light[i].position_vs = light_position_vs;
+        prepared.draw_pass_params.point_light[i].intensity = light.intensity;
+        prepared.draw_pass_params.point_light[i].color = light.color;
     }
 
     {
