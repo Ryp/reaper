@@ -513,8 +513,12 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                                      {shadow_map_resources.shadowMap.properties.width,
                                       shadow_map_resources.shadowMap.properties.height}};
 
+                VkRenderPassAttachmentBeginInfo shadowMapRenderPassAttachment = {
+                    VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO, nullptr, 1,
+                    &shadow_map_resources.shadowMapView};
+
                 VkRenderPassBeginInfo shadowMapRenderPassBeginInfo = {VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-                                                                      nullptr,
+                                                                      &shadowMapRenderPassAttachment,
                                                                       shadow_map_resources.shadowMapPass,
                                                                       shadow_map_resources.shadowMapFramebuffer,
                                                                       passRect,

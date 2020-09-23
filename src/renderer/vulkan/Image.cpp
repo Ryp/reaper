@@ -482,6 +482,11 @@ VkSampleCountFlagBits SampleCountToVulkan(u32 sampleCount)
     return static_cast<VkSampleCountFlagBits>(sampleCount);
 }
 
+VkImageCreateFlags GetVulkanCreateFlags(const GPUTextureProperties& /*properties*/)
+{
+    return VK_FLAGS_NONE;
+}
+
 VkImageUsageFlags GetVulkanUsageFlags(u32 usageFlags)
 {
     VkImageUsageFlags flags = 0;
@@ -506,7 +511,7 @@ ImageInfo create_image(ReaperRoot& root, VkDevice device, const char* debug_stri
 
     const VkImageCreateInfo imageInfo = {VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
                                          nullptr,
-                                         0,
+                                         GetVulkanCreateFlags(properties),
                                          VK_IMAGE_TYPE_2D,
                                          PixelFormatToVulkan(properties.format),
                                          extent,

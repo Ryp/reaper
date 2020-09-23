@@ -43,9 +43,9 @@ struct ShadowMapResources
     BufferInfo shadowMapPassConstantBuffer;
     BufferInfo shadowMapInstanceConstantBuffer;
 
+    VkFramebuffer shadowMapFramebuffer;
     ImageInfo     shadowMap;
     VkImageView   shadowMapView;
-    VkFramebuffer shadowMapFramebuffer;
     VkSampler     shadowMapSampler;
 };
 
