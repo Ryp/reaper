@@ -709,8 +709,9 @@ void vulkan_create_logical_device(ReaperRoot&                     root,
     VkPhysicalDeviceVulkan12Features device_features_1_2 = {};
     device_features_1_2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
     device_features_1_2.pNext = nullptr;
-    device_features_1_2.drawIndirectCount = true;
-    device_features_1_2.imagelessFramebuffer = true;
+    device_features_1_2.drawIndirectCount = VK_TRUE;
+    device_features_1_2.imagelessFramebuffer = VK_TRUE;
+    device_features_1_2.separateDepthStencilLayouts = VK_TRUE;
 
     VkPhysicalDeviceFeatures2 deviceFeatures2 = {};
     deviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;

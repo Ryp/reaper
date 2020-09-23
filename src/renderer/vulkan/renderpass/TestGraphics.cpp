@@ -575,7 +575,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                     nullptr,
                     0,
                     VK_ACCESS_MEMORY_READ_BIT,
-                    VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+                    VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
                     VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                     backend.physicalDeviceInfo.graphicsQueueIndex,
                     backend.physicalDeviceInfo.graphicsQueueIndex,

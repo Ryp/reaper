@@ -52,10 +52,10 @@ VkRenderPass create_main_pass(ReaperRoot& /*root*/, VulkanBackend& backend, cons
     attachmentDescriptions[depth_index].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     attachmentDescriptions[depth_index].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
     attachmentDescriptions[depth_index].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    attachmentDescriptions[depth_index].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+    attachmentDescriptions[depth_index].finalLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
 
     VkAttachmentReference colorReference = {color_index, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
-    VkAttachmentReference depthReference = {depth_index, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL};
+    VkAttachmentReference depthReference = {depth_index, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL};
 
     VkSubpassDescription subpassDescription = {};
     subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
