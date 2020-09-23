@@ -28,13 +28,14 @@ VkRenderPass create_main_pass(ReaperRoot& /*root*/, VulkanBackend& backend, cons
     swapchainProperties.usageFlags = GPUTextureUsage::Swapchain;
     swapchainProperties.miscFlags = 0;
 
-    // Create a separate render pass for the offscreen rendering as it may differ from the one used for scene
-    // rendering
-    std::array<VkAttachmentDescription, 2> attachmentDescriptions = {};
-    constexpr u32                          color_index = 0;
-    constexpr u32                          depth_index = 1;
+    constexpr u32 color_index = 0;
+    constexpr u32 depth_index = 1;
+
+    std::array<VkAttachmentDescription2, 2> attachmentDescriptions = {};
 
     // Color attachment
+    attachmentDescriptions[color_index].sType = VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2;
+    attachmentDescriptions[color_index].pNext = nullptr;
     attachmentDescriptions[color_index].format = backend.presentInfo.surfaceFormat.format; // FIXME
     attachmentDescriptions[color_index].samples = SampleCountToVulkan(swapchainProperties.sampleCount);
     attachmentDescriptions[color_index].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
@@ -45,6 +46,8 @@ VkRenderPass create_main_pass(ReaperRoot& /*root*/, VulkanBackend& backend, cons
     attachmentDescriptions[color_index].finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
     // Depth attachment
+    attachmentDescriptions[depth_index].sType = VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2;
+    attachmentDescriptions[depth_index].pNext = nullptr;
     attachmentDescriptions[depth_index].format = PixelFormatToVulkan(depthProperties.format);
     attachmentDescriptions[depth_index].samples = SampleCountToVulkan(depthProperties.sampleCount);
     attachmentDescriptions[depth_index].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
@@ -54,18 +57,24 @@ VkRenderPass create_main_pass(ReaperRoot& /*root*/, VulkanBackend& backend, cons
     attachmentDescriptions[depth_index].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     attachmentDescriptions[depth_index].finalLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
 
-    VkAttachmentReference colorReference = {color_index, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
-    VkAttachmentReference depthReference = {depth_index, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL};
+    VkAttachmentReference2 colorReference = {VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2, nullptr, color_index,
+                                             VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT};
+    VkAttachmentReference2 depthReference = {VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2, nullptr, depth_index,
+                                             VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL, VK_IMAGE_ASPECT_DEPTH_BIT};
 
-    VkSubpassDescription subpassDescription = {};
+    VkSubpassDescription2 subpassDescription = {};
+    subpassDescription.sType = VK_STRUCTURE_TYPE_SUBPASS_DESCRIPTION_2;
+    subpassDescription.pNext = nullptr;
     subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
     subpassDescription.colorAttachmentCount = 1;
     subpassDescription.pColorAttachments = &colorReference;
     subpassDescription.pDepthStencilAttachment = &depthReference;
 
     // Use subpass dependencies for layout transitions
-    std::array<VkSubpassDependency, 2> dependencies;
+    std::array<VkSubpassDependency2, 2> dependencies;
 
+    dependencies[color_index].sType = VK_STRUCTURE_TYPE_SUBPASS_DEPENDENCY_2;
+    dependencies[color_index].pNext = nullptr;
     dependencies[color_index].srcSubpass = VK_SUBPASS_EXTERNAL;
     dependencies[color_index].dstSubpass = 0;
     dependencies[color_index].srcStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
@@ -73,7 +82,10 @@ VkRenderPass create_main_pass(ReaperRoot& /*root*/, VulkanBackend& backend, cons
     dependencies[color_index].srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
     dependencies[color_index].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
     dependencies[color_index].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+    dependencies[color_index].viewOffset = 0;
 
+    dependencies[depth_index].sType = VK_STRUCTURE_TYPE_SUBPASS_DEPENDENCY_2;
+    dependencies[depth_index].pNext = nullptr;
     dependencies[depth_index].srcSubpass = 0;
     dependencies[depth_index].dstSubpass = VK_SUBPASS_EXTERNAL;
     dependencies[depth_index].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
@@ -81,19 +93,23 @@ VkRenderPass create_main_pass(ReaperRoot& /*root*/, VulkanBackend& backend, cons
     dependencies[depth_index].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
     dependencies[depth_index].dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
     dependencies[depth_index].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+    dependencies[depth_index].viewOffset = 0;
 
     // Create the actual renderpass
-    VkRenderPassCreateInfo renderPassInfo = {};
-    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+    VkRenderPassCreateInfo2 renderPassInfo = {};
+    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO_2;
+    renderPassInfo.pNext = nullptr;
     renderPassInfo.attachmentCount = static_cast<uint32_t>(attachmentDescriptions.size());
     renderPassInfo.pAttachments = attachmentDescriptions.data();
     renderPassInfo.subpassCount = 1;
     renderPassInfo.pSubpasses = &subpassDescription;
     renderPassInfo.dependencyCount = static_cast<uint32_t>(dependencies.size());
     renderPassInfo.pDependencies = dependencies.data();
+    renderPassInfo.correlatedViewMaskCount = 0;
+    renderPassInfo.pCorrelatedViewMasks = nullptr;
 
     VkRenderPass renderPass = VK_NULL_HANDLE;
-    Assert(vkCreateRenderPass(backend.device, &renderPassInfo, nullptr, &renderPass) == VK_SUCCESS);
+    Assert(vkCreateRenderPass2(backend.device, &renderPassInfo, nullptr, &renderPass) == VK_SUCCESS);
 
     return renderPass;
 }
