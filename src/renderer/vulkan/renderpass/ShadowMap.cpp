@@ -34,23 +34,23 @@ namespace
     VkRenderPass create_shadow_raster_pass(ReaperRoot& /*root*/, VulkanBackend& backend,
                                            const GPUTextureProperties& shadowMapProperties)
     {
-        // Create a separate render pass for the offscreen rendering as it may differ from the one used for scene
-        // rendering
+        constexpr u32 depth_index = 0;
+
         std::array<VkAttachmentDescription2, 1> attachmentDescriptions = {};
 
         // Depth attachment
-        attachmentDescriptions[0].sType = VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2;
-        attachmentDescriptions[0].pNext = nullptr;
-        attachmentDescriptions[0].format = PixelFormatToVulkan(shadowMapProperties.format);
-        attachmentDescriptions[0].samples = SampleCountToVulkan(shadowMapProperties.sampleCount);
-        attachmentDescriptions[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-        attachmentDescriptions[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-        attachmentDescriptions[0].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-        attachmentDescriptions[0].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        attachmentDescriptions[0].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        attachmentDescriptions[0].finalLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+        attachmentDescriptions[depth_index].sType = VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2;
+        attachmentDescriptions[depth_index].pNext = nullptr;
+        attachmentDescriptions[depth_index].format = PixelFormatToVulkan(shadowMapProperties.format);
+        attachmentDescriptions[depth_index].samples = SampleCountToVulkan(shadowMapProperties.sampleCount);
+        attachmentDescriptions[depth_index].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        attachmentDescriptions[depth_index].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        attachmentDescriptions[depth_index].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        attachmentDescriptions[depth_index].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        attachmentDescriptions[depth_index].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        attachmentDescriptions[depth_index].finalLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
 
-        VkAttachmentReference2 depthReference = {VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2, nullptr, 0,
+        VkAttachmentReference2 depthReference = {VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2, nullptr, depth_index,
                                                  VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL, VK_IMAGE_ASPECT_DEPTH_BIT};
 
         VkSubpassDescription2 subpassDescription = {};
@@ -64,16 +64,16 @@ namespace
         // Use subpass dependencies for layout transitions
         std::array<VkSubpassDependency2, 1> dependencies;
 
-        dependencies[0].sType = VK_STRUCTURE_TYPE_SUBPASS_DEPENDENCY_2;
-        dependencies[0].pNext = nullptr;
-        dependencies[0].srcSubpass = 0;
-        dependencies[0].dstSubpass = VK_SUBPASS_EXTERNAL;
-        dependencies[0].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-        dependencies[0].dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-        dependencies[0].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-        dependencies[0].dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-        dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
-        dependencies[0].viewOffset = 0;
+        dependencies[depth_index].sType = VK_STRUCTURE_TYPE_SUBPASS_DEPENDENCY_2;
+        dependencies[depth_index].pNext = nullptr;
+        dependencies[depth_index].srcSubpass = 0;
+        dependencies[depth_index].dstSubpass = VK_SUBPASS_EXTERNAL;
+        dependencies[depth_index].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        dependencies[depth_index].dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+        dependencies[depth_index].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+        dependencies[depth_index].dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+        dependencies[depth_index].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+        dependencies[depth_index].viewOffset = 0;
 
         // Create the actual renderpass
         VkRenderPassCreateInfo2 renderPassInfo = {};
