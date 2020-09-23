@@ -36,9 +36,11 @@ namespace
     {
         // Create a separate render pass for the offscreen rendering as it may differ from the one used for scene
         // rendering
-        std::array<VkAttachmentDescription, 1> attachmentDescriptions = {};
+        std::array<VkAttachmentDescription2, 1> attachmentDescriptions = {};
 
         // Depth attachment
+        attachmentDescriptions[0].sType = VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2;
+        attachmentDescriptions[0].pNext = nullptr;
         attachmentDescriptions[0].format = PixelFormatToVulkan(shadowMapProperties.format);
         attachmentDescriptions[0].samples = SampleCountToVulkan(shadowMapProperties.sampleCount);
         attachmentDescriptions[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
@@ -48,17 +50,22 @@ namespace
         attachmentDescriptions[0].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
         attachmentDescriptions[0].finalLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
 
-        VkAttachmentReference depthReference = {0, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL};
+        VkAttachmentReference2 depthReference = {VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2, nullptr, 0,
+                                                 VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL, VK_IMAGE_ASPECT_DEPTH_BIT};
 
-        VkSubpassDescription subpassDescription = {};
+        VkSubpassDescription2 subpassDescription = {};
+        subpassDescription.sType = VK_STRUCTURE_TYPE_SUBPASS_DESCRIPTION_2;
+        subpassDescription.pNext = nullptr;
         subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
         subpassDescription.colorAttachmentCount = 0;
         subpassDescription.pColorAttachments = nullptr;
         subpassDescription.pDepthStencilAttachment = &depthReference;
 
         // Use subpass dependencies for layout transitions
-        std::array<VkSubpassDependency, 1> dependencies;
+        std::array<VkSubpassDependency2, 1> dependencies;
 
+        dependencies[0].sType = VK_STRUCTURE_TYPE_SUBPASS_DEPENDENCY_2;
+        dependencies[0].pNext = nullptr;
         dependencies[0].srcSubpass = 0;
         dependencies[0].dstSubpass = VK_SUBPASS_EXTERNAL;
         dependencies[0].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
@@ -66,19 +73,24 @@ namespace
         dependencies[0].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
         dependencies[0].dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
         dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+        dependencies[0].viewOffset = 0;
 
         // Create the actual renderpass
-        VkRenderPassCreateInfo renderPassInfo = {};
-        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+        VkRenderPassCreateInfo2 renderPassInfo = {};
+        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO_2;
+        renderPassInfo.pNext = nullptr;
+        renderPassInfo.flags = VK_FLAGS_NONE;
         renderPassInfo.attachmentCount = static_cast<uint32_t>(attachmentDescriptions.size());
         renderPassInfo.pAttachments = attachmentDescriptions.data();
         renderPassInfo.subpassCount = 1;
         renderPassInfo.pSubpasses = &subpassDescription;
         renderPassInfo.dependencyCount = static_cast<uint32_t>(dependencies.size());
         renderPassInfo.pDependencies = dependencies.data();
+        renderPassInfo.correlatedViewMaskCount = 0;
+        renderPassInfo.pCorrelatedViewMasks = nullptr;
 
         VkRenderPass renderPass = VK_NULL_HANDLE;
-        Assert(vkCreateRenderPass(backend.device, &renderPassInfo, nullptr, &renderPass) == VK_SUCCESS);
+        Assert(vkCreateRenderPass2(backend.device, &renderPassInfo, nullptr, &renderPass) == VK_SUCCESS);
 
         return renderPass;
     }
