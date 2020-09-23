@@ -434,8 +434,8 @@ void vulkan_device_check_extensions(const std::vector<const char*>& extensions, 
     Assert(extensions_count > 0);
 
     std::vector<VkExtensionProperties> available_extensions(extensions_count);
-    Assert(vkEnumerateDeviceExtensionProperties(
-               physicalDevice, nullptr, &extensions_count, (extensions_count > 0 ? &available_extensions[0] : nullptr))
+    Assert(vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extensions_count,
+                                                (extensions_count > 0 ? &available_extensions[0] : nullptr))
            == VK_SUCCESS);
 
     for (size_t i = 0; i < extensions.size(); ++i)
@@ -607,9 +607,13 @@ void vulkan_choose_physical_device(ReaperRoot&                     root,
     vkGetPhysicalDeviceMemoryProperties(chosenPhysicalDevice, &physicalDeviceInfo.memory);
 
     // re-fetch device infos TODO avoid
+    VkPhysicalDeviceDriverProperties deviceDriverProperties;
+    deviceDriverProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRIVER_PROPERTIES;
+    deviceDriverProperties.pNext = nullptr;
+
     VkPhysicalDeviceSubgroupProperties subgroupProperties;
     subgroupProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SUBGROUP_PROPERTIES;
-    subgroupProperties.pNext = nullptr;
+    subgroupProperties.pNext = &deviceDriverProperties;
 
     VkPhysicalDeviceProperties2 physicalDeviceProperties2;
     physicalDeviceProperties2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
@@ -643,11 +647,13 @@ void vulkan_choose_physical_device(ReaperRoot&                     root,
               VK_VERSION_MAJOR(apiVersion),
               VK_VERSION_MINOR(apiVersion),
               VK_VERSION_PATCH(apiVersion));
-    log_debug(root,
-              "- driver version = {}.{}.{}",
-              VK_VERSION_MAJOR(driverVersion),
-              VK_VERSION_MINOR(driverVersion),
-              VK_VERSION_PATCH(driverVersion));
+
+    log_debug(root, "- driver '{}' version = {}.{}.{}", deviceDriverProperties.driverName,
+              VK_VERSION_MAJOR(driverVersion), VK_VERSION_MINOR(driverVersion), VK_VERSION_PATCH(driverVersion));
+
+    log_debug(root, "- driver info '{}' conformance version = {}.{}.{}.{}", deviceDriverProperties.driverInfo,
+              deviceDriverProperties.conformanceVersion.major, deviceDriverProperties.conformanceVersion.minor,
+              deviceDriverProperties.conformanceVersion.subminor, deviceDriverProperties.conformanceVersion.patch);
 
     log_debug(root,
               "- memory type count = {}, memory heap count = {}",
@@ -736,8 +742,8 @@ void vulkan_create_logical_device(ReaperRoot&                     root,
 
     vulkan_load_device_level_functions(backend.device);
 
-    vkGetDeviceQueue(
-        backend.device, backend.physicalDeviceInfo.graphicsQueueIndex, 0, &backend.deviceInfo.graphicsQueue);
+    vkGetDeviceQueue(backend.device, backend.physicalDeviceInfo.graphicsQueueIndex, 0,
+                     &backend.deviceInfo.graphicsQueue);
     vkGetDeviceQueue(backend.device, backend.physicalDeviceInfo.presentQueueIndex, 0, &backend.deviceInfo.presentQueue);
 }
 } // namespace Reaper
