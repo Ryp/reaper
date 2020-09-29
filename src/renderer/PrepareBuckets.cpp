@@ -113,8 +113,8 @@ void update_scene_graph(SceneGraph& scene, float time_ms, glm::uvec2 viewport_ex
     {
         const float     ratio = static_cast<float>(i) / static_cast<float>(MeshInstanceCount) * Math::Pi * 2.f;
         const glm::vec3 object_position_ws = glm::vec3(glm::cos(ratio + time_ms), glm::cos(ratio), glm::sin(ratio));
-        // const float     uniform_scale = 0.0005f;
-        const float     uniform_scale = 1.0f;
+        const float     uniform_scale = 0.0014f;
+        // const float     uniform_scale = 1.0f;
         const glm::mat4 model = glm::rotate(glm::scale(glm::translate(glm::mat4(1.0f), object_position_ws),
                                                        glm::vec3(uniform_scale, uniform_scale, uniform_scale)),
                                             time_ms + ratio, glm::vec3(0.f, 1.f, 1.f));
@@ -162,6 +162,52 @@ namespace
 
 void prepare_scene(SceneGraph& scene, PreparedData& prepared)
 {
+    // Shadow pass
+    for (const auto& light : scene.lights)
+    {
+        ShadowPassData& shadow_pass = prepared.shadow_passes.emplace_back();
+        shadow_pass.pass_index = prepared.shadow_passes.size() - 1;
+
+        shadow_pass.instance_offset = prepared.shadow_instance_params.size();
+
+        CullPassData& cull_pass = prepared.cull_passes.emplace_back();
+        cull_pass.pass_index = prepared.cull_passes.size() - 1;
+
+        shadow_pass.culling_pass_index = cull_pass.pass_index;
+        shadow_pass.shadow_map_size = glm::uvec2(ShadowMapResolution, ShadowMapResolution); // FIXME
+
+        CullPassParams& cull_pass_params = prepared.cull_pass_params.emplace_back();
+        cull_pass_params.output_size_ts = glm::fvec2(shadow_pass.shadow_map_size);
+
+        ShadowMapPassParams& shadow_pass_params = prepared.shadow_pass_params.emplace_back();
+        shadow_pass_params.dummy = glm::mat4(1.f);
+
+        const Node& light_node = scene.nodes[light.scene_node];
+
+        for (const auto& node : scene.nodes)
+        {
+            if (node.instance_id == InvalidMeshInstanceId)
+                continue;
+
+            const glm::mat4 light_view_proj_matrix = light.projection_matrix * glm::mat4(light_node.transform_matrix);
+
+            ShadowMapInstanceParams& shadow_instance = prepared.shadow_instance_params.emplace_back();
+            shadow_instance.ms_to_cs_matrix = light_view_proj_matrix * glm::mat4(node.transform_matrix);
+
+            CullInstanceParams& cull_instance = prepared.cull_instance_params.emplace_back();
+            const u32           cull_instance_index = prepared.cull_instance_params.size() - 1;
+
+            cull_instance.ms_to_cs_matrix = shadow_instance.ms_to_cs_matrix;
+            cull_instance.instance_id = node.instance_id;
+
+            insert_cull_cmd(cull_pass, node, cull_instance_index, 1);
+        }
+
+        // Count instances we just inserted
+        const u32 shadow_total_instance_count = prepared.shadow_instance_params.size();
+        shadow_pass.instance_count = shadow_total_instance_count - shadow_pass.instance_offset;
+    }
+
     const Node& camera_node = scene.nodes[scene.camera.scene_node];
 
     // Main + culling pass
@@ -187,6 +233,7 @@ void prepare_scene(SceneGraph& scene, PreparedData& prepared)
         prepared.draw_pass_params.point_light[i].position_vs = light_position_vs;
         prepared.draw_pass_params.point_light[i].intensity = light.intensity;
         prepared.draw_pass_params.point_light[i].color = light.color;
+        prepared.draw_pass_params.point_light[i].shadow_map_index = i; // FIXME
     }
 
     {
@@ -218,51 +265,6 @@ void prepare_scene(SceneGraph& scene, PreparedData& prepared)
 
             insert_cull_cmd(cull_pass, node, cull_instance_index, 1);
         }
-    }
-
-    // Shadow pass
-    for (const auto& light : scene.lights)
-    {
-        ShadowPassData& shadow_pass = prepared.shadow_passes.emplace_back();
-        shadow_pass.pass_index = prepared.shadow_passes.size() - 1;
-
-        shadow_pass.instance_offset = prepared.shadow_instance_params.size();
-
-        CullPassData& cull_pass = prepared.cull_passes.emplace_back();
-        cull_pass.pass_index = prepared.cull_passes.size() - 1;
-
-        shadow_pass.culling_pass_index = cull_pass.pass_index;
-
-        CullPassParams& cull_pass_params = prepared.cull_pass_params.emplace_back();
-        cull_pass_params.output_size_ts = glm::vec2(ShadowMapResolution, ShadowMapResolution);
-
-        ShadowMapPassParams& shadow_pass_params = prepared.shadow_pass_params.emplace_back();
-        shadow_pass_params.dummy = glm::mat4(1.f);
-
-        const Node& light_node = scene.nodes[light.scene_node];
-
-        for (const auto& node : scene.nodes)
-        {
-            if (node.instance_id == InvalidMeshInstanceId)
-                continue;
-
-            const glm::mat4 light_view_proj_matrix = light.projection_matrix * glm::mat4(light_node.transform_matrix);
-
-            ShadowMapInstanceParams& shadow_instance = prepared.shadow_instance_params.emplace_back();
-            shadow_instance.ms_to_cs_matrix = light_view_proj_matrix * glm::mat4(node.transform_matrix);
-
-            CullInstanceParams& cull_instance = prepared.cull_instance_params.emplace_back();
-            const u32           cull_instance_index = prepared.cull_instance_params.size() - 1;
-
-            cull_instance.ms_to_cs_matrix = shadow_instance.ms_to_cs_matrix;
-            cull_instance.instance_id = node.instance_id;
-
-            insert_cull_cmd(cull_pass, node, cull_instance_index, 1);
-        }
-
-        // Count instances we just inserted
-        const u32 shadow_total_instance_count = prepared.shadow_instance_params.size();
-        shadow_pass.instance_count = shadow_total_instance_count - shadow_pass.instance_offset;
     }
 }
 } // namespace Reaper

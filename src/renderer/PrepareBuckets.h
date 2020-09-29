@@ -66,10 +66,11 @@ struct CullPassData
 
 struct ShadowPassData
 {
-    u32 pass_index;
-    u32 instance_offset;
-    u32 instance_count;
-    u32 culling_pass_index;
+    u32        pass_index;
+    u32        instance_offset;
+    u32        instance_count;
+    u32        culling_pass_index;
+    glm::uvec2 shadow_map_size;
 };
 
 struct PreparedData

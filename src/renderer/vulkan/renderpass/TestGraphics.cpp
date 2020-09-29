@@ -112,7 +112,7 @@ namespace
 void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResources& resources)
 {
     // Read mesh file
-    std::ifstream modelFile("res/model/suzanne.obj");
+    std::ifstream modelFile("res/model/ship.obj");
     const Mesh    mesh = ModelLoader::loadOBJ(modelFile);
 
     BufferInfo vertexBufferPosition =
@@ -152,42 +152,6 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
     const glm::uvec2  swapchain_extent(backend.presentInfo.surfaceExtent.width,
                                       backend.presentInfo.surfaceExtent.height);
     MainPassResources main_pass_resources = create_main_pass_resources(root, backend, swapchain_extent);
-
-    MainPipelineInfo mainPipe = create_main_pipeline(root, backend, main_pass_resources.mainRenderPass);
-    VkDescriptorSet  pixelConstantsDescriptorSet = VK_NULL_HANDLE;
-    {
-        VkDescriptorSetAllocateInfo descriptorSetAllocInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr,
-                                                              backend.global_descriptor_pool, 1,
-                                                              &mainPipe.descSetLayout};
-
-        Assert(vkAllocateDescriptorSets(backend.device, &descriptorSetAllocInfo, &pixelConstantsDescriptorSet)
-               == VK_SUCCESS);
-        log_debug(root, "vulkan: created descriptor set with handle: {}",
-                  static_cast<void*>(pixelConstantsDescriptorSet));
-
-        const VkDescriptorBufferInfo drawDescPassParams =
-            default_descriptor_buffer_info(main_pass_resources.drawPassConstantBuffer);
-        const VkDescriptorBufferInfo drawDescInstanceParams =
-            default_descriptor_buffer_info(main_pass_resources.drawInstanceConstantBuffer);
-        const VkDescriptorImageInfo drawDescShadowMapTexture = {VK_NULL_HANDLE, shadow_map_resources.shadowMapView,
-                                                                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
-        const VkDescriptorImageInfo drawDescShadowMapSampler = {shadow_map_resources.shadowMapSampler, VK_NULL_HANDLE,
-                                                                VK_IMAGE_LAYOUT_UNDEFINED};
-
-        std::array<VkWriteDescriptorSet, 4> drawPassDescriptorSetWrites = {
-            create_buffer_descriptor_write(pixelConstantsDescriptorSet, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                                           &drawDescPassParams),
-            create_buffer_descriptor_write(pixelConstantsDescriptorSet, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                                           &drawDescInstanceParams),
-            create_image_descriptor_write(pixelConstantsDescriptorSet, 2, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-                                          &drawDescShadowMapTexture),
-            create_image_descriptor_write(pixelConstantsDescriptorSet, 3, VK_DESCRIPTOR_TYPE_SAMPLER,
-                                          &drawDescShadowMapSampler),
-        };
-
-        vkUpdateDescriptorSets(backend.device, static_cast<u32>(drawPassDescriptorSetWrites.size()),
-                               drawPassDescriptorSetWrites.data(), 0, nullptr);
-    }
 
     // Create fence
     VkFenceCreateInfo fenceInfo = {
@@ -387,13 +351,35 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                     root, backend, cull_resources, cull_pass.pass_index, indexBuffer, vertexBufferPosition);
             }
 
+            for (u32 i = 0; i < shadow_map_resources.shadowMap.size(); i++)
+            {
+                vmaDestroyImage(backend.vma_instance, shadow_map_resources.shadowMap[i].handle,
+                                shadow_map_resources.shadowMap[i].allocation);
+                vkDestroyImageView(backend.device, shadow_map_resources.shadowMapView[i], nullptr);
+            }
+
             shadow_map_resources.passes.clear();
+            shadow_map_resources.shadowMap.clear();
+            shadow_map_resources.shadowMapView.clear();
             for (const ShadowPassData& shadow_pass : prepared.shadow_passes)
             {
                 ShadowPassResources& shadow_map_pass_resources = shadow_map_resources.passes.emplace_back();
                 shadow_map_pass_resources =
                     create_shadow_map_pass_descriptor_sets(root, backend, shadow_map_resources, shadow_pass);
+
+                const GPUTextureProperties texture_properties =
+                    get_shadow_map_texture_properties(shadow_pass.shadow_map_size);
+
+                ImageInfo& shadow_map = shadow_map_resources.shadowMap.emplace_back();
+
+                shadow_map = create_image(root, backend.device, "Shadow Map", texture_properties, backend.vma_instance);
+
+                shadow_map_resources.shadowMapView.push_back(create_depth_image_view(root, backend.device, shadow_map));
             }
+
+            // FIXME
+            VkDescriptorSet mainPassDescriptorSet =
+                create_main_pass_descriptor_set(root, backend, main_pass_resources, shadow_map_resources.shadowMapView);
 
             // NOTE: do partial copies if possible
             upload_buffer_data(backend.device, backend.vma_instance, main_pass_resources.drawPassConstantBuffer,
@@ -509,13 +495,12 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
 
                 VkClearValue clearValue =
                     VkClearDepthStencil(UseReverseZ ? 0.f : 1.f, 0); // NOTE: handle reverse Z more gracefully
-                VkRect2D passRect = {{0, 0},
-                                     {shadow_map_resources.shadowMap.properties.width,
-                                      shadow_map_resources.shadowMap.properties.height}};
+                VkRect2D passRect = {{0, 0}, {shadow_pass.shadow_map_size.x, shadow_pass.shadow_map_size.y}};
+
+                const VkImageView shadowMapView = shadow_map_resources.shadowMapView[shadow_pass.pass_index];
 
                 VkRenderPassAttachmentBeginInfo shadowMapRenderPassAttachment = {
-                    VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO, nullptr, 1,
-                    &shadow_map_resources.shadowMapView};
+                    VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO, nullptr, 1, &shadowMapView};
 
                 VkRenderPassBeginInfo shadowMapRenderPassBeginInfo = {VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
                                                                       &shadowMapRenderPassAttachment,
@@ -569,7 +554,9 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                 vkCmdEndRenderPass(resources.gfxCmdBuffer);
             }
 
+            for (const ShadowPassData& shadow_pass : prepared.shadow_passes)
             {
+                // FIXME synchronize with a single call
                 VkImageMemoryBarrier shadowMapImageBarrierInfo = {
                     VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
                     nullptr,
@@ -579,7 +566,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                     VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                     backend.physicalDeviceInfo.graphicsQueueIndex,
                     backend.physicalDeviceInfo.graphicsQueueIndex,
-                    shadow_map_resources.shadowMap.handle,
+                    shadow_map_resources.shadowMap[shadow_pass.pass_index].handle,
                     {VK_IMAGE_ASPECT_DEPTH_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS}};
 
                 vkCmdPipelineBarrier(resources.gfxCmdBuffer, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
@@ -593,7 +580,8 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
 
                 vkCmdBeginRenderPass(resources.gfxCmdBuffer, &blitRenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-                vkCmdBindPipeline(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mainPipe.pipeline);
+                vkCmdBindPipeline(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                  main_pass_resources.mainPipe.pipeline);
 
                 const VkViewport blitViewport = {
                     0.0f, 0.0f, static_cast<float>(backbufferExtent.width), static_cast<float>(backbufferExtent.height),
@@ -619,7 +607,8 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                 vkCmdBindVertexBuffers(resources.gfxCmdBuffer, 0, static_cast<u32>(vertexBuffers.size()),
                                        vertexBuffers.data(), vertexBufferOffsets.data());
                 vkCmdBindDescriptorSets(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                        mainPipe.pipelineLayout, 0, 1, &pixelConstantsDescriptorSet, 0, nullptr);
+                                        main_pass_resources.mainPipe.pipelineLayout, 0, 1, &mainPassDescriptorSet, 0,
+                                        nullptr);
 
                 const u32 draw_buffer_offset = pass_index * MaxIndirectDrawCount * sizeof(VkDrawIndexedIndirectCommand);
                 const u32 draw_buffer_max_count = MaxIndirectDrawCount;
@@ -695,10 +684,6 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
     window->unmap();
 
     vkDestroyFence(backend.device, drawFence, nullptr);
-
-    vkDestroyPipeline(backend.device, mainPipe.pipeline, nullptr);
-    vkDestroyPipelineLayout(backend.device, mainPipe.pipelineLayout, nullptr);
-    vkDestroyDescriptorSetLayout(backend.device, mainPipe.descSetLayout, nullptr);
 
     destroy_main_pass_resources(backend, main_pass_resources);
     destroy_shadow_map_resources(backend, shadow_map_resources);

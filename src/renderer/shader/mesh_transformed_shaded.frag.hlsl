@@ -12,8 +12,8 @@ VK_CONSTANT(1) const uint spec_debug_mode = debug_mode_none;
 
 VK_BINDING(0, 0) ConstantBuffer<DrawPassParams> pass_params;
 
-VK_BINDING(2, 0) Texture2D<float> t_shadow_map;
-VK_BINDING(3, 0) SamplerComparisonState shadow_map_sampler;
+VK_BINDING(2, 0) SamplerComparisonState shadow_map_sampler;
+VK_BINDING(3, 0) Texture2D<float> t_shadow_map[];
 
 struct PS_INPUT
 {
@@ -56,14 +56,15 @@ t_light_output shade_point_light(
     return output;
 }
 
-float sample_shadow_map(float4x4 light_transform_ws_to_cs, float3 object_position_ws)
+// NOTE: shadow_map_index MUST be uniform
+float sample_shadow_map(float4x4 light_transform_ws_to_cs, float3 object_position_ws, uint shadow_map_index)
 {
     const float4 position_shadow_map_cs = mul(light_transform_ws_to_cs, float4(object_position_ws, 1.0));
     const float3 position_shadow_map_ndc = position_shadow_map_cs.xyz / position_shadow_map_cs.w;
     const float2 position_shadow_map_uv = ndc_to_uv(position_shadow_map_ndc.xy);
 
     const float shadow_depth_bias = 0.001;
-    const float shadow_pcf = t_shadow_map.SampleCmp(shadow_map_sampler, position_shadow_map_uv, position_shadow_map_ndc.z + shadow_depth_bias);
+    const float shadow_pcf = t_shadow_map[shadow_map_index].SampleCmp(shadow_map_sampler, position_shadow_map_uv, position_shadow_map_ndc.z + shadow_depth_bias);
 
     return shadow_pcf;
 }
@@ -85,7 +86,7 @@ PS_OUTPUT main(PS_INPUT input)
         const PointLightProperties point_light = pass_params.point_light[i];
 
         const t_light_output lighting = shade_point_light(point_light, material, input.PositionVS, normal_vs, view_direction_vs);
-        const float shadow_term = sample_shadow_map(point_light.light_ws_to_cs, input.PositionWS);
+        const float shadow_term = sample_shadow_map(point_light.light_ws_to_cs, input.PositionWS, point_light.shadow_map_index);
 
         shaded_color += material.albedo * (lighting.diffuse + lighting.specular) * shadow_term;
     }

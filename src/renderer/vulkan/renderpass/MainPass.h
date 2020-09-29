@@ -13,6 +13,8 @@
 
 #include <glm/vec2.hpp>
 
+#include <nonstd/span.hpp>
+
 #include <vector>
 
 namespace Reaper
@@ -43,7 +45,11 @@ struct MainPassResources
 
     VkRenderPass mainRenderPass;
 
+    MainPipelineInfo mainPipe;
+
     std::vector<VkFramebuffer> framebuffers;
+
+    VkSampler shadowMapSampler;
 };
 
 MainPassResources create_main_pass_resources(ReaperRoot& root, VulkanBackend& backend, glm::uvec2 extent);
@@ -51,4 +57,8 @@ void              destroy_main_pass_resources(VulkanBackend& backend, MainPassRe
 
 void resize_main_pass_depth_buffer(ReaperRoot& root, VulkanBackend& backend, MainPassResources& resources,
                                    glm::uvec2 extent);
+
+VkDescriptorSet create_main_pass_descriptor_set(ReaperRoot& root, VulkanBackend& backend,
+                                                const MainPassResources&        resources,
+                                                const nonstd::span<VkImageView> shadow_map_views);
 } // namespace Reaper
