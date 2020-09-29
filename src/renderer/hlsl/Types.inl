@@ -80,7 +80,7 @@ struct alignas(16) hlsl_vector4
     T w;
 
     hlsl_vector4() = default;
-    hlsl_vector4(const glm::tvec4<float>& other)
+    hlsl_vector4(const glm::tvec4<T>& other)
     {
         this->x = other.x;
         this->y = other.y;
@@ -119,7 +119,7 @@ struct alignas(16) hlsl_matrix3x3
         }
     }
 
-    operator glm::tmat3x3<float>() const
+    operator glm::tmat3x3<T>() const
     {
         if constexpr (Storage == RowMajor)
             return glm::rowMajor3(glm::tvec3<T>(element[0]), glm::tvec3<T>(element[1]), glm::tvec3<T>(element[2]));
@@ -158,19 +158,19 @@ struct alignas(16) hlsl_matrix3x4
         }
     }
 
-    operator glm::tmat4x3<float>() const
+    operator glm::tmat4x3<T>() const
     {
         if constexpr (Storage == RowMajor)
         {
-            return glm::tmat4x3<float>(glm::tvec3<T>(element[0].x, element[1].x, element[2].x),
-                                       glm::tvec3<T>(element[0].y, element[1].y, element[2].y),
-                                       glm::tvec3<T>(element[0].z, element[1].z, element[2].z),
-                                       glm::tvec3<T>(element[0].w, element[1].w, element[2].w));
+            return glm::tmat4x3<T>(glm::tvec3<T>(element[0].x, element[1].x, element[2].x),
+                                   glm::tvec3<T>(element[0].y, element[1].y, element[2].y),
+                                   glm::tvec3<T>(element[0].z, element[1].z, element[2].z),
+                                   glm::tvec3<T>(element[0].w, element[1].w, element[2].w));
         }
         else
         {
-            return glm::tmat4x3<float>(glm::tvec3<T>(element[0]), glm::tvec3<T>(element[1]), glm::tvec3<T>(element[2]),
-                                       glm::tvec3<T>(element[3]));
+            return glm::tmat4x3<T>(glm::tvec3<T>(element[0]), glm::tvec3<T>(element[1]), glm::tvec3<T>(element[2]),
+                                   glm::tvec3<T>(element[3]));
         }
     }
 };
@@ -199,7 +199,7 @@ struct alignas(16) hlsl_matrix4x4
         }
     }
 
-    operator glm::tmat4x4<float>() const
+    operator glm::tmat4x4<T>() const
     {
         if constexpr (Storage == RowMajor)
         {

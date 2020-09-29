@@ -220,6 +220,7 @@ void create_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& backend)
         VK_KHR_SWAPCHAIN_EXTENSION_NAME,
         VK_EXT_SHADER_SUBGROUP_BALLOT_EXTENSION_NAME,
         VK_EXT_SHADER_SUBGROUP_VOTE_EXTENSION_NAME,
+        VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,
     };
 
     log_debug(root, "vulkan: choosing physical device");
@@ -718,6 +719,8 @@ void vulkan_create_logical_device(ReaperRoot&                     root,
     device_features_1_2.drawIndirectCount = VK_TRUE;
     device_features_1_2.imagelessFramebuffer = VK_TRUE;
     device_features_1_2.separateDepthStencilLayouts = VK_TRUE;
+    device_features_1_2.descriptorIndexing = VK_TRUE;
+    device_features_1_2.descriptorBindingPartiallyBound = VK_TRUE;
 
     VkPhysicalDeviceFeatures2 deviceFeatures2 = {};
     deviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;

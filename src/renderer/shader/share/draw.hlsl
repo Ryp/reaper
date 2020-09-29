@@ -16,9 +16,7 @@ struct PointLightProperties
     hlsl_float3 position_vs;
     hlsl_float  intensity;
     hlsl_float3 color;
-    hlsl_float  _pad;
-    hlsl_float4  _pad0;
-    hlsl_float4  _pad1;
+    hlsl_float  shadow_map_index;
 };
 
 const hlsl_uint PointLightCount = 2;

@@ -7,6 +7,8 @@
 
 #include "MainPass.h"
 
+#include "ShadowConstants.h"
+
 #include "renderer/vulkan/Image.h"
 #include "renderer/vulkan/Shader.h"
 #include "renderer/vulkan/SwapchainRendererBase.h"
@@ -262,12 +264,20 @@ MainPipelineInfo create_main_pipeline(ReaperRoot& root, VulkanBackend& backend, 
         VkDescriptorSetLayoutBinding{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1,
                                      VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
         VkDescriptorSetLayoutBinding{1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
-        VkDescriptorSetLayoutBinding{2, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
-        VkDescriptorSetLayoutBinding{3, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+        VkDescriptorSetLayoutBinding{2, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+        VkDescriptorSetLayoutBinding{3, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, ShadowMapMaxCount,
+                                     VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
     };
 
-    VkDescriptorSetLayoutCreateInfo descriptorSetLayoutInfo = {
-        VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, nullptr, 0,
+    std::array<VkDescriptorBindingFlags, 4> bindingFlags = {VK_FLAGS_NONE, VK_FLAGS_NONE, VK_FLAGS_NONE,
+                                                            VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT};
+
+    const VkDescriptorSetLayoutBindingFlagsCreateInfo descriptorSetLayoutBindingFlags = {
+        VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO, nullptr, bindingFlags.size(),
+        bindingFlags.data()};
+
+    const VkDescriptorSetLayoutCreateInfo descriptorSetLayoutInfo = {
+        VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, &descriptorSetLayoutBindingFlags, 0,
         static_cast<u32>(descriptorSetLayoutBinding.size()), descriptorSetLayoutBinding.data()};
 
     VkDescriptorSetLayout descriptorSetLayoutCB = VK_NULL_HANDLE;
@@ -397,15 +407,45 @@ MainPassResources create_main_pass_resources(ReaperRoot& root, VulkanBackend& ba
     create_depth_buffer(root, backend, resources, extent);
 
     resources.mainRenderPass = create_main_pass(root, backend, resources.depthBuffer.properties);
+    resources.mainPipe = create_main_pipeline(root, backend, resources.mainRenderPass);
 
     create_framebuffers(root, backend, resources.mainRenderPass, resources.depthBufferView, resources.framebuffers);
+
+    VkSamplerCreateInfo shadowMapSamplerCreateInfo = {};
+    shadowMapSamplerCreateInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+    shadowMapSamplerCreateInfo.magFilter = VK_FILTER_LINEAR;
+    shadowMapSamplerCreateInfo.minFilter = VK_FILTER_LINEAR;
+    shadowMapSamplerCreateInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+    shadowMapSamplerCreateInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+    shadowMapSamplerCreateInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+    shadowMapSamplerCreateInfo.anisotropyEnable = VK_FALSE;
+    shadowMapSamplerCreateInfo.maxAnisotropy = 16;
+    shadowMapSamplerCreateInfo.borderColor =
+        UseReverseZ ? VK_BORDER_COLOR_INT_OPAQUE_BLACK : VK_BORDER_COLOR_INT_OPAQUE_WHITE;
+    shadowMapSamplerCreateInfo.unnormalizedCoordinates = VK_FALSE;
+    shadowMapSamplerCreateInfo.compareEnable = VK_TRUE;
+    shadowMapSamplerCreateInfo.compareOp = UseReverseZ ? VK_COMPARE_OP_GREATER : VK_COMPARE_OP_LESS;
+    shadowMapSamplerCreateInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+    shadowMapSamplerCreateInfo.mipLodBias = 0.f;
+    shadowMapSamplerCreateInfo.minLod = 0.f;
+    shadowMapSamplerCreateInfo.maxLod = FLT_MAX;
+
+    Assert(vkCreateSampler(backend.device, &shadowMapSamplerCreateInfo, nullptr, &resources.shadowMapSampler)
+           == VK_SUCCESS);
+    log_debug(root, "vulkan: created sampler with handle: {}", static_cast<void*>(resources.shadowMapSampler));
 
     return resources;
 }
 
 void destroy_main_pass_resources(VulkanBackend& backend, MainPassResources& resources)
 {
+    vkDestroySampler(backend.device, resources.shadowMapSampler, nullptr);
+
     destroy_framebuffers(backend.device, resources.framebuffers);
+
+    vkDestroyPipeline(backend.device, resources.mainPipe.pipeline, nullptr);
+    vkDestroyPipelineLayout(backend.device, resources.mainPipe.pipelineLayout, nullptr);
+    vkDestroyDescriptorSetLayout(backend.device, resources.mainPipe.descSetLayout, nullptr);
 
     vkDestroyRenderPass(backend.device, resources.mainRenderPass, nullptr);
 
@@ -425,5 +465,56 @@ void resize_main_pass_depth_buffer(ReaperRoot& root, VulkanBackend& backend, Mai
 
     create_depth_buffer(root, backend, resources, extent);
     create_framebuffers(root, backend, resources.mainRenderPass, resources.depthBufferView, resources.framebuffers);
+}
+
+VkDescriptorSet create_main_pass_descriptor_set(ReaperRoot& root, VulkanBackend& backend,
+                                                const MainPassResources&        resources,
+                                                const nonstd::span<VkImageView> shadow_map_views)
+{
+    VkDescriptorSetAllocateInfo descriptorSetAllocInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr,
+                                                          backend.frame_descriptor_pool, 1,
+                                                          &resources.mainPipe.descSetLayout};
+
+    VkDescriptorSet descriptor_set = VK_NULL_HANDLE;
+    Assert(vkAllocateDescriptorSets(backend.device, &descriptorSetAllocInfo, &descriptor_set) == VK_SUCCESS);
+    log_debug(root, "vulkan: created descriptor set with handle: {}", static_cast<void*>(descriptor_set));
+
+    const VkDescriptorBufferInfo drawDescPassParams = default_descriptor_buffer_info(resources.drawPassConstantBuffer);
+    const VkDescriptorBufferInfo drawDescInstanceParams =
+        default_descriptor_buffer_info(resources.drawInstanceConstantBuffer);
+    const VkDescriptorImageInfo drawDescShadowMapSampler = {resources.shadowMapSampler, VK_NULL_HANDLE,
+                                                            VK_IMAGE_LAYOUT_UNDEFINED};
+
+    std::vector<VkDescriptorImageInfo> drawDescShadowMapTexture;
+
+    for (auto shadow_map_texture_view : shadow_map_views)
+    {
+        drawDescShadowMapTexture.push_back(
+            {VK_NULL_HANDLE, shadow_map_texture_view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL});
+    }
+
+    const VkWriteDescriptorSet shadowMapBindlessImageWrite = {
+        VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+        nullptr,
+        descriptor_set,
+        3,
+        0,
+        static_cast<u32>(drawDescShadowMapTexture.size()),
+        VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+        drawDescShadowMapTexture.data(),
+        nullptr,
+        nullptr,
+    };
+
+    std::array<VkWriteDescriptorSet, 4> drawPassDescriptorSetWrites = {
+        create_buffer_descriptor_write(descriptor_set, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &drawDescPassParams),
+        create_buffer_descriptor_write(descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &drawDescInstanceParams),
+        create_image_descriptor_write(descriptor_set, 2, VK_DESCRIPTOR_TYPE_SAMPLER, &drawDescShadowMapSampler),
+        shadowMapBindlessImageWrite};
+
+    vkUpdateDescriptorSets(backend.device, static_cast<u32>(drawPassDescriptorSetWrites.size()),
+                           drawPassDescriptorSetWrites.data(), 0, nullptr);
+
+    return descriptor_set;
 }
 } // namespace Reaper

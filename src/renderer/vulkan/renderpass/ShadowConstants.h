@@ -7,7 +7,11 @@
 
 #pragma once
 
+#include "renderer/format/PixelFormat.h"
+
 namespace Reaper
 {
-constexpr u32 ShadowMapResolution = 1024;
+constexpr u32         ShadowMapResolution = 1024;
+constexpr u32         ShadowMapMaxCount = 8;
+constexpr PixelFormat ShadowMapFormat = PixelFormat::D16_UNORM;
 } // namespace Reaper

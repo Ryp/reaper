@@ -11,6 +11,11 @@
 #include "renderer/vulkan/Image.h"
 #include "renderer/vulkan/api/Vulkan.h"
 
+#include "ShadowConstants.h"
+
+#include <glm/vec2.hpp>
+
+#include <array>
 #include <vector>
 
 namespace Reaper
@@ -37,17 +42,20 @@ struct ShadowMapResources
 
     ShadowMapPipelineInfo pipe;
 
-    // These are valid for ONE FRAME ONLY
-    std::vector<ShadowPassResources> passes;
-
     BufferInfo shadowMapPassConstantBuffer;
     BufferInfo shadowMapInstanceConstantBuffer;
 
     VkFramebuffer shadowMapFramebuffer;
-    ImageInfo     shadowMap;
-    VkImageView   shadowMapView;
-    VkSampler     shadowMapSampler;
+
+    // These are valid for ONE FRAME ONLY
+    std::vector<ShadowPassResources> passes;
+
+    // These are valid for ONE FRAME ONLY
+    std::vector<ImageInfo>   shadowMap;
+    std::vector<VkImageView> shadowMapView;
 };
+
+GPUTextureProperties get_shadow_map_texture_properties(glm::uvec2 size);
 
 ShadowMapResources create_shadow_map_resources(ReaperRoot& root, VulkanBackend& backend);
 void               destroy_shadow_map_resources(VulkanBackend& backend, ShadowMapResources& resources);
