@@ -356,11 +356,13 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                 vmaDestroyImage(backend.vma_instance, shadow_map_resources.shadowMap[i].handle,
                                 shadow_map_resources.shadowMap[i].allocation);
                 vkDestroyImageView(backend.device, shadow_map_resources.shadowMapView[i], nullptr);
+                vkDestroyFramebuffer(backend.device, shadow_map_resources.shadowMapFramebuffer[i], nullptr);
             }
 
             shadow_map_resources.passes.clear();
             shadow_map_resources.shadowMap.clear();
             shadow_map_resources.shadowMapView.clear();
+            shadow_map_resources.shadowMapFramebuffer.clear();
             for (const ShadowPassData& shadow_pass : prepared.shadow_passes)
             {
                 ShadowPassResources& shadow_map_pass_resources = shadow_map_resources.passes.emplace_back();
@@ -375,6 +377,9 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                 shadow_map = create_image(root, backend.device, "Shadow Map", texture_properties, backend.vma_instance);
 
                 shadow_map_resources.shadowMapView.push_back(create_depth_image_view(root, backend.device, shadow_map));
+
+                shadow_map_resources.shadowMapFramebuffer.push_back(
+                    create_shadow_map_framebuffer(backend, shadow_map_resources.shadowMapPass, shadow_map.properties));
             }
 
             // FIXME
@@ -498,7 +503,9 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                 const VkExtent2D framebuffer_extent = {shadow_pass.shadow_map_size.x, shadow_pass.shadow_map_size.y};
                 const VkRect2D   pass_rect = {{0, 0}, framebuffer_extent};
 
-                const VkImageView shadowMapView = shadow_map_resources.shadowMapView[shadow_pass.pass_index];
+                const VkImageView   shadowMapView = shadow_map_resources.shadowMapView[shadow_pass.pass_index];
+                const VkFramebuffer shadowMapFramebuffer =
+                    shadow_map_resources.shadowMapFramebuffer[shadow_pass.pass_index];
 
                 VkRenderPassAttachmentBeginInfo shadowMapRenderPassAttachment = {
                     VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO, nullptr, 1, &shadowMapView};
@@ -506,7 +513,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                 VkRenderPassBeginInfo shadowMapRenderPassBeginInfo = {VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
                                                                       &shadowMapRenderPassAttachment,
                                                                       shadow_map_resources.shadowMapPass,
-                                                                      shadow_map_resources.shadowMapFramebuffer,
+                                                                      shadowMapFramebuffer,
                                                                       pass_rect,
                                                                       1,
                                                                       &clearValue};

@@ -283,44 +283,6 @@ namespace
 
         return ShadowMapPipelineInfo{pipeline, pipelineLayout, descriptorSetLayoutCB};
     }
-
-    VkFramebuffer create_shadow_pass_framebuffer(VulkanBackend& backend, VkRenderPass renderPass,
-                                                 const GPUTextureProperties& properties)
-    {
-        VkFormat format = PixelFormatToVulkan(properties.format);
-
-        VkFramebufferAttachmentImageInfo shadowMapFramebufferAttachmentInfo = {
-            VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENT_IMAGE_INFO,
-            nullptr,
-            GetVulkanCreateFlags(properties),           // VkImageCreateFlags    flags;
-            GetVulkanUsageFlags(properties.usageFlags), // VkImageUsageFlags     usage;
-            properties.width,                           // uint32_t              width;
-            properties.height,                          // uint32_t              height;
-            1,                                          // uint32_t              layerCount;
-            1,                                          // uint32_t              viewFormatCount;
-            &format                                     // const VkFormat*       pViewFormats;
-        };
-
-        VkFramebufferAttachmentsCreateInfo shadowMapFramebufferAttachmentsInfo = {
-            VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENTS_CREATE_INFO, nullptr, 1, &shadowMapFramebufferAttachmentInfo};
-
-        VkFramebufferCreateInfo shadowMapFramebufferInfo = {
-            VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO, // VkStructureType                sType
-            &shadowMapFramebufferAttachmentsInfo,      // const void                    *pNext
-            VK_FRAMEBUFFER_CREATE_IMAGELESS_BIT,       // VkFramebufferCreateFlags       flags
-            renderPass,                                // VkRenderPass                   renderPass
-            1,                                         // uint32_t                       attachmentCount
-            nullptr,                                   // const VkImageView             *pAttachments
-            properties.width,                          // uint32_t                       width
-            properties.height,                         // uint32_t                       height
-            1                                          // uint32_t                       layers
-        };
-
-        VkFramebuffer framebuffer = VK_NULL_HANDLE;
-        Assert(vkCreateFramebuffer(backend.device, &shadowMapFramebufferInfo, nullptr, &framebuffer) == VK_SUCCESS);
-
-        return framebuffer;
-    }
 } // namespace
 
 GPUTextureProperties get_shadow_map_texture_properties(glm::uvec2 size)
@@ -331,6 +293,44 @@ GPUTextureProperties get_shadow_map_texture_properties(glm::uvec2 size)
         GPUTextureUsage::DepthStencilAttachment | GPUTextureUsage::InputAttachment | GPUTextureUsage::Sampled;
 
     return properties;
+}
+
+VkFramebuffer create_shadow_map_framebuffer(VulkanBackend& backend, VkRenderPass renderPass,
+                                            const GPUTextureProperties& properties)
+{
+    VkFormat format = PixelFormatToVulkan(properties.format);
+
+    VkFramebufferAttachmentImageInfo shadowMapFramebufferAttachmentInfo = {
+        VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENT_IMAGE_INFO,
+        nullptr,
+        GetVulkanCreateFlags(properties),           // VkImageCreateFlags    flags;
+        GetVulkanUsageFlags(properties.usageFlags), // VkImageUsageFlags     usage;
+        properties.width,                           // uint32_t              width;
+        properties.height,                          // uint32_t              height;
+        1,                                          // uint32_t              layerCount;
+        1,                                          // uint32_t              viewFormatCount;
+        &format                                     // const VkFormat*       pViewFormats;
+    };
+
+    VkFramebufferAttachmentsCreateInfo shadowMapFramebufferAttachmentsInfo = {
+        VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENTS_CREATE_INFO, nullptr, 1, &shadowMapFramebufferAttachmentInfo};
+
+    VkFramebufferCreateInfo shadowMapFramebufferInfo = {
+        VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO, // VkStructureType                sType
+        &shadowMapFramebufferAttachmentsInfo,      // const void                    *pNext
+        VK_FRAMEBUFFER_CREATE_IMAGELESS_BIT,       // VkFramebufferCreateFlags       flags
+        renderPass,                                // VkRenderPass                   renderPass
+        1,                                         // uint32_t                       attachmentCount
+        nullptr,                                   // const VkImageView             *pAttachments
+        properties.width,                          // uint32_t                       width
+        properties.height,                         // uint32_t                       height
+        1                                          // uint32_t                       layers
+    };
+
+    VkFramebuffer framebuffer = VK_NULL_HANDLE;
+    Assert(vkCreateFramebuffer(backend.device, &shadowMapFramebufferInfo, nullptr, &framebuffer) == VK_SUCCESS);
+
+    return framebuffer;
 }
 
 ShadowMapResources create_shadow_map_resources(ReaperRoot& root, VulkanBackend& backend)
@@ -351,15 +351,6 @@ ShadowMapResources create_shadow_map_resources(ReaperRoot& root, VulkanBackend& 
                                                  GPUBufferUsage::StorageBuffer),
                       backend.vma_instance);
 
-    // Imageless framebuffer
-    {
-        const glm::uvec2           shadow_map_size(ShadowMapResolution, ShadowMapResolution);
-        const GPUTextureProperties shadow_map_properties = get_shadow_map_texture_properties(shadow_map_size);
-
-        resources.shadowMapFramebuffer =
-            create_shadow_pass_framebuffer(backend, resources.shadowMapPass, shadow_map_properties);
-    }
-
     return resources;
 }
 
@@ -369,9 +360,8 @@ void destroy_shadow_map_resources(VulkanBackend& backend, ShadowMapResources& re
     {
         vmaDestroyImage(backend.vma_instance, resources.shadowMap[i].handle, resources.shadowMap[i].allocation);
         vkDestroyImageView(backend.device, resources.shadowMapView[i], nullptr);
+        vkDestroyFramebuffer(backend.device, resources.shadowMapFramebuffer[i], nullptr);
     }
-
-    vkDestroyFramebuffer(backend.device, resources.shadowMapFramebuffer, nullptr);
 
     vmaDestroyBuffer(backend.vma_instance, resources.shadowMapPassConstantBuffer.buffer,
                      resources.shadowMapPassConstantBuffer.allocation);
