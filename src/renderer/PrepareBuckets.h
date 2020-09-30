@@ -20,10 +20,11 @@ namespace Reaper
 {
 struct Light
 {
-    glm::mat4 projection_matrix;
-    glm::vec3 color;
-    float     intensity;
-    u32       scene_node;
+    glm::mat4  projection_matrix;
+    glm::vec3  color;
+    float      intensity;
+    u32        scene_node;
+    glm::uvec2 shadow_map_size;
 };
 
 struct Node
