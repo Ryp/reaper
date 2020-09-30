@@ -75,6 +75,7 @@ void build_scene_graph(SceneGraph& scene, const Mesh* mesh)
             light.intensity = 8.f;
             light.scene_node = light_node_index;
             light.projection_matrix = light_projection_matrix;
+            light.shadow_map_size = glm::uvec2(1024, 1024);
         }
 
         // Add 2nd light
@@ -92,6 +93,7 @@ void build_scene_graph(SceneGraph& scene, const Mesh* mesh)
             light.intensity = 8.f;
             light.scene_node = light_node_index;
             light.projection_matrix = light_projection_matrix;
+            light.shadow_map_size = glm::uvec2(64, 64);
         }
     }
 
@@ -174,10 +176,10 @@ void prepare_scene(SceneGraph& scene, PreparedData& prepared)
         cull_pass.pass_index = prepared.cull_passes.size() - 1;
 
         shadow_pass.culling_pass_index = cull_pass.pass_index;
-        shadow_pass.shadow_map_size = glm::uvec2(ShadowMapResolution, ShadowMapResolution); // FIXME
+        shadow_pass.shadow_map_size = light.shadow_map_size;
 
         CullPassParams& cull_pass_params = prepared.cull_pass_params.emplace_back();
-        cull_pass_params.output_size_ts = glm::fvec2(shadow_pass.shadow_map_size);
+        cull_pass_params.output_size_ts = glm::fvec2(light.shadow_map_size);
 
         ShadowMapPassParams& shadow_pass_params = prepared.shadow_pass_params.emplace_back();
         shadow_pass_params.dummy = glm::mat4(1.f);
