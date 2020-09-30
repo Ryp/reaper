@@ -94,8 +94,7 @@ namespace
         return renderPass;
     }
 
-    ShadowMapPipelineInfo create_shadow_map_pipeline(ReaperRoot& root, VulkanBackend& backend, VkRenderPass renderPass,
-                                                     u32 shadowMapRes)
+    ShadowMapPipelineInfo create_shadow_map_pipeline(ReaperRoot& root, VulkanBackend& backend, VkRenderPass renderPass)
     {
         VkShaderModule        blitShaderFS = VK_NULL_HANDLE;
         VkShaderModule        blitShaderVS = VK_NULL_HANDLE;
@@ -143,22 +142,14 @@ namespace
             VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO, nullptr, VK_FLAGS_NONE,
             VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, VK_FALSE};
 
-        const VkExtent2D shadowMapExtent = {shadowMapRes, shadowMapRes};
-
-        VkViewport blitViewport = {
-            0.0f, 0.0f, static_cast<float>(shadowMapExtent.width), static_cast<float>(shadowMapExtent.height),
-            0.0f, 1.0f};
-
-        VkRect2D blitScissors = {{0, 0}, shadowMapExtent};
-
         VkPipelineViewportStateCreateInfo blitViewportStateInfo = {
             VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
             nullptr,
             VK_FLAGS_NONE,
             1,
-            &blitViewport,
+            nullptr, // dynamic viewport
             1,
-            &blitScissors};
+            nullptr}; // dynamic scissors
 
         VkPipelineRasterizationStateCreateInfo blitRasterStateInfo = {
             VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
@@ -251,6 +242,15 @@ namespace
 
         VkPipelineCache cache = VK_NULL_HANDLE;
 
+        const std::array<VkDynamicState, 2> dynamicStates = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
+        VkPipelineDynamicStateCreateInfo    blitDynamicState = {
+            VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
+            nullptr,
+            0,
+            dynamicStates.size(),
+            dynamicStates.data(),
+        };
+
         VkGraphicsPipelineCreateInfo blitPipelineCreateInfo = {VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
                                                                nullptr,
                                                                VK_FLAGS_NONE,
@@ -264,7 +264,7 @@ namespace
                                                                &blitMSStateInfo,
                                                                &blitDepthStencilInfo,
                                                                &blitBlendStateInfo,
-                                                               nullptr,
+                                                               &blitDynamicState,
                                                                pipelineLayout,
                                                                renderPass,
                                                                0,
@@ -338,7 +338,7 @@ ShadowMapResources create_shadow_map_resources(ReaperRoot& root, VulkanBackend& 
     ShadowMapResources resources = {};
 
     resources.shadowMapPass = create_shadow_raster_pass(root, backend);
-    resources.pipe = create_shadow_map_pipeline(root, backend, resources.shadowMapPass, ShadowMapResolution); // FIXME
+    resources.pipe = create_shadow_map_pipeline(root, backend, resources.shadowMapPass);
 
     resources.shadowMapPassConstantBuffer = create_buffer(
         root, backend.device, "Shadow Map Pass Constant buffer",
