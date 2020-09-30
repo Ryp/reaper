@@ -493,9 +493,10 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                 const ShadowPassResources& shadow_map_pass_resources =
                     shadow_map_resources.passes[shadow_pass.pass_index];
 
-                VkClearValue clearValue =
+                const VkClearValue clearValue =
                     VkClearDepthStencil(UseReverseZ ? 0.f : 1.f, 0); // NOTE: handle reverse Z more gracefully
-                VkRect2D passRect = {{0, 0}, {shadow_pass.shadow_map_size.x, shadow_pass.shadow_map_size.y}};
+                const VkExtent2D framebuffer_extent = {shadow_pass.shadow_map_size.x, shadow_pass.shadow_map_size.y};
+                const VkRect2D   pass_rect = {{0, 0}, framebuffer_extent};
 
                 const VkImageView shadowMapView = shadow_map_resources.shadowMapView[shadow_pass.pass_index];
 
@@ -506,7 +507,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                                                                       &shadowMapRenderPassAttachment,
                                                                       shadow_map_resources.shadowMapPass,
                                                                       shadow_map_resources.shadowMapFramebuffer,
-                                                                      passRect,
+                                                                      pass_rect,
                                                                       1,
                                                                       &clearValue};
 
@@ -514,6 +515,19 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
 
                 vkCmdBindPipeline(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
                                   shadow_map_resources.pipe.pipeline);
+
+                {
+                    const VkViewport viewport = {0.0f,
+                                                 0.0f,
+                                                 static_cast<float>(framebuffer_extent.width),
+                                                 static_cast<float>(framebuffer_extent.height),
+                                                 0.0f,
+                                                 1.0f};
+                    const VkRect2D   scissor = {{0, 0}, framebuffer_extent};
+
+                    vkCmdSetViewport(resources.gfxCmdBuffer, 0, 1, &viewport);
+                    vkCmdSetScissor(resources.gfxCmdBuffer, 0, 1, &scissor);
+                }
 
                 std::vector<VkBuffer> vertexBuffers = {
                     vertexBufferPosition.buffer,

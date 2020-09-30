@@ -186,21 +186,13 @@ MainPipelineInfo create_main_pipeline(ReaperRoot& root, VulkanBackend& backend, 
         VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO, nullptr, VK_FLAGS_NONE,
         VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, VK_FALSE};
 
-    const VkExtent2D backbufferExtent = backend.presentInfo.surfaceExtent;
-
-    VkViewport blitViewport = {
-        0.0f, 0.0f, static_cast<float>(backbufferExtent.width), static_cast<float>(backbufferExtent.height),
-        0.0f, 1.0f};
-
-    VkRect2D blitScissors = {{0, 0}, backbufferExtent};
-
     VkPipelineViewportStateCreateInfo blitViewportStateInfo = {VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
                                                                nullptr,
                                                                VK_FLAGS_NONE,
                                                                1,
-                                                               &blitViewport,
+                                                               nullptr, // dynamic viewport
                                                                1,
-                                                               &blitScissors};
+                                                               nullptr}; // dynamic scissors
 
     VkPipelineRasterizationStateCreateInfo blitRasterStateInfo = {
         VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
@@ -295,9 +287,9 @@ MainPipelineInfo create_main_pipeline(ReaperRoot& root, VulkanBackend& backend, 
 
     VkPipelineCache cache = VK_NULL_HANDLE;
 
-    const VkDynamicState             dynamicStates[] = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
-    VkPipelineDynamicStateCreateInfo blitDynamicState = {
-        VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO, nullptr, 0, 2, dynamicStates,
+    const std::array<VkDynamicState, 2> dynamicStates = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
+    VkPipelineDynamicStateCreateInfo    blitDynamicState = {
+        VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO, nullptr, 0, dynamicStates.size(), dynamicStates.data(),
     };
 
     VkGraphicsPipelineCreateInfo blitPipelineCreateInfo = {VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
@@ -308,7 +300,7 @@ MainPipelineInfo create_main_pipeline(ReaperRoot& root, VulkanBackend& backend, 
                                                            &blitVertexInputStateInfo,
                                                            &blitInputAssemblyInfo,
                                                            nullptr,
-                                                           &blitViewportStateInfo, // Dynamic
+                                                           &blitViewportStateInfo,
                                                            &blitRasterStateInfo,
                                                            &blitMSStateInfo,
                                                            &blitDepthStencilInfo,
