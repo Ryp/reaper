@@ -45,17 +45,19 @@ struct ShadowMapResources
     BufferInfo shadowMapPassConstantBuffer;
     BufferInfo shadowMapInstanceConstantBuffer;
 
-    VkFramebuffer shadowMapFramebuffer;
-
     // These are valid for ONE FRAME ONLY
     std::vector<ShadowPassResources> passes;
 
     // These are valid for ONE FRAME ONLY
-    std::vector<ImageInfo>   shadowMap;
-    std::vector<VkImageView> shadowMapView;
+    std::vector<ImageInfo>     shadowMap;
+    std::vector<VkImageView>   shadowMapView;
+    std::vector<VkFramebuffer> shadowMapFramebuffer;
 };
 
 GPUTextureProperties get_shadow_map_texture_properties(glm::uvec2 size);
+
+VkFramebuffer create_shadow_map_framebuffer(VulkanBackend& backend, VkRenderPass renderPass,
+                                            const GPUTextureProperties& properties);
 
 ShadowMapResources create_shadow_map_resources(ReaperRoot& root, VulkanBackend& backend);
 void               destroy_shadow_map_resources(VulkanBackend& backend, ShadowMapResources& resources);
