@@ -420,6 +420,8 @@ CullPassResources create_culling_pass_descriptor_sets(ReaperRoot& root, VulkanBa
                                                       CullResources& resources, u32 pass_index, BufferInfo& indexBuffer,
                                                       BufferInfo& vertexBufferPosition)
 {
+    Assert(pass_index < MaxCullPassCount);
+
     return {create_culling_descriptor_sets(root, backend, resources, resources.cullPipe.descSetLayout, indexBuffer,
                                            vertexBufferPosition, pass_index),
             create_culling_compact_prep_descriptor_sets(root, backend, resources,

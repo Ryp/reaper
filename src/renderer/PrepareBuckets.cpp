@@ -93,7 +93,25 @@ void build_scene_graph(SceneGraph& scene, const Mesh* mesh)
             light.intensity = 8.f;
             light.scene_node = light_node_index;
             light.projection_matrix = light_projection_matrix;
-            light.shadow_map_size = glm::uvec2(64, 64);
+            light.shadow_map_size = glm::uvec2(512, 512);
+        }
+
+        // Add 3rd light
+        {
+            Node&     light_node = scene.nodes.emplace_back();
+            const u32 light_node_index = scene.nodes.size() - 1;
+
+            const glm::vec3 light_position_ws = glm::vec3(0.f, -2.f, 2.f);
+
+            light_node.instance_id = InvalidMeshInstanceId;
+            light_node.transform_matrix = glm::lookAt(light_position_ws, light_target_ws, up_ws);
+
+            Light& light = scene.lights.emplace_back();
+            light.color = glm::fvec3(0.2f, 0.9f, 0.5f);
+            light.intensity = 8.f;
+            light.scene_node = light_node_index;
+            light.projection_matrix = light_projection_matrix;
+            light.shadow_map_size = glm::uvec2(256, 256);
         }
     }
 
