@@ -273,12 +273,19 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
             std::array<VkClearValue, 2> clearValues = {VkClearColor(clearColor),
                                                        VkClearDepthStencil(depthClearValue, 0)};
             const VkExtent2D            backbufferExtent = backend.presentInfo.surfaceExtent;
-            VkRect2D                    blitPassRect = {{0, 0}, backbufferExtent};
+            const VkRect2D              blitPassRect = {{0, 0}, backbufferExtent};
+
+            std::array<VkImageView, 2> main_pass_framebuffer_views = {backend.presentInfo.imageViews[imageIndex],
+                                                                      main_pass_resources.depthBufferView};
+
+            VkRenderPassAttachmentBeginInfo main_pass_attachments = {
+                VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO, nullptr, main_pass_framebuffer_views.size(),
+                main_pass_framebuffer_views.data()};
 
             VkRenderPassBeginInfo blitRenderPassBeginInfo = {VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-                                                             nullptr,
+                                                             &main_pass_attachments,
                                                              main_pass_resources.mainRenderPass,
-                                                             main_pass_resources.framebuffers[imageIndex],
+                                                             main_pass_resources.swapchain_framebuffer,
                                                              blitPassRect,
                                                              static_cast<u32>(clearValues.size()),
                                                              clearValues.data()};

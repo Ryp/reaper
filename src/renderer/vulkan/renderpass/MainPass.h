@@ -47,7 +47,7 @@ struct MainPassResources
 
     MainPipelineInfo mainPipe;
 
-    std::vector<VkFramebuffer> framebuffers;
+    VkFramebuffer swapchain_framebuffer;
 
     VkSampler shadowMapSampler;
 };

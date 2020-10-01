@@ -346,40 +346,55 @@ namespace
         resources.depthBufferView = VK_NULL_HANDLE;
     }
 
-    void create_framebuffers(ReaperRoot& /*root*/, VulkanBackend& backend, VkRenderPass renderPass,
-                             VkImageView depthBufferView, std::vector<VkFramebuffer>& framebuffers)
+    VkFramebuffer create_framebuffer(ReaperRoot& /*root*/, VulkanBackend& backend, VkRenderPass renderPass,
+                                     const GPUTextureProperties& depth_properties)
     {
-        const size_t imgCount = backend.presentInfo.imageCount;
+        const u32      framebuffer_image_count = 2;
+        const VkFormat color_format = backend.presentInfo.surfaceFormat.format;
+        const VkFormat depth_format = PixelFormatToVulkan(depth_properties.format);
 
-        framebuffers.resize(imgCount);
+        std::array<VkFramebufferAttachmentImageInfo, framebuffer_image_count> framebufferAttachmentInfo = {
+            VkFramebufferAttachmentImageInfo{
+                VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENT_IMAGE_INFO, nullptr,
+                VK_FLAGS_NONE,                            // VkImageCreateFlags    flags;
+                backend.presentInfo.usageFlags,           // VkImageUsageFlags     usage;
+                backend.presentInfo.surfaceExtent.width,  // uint32_t              width;
+                backend.presentInfo.surfaceExtent.height, // uint32_t              height;
+                1,                                        // uint32_t              layerCount;
+                1,                                        // uint32_t              viewFormatCount;
+                &color_format                             // const VkFormat*       pViewFormats;
+            },
+            VkFramebufferAttachmentImageInfo{
+                VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENT_IMAGE_INFO, nullptr,
+                GetVulkanCreateFlags(depth_properties),           // VkImageCreateFlags    flags;
+                GetVulkanUsageFlags(depth_properties.usageFlags), // VkImageUsageFlags     usage;
+                depth_properties.width,                           // uint32_t              width;
+                depth_properties.height,                          // uint32_t              height;
+                1,                                                // uint32_t              layerCount;
+                1,                                                // uint32_t              viewFormatCount;
+                &depth_format                                     // const VkFormat*       pViewFormats;
+            }};
 
-        for (size_t i = 0; i < imgCount; ++i)
-        {
-            std::array<const VkImageView, 2> imageViews = {backend.presentInfo.imageViews[i], depthBufferView};
+        VkFramebufferAttachmentsCreateInfo framebufferAttachmentsInfo = {
+            VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENTS_CREATE_INFO, nullptr, framebufferAttachmentInfo.size(),
+            framebufferAttachmentInfo.data()};
 
-            VkFramebufferCreateInfo framebuffer_create_info = {
-                VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO, // VkStructureType                sType
-                nullptr,                                   // const void                    *pNext
-                0,                                         // VkFramebufferCreateFlags       flags
-                renderPass,                                // VkRenderPass                   renderPass
-                static_cast<u32>(imageViews.size()),       // uint32_t                       attachmentCount
-                imageViews.data(),                         // const VkImageView             *pAttachments
-                backend.presentInfo.surfaceExtent.width,   // uint32_t                       width
-                backend.presentInfo.surfaceExtent.height,  // uint32_t                       height
-                1                                          // uint32_t                       layers
-            };
+        VkFramebufferCreateInfo framebuffer_create_info = {
+            VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO, // VkStructureType                sType
+            &framebufferAttachmentsInfo,               // const void                    *pNext
+            VK_FRAMEBUFFER_CREATE_IMAGELESS_BIT,       // VkFramebufferCreateFlags       flags
+            renderPass,                                // VkRenderPass                   renderPass
+            framebuffer_image_count,                   // uint32_t                       attachmentCount
+            nullptr,                                   // const VkImageView             *pAttachments
+            backend.presentInfo.surfaceExtent.width,   // uint32_t                       width
+            backend.presentInfo.surfaceExtent.height,  // uint32_t                       height
+            1                                          // uint32_t                       layers
+        };
 
-            Assert(vkCreateFramebuffer(backend.device, &framebuffer_create_info, nullptr, &framebuffers[i])
-                   == VK_SUCCESS);
-        }
-    }
+        VkFramebuffer framebuffer = VK_NULL_HANDLE;
+        Assert(vkCreateFramebuffer(backend.device, &framebuffer_create_info, nullptr, &framebuffer) == VK_SUCCESS);
 
-    void destroy_framebuffers(VkDevice device, std::vector<VkFramebuffer>& framebuffers)
-    {
-        for (auto& framebuffer : framebuffers)
-            vkDestroyFramebuffer(device, framebuffer, nullptr);
-
-        framebuffers.clear();
+        return framebuffer;
     }
 } // namespace
 
@@ -401,7 +416,8 @@ MainPassResources create_main_pass_resources(ReaperRoot& root, VulkanBackend& ba
     resources.mainRenderPass = create_main_pass(root, backend, resources.depthBuffer.properties);
     resources.mainPipe = create_main_pipeline(root, backend, resources.mainRenderPass);
 
-    create_framebuffers(root, backend, resources.mainRenderPass, resources.depthBufferView, resources.framebuffers);
+    resources.swapchain_framebuffer =
+        create_framebuffer(root, backend, resources.mainRenderPass, resources.depthBuffer.properties);
 
     VkSamplerCreateInfo shadowMapSamplerCreateInfo = {};
     shadowMapSamplerCreateInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -433,7 +449,7 @@ void destroy_main_pass_resources(VulkanBackend& backend, MainPassResources& reso
 {
     vkDestroySampler(backend.device, resources.shadowMapSampler, nullptr);
 
-    destroy_framebuffers(backend.device, resources.framebuffers);
+    vkDestroyFramebuffer(backend.device, resources.swapchain_framebuffer, nullptr);
 
     vkDestroyPipeline(backend.device, resources.mainPipe.pipeline, nullptr);
     vkDestroyPipelineLayout(backend.device, resources.mainPipe.pipelineLayout, nullptr);
@@ -452,11 +468,12 @@ void destroy_main_pass_resources(VulkanBackend& backend, MainPassResources& reso
 void resize_main_pass_depth_buffer(ReaperRoot& root, VulkanBackend& backend, MainPassResources& resources,
                                    glm::uvec2 extent)
 {
-    destroy_framebuffers(backend.device, resources.framebuffers);
+    vkDestroyFramebuffer(backend.device, resources.swapchain_framebuffer, nullptr);
     destroy_depth_buffer(backend, resources);
 
     create_depth_buffer(root, backend, resources, extent);
-    create_framebuffers(root, backend, resources.mainRenderPass, resources.depthBufferView, resources.framebuffers);
+    resources.swapchain_framebuffer =
+        create_framebuffer(root, backend, resources.mainRenderPass, resources.depthBuffer.properties);
 }
 
 VkDescriptorSet create_main_pass_descriptor_set(ReaperRoot& root, VulkanBackend& backend,
