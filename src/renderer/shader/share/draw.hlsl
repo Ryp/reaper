@@ -19,7 +19,7 @@ struct PointLightProperties
     hlsl_float  shadow_map_index;
 };
 
-const hlsl_uint PointLightCount = 3;
+static const hlsl_uint PointLightCount = 3;
 
 struct DrawPassParams
 {

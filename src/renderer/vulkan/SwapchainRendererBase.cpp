@@ -720,6 +720,7 @@ void vulkan_create_logical_device(ReaperRoot&                     root,
     device_features_1_2.imagelessFramebuffer = VK_TRUE;
     device_features_1_2.separateDepthStencilLayouts = VK_TRUE;
     device_features_1_2.descriptorIndexing = VK_TRUE;
+    device_features_1_2.runtimeDescriptorArray = VK_TRUE;
     device_features_1_2.descriptorBindingPartiallyBound = VK_TRUE;
 
     VkPhysicalDeviceFeatures2 deviceFeatures2 = {};
