@@ -5,6 +5,7 @@
 #// This file is distributed under the MIT License
 #///////////////////////////////////////////////////////////////////////////////
 
+# https://cmake.org/cmake/help/latest/variable/MSVC_VERSION.html
 if(MSVC)
     # Visual Studio 2017 or newer
     if(MSVC_VERSION LESS 1910)
