@@ -147,6 +147,8 @@ if(REAPER_HLSL_USE_DXC)
 endif()
 
 # FIXME share this between CMake and the corresponding C++ code
+# NOTE: bad codegen with glslang when targeting vulkan1.2
+# https://github.com/KhronosGroup/glslang/issues/2411
 set(REAPER_VULKAN_VERSION vulkan1.1)
 set(REAPER_SHADER_ENTRY_POINT main)
 
