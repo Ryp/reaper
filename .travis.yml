@@ -11,7 +11,7 @@ services:
 language: cpp
 env:
     global:
-        - DOCKER_IMAGE=ubuntu-19.04
+        - DOCKER_IMAGE=ubuntu-20.04
         - DOCKER_CONTAINER=builder
 install:
     - cp tools/ci/${DOCKER_IMAGE}/Dockerfile .
