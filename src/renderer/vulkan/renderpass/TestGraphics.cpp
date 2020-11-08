@@ -167,12 +167,12 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
     log_info(root, "window: map window");
     window->map();
 
-    const int MaxFrameCount = 0;
+    const u64 MaxFrameCount = 0;
 
     bool mustTransitionSwapchain = true;
     bool saveMyLaptop = true;
     bool shouldExit = false;
-    int  frameIndex = 0;
+    u64  frameIndex = 0;
     bool pauseAnimation = false;
 
     CullOptions cull_options;
@@ -189,6 +189,22 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
 
     const auto startTime = std::chrono::system_clock::now();
     auto       lastFrameStart = startTime;
+
+    VkSemaphore timelineSemaphore = VK_NULL_HANDLE;
+    {
+        VkSemaphoreTypeCreateInfo timelineCreateInfo;
+        timelineCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO;
+        timelineCreateInfo.pNext = NULL;
+        timelineCreateInfo.semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE;
+        timelineCreateInfo.initialValue = 0;
+
+        VkSemaphoreCreateInfo createInfo;
+        createInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+        createInfo.pNext = &timelineCreateInfo;
+        createInfo.flags = 0;
+
+        vkCreateSemaphore(backend.device, &createInfo, NULL, &timelineSemaphore);
+    }
 
     while (!shouldExit)
     {
@@ -666,15 +682,32 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
 
             VkPipelineStageFlags blitWaitDstMask = VK_PIPELINE_STAGE_TRANSFER_BIT;
 
+            std::array<VkSemaphore, 2> semaphores_to_signal = {backend.presentInfo.renderingFinishedSemaphore,
+                                                               timelineSemaphore};
+
+            std::array<u64, 2> signal_values = {
+                0,              // Not a timeline semaphore
+                frameIndex + 1, // Unused timeline semaphore value
+            };
+
+            VkTimelineSemaphoreSubmitInfo timelineSemaphoreSubmitInfo = {
+                VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO,
+                nullptr,
+                0,                    // uint32_t		  waitSemaphoreValueCount;
+                nullptr,              // const uint64_t*	  pWaitSemaphoreValues;
+                signal_values.size(), // uint32_t		  signalSemaphoreValueCount;
+                signal_values.data()  // const uint64_t*	  pSignalSemaphoreValues;
+            };
+
             VkSubmitInfo blitSubmitInfo = {VK_STRUCTURE_TYPE_SUBMIT_INFO,
-                                           nullptr,
+                                           &timelineSemaphoreSubmitInfo,
                                            1,
                                            &backend.presentInfo.imageAvailableSemaphore,
                                            &blitWaitDstMask,
                                            1,
                                            &resources.gfxCmdBuffer,
-                                           1,
-                                           &backend.presentInfo.renderingFinishedSemaphore};
+                                           semaphores_to_signal.size(),
+                                           semaphores_to_signal.data()};
 
             log_debug(root, "vulkan: submit drawing commands");
             Assert(vkQueueSubmit(backend.deviceInfo.graphicsQueue, 1, &blitSubmitInfo, drawFence) == VK_SUCCESS);
@@ -707,6 +740,8 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
     }
 
     vkQueueWaitIdle(backend.deviceInfo.presentQueue);
+
+    vkDestroySemaphore(backend.device, timelineSemaphore, nullptr);
 
     log_info(root, "window: unmap window");
     window->unmap();
