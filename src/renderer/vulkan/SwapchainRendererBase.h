@@ -31,9 +31,12 @@ struct PresentationInfo
     VkImageUsageFlags             usageFlags;
     VkSurfaceTransformFlagBitsKHR transform;
 
-    VkSwapchainKHR           swapchain;
-    VkSemaphore              imageAvailableSemaphore;
-    VkSemaphore              renderingFinishedSemaphore;
+    VkSwapchainKHR swapchain;
+
+    // TODO Vulkan 1.3 might allow timeline semaphores soon
+    VkSemaphore imageAvailableSemaphore;
+    VkSemaphore renderingFinishedSemaphore;
+
     std::vector<VkImage>     images;
     std::vector<VkImageView> imageViews;
 };
