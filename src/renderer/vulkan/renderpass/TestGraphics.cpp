@@ -427,14 +427,24 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
 
             Assert(vkBeginCommandBuffer(resources.gfxCmdBuffer, &cmdBufferBeginInfo) == VK_SUCCESS);
 
+#if defined(REAPER_USE_MICROPROFILE)
+            MicroProfileThreadLogGpu* pGpuLog = MicroProfileThreadLogGpuAlloc();
+            MICROPROFILE_GPU_BEGIN(resources.gfxCmdBuffer, pGpuLog);
+            MICROPROFILE_GPU_ENTERI_L(pGpuLog, "GPU", "Frame", MP_BLUE2);
+#endif
+
             if (mustTransitionSwapchain)
             {
+                REAPER_PROFILE_SCOPE_GPU(pGpuLog, "Barrier", MP_RED);
+
                 cmd_transition_swapchain_layout(backend, resources.gfxCmdBuffer);
                 mustTransitionSwapchain = false;
             }
 
             // Culling
             {
+                REAPER_PROFILE_SCOPE_GPU(pGpuLog, "Culling Pass", MP_DARKGOLDENROD);
+
                 if (!cull_options.freeze_culling)
                 {
                     vkCmdBindPipeline(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE,
@@ -461,7 +471,10 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                     }
                 }
 
-                cmd_insert_compute_to_compute_barrier(resources.gfxCmdBuffer);
+                {
+                    REAPER_PROFILE_SCOPE_GPU(pGpuLog, "Barrier", MP_RED);
+                    cmd_insert_compute_to_compute_barrier(resources.gfxCmdBuffer);
+                }
 
                 // Compaction prepare pass
                 {
@@ -480,7 +493,10 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                     }
                 }
 
-                cmd_insert_compute_to_compute_barrier(resources.gfxCmdBuffer);
+                {
+                    REAPER_PROFILE_SCOPE_GPU(pGpuLog, "Barrier", MP_RED);
+                    cmd_insert_compute_to_compute_barrier(resources.gfxCmdBuffer);
+                }
 
                 // Compaction pass
                 {
@@ -502,6 +518,8 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
             }
 
             {
+                REAPER_PROFILE_SCOPE_GPU(pGpuLog, "Barrier", MP_RED);
+
                 std::array<VkMemoryBarrier, 1> memoryBarriers = {VkMemoryBarrier{
                     VK_STRUCTURE_TYPE_MEMORY_BARRIER,
                     nullptr,
@@ -518,6 +536,8 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
             // Shadow pass
             for (const ShadowPassData& shadow_pass : prepared.shadow_passes)
             {
+                REAPER_PROFILE_SCOPE_GPU(pGpuLog, "Shadow Pass", MP_DARKGOLDENROD);
+
                 const ShadowPassResources& shadow_map_pass_resources =
                     shadow_map_resources.passes[shadow_pass.pass_index];
 
@@ -598,28 +618,38 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                 vkCmdEndRenderPass(resources.gfxCmdBuffer);
             }
 
-            for (const ShadowPassData& shadow_pass : prepared.shadow_passes)
             {
-                // FIXME synchronize with a single call
-                VkImageMemoryBarrier shadowMapImageBarrierInfo = {
-                    VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-                    nullptr,
-                    0,
-                    VK_ACCESS_MEMORY_READ_BIT,
-                    VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
-                    VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                    backend.physicalDeviceInfo.graphicsQueueIndex,
-                    backend.physicalDeviceInfo.graphicsQueueIndex,
-                    shadow_map_resources.shadowMap[shadow_pass.pass_index].handle,
-                    {VK_IMAGE_ASPECT_DEPTH_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS}};
+                REAPER_PROFILE_SCOPE_GPU(pGpuLog, "Barrier", MP_RED);
 
+                std::vector<VkImageMemoryBarrier> shadowMapImageBarrierInfo;
+
+                for (const ShadowPassData& shadow_pass : prepared.shadow_passes)
+                {
+                    // FIXME synchronize with a single call
+                    shadowMapImageBarrierInfo.push_back(VkImageMemoryBarrier{
+                        VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+                        nullptr,
+                        0,
+                        VK_ACCESS_MEMORY_READ_BIT,
+                        VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
+                        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                        backend.physicalDeviceInfo.graphicsQueueIndex,
+                        backend.physicalDeviceInfo.graphicsQueueIndex,
+                        shadow_map_resources.shadowMap[shadow_pass.pass_index].handle,
+                        {VK_IMAGE_ASPECT_DEPTH_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS}});
+                }
+
+                // FIXME is this a noop when there's no barriers?
                 vkCmdPipelineBarrier(resources.gfxCmdBuffer, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-                                     VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, nullptr, 0, nullptr, 1,
-                                     &shadowMapImageBarrierInfo);
+                                     VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, nullptr, 0, nullptr,
+                                     static_cast<u32>(shadowMapImageBarrierInfo.size()),
+                                     shadowMapImageBarrierInfo.data());
             }
 
             // Draw pass
             {
+                REAPER_PROFILE_SCOPE_GPU(pGpuLog, "Draw Pass", MP_DARKGOLDENROD);
+
                 const u32 pass_index = prepared.draw_culling_pass_index;
 
                 vkCmdBeginRenderPass(resources.gfxCmdBuffer, &blitRenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
@@ -677,6 +707,16 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                 vkCmdEndRenderPass(resources.gfxCmdBuffer);
             }
 
+#if defined(REAPER_USE_MICROPROFILE)
+            MICROPROFILE_GPU_LEAVE_L(pGpuLog);
+
+            const u64 microprofile_data = MicroProfileGpuEnd(pGpuLog);
+            MicroProfileThreadLogGpuFree(pGpuLog);
+
+            MICROPROFILE_GPU_SUBMIT(MicroProfileGetGlobalGpuQueue(), microprofile_data);
+            MicroProfileFlip(resources.gfxCmdBuffer);
+#endif
+
             Assert(vkEndCommandBuffer(resources.gfxCmdBuffer) == VK_SUCCESS);
             // Stop recording
 
@@ -727,14 +767,15 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
             Assert(presentResult == VK_SUCCESS);
 
             if (saveMyLaptop)
+            {
+                REAPER_PROFILE_SCOPE("Vulkan", MP_GREEN);
                 std::this_thread::sleep_for(std::chrono::milliseconds(60));
+            }
 
             frameIndex++;
             if (frameIndex == MaxFrameCount)
                 shouldExit = true;
         }
-
-        MicroProfileFlip(nullptr);
 
         lastFrameStart = currentTime;
     }

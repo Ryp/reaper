@@ -253,6 +253,12 @@ void create_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& backend)
 
     // create_vulkan_display_swapchain(root, backend);
 
+#if defined(REAPER_USE_MICROPROFILE)
+    const u32 node_count = 1; // NOTE: not sure what this is for
+    MicroProfileGpuInitVulkan(&backend.device, &backend.physicalDevice, &backend.deviceInfo.graphicsQueue,
+                              &backend.physicalDeviceInfo.graphicsQueueIndex, node_count);
+#endif
+
     log_info(root, "vulkan: ready");
 }
 
@@ -263,6 +269,10 @@ void destroy_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& backend)
 
     log_debug(root, "vulkan: waiting for current work to finish");
     Assert(vkDeviceWaitIdle(backend.device) == VK_SUCCESS);
+
+#if defined(REAPER_USE_MICROPROFILE)
+    MicroProfileGpuShutdown();
+#endif
 
     destroy_vulkan_wm_swapchain(root, backend, backend.presentInfo);
 
