@@ -22,4 +22,6 @@
     #error Build type must be defined
 #endif
 
-#define MICROPROFILE_GPU_TIMERS 0
+#define MICROPROFILE_GPU_TIMERS 1
+#define MICROPROFILE_GPU_TIMERS_VULKAN 1
+#define MICROPROFILE_GPU_FRAME_DELAY 5
