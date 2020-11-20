@@ -14,17 +14,8 @@
 
 #include "core/Profile.h"
 
-// Log all of stdout and stderr to a file
-// FIXME does not work, disabled
-#define REAPER_LOG_OUTPUT 0
-
 int main(int /*ac*/, char** /*av*/)
 {
-#if REAPER_LOG_OUTPUT
-    Assert(freopen("stdout.txt", "w", stdout));
-    Assert(freopen("stderr.txt", "w", stderr));
-#endif
-
 #if defined(REAPER_USE_MICROPROFILE)
     MicroProfileOnThreadCreate("Main");
     MicroProfileSetEnableAllGroups(true);
@@ -56,11 +47,6 @@ int main(int /*ac*/, char** /*av*/)
 #if defined(REAPER_USE_MICROPROFILE)
     MicroProfileDumpFileImmediately("profile.html", nullptr, nullptr);
     MicroProfileShutdown();
-#endif
-
-#if REAPER_LOG_OUTPUT
-    Assert(fclose(stdout) == 0);
-    Assert(fclose(stderr) == 0);
 #endif
 
     return 0;
