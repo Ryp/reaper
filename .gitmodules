@@ -12,7 +12,7 @@
     url = https://github.com/fmtlib/fmt
 [submodule "external/microprofile"]
     path = external/microprofile
-    url = https://github.com/jonasmr/microprofile
+    url = https://github.com/Ryp/microprofile
     ignore = untracked
 [submodule "external/amd-rga"]
 	path = external/amd-rga
