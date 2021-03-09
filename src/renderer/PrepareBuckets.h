@@ -14,10 +14,10 @@
 #include "renderer/shader/share/draw.hlsl"
 #include "renderer/shader/share/shadow_map_pass.hlsl"
 
-struct Mesh;
-
 namespace Reaper
 {
+struct Mesh2;
+
 struct Light
 {
     glm::mat4  projection_matrix;
@@ -29,9 +29,9 @@ struct Light
 
 struct Node
 {
-    glm::mat4x3 transform_matrix;
-    u32         instance_id;
-    const Mesh* mesh;
+    glm::mat4x3  transform_matrix;
+    u32          instance_id;
+    const Mesh2* mesh;
 };
 
 struct SceneCamera
@@ -49,7 +49,7 @@ struct SceneGraph
     SceneCamera        camera;
 };
 
-void build_scene_graph(SceneGraph& scene, const Mesh* mesh);
+void build_scene_graph(SceneGraph& scene, const Mesh2* meshes, u32 mesh_count);
 void update_scene_graph(SceneGraph& scene, float time_ms, glm::uvec2 viewport_extent, const glm::mat4x3& view_matrix);
 
 struct CullCmd

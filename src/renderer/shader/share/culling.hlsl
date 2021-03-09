@@ -16,8 +16,12 @@ struct CullPushConstants
 {
     hlsl_uint triangleCount;
     hlsl_uint firstIndex;
+    hlsl_uint firstVertex;
     hlsl_uint outputIndexOffset;
-    hlsl_uint firstInstance;
+    hlsl_uint firstCullInstance;
+    hlsl_uint _pad0;
+    hlsl_uint _pad1;
+    hlsl_uint _pad2;
 };
 
 struct CullPassParams

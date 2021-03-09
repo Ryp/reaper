@@ -83,15 +83,17 @@ BufferInfo create_buffer(ReaperRoot& root, VkDevice device, const char* debug_st
 }
 
 void upload_buffer_data(VkDevice device, const VmaAllocator& allocator, const BufferInfo& buffer, const void* data,
-                        std::size_t size)
+                        std::size_t size, u32 offset_elements)
 {
     u8* writePtr = nullptr;
 
     VmaAllocationInfo allocation_info;
     vmaGetAllocationInfo(allocator, buffer.allocation, &allocation_info);
 
-    Assert(vkMapMemory(device, allocation_info.deviceMemory, allocation_info.offset, allocation_info.size, 0,
-                       reinterpret_cast<void**>(&writePtr))
+    const u64 offset_bytes = buffer.descriptor.stride * offset_elements;
+
+    Assert(vkMapMemory(device, allocation_info.deviceMemory, allocation_info.offset + offset_bytes,
+                       allocation_info.size, 0, reinterpret_cast<void**>(&writePtr))
            == VK_SUCCESS);
 
     Assert(size <= allocation_info.size,
