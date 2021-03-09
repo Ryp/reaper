@@ -22,6 +22,7 @@
 #include "renderer/vulkan/api/VulkanStringConversion.h"
 
 #include "renderer/Camera.h"
+#include "renderer/Mesh2.h"
 #include "renderer/PrepareBuckets.h"
 #include "renderer/texture/GPUTextureProperties.h"
 #include "renderer/window/Event.h"
@@ -109,38 +110,128 @@ namespace
     }
 } // namespace
 
+namespace
+{
+    struct MeshCache
+    {
+        static constexpr u32 MAX_INDEX_COUNT = 1000000;
+        static constexpr u32 MAX_VERTEX_COUNT = 1000000;
+
+        BufferInfo vertexBufferPosition;
+        BufferInfo vertexBufferNormal;
+        BufferInfo vertexBufferUV;
+        BufferInfo indexBuffer;
+
+        u32 current_uv_offset;
+        u32 current_normal_offset;
+        u32 current_position_offset;
+        u32 current_index_offset;
+    };
+
+    MeshCache create_mesh_cache(ReaperRoot& root, VulkanBackend& backend)
+    {
+        BufferInfo vertexBufferPosition =
+            create_buffer(root, backend.device, "Position buffer",
+                          DefaultGPUBufferProperties(MeshCache::MAX_VERTEX_COUNT, 3 * sizeof(float),
+                                                     GPUBufferUsage::VertexBuffer | GPUBufferUsage::StorageBuffer),
+                          backend.vma_instance);
+        BufferInfo vertexBufferNormal = create_buffer(
+            root, backend.device, "Normal buffer",
+            DefaultGPUBufferProperties(MeshCache::MAX_VERTEX_COUNT, 3 * sizeof(float), GPUBufferUsage::VertexBuffer),
+            backend.vma_instance);
+        BufferInfo vertexBufferUV = create_buffer(
+            root, backend.device, "UV buffer",
+            DefaultGPUBufferProperties(MeshCache::MAX_VERTEX_COUNT, 2 * sizeof(float), GPUBufferUsage::VertexBuffer),
+            backend.vma_instance);
+        BufferInfo indexBuffer = create_buffer(
+            root, backend.device, "Index buffer",
+            DefaultGPUBufferProperties(MeshCache::MAX_INDEX_COUNT, sizeof(int), GPUBufferUsage::StorageBuffer),
+            backend.vma_instance);
+
+        return {
+            vertexBufferPosition, vertexBufferNormal, vertexBufferUV, indexBuffer, 0, 0, 0, 0,
+        };
+    }
+
+    void destroy_mesh_cache(VulkanBackend& backend, const MeshCache& mesh_cache)
+    {
+        vmaDestroyBuffer(backend.vma_instance, mesh_cache.indexBuffer.buffer, mesh_cache.indexBuffer.allocation);
+        vmaDestroyBuffer(backend.vma_instance, mesh_cache.vertexBufferPosition.buffer,
+                         mesh_cache.vertexBufferPosition.allocation);
+        vmaDestroyBuffer(backend.vma_instance, mesh_cache.vertexBufferNormal.buffer,
+                         mesh_cache.vertexBufferNormal.allocation);
+        vmaDestroyBuffer(backend.vma_instance, mesh_cache.vertexBufferUV.buffer, mesh_cache.vertexBufferUV.allocation);
+    }
+
+    MeshAlloc mesh_cache_allocate_mesh(MeshCache& mesh_cache, const Mesh& mesh)
+    {
+        MeshAlloc alloc = {};
+
+        const u32 index_count = mesh.indexes.size();
+        const u32 position_count = mesh.vertices.size();
+        const u32 normal_count = mesh.normals.size();
+        const u32 uv_count = mesh.uvs.size();
+
+        Assert(index_count > 0);
+        Assert(position_count > 0);
+        Assert(normal_count == 0 || normal_count == position_count);
+        Assert(uv_count == 0 || uv_count == position_count);
+
+        alloc.index_count = index_count;
+        alloc.vertex_count = position_count;
+
+        alloc.index_offset = mesh_cache.current_index_offset;
+        alloc.position_offset = mesh_cache.current_position_offset;
+        alloc.normal_offset = mesh_cache.current_normal_offset;
+        alloc.uv_offset = mesh_cache.current_uv_offset;
+
+        mesh_cache.current_index_offset += index_count;
+        mesh_cache.current_position_offset += position_count;
+        mesh_cache.current_normal_offset += normal_count;
+        mesh_cache.current_uv_offset += uv_count;
+
+        Assert(mesh_cache.current_index_offset < MeshCache::MAX_INDEX_COUNT);
+        Assert(mesh_cache.current_position_offset < MeshCache::MAX_VERTEX_COUNT);
+
+        return alloc;
+    }
+
+    void upload_mesh_to_mesh_cache(MeshCache& mesh_cache, const Mesh& mesh, const MeshAlloc& mesh_alloc,
+                                   VulkanBackend& backend)
+    {
+        upload_buffer_data(backend.device, backend.vma_instance, mesh_cache.indexBuffer, mesh.indexes.data(),
+                           mesh.indexes.size() * sizeof(mesh.indexes[0]), mesh_alloc.index_offset);
+        upload_buffer_data(backend.device, backend.vma_instance, mesh_cache.vertexBufferPosition, mesh.vertices.data(),
+                           mesh.vertices.size() * sizeof(mesh.vertices[0]), mesh_alloc.position_offset);
+        upload_buffer_data(backend.device, backend.vma_instance, mesh_cache.vertexBufferNormal, mesh.normals.data(),
+                           mesh.normals.size() * sizeof(mesh.normals[0]), mesh_alloc.normal_offset);
+        upload_buffer_data(backend.device, backend.vma_instance, mesh_cache.vertexBufferUV, mesh.uvs.data(),
+                           mesh.uvs.size() * sizeof(mesh.uvs[0]), mesh_alloc.uv_offset);
+    }
+} // namespace
+
 void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResources& resources)
 {
-    // Read mesh file
-    std::ifstream modelFile("res/model/ship.obj");
-    const Mesh    mesh = ModelLoader::loadOBJ(modelFile);
+    std::vector<Mesh2> mesh2_instances;
+    MeshCache          mesh_cache = create_mesh_cache(root, backend);
 
-    BufferInfo vertexBufferPosition =
-        create_buffer(root, backend.device, "Position buffer",
-                      DefaultGPUBufferProperties(mesh.vertices.size(), sizeof(mesh.vertices[0]),
-                                                 GPUBufferUsage::VertexBuffer | GPUBufferUsage::StorageBuffer),
-                      backend.vma_instance);
-    BufferInfo vertexBufferNormal = create_buffer(
-        root, backend.device, "Normal buffer",
-        DefaultGPUBufferProperties(mesh.normals.size(), sizeof(mesh.normals[0]), GPUBufferUsage::VertexBuffer),
-        backend.vma_instance);
-    BufferInfo vertexBufferUV =
-        create_buffer(root, backend.device, "UV buffer",
-                      DefaultGPUBufferProperties(mesh.uvs.size(), sizeof(mesh.uvs[0]), GPUBufferUsage::VertexBuffer),
-                      backend.vma_instance);
-    BufferInfo indexBuffer = create_buffer(
-        root, backend.device, "Index buffer",
-        DefaultGPUBufferProperties(mesh.indexes.size(), sizeof(mesh.indexes[0]), GPUBufferUsage::StorageBuffer),
-        backend.vma_instance);
+    {
+        // Read mesh file
+        std::ifstream     mesh_file_0("res/model/teapot.obj");
+        std::ifstream     mesh_file_1("res/model/suzanne.obj");
+        std::ifstream     mesh_file_2("res/model/ship.obj");
+        std::vector<Mesh> mesh_instances;
+        mesh_instances.emplace_back(ModelLoader::loadOBJ(mesh_file_0));
+        mesh_instances.emplace_back(ModelLoader::loadOBJ(mesh_file_1));
+        mesh_instances.emplace_back(ModelLoader::loadOBJ(mesh_file_2));
 
-    upload_buffer_data(backend.device, backend.vma_instance, vertexBufferPosition, mesh.vertices.data(),
-                       mesh.vertices.size() * sizeof(mesh.vertices[0]));
-    upload_buffer_data(backend.device, backend.vma_instance, vertexBufferNormal, mesh.normals.data(),
-                       mesh.normals.size() * sizeof(mesh.normals[0]));
-    upload_buffer_data(backend.device, backend.vma_instance, vertexBufferUV, mesh.uvs.data(),
-                       mesh.uvs.size() * sizeof(mesh.uvs[0]));
-    upload_buffer_data(backend.device, backend.vma_instance, indexBuffer, mesh.indexes.data(),
-                       mesh.indexes.size() * sizeof(mesh.indexes[0]));
+        for (auto& mesh : mesh_instances)
+        {
+            Mesh2& mesh2 = mesh2_instances.emplace_back();
+            mesh2 = create_mesh2(mesh_cache_allocate_mesh(mesh_cache, mesh));
+            upload_mesh_to_mesh_cache(mesh_cache, mesh, mesh2.lods_allocs[0], backend);
+        }
+    }
 
     // Culling Pass
     CullResources cull_resources = create_culling_resources(root, backend);
@@ -185,7 +276,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
     camera_state.position = glm::vec3(-5.f, 0.f, 0.f);
 
     SceneGraph scene;
-    build_scene_graph(scene, &mesh);
+    build_scene_graph(scene, mesh2_instances.data(), mesh2_instances.size());
 
     const auto startTime = std::chrono::system_clock::now();
     auto       lastFrameStart = startTime;
@@ -370,8 +461,9 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
             for (const CullPassData& cull_pass : prepared.cull_passes)
             {
                 CullPassResources& cull_pass_resources = cull_resources.passes.emplace_back();
-                cull_pass_resources = create_culling_pass_descriptor_sets(
-                    root, backend, cull_resources, cull_pass.pass_index, indexBuffer, vertexBufferPosition);
+                cull_pass_resources =
+                    create_culling_pass_descriptor_sets(root, backend, cull_resources, cull_pass.pass_index,
+                                                        mesh_cache.indexBuffer, mesh_cache.vertexBufferPosition);
             }
 
             for (u32 i = 0; i < shadow_map_resources.shadowMap.size(); i++)
@@ -580,7 +672,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                 }
 
                 std::vector<VkBuffer> vertexBuffers = {
-                    vertexBufferPosition.buffer,
+                    mesh_cache.vertexBufferPosition.buffer,
                 };
                 std::vector<VkDeviceSize> vertexBufferOffsets = {0};
 
@@ -666,9 +758,9 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                 vkCmdSetScissor(resources.gfxCmdBuffer, 0, 1, &blitScissor);
 
                 std::vector<VkBuffer> vertexBuffers = {
-                    vertexBufferPosition.buffer,
-                    vertexBufferNormal.buffer,
-                    vertexBufferUV.buffer,
+                    mesh_cache.vertexBufferPosition.buffer,
+                    mesh_cache.vertexBufferNormal.buffer,
+                    mesh_cache.vertexBufferUV.buffer,
                 };
                 std::vector<VkDeviceSize> vertexBufferOffsets = {
                     0,
@@ -733,10 +825,10 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
             VkTimelineSemaphoreSubmitInfo timelineSemaphoreSubmitInfo = {
                 VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO,
                 nullptr,
-                0,                    // uint32_t		  waitSemaphoreValueCount;
-                nullptr,              // const uint64_t*	  pWaitSemaphoreValues;
-                signal_values.size(), // uint32_t		  signalSemaphoreValueCount;
-                signal_values.data()  // const uint64_t*	  pSignalSemaphoreValues;
+                0,                    // uint32_t         waitSemaphoreValueCount;
+                nullptr,              // const uint64_t*  pWaitSemaphoreValues;
+                signal_values.size(), // uint32_t         signalSemaphoreValueCount;
+                signal_values.data()  // const uint64_t*  pSignalSemaphoreValues;
             };
 
             VkSubmitInfo blitSubmitInfo = {VK_STRUCTURE_TYPE_SUBMIT_INFO,
@@ -793,9 +885,6 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
     destroy_shadow_map_resources(backend, shadow_map_resources);
     destroy_culling_resources(backend, cull_resources);
 
-    vmaDestroyBuffer(backend.vma_instance, indexBuffer.buffer, indexBuffer.allocation);
-    vmaDestroyBuffer(backend.vma_instance, vertexBufferPosition.buffer, vertexBufferPosition.allocation);
-    vmaDestroyBuffer(backend.vma_instance, vertexBufferNormal.buffer, vertexBufferNormal.allocation);
-    vmaDestroyBuffer(backend.vma_instance, vertexBufferUV.buffer, vertexBufferUV.allocation);
+    destroy_mesh_cache(backend, mesh_cache);
 }
 } // namespace Reaper

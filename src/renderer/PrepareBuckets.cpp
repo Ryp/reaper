@@ -7,10 +7,9 @@
 
 #include "PrepareBuckets.h"
 
+#include "renderer/Mesh2.h"
 #include "renderer/vulkan/renderpass/CullingConstants.h"
 #include "renderer/vulkan/renderpass/ShadowConstants.h"
-
-#include "mesh/Mesh.h"
 
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -45,13 +44,20 @@ namespace
     }
 } // namespace
 
-void build_scene_graph(SceneGraph& scene, const Mesh* mesh)
+void build_scene_graph(SceneGraph& scene, const Mesh2* meshes, u32 mesh_count)
 {
-    for (u32 i = 0; i < MeshInstanceCount; i++)
+    Assert(mesh_count > 0);
+
+    for (u32 mesh_index = 0; mesh_index < mesh_count; mesh_index++)
     {
-        Node& node = scene.nodes.emplace_back();
-        node.instance_id = i;
-        node.mesh = mesh;
+        const Mesh2& mesh = meshes[mesh_index];
+
+        for (u32 i = 0; i < MeshInstanceCount; i++)
+        {
+            Node& node = scene.nodes.emplace_back();
+            node.instance_id = mesh_index * MeshInstanceCount + i;
+            node.mesh = &mesh;
+        }
     }
 
     // Add lights
@@ -129,17 +135,51 @@ void build_scene_graph(SceneGraph& scene, const Mesh* mesh)
 void update_scene_graph(SceneGraph& scene, float time_ms, glm::uvec2 viewport_extent, const glm::mat4x3& view_matrix)
 {
     // Update meshes
-    for (u32 i = 0; i < MeshInstanceCount; i++)
-    {
-        const float     ratio = static_cast<float>(i) / static_cast<float>(MeshInstanceCount) * Math::Pi * 2.f;
-        const glm::vec3 object_position_ws = glm::vec3(glm::cos(ratio + time_ms), glm::cos(ratio), glm::sin(ratio));
-        const float     uniform_scale = 0.0014f;
-        // const float     uniform_scale = 1.0f;
-        const glm::mat4 model = glm::rotate(glm::scale(glm::translate(glm::mat4(1.0f), object_position_ws),
-                                                       glm::vec3(uniform_scale, uniform_scale, uniform_scale)),
-                                            time_ms + ratio, glm::vec3(0.f, 1.f, 1.f));
+    // This code is completely ad-hoc but allows to build some kind of scene without relying on loading a file.
+    // FIXME hacky way to reference nodes with meshes
+    const u32 mesh_count = 3;
 
-        scene.nodes[i].transform_matrix = glm::mat4x3(model);
+    for (u32 mesh_index = 0; mesh_index < mesh_count; mesh_index++)
+    {
+        for (u32 i = 0; i < MeshInstanceCount; i++)
+        {
+            Node& mesh_node = scene.nodes[mesh_index * MeshInstanceCount + i];
+
+            const float ratio = static_cast<float>(i) / static_cast<float>(MeshInstanceCount) * Math::Pi * 2.f;
+
+            glm::vec3  object_position_ws = glm::vec3(glm::cos(ratio + time_ms), glm::cos(ratio), glm::sin(ratio));
+            float      uniform_scale;
+            glm::fvec3 tilt;
+
+            switch (mesh_index)
+            {
+            case 0: { // Teapot
+                uniform_scale = 0.17f;
+                tilt = glm::vec3(1.f, 0.f, 1.f);
+                break;
+            }
+            case 1: { // Monke
+                uniform_scale = 0.7f;
+                tilt = glm::vec3(0.f, 1.f, 1.f);
+                std::swap(object_position_ws.x, object_position_ws.z);
+                break;
+            }
+            case 2: { // Ship
+                uniform_scale = 0.0008f;
+                tilt = glm::vec3(1.f, 1.f, 0.f);
+                std::swap(object_position_ws.y, object_position_ws.z);
+                break;
+            }
+            default:
+                break;
+            }
+
+            const glm::mat4 model = glm::rotate(glm::scale(glm::translate(glm::mat4(1.0f), object_position_ws),
+                                                           glm::vec3(uniform_scale, uniform_scale, uniform_scale)),
+                                                time_ms + ratio, tilt);
+
+            mesh_node.transform_matrix = glm::mat4x3(model);
+        }
     }
 
     // Update camera node
@@ -165,14 +205,17 @@ namespace
     {
         Assert(node.mesh);
 
-        const u32 index_count = static_cast<u32>(node.mesh->indexes.size());
+        const MeshAlloc& mesh_alloc = node.mesh->lods_allocs[0];
+
+        const u32 index_count = static_cast<u32>(mesh_alloc.index_count);
         Assert(index_count % 3 == 0);
 
         CullPushConstants consts;
         consts.triangleCount = index_count / 3;
-        consts.firstIndex = 0;
+        consts.firstIndex = mesh_alloc.index_offset;
+        consts.firstVertex = mesh_alloc.position_offset;
         consts.outputIndexOffset = cull_pass.pass_index * (DynamicIndexBufferSize / IndexSizeBytes);
-        consts.firstInstance = cull_instance_index_start;
+        consts.firstCullInstance = cull_instance_index_start;
 
         CullCmd& command = cull_pass.cull_cmds.emplace_back();
         command.instanceCount = cull_instance_count;
@@ -275,7 +318,8 @@ void prepare_scene(SceneGraph& scene, PreparedData& prepared)
             const glm::mat4x3 modelView = glm::mat4(camera_node.transform_matrix) * glm::mat4(node.transform_matrix);
 
             DrawInstanceParams& draw_instance = prepared.draw_instance_params.emplace_back();
-            draw_instance.model = node.transform_matrix, draw_instance.normal_ms_to_vs_matrix = glm::mat3(modelView);
+            draw_instance.model = node.transform_matrix;
+            draw_instance.normal_ms_to_vs_matrix = glm::mat3(modelView);
 
             CullInstanceParams& cull_instance = prepared.cull_instance_params.emplace_back();
             const u32           cull_instance_index = prepared.cull_instance_params.size() - 1;

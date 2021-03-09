@@ -22,7 +22,7 @@ VK_BINDING(0, 0) ConstantBuffer<CullPassParams> pass_params;
 
 VK_BINDING(1, 0) ByteAddressBuffer Indices;
 VK_BINDING(2, 0) ByteAddressBuffer VertexPositions;
-VK_BINDING(3, 0) StructuredBuffer<CullInstanceParams> instance_params;
+VK_BINDING(3, 0) StructuredBuffer<CullInstanceParams> cull_instance_params;
 
 //------------------------------------------------------------------------------
 // Output
@@ -53,16 +53,17 @@ void main(/*uint3 gtid : SV_GroupThreadID,*/
     const uint input_triangle_index_offset = consts.firstIndex + dtid.x * 3;
 
     const uint3 indices = Indices.Load3(input_triangle_index_offset * 4);
+    const uint3 indices_with_vertex_offset = indices + consts.firstVertex.xxx;
 
-    const uint vertex_size_in_bytes = 3 * 4;
+    const uint vertex_size_in_bytes = 3 * 4; // FIXME hardcode position vertex size
 
-    const float3 vpos0_ms = asfloat(VertexPositions.Load3(indices.x * vertex_size_in_bytes));
-    const float3 vpos1_ms = asfloat(VertexPositions.Load3(indices.y * vertex_size_in_bytes));
-    const float3 vpos2_ms = asfloat(VertexPositions.Load3(indices.z * vertex_size_in_bytes));
+    const float3 vpos0_ms = asfloat(VertexPositions.Load3(indices_with_vertex_offset.x * vertex_size_in_bytes));
+    const float3 vpos1_ms = asfloat(VertexPositions.Load3(indices_with_vertex_offset.y * vertex_size_in_bytes));
+    const float3 vpos2_ms = asfloat(VertexPositions.Load3(indices_with_vertex_offset.z * vertex_size_in_bytes));
 
-    const uint cull_instance_id = consts.firstInstance + gid.y;
-    const float4x4 ms_to_cs_matrix = instance_params[cull_instance_id].ms_to_cs_matrix;
-    const uint instance_id = instance_params[cull_instance_id].instance_id;
+    const uint cull_instance_id = consts.firstCullInstance + gid.y;
+    const float4x4 ms_to_cs_matrix = cull_instance_params[cull_instance_id].ms_to_cs_matrix;
+    const uint instance_id = cull_instance_params[cull_instance_id].instance_id;
 
     const float4 vpos0_cs = mul(ms_to_cs_matrix, float4(vpos0_ms, 1.0));
     const float4 vpos1_cs = mul(ms_to_cs_matrix, float4(vpos1_ms, 1.0));
@@ -159,7 +160,7 @@ void main(/*uint3 gtid : SV_GroupThreadID,*/
         command.indexCount = lds_triangle_count * 3;
         command.instanceCount = 1;
         command.firstIndex = consts.outputIndexOffset + lds_triangle_offset * 3;
-        command.vertexOffset = 0;
+        command.vertexOffset = consts.firstVertex;
         command.firstInstance = instance_id;
 
         store_draw_command(DrawCommandOut, draw_command_index * IndirectDrawCommandSize * 4, command);
