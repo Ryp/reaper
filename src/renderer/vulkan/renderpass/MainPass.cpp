@@ -327,21 +327,34 @@ MainPipelineInfo create_main_pipeline(ReaperRoot& root, VulkanBackend& backend, 
 
 namespace
 {
-    void create_depth_buffer(ReaperRoot& root, VulkanBackend& backend, MainPassResources& resources, glm::uvec2 extent)
+    void create_main_pass_resizable_resources(ReaperRoot& root, VulkanBackend& backend, MainPassResources& resources,
+                                              glm::uvec2 extent)
     {
+        GPUTextureProperties hdrProperties =
+            DefaultGPUTextureProperties(extent.x, extent.y, PixelFormat::B10G11R11_UFLOAT_PACK32);
+        hdrProperties.usageFlags = GPUTextureUsage::ColorAttachment | GPUTextureUsage::Sampled;
+
+        resources.hdrBuffer =
+            create_image(root, backend.device, "Main HDR Target", hdrProperties, backend.vma_instance);
+        resources.hdrBufferView = create_default_image_view(root, backend.device, resources.hdrBuffer);
+
         GPUTextureProperties depthProperties = DefaultGPUTextureProperties(extent.x, extent.y, PixelFormat::D16_UNORM);
         depthProperties.usageFlags = GPUTextureUsage::DepthStencilAttachment;
 
         resources.depthBuffer =
-            create_image(root, backend.device, "Main Depth Buffer", depthProperties, backend.vma_instance);
+            create_image(root, backend.device, "Main Depth Target", depthProperties, backend.vma_instance);
         resources.depthBufferView = create_depth_image_view(root, backend.device, resources.depthBuffer);
     }
 
-    void destroy_depth_buffer(VulkanBackend& backend, MainPassResources& resources)
+    void destroy_main_pass_resizable_resources(VulkanBackend& backend, MainPassResources& resources)
     {
+        vkDestroyImageView(backend.device, resources.hdrBufferView, nullptr);
+        vmaDestroyImage(backend.vma_instance, resources.hdrBuffer.handle, resources.hdrBuffer.allocation);
         vkDestroyImageView(backend.device, resources.depthBufferView, nullptr);
         vmaDestroyImage(backend.vma_instance, resources.depthBuffer.handle, resources.depthBuffer.allocation);
 
+        resources.hdrBuffer = {};
+        resources.hdrBufferView = VK_NULL_HANDLE;
         resources.depthBuffer = {};
         resources.depthBufferView = VK_NULL_HANDLE;
     }
@@ -411,7 +424,7 @@ MainPassResources create_main_pass_resources(ReaperRoot& root, VulkanBackend& ba
         DefaultGPUBufferProperties(DrawInstanceCountMax, sizeof(DrawInstanceParams), GPUBufferUsage::StorageBuffer),
         backend.vma_instance);
 
-    create_depth_buffer(root, backend, resources, extent);
+    create_main_pass_resizable_resources(root, backend, resources, extent);
 
     resources.mainRenderPass = create_main_pass(root, backend, resources.depthBuffer.properties);
     resources.mainPipe = create_main_pipeline(root, backend, resources.mainRenderPass);
@@ -457,7 +470,7 @@ void destroy_main_pass_resources(VulkanBackend& backend, MainPassResources& reso
 
     vkDestroyRenderPass(backend.device, resources.mainRenderPass, nullptr);
 
-    destroy_depth_buffer(backend, resources);
+    destroy_main_pass_resizable_resources(backend, resources);
 
     vmaDestroyBuffer(backend.vma_instance, resources.drawPassConstantBuffer.buffer,
                      resources.drawPassConstantBuffer.allocation);
@@ -465,13 +478,15 @@ void destroy_main_pass_resources(VulkanBackend& backend, MainPassResources& reso
                      resources.drawInstanceConstantBuffer.allocation);
 }
 
-void resize_main_pass_depth_buffer(ReaperRoot& root, VulkanBackend& backend, MainPassResources& resources,
-                                   glm::uvec2 extent)
+void resize_main_pass_resources(ReaperRoot& root, VulkanBackend& backend, MainPassResources& resources,
+                                glm::uvec2 extent)
 {
     vkDestroyFramebuffer(backend.device, resources.swapchain_framebuffer, nullptr);
-    destroy_depth_buffer(backend, resources);
 
-    create_depth_buffer(root, backend, resources, extent);
+    destroy_main_pass_resizable_resources(backend, resources);
+
+    create_main_pass_resizable_resources(root, backend, resources, extent);
+
     resources.swapchain_framebuffer =
         create_framebuffer(root, backend, resources.mainRenderPass, resources.depthBuffer.properties);
 }
