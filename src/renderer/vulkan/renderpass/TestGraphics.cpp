@@ -322,7 +322,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
 
                         const glm::uvec2 new_swapchain_extent(backend.presentInfo.surfaceExtent.width,
                                                               backend.presentInfo.surfaceExtent.height);
-                        resize_main_pass_depth_buffer(root, backend, main_pass_resources, new_swapchain_extent);
+                        resize_main_pass_resources(root, backend, main_pass_resources, new_swapchain_extent);
                     }
                     mustTransitionSwapchain = true;
                 }

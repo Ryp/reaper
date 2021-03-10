@@ -40,6 +40,8 @@ struct MainPassResources
     BufferInfo drawPassConstantBuffer;
     BufferInfo drawInstanceConstantBuffer;
 
+    ImageInfo   hdrBuffer;
+    VkImageView hdrBufferView;
     ImageInfo   depthBuffer;
     VkImageView depthBufferView;
 
@@ -55,8 +57,8 @@ struct MainPassResources
 MainPassResources create_main_pass_resources(ReaperRoot& root, VulkanBackend& backend, glm::uvec2 extent);
 void              destroy_main_pass_resources(VulkanBackend& backend, MainPassResources& resources);
 
-void resize_main_pass_depth_buffer(ReaperRoot& root, VulkanBackend& backend, MainPassResources& resources,
-                                   glm::uvec2 extent);
+void resize_main_pass_resources(ReaperRoot& root, VulkanBackend& backend, MainPassResources& resources,
+                                glm::uvec2 extent);
 
 VkDescriptorSet create_main_pass_descriptor_set(ReaperRoot& root, VulkanBackend& backend,
                                                 const MainPassResources&        resources,
