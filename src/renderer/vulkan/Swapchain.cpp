@@ -255,7 +255,7 @@ void create_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backend, 
         0                                        // VkSemaphoreCreateFlags   flags
     };
 
-    create_swapchain_framebuffers(backend, presentInfo);
+    create_swapchain_views(backend, presentInfo);
 
     Assert(vkCreateSemaphore(backend.device, &semaphore_create_info, nullptr, &presentInfo.imageAvailableSemaphore)
            == VK_SUCCESS);
@@ -278,7 +278,7 @@ void destroy_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backend,
     vkDestroySemaphore(backend.device, presentInfo.imageAvailableSemaphore, nullptr);
     vkDestroySemaphore(backend.device, presentInfo.renderingFinishedSemaphore, nullptr);
 
-    destroy_swapchain_framebuffers(backend, presentInfo);
+    destroy_swapchain_views(backend, presentInfo);
 
     vkDestroySwapchainKHR(backend.device, presentInfo.swapchain, nullptr);
     presentInfo.swapchain = VK_NULL_HANDLE;
@@ -296,7 +296,7 @@ void resize_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backend, 
     vkDestroySemaphore(backend.device, presentInfo.imageAvailableSemaphore, nullptr);
     vkDestroySemaphore(backend.device, presentInfo.renderingFinishedSemaphore, nullptr);
 
-    destroy_swapchain_framebuffers(backend, presentInfo);
+    destroy_swapchain_views(backend, presentInfo);
 
     vkDestroySwapchainKHR(backend.device, presentInfo.swapchain, nullptr);
     presentInfo.swapchain = VK_NULL_HANDLE;
@@ -312,7 +312,7 @@ void resize_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backend, 
     create_vulkan_wm_swapchain(root, backend, presentInfo);
 }
 
-void create_swapchain_framebuffers(const VulkanBackend& backend, PresentationInfo& presentInfo)
+void create_swapchain_views(const VulkanBackend& backend, PresentationInfo& presentInfo)
 {
     const size_t imgCount = presentInfo.imageCount;
 
@@ -350,7 +350,7 @@ void create_swapchain_framebuffers(const VulkanBackend& backend, PresentationInf
     }
 }
 
-void destroy_swapchain_framebuffers(const VulkanBackend& backend, PresentationInfo& presentInfo)
+void destroy_swapchain_views(const VulkanBackend& backend, PresentationInfo& presentInfo)
 {
     for (size_t i = 0; i < presentInfo.imageViews.size(); i++)
         vkDestroyImageView(backend.device, presentInfo.imageViews[i], nullptr);

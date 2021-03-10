@@ -30,9 +30,6 @@ struct ReaperRoot;
 struct VulkanBackend;
 struct GPUTextureProperties;
 
-VkRenderPass create_main_pass(ReaperRoot& /*root*/, VulkanBackend& backend,
-                              const GPUTextureProperties& depthProperties);
-
 MainPipelineInfo create_main_pipeline(ReaperRoot& root, VulkanBackend& backend, VkRenderPass renderPass);
 
 struct MainPassResources
@@ -49,7 +46,7 @@ struct MainPassResources
 
     MainPipelineInfo mainPipe;
 
-    VkFramebuffer swapchain_framebuffer;
+    VkFramebuffer main_framebuffer;
 
     VkSampler shadowMapSampler;
 };

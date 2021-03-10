@@ -382,7 +382,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
             const VkExtent2D            backbufferExtent = backend.presentInfo.surfaceExtent;
             const VkRect2D              blitPassRect = {{0, 0}, backbufferExtent};
 
-            std::array<VkImageView, 2> main_pass_framebuffer_views = {backend.presentInfo.imageViews[imageIndex],
+            std::array<VkImageView, 2> main_pass_framebuffer_views = {main_pass_resources.hdrBufferView,
                                                                       main_pass_resources.depthBufferView};
 
             VkRenderPassAttachmentBeginInfo main_pass_attachments = {
@@ -392,7 +392,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
             VkRenderPassBeginInfo blitRenderPassBeginInfo = {VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
                                                              &main_pass_attachments,
                                                              main_pass_resources.mainRenderPass,
-                                                             main_pass_resources.swapchain_framebuffer,
+                                                             main_pass_resources.main_framebuffer,
                                                              blitPassRect,
                                                              static_cast<u32>(clearValues.size()),
                                                              clearValues.data()};
