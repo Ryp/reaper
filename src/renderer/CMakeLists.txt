@@ -90,6 +90,8 @@ target_sources(${target} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/MainPass.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/ShadowMap.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/ShadowMap.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/SwapchainPass.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/SwapchainPass.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/TestGraphics.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/TestGraphics.h
 
@@ -124,6 +126,8 @@ set(REAPER_SHADER_SRCS
     ${REAPER_SHADER_DIR}/compaction_prepare_indirect_dispatch.comp.hlsl
     ${REAPER_SHADER_DIR}/cull_triangle_batch.comp.hlsl
     ${REAPER_SHADER_DIR}/draw_command_compaction.comp.hlsl
+    ${REAPER_SHADER_DIR}/fullscreen_triangle.vert.hlsl
+    ${REAPER_SHADER_DIR}/matrix_row_major_codegen_bug.comp.hlsl
     ${REAPER_SHADER_DIR}/mesh_shade.frag.glsl
     ${REAPER_SHADER_DIR}/mesh_shade.vert.glsl
     ${REAPER_SHADER_DIR}/mesh_simple.frag.glsl
@@ -134,8 +138,8 @@ set(REAPER_SHADER_SRCS
     ${REAPER_SHADER_DIR}/mesh_transformed.vert.glsl
     ${REAPER_SHADER_DIR}/render_shadow.frag.hlsl
     ${REAPER_SHADER_DIR}/render_shadow.vert.hlsl
+    ${REAPER_SHADER_DIR}/swapchain_write.frag.hlsl
     ${REAPER_SHADER_DIR}/test.comp.glsl
-    ${REAPER_SHADER_DIR}/matrix_row_major_codegen_bug.comp.hlsl
 )
 
 # Shader compilation

@@ -330,5 +330,13 @@ void prepare_scene(SceneGraph& scene, PreparedData& prepared)
             insert_cull_cmd(cull_pass, node, cull_instance_index, 1);
         }
     }
+
+    // Swapchain pass
+    {
+        SwapchainPassParams params = {};
+        params.dummy_boost = 1.f;
+
+        prepared.swapchain_pass_params = params;
+    }
 }
 } // namespace Reaper

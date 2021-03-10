@@ -17,6 +17,7 @@ namespace GPUTextureUsage
 {
     enum Type : u32
     {
+        None = 0,
         TransferSrc = bit(0),
         TransferDst = bit(1),
         Sampled = bit(2),
@@ -25,7 +26,6 @@ namespace GPUTextureUsage
         DepthStencilAttachment = bit(5),
         TransientAttachment = bit(6),
         InputAttachment = bit(7),
-        Swapchain = bit(8),
     };
 }
 
@@ -33,6 +33,7 @@ namespace GPUMiscFlags
 {
     enum
     {
+        None = 0,
         Cubemap = bit(0),
     };
 }
