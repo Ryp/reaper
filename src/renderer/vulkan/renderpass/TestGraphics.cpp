@@ -11,6 +11,7 @@
 #include "CullingConstants.h"
 #include "MainPass.h"
 #include "ShadowMap.h"
+#include "SwapchainPass.h"
 
 #include "renderer/vulkan/ComputeHelper.h"
 #include "renderer/vulkan/Debug.h"
@@ -244,6 +245,9 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                                       backend.presentInfo.surfaceExtent.height);
     MainPassResources main_pass_resources = create_main_pass_resources(root, backend, swapchain_extent);
 
+    // Swapchain Pass
+    SwapchainPassResources swapchain_pass_resources = create_swapchain_pass_resources(root, backend, swapchain_extent);
+
     // Create fence
     VkFenceCreateInfo fenceInfo = {
         VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, nullptr,
@@ -322,7 +326,9 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
 
                         const glm::uvec2 new_swapchain_extent(backend.presentInfo.surfaceExtent.width,
                                                               backend.presentInfo.surfaceExtent.height);
+
                         resize_main_pass_resources(root, backend, main_pass_resources, new_swapchain_extent);
+                        resize_swapchain_pass_resources(root, backend, swapchain_pass_resources, new_swapchain_extent);
                     }
                     mustTransitionSwapchain = true;
                 }
@@ -341,16 +347,16 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
 
             VkResult acquireResult;
             u64      acquireTimeoutUs = 1000000000;
-            uint32_t imageIndex = 0;
+            uint32_t current_swapchain_index = 0;
 
             constexpr u32 MaxAcquireTryCount = 10;
 
             for (u32 acquireTryCount = 0; acquireTryCount < MaxAcquireTryCount; acquireTryCount++)
             {
                 log_debug(root, "vulkan: acquiring frame try #{}", acquireTryCount);
-                acquireResult =
-                    vkAcquireNextImageKHR(backend.device, backend.presentInfo.swapchain, acquireTimeoutUs,
-                                          backend.presentInfo.imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
+                acquireResult = vkAcquireNextImageKHR(backend.device, backend.presentInfo.swapchain, acquireTimeoutUs,
+                                                      backend.presentInfo.imageAvailableSemaphore, VK_NULL_HANDLE,
+                                                      &current_swapchain_index);
 
                 if (acquireResult != VK_NOT_READY)
                     break;
@@ -373,29 +379,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                 break;
             }
 
-            log_debug(root, "vulkan: image index = {}", imageIndex);
-
-            const float                 depthClearValue = UseReverseZ ? 0.f : 1.f;
-            const glm::fvec4            clearColor = {1.0f, 0.8f, 0.4f, 0.0f};
-            std::array<VkClearValue, 2> clearValues = {VkClearColor(clearColor),
-                                                       VkClearDepthStencil(depthClearValue, 0)};
-            const VkExtent2D            backbufferExtent = backend.presentInfo.surfaceExtent;
-            const VkRect2D              blitPassRect = {{0, 0}, backbufferExtent};
-
-            std::array<VkImageView, 2> main_pass_framebuffer_views = {main_pass_resources.hdrBufferView,
-                                                                      main_pass_resources.depthBufferView};
-
-            VkRenderPassAttachmentBeginInfo main_pass_attachments = {
-                VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO, nullptr, main_pass_framebuffer_views.size(),
-                main_pass_framebuffer_views.data()};
-
-            VkRenderPassBeginInfo blitRenderPassBeginInfo = {VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-                                                             &main_pass_attachments,
-                                                             main_pass_resources.mainRenderPass,
-                                                             main_pass_resources.main_framebuffer,
-                                                             blitPassRect,
-                                                             static_cast<u32>(clearValues.size()),
-                                                             clearValues.data()};
+            log_debug(root, "vulkan: image index = {}", current_swapchain_index);
 
             // Only wait for a previous frame fence
             if (frameIndex > 0)
@@ -422,6 +406,8 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
 
             log_debug(root, "vulkan: record command buffer");
             Assert(vkResetCommandBuffer(resources.gfxCmdBuffer, 0) == VK_SUCCESS);
+
+            const VkExtent2D backbufferExtent = backend.presentInfo.surfaceExtent;
 
             const auto timeSecs = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - startTime);
             const auto timeDeltaMs =
@@ -507,6 +493,12 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
             upload_buffer_data(backend.device, backend.vma_instance, main_pass_resources.drawInstanceConstantBuffer,
                                prepared.draw_instance_params.data(),
                                prepared.draw_instance_params.size() * sizeof(DrawInstanceParams));
+
+            VkDescriptorSet swapchainPassDescriptorSet = create_swapchain_pass_descriptor_set(
+                root, backend, swapchain_pass_resources, main_pass_resources.hdrBufferView);
+
+            upload_buffer_data(backend.device, backend.vma_instance, swapchain_pass_resources.passConstantBuffer,
+                               &prepared.swapchain_pass_params, sizeof(SwapchainPassParams));
 
             shadow_map_prepare_buffers(backend, prepared, shadow_map_resources);
             culling_prepare_buffers(cull_options, backend, prepared, cull_resources);
@@ -742,7 +734,26 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
             {
                 REAPER_PROFILE_SCOPE_GPU(pGpuLog, "Draw Pass", MP_DARKGOLDENROD);
 
-                const u32 pass_index = prepared.draw_culling_pass_index;
+                const float                 depthClearValue = UseReverseZ ? 0.f : 1.f;
+                const glm::fvec4            clearColor = {1.0f, 0.8f, 0.4f, 0.0f};
+                std::array<VkClearValue, 2> clearValues = {VkClearColor(clearColor),
+                                                           VkClearDepthStencil(depthClearValue, 0)};
+                const VkRect2D              blitPassRect = {{0, 0}, backbufferExtent};
+
+                std::array<VkImageView, 2> main_pass_framebuffer_views = {main_pass_resources.hdrBufferView,
+                                                                          main_pass_resources.depthBufferView};
+
+                VkRenderPassAttachmentBeginInfo main_pass_attachments = {
+                    VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO, nullptr, main_pass_framebuffer_views.size(),
+                    main_pass_framebuffer_views.data()};
+
+                VkRenderPassBeginInfo blitRenderPassBeginInfo = {VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+                                                                 &main_pass_attachments,
+                                                                 main_pass_resources.mainRenderPass,
+                                                                 main_pass_resources.main_framebuffer,
+                                                                 blitPassRect,
+                                                                 static_cast<u32>(clearValues.size()),
+                                                                 clearValues.data()};
 
                 vkCmdBeginRenderPass(resources.gfxCmdBuffer, &blitRenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
@@ -776,6 +787,8 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                                         main_pass_resources.mainPipe.pipelineLayout, 0, 1, &mainPassDescriptorSet, 0,
                                         nullptr);
 
+                const u32 pass_index = prepared.draw_culling_pass_index;
+
                 const u32 draw_buffer_offset = pass_index * MaxIndirectDrawCount * sizeof(VkDrawIndexedIndirectCommand);
                 const u32 draw_buffer_max_count = MaxIndirectDrawCount;
 
@@ -795,6 +808,69 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                                                   draw_buffer_count_offset, draw_buffer_max_count,
                                                   cull_resources.indirectDrawBuffer.descriptor.elementSize);
                 }
+
+                vkCmdEndRenderPass(resources.gfxCmdBuffer);
+            }
+
+            {
+                REAPER_PROFILE_SCOPE_GPU(pGpuLog, "Barrier", MP_RED);
+
+                VkImageMemoryBarrier hdrImageBarrierInfo = {
+                    VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+                    nullptr,
+                    0,
+                    VK_ACCESS_MEMORY_READ_BIT,
+                    VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                    VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                    backend.physicalDeviceInfo.graphicsQueueIndex,
+                    backend.physicalDeviceInfo.graphicsQueueIndex,
+                    main_pass_resources.hdrBuffer.handle,
+                    {VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS}};
+
+                vkCmdPipelineBarrier(resources.gfxCmdBuffer, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                                     VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, nullptr, 0, nullptr, 1,
+                                     &hdrImageBarrierInfo);
+            }
+
+            // Swapchain output pass
+            {
+                REAPER_PROFILE_SCOPE_GPU(pGpuLog, "Swapchain Pass", MP_DARKGOLDENROD);
+
+                const VkRect2D blitPassRect = {{0, 0}, backbufferExtent};
+
+                std::array<VkImageView, 1> main_pass_framebuffer_views = {
+                    backend.presentInfo.imageViews[current_swapchain_index]};
+
+                VkRenderPassAttachmentBeginInfo main_pass_attachments = {
+                    VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO, nullptr, main_pass_framebuffer_views.size(),
+                    main_pass_framebuffer_views.data()};
+
+                VkRenderPassBeginInfo blitRenderPassBeginInfo = {VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+                                                                 &main_pass_attachments,
+                                                                 swapchain_pass_resources.swapchainRenderPass,
+                                                                 swapchain_pass_resources.swapchain_framebuffer,
+                                                                 blitPassRect,
+                                                                 0,
+                                                                 nullptr};
+
+                vkCmdBeginRenderPass(resources.gfxCmdBuffer, &blitRenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+                vkCmdBindPipeline(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                  swapchain_pass_resources.swapchainPipe.pipeline);
+
+                const VkViewport blitViewport = {
+                    0.0f, 0.0f, static_cast<float>(backbufferExtent.width), static_cast<float>(backbufferExtent.height),
+                    0.0f, 1.0f};
+                const VkRect2D blitScissor = blitPassRect;
+
+                vkCmdSetViewport(resources.gfxCmdBuffer, 0, 1, &blitViewport);
+                vkCmdSetScissor(resources.gfxCmdBuffer, 0, 1, &blitScissor);
+
+                vkCmdBindDescriptorSets(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                        swapchain_pass_resources.swapchainPipe.pipelineLayout, 0, 1,
+                                        &swapchainPassDescriptorSet, 0, nullptr);
+
+                vkCmdDraw(resources.gfxCmdBuffer, 3, 1, 0, 0);
 
                 vkCmdEndRenderPass(resources.gfxCmdBuffer);
             }
@@ -853,7 +929,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                                             &backend.presentInfo.renderingFinishedSemaphore,
                                             1,
                                             &backend.presentInfo.swapchain,
-                                            &imageIndex,
+                                            &current_swapchain_index,
                                             &presentResult};
             Assert(vkQueuePresentKHR(backend.deviceInfo.presentQueue, &presentInfo) == VK_SUCCESS);
             Assert(presentResult == VK_SUCCESS);
@@ -881,6 +957,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
 
     vkDestroyFence(backend.device, drawFence, nullptr);
 
+    destroy_swapchain_pass_resources(backend, swapchain_pass_resources);
     destroy_main_pass_resources(backend, main_pass_resources);
     destroy_shadow_map_resources(backend, shadow_map_resources);
     destroy_culling_resources(backend, cull_resources);

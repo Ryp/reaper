@@ -25,6 +25,8 @@ struct ImageInfo
     GPUTextureProperties properties;
 };
 
+PixelFormat VulkanToPixelFormat(VkFormat format);
+
 VkFormat              PixelFormatToVulkan(PixelFormat format);
 VkSampleCountFlagBits SampleCountToVulkan(u32 sampleCount);
 VkImageCreateFlags    GetVulkanCreateFlags(const GPUTextureProperties& properties);

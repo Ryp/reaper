@@ -16,6 +16,11 @@ float2 ndc_to_uv(float2 position_ndc)
     return position_ndc * 0.5 + 0.5;
 }
 
+float2 uv_to_ndc(float2 position_uv)
+{
+    return position_uv * 2.0 - 1.0;
+}
+
 float2 ndc_to_ts(float2 position_ndc, float2 extent_ts)
 {
     return ndc_to_uv(position_ndc) * extent_ts;
