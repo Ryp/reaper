@@ -45,7 +45,7 @@ int main(int /*ac*/, char** /*av*/)
     }
 
 #if defined(REAPER_USE_MICROPROFILE)
-    MicroProfileDumpFileImmediately("profile.html", nullptr, nullptr);
+    // MicroProfileDumpFileImmediately("profile.html", nullptr, nullptr);
     MicroProfileShutdown();
 #endif
 
