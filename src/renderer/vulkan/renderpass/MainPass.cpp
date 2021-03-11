@@ -328,37 +328,6 @@ namespace
 
         return renderPass;
     }
-    void create_main_pass_resizable_resources(ReaperRoot& root, VulkanBackend& backend, MainPassResources& resources,
-                                              glm::uvec2 extent)
-    {
-        GPUTextureProperties hdrProperties =
-            DefaultGPUTextureProperties(extent.x, extent.y, PixelFormat::B10G11R11_UFLOAT_PACK32);
-        hdrProperties.usageFlags = GPUTextureUsage::ColorAttachment | GPUTextureUsage::Sampled;
-
-        resources.hdrBuffer =
-            create_image(root, backend.device, "Main HDR Target", hdrProperties, backend.vma_instance);
-        resources.hdrBufferView = create_default_image_view(root, backend.device, resources.hdrBuffer);
-
-        GPUTextureProperties depthProperties = DefaultGPUTextureProperties(extent.x, extent.y, PixelFormat::D16_UNORM);
-        depthProperties.usageFlags = GPUTextureUsage::DepthStencilAttachment;
-
-        resources.depthBuffer =
-            create_image(root, backend.device, "Main Depth Target", depthProperties, backend.vma_instance);
-        resources.depthBufferView = create_depth_image_view(root, backend.device, resources.depthBuffer);
-    }
-
-    void destroy_main_pass_resizable_resources(VulkanBackend& backend, MainPassResources& resources)
-    {
-        vkDestroyImageView(backend.device, resources.hdrBufferView, nullptr);
-        vmaDestroyImage(backend.vma_instance, resources.hdrBuffer.handle, resources.hdrBuffer.allocation);
-        vkDestroyImageView(backend.device, resources.depthBufferView, nullptr);
-        vmaDestroyImage(backend.vma_instance, resources.depthBuffer.handle, resources.depthBuffer.allocation);
-
-        resources.hdrBuffer = {};
-        resources.hdrBufferView = VK_NULL_HANDLE;
-        resources.depthBuffer = {};
-        resources.depthBufferView = VK_NULL_HANDLE;
-    }
 
     VkFramebufferAttachmentImageInfo get_attachment_info_from_image_properties(const GPUTextureProperties& properties,
                                                                                VkFormat* output_format_ptr)
@@ -407,6 +376,42 @@ namespace
 
         return framebuffer;
     }
+
+    void create_main_pass_resizable_resources(ReaperRoot& root, VulkanBackend& backend, MainPassResources& resources,
+                                              glm::uvec2 extent)
+    {
+        GPUTextureProperties hdrProperties =
+            DefaultGPUTextureProperties(extent.x, extent.y, PixelFormat::B10G11R11_UFLOAT_PACK32);
+        hdrProperties.usageFlags = GPUTextureUsage::ColorAttachment | GPUTextureUsage::Sampled;
+
+        resources.hdrBuffer =
+            create_image(root, backend.device, "Main HDR Target", hdrProperties, backend.vma_instance);
+        resources.hdrBufferView = create_default_image_view(root, backend.device, resources.hdrBuffer);
+
+        GPUTextureProperties depthProperties = DefaultGPUTextureProperties(extent.x, extent.y, PixelFormat::D16_UNORM);
+        depthProperties.usageFlags = GPUTextureUsage::DepthStencilAttachment;
+
+        resources.depthBuffer =
+            create_image(root, backend.device, "Main Depth Target", depthProperties, backend.vma_instance);
+        resources.depthBufferView = create_depth_image_view(root, backend.device, resources.depthBuffer);
+
+        resources.main_framebuffer = create_main_framebuffer(backend, resources);
+    }
+
+    void destroy_main_pass_resizable_resources(VulkanBackend& backend, MainPassResources& resources)
+    {
+        vkDestroyFramebuffer(backend.device, resources.main_framebuffer, nullptr);
+
+        vkDestroyImageView(backend.device, resources.hdrBufferView, nullptr);
+        vmaDestroyImage(backend.vma_instance, resources.hdrBuffer.handle, resources.hdrBuffer.allocation);
+        vkDestroyImageView(backend.device, resources.depthBufferView, nullptr);
+        vmaDestroyImage(backend.vma_instance, resources.depthBuffer.handle, resources.depthBuffer.allocation);
+
+        resources.hdrBuffer = {};
+        resources.hdrBufferView = VK_NULL_HANDLE;
+        resources.depthBuffer = {};
+        resources.depthBufferView = VK_NULL_HANDLE;
+    }
 } // namespace
 
 MainPassResources create_main_pass_resources(ReaperRoot& root, VulkanBackend& backend, glm::uvec2 extent)
@@ -426,8 +431,6 @@ MainPassResources create_main_pass_resources(ReaperRoot& root, VulkanBackend& ba
 
     resources.mainRenderPass = create_main_pass(root, backend, resources);
     resources.mainPipe = create_main_pipeline(root, backend, resources.mainRenderPass);
-
-    resources.main_framebuffer = create_main_framebuffer(backend, resources);
 
     VkSamplerCreateInfo shadowMapSamplerCreateInfo = {};
     shadowMapSamplerCreateInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -459,8 +462,6 @@ void destroy_main_pass_resources(VulkanBackend& backend, MainPassResources& reso
 {
     vkDestroySampler(backend.device, resources.shadowMapSampler, nullptr);
 
-    vkDestroyFramebuffer(backend.device, resources.main_framebuffer, nullptr);
-
     vkDestroyPipeline(backend.device, resources.mainPipe.pipeline, nullptr);
     vkDestroyPipelineLayout(backend.device, resources.mainPipe.pipelineLayout, nullptr);
     vkDestroyDescriptorSetLayout(backend.device, resources.mainPipe.descSetLayout, nullptr);
@@ -478,13 +479,9 @@ void destroy_main_pass_resources(VulkanBackend& backend, MainPassResources& reso
 void resize_main_pass_resources(ReaperRoot& root, VulkanBackend& backend, MainPassResources& resources,
                                 glm::uvec2 extent)
 {
-    vkDestroyFramebuffer(backend.device, resources.main_framebuffer, nullptr);
-
     destroy_main_pass_resizable_resources(backend, resources);
 
     create_main_pass_resizable_resources(root, backend, resources, extent);
-
-    resources.main_framebuffer = create_main_framebuffer(backend, resources);
 }
 
 VkDescriptorSet create_main_pass_descriptor_set(ReaperRoot& root, VulkanBackend& backend,
