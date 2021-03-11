@@ -42,11 +42,11 @@ struct MainPassResources
     ImageInfo   depthBuffer;
     VkImageView depthBufferView;
 
+    VkFramebuffer main_framebuffer;
+
     VkRenderPass mainRenderPass;
 
     MainPipelineInfo mainPipe;
-
-    VkFramebuffer main_framebuffer;
 
     VkSampler shadowMapSampler;
 };
