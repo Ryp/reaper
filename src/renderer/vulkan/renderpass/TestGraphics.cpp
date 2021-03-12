@@ -735,7 +735,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                 REAPER_PROFILE_SCOPE_GPU(pGpuLog, "Draw Pass", MP_DARKGOLDENROD);
 
                 const float                 depthClearValue = UseReverseZ ? 0.f : 1.f;
-                const glm::fvec4            clearColor = {1.0f, 0.8f, 0.4f, 0.0f};
+                const glm::fvec4            clearColor = {1.0f, 0.6f, 0.13f, 0.0f};
                 std::array<VkClearValue, 2> clearValues = {VkClearColor(clearColor),
                                                            VkClearDepthStencil(depthClearValue, 0)};
                 const VkRect2D              blitPassRect = {{0, 0}, backbufferExtent};
