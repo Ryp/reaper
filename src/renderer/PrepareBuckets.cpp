@@ -77,7 +77,7 @@ void build_scene_graph(SceneGraph& scene, const Mesh2* meshes, u32 mesh_count)
             light_node.transform_matrix = glm::lookAt(light_position_ws, light_target_ws, up_ws);
 
             Light& light = scene.lights.emplace_back();
-            light.color = glm::fvec3(0.2f, 0.5f, 0.8f);
+            light.color = glm::fvec3(0.03f, 0.21f, 0.61f);
             light.intensity = 8.f;
             light.scene_node = light_node_index;
             light.projection_matrix = light_projection_matrix;
@@ -95,7 +95,7 @@ void build_scene_graph(SceneGraph& scene, const Mesh2* meshes, u32 mesh_count)
             light_node.transform_matrix = glm::lookAt(light_position_ws, light_target_ws, up_ws);
 
             Light& light = scene.lights.emplace_back();
-            light.color = glm::fvec3(0.8f, 0.5f, 0.2f);
+            light.color = glm::fvec3(0.61f, 0.21f, 0.03f);
             light.intensity = 8.f;
             light.scene_node = light_node_index;
             light.projection_matrix = light_projection_matrix;
@@ -113,7 +113,7 @@ void build_scene_graph(SceneGraph& scene, const Mesh2* meshes, u32 mesh_count)
             light_node.transform_matrix = glm::lookAt(light_position_ws, light_target_ws, up_ws);
 
             Light& light = scene.lights.emplace_back();
-            light.color = glm::fvec3(0.2f, 0.9f, 0.5f);
+            light.color = glm::fvec3(0.03f, 0.8f, 0.21f);
             light.intensity = 8.f;
             light.scene_node = light_node_index;
             light.projection_matrix = light_projection_matrix;

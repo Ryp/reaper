@@ -245,7 +245,7 @@ void create_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& backend)
 
     SwapchainDescriptor swapchainDesc;
     swapchainDesc.preferredImageCount = 2; // Double buffering
-    swapchainDesc.preferredFormat = {VK_FORMAT_B8G8R8A8_UNORM, VK_COLORSPACE_SRGB_NONLINEAR_KHR};
+    swapchainDesc.preferredFormat = {VK_FORMAT_B8G8R8A8_SRGB, VK_COLORSPACE_SRGB_NONLINEAR_KHR};
     swapchainDesc.preferredExtent = {windowDescriptor.width, windowDescriptor.height};
 
     configure_vulkan_wm_swapchain(root, backend, swapchainDesc, backend.presentInfo);
