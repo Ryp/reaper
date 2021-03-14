@@ -16,8 +16,8 @@
 #include "common/Log.h"
 #include "common/ReaperRoot.h"
 
-#include "renderer/shader/share/swapchain.hlsl"
 #include "renderer/shader/share/color_space.hlsl"
+#include "renderer/shader/share/swapchain.hlsl"
 
 namespace Reaper
 {
@@ -27,10 +27,10 @@ namespace
     {
         switch (surface_format.colorSpace)
         {
-        case VK_COLORSPACE_SRGB_NONLINEAR_KHR:
-        {
+        case VK_COLORSPACE_SRGB_NONLINEAR_KHR: {
             if (surface_format.format == VK_FORMAT_B8G8R8A8_SRGB)
-                return TRANSFER_FUNC_NONE; // No need for the transfer function since the texture format takes care of it
+                return TRANSFER_FUNC_NONE; // No need for the transfer function since the texture format takes care of
+                                           // it
             else if (surface_format.format == VK_FORMAT_B8G8R8A8_UNORM)
                 return TRANSFER_FUNC_SRGB;
             AssertUnreachable();
@@ -40,6 +40,8 @@ namespace
             return TRANSFER_FUNC_PQ;
         case VK_COLOR_SPACE_BT2020_LINEAR_EXT:
             return TRANSFER_FUNC_NONE;
+        default:
+            break;
         }
 
         AssertUnreachable();
@@ -59,20 +61,22 @@ namespace
         case VK_COLOR_SPACE_HDR10_ST2084_EXT:
         case VK_COLOR_SPACE_HDR10_HLG_EXT:
             return COLOR_SPACE_REC2020;
+        default:
+            break;
         }
 
         AssertUnreachable();
         return 0;
     }
-}
+} // namespace
 
 SwapchainPipelineInfo create_swapchain_pipeline(ReaperRoot& root, VulkanBackend& backend, VkRenderPass renderPass)
 {
-    VkShaderModule        shaderFS = VK_NULL_HANDLE;
-    VkShaderModule        shaderVS = VK_NULL_HANDLE;
-    const char*           fileNameVS = "./build/shader/fullscreen_triangle.vert.spv";
-    const char*           fileNameFS = "./build/shader/swapchain_write.frag.spv";
-    const char*           entryPoint = "main";
+    VkShaderModule shaderFS = VK_NULL_HANDLE;
+    VkShaderModule shaderVS = VK_NULL_HANDLE;
+    const char*    fileNameVS = "./build/shader/fullscreen_triangle.vert.spv";
+    const char*    fileNameFS = "./build/shader/swapchain_write.frag.spv";
+    const char*    entryPoint = "main";
 
     std::array<hlsl_uint, 2> constants = {
         get_transfer_function(backend.presentInfo.surfaceFormat),
