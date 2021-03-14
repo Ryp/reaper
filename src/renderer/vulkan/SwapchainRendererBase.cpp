@@ -74,11 +74,11 @@ namespace
         // Create descriptor pool
         // FIXME Sizes are arbitrary for now, as long as everything fits
         constexpr u32                     MaxDescriptorSets = 100;
-        std::vector<VkDescriptorPoolSize> descriptorPoolSizes = {{VK_DESCRIPTOR_TYPE_SAMPLER, 10},
-                                                                 {VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 10},
-                                                                 {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 10},
-                                                                 {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 10},
-                                                                 {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 10}};
+        std::vector<VkDescriptorPoolSize> descriptorPoolSizes = {{VK_DESCRIPTOR_TYPE_SAMPLER, 20},
+                                                                 {VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 20},
+                                                                 {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 20},
+                                                                 {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 20},
+                                                                 {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 20}};
 
         VkDescriptorPoolCreateInfo poolInfo = {
             VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,     nullptr,
@@ -351,10 +351,10 @@ void vulkan_instance_check_layers(const std::vector<const char*>& layers)
 
 namespace
 {
-    VkBool32 debugReportCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-                                 VkDebugUtilsMessageTypeFlagsEXT /*messageTypes*/,
-                                 const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-                                 void*                                       pUserData)
+    VkBool32 VKAPI_PTR debugReportCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+                                           VkDebugUtilsMessageTypeFlagsEXT /*messageTypes*/,
+                                           const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+                                           void*                                       pUserData)
     {
         ReaperRoot* root = static_cast<ReaperRoot*>(pUserData);
         Assert(root != nullptr);
