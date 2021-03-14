@@ -29,19 +29,19 @@ namespace
         {
         case VK_COLORSPACE_SRGB_NONLINEAR_KHR: {
             if (surface_format.format == VK_FORMAT_B8G8R8A8_SRGB)
-                return TRANSFER_FUNC_NONE;
+                return TRANSFER_FUNC_LINEAR; // Cancelled out by the texture format
             else if (surface_format.format == VK_FORMAT_B8G8R8A8_UNORM)
                 return TRANSFER_FUNC_SRGB;
             break;
         }
         case VK_COLOR_SPACE_BT709_LINEAR_EXT:
-            return TRANSFER_FUNC_NONE;
+            return TRANSFER_FUNC_LINEAR;
         case VK_COLOR_SPACE_BT709_NONLINEAR_EXT:
             return TRANSFER_FUNC_REC709;
         case VK_COLOR_SPACE_HDR10_ST2084_EXT:
             return TRANSFER_FUNC_PQ;
         case VK_COLOR_SPACE_BT2020_LINEAR_EXT:
-            return TRANSFER_FUNC_NONE;
+            return TRANSFER_FUNC_LINEAR;
         default:
             break;
         }

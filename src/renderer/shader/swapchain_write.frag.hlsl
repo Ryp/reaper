@@ -25,7 +25,7 @@ struct PS_OUTPUT
 
 float3 apply_transfer_func(float3 color, uint transfer_function)
 {
-    if (spec_transfer_function == TRANSFER_FUNC_NONE)
+    if (spec_transfer_function == TRANSFER_FUNC_LINEAR)
         return color;
     else if (spec_transfer_function == TRANSFER_FUNC_SRGB)
         return linear_to_srgb(color);
@@ -39,7 +39,7 @@ float3 apply_transfer_func(float3 color, uint transfer_function)
 
 float3 apply_transfer_func_inverse(float3 color, uint transfer_function)
 {
-    if (spec_transfer_function == TRANSFER_FUNC_NONE)
+    if (spec_transfer_function == TRANSFER_FUNC_LINEAR)
         return color;
     else if (spec_transfer_function == TRANSFER_FUNC_SRGB)
         return srgb_to_linear(color);
