@@ -13,6 +13,8 @@
 #include "renderer/GPUBufferProperties.h"
 #include "renderer/vulkan/Debug.h"
 
+#include <algorithm>
+
 namespace Reaper
 {
 namespace
