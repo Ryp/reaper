@@ -29,6 +29,8 @@ float3 apply_transfer_func(float3 color, uint transfer_function)
         return color;
     else if (spec_transfer_function == TRANSFER_FUNC_SRGB)
         return linear_to_srgb(color);
+    else if (spec_transfer_function == TRANSFER_FUNC_REC709)
+        return linear_to_rec709(color);
     else if (spec_transfer_function == TRANSFER_FUNC_PQ)
         return linear_to_pq(color);
     else
@@ -41,6 +43,8 @@ float3 apply_transfer_func_inverse(float3 color, uint transfer_function)
         return color;
     else if (spec_transfer_function == TRANSFER_FUNC_SRGB)
         return srgb_to_linear(color);
+    else if (spec_transfer_function == TRANSFER_FUNC_REC709)
+        return rec709_to_linear(color);
     else if (spec_transfer_function == TRANSFER_FUNC_PQ)
         return pq_to_linear(color);
     else

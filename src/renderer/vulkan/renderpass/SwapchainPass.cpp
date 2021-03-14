@@ -29,13 +29,15 @@ namespace
         {
         case VK_COLORSPACE_SRGB_NONLINEAR_KHR: {
             if (surface_format.format == VK_FORMAT_B8G8R8A8_SRGB)
-                return TRANSFER_FUNC_NONE; // No need for the transfer function since the texture format takes care of
-                                           // it
+                return TRANSFER_FUNC_NONE;
             else if (surface_format.format == VK_FORMAT_B8G8R8A8_UNORM)
                 return TRANSFER_FUNC_SRGB;
-            AssertUnreachable();
             break;
         }
+        case VK_COLOR_SPACE_BT709_LINEAR_EXT:
+            return TRANSFER_FUNC_NONE;
+        case VK_COLOR_SPACE_BT709_NONLINEAR_EXT:
+            return TRANSFER_FUNC_REC709;
         case VK_COLOR_SPACE_HDR10_ST2084_EXT:
             return TRANSFER_FUNC_PQ;
         case VK_COLOR_SPACE_BT2020_LINEAR_EXT:
