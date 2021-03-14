@@ -17,9 +17,55 @@
 #include "common/ReaperRoot.h"
 
 #include "renderer/shader/share/swapchain.hlsl"
+#include "renderer/shader/share/color_space.hlsl"
 
 namespace Reaper
 {
+namespace
+{
+    hlsl_uint get_transfer_function(VkSurfaceFormatKHR surface_format)
+    {
+        switch (surface_format.colorSpace)
+        {
+        case VK_COLORSPACE_SRGB_NONLINEAR_KHR:
+        {
+            if (surface_format.format == VK_FORMAT_B8G8R8A8_SRGB)
+                return TRANSFER_FUNC_NONE; // No need for the transfer function since the texture format takes care of it
+            else if (surface_format.format == VK_FORMAT_B8G8R8A8_UNORM)
+                return TRANSFER_FUNC_SRGB;
+            AssertUnreachable();
+            break;
+        }
+        case VK_COLOR_SPACE_HDR10_ST2084_EXT:
+            return TRANSFER_FUNC_PQ;
+        case VK_COLOR_SPACE_BT2020_LINEAR_EXT:
+            return TRANSFER_FUNC_NONE;
+        }
+
+        AssertUnreachable();
+        return 0;
+    }
+
+    hlsl_uint get_color_space(VkColorSpaceKHR color_space)
+    {
+        switch (color_space)
+        {
+        case VK_COLORSPACE_SRGB_NONLINEAR_KHR:
+            return COLOR_SPACE_SRGB;
+        case VK_COLOR_SPACE_BT709_LINEAR_EXT:
+        case VK_COLOR_SPACE_BT709_NONLINEAR_EXT:
+            return COLOR_SPACE_REC709;
+        case VK_COLOR_SPACE_BT2020_LINEAR_EXT:
+        case VK_COLOR_SPACE_HDR10_ST2084_EXT:
+        case VK_COLOR_SPACE_HDR10_HLG_EXT:
+            return COLOR_SPACE_REC2020;
+        }
+
+        AssertUnreachable();
+        return 0;
+    }
+}
+
 SwapchainPipelineInfo create_swapchain_pipeline(ReaperRoot& root, VulkanBackend& backend, VkRenderPass renderPass)
 {
     VkShaderModule        shaderFS = VK_NULL_HANDLE;
@@ -27,16 +73,40 @@ SwapchainPipelineInfo create_swapchain_pipeline(ReaperRoot& root, VulkanBackend&
     const char*           fileNameVS = "./build/shader/fullscreen_triangle.vert.spv";
     const char*           fileNameFS = "./build/shader/swapchain_write.frag.spv";
     const char*           entryPoint = "main";
-    VkSpecializationInfo* specialization = nullptr;
+
+    std::array<hlsl_uint, 2> constants = {
+        get_transfer_function(backend.presentInfo.surfaceFormat),
+        get_color_space(backend.presentInfo.surfaceFormat.colorSpace),
+    };
+
+    std::array<VkSpecializationMapEntry, 2> specialization_constants_entries = {
+        VkSpecializationMapEntry{
+            0,
+            0 * sizeof(hlsl_uint),
+            sizeof(hlsl_uint),
+        },
+        VkSpecializationMapEntry{
+            1,
+            1 * sizeof(hlsl_uint),
+            sizeof(hlsl_uint),
+        },
+    };
+
+    VkSpecializationInfo specialization = {
+        specialization_constants_entries.size(), // uint32_t                           mapEntryCount;
+        specialization_constants_entries.data(), // const VkSpecializationMapEntry*    pMapEntries;
+        constants.size() * sizeof(hlsl_uint),    // size_t                             dataSize;
+        constants.data(),                        // const void*                        pData;
+    };
 
     vulkan_create_shader_module(shaderFS, backend.device, fileNameFS);
     vulkan_create_shader_module(shaderVS, backend.device, fileNameVS);
 
     std::vector<VkPipelineShaderStageCreateInfo> blitShaderStages = {
         {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_VERTEX_BIT, shaderVS,
-         entryPoint, specialization},
+         entryPoint, nullptr},
         {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_FRAGMENT_BIT, shaderFS,
-         entryPoint, specialization}};
+         entryPoint, &specialization}};
 
     VkPipelineVertexInputStateCreateInfo blitVertexInputStateInfo = {
         VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO, nullptr, VK_FLAGS_NONE, 0, nullptr, 0, nullptr};
