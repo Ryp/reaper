@@ -16,6 +16,7 @@ static const hlsl_uint COLOR_SPACE_REC2020 = 2;
 
 static const hlsl_uint TRANSFER_FUNC_NONE = 0;
 static const hlsl_uint TRANSFER_FUNC_SRGB = 1;
-static const hlsl_uint TRANSFER_FUNC_PQ = 2;
+static const hlsl_uint TRANSFER_FUNC_REC709 = 2;
+static const hlsl_uint TRANSFER_FUNC_PQ = 3;
 
 #endif

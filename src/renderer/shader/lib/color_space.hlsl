@@ -32,6 +32,16 @@ float3 srgb_to_linear(float3 srgb_color)
     return pow(srgb_color, 2.2);
 }
 
+float3 linear_to_rec709(float3 linear_color)
+{
+    return pow(linear_color, 1.0 / 2.4);
+}
+
+float3 rec709_to_linear(float3 rec709_color)
+{
+    return pow(rec709_color, 2.4);
+}
+
 float3 linear_to_pq(float3 linear_color)
 {
     float m1 = 2610.0 / 4096.0 / 4;
