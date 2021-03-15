@@ -11,7 +11,7 @@
 
 #include "renderer/Renderer.h"
 
-#define REAPER_WM_RESIZE (WM_USER + 1)
+#define REAPER_WM_UPDATE_SIZE (WM_USER + 1)
 #define REAPER_WM_CLOSE (WM_USER + 2)
 
 namespace
@@ -22,7 +22,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     {
     case WM_SIZE:
     case WM_EXITSIZEMOVE:
-        PostMessage(hWnd, REAPER_WM_RESIZE, wParam, lParam);
+        PostMessage(hWnd, REAPER_WM_UPDATE_SIZE, wParam, lParam);
         break;
     case WM_KEYDOWN:
     case WM_CLOSE:
@@ -32,6 +32,24 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         return DefWindowProc(hWnd, message, wParam, lParam);
     }
     return 0;
+}
+
+struct WindowSize
+{
+    int width;
+    int height;
+};
+
+WindowSize getWindowSize(HWND hWnd)
+{
+    RECT rect = {};
+
+    Assert(GetClientRect(hWnd, &rect) == TRUE);
+
+    return {
+        rect.right - rect.left,
+        rect.bottom - rect.top,
+    };
 }
 } // namespace
 
@@ -116,7 +134,7 @@ void Win32Window::unmap()
     // FIXME
 }
 
-void Win32Window::pumpEvents(std::vector<Window::Event>& /*eventOutput*/)
+void Win32Window::pumpEvents(std::vector<Window::Event>& eventOutput)
 {
     // Main message loop
     MSG message;
@@ -126,9 +144,12 @@ void Win32Window::pumpEvents(std::vector<Window::Event>& /*eventOutput*/)
     {
         switch (message.message)
         {
-        case REAPER_WM_RESIZE:
-            // eventOutput.emplace_back(Window::createResizeEvent(configure_event->width, configure_event->height));
+        case REAPER_WM_UPDATE_SIZE:
+        {
+            const WindowSize window_size = getWindowSize(m_handle);
+            eventOutput.emplace_back(Window::createResizeEvent(window_size.width, window_size.height));
             break;
+        }
         case REAPER_WM_CLOSE:
             // eventOutput.emplace_back(convertXcbEvent(event));
             break;
