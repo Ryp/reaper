@@ -220,7 +220,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
         // Read mesh file
         std::ifstream     mesh_file_0("res/model/teapot.obj");
         std::ifstream     mesh_file_1("res/model/suzanne.obj");
-        std::ifstream     mesh_file_2("res/model/ship.obj");
+        std::ifstream     mesh_file_2("res/model/dragon.obj");
         std::vector<Mesh> mesh_instances;
         mesh_instances.emplace_back(ModelLoader::loadOBJ(mesh_file_0));
         mesh_instances.emplace_back(ModelLoader::loadOBJ(mesh_file_1));

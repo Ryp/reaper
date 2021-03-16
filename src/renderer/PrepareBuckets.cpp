@@ -164,8 +164,8 @@ void update_scene_graph(SceneGraph& scene, float time_ms, glm::uvec2 viewport_ex
                 std::swap(object_position_ws.x, object_position_ws.z);
                 break;
             }
-            case 2: { // Ship
-                uniform_scale = 0.0008f;
+            case 2: { // Dragon
+                uniform_scale = 0.5f;
                 tilt = glm::vec3(1.f, 1.f, 0.f);
                 std::swap(object_position_ws.y, object_position_ws.z);
                 break;
