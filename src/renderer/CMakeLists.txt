@@ -273,6 +273,7 @@ target_link_libraries(${target} PUBLIC
     glm
     span
     amd-vma
+    meshoptimizer
 )
 
 reaper_configure_library(${target} "Renderer")
