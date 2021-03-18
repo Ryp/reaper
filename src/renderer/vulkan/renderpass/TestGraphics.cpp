@@ -53,6 +53,18 @@ namespace
 {
     constexpr bool UseReverseZ = true;
 
+    VkViewport default_vk_viewport(VkRect2D output_rect)
+    {
+        return VkViewport{static_cast<float>(output_rect.offset.x),
+                          static_cast<float>(output_rect.offset.y),
+                          static_cast<float>(output_rect.extent.width),
+                          static_cast<float>(output_rect.extent.height),
+                          0.0f,
+                          1.0f};
+    }
+
+    VkRect2D default_vk_rect(VkExtent2D image_extent) { return VkRect2D{{0, 0}, image_extent}; }
+
     void cmd_insert_compute_to_compute_barrier(VkCommandBuffer cmdBuffer)
     {
         std::array<VkMemoryBarrier, 1> memoryBarriers = {VkMemoryBarrier{
@@ -628,7 +640,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                 const VkClearValue clearValue =
                     VkClearDepthStencil(UseReverseZ ? 0.f : 1.f, 0); // NOTE: handle reverse Z more gracefully
                 const VkExtent2D framebuffer_extent = {shadow_pass.shadow_map_size.x, shadow_pass.shadow_map_size.y};
-                const VkRect2D   pass_rect = {{0, 0}, framebuffer_extent};
+                const VkRect2D   pass_rect = default_vk_rect(framebuffer_extent);
 
                 const VkImageView   shadowMapView = shadow_map_resources.shadowMapView[shadow_pass.pass_index];
                 const VkFramebuffer shadowMapFramebuffer =
@@ -650,18 +662,10 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                 vkCmdBindPipeline(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
                                   shadow_map_resources.pipe.pipeline);
 
-                {
-                    const VkViewport viewport = {0.0f,
-                                                 0.0f,
-                                                 static_cast<float>(framebuffer_extent.width),
-                                                 static_cast<float>(framebuffer_extent.height),
-                                                 0.0f,
-                                                 1.0f};
-                    const VkRect2D   scissor = {{0, 0}, framebuffer_extent};
+                const VkViewport viewport = default_vk_viewport(pass_rect);
 
-                    vkCmdSetViewport(resources.gfxCmdBuffer, 0, 1, &viewport);
-                    vkCmdSetScissor(resources.gfxCmdBuffer, 0, 1, &scissor);
-                }
+                vkCmdSetViewport(resources.gfxCmdBuffer, 0, 1, &viewport);
+                vkCmdSetScissor(resources.gfxCmdBuffer, 0, 1, &pass_rect);
 
                 std::vector<VkBuffer> vertexBuffers = {
                     mesh_cache.vertexBufferPosition.buffer,
@@ -738,7 +742,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                 const glm::fvec4            clearColor = {0.1f, 0.1f, 0.1f, 0.0f};
                 std::array<VkClearValue, 2> clearValues = {VkClearColor(clearColor),
                                                            VkClearDepthStencil(depthClearValue, 0)};
-                const VkRect2D              blitPassRect = {{0, 0}, backbufferExtent};
+                const VkRect2D              blitPassRect = default_vk_rect(backbufferExtent);
 
                 std::array<VkImageView, 2> main_pass_framebuffer_views = {main_pass_resources.hdrBufferView,
                                                                           main_pass_resources.depthBufferView};
@@ -760,13 +764,10 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                 vkCmdBindPipeline(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
                                   main_pass_resources.mainPipe.pipeline);
 
-                const VkViewport blitViewport = {
-                    0.0f, 0.0f, static_cast<float>(backbufferExtent.width), static_cast<float>(backbufferExtent.height),
-                    0.0f, 1.0f};
-                const VkRect2D blitScissor = {{0, 0}, backbufferExtent};
+                const VkViewport blitViewport = default_vk_viewport(blitPassRect);
 
                 vkCmdSetViewport(resources.gfxCmdBuffer, 0, 1, &blitViewport);
-                vkCmdSetScissor(resources.gfxCmdBuffer, 0, 1, &blitScissor);
+                vkCmdSetScissor(resources.gfxCmdBuffer, 0, 1, &blitPassRect);
 
                 std::vector<VkBuffer> vertexBuffers = {
                     mesh_cache.vertexBufferPosition.buffer,
@@ -836,7 +837,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
             {
                 REAPER_PROFILE_SCOPE_GPU(pGpuLog, "Swapchain Pass", MP_DARKGOLDENROD);
 
-                const VkRect2D blitPassRect = {{0, 0}, backbufferExtent};
+                const VkRect2D blitPassRect = default_vk_rect(backbufferExtent);
 
                 std::array<VkImageView, 1> main_pass_framebuffer_views = {
                     backend.presentInfo.imageViews[current_swapchain_index]};
@@ -858,13 +859,10 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                 vkCmdBindPipeline(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
                                   swapchain_pass_resources.swapchainPipe.pipeline);
 
-                const VkViewport blitViewport = {
-                    0.0f, 0.0f, static_cast<float>(backbufferExtent.width), static_cast<float>(backbufferExtent.height),
-                    0.0f, 1.0f};
-                const VkRect2D blitScissor = blitPassRect;
+                const VkViewport blitViewport = default_vk_viewport(blitPassRect);
 
                 vkCmdSetViewport(resources.gfxCmdBuffer, 0, 1, &blitViewport);
-                vkCmdSetScissor(resources.gfxCmdBuffer, 0, 1, &blitScissor);
+                vkCmdSetScissor(resources.gfxCmdBuffer, 0, 1, &blitPassRect);
 
                 vkCmdBindDescriptorSets(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
                                         swapchain_pass_resources.swapchainPipe.pipelineLayout, 0, 1,
