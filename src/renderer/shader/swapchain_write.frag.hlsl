@@ -28,11 +28,11 @@ float3 apply_transfer_func(float3 color, uint transfer_function)
     if (spec_transfer_function == TRANSFER_FUNC_LINEAR)
         return color;
     else if (spec_transfer_function == TRANSFER_FUNC_SRGB)
-        return linear_to_srgb(color);
+        return srgb_eotf(color);
     else if (spec_transfer_function == TRANSFER_FUNC_REC709)
-        return linear_to_rec709(color);
+        return rec709_eotf(color);
     else if (spec_transfer_function == TRANSFER_FUNC_PQ)
-        return linear_to_pq(color);
+        return pq_eotf(color);
     else
         return 0.42; // Invalid
 }
@@ -42,11 +42,11 @@ float3 apply_transfer_func_inverse(float3 color, uint transfer_function)
     if (spec_transfer_function == TRANSFER_FUNC_LINEAR)
         return color;
     else if (spec_transfer_function == TRANSFER_FUNC_SRGB)
-        return srgb_to_linear(color);
+        return srgb_eotf_inverse(color);
     else if (spec_transfer_function == TRANSFER_FUNC_REC709)
-        return rec709_to_linear(color);
+        return rec709_eotf_inverse(color);
     else if (spec_transfer_function == TRANSFER_FUNC_PQ)
-        return pq_to_linear(color);
+        return pq_eotf_inverse(color);
     else
         return 0.42; // Invalid
 }

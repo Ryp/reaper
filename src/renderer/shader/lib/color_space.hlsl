@@ -20,29 +20,61 @@ float3 rec709_to_rec2020(float3 color_rec709)
     return mul(rec709_to_rec2020_matrix, color_rec709);
 }
 
-// FIXME This is not exactly what vulkan does.
-// See https://www.khronos.org/registry/DataFormat/specs/1.3/dataformat.1.3.html#TRANSFER_SRGB
-float3 linear_to_srgb(float3 linear_color)
+// -----------------------------------------------------------------------------
+// EOTFs
+// -----------------------------------------------------------------------------
+
+float3 gamma22(float3 color)
 {
-    return pow(linear_color, 1.0 / 2.2);
+    return pow(color, 1.0 / 2.2);
 }
 
-float3 srgb_to_linear(float3 srgb_color)
+float3 gamma22_inverse(float3 x)
 {
-    return pow(srgb_color, 2.2);
+    return pow(x, 2.2);
 }
 
-float3 linear_to_rec709(float3 linear_color)
+// -----------------------------------------------------------------------------
+
+float3 gamma24(float3 color)
 {
-    return pow(linear_color, 1.0 / 2.4);
+    return pow(color, 1.0 / 2.4);
 }
 
-float3 rec709_to_linear(float3 rec709_color)
+float3 gamma24_inverse(float3 x)
 {
-    return pow(rec709_color, 2.4);
+    return pow(x, 2.4);
 }
 
-float3 linear_to_pq(float3 linear_color)
+// -----------------------------------------------------------------------------
+
+float3 srgb_eotf(float3 color)
+{
+    // Looks like the gamma 2.2 function
+    return color < 0.0031308 ? 12.92 * color : 1.055 * pow(color, 1.0 / 2.4) - 0.055;
+}
+
+float3 srgb_eotf_inverse(float3 x)
+{
+    // Looks like the gamma 2.2 inverse function
+    return x < 0.04045 ? x / 12.92 : pow((x + 0.055) / 1.055, 2.4);
+}
+
+// -----------------------------------------------------------------------------
+
+float3 rec709_eotf(float3 color)
+{
+    return color < 0.0181 ? 4.5 * color : 1.0993 * pow(color, 0.45) - 0.0993;
+}
+
+float3 rec709_eotf_inverse(float3 x)
+{
+    return x < 0.08145 ? x / 4.5 : pow((x + 0.0993) / 1.0993, 1.0 / 0.45);
+}
+
+// -----------------------------------------------------------------------------
+
+float3 pq_eotf(float3 color)
 {
     float m1 = 2610.0 / 4096.0 / 4;
     float m2 = 2523.0 / 4096.0 * 128;
@@ -50,11 +82,11 @@ float3 linear_to_pq(float3 linear_color)
     float c2 = 2413.0 / 4096.0 * 32;
     float c3 = 2392.0 / 4096.0 * 32;
 
-    float3 Lp = pow(linear_color, m1);
+    float3 Lp = pow(color, m1);
     return pow((c1 + c2 * Lp) / (1 + c3 * Lp), m2);
 }
 
-float3 pq_to_linear(float3 pq_color)
+float3 pq_eotf_inverse(float3 pq_eotf_color)
 {
     float m1 = 2610.0 / 4096.0 / 4;
     float m2 = 2523.0 / 4096.0 * 128;
@@ -62,7 +94,7 @@ float3 pq_to_linear(float3 pq_color)
     float c2 = 2413.0 / 4096.0 * 32;
     float c3 = 2392.0 / 4096.0 * 32;
 
-    float3 Np = pow(pq_color, 1.0 / m2);
+    float3 Np = pow(pq_eotf_color, 1.0 / m2);
     return pow(max(Np - c1, 0.0) / (c2 - c3 * Np), 1 / m1);
 }
 
