@@ -51,19 +51,32 @@ float3 apply_transfer_func_inverse(float3 color, uint transfer_function)
         return 0.42; // Invalid
 }
 
+float3 apply_output_color_space_transform(float3 color_rec709, uint color_space)
+{
+    if (color_space == COLOR_SPACE_SRGB)
+        return rec709_to_srgb(color_rec709);
+    else if (color_space == COLOR_SPACE_REC709)
+        return color_rec709;
+    else if (color_space == COLOR_SPACE_DCI_P3)
+        return rec709_to_dci_p3(color_rec709);
+    else if (color_space == COLOR_SPACE_REC2020)
+        return rec709_to_rec2020(color_rec709);
+    else
+        return 0.4242; // Invalid
+}
+
 PS_OUTPUT main(PS_INPUT input)
 {
-    float3 linear_hdr_color = t_hdr_color.SampleLevel(linear_sampler, input.PositionUV, 0);
+    float3 scene_color_rec709_linear = t_hdr_color.SampleLevel(linear_sampler, input.PositionUV, 0);
 
-    linear_hdr_color *= pass_params.dummy_boost;
-    linear_hdr_color *= 0.001;
+    scene_color_rec709_linear *= pass_params.dummy_boost;
+    scene_color_rec709_linear *= 0.001;
+
+    float3 scene_color_linear = apply_output_color_space_transform(scene_color_rec709_linear, spec_color_space);
+
+    float3 display_color = apply_transfer_func(scene_color_linear, spec_transfer_function);
 
     PS_OUTPUT output;
-
-    if (spec_color_space == COLOR_SPACE_REC2020)
-        linear_hdr_color = rec709_to_rec2020(linear_hdr_color);
-
-    output.color = apply_transfer_func(linear_hdr_color, spec_transfer_function);
-
+    output.color = display_color;
     return output;
 }
