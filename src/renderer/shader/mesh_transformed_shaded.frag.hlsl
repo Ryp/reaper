@@ -10,9 +10,9 @@ static const uint debug_mode_pos_vs = 3;
 
 // https://github.com/microsoft/DirectXShaderCompiler/issues/2957
 #if defined(_DXC)
-VK_CONSTANT(1) const uint spec_debug_mode = 0;
+VK_CONSTANT(0) const uint spec_debug_mode = 0;
 #else
-VK_CONSTANT(1) const uint spec_debug_mode = debug_mode_none;
+VK_CONSTANT(0) const uint spec_debug_mode = debug_mode_none;
 #endif
 
 VK_BINDING(0, 0) ConstantBuffer<DrawPassParams> pass_params;
