@@ -30,7 +30,8 @@ struct ReaperRoot;
 struct VulkanBackend;
 struct GPUTextureProperties;
 
-MainPipelineInfo create_main_pipeline(ReaperRoot& root, VulkanBackend& backend, VkRenderPass renderPass);
+MainPipelineInfo create_main_pipeline(ReaperRoot& root, VulkanBackend& backend, VkRenderPass renderPass,
+                                      VkDescriptorSetLayout material_descriptor_set_layout);
 
 struct MainPassResources
 {
@@ -51,7 +52,8 @@ struct MainPassResources
     VkSampler shadowMapSampler;
 };
 
-MainPassResources create_main_pass_resources(ReaperRoot& root, VulkanBackend& backend, glm::uvec2 extent);
+MainPassResources create_main_pass_resources(ReaperRoot& root, VulkanBackend& backend, glm::uvec2 extent,
+                                             VkDescriptorSetLayout material_descriptor_set_layout);
 void              destroy_main_pass_resources(VulkanBackend& backend, MainPassResources& resources);
 
 void resize_main_pass_resources(ReaperRoot& root, VulkanBackend& backend, MainPassResources& resources,

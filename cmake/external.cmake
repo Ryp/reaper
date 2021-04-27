@@ -49,3 +49,11 @@ if(MSVC)
 endif()
 
 #///////////////////////////////////////////////////////////////////////////////
+
+add_library(tinyddsloader INTERFACE)
+
+set(TINYDDSLOADER_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/external/tinyddsloader)
+
+target_include_directories(tinyddsloader SYSTEM INTERFACE ${TINYDDSLOADER_INCLUDE_DIR})
+
+#///////////////////////////////////////////////////////////////////////////////

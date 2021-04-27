@@ -29,3 +29,6 @@
 [submodule "external/meshoptimizer"]
 	path = external/meshoptimizer
 	url = https://github.com/zeux/meshoptimizer
+[submodule "external/tinyddsloader"]
+	path = external/tinyddsloader
+	url = https://github.com/benikabocha/tinyddsloader

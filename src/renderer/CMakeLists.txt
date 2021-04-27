@@ -57,6 +57,8 @@ target_sources(${target} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Debug.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Image.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Image.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/MaterialResources.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/MaterialResources.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Memory.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Memory.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/PresentationSurface.cpp
@@ -277,6 +279,7 @@ target_link_libraries(${target} PUBLIC
     span
     amd-vma
     meshoptimizer
+    tinyddsloader
 )
 
 reaper_configure_library(${target} "Renderer")

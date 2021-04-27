@@ -24,8 +24,15 @@ struct BufferInfo
     VmaAllocation       allocation;
 };
 
+enum class MemUsage
+{
+    Default,
+    CPU_Only, // FIXME
+};
+
 BufferInfo create_buffer(ReaperRoot& root, VkDevice device, const char* debug_string,
-                         const GPUBufferProperties& properties, VmaAllocator& allocator);
+                         const GPUBufferProperties& properties, VmaAllocator& allocator,
+                         MemUsage mem_usage = MemUsage::Default);
 
 void upload_buffer_data(VkDevice device, const VmaAllocator& allocator, const BufferInfo& buffer, const void* data,
                         std::size_t size, u32 offset_elements = 0);

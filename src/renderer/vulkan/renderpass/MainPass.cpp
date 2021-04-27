@@ -23,7 +23,8 @@ namespace Reaper
 constexpr u32  DrawInstanceCountMax = 512;
 constexpr bool UseReverseZ = true;
 
-MainPipelineInfo create_main_pipeline(ReaperRoot& root, VulkanBackend& backend, VkRenderPass renderPass)
+MainPipelineInfo create_main_pipeline(ReaperRoot& root, VulkanBackend& backend, VkRenderPass renderPass,
+                                      VkDescriptorSetLayout material_descriptor_set_layout)
 {
     VkShaderModule        blitShaderFS = VK_NULL_HANDLE;
     VkShaderModule        blitShaderVS = VK_NULL_HANDLE;
@@ -185,8 +186,18 @@ MainPipelineInfo create_main_pipeline(ReaperRoot& root, VulkanBackend& backend, 
 
     log_debug(root, "vulkan: created descriptor set layout with handle: {}", static_cast<void*>(descriptorSetLayoutCB));
 
-    VkPipelineLayoutCreateInfo blitPipelineLayoutInfo = {
-        VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO, nullptr, VK_FLAGS_NONE, 1, &descriptorSetLayoutCB, 0, nullptr};
+    std::array<VkDescriptorSetLayout, 2> mainPassDescriptorSetLayouts = {
+        descriptorSetLayoutCB,
+        material_descriptor_set_layout,
+    };
+
+    VkPipelineLayoutCreateInfo blitPipelineLayoutInfo = {VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+                                                         nullptr,
+                                                         VK_FLAGS_NONE,
+                                                         static_cast<u32>(mainPassDescriptorSetLayouts.size()),
+                                                         mainPassDescriptorSetLayouts.data(),
+                                                         0,
+                                                         nullptr};
 
     VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
     Assert(vkCreatePipelineLayout(backend.device, &blitPipelineLayoutInfo, nullptr, &pipelineLayout) == VK_SUCCESS);
@@ -420,7 +431,8 @@ namespace
     }
 } // namespace
 
-MainPassResources create_main_pass_resources(ReaperRoot& root, VulkanBackend& backend, glm::uvec2 extent)
+MainPassResources create_main_pass_resources(ReaperRoot& root, VulkanBackend& backend, glm::uvec2 extent,
+                                             VkDescriptorSetLayout material_descriptor_set_layout)
 {
     MainPassResources resources = {};
 
@@ -439,7 +451,7 @@ MainPassResources create_main_pass_resources(ReaperRoot& root, VulkanBackend& ba
 
     create_main_pass_resizable_resources(root, backend, resources);
 
-    resources.mainPipe = create_main_pipeline(root, backend, resources.mainRenderPass);
+    resources.mainPipe = create_main_pipeline(root, backend, resources.mainRenderPass, material_descriptor_set_layout);
 
     VkSamplerCreateInfo shadowMapSamplerCreateInfo = {};
     shadowMapSamplerCreateInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;

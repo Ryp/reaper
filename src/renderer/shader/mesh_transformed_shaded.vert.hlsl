@@ -7,18 +7,18 @@ VK_BINDING(1, 0) StructuredBuffer<DrawInstanceParams> instance_params;
 
 struct VS_INPUT
 {
-    float3 PositionMS : TEXCOORD0;
-    float3 NormalMS : TEXCOORD1;
-    float2 UV : TEXCOORD2;
+    float3 PositionMS   : TEXCOORD0;
+    float3 NormalMS     : TEXCOORD1;
+    float2 UV           : TEXCOORD2;
 };
 
 struct VS_OUTPUT
 {
-    float4 PositionCS : SV_Position;
-    float3 PositionVS : TEXCOORD0;
-    float3 NormalVS : TEXCOORD1;
-    float2 UV : TEXCOORD2;
-    float3 PositionWS : TEXCOORD3;
+    float4 PositionCS   : SV_Position;
+    float3 PositionVS   : TEXCOORD0;
+    float3 NormalVS     : TEXCOORD1;
+    float2 UV           : TEXCOORD2;
+    float3 PositionWS   : TEXCOORD3;
 };
 
 void main(in VS_INPUT input, uint instance_id : SV_InstanceID, out VS_OUTPUT output)

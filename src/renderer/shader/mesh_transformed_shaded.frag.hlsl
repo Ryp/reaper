@@ -20,13 +20,16 @@ VK_BINDING(0, 0) ConstantBuffer<DrawPassParams> pass_params;
 VK_BINDING(2, 0) SamplerComparisonState shadow_map_sampler;
 VK_BINDING(3, 0) Texture2D<float> t_shadow_map[];
 
+VK_BINDING(0, 1) SamplerState diffuse_map_sampler;
+VK_BINDING(1, 1) Texture2D<float4> t_diffuse_map[];
+
 struct PS_INPUT
 {
-    float4 PositionCS : SV_Position;
-    float3 PositionVS : TEXCOORD0;
-    float3 NormalVS : TEXCOORD1;
-    float2 UV : TEXCOORD2;
-    float3 PositionWS : TEXCOORD3;
+    float4 PositionCS   : SV_Position;
+    float3 PositionVS   : TEXCOORD0;
+    float3 NormalVS     : TEXCOORD1;
+    float2 UV           : TEXCOORD2;
+    float3 PositionWS   : TEXCOORD3;
 };
 
 struct PS_OUTPUT
@@ -79,8 +82,11 @@ void main(in PS_INPUT input, out PS_OUTPUT output)
     const float3 view_direction_vs = -normalize(input.PositionVS);
     const float3 normal_vs = normalize(input.NormalVS);
 
+    // NOTE: index MUST be uniform
+    const uint diffuse_map_index = 0; // FIXME
+
     StandardMaterial material;
-    material.albedo = float3(0.9, 0.9, 0.9);
+    material.albedo = t_diffuse_map[diffuse_map_index].Sample(diffuse_map_sampler, input.UV);
     material.roughness = 0.5;
     material.f0 = 0.1;
 

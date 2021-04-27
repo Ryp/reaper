@@ -38,7 +38,7 @@ namespace
 } // namespace
 
 BufferInfo create_buffer(ReaperRoot& root, VkDevice device, const char* debug_string,
-                         const GPUBufferProperties& input_properties, VmaAllocator& allocator)
+                         const GPUBufferProperties& input_properties, VmaAllocator& allocator, MemUsage mem_usage)
 {
     GPUBufferProperties properties = input_properties;
 
@@ -70,8 +70,19 @@ BufferInfo create_buffer(ReaperRoot& root, VkDevice device, const char* debug_st
                                            nullptr};
 
     VmaAllocationCreateInfo allocInfo = {};
-    allocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU; // FIXME Use staging to upload static content
-    // allocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+
+    switch (mem_usage)
+    {
+    case MemUsage::Default:
+        allocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
+        break; // FIXME
+    case MemUsage::CPU_Only:
+        allocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+        break;
+    default:
+        AssertUnreachable();
+        break;
+    }
 
     VkBuffer      buffer;
     VmaAllocation allocation;

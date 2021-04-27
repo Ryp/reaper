@@ -15,6 +15,7 @@
 
 #include "renderer/vulkan/ComputeHelper.h"
 #include "renderer/vulkan/Debug.h"
+#include "renderer/vulkan/MaterialResources.h"
 #include "renderer/vulkan/Memory.h"
 #include "renderer/vulkan/Swapchain.h"
 #include "renderer/vulkan/SwapchainRendererBase.h"
@@ -246,6 +247,10 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
         }
     }
 
+    // Materials
+    MaterialResources material_resources = create_material_resources(root, backend, resources.gfxCmdBuffer);
+    material_resources.descriptor_set = create_material_descriptor_set(root, backend, material_resources);
+
     // Culling Pass
     CullResources cull_resources = create_culling_resources(root, backend);
 
@@ -255,7 +260,8 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
     // Main Pass
     const glm::uvec2  swapchain_extent(backend.presentInfo.surfaceExtent.width,
                                       backend.presentInfo.surfaceExtent.height);
-    MainPassResources main_pass_resources = create_main_pass_resources(root, backend, swapchain_extent);
+    MainPassResources main_pass_resources =
+        create_main_pass_resources(root, backend, swapchain_extent, material_resources.descSetLayout);
 
     // Swapchain Pass
     SwapchainPassResources swapchain_pass_resources = create_swapchain_pass_resources(root, backend, swapchain_extent);
@@ -784,8 +790,15 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                                      get_vk_culling_index_type());
                 vkCmdBindVertexBuffers(resources.gfxCmdBuffer, 0, static_cast<u32>(vertexBuffers.size()),
                                        vertexBuffers.data(), vertexBufferOffsets.data());
+
+                std::array<VkDescriptorSet, 2> main_pass_descriptors = {
+                    mainPassDescriptorSet,
+                    material_resources.descriptor_set,
+                };
+
                 vkCmdBindDescriptorSets(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                        main_pass_resources.mainPipe.pipelineLayout, 0, 1, &mainPassDescriptorSet, 0,
+                                        main_pass_resources.mainPipe.pipelineLayout, 0,
+                                        static_cast<u32>(main_pass_descriptors.size()), main_pass_descriptors.data(), 0,
                                         nullptr);
 
                 const u32 pass_index = prepared.draw_culling_pass_index;
@@ -959,6 +972,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
     destroy_main_pass_resources(backend, main_pass_resources);
     destroy_shadow_map_resources(backend, shadow_map_resources);
     destroy_culling_resources(backend, cull_resources);
+    destroy_material_resources(backend, material_resources);
 
     destroy_mesh_cache(backend, mesh_cache);
 }
