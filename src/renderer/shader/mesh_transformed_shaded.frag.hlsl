@@ -31,7 +31,7 @@ struct PS_INPUT
 
 struct PS_OUTPUT
 {
-    float4 color : SV_Target0;
+    float3 color : SV_Target0;
 };
 
 struct t_light_output
@@ -97,13 +97,13 @@ void main(in PS_INPUT input, out PS_OUTPUT output)
     }
 
     if (spec_debug_mode == debug_mode_none)
-        output.color = float4(shaded_color, 1.0);
+        output.color = shaded_color;
     else if (spec_debug_mode == debug_mode_normals)
-        output.color = float4(normal_vs * 0.5 + 0.5, 1.0);
+        output.color = normal_vs * 0.5 + 0.5;
     else if (spec_debug_mode == debug_mode_uv)
-        output.color = float4(input.UV, 0.0, 1.0);
+        output.color = float3(input.UV, 0.0);
     else if (spec_debug_mode == debug_mode_pos_vs)
-        output.color = float4(input.PositionVS, 1.0);
+        output.color = input.PositionVS;
     else
-        output.color = float4(0.42, 0.42, 0.42, 1.0);
+        output.color = float3(0.42, 0.42, 0.42);
 }
