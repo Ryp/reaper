@@ -21,20 +21,16 @@ struct VS_OUTPUT
     float3 PositionWS : TEXCOORD3;
 };
 
-VS_OUTPUT main(VS_INPUT input, uint instance_id : SV_InstanceID)
+void main(in VS_INPUT input, uint instance_id : SV_InstanceID, out VS_OUTPUT output)
 {
     const float3 positionMS = input.PositionMS;
     const float3 positionWS = mul(instance_params[instance_id].model, float4(positionMS, 1.0));
     const float3 positionVS = mul(pass_params.view, float4(positionWS, 1.0));
     const float4 positionCS = mul(pass_params.proj, float4(positionVS, 1.0));
 
-    VS_OUTPUT output;
-
     output.PositionCS = positionCS;
     output.PositionVS = positionVS;
     output.NormalVS = normalize(mul(instance_params[instance_id].normal_ms_to_vs_matrix, input.NormalMS));
     output.UV = input.UV;
     output.PositionWS = positionWS;
-
-    return output;
 }

@@ -15,14 +15,10 @@ struct VS_OUTPUT
     float4 PositionCS : SV_Position;
 };
 
-VS_OUTPUT main(VS_INPUT input, uint instance_id : SV_InstanceID)
+void main(in VS_INPUT input, uint instance_id : SV_InstanceID, out VS_OUTPUT output)
 {
     const float3 positionMS = input.PositionMS;
     const float4 positionCS = mul(instance_params[instance_id].ms_to_cs_matrix, float4(positionMS, 1.0));
 
-    VS_OUTPUT output;
-
     output.PositionCS = positionCS;
-
-    return output;
 }

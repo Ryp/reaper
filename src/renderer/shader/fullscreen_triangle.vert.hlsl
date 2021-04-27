@@ -11,7 +11,7 @@ struct VS_OUTPUT
     float2 PositionUV : TEXCOORD0;
 };
 
-VS_OUTPUT main(VS_INPUT input)
+void main(in VS_INPUT input, out VS_OUTPUT output)
 {
     float2 vertex_uv;
 
@@ -22,10 +22,6 @@ VS_OUTPUT main(VS_INPUT input)
     else
         vertex_uv = float2(2.0, 0.0);
 
-    VS_OUTPUT output;
-
     output.PositionCS = float4(uv_to_ndc(vertex_uv), 0.0, 1.0);
     output.PositionUV = vertex_uv;
-
-    return output;
 }
