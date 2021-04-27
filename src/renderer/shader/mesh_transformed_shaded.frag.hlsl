@@ -74,7 +74,7 @@ float sample_shadow_map(float4x4 light_transform_ws_to_cs, float3 object_positio
     return shadow_pcf;
 }
 
-PS_OUTPUT main(PS_INPUT input)
+void main(in PS_INPUT input, out PS_OUTPUT output)
 {
     const float3 view_direction_vs = -normalize(input.PositionVS);
     const float3 normal_vs = normalize(input.NormalVS);
@@ -96,8 +96,6 @@ PS_OUTPUT main(PS_INPUT input)
         shaded_color += material.albedo * (lighting.diffuse + lighting.specular) * shadow_term;
     }
 
-    PS_OUTPUT output;
-
     if (spec_debug_mode == debug_mode_none)
         output.color = float4(shaded_color, 1.0);
     else if (spec_debug_mode == debug_mode_normals)
@@ -106,6 +104,6 @@ PS_OUTPUT main(PS_INPUT input)
         output.color = float4(input.UV, 0.0, 1.0);
     else if (spec_debug_mode == debug_mode_pos_vs)
         output.color = float4(input.PositionVS, 1.0);
-
-    return output;
+    else
+        output.color = float4(0.42, 0.42, 0.42, 1.0);
 }

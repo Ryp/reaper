@@ -65,7 +65,7 @@ float3 apply_output_color_space_transform(float3 color_rec709, uint color_space)
         return 0.4242; // Invalid
 }
 
-PS_OUTPUT main(PS_INPUT input)
+void main(in PS_INPUT input, out PS_OUTPUT output)
 {
     float3 scene_color_rec709_linear = t_hdr_color.SampleLevel(linear_sampler, input.PositionUV, 0);
 
@@ -76,7 +76,5 @@ PS_OUTPUT main(PS_INPUT input)
 
     float3 display_color = apply_transfer_func(scene_color_linear, spec_transfer_function);
 
-    PS_OUTPUT output;
     output.color = display_color;
-    return output;
 }
