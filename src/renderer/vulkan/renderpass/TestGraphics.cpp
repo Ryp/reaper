@@ -9,6 +9,8 @@
 
 #include "Culling.h"
 #include "CullingConstants.h"
+#include "Frame.h"
+#include "HistogramPass.h"
 #include "MainPass.h"
 #include "ShadowMap.h"
 #include "SwapchainPass.h"
@@ -49,6 +51,8 @@
 #include <array>
 #include <chrono>
 #include <thread>
+
+#include "renderer/shader/share/hdr.hlsl"
 
 namespace Reaper
 {
@@ -341,6 +345,9 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
     MainPassResources main_pass_resources =
         create_main_pass_resources(root, backend, swapchain_extent, material_resources.descSetLayout);
 
+    // HDR Histogram Pass
+    HistogramPassResources histogram_pass_resources = create_histogram_pass_resources(root, backend);
+
     // Swapchain Pass
     SwapchainPassResources swapchain_pass_resources = create_swapchain_pass_resources(root, backend, swapchain_extent);
 
@@ -512,6 +519,9 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
             const float      timeDtSecs = static_cast<float>(timeDeltaMs.count()) * 0.001f;
             const glm::uvec2 backbuffer_viewport_extent(backbufferExtent.width, backbufferExtent.height);
 
+            FrameData frame_data = {};
+            frame_data.backbufferExtent = backbufferExtent;
+
             ds4.update();
 
             if (ds4.isPressed(DS4::L1))
@@ -590,8 +600,23 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                                prepared.draw_instance_params.data(),
                                prepared.draw_instance_params.size() * sizeof(DrawInstanceParams));
 
-            VkDescriptorSet swapchainPassDescriptorSet = create_swapchain_pass_descriptor_set(
-                root, backend, swapchain_pass_resources, main_pass_resources.hdrBufferView);
+            {
+                ReduceHDRPassParams params = {};
+                params.input_size_ts = glm::uvec2(backbufferExtent.width, backbufferExtent.height);
+
+                histogram_pass_resources.descriptor_set = create_histogram_pass_descriptor_set(
+                    root, backend, histogram_pass_resources, main_pass_resources.hdrBufferView);
+
+                upload_buffer_data(backend.device, backend.vma_instance, histogram_pass_resources.passConstantBuffer,
+                                   &params, sizeof(ReduceHDRPassParams));
+
+                std::array<u32, HISTOGRAM_RES> zero = {};
+                upload_buffer_data(backend.device, backend.vma_instance, histogram_pass_resources.passHistogramBuffer,
+                                   zero.data(), zero.size() * sizeof(u32));
+            }
+
+            prepare_swapchain_frame_resources(root, backend, swapchain_pass_resources,
+                                              main_pass_resources.hdrBufferView);
 
             upload_buffer_data(backend.device, backend.vma_instance, swapchain_pass_resources.passConstantBuffer,
                                &prepared.swapchain_pass_params, sizeof(SwapchainPassParams));
@@ -658,6 +683,8 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
 
                 // Compaction prepare pass
                 {
+                    REAPER_PROFILE_SCOPE_GPU(pGpuLog, "Cull Compaction Prepare", MP_DARKGOLDENROD);
+
                     vkCmdBindPipeline(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE,
                                       cull_resources.compactPrepPipe.pipeline);
 
@@ -680,6 +707,8 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
 
                 // Compaction pass
                 {
+                    REAPER_PROFILE_SCOPE_GPU(pGpuLog, "Cull Compaction", MP_DARKGOLDENROD);
+
                     vkCmdBindPipeline(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE,
                                       cull_resources.compactionPipe.pipeline);
 
@@ -924,44 +953,22 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                                      &hdrImageBarrierInfo);
             }
 
+            // Histogram pass
+            if (true)
+            {
+                REAPER_PROFILE_SCOPE_GPU(pGpuLog, "Histogram Pass", MP_DARKGOLDENROD);
+
+                record_histogram_command_buffer(resources.gfxCmdBuffer, frame_data, histogram_pass_resources);
+            }
+
             // Swapchain output pass
             {
                 REAPER_PROFILE_SCOPE_GPU(pGpuLog, "Swapchain Pass", MP_DARKGOLDENROD);
 
-                const VkRect2D blitPassRect = default_vk_rect(backbufferExtent);
+                VkImageView swapchain_buffer_view = backend.presentInfo.imageViews[current_swapchain_index];
 
-                std::array<VkImageView, 1> main_pass_framebuffer_views = {
-                    backend.presentInfo.imageViews[current_swapchain_index]};
-
-                VkRenderPassAttachmentBeginInfo main_pass_attachments = {
-                    VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO, nullptr, main_pass_framebuffer_views.size(),
-                    main_pass_framebuffer_views.data()};
-
-                VkRenderPassBeginInfo blitRenderPassBeginInfo = {VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-                                                                 &main_pass_attachments,
-                                                                 swapchain_pass_resources.swapchainRenderPass,
-                                                                 swapchain_pass_resources.swapchain_framebuffer,
-                                                                 blitPassRect,
-                                                                 0,
-                                                                 nullptr};
-
-                vkCmdBeginRenderPass(resources.gfxCmdBuffer, &blitRenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-                vkCmdBindPipeline(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                  swapchain_pass_resources.swapchainPipe.pipeline);
-
-                const VkViewport blitViewport = default_vk_viewport(blitPassRect);
-
-                vkCmdSetViewport(resources.gfxCmdBuffer, 0, 1, &blitViewport);
-                vkCmdSetScissor(resources.gfxCmdBuffer, 0, 1, &blitPassRect);
-
-                vkCmdBindDescriptorSets(resources.gfxCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                        swapchain_pass_resources.swapchainPipe.pipelineLayout, 0, 1,
-                                        &swapchainPassDescriptorSet, 0, nullptr);
-
-                vkCmdDraw(resources.gfxCmdBuffer, 3, 1, 0, 0);
-
-                vkCmdEndRenderPass(resources.gfxCmdBuffer);
+                record_swapchain_command_buffer(resources.gfxCmdBuffer, frame_data, swapchain_pass_resources,
+                                                swapchain_buffer_view);
             }
 
 #if defined(REAPER_USE_MICROPROFILE)
@@ -1047,6 +1054,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
     vkDestroyFence(backend.device, drawFence, nullptr);
 
     destroy_swapchain_pass_resources(backend, swapchain_pass_resources);
+    destroy_histogram_pass_resources(backend, histogram_pass_resources);
     destroy_main_pass_resources(backend, main_pass_resources);
     destroy_shadow_map_resources(backend, shadow_map_resources);
     destroy_culling_resources(backend, cull_resources);

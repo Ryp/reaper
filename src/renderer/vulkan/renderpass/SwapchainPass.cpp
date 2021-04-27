@@ -7,6 +7,7 @@
 
 #include "SwapchainPass.h"
 
+#include "Frame.h"
 #include "ShadowConstants.h"
 
 #include "renderer/vulkan/Image.h"
@@ -491,5 +492,65 @@ VkDescriptorSet create_swapchain_pass_descriptor_set(ReaperRoot& root, VulkanBac
                            drawPassDescriptorSetWrites.data(), 0, nullptr);
 
     return descriptor_set;
+}
+
+namespace
+{
+    // FIXME dedup
+    VkRect2D default_vk_rect(VkExtent2D image_extent) { return VkRect2D{{0, 0}, image_extent}; }
+
+    // FIXME dedup
+    VkViewport default_vk_viewport(VkRect2D output_rect)
+    {
+        return VkViewport{static_cast<float>(output_rect.offset.x),
+                          static_cast<float>(output_rect.offset.y),
+                          static_cast<float>(output_rect.extent.width),
+                          static_cast<float>(output_rect.extent.height),
+                          0.0f,
+                          1.0f};
+    }
+} // namespace
+
+void prepare_swapchain_frame_resources(ReaperRoot& root, VulkanBackend& backend, SwapchainPassResources& pass_resources,
+                                       VkImageView hdr_buffer_view)
+{
+    pass_resources.frame.descriptor_set =
+        create_swapchain_pass_descriptor_set(root, backend, pass_resources, hdr_buffer_view);
+}
+
+void record_swapchain_command_buffer(VkCommandBuffer cmdBuffer, const FrameData& frame_data,
+                                     const SwapchainPassResources& pass_resources, VkImageView swapchain_buffer_view)
+{
+    const VkRect2D blitPassRect = default_vk_rect(frame_data.backbufferExtent);
+
+    std::array<VkImageView, 1> main_pass_framebuffer_views = {swapchain_buffer_view};
+
+    VkRenderPassAttachmentBeginInfo main_pass_attachments = {VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO,
+                                                             nullptr, main_pass_framebuffer_views.size(),
+                                                             main_pass_framebuffer_views.data()};
+
+    VkRenderPassBeginInfo blitRenderPassBeginInfo = {VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+                                                     &main_pass_attachments,
+                                                     pass_resources.swapchainRenderPass,
+                                                     pass_resources.swapchain_framebuffer,
+                                                     blitPassRect,
+                                                     0,
+                                                     nullptr};
+
+    vkCmdBeginRenderPass(cmdBuffer, &blitRenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+    vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pass_resources.swapchainPipe.pipeline);
+
+    const VkViewport blitViewport = default_vk_viewport(blitPassRect);
+
+    vkCmdSetViewport(cmdBuffer, 0, 1, &blitViewport);
+    vkCmdSetScissor(cmdBuffer, 0, 1, &blitPassRect);
+
+    vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pass_resources.swapchainPipe.pipelineLayout, 0,
+                            1, &pass_resources.frame.descriptor_set, 0, nullptr);
+
+    vkCmdDraw(cmdBuffer, 3, 1, 0, 0);
+
+    vkCmdEndRenderPass(cmdBuffer);
 }
 } // namespace Reaper

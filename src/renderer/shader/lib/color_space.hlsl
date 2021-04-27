@@ -11,6 +11,7 @@
 // -----------------------------------------------------------------------------
 // Color Spaces
 // -----------------------------------------------------------------------------
+// NOTE: sRGB and rec709 share the same primaries.
 
 float3 rec709_to_srgb(float3 color_rec709)
 {
@@ -162,6 +163,24 @@ float3 pq_eotf_inverse(float3 pq_eotf_color)
 
     float3 Np = pow(pq_eotf_color, 1.0 / m2);
     return pow(max(Np - c1, 0.0) / (c2 - c3 * Np), 1 / m1);
+}
+
+// -----------------------------------------------------------------------------
+
+float luma_rec709(float3 color_rec709)
+{
+    // NOTE: BT.709-2 introduces slightly different luma coefficients
+    // const float3 luma_coeff_rec709 = float3(0.2125, 0.7154, 0.0721);
+    const float3 luma_coeff_rec709 = float3(0.2126, 0.7152, 0.0722);
+
+    return dot(color_rec709, luma_coeff_rec709);
+}
+
+float luma_rec2020(float3 color_rec2020)
+{
+    const float3 luma_coeff_rec2020 = float3(0.2627, 0.6780, 0.0593);
+
+    return dot(color_rec2020, luma_coeff_rec2020);
 }
 
 #endif

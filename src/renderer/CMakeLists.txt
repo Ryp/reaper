@@ -88,6 +88,8 @@ target_sources(${target} PRIVATE
 
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/Culling.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/Culling.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/HistogramPass.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/HistogramPass.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/MainPass.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/MainPass.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/ShadowMap.cpp
@@ -129,6 +131,7 @@ set(REAPER_SHADER_SRCS
     ${REAPER_SHADER_DIR}/cull_triangle_batch.comp.hlsl
     ${REAPER_SHADER_DIR}/draw_command_compaction.comp.hlsl
     ${REAPER_SHADER_DIR}/fullscreen_triangle.vert.hlsl
+    ${REAPER_SHADER_DIR}/reduce_hdr_frame.comp.hlsl
     ${REAPER_SHADER_DIR}/matrix_row_major_codegen_bug.comp.hlsl
     ${REAPER_SHADER_DIR}/mesh_shade.frag.glsl
     ${REAPER_SHADER_DIR}/mesh_shade.vert.glsl
