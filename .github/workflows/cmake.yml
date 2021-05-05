@@ -1,0 +1,108 @@
+name: Build
+on:
+  push:
+    branches:
+      - master
+      - develop
+      - 'feature/**'
+      - 'bugfix/**'
+  # FIXME
+  # pull_request:
+  #  branches:
+  #    - 'feature/**'
+  #    - 'bugfix/**'
+
+jobs:
+  build_ubuntu:
+    name: ${{ matrix.config.name }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - {
+            name: "Ubuntu GCC Release",
+            cmake_build_type: "Release",
+            cmake_build_shared_libs: "ON",
+          }
+          - {
+            name: "Ubuntu GCC Debug",
+            cmake_build_type: "Debug",
+            cmake_build_shared_libs: "ON",
+          }
+          - {
+            name: "Ubuntu GCC Release Static",
+            cmake_build_type: "Release",
+            cmake_build_shared_libs: "OFF",
+          }
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - name: Install dependencies
+        run: sudo apt-get install -y wget unzip build-essential cmake gcc libassimp-dev libvulkan-dev libunwind-dev libx11-xcb-dev spirv-tools glslang-tools
+
+      - name: Configure CMake
+        run: |
+          cmake -H. -Bbuild \
+            -DCMAKE_BUILD_TYPE=${{ matrix.config.cmake_build_type }} \
+            -DREAPER_BUILD_SHARED_LIBRARIES=${{ matrix.config.cmake_build_shared_libs }} \
+            -DREAPER_GIT_HOOKS_AUTO_UPDATE=OFF \
+            -DREAPER_RUN_CLANG_TIDY=OFF
+
+      - name: Build Shared
+        run: cmake --build build
+
+      - name: Test Shared
+        env:
+          CTEST_OUTPUT_ON_FAILURE: 1
+        run: cmake --build build --target test
+
+  build_windows:
+    name: ${{ matrix.config.name }}
+    runs-on: windows-latest
+    env:
+      reaper_vulkan_version: "1.2.131.1"
+      reaper_vulkan_sdk_path: "$GITHUB_WORKSPACE/../vulkan_sdk/"
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - {
+            name: "Windows MSVC x64 Release",
+            cmake_generator: "Visual Studio 16 2019",
+            cmake_arch: "x64",
+            cmake_build_type: "Release",
+            cmake_build_shared_libs: "OFF",
+          }
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - name: Install dependencies
+        run: |
+          curl -LS -o vulkansdk.exe `
+            https://sdk.lunarg.com/sdk/download/${{ env.reaper_vulkan_version }}/windows/VulkanSDK-${{ env.reaper_vulkan_version }}-Installer.exe?Human=true
+          7z x vulkansdk.exe -o"${{ env.reaper_vulkan_sdk_path }}"
+
+      - name: Configure CMake
+        run: |
+          $env:Path += ";${{ env.reaper_vulkan_sdk_path }};${{ env.reaper_vulkan_sdk_path }}\Bin;"
+          cmake .\ -Bbuild `
+            -G "${{ matrix.config.cmake_generator }}" `
+            -A "${{ matrix.config.cmake_arch }}" `
+            -DREAPER_BUILD_SHARED_LIBRARIES=${{ matrix.config.cmake_build_shared_libs }} `
+            -DREAPER_GIT_HOOKS_AUTO_UPDATE=OFF `
+            -DREAPER_RUN_CLANG_TIDY=OFF
+
+      - name: Build
+        run: cmake --build build --config ${{ matrix.config.cmake_build_type }}
+
+      - name: Test
+        env:
+          CTEST_OUTPUT_ON_FAILURE: 1
+        run: cmake --build build --target RUN_TESTS
