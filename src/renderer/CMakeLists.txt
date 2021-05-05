@@ -230,7 +230,6 @@ target_sources(${target} PRIVATE
     ${REAPER_SPIRV_OUTPUT}
     ${REAPER_GCN_OUTPUT})
 
-# Vulkan dependency
 find_package(Vulkan REQUIRED)
 
 # Choose windowing system
