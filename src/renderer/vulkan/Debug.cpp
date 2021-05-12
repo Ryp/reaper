@@ -9,6 +9,8 @@
 
 #include "core/Assert.h"
 
+#define REAPER_VULKAN_DEBUG REAPER_DEBUG
+
 namespace Reaper
 {
 namespace
@@ -19,7 +21,9 @@ namespace
         const VkDebugUtilsObjectNameInfoEXT debugNameInfo = {VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT,
                                                              nullptr, handleType, reinterpret_cast<u64>(handle), name};
 
+#if REAPER_VULKAN_DEBUG
         Assert(vkSetDebugUtilsObjectNameEXT(device, &debugNameInfo) == VK_SUCCESS);
+#endif
     }
 } // namespace
 
@@ -62,7 +66,9 @@ void VulkanInsertDebugLabel(VkCommandBuffer commandBuffer, const char* name)
     // Color is supported but we're not using it
     const VkDebugUtilsLabelEXT debugLabelInfo = {VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT, nullptr, name, {}};
 
+#if REAPER_VULKAN_DEBUG
     vkCmdInsertDebugUtilsLabelEXT(commandBuffer, &debugLabelInfo);
+#endif
 }
 
 void VulkanBeginDebugLabel(VkCommandBuffer commandBuffer, const char* name)
@@ -70,12 +76,16 @@ void VulkanBeginDebugLabel(VkCommandBuffer commandBuffer, const char* name)
     // Color is supported but we're not using it
     const VkDebugUtilsLabelEXT debugLabelInfo = {VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT, nullptr, name, {}};
 
+#if REAPER_VULKAN_DEBUG
     vkCmdBeginDebugUtilsLabelEXT(commandBuffer, &debugLabelInfo);
+#endif
 }
 
 void VulkanEndDebugLabel(VkCommandBuffer commandBuffer)
 {
+#if REAPER_VULKAN_DEBUG
     vkCmdEndDebugUtilsLabelEXT(commandBuffer);
+#endif
 }
 
 VulkanDebugLabelCmdBufferScope::VulkanDebugLabelCmdBufferScope(VkCommandBuffer commandBuffer, const char* name)
@@ -95,7 +105,9 @@ void VulkanInsertQueueDebugLabel(VkQueue queue, const char* name)
     // Color is supported but we're not using it
     const VkDebugUtilsLabelEXT debugLabelInfo = {VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT, nullptr, name, {}};
 
+#if REAPER_VULKAN_DEBUG
     vkQueueInsertDebugUtilsLabelEXT(queue, &debugLabelInfo);
+#endif
 }
 
 void VulkanBeginQueueDebugLabel(VkQueue queue, const char* name)
@@ -103,12 +115,16 @@ void VulkanBeginQueueDebugLabel(VkQueue queue, const char* name)
     // Color is supported but we're not using it
     const VkDebugUtilsLabelEXT debugLabelInfo = {VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT, nullptr, name, {}};
 
+#if REAPER_VULKAN_DEBUG
     vkQueueBeginDebugUtilsLabelEXT(queue, &debugLabelInfo);
+#endif
 }
 
 void VulkanEndQueueDebugLabel(VkQueue queue)
 {
+#if REAPER_VULKAN_DEBUG
     vkQueueEndDebugUtilsLabelEXT(queue);
+#endif
 }
 
 VulkanQueueDebugLabelScope::VulkanQueueDebugLabelScope(VkQueue queue, const char* name)
