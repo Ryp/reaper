@@ -106,6 +106,7 @@ include(cotire)
 # Let CMake configure git hooks
 reaper_setup_git_hooks()
 
+set(MESHOPT_BUILD_SHARED_LIBS ${REAPER_BUILD_SHARED_LIBRARIES})
 add_subdirectory(external/meshoptimizer)
 
 add_subdirectory(src)
