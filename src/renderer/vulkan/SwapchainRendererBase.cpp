@@ -21,11 +21,8 @@
 #include "PresentationSurface.h"
 #include "renderer/window/Window.h"
 
-// Name of the library to dynamically load to get vulkan symbols
-#if defined(REAPER_PLATFORM_LINUX) || defined(REAPER_PLATFORM_MACOSX)
-#    define REAPER_VK_LIB_NAME "libvulkan.so"
-#elif defined(REAPER_PLATFORM_WINDOWS)
-#    define REAPER_VK_LIB_NAME "vulkan-1.dll"
+#ifndef REAPER_VK_LIB_NAME
+#    error
 #endif
 
 // Version of the API to query when loading vulkan symbols

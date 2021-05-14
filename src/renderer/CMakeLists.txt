@@ -231,6 +231,7 @@ target_sources(${target} PRIVATE
     ${REAPER_GCN_OUTPUT})
 
 find_package(Vulkan REQUIRED)
+target_compile_definitions(${target} PRIVATE REAPER_VK_LIB_NAME="${VULKAN_LIBRARY}")
 
 # Choose windowing system
 if(WIN32)
