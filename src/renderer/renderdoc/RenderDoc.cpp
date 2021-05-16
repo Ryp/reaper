@@ -63,6 +63,32 @@ void stop_integration(ReaperRoot& root)
     // dynlib::close(g_renderDocLib);
     // g_renderDocLib = nullptr;
 }
+
+void start_capture(ReaperRoot& root, DevicePointer vulkan_instance)
+{
+    REAPER_PROFILE_SCOPE("RenderDoc", MP_GREEN1);
+
+    log_info(root, "renderdoc: starting capture");
+
+    Assert(vulkan_instance);
+    Assert(g_renderDocLib);
+
+    const RENDERDOC_DevicePointer device_pointer = RENDERDOC_DEVICEPOINTER_FROM_VKINSTANCE(vulkan_instance);
+    g_renderDocAPI->StartFrameCapture(device_pointer, nullptr);
+}
+
+void stop_capture(ReaperRoot& root, DevicePointer vulkan_instance)
+{
+    REAPER_PROFILE_SCOPE("RenderDoc", MP_GREEN1);
+
+    log_info(root, "renderdoc: stopping capture");
+
+    Assert(vulkan_instance);
+    Assert(g_renderDocLib);
+
+    const RENDERDOC_DevicePointer device_pointer = RENDERDOC_DEVICEPOINTER_FROM_VKINSTANCE(vulkan_instance);
+    Assert(g_renderDocAPI->EndFrameCapture(device_pointer, nullptr) == 1);
+}
 } // namespace Reaper::RenderDoc
 
 #else
@@ -75,6 +101,16 @@ void start_integration(ReaperRoot& /*root*/)
 }
 
 void stop_integration(ReaperRoot& /*root*/)
+{
+    AssertUnreachable();
+}
+
+void start_capture(ReaperRoot& /*root*/, DevicePointer /*vulkan_instance*/)
+{
+    AssertUnreachable();
+}
+
+void stop_capture(ReaperRoot& /*root*/, DevicePointer /*vulkan_instance*/)
 {
     AssertUnreachable();
 }

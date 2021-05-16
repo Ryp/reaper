@@ -15,5 +15,10 @@ namespace RenderDoc
 {
     void start_integration(ReaperRoot& root);
     void stop_integration(ReaperRoot& root);
+
+    using DevicePointer = void*;
+
+    void start_capture(ReaperRoot& root, DevicePointer vulkan_instance);
+    void stop_capture(ReaperRoot& root, DevicePointer vulkan_instance);
 } // namespace RenderDoc
 } // namespace Reaper
