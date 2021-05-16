@@ -15,11 +15,7 @@
 #    include "core/DynamicLibrary.h"
 #    include "core/Profile.h"
 
-#    if defined(REAPER_PLATFORM_LINUX) || defined(REAPER_PLATFORM_MACOSX)
-#        include <renderdoc.h>
-#    elif defined(REAPER_PLATFORM_WINDOWS)
-#        include <renderdoc_app.h>
-#    endif
+#    include <renderdoc_app.h>
 
 namespace Reaper::RenderDoc
 {
