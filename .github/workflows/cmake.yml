@@ -48,7 +48,7 @@ jobs:
         run: |
           cmake -H. -Bbuild \
             -DCMAKE_BUILD_TYPE=${{ matrix.config.cmake_build_type }} \
-            -DREAPER_BUILD_SHARED_LIBRARIES=${{ matrix.config.cmake_build_shared_libs }} \
+            -DBUILD_SHARED_LIBS=${{ matrix.config.cmake_build_shared_libs }} \
             -DREAPER_GIT_HOOKS_AUTO_UPDATE=OFF \
             -DREAPER_RUN_CLANG_TIDY=OFF
 
@@ -95,7 +95,7 @@ jobs:
           cmake .\ -Bbuild `
             -G "${{ matrix.config.cmake_generator }}" `
             -A "${{ matrix.config.cmake_arch }}" `
-            -DREAPER_BUILD_SHARED_LIBRARIES=${{ matrix.config.cmake_build_shared_libs }} `
+            -DBUILD_SHARED_LIBS=${{ matrix.config.cmake_build_shared_libs }} `
             -DREAPER_GIT_HOOKS_AUTO_UPDATE=OFF `
             -DREAPER_RUN_CLANG_TIDY=OFF
 

@@ -262,6 +262,9 @@ else()
     message(FATAL_ERROR "Could not detect platform!")
 endif()
 
+set(MESHOPT_BUILD_SHARED_LIBS ${REAPER_BUILD_SHARED_LIBS})
+add_subdirectory(${CMAKE_SOURCE_DIR}/external/meshoptimizer ${CMAKE_BINARY_DIR}/external/meshoptimizer)
+
 target_link_libraries(${target} PUBLIC
     ${REAPER_CORE_BIN}
     ${REAPER_MESH_BIN}

@@ -50,7 +50,7 @@ option(REAPER_BUILD_TESTS               "Build tests"                   ON)
 
 # Recommended option if you want to quickly iterate on libraries.
 # The runtime performance should be comparable to a classic static build.
-option(REAPER_BUILD_SHARED_LIBRARIES    "Build shared libraries"        ON)
+option(REAPER_BUILD_SHARED_LIBS         "Build shared libraries"        ${BUILD_SHARED_LIBS})
 
 # Enable runtime profiling. Go to localhost:1338 in chrome to get the output.
 option(REAPER_USE_MICROPROFILE          "Use microprofile"              ON)
@@ -87,7 +87,7 @@ set(CMAKE_VERBOSE_MAKEFILE OFF)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 # Select linkage type
-if(REAPER_BUILD_SHARED_LIBRARIES)
+if(REAPER_BUILD_SHARED_LIBS)
     set(REAPER_BUILD_TYPE SHARED)
 else()
     set(REAPER_BUILD_TYPE STATIC)
@@ -105,8 +105,5 @@ include(cotire)
 
 # Let CMake configure git hooks
 reaper_setup_git_hooks()
-
-set(MESHOPT_BUILD_SHARED_LIBS ${REAPER_BUILD_SHARED_LIBRARIES})
-add_subdirectory(external/meshoptimizer)
 
 add_subdirectory(src)
