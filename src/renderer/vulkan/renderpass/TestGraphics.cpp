@@ -44,6 +44,8 @@
 
 #include <glm/gtc/matrix_transform.hpp>
 
+#include <meshoptimizer.h>
+
 #include <array>
 #include <chrono>
 #include <thread>
@@ -188,8 +190,8 @@ namespace
 
         Assert(index_count > 0);
         Assert(position_count > 0);
-        Assert(normal_count == 0 || normal_count == position_count);
-        Assert(uv_count == 0 || uv_count == position_count);
+        Assert(normal_count == position_count);
+        Assert(uv_count == position_count);
 
         alloc.index_count = index_count;
         alloc.vertex_count = position_count;
@@ -242,6 +244,63 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
         for (auto& mesh : mesh_instances)
         {
             Mesh2& mesh2 = mesh2_instances.emplace_back();
+
+            if (true)
+            {
+                const size_t max_vertices = ComputeCullingGroupSize / 2;
+                const size_t max_triangles = ComputeCullingGroupSize;
+                const float  cone_weight = 0.0f;
+
+                size_t max_meshlets = meshopt_buildMeshletsBound(mesh.indexes.size(), max_vertices, max_triangles);
+                std::vector<meshopt_Meshlet> meshlets(max_meshlets);
+                std::vector<u32>             meshlet_vertices(max_meshlets * max_vertices);
+                std::vector<u8>              meshlet_triangles(max_meshlets * max_triangles * 3);
+
+                size_t meshlet_count = meshopt_buildMeshlets(
+                    meshlets.data(), meshlet_vertices.data(), meshlet_triangles.data(), mesh.indexes.data(),
+                    mesh.indexes.size(), reinterpret_cast<const float*>(mesh.vertices.data()), mesh.vertices.size(),
+                    sizeof(mesh.vertices[0]), max_vertices, max_triangles, cone_weight);
+
+                const meshopt_Meshlet& last = meshlets[meshlet_count - 1];
+
+                meshlet_vertices.resize(last.vertex_offset + last.vertex_count);
+                meshlet_triangles.resize(last.triangle_offset + ((last.triangle_count * 3 + 3) & ~3));
+                meshlets.resize(meshlet_count);
+
+                // Rewrite index buffer
+                // TODO Also rebuilt vertex buffer since it was optimized for cache locality
+                mesh.indexes.clear();
+
+                for (meshopt_Meshlet& meshlet : meshlets)
+                {
+                    for (u32 i = 0; i < meshlet.triangle_count; i++)
+                    {
+                        const u32 local_index0 =
+                            static_cast<u32>(meshlet_triangles[meshlet.triangle_offset + i * 3 + 0]);
+                        const u32 local_index1 =
+                            static_cast<u32>(meshlet_triangles[meshlet.triangle_offset + i * 3 + 1]);
+                        const u32 local_index2 =
+                            static_cast<u32>(meshlet_triangles[meshlet.triangle_offset + i * 3 + 2]);
+
+                        const u32 global_index0 = meshlet_vertices[meshlet.vertex_offset + local_index0];
+                        const u32 global_index1 = meshlet_vertices[meshlet.vertex_offset + local_index1];
+                        const u32 global_index2 = meshlet_vertices[meshlet.vertex_offset + local_index2];
+
+                        mesh.indexes.push_back(global_index0);
+                        mesh.indexes.push_back(global_index1);
+                        mesh.indexes.push_back(global_index2);
+                    }
+                }
+            }
+
+            // FIXME Filling empty buffers with garbage to preserve correct index offsets
+            // This can be removed if we do vertex pulling with per-buffer offsets
+            if (mesh.normals.empty())
+                mesh.normals.resize(mesh.vertices.size());
+
+            if (mesh.uvs.empty())
+                mesh.uvs.resize(mesh.vertices.size());
+
             mesh2 = create_mesh2(mesh_cache_allocate_mesh(mesh_cache, mesh));
             upload_mesh_to_mesh_cache(mesh_cache, mesh, mesh2.lods_allocs[0], backend);
         }
