@@ -14,27 +14,21 @@ on:
 
 jobs:
   build_ubuntu:
-    name: ${{ matrix.config.name }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         config:
           - {
-            name: "Ubuntu GCC Release",
-            cmake_build_type: "Release",
-            cmake_build_shared_libs: "ON",
+            name: "GCC Shared",
+            cmake_build_shared_libs: ON,
           }
           - {
-            name: "Ubuntu GCC Debug",
-            cmake_build_type: "Debug",
-            cmake_build_shared_libs: "ON",
+            name: "GCC Static",
+            cmake_build_shared_libs: OFF,
           }
-          - {
-            name: "Ubuntu GCC Release Static",
-            cmake_build_type: "Release",
-            cmake_build_shared_libs: "OFF",
-          }
+        cmake_build_type: [Debug, Release]
+    name: "Ubuntu ${{ matrix.config.name }} ${{ matrix.cmake_build_type }}"
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -47,21 +41,20 @@ jobs:
       - name: Configure CMake
         run: |
           cmake -H. -Bbuild \
-            -DCMAKE_BUILD_TYPE=${{ matrix.config.cmake_build_type }} \
+            -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} \
             -DBUILD_SHARED_LIBS=${{ matrix.config.cmake_build_shared_libs }} \
             -DREAPER_GIT_HOOKS_AUTO_UPDATE=OFF \
             -DREAPER_RUN_CLANG_TIDY=OFF
 
-      - name: Build Shared
+      - name: Build
         run: cmake --build build
 
-      - name: Test Shared
+      - name: Test
         env:
           CTEST_OUTPUT_ON_FAILURE: 1
         run: cmake --build build --target test
 
   build_windows:
-    name: ${{ matrix.config.name }}
     runs-on: windows-latest
     env:
       reaper_vulkan_version: "1.2.131.1"
@@ -71,12 +64,13 @@ jobs:
       matrix:
         config:
           - {
-            name: "Windows MSVC x64 Release",
+            name: "MSVC Static",
             cmake_generator: "Visual Studio 16 2019",
-            cmake_arch: "x64",
-            cmake_build_type: "Release",
-            cmake_build_shared_libs: "OFF",
+            cmake_build_shared_libs: OFF,
           }
+        cmake_arch: [x64]
+        cmake_build_type: [Release]
+    name: "Windows ${{ matrix.config.name }} ${{ matrix.cmake_arch }} ${{ matrix.cmake_build_type }}"
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -94,13 +88,13 @@ jobs:
           $env:Path += ";${{ env.reaper_vulkan_sdk_path }};${{ env.reaper_vulkan_sdk_path }}\Bin;"
           cmake .\ -Bbuild `
             -G "${{ matrix.config.cmake_generator }}" `
-            -A "${{ matrix.config.cmake_arch }}" `
+            -A "${{ matrix.cmake_arch }}" `
             -DBUILD_SHARED_LIBS=${{ matrix.config.cmake_build_shared_libs }} `
             -DREAPER_GIT_HOOKS_AUTO_UPDATE=OFF `
             -DREAPER_RUN_CLANG_TIDY=OFF
 
       - name: Build
-        run: cmake --build build --config ${{ matrix.config.cmake_build_type }}
+        run: cmake --build build --config ${{ matrix.cmake_build_type }}
 
       - name: Test
         env:
