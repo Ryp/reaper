@@ -224,74 +224,18 @@ namespace
         upload_buffer_data(backend.device, backend.vma_instance, mesh_cache.vertexBufferUV, mesh.uvs.data(),
                            mesh.uvs.size() * sizeof(mesh.uvs[0]), mesh_alloc.uv_offset);
     }
-} // namespace
 
-void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResources& resources)
-{
-    std::vector<Mesh2> mesh2_instances;
-    MeshCache          mesh_cache = create_mesh_cache(root, backend);
-
+    void load_meshes(VulkanBackend& backend, MeshCache& mesh_cache, std::vector<Mesh2>& mesh2_instances)
     {
         // Read mesh file
-        std::ifstream     mesh_file_0("res/model/teapot.obj");
-        std::ifstream     mesh_file_1("res/model/suzanne.obj");
-        std::ifstream     mesh_file_2("res/model/dragon.obj");
         std::vector<Mesh> mesh_instances;
-        mesh_instances.emplace_back(ModelLoader::loadOBJ(mesh_file_0));
-        mesh_instances.emplace_back(ModelLoader::loadOBJ(mesh_file_1));
-        mesh_instances.emplace_back(ModelLoader::loadOBJ(mesh_file_2));
+        mesh_instances.emplace_back(ModelLoader::loadOBJ("res/model/teapot.obj"));
+        mesh_instances.emplace_back(ModelLoader::loadOBJ("res/model/suzanne.obj"));
+        mesh_instances.emplace_back(ModelLoader::loadOBJ("res/model/dragon.obj"));
 
         for (auto& mesh : mesh_instances)
         {
             Mesh2& mesh2 = mesh2_instances.emplace_back();
-
-            if (true)
-            {
-                const size_t max_vertices = ComputeCullingGroupSize / 2;
-                const size_t max_triangles = ComputeCullingGroupSize;
-                const float  cone_weight = 0.0f;
-
-                size_t max_meshlets = meshopt_buildMeshletsBound(mesh.indexes.size(), max_vertices, max_triangles);
-                std::vector<meshopt_Meshlet> meshlets(max_meshlets);
-                std::vector<u32>             meshlet_vertices(max_meshlets * max_vertices);
-                std::vector<u8>              meshlet_triangles(max_meshlets * max_triangles * 3);
-
-                size_t meshlet_count = meshopt_buildMeshlets(
-                    meshlets.data(), meshlet_vertices.data(), meshlet_triangles.data(), mesh.indexes.data(),
-                    mesh.indexes.size(), reinterpret_cast<const float*>(mesh.vertices.data()), mesh.vertices.size(),
-                    sizeof(mesh.vertices[0]), max_vertices, max_triangles, cone_weight);
-
-                const meshopt_Meshlet& last = meshlets[meshlet_count - 1];
-
-                meshlet_vertices.resize(last.vertex_offset + last.vertex_count);
-                meshlet_triangles.resize(last.triangle_offset + ((last.triangle_count * 3 + 3) & ~3));
-                meshlets.resize(meshlet_count);
-
-                // Rewrite index buffer
-                // TODO Also rebuilt vertex buffer since it was optimized for cache locality
-                mesh.indexes.clear();
-
-                for (meshopt_Meshlet& meshlet : meshlets)
-                {
-                    for (u32 i = 0; i < meshlet.triangle_count; i++)
-                    {
-                        const u32 local_index0 =
-                            static_cast<u32>(meshlet_triangles[meshlet.triangle_offset + i * 3 + 0]);
-                        const u32 local_index1 =
-                            static_cast<u32>(meshlet_triangles[meshlet.triangle_offset + i * 3 + 1]);
-                        const u32 local_index2 =
-                            static_cast<u32>(meshlet_triangles[meshlet.triangle_offset + i * 3 + 2]);
-
-                        const u32 global_index0 = meshlet_vertices[meshlet.vertex_offset + local_index0];
-                        const u32 global_index1 = meshlet_vertices[meshlet.vertex_offset + local_index1];
-                        const u32 global_index2 = meshlet_vertices[meshlet.vertex_offset + local_index2];
-
-                        mesh.indexes.push_back(global_index0);
-                        mesh.indexes.push_back(global_index1);
-                        mesh.indexes.push_back(global_index2);
-                    }
-                }
-            }
 
             // FIXME Filling empty buffers with garbage to preserve correct index offsets
             // This can be removed if we do vertex pulling with per-buffer offsets
@@ -301,10 +245,85 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
             if (mesh.uvs.empty())
                 mesh.uvs.resize(mesh.vertices.size());
 
+            const size_t max_vertices = ComputeCullingGroupSize / 2;
+            const size_t max_triangles = ComputeCullingGroupSize;
+            const float  cone_weight = 0.0f;
+
+            size_t max_meshlets = meshopt_buildMeshletsBound(mesh.indexes.size(), max_vertices, max_triangles);
+
+            std::vector<meshopt_Meshlet> meshlets(max_meshlets);
+            std::vector<u32>             meshlet_vertices(max_meshlets * max_vertices);
+            std::vector<u8>              meshlet_triangles(max_meshlets * max_triangles * 3);
+
+            size_t meshlet_count = meshopt_buildMeshlets(
+                meshlets.data(), meshlet_vertices.data(), meshlet_triangles.data(), mesh.indexes.data(),
+                mesh.indexes.size(), reinterpret_cast<const float*>(mesh.vertices.data()), mesh.vertices.size(),
+                sizeof(mesh.vertices[0]), max_vertices, max_triangles, cone_weight);
+
+            const meshopt_Meshlet& last = meshlets[meshlet_count - 1];
+
+            meshlet_vertices.resize(last.vertex_offset + last.vertex_count);
+            meshlet_triangles.resize(last.triangle_offset + last.triangle_count * 3);
+            meshlets.resize(meshlet_count);
+
+            // Rewrite index buffer
+            // TODO Also rebuilt vertex buffer since it was optimized for cache locality
+            mesh.indexes.clear();
+
+            const u32 meshlet_vertex_count = meshlet_vertices.size();
+            const u32 total_mesh_index_count = meshlet_triangles.size();
+
+            std::vector<u32>        optimized_index_buffer(total_mesh_index_count);
+            std::vector<glm::fvec3> optimized_vertex_buffer(meshlet_vertex_count);
+            std::vector<glm::fvec3> optimized_normal_buffer(meshlet_vertex_count);
+            std::vector<glm::fvec2> optimized_uv_buffer(meshlet_vertex_count);
+
+            for (u32 i = 0; i < meshlet_vertex_count; i++)
+            {
+                const u32 index = meshlet_vertices[i];
+
+                optimized_vertex_buffer[i] = mesh.vertices[index];
+                optimized_normal_buffer[i] = mesh.normals[index];
+                optimized_uv_buffer[i] = mesh.uvs[index];
+            }
+
+            u32 index_output_offset = 0;
+
+            // We also do index buffer compaction in the same pass
+            for (meshopt_Meshlet& meshlet : meshlets)
+            {
+                const u32 meshlet_index_count = meshlet.triangle_count * 3;
+
+                for (u32 i = 0; i < meshlet_index_count; i++)
+                {
+                    const u32 index_input_offset = meshlet.triangle_offset + i;
+                    const u32 local_index = static_cast<u32>(meshlet_triangles[index_input_offset]);
+
+                    optimized_index_buffer[index_output_offset + i] = meshlet.vertex_offset + local_index;
+                }
+
+                index_output_offset += meshlet_index_count;
+            }
+
+            optimized_index_buffer.resize(index_output_offset); // Trim excess
+
+            mesh.indexes = optimized_index_buffer;
+            mesh.vertices = optimized_vertex_buffer;
+            mesh.normals = optimized_normal_buffer;
+            mesh.uvs = optimized_uv_buffer;
+
             mesh2 = create_mesh2(mesh_cache_allocate_mesh(mesh_cache, mesh));
             upload_mesh_to_mesh_cache(mesh_cache, mesh, mesh2.lods_allocs[0], backend);
         }
     }
+} // namespace
+
+void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResources& resources)
+{
+    std::vector<Mesh2> mesh2_instances;
+    MeshCache          mesh_cache = create_mesh_cache(root, backend);
+
+    load_meshes(backend, mesh_cache, mesh2_instances);
 
     // Materials
     MaterialResources material_resources = create_material_resources(root, backend, resources.gfxCmdBuffer);

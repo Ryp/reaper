@@ -24,6 +24,7 @@ public:
     void load(std::string filename, MeshCache& cache);
 
     static Mesh loadOBJ(std::ifstream& src);
+    static Mesh loadOBJ(const std::string& filename);
 
 private:
     static Mesh loadOBJTinyObjLoader(std::ifstream& src);

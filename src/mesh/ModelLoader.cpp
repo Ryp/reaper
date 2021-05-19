@@ -9,6 +9,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <fstream>
 #include <sstream>
 #include <string.h>
 #include <vector>
@@ -48,6 +49,12 @@ void ModelLoader::load(std::string filename, MeshCache& cache)
 Mesh ModelLoader::loadOBJ(std::ifstream& src)
 {
     return loadOBJTinyObjLoader(src);
+}
+
+Mesh ModelLoader::loadOBJ(const std::string& filename)
+{
+    std::ifstream file(filename);
+    return loadOBJ(file);
 }
 
 // A lot of cache miss with this method.
