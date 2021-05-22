@@ -71,4 +71,12 @@ ShadowPassResources create_shadow_map_pass_descriptor_sets(ReaperRoot& root, Vul
 struct PreparedData;
 
 void shadow_map_prepare_buffers(VulkanBackend& backend, const PreparedData& prepared, ShadowMapResources& resources);
+
+struct CullOptions;
+struct CullResources;
+
+void record_shadow_map_command_buffer(const CullOptions& cull_options, VkCommandBuffer cmdBuffer,
+                                      VulkanBackend& backend, const PreparedData& prepared,
+                                      ShadowMapResources& resources, const CullResources& cull_resources,
+                                      VkBuffer vertex_buffer);
 } // namespace Reaper

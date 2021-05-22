@@ -7,6 +7,7 @@
 
 #include "ShadowMap.h"
 
+#include "Culling.h"
 #include "ShadowConstants.h"
 
 #include "renderer/PrepareBuckets.h"
@@ -31,6 +32,31 @@ constexpr u32  MaxShadowPassCount = 4;
 
 namespace
 {
+    // FIXME dedup
+    VkRect2D default_vk_rect(VkExtent2D image_extent) { return VkRect2D{{0, 0}, image_extent}; }
+
+    // FIXME dedup
+    VkViewport default_vk_viewport(VkRect2D output_rect)
+    {
+        return VkViewport{static_cast<float>(output_rect.offset.x),
+                          static_cast<float>(output_rect.offset.y),
+                          static_cast<float>(output_rect.extent.width),
+                          static_cast<float>(output_rect.extent.height),
+                          0.0f,
+                          1.0f};
+    }
+
+    // FIXME de-duplicate
+    VkClearValue VkClearDepthStencil(float depth, u32 stencil)
+    {
+        VkClearValue clearValue;
+
+        clearValue.depthStencil.depth = depth;
+        clearValue.depthStencil.stencil = stencil;
+
+        return clearValue;
+    }
+
     VkRenderPass create_shadow_raster_pass(ReaperRoot& /*root*/, VulkanBackend& backend)
     {
         constexpr u32 depth_index = 0;
@@ -417,5 +443,107 @@ void shadow_map_prepare_buffers(VulkanBackend& backend, const PreparedData& prep
     upload_buffer_data(backend.device, backend.vma_instance, resources.shadowMapInstanceConstantBuffer,
                        prepared.shadow_instance_params.data(),
                        prepared.shadow_instance_params.size() * sizeof(ShadowMapInstanceParams));
+}
+
+void record_shadow_map_command_buffer(const CullOptions& cull_options, VkCommandBuffer cmdBuffer,
+                                      VulkanBackend& backend, const PreparedData& prepared,
+                                      ShadowMapResources& resources, const CullResources& cull_resources,
+                                      VkBuffer vertex_buffer)
+{
+    for (const ShadowPassData& shadow_pass : prepared.shadow_passes)
+    {
+        // REAPER_PROFILE_SCOPE_GPU(pGpuLog, "Shadow Pass", MP_DARKGOLDENROD);
+
+        const ShadowPassResources& shadow_map_pass_resources = resources.passes[shadow_pass.pass_index];
+
+        const VkClearValue clearValue =
+            VkClearDepthStencil(UseReverseZ ? 0.f : 1.f, 0); // NOTE: handle reverse Z more gracefully
+        const VkExtent2D framebuffer_extent = {shadow_pass.shadow_map_size.x, shadow_pass.shadow_map_size.y};
+        const VkRect2D   pass_rect = default_vk_rect(framebuffer_extent);
+
+        const VkImageView   shadowMapView = resources.shadowMapView[shadow_pass.pass_index];
+        const VkFramebuffer shadowMapFramebuffer = resources.shadowMapFramebuffer[shadow_pass.pass_index];
+
+        VkRenderPassAttachmentBeginInfo shadowMapRenderPassAttachment = {
+            VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO, nullptr, 1, &shadowMapView};
+
+        VkRenderPassBeginInfo shadowMapRenderPassBeginInfo = {VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+                                                              &shadowMapRenderPassAttachment,
+                                                              resources.shadowMapPass,
+                                                              shadowMapFramebuffer,
+                                                              pass_rect,
+                                                              1,
+                                                              &clearValue};
+
+        vkCmdBeginRenderPass(cmdBuffer, &shadowMapRenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+        vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, resources.pipe.pipeline);
+
+        const VkViewport viewport = default_vk_viewport(pass_rect);
+
+        vkCmdSetViewport(cmdBuffer, 0, 1, &viewport);
+        vkCmdSetScissor(cmdBuffer, 0, 1, &pass_rect);
+
+        std::vector<VkBuffer> vertexBuffers = {
+            vertex_buffer,
+        };
+        std::vector<VkDeviceSize> vertexBufferOffsets = {0};
+
+        Assert(vertexBuffers.size() == vertexBufferOffsets.size());
+        vkCmdBindIndexBuffer(cmdBuffer, cull_resources.dynamicIndexBuffer.buffer, 0, get_vk_culling_index_type());
+        vkCmdBindVertexBuffers(cmdBuffer, 0, static_cast<u32>(vertexBuffers.size()), vertexBuffers.data(),
+                               vertexBufferOffsets.data());
+        vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, resources.pipe.pipelineLayout, 0, 1,
+                                &shadow_map_pass_resources.descriptor_set, 0, nullptr);
+
+        const u32 draw_buffer_offset =
+            shadow_pass.culling_pass_index * MaxIndirectDrawCount * sizeof(VkDrawIndexedIndirectCommand);
+        const u32 draw_buffer_max_count = MaxIndirectDrawCount;
+
+        if (cull_options.use_compacted_draw)
+        {
+            const u32 draw_buffer_count_offset = shadow_pass.culling_pass_index * 1 * sizeof(u32);
+            vkCmdDrawIndexedIndirectCount(cmdBuffer, cull_resources.compactIndirectDrawBuffer.buffer,
+                                          draw_buffer_offset, cull_resources.compactIndirectDrawCountBuffer.buffer,
+                                          draw_buffer_count_offset, draw_buffer_max_count,
+                                          cull_resources.compactIndirectDrawBuffer.descriptor.elementSize);
+        }
+        else
+        {
+            const u32 draw_buffer_count_offset = shadow_pass.culling_pass_index * IndirectDrawCountCount * sizeof(u32);
+            vkCmdDrawIndexedIndirectCount(cmdBuffer, cull_resources.indirectDrawBuffer.buffer, draw_buffer_offset,
+                                          cull_resources.indirectDrawCountBuffer.buffer, draw_buffer_count_offset,
+                                          draw_buffer_max_count,
+                                          cull_resources.indirectDrawBuffer.descriptor.elementSize);
+        }
+
+        vkCmdEndRenderPass(cmdBuffer);
+    }
+
+    {
+        // REAPER_PROFILE_SCOPE_GPU(pGpuLog, "Barrier", MP_RED);
+
+        std::vector<VkImageMemoryBarrier> shadowMapImageBarrierInfo;
+
+        for (const ShadowPassData& shadow_pass : prepared.shadow_passes)
+        {
+            shadowMapImageBarrierInfo.push_back(VkImageMemoryBarrier{
+                VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+                nullptr,
+                0,
+                VK_ACCESS_MEMORY_READ_BIT,
+                VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
+                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                backend.physicalDeviceInfo.graphicsQueueIndex,
+                backend.physicalDeviceInfo.graphicsQueueIndex,
+                resources.shadowMap[shadow_pass.pass_index].handle,
+                {VK_IMAGE_ASPECT_DEPTH_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS}});
+        }
+
+        // FIXME is this a noop when there's no barriers?
+        vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0,
+                             nullptr, 0, nullptr, static_cast<u32>(shadowMapImageBarrierInfo.size()),
+                             shadowMapImageBarrierInfo.data());
+    }
 }
 } // namespace Reaper

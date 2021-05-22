@@ -94,4 +94,7 @@ struct CullOptions
 
 void culling_prepare_buffers(const CullOptions& options, VulkanBackend& backend, const PreparedData& prepared,
                              CullResources& resources);
+
+void record_culling_command_buffer(const CullOptions& options, VkCommandBuffer cmdBuffer, const PreparedData& prepared,
+                                   CullResources& resources);
 } // namespace Reaper

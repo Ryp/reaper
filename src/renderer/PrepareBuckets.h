@@ -59,11 +59,20 @@ struct CullCmd
     CullPushConstants push_constants;
 };
 
+struct CullMeshletCmd
+{
+    u32               meshlet_offset;
+    u32               meshlet_count;
+    u32               mesh_instance_count;
+    CullPushConstants push_constants;
+};
+
 struct CullPassData
 {
     u32 pass_index;
 
-    std::vector<CullCmd> cull_cmds;
+    std::vector<CullCmd>        cull_cmds;
+    std::vector<CullMeshletCmd> cull_meshlet_cmds;
 };
 
 struct ShadowPassData
@@ -77,9 +86,10 @@ struct ShadowPassData
 
 struct PreparedData
 {
-    std::vector<CullPassData>       cull_passes;
-    std::vector<CullPassParams>     cull_pass_params;
-    std::vector<CullInstanceParams> cull_instance_params;
+    std::vector<CullPassData>              cull_passes;
+    std::vector<CullPassParams>            cull_pass_params;
+    std::vector<CullMeshInstanceParams>    cull_mesh_instance_params;
+    std::vector<CullMeshletInstanceParams> cull_meshlet_instance_params;
 
     u32                             draw_culling_pass_index;
     DrawPassParams                  draw_pass_params;

@@ -7,9 +7,14 @@
 
 #include "MainPass.h"
 
+#include "Culling.h"
 #include "ShadowConstants.h"
 
+#include "renderer/PrepareBuckets.h"
+
 #include "renderer/vulkan/Image.h"
+#include "renderer/vulkan/MaterialResources.h"
+#include "renderer/vulkan/MeshCache.h"
 #include "renderer/vulkan/Shader.h"
 #include "renderer/vulkan/SwapchainRendererBase.h"
 
@@ -22,6 +27,46 @@ namespace Reaper
 {
 constexpr u32  DrawInstanceCountMax = 512;
 constexpr bool UseReverseZ = true;
+
+namespace
+{
+    // FIXME dedup
+    VkViewport default_vk_viewport(VkRect2D output_rect)
+    {
+        return VkViewport{static_cast<float>(output_rect.offset.x),
+                          static_cast<float>(output_rect.offset.y),
+                          static_cast<float>(output_rect.extent.width),
+                          static_cast<float>(output_rect.extent.height),
+                          0.0f,
+                          1.0f};
+    }
+
+    // FIXME dedup
+    VkRect2D default_vk_rect(VkExtent2D image_extent) { return VkRect2D{{0, 0}, image_extent}; }
+
+    // FIXME dedup
+    VkClearValue VkClearColor(const glm::vec4& color)
+    {
+        VkClearValue clearValue;
+
+        clearValue.color.float32[0] = color.x;
+        clearValue.color.float32[1] = color.y;
+        clearValue.color.float32[2] = color.z;
+        clearValue.color.float32[3] = color.w;
+
+        return clearValue;
+    }
+
+    VkClearValue VkClearDepthStencil(float depth, u32 stencil)
+    {
+        VkClearValue clearValue;
+
+        clearValue.depthStencil.depth = depth;
+        clearValue.depthStencil.stencil = stencil;
+
+        return clearValue;
+    }
+} // namespace
 
 MainPipelineInfo create_main_pipeline(ReaperRoot& root, VulkanBackend& backend, VkRenderPass renderPass,
                                       VkDescriptorSetLayout material_descriptor_set_layout)
@@ -556,5 +601,89 @@ VkDescriptorSet create_main_pass_descriptor_set(ReaperRoot& root, VulkanBackend&
                            drawPassDescriptorSetWrites.data(), 0, nullptr);
 
     return descriptor_set;
+}
+
+void record_main_pass_command_buffer(const CullOptions& cull_options, VkCommandBuffer cmdBuffer,
+                                     const PreparedData& prepared, const MainPassResources& pass_resources,
+                                     const CullResources& cull_resources, const MaterialResources& material_resources,
+                                     const MeshCache& mesh_cache, VkExtent2D backbufferExtent,
+                                     VkDescriptorSet mainPassDescriptorSet)
+{
+    // REAPER_PROFILE_SCOPE_GPU(pGpuLog, "Draw Pass", MP_DARKGOLDENROD);
+
+    const float                 depthClearValue = UseReverseZ ? 0.f : 1.f;
+    const glm::fvec4            clearColor = {0.1f, 0.1f, 0.1f, 0.0f};
+    std::array<VkClearValue, 2> clearValues = {VkClearColor(clearColor), VkClearDepthStencil(depthClearValue, 0)};
+    const VkRect2D              blitPassRect = default_vk_rect(backbufferExtent);
+
+    std::array<VkImageView, 2> main_pass_framebuffer_views = {pass_resources.hdrBufferView,
+                                                              pass_resources.depthBufferView};
+
+    VkRenderPassAttachmentBeginInfo main_pass_attachments = {VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO,
+                                                             nullptr, main_pass_framebuffer_views.size(),
+                                                             main_pass_framebuffer_views.data()};
+
+    VkRenderPassBeginInfo blitRenderPassBeginInfo = {VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+                                                     &main_pass_attachments,
+                                                     pass_resources.mainRenderPass,
+                                                     pass_resources.main_framebuffer,
+                                                     blitPassRect,
+                                                     static_cast<u32>(clearValues.size()),
+                                                     clearValues.data()};
+
+    vkCmdBeginRenderPass(cmdBuffer, &blitRenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+    vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pass_resources.mainPipe.pipeline);
+
+    const VkViewport blitViewport = default_vk_viewport(blitPassRect);
+
+    vkCmdSetViewport(cmdBuffer, 0, 1, &blitViewport);
+    vkCmdSetScissor(cmdBuffer, 0, 1, &blitPassRect);
+
+    std::vector<VkBuffer> vertexBuffers = {
+        mesh_cache.vertexBufferPosition.buffer,
+        mesh_cache.vertexBufferNormal.buffer,
+        mesh_cache.vertexBufferUV.buffer,
+    };
+    std::vector<VkDeviceSize> vertexBufferOffsets = {
+        0,
+        0,
+        0,
+    };
+    Assert(vertexBuffers.size() == vertexBufferOffsets.size());
+    vkCmdBindIndexBuffer(cmdBuffer, cull_resources.dynamicIndexBuffer.buffer, 0, get_vk_culling_index_type());
+    vkCmdBindVertexBuffers(cmdBuffer, 0, static_cast<u32>(vertexBuffers.size()), vertexBuffers.data(),
+                           vertexBufferOffsets.data());
+
+    std::array<VkDescriptorSet, 2> main_pass_descriptors = {
+        mainPassDescriptorSet,
+        material_resources.descriptor_set,
+    };
+
+    vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pass_resources.mainPipe.pipelineLayout, 0,
+                            static_cast<u32>(main_pass_descriptors.size()), main_pass_descriptors.data(), 0, nullptr);
+
+    const u32 pass_index = prepared.draw_culling_pass_index;
+
+    const u32 draw_buffer_offset = pass_index * MaxIndirectDrawCount * sizeof(VkDrawIndexedIndirectCommand);
+    const u32 draw_buffer_max_count = MaxIndirectDrawCount;
+
+    if (cull_options.use_compacted_draw)
+    {
+        const u32 draw_buffer_count_offset = pass_index * 1 * sizeof(u32);
+        vkCmdDrawIndexedIndirectCount(cmdBuffer, cull_resources.compactIndirectDrawBuffer.buffer, draw_buffer_offset,
+                                      cull_resources.compactIndirectDrawCountBuffer.buffer, draw_buffer_count_offset,
+                                      draw_buffer_max_count,
+                                      cull_resources.compactIndirectDrawBuffer.descriptor.elementSize);
+    }
+    else
+    {
+        const u32 draw_buffer_count_offset = pass_index * IndirectDrawCountCount * sizeof(u32);
+        vkCmdDrawIndexedIndirectCount(cmdBuffer, cull_resources.indirectDrawBuffer.buffer, draw_buffer_offset,
+                                      cull_resources.indirectDrawCountBuffer.buffer, draw_buffer_count_offset,
+                                      draw_buffer_max_count, cull_resources.indirectDrawBuffer.descriptor.elementSize);
+    }
+
+    vkCmdEndRenderPass(cmdBuffer);
 }
 } // namespace Reaper

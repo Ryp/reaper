@@ -220,6 +220,12 @@ namespace
         CullCmd& command = cull_pass.cull_cmds.emplace_back();
         command.instanceCount = cull_instance_count;
         command.push_constants = consts;
+
+        CullMeshletCmd& meshlet_command = cull_pass.cull_meshlet_cmds.emplace_back();
+        meshlet_command.meshlet_offset = 0; // FIXME
+        meshlet_command.meshlet_count = 0;  // FIXME
+        meshlet_command.mesh_instance_count = cull_instance_count;
+        meshlet_command.push_constants = consts;
     }
 } // namespace
 
@@ -257,8 +263,8 @@ void prepare_scene(SceneGraph& scene, PreparedData& prepared)
             ShadowMapInstanceParams& shadow_instance = prepared.shadow_instance_params.emplace_back();
             shadow_instance.ms_to_cs_matrix = light_view_proj_matrix * glm::mat4(node.transform_matrix);
 
-            CullInstanceParams& cull_instance = prepared.cull_instance_params.emplace_back();
-            const u32           cull_instance_index = prepared.cull_instance_params.size() - 1;
+            CullMeshInstanceParams& cull_instance = prepared.cull_mesh_instance_params.emplace_back();
+            const u32               cull_instance_index = prepared.cull_mesh_instance_params.size() - 1;
 
             cull_instance.ms_to_cs_matrix = shadow_instance.ms_to_cs_matrix;
             cull_instance.instance_id = node.instance_id;
@@ -321,8 +327,8 @@ void prepare_scene(SceneGraph& scene, PreparedData& prepared)
             draw_instance.model = node.transform_matrix;
             draw_instance.normal_ms_to_vs_matrix = glm::mat3(modelView);
 
-            CullInstanceParams& cull_instance = prepared.cull_instance_params.emplace_back();
-            const u32           cull_instance_index = prepared.cull_instance_params.size() - 1;
+            CullMeshInstanceParams& cull_instance = prepared.cull_mesh_instance_params.emplace_back();
+            const u32               cull_instance_index = prepared.cull_mesh_instance_params.size() - 1;
 
             cull_instance.ms_to_cs_matrix = main_camera_view_proj * glm::mat4(node.transform_matrix);
             cull_instance.instance_id = node.instance_id;

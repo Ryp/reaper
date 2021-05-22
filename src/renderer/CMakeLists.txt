@@ -61,6 +61,8 @@ target_sources(${target} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/MaterialResources.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Memory.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Memory.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/MeshCache.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/MeshCache.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/PresentationSurface.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/PresentationSurface.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Shader.cpp
@@ -128,6 +130,7 @@ set(REAPER_SHADER_SRCS
     ${REAPER_SHADER_DIR}/blit.frag.glsl
     ${REAPER_SHADER_DIR}/blit.vert.glsl
     ${REAPER_SHADER_DIR}/compaction_prepare_indirect_dispatch.comp.hlsl
+    ${REAPER_SHADER_DIR}/cull_meshlet.comp.hlsl
     ${REAPER_SHADER_DIR}/cull_triangle_batch.comp.hlsl
     ${REAPER_SHADER_DIR}/draw_command_compaction.comp.hlsl
     ${REAPER_SHADER_DIR}/fullscreen_triangle.vert.hlsl

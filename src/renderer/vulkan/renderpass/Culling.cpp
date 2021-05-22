@@ -9,6 +9,7 @@
 
 #include "renderer/PrepareBuckets.h"
 
+#include "renderer/vulkan/ComputeHelper.h"
 #include "renderer/vulkan/Shader.h"
 #include "renderer/vulkan/SwapchainRendererBase.h"
 
@@ -25,6 +26,19 @@ namespace Reaper
 {
 namespace
 {
+    void cmd_insert_compute_to_compute_barrier(VkCommandBuffer cmdBuffer)
+    {
+        std::array<VkMemoryBarrier, 1> memoryBarriers = {VkMemoryBarrier{
+            VK_STRUCTURE_TYPE_MEMORY_BARRIER,
+            nullptr,
+            VK_ACCESS_SHADER_WRITE_BIT,
+            VK_ACCESS_SHADER_READ_BIT,
+        }};
+
+        vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0,
+                             static_cast<u32>(memoryBarriers.size()), memoryBarriers.data(), 0, nullptr, 0, nullptr);
+    }
+
     VkDescriptorSet create_culling_descriptor_sets(ReaperRoot& root, VulkanBackend& backend,
                                                    CullResources& cull_resources, VkDescriptorSetLayout layout,
                                                    BufferInfo& staticIndexBuffer, BufferInfo& vertexBufferPosition,
@@ -372,7 +386,7 @@ CullResources create_culling_resources(ReaperRoot& root, VulkanBackend& backend)
 
     resources.cullInstanceParamsBuffer = create_buffer(
         root, backend.device, "Culling instance constant buffer",
-        DefaultGPUBufferProperties(CullInstanceCountMax, sizeof(CullInstanceParams), GPUBufferUsage::StorageBuffer),
+        DefaultGPUBufferProperties(CullInstanceCountMax, sizeof(CullMeshInstanceParams), GPUBufferUsage::StorageBuffer),
         backend.vma_instance);
 
     resources.indirectDrawCountBuffer =
@@ -469,14 +483,101 @@ void culling_prepare_buffers(const CullOptions& options, VulkanBackend& backend,
                        prepared.cull_pass_params.data(), prepared.cull_pass_params.size() * sizeof(CullPassParams));
 
     upload_buffer_data(backend.device, backend.vma_instance, resources.cullInstanceParamsBuffer,
-                       prepared.cull_instance_params.data(),
-                       prepared.cull_instance_params.size() * sizeof(CullInstanceParams));
+                       prepared.cull_mesh_instance_params.data(),
+                       prepared.cull_mesh_instance_params.size() * sizeof(CullMeshInstanceParams));
 
     if (!options.freeze_culling)
     {
         std::array<u32, IndirectDrawCountCount* MaxCullPassCount> zero = {};
         upload_buffer_data(backend.device, backend.vma_instance, resources.indirectDrawCountBuffer, zero.data(),
                            zero.size() * sizeof(u32));
+    }
+}
+
+void record_culling_command_buffer(const CullOptions& options, VkCommandBuffer cmdBuffer, const PreparedData& prepared,
+                                   CullResources& resources)
+{
+    // REAPER_PROFILE_SCOPE_GPU(pGpuLog, "Culling Pass", MP_DARKGOLDENROD);
+
+    if (!options.freeze_culling)
+    {
+        vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, resources.cullPipe.pipeline);
+
+        for (const CullPassData& cull_pass : prepared.cull_passes)
+        {
+            const CullPassResources& pass_resources = resources.passes[cull_pass.pass_index];
+
+            vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, resources.cullPipe.pipelineLayout, 0, 1,
+                                    &pass_resources.cull_descriptor_set, 0, nullptr);
+
+            for (const CullCmd& command : cull_pass.cull_cmds)
+            {
+                vkCmdPushConstants(cmdBuffer, resources.cullPipe.pipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0,
+                                   sizeof(command.push_constants), &command.push_constants);
+
+                vkCmdDispatch(cmdBuffer, div_round_up(command.push_constants.triangleCount, ComputeCullingGroupSize),
+                              command.instanceCount, 1);
+            }
+        }
+    }
+
+    {
+        // REAPER_PROFILE_SCOPE_GPU(pGpuLog, "Barrier", MP_RED);
+        cmd_insert_compute_to_compute_barrier(cmdBuffer);
+    }
+
+    // Compaction prepare pass
+    {
+        // REAPER_PROFILE_SCOPE_GPU(pGpuLog, "Cull Compaction Prepare", MP_DARKGOLDENROD);
+
+        vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, resources.compactPrepPipe.pipeline);
+
+        for (const CullPassData& cull_pass : prepared.cull_passes)
+        {
+            const CullPassResources& pass_resources = resources.passes[cull_pass.pass_index];
+
+            vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, resources.compactPrepPipe.pipelineLayout,
+                                    0, 1, &pass_resources.compact_prep_descriptor_set, 0, nullptr);
+
+            vkCmdDispatch(cmdBuffer, 1, 1, 1);
+        }
+    }
+
+    {
+        // REAPER_PROFILE_SCOPE_GPU(pGpuLog, "Barrier", MP_RED);
+        cmd_insert_compute_to_compute_barrier(cmdBuffer);
+    }
+
+    // Compaction pass
+    {
+        // REAPER_PROFILE_SCOPE_GPU(pGpuLog, "Cull Compaction", MP_DARKGOLDENROD);
+
+        vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, resources.compactionPipe.pipeline);
+
+        for (const CullPassData& cull_pass : prepared.cull_passes)
+        {
+            const CullPassResources& pass_resources = resources.passes[cull_pass.pass_index];
+
+            vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, resources.compactionPipe.pipelineLayout,
+                                    0, 1, &pass_resources.compact_descriptor_set, 0, nullptr);
+
+            vkCmdDispatchIndirect(cmdBuffer, resources.compactionIndirectDispatchBuffer.buffer, 0);
+        }
+    }
+
+    {
+        // REAPER_PROFILE_SCOPE_GPU(pGpuLog, "Barrier", MP_RED);
+
+        std::array<VkMemoryBarrier, 1> memoryBarriers = {VkMemoryBarrier{
+            VK_STRUCTURE_TYPE_MEMORY_BARRIER,
+            nullptr,
+            VK_ACCESS_SHADER_WRITE_BIT,
+            VK_ACCESS_INDEX_READ_BIT | VK_ACCESS_INDIRECT_COMMAND_READ_BIT,
+        }};
+
+        vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                             VK_PIPELINE_STAGE_VERTEX_INPUT_BIT | VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT, 0,
+                             static_cast<u32>(memoryBarriers.size()), memoryBarriers.data(), 0, nullptr, 0, nullptr);
     }
 }
 } // namespace Reaper

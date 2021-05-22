@@ -62,4 +62,16 @@ void resize_main_pass_resources(ReaperRoot& root, VulkanBackend& backend, MainPa
 VkDescriptorSet create_main_pass_descriptor_set(ReaperRoot& root, VulkanBackend& backend,
                                                 const MainPassResources&        resources,
                                                 const nonstd::span<VkImageView> shadow_map_views);
+
+struct PreparedData;
+struct CullOptions;
+struct CullResources;
+struct MeshCache;
+struct MaterialResources;
+
+void record_main_pass_command_buffer(const CullOptions& cull_options, VkCommandBuffer cmdBuffer,
+                                     const PreparedData& prepared, const MainPassResources& pass_resources,
+                                     const CullResources& cull_resources, const MaterialResources& material_resources,
+                                     const MeshCache& mesh_cache, VkExtent2D backbufferExtent,
+                                     VkDescriptorSet mainPassDescriptorSet);
 } // namespace Reaper

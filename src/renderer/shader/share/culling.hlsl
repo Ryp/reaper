@@ -30,13 +30,26 @@ struct CullPassParams
     hlsl_float2 _pad;
 };
 
-struct CullInstanceParams
+struct CullMeshInstanceParams
 {
     hlsl_float4x4 ms_to_cs_matrix;
     hlsl_uint instance_id;
     hlsl_float _pad0;
     hlsl_float _pad1;
     hlsl_float _pad2;
+};
+
+struct CullMeshletInstanceParams
+{
+    hlsl_uint index_offset;
+    hlsl_uint index_count;
+    hlsl_uint vertex_offset;
+    hlsl_uint vertex_count;
+
+    hlsl_uint3  aabb_min_ms;
+    hlsl_uint   _pad0;
+    hlsl_uint3  aabb_max_ms;
+    hlsl_uint   _pad1;
 };
 
 #endif
