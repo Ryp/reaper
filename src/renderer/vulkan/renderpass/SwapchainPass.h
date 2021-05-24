@@ -60,8 +60,8 @@ void resize_swapchain_pass_resources(ReaperRoot& root, VulkanBackend& backend, S
 VkDescriptorSet create_swapchain_pass_descriptor_set(ReaperRoot& root, VulkanBackend& backend,
                                                      const SwapchainPassResources& resources, VkImageView texture_view);
 
-void prepare_swapchain_frame_resources(ReaperRoot& root, VulkanBackend& backend, SwapchainPassResources& pass_resources,
-                                       VkImageView hdr_buffer_view);
+void upload_swapchain_frame_resources(ReaperRoot& root, VulkanBackend& backend, SwapchainPassResources& pass_resources,
+                                      VkImageView hdr_buffer_view);
 
 struct FrameData;
 

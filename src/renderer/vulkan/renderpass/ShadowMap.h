@@ -70,6 +70,8 @@ ShadowPassResources create_shadow_map_pass_descriptor_sets(ReaperRoot& root, Vul
 
 struct PreparedData;
 
+void prepare_shadow_map_objects(ReaperRoot& root, VulkanBackend& backend, const PreparedData& prepared,
+                                ShadowMapResources& pass_resources);
 void shadow_map_prepare_buffers(VulkanBackend& backend, const PreparedData& prepared, ShadowMapResources& resources);
 
 struct CullOptions;

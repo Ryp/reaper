@@ -10,6 +10,7 @@
 #include "renderer/PrepareBuckets.h"
 
 #include "renderer/vulkan/ComputeHelper.h"
+#include "renderer/vulkan/MeshCache.h"
 #include "renderer/vulkan/Shader.h"
 #include "renderer/vulkan/SwapchainRendererBase.h"
 
@@ -41,8 +42,8 @@ namespace
 
     VkDescriptorSet create_culling_descriptor_sets(ReaperRoot& root, VulkanBackend& backend,
                                                    CullResources& cull_resources, VkDescriptorSetLayout layout,
-                                                   BufferInfo& staticIndexBuffer, BufferInfo& vertexBufferPosition,
-                                                   u32 pass_index)
+                                                   const BufferInfo& staticIndexBuffer,
+                                                   const BufferInfo& vertexBufferPosition, u32 pass_index)
     {
         VkDescriptorSetAllocateInfo descriptorSetAllocInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr,
                                                               backend.frame_descriptor_pool, 1, &layout};
@@ -431,8 +432,9 @@ CullResources create_culling_resources(ReaperRoot& root, VulkanBackend& backend)
 }
 
 CullPassResources create_culling_pass_descriptor_sets(ReaperRoot& root, VulkanBackend& backend,
-                                                      CullResources& resources, u32 pass_index, BufferInfo& indexBuffer,
-                                                      BufferInfo& vertexBufferPosition)
+                                                      CullResources& resources, u32 pass_index,
+                                                      const BufferInfo& indexBuffer,
+                                                      const BufferInfo& vertexBufferPosition)
 {
     Assert(pass_index < MaxCullPassCount);
 
@@ -476,9 +478,17 @@ void destroy_culling_resources(VulkanBackend& backend, CullResources& resources)
     vkDestroyDescriptorSetLayout(backend.device, resources.compactionPipe.descSetLayout, nullptr);
 }
 
-void culling_prepare_buffers(const CullOptions& options, VulkanBackend& backend, const PreparedData& prepared,
-                             CullResources& resources)
+void prepare_culling_resources(ReaperRoot& root, const CullOptions& options, VulkanBackend& backend,
+                               const PreparedData& prepared, CullResources& resources, const MeshCache& mesh_cache)
 {
+    resources.passes.clear();
+    for (const CullPassData& cull_pass : prepared.cull_passes)
+    {
+        CullPassResources& cull_pass_resources = resources.passes.emplace_back();
+        cull_pass_resources = create_culling_pass_descriptor_sets(
+            root, backend, resources, cull_pass.pass_index, mesh_cache.indexBuffer, mesh_cache.vertexBufferPosition);
+    }
+
     upload_buffer_data(backend.device, backend.vma_instance, resources.cullPassConstantBuffer,
                        prepared.cull_pass_params.data(), prepared.cull_pass_params.size() * sizeof(CullPassParams));
 

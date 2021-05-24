@@ -521,6 +521,8 @@ MainPassResources create_main_pass_resources(ReaperRoot& root, VulkanBackend& ba
            == VK_SUCCESS);
     log_debug(root, "vulkan: created sampler with handle: {}", static_cast<void*>(resources.shadowMapSampler));
 
+    resources.descriptor_set = VK_NULL_HANDLE;
+
     return resources;
 }
 
@@ -603,11 +605,20 @@ VkDescriptorSet create_main_pass_descriptor_set(ReaperRoot& root, VulkanBackend&
     return descriptor_set;
 }
 
+void upload_main_pass_frame_resources(VulkanBackend& backend, const PreparedData& prepared,
+                                      MainPassResources& pass_resources)
+{
+    upload_buffer_data(backend.device, backend.vma_instance, pass_resources.drawPassConstantBuffer,
+                       &prepared.draw_pass_params, sizeof(DrawPassParams));
+    upload_buffer_data(backend.device, backend.vma_instance, pass_resources.drawInstanceConstantBuffer,
+                       prepared.draw_instance_params.data(),
+                       prepared.draw_instance_params.size() * sizeof(DrawInstanceParams));
+}
+
 void record_main_pass_command_buffer(const CullOptions& cull_options, VkCommandBuffer cmdBuffer,
                                      const PreparedData& prepared, const MainPassResources& pass_resources,
                                      const CullResources& cull_resources, const MaterialResources& material_resources,
-                                     const MeshCache& mesh_cache, VkExtent2D backbufferExtent,
-                                     VkDescriptorSet mainPassDescriptorSet)
+                                     const MeshCache& mesh_cache, VkExtent2D backbufferExtent)
 {
     // REAPER_PROFILE_SCOPE_GPU(pGpuLog, "Draw Pass", MP_DARKGOLDENROD);
 
@@ -656,7 +667,7 @@ void record_main_pass_command_buffer(const CullOptions& cull_options, VkCommandB
                            vertexBufferOffsets.data());
 
     std::array<VkDescriptorSet, 2> main_pass_descriptors = {
-        mainPassDescriptorSet,
+        pass_resources.descriptor_set,
         material_resources.descriptor_set,
     };
 

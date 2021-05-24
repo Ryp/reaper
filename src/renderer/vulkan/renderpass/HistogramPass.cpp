@@ -141,6 +141,22 @@ VkDescriptorSet create_histogram_pass_descriptor_set(ReaperRoot& root, VulkanBac
     return descriptor_set;
 }
 
+void upload_histogram_frame_resources(ReaperRoot& root, VulkanBackend& backend, HistogramPassResources& pass_resources,
+                                      VkExtent2D backbufferExtent, VkImageView hdrRenderView)
+{
+    ReduceHDRPassParams params = {};
+    params.input_size_ts = glm::uvec2(backbufferExtent.width, backbufferExtent.height);
+
+    pass_resources.descriptor_set = create_histogram_pass_descriptor_set(root, backend, pass_resources, hdrRenderView);
+
+    upload_buffer_data(backend.device, backend.vma_instance, pass_resources.passConstantBuffer, &params,
+                       sizeof(ReduceHDRPassParams));
+
+    std::array<u32, HISTOGRAM_RES> zero = {};
+    upload_buffer_data(backend.device, backend.vma_instance, pass_resources.passHistogramBuffer, zero.data(),
+                       zero.size() * sizeof(u32));
+}
+
 void record_histogram_command_buffer(VkCommandBuffer cmdBuffer, const FrameData& frame_data,
                                      const HistogramPassResources& pass_resources)
 {

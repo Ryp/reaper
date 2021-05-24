@@ -81,8 +81,9 @@ CullResources create_culling_resources(ReaperRoot& root, VulkanBackend& backend)
 void          destroy_culling_resources(VulkanBackend& backend, CullResources& resources);
 
 CullPassResources create_culling_pass_descriptor_sets(ReaperRoot& root, VulkanBackend& backend,
-                                                      CullResources& resources, u32 pass_index, BufferInfo& indexBuffer,
-                                                      BufferInfo& vertexBufferPosition);
+                                                      CullResources& resources, u32 pass_index,
+                                                      const BufferInfo& indexBuffer,
+                                                      const BufferInfo& vertexBufferPosition);
 
 struct PreparedData;
 
@@ -92,8 +93,10 @@ struct CullOptions
     bool use_compacted_draw;
 };
 
-void culling_prepare_buffers(const CullOptions& options, VulkanBackend& backend, const PreparedData& prepared,
-                             CullResources& resources);
+struct MeshCache;
+
+void prepare_culling_resources(ReaperRoot& root, const CullOptions& options, VulkanBackend& backend,
+                               const PreparedData& prepared, CullResources& resources, const MeshCache& mesh_cache);
 
 void record_culling_command_buffer(const CullOptions& options, VkCommandBuffer cmdBuffer, const PreparedData& prepared,
                                    CullResources& resources);

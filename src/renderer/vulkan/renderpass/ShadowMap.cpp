@@ -434,6 +434,39 @@ ShadowPassResources create_shadow_map_pass_descriptor_sets(ReaperRoot& root, Vul
     return ShadowPassResources{shadowMapPassDescriptorSet};
 }
 
+void prepare_shadow_map_objects(ReaperRoot& root, VulkanBackend& backend, const PreparedData& prepared,
+                                ShadowMapResources& pass_resources)
+{
+    for (u32 i = 0; i < pass_resources.shadowMap.size(); i++)
+    {
+        vmaDestroyImage(backend.vma_instance, pass_resources.shadowMap[i].handle,
+                        pass_resources.shadowMap[i].allocation);
+        vkDestroyImageView(backend.device, pass_resources.shadowMapView[i], nullptr);
+        vkDestroyFramebuffer(backend.device, pass_resources.shadowMapFramebuffer[i], nullptr);
+    }
+
+    pass_resources.passes.clear();
+    pass_resources.shadowMap.clear();
+    pass_resources.shadowMapView.clear();
+    pass_resources.shadowMapFramebuffer.clear();
+    for (const ShadowPassData& shadow_pass : prepared.shadow_passes)
+    {
+        ShadowPassResources& shadow_map_pass_resources = pass_resources.passes.emplace_back();
+        shadow_map_pass_resources = create_shadow_map_pass_descriptor_sets(root, backend, pass_resources, shadow_pass);
+
+        const GPUTextureProperties texture_properties = get_shadow_map_texture_properties(shadow_pass.shadow_map_size);
+
+        ImageInfo& shadow_map = pass_resources.shadowMap.emplace_back();
+
+        shadow_map = create_image(root, backend.device, "Shadow Map", texture_properties, backend.vma_instance);
+
+        pass_resources.shadowMapView.push_back(create_depth_image_view(root, backend.device, shadow_map));
+
+        pass_resources.shadowMapFramebuffer.push_back(
+            create_shadow_map_framebuffer(backend, pass_resources.shadowMapPass, shadow_map.properties));
+    }
+}
+
 void shadow_map_prepare_buffers(VulkanBackend& backend, const PreparedData& prepared, ShadowMapResources& resources)
 {
     upload_buffer_data(backend.device, backend.vma_instance, resources.shadowMapPassConstantBuffer,

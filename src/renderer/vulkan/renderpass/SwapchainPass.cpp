@@ -511,8 +511,8 @@ namespace
     }
 } // namespace
 
-void prepare_swapchain_frame_resources(ReaperRoot& root, VulkanBackend& backend, SwapchainPassResources& pass_resources,
-                                       VkImageView hdr_buffer_view)
+void upload_swapchain_frame_resources(ReaperRoot& root, VulkanBackend& backend, SwapchainPassResources& pass_resources,
+                                      VkImageView hdr_buffer_view)
 {
     pass_resources.frame.descriptor_set =
         create_swapchain_pass_descriptor_set(root, backend, pass_resources, hdr_buffer_view);

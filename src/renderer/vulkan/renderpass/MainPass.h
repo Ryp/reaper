@@ -50,6 +50,8 @@ struct MainPassResources
     MainPipelineInfo mainPipe;
 
     VkSampler shadowMapSampler;
+
+    VkDescriptorSet descriptor_set;
 };
 
 MainPassResources create_main_pass_resources(ReaperRoot& root, VulkanBackend& backend, glm::uvec2 extent,
@@ -64,6 +66,10 @@ VkDescriptorSet create_main_pass_descriptor_set(ReaperRoot& root, VulkanBackend&
                                                 const nonstd::span<VkImageView> shadow_map_views);
 
 struct PreparedData;
+
+void upload_main_pass_frame_resources(VulkanBackend& backend, const PreparedData& prepared,
+                                      MainPassResources& pass_resources);
+
 struct CullOptions;
 struct CullResources;
 struct MeshCache;
@@ -72,6 +78,5 @@ struct MaterialResources;
 void record_main_pass_command_buffer(const CullOptions& cull_options, VkCommandBuffer cmdBuffer,
                                      const PreparedData& prepared, const MainPassResources& pass_resources,
                                      const CullResources& cull_resources, const MaterialResources& material_resources,
-                                     const MeshCache& mesh_cache, VkExtent2D backbufferExtent,
-                                     VkDescriptorSet mainPassDescriptorSet);
+                                     const MeshCache& mesh_cache, VkExtent2D backbufferExtent);
 } // namespace Reaper

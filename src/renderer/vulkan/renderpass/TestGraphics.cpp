@@ -15,7 +15,6 @@
 #include "ShadowMap.h"
 #include "SwapchainPass.h"
 
-#include "renderer/vulkan/ComputeHelper.h"
 #include "renderer/vulkan/Debug.h"
 #include "renderer/vulkan/MaterialResources.h"
 #include "renderer/vulkan/Memory.h"
@@ -47,8 +46,6 @@
 #include <array>
 #include <chrono>
 #include <thread>
-
-#include "renderer/shader/share/hdr.hlsl"
 
 namespace Reaper
 {
@@ -87,26 +84,20 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
 
     load_meshes(backend, mesh_cache, mesh2_instances);
 
-    // Materials
     MaterialResources material_resources = create_material_resources(root, backend, resources.gfxCmdBuffer);
     material_resources.descriptor_set = create_material_descriptor_set(root, backend, material_resources);
 
-    // Culling Pass
     CullResources cull_resources = create_culling_resources(root, backend);
 
-    // Shadow Pass
     ShadowMapResources shadow_map_resources = create_shadow_map_resources(root, backend);
 
-    // Main Pass
     const glm::uvec2  swapchain_extent(backend.presentInfo.surfaceExtent.width,
                                       backend.presentInfo.surfaceExtent.height);
     MainPassResources main_pass_resources =
         create_main_pass_resources(root, backend, swapchain_extent, material_resources.descSetLayout);
 
-    // HDR Histogram Pass
     HistogramPassResources histogram_pass_resources = create_histogram_pass_resources(root, backend);
 
-    // Swapchain Pass
     SwapchainPassResources swapchain_pass_resources = create_swapchain_pass_resources(root, backend, swapchain_extent);
 
     // Create fence
@@ -307,80 +298,28 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
             // NOTE: double buffer this or something
             Assert(vkResetDescriptorPool(backend.device, backend.frame_descriptor_pool, VK_FLAGS_NONE) == VK_SUCCESS);
 
-            cull_resources.passes.clear();
-            for (const CullPassData& cull_pass : prepared.cull_passes)
+            // Prepare render passes frame data
             {
-                CullPassResources& cull_pass_resources = cull_resources.passes.emplace_back();
-                cull_pass_resources =
-                    create_culling_pass_descriptor_sets(root, backend, cull_resources, cull_pass.pass_index,
-                                                        mesh_cache.indexBuffer, mesh_cache.vertexBufferPosition);
+                prepare_culling_resources(root, cull_options, backend, prepared, cull_resources, mesh_cache);
+
+                prepare_shadow_map_objects(root, backend, prepared, shadow_map_resources);
+
+                // NOTE: do partial copies if possible
+                upload_main_pass_frame_resources(backend, prepared, main_pass_resources);
+                main_pass_resources.descriptor_set = create_main_pass_descriptor_set(
+                    root, backend, main_pass_resources, shadow_map_resources.shadowMapView);
+
+                upload_histogram_frame_resources(root, backend, histogram_pass_resources, backbufferExtent,
+                                                 main_pass_resources.hdrBufferView);
+
+                upload_swapchain_frame_resources(root, backend, swapchain_pass_resources,
+                                                 main_pass_resources.hdrBufferView);
+
+                upload_buffer_data(backend.device, backend.vma_instance, swapchain_pass_resources.passConstantBuffer,
+                                   &prepared.swapchain_pass_params, sizeof(SwapchainPassParams));
+
+                shadow_map_prepare_buffers(backend, prepared, shadow_map_resources);
             }
-
-            for (u32 i = 0; i < shadow_map_resources.shadowMap.size(); i++)
-            {
-                vmaDestroyImage(backend.vma_instance, shadow_map_resources.shadowMap[i].handle,
-                                shadow_map_resources.shadowMap[i].allocation);
-                vkDestroyImageView(backend.device, shadow_map_resources.shadowMapView[i], nullptr);
-                vkDestroyFramebuffer(backend.device, shadow_map_resources.shadowMapFramebuffer[i], nullptr);
-            }
-
-            shadow_map_resources.passes.clear();
-            shadow_map_resources.shadowMap.clear();
-            shadow_map_resources.shadowMapView.clear();
-            shadow_map_resources.shadowMapFramebuffer.clear();
-            for (const ShadowPassData& shadow_pass : prepared.shadow_passes)
-            {
-                ShadowPassResources& shadow_map_pass_resources = shadow_map_resources.passes.emplace_back();
-                shadow_map_pass_resources =
-                    create_shadow_map_pass_descriptor_sets(root, backend, shadow_map_resources, shadow_pass);
-
-                const GPUTextureProperties texture_properties =
-                    get_shadow_map_texture_properties(shadow_pass.shadow_map_size);
-
-                ImageInfo& shadow_map = shadow_map_resources.shadowMap.emplace_back();
-
-                shadow_map = create_image(root, backend.device, "Shadow Map", texture_properties, backend.vma_instance);
-
-                shadow_map_resources.shadowMapView.push_back(create_depth_image_view(root, backend.device, shadow_map));
-
-                shadow_map_resources.shadowMapFramebuffer.push_back(
-                    create_shadow_map_framebuffer(backend, shadow_map_resources.shadowMapPass, shadow_map.properties));
-            }
-
-            // FIXME
-            VkDescriptorSet mainPassDescriptorSet =
-                create_main_pass_descriptor_set(root, backend, main_pass_resources, shadow_map_resources.shadowMapView);
-
-            // NOTE: do partial copies if possible
-            upload_buffer_data(backend.device, backend.vma_instance, main_pass_resources.drawPassConstantBuffer,
-                               &prepared.draw_pass_params, sizeof(DrawPassParams));
-            upload_buffer_data(backend.device, backend.vma_instance, main_pass_resources.drawInstanceConstantBuffer,
-                               prepared.draw_instance_params.data(),
-                               prepared.draw_instance_params.size() * sizeof(DrawInstanceParams));
-
-            {
-                ReduceHDRPassParams params = {};
-                params.input_size_ts = glm::uvec2(backbufferExtent.width, backbufferExtent.height);
-
-                histogram_pass_resources.descriptor_set = create_histogram_pass_descriptor_set(
-                    root, backend, histogram_pass_resources, main_pass_resources.hdrBufferView);
-
-                upload_buffer_data(backend.device, backend.vma_instance, histogram_pass_resources.passConstantBuffer,
-                                   &params, sizeof(ReduceHDRPassParams));
-
-                std::array<u32, HISTOGRAM_RES> zero = {};
-                upload_buffer_data(backend.device, backend.vma_instance, histogram_pass_resources.passHistogramBuffer,
-                                   zero.data(), zero.size() * sizeof(u32));
-            }
-
-            prepare_swapchain_frame_resources(root, backend, swapchain_pass_resources,
-                                              main_pass_resources.hdrBufferView);
-
-            upload_buffer_data(backend.device, backend.vma_instance, swapchain_pass_resources.passConstantBuffer,
-                               &prepared.swapchain_pass_params, sizeof(SwapchainPassParams));
-
-            shadow_map_prepare_buffers(backend, prepared, shadow_map_resources);
-            culling_prepare_buffers(cull_options, backend, prepared, cull_resources);
 
             VkCommandBufferBeginInfo cmdBufferBeginInfo = {
                 VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, nullptr,
@@ -414,8 +353,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
 
             // Draw pass
             record_main_pass_command_buffer(cull_options, resources.gfxCmdBuffer, prepared, main_pass_resources,
-                                            cull_resources, material_resources, mesh_cache, backbufferExtent,
-                                            mainPassDescriptorSet);
+                                            cull_resources, material_resources, mesh_cache, backbufferExtent);
 
             {
                 REAPER_PROFILE_SCOPE_GPU(pGpuLog, "Barrier", MP_RED);

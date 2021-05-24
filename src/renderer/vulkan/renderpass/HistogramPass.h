@@ -48,6 +48,9 @@ void                   destroy_histogram_pass_resources(VulkanBackend& backend, 
 VkDescriptorSet create_histogram_pass_descriptor_set(ReaperRoot& root, VulkanBackend& backend,
                                                      const HistogramPassResources& resources, VkImageView texture_view);
 
+void upload_histogram_frame_resources(ReaperRoot& root, VulkanBackend& backend, HistogramPassResources& pass_resources,
+                                      VkExtent2D backbufferExtent, VkImageView hdrRenderView);
+
 struct FrameData;
 
 void record_histogram_command_buffer(VkCommandBuffer cmdBuffer, const FrameData& frame_data,
