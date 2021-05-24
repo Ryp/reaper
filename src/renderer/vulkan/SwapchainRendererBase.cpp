@@ -54,7 +54,7 @@ namespace
 
         VkDescriptorPoolCreateInfo poolInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
                                                nullptr,
-                                               0, // No special alloc flags
+                                               VK_FLAGS_NONE,
                                                MaxDescriptorSets,
                                                static_cast<uint32_t>(descriptorPoolSizes.size()),
                                                descriptorPoolSizes.data()};
@@ -65,30 +65,8 @@ namespace
 
         return pool;
     }
-
-    VkDescriptorPool create_frame_descriptor_pool(ReaperRoot& root, VulkanBackend& backend)
-    {
-        // Create descriptor pool
-        // FIXME Sizes are arbitrary for now, as long as everything fits
-        constexpr u32                     MaxDescriptorSets = 100;
-        std::vector<VkDescriptorPoolSize> descriptorPoolSizes = {{VK_DESCRIPTOR_TYPE_SAMPLER, 20},
-                                                                 {VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 20},
-                                                                 {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 20},
-                                                                 {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 20},
-                                                                 {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 20}};
-
-        VkDescriptorPoolCreateInfo poolInfo = {
-            VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,     nullptr,
-            VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT, MaxDescriptorSets,
-            static_cast<uint32_t>(descriptorPoolSizes.size()), descriptorPoolSizes.data()};
-
-        VkDescriptorPool pool = VK_NULL_HANDLE;
-        Assert(vkCreateDescriptorPool(backend.device, &poolInfo, nullptr, &pool) == VK_SUCCESS);
-        log_debug(root, "vulkan: created descriptor pool with handle: {}", static_cast<void*>(pool));
-
-        return pool;
-    }
 } // namespace
+
 void vulkan_instance_check_extensions(const std::vector<const char*>& extensions);
 void vulkan_instance_check_layers(const std::vector<const char*>& layers);
 
@@ -229,9 +207,6 @@ void create_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& backend)
     log_debug(root, "vulkan: create global descriptor pool");
     backend.global_descriptor_pool = create_global_descriptor_pool(root, backend);
 
-    log_debug(root, "vulkan: create frame descriptor pool");
-    backend.frame_descriptor_pool = create_frame_descriptor_pool(root, backend);
-
     log_debug(root, "vulkan: create gpu memory allocator");
     VmaAllocatorCreateInfo allocatorInfo = {};
     allocatorInfo.physicalDevice = backend.physicalDevice;
@@ -276,9 +251,6 @@ void destroy_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& backend)
 
     log_debug(root, "vulkan: destroy gpu memory allocator");
     vmaDestroyAllocator(backend.vma_instance);
-
-    log_debug(root, "vulkan: destroy frame descriptor pool");
-    vkDestroyDescriptorPool(backend.device, backend.frame_descriptor_pool, nullptr);
 
     log_debug(root, "vulkan: destroy global descriptor pool");
     vkDestroyDescriptorPool(backend.device, backend.global_descriptor_pool, nullptr);

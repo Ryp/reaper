@@ -45,11 +45,11 @@ struct HistogramPassResources
 HistogramPassResources create_histogram_pass_resources(ReaperRoot& root, VulkanBackend& backend);
 void                   destroy_histogram_pass_resources(VulkanBackend& backend, HistogramPassResources& resources);
 
-VkDescriptorSet create_histogram_pass_descriptor_set(ReaperRoot& root, VulkanBackend& backend,
-                                                     const HistogramPassResources& resources, VkImageView texture_view);
+void update_histogram_pass_descriptor_set(VulkanBackend& backend, const HistogramPassResources& resources,
+                                          VkImageView texture_view);
 
-void upload_histogram_frame_resources(ReaperRoot& root, VulkanBackend& backend, HistogramPassResources& pass_resources,
-                                      VkExtent2D backbufferExtent, VkImageView hdrRenderView);
+void upload_histogram_frame_resources(VulkanBackend& backend, const HistogramPassResources& pass_resources,
+                                      VkExtent2D backbufferExtent);
 
 struct FrameData;
 

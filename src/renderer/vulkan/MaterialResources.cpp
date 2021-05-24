@@ -179,6 +179,19 @@ namespace
             output_image,
             {VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS}};
     }
+
+    VkDescriptorSet create_material_descriptor_set(ReaperRoot& root, VulkanBackend& backend,
+                                                   VkDescriptorSetLayout layout)
+    {
+        VkDescriptorSetAllocateInfo descriptorSetAllocInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr,
+                                                              backend.global_descriptor_pool, 1, &layout};
+
+        VkDescriptorSet descriptor_set = VK_NULL_HANDLE;
+        Assert(vkAllocateDescriptorSets(backend.device, &descriptorSetAllocInfo, &descriptor_set) == VK_SUCCESS);
+        log_debug(root, "vulkan: created descriptor set with handle: {}", static_cast<void*>(descriptor_set));
+
+        return descriptor_set;
+    }
 } // namespace
 
 MaterialResources create_material_resources(ReaperRoot& root, VulkanBackend& backend, VkCommandBuffer cmdBuffer)
@@ -332,8 +345,8 @@ MaterialResources create_material_resources(ReaperRoot& root, VulkanBackend& bac
         bricks_roughness,
         bricks_roughness_view,
         sampler,
-        descriptorSetLayoutCB, // FIXME
-        nullptr,               // FIXME
+        descriptorSetLayoutCB,
+        create_material_descriptor_set(root, backend, descriptorSetLayoutCB),
     };
 }
 
@@ -354,47 +367,33 @@ void destroy_material_resources(VulkanBackend& backend, const MaterialResources&
                      resources.staging.staging_buffer.allocation);
 }
 
-VkDescriptorSet create_material_descriptor_set(ReaperRoot& root, VulkanBackend& backend,
-                                               const MaterialResources& resources)
+void update_material_descriptor_set(VulkanBackend& backend, const MaterialResources& resources)
 {
-    VkDescriptorSetAllocateInfo descriptorSetAllocInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr,
-                                                          backend.global_descriptor_pool, 1, &resources.descSetLayout};
+    const VkDescriptorImageInfo diffuseMapSampler = {resources.diffuseMapSampler, VK_NULL_HANDLE,
+                                                     VK_IMAGE_LAYOUT_UNDEFINED};
 
-    VkDescriptorSet descriptor_set = VK_NULL_HANDLE;
-    Assert(vkAllocateDescriptorSets(backend.device, &descriptorSetAllocInfo, &descriptor_set) == VK_SUCCESS);
-    log_debug(root, "vulkan: created descriptor set with handle: {}", static_cast<void*>(descriptor_set));
-
-    const VkDescriptorImageInfo drawDescDiffuseMapSampler = {resources.diffuseMapSampler, VK_NULL_HANDLE,
-                                                             VK_IMAGE_LAYOUT_UNDEFINED};
-
-    std::vector<VkDescriptorImageInfo> drawDescDiffuseMapTexture;
-    drawDescDiffuseMapTexture.push_back(
-        {VK_NULL_HANDLE, resources.default_diffuse_view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL});
-    drawDescDiffuseMapTexture.push_back(
-        {VK_NULL_HANDLE, resources.bricks_diffuse_view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL});
-    drawDescDiffuseMapTexture.push_back(
-        {VK_NULL_HANDLE, resources.bricks_roughness_view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL});
+    std::vector<VkDescriptorImageInfo> diffuseMaps;
+    diffuseMaps.push_back({VK_NULL_HANDLE, resources.default_diffuse_view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL});
+    diffuseMaps.push_back({VK_NULL_HANDLE, resources.bricks_diffuse_view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL});
+    diffuseMaps.push_back({VK_NULL_HANDLE, resources.bricks_roughness_view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL});
 
     const VkWriteDescriptorSet diffuseMapBindlessImageWrite = {
         VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
         nullptr,
-        descriptor_set,
+        resources.descriptor_set,
         1,
         0,
-        static_cast<u32>(drawDescDiffuseMapTexture.size()),
+        static_cast<u32>(diffuseMaps.size()),
         VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-        drawDescDiffuseMapTexture.data(),
+        diffuseMaps.data(),
         nullptr,
         nullptr,
     };
 
-    std::array<VkWriteDescriptorSet, 2> drawPassDescriptorSetWrites = {
-        create_image_descriptor_write(descriptor_set, 0, VK_DESCRIPTOR_TYPE_SAMPLER, &drawDescDiffuseMapSampler),
+    std::vector<VkWriteDescriptorSet> writes = {
+        create_image_descriptor_write(resources.descriptor_set, 0, VK_DESCRIPTOR_TYPE_SAMPLER, &diffuseMapSampler),
         diffuseMapBindlessImageWrite};
 
-    vkUpdateDescriptorSets(backend.device, static_cast<u32>(drawPassDescriptorSetWrites.size()),
-                           drawPassDescriptorSetWrites.data(), 0, nullptr);
-
-    return descriptor_set;
+    vkUpdateDescriptorSets(backend.device, static_cast<u32>(writes.size()), writes.data(), 0, nullptr);
 }
 } // namespace Reaper

@@ -31,11 +31,6 @@ struct ShadowMapPipelineInfo
     VkDescriptorSetLayout descSetLayout;
 };
 
-struct ShadowPassResources
-{
-    VkDescriptorSet descriptor_set;
-};
-
 struct ShadowMapResources
 {
     VkRenderPass shadowMapPass;
@@ -45,8 +40,7 @@ struct ShadowMapResources
     BufferInfo shadowMapPassConstantBuffer;
     BufferInfo shadowMapInstanceConstantBuffer;
 
-    // These are valid for ONE FRAME ONLY
-    std::vector<ShadowPassResources> passes;
+    std::vector<VkDescriptorSet> descriptor_sets;
 
     // These are valid for ONE FRAME ONLY
     std::vector<ImageInfo>     shadowMap;
@@ -62,17 +56,14 @@ VkFramebuffer create_shadow_map_framebuffer(VulkanBackend& backend, VkRenderPass
 ShadowMapResources create_shadow_map_resources(ReaperRoot& root, VulkanBackend& backend);
 void               destroy_shadow_map_resources(VulkanBackend& backend, ShadowMapResources& resources);
 
-struct ShadowPassData;
-
-ShadowPassResources create_shadow_map_pass_descriptor_sets(ReaperRoot& root, VulkanBackend& backend,
-                                                           const ShadowMapResources& resources,
-                                                           const ShadowPassData&     shadow_pass);
-
 struct PreparedData;
 
 void prepare_shadow_map_objects(ReaperRoot& root, VulkanBackend& backend, const PreparedData& prepared,
                                 ShadowMapResources& pass_resources);
-void shadow_map_prepare_buffers(VulkanBackend& backend, const PreparedData& prepared, ShadowMapResources& resources);
+void upload_shadow_map_resources(VulkanBackend& backend, const PreparedData& prepared, ShadowMapResources& resources);
+
+void update_shadow_map_pass_descriptor_sets(VulkanBackend& backend, const PreparedData& prepared,
+                                            ShadowMapResources& pass_resources);
 
 struct CullOptions;
 struct CullResources;

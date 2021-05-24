@@ -474,6 +474,19 @@ namespace
         resources.hdrBuffer.properties = hdrProperties;
         resources.depthBuffer.properties = depthProperties;
     }
+
+    VkDescriptorSet create_main_pass_descriptor_set(ReaperRoot& root, VulkanBackend& backend,
+                                                    VkDescriptorSetLayout layout)
+    {
+        VkDescriptorSetAllocateInfo descriptorSetAllocInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr,
+                                                              backend.global_descriptor_pool, 1, &layout};
+
+        VkDescriptorSet descriptor_set = VK_NULL_HANDLE;
+        Assert(vkAllocateDescriptorSets(backend.device, &descriptorSetAllocInfo, &descriptor_set) == VK_SUCCESS);
+        log_debug(root, "vulkan: created descriptor set with handle: {}", static_cast<void*>(descriptor_set));
+
+        return descriptor_set;
+    }
 } // namespace
 
 MainPassResources create_main_pass_resources(ReaperRoot& root, VulkanBackend& backend, glm::uvec2 extent,
@@ -498,6 +511,8 @@ MainPassResources create_main_pass_resources(ReaperRoot& root, VulkanBackend& ba
 
     resources.mainPipe = create_main_pipeline(root, backend, resources.mainRenderPass, material_descriptor_set_layout);
 
+    resources.descriptor_set = create_main_pass_descriptor_set(root, backend, resources.mainPipe.descSetLayout);
+
     VkSamplerCreateInfo shadowMapSamplerCreateInfo = {};
     shadowMapSamplerCreateInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
     shadowMapSamplerCreateInfo.magFilter = VK_FILTER_LINEAR;
@@ -520,8 +535,6 @@ MainPassResources create_main_pass_resources(ReaperRoot& root, VulkanBackend& ba
     Assert(vkCreateSampler(backend.device, &shadowMapSamplerCreateInfo, nullptr, &resources.shadowMapSampler)
            == VK_SUCCESS);
     log_debug(root, "vulkan: created sampler with handle: {}", static_cast<void*>(resources.shadowMapSampler));
-
-    resources.descriptor_set = VK_NULL_HANDLE;
 
     return resources;
 }
@@ -554,55 +567,42 @@ void resize_main_pass_resources(ReaperRoot& root, VulkanBackend& backend, MainPa
     create_main_pass_resizable_resources(root, backend, resources);
 }
 
-VkDescriptorSet create_main_pass_descriptor_set(ReaperRoot& root, VulkanBackend& backend,
-                                                const MainPassResources&        resources,
-                                                const nonstd::span<VkImageView> shadow_map_views)
+void update_main_pass_descriptor_set(VulkanBackend& backend, const MainPassResources& resources,
+                                     const nonstd::span<VkImageView> shadow_map_views)
 {
-    VkDescriptorSetAllocateInfo descriptorSetAllocInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr,
-                                                          backend.frame_descriptor_pool, 1,
-                                                          &resources.mainPipe.descSetLayout};
+    const VkDescriptorBufferInfo passParams = default_descriptor_buffer_info(resources.drawPassConstantBuffer);
+    const VkDescriptorBufferInfo instanceParams = default_descriptor_buffer_info(resources.drawInstanceConstantBuffer);
+    const VkDescriptorImageInfo  shadowMapSampler = {resources.shadowMapSampler, VK_NULL_HANDLE,
+                                                    VK_IMAGE_LAYOUT_UNDEFINED};
 
-    VkDescriptorSet descriptor_set = VK_NULL_HANDLE;
-    Assert(vkAllocateDescriptorSets(backend.device, &descriptorSetAllocInfo, &descriptor_set) == VK_SUCCESS);
-    log_debug(root, "vulkan: created descriptor set with handle: {}", static_cast<void*>(descriptor_set));
-
-    const VkDescriptorBufferInfo drawDescPassParams = default_descriptor_buffer_info(resources.drawPassConstantBuffer);
-    const VkDescriptorBufferInfo drawDescInstanceParams =
-        default_descriptor_buffer_info(resources.drawInstanceConstantBuffer);
-    const VkDescriptorImageInfo drawDescShadowMapSampler = {resources.shadowMapSampler, VK_NULL_HANDLE,
-                                                            VK_IMAGE_LAYOUT_UNDEFINED};
-
-    std::vector<VkDescriptorImageInfo> drawDescShadowMapTexture;
+    std::vector<VkDescriptorImageInfo> drawDescShadowMaps;
 
     for (auto shadow_map_texture_view : shadow_map_views)
     {
-        drawDescShadowMapTexture.push_back(
+        drawDescShadowMaps.push_back(
             {VK_NULL_HANDLE, shadow_map_texture_view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL});
     }
 
     const VkWriteDescriptorSet shadowMapBindlessImageWrite = {
         VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
         nullptr,
-        descriptor_set,
+        resources.descriptor_set,
         3,
         0,
-        static_cast<u32>(drawDescShadowMapTexture.size()),
+        static_cast<u32>(drawDescShadowMaps.size()),
         VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-        drawDescShadowMapTexture.data(),
+        drawDescShadowMaps.data(),
         nullptr,
         nullptr,
     };
 
-    std::array<VkWriteDescriptorSet, 4> drawPassDescriptorSetWrites = {
-        create_buffer_descriptor_write(descriptor_set, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &drawDescPassParams),
-        create_buffer_descriptor_write(descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &drawDescInstanceParams),
-        create_image_descriptor_write(descriptor_set, 2, VK_DESCRIPTOR_TYPE_SAMPLER, &drawDescShadowMapSampler),
+    std::vector<VkWriteDescriptorSet> writes = {
+        create_buffer_descriptor_write(resources.descriptor_set, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &passParams),
+        create_buffer_descriptor_write(resources.descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &instanceParams),
+        create_image_descriptor_write(resources.descriptor_set, 2, VK_DESCRIPTOR_TYPE_SAMPLER, &shadowMapSampler),
         shadowMapBindlessImageWrite};
 
-    vkUpdateDescriptorSets(backend.device, static_cast<u32>(drawPassDescriptorSetWrites.size()),
-                           drawPassDescriptorSetWrites.data(), 0, nullptr);
-
-    return descriptor_set;
+    vkUpdateDescriptorSets(backend.device, static_cast<u32>(writes.size()), writes.data(), 0, nullptr);
 }
 
 void upload_main_pass_frame_resources(VulkanBackend& backend, const PreparedData& prepared,

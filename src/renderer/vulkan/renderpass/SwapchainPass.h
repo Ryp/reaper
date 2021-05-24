@@ -45,10 +45,7 @@ struct SwapchainPassResources
 
     VkSampler shadowMapSampler;
 
-    struct Frame
-    {
-        VkDescriptorSet descriptor_set;
-    } frame;
+    VkDescriptorSet descriptor_set;
 };
 
 SwapchainPassResources create_swapchain_pass_resources(ReaperRoot& root, VulkanBackend& backend, glm::uvec2 extent);
@@ -57,11 +54,8 @@ void                   destroy_swapchain_pass_resources(VulkanBackend& backend, 
 void resize_swapchain_pass_resources(ReaperRoot& root, VulkanBackend& backend, SwapchainPassResources& resources,
                                      glm::uvec2 extent);
 
-VkDescriptorSet create_swapchain_pass_descriptor_set(ReaperRoot& root, VulkanBackend& backend,
-                                                     const SwapchainPassResources& resources, VkImageView texture_view);
-
-void upload_swapchain_frame_resources(ReaperRoot& root, VulkanBackend& backend, SwapchainPassResources& pass_resources,
-                                      VkImageView hdr_buffer_view);
+void update_swapchain_pass_descriptor_set(VulkanBackend& backend, const SwapchainPassResources& resources,
+                                          VkImageView texture_view);
 
 struct FrameData;
 

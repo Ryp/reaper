@@ -93,10 +93,13 @@ struct CullOptions
     bool use_compacted_draw;
 };
 
+void upload_culling_resources(VulkanBackend& backend, const CullOptions& options, const PreparedData& prepared,
+                              CullResources& resources);
+
 struct MeshCache;
 
-void prepare_culling_resources(ReaperRoot& root, const CullOptions& options, VulkanBackend& backend,
-                               const PreparedData& prepared, CullResources& resources, const MeshCache& mesh_cache);
+void update_culling_pass_descriptor_sets(VulkanBackend& backend, const PreparedData& prepared, CullResources& resources,
+                                         const MeshCache& mesh_cache);
 
 void record_culling_command_buffer(const CullOptions& options, VkCommandBuffer cmdBuffer, const PreparedData& prepared,
                                    CullResources& resources);

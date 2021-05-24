@@ -85,7 +85,6 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
     load_meshes(backend, mesh_cache, mesh2_instances);
 
     MaterialResources material_resources = create_material_resources(root, backend, resources.gfxCmdBuffer);
-    material_resources.descriptor_set = create_material_descriptor_set(root, backend, material_resources);
 
     CullResources cull_resources = create_culling_resources(root, backend);
 
@@ -295,31 +294,21 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
             PreparedData prepared;
             prepare_scene(scene, prepared);
 
-            // NOTE: double buffer this or something
-            Assert(vkResetDescriptorPool(backend.device, backend.frame_descriptor_pool, VK_FLAGS_NONE) == VK_SUCCESS);
+            prepare_shadow_map_objects(root, backend, prepared, shadow_map_resources);
 
-            // Prepare render passes frame data
-            {
-                prepare_culling_resources(root, cull_options, backend, prepared, cull_resources, mesh_cache);
+            upload_culling_resources(backend, cull_options, prepared, cull_resources);
+            upload_shadow_map_resources(backend, prepared, shadow_map_resources);
+            upload_main_pass_frame_resources(backend, prepared, main_pass_resources);
+            upload_histogram_frame_resources(backend, histogram_pass_resources, backbufferExtent);
+            upload_buffer_data(backend.device, backend.vma_instance, swapchain_pass_resources.passConstantBuffer,
+                               &prepared.swapchain_pass_params, sizeof(SwapchainPassParams));
 
-                prepare_shadow_map_objects(root, backend, prepared, shadow_map_resources);
-
-                // NOTE: do partial copies if possible
-                upload_main_pass_frame_resources(backend, prepared, main_pass_resources);
-                main_pass_resources.descriptor_set = create_main_pass_descriptor_set(
-                    root, backend, main_pass_resources, shadow_map_resources.shadowMapView);
-
-                upload_histogram_frame_resources(root, backend, histogram_pass_resources, backbufferExtent,
-                                                 main_pass_resources.hdrBufferView);
-
-                upload_swapchain_frame_resources(root, backend, swapchain_pass_resources,
-                                                 main_pass_resources.hdrBufferView);
-
-                upload_buffer_data(backend.device, backend.vma_instance, swapchain_pass_resources.passConstantBuffer,
-                                   &prepared.swapchain_pass_params, sizeof(SwapchainPassParams));
-
-                shadow_map_prepare_buffers(backend, prepared, shadow_map_resources);
-            }
+            update_culling_pass_descriptor_sets(backend, prepared, cull_resources, mesh_cache);
+            update_shadow_map_pass_descriptor_sets(backend, prepared, shadow_map_resources);
+            update_main_pass_descriptor_set(backend, main_pass_resources, shadow_map_resources.shadowMapView);
+            update_histogram_pass_descriptor_set(backend, histogram_pass_resources, main_pass_resources.hdrBufferView);
+            update_swapchain_pass_descriptor_set(backend, swapchain_pass_resources, main_pass_resources.hdrBufferView);
+            update_material_descriptor_set(backend, material_resources);
 
             VkCommandBufferBeginInfo cmdBufferBeginInfo = {
                 VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, nullptr,

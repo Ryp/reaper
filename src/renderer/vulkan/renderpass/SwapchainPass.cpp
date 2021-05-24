@@ -400,6 +400,19 @@ namespace
     {
         vkDestroyFramebuffer(backend.device, resources.swapchain_framebuffer, nullptr);
     }
+
+    VkDescriptorSet create_swapchain_pass_descriptor_set(ReaperRoot& root, VulkanBackend& backend,
+                                                         VkDescriptorSetLayout layout)
+    {
+        VkDescriptorSetAllocateInfo descriptorSetAllocInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr,
+                                                              backend.global_descriptor_pool, 1, &layout};
+
+        VkDescriptorSet descriptor_set = VK_NULL_HANDLE;
+        Assert(vkAllocateDescriptorSets(backend.device, &descriptorSetAllocInfo, &descriptor_set) == VK_SUCCESS);
+        log_debug(root, "vulkan: created descriptor set with handle: {}", static_cast<void*>(descriptor_set));
+
+        return descriptor_set;
+    }
 } // namespace
 
 SwapchainPassResources create_swapchain_pass_resources(ReaperRoot& root, VulkanBackend& backend, glm::uvec2 extent)
@@ -416,6 +429,9 @@ SwapchainPassResources create_swapchain_pass_resources(ReaperRoot& root, VulkanB
     create_swapchain_pass_resizable_resources(root, backend, resources, extent);
 
     resources.swapchainPipe = create_swapchain_pipeline(root, backend, resources.swapchainRenderPass);
+
+    resources.descriptor_set =
+        create_swapchain_pass_descriptor_set(root, backend, resources.swapchainPipe.descSetLayout);
 
     VkSamplerCreateInfo shadowMapSamplerCreateInfo = {};
     shadowMapSamplerCreateInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -466,32 +482,21 @@ void resize_swapchain_pass_resources(ReaperRoot& root, VulkanBackend& backend, S
     create_swapchain_pass_resizable_resources(root, backend, resources, extent);
 }
 
-VkDescriptorSet create_swapchain_pass_descriptor_set(ReaperRoot& root, VulkanBackend& backend,
-                                                     const SwapchainPassResources& resources, VkImageView texture_view)
+void update_swapchain_pass_descriptor_set(VulkanBackend& backend, const SwapchainPassResources& resources,
+                                          VkImageView texture_view)
 {
-    VkDescriptorSetAllocateInfo descriptorSetAllocInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr,
-                                                          backend.frame_descriptor_pool, 1,
-                                                          &resources.swapchainPipe.descSetLayout};
+    const VkDescriptorBufferInfo passParams = default_descriptor_buffer_info(resources.passConstantBuffer);
+    const VkDescriptorImageInfo  shadowMapSampler = {resources.shadowMapSampler, VK_NULL_HANDLE,
+                                                    VK_IMAGE_LAYOUT_UNDEFINED};
+    const VkDescriptorImageInfo sceneTexture = {VK_NULL_HANDLE, texture_view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
 
-    VkDescriptorSet descriptor_set = VK_NULL_HANDLE;
-    Assert(vkAllocateDescriptorSets(backend.device, &descriptorSetAllocInfo, &descriptor_set) == VK_SUCCESS);
-    log_debug(root, "vulkan: created descriptor set with handle: {}", static_cast<void*>(descriptor_set));
-
-    const VkDescriptorBufferInfo drawDescPassParams = default_descriptor_buffer_info(resources.passConstantBuffer);
-    const VkDescriptorImageInfo  drawDescShadowMapSampler = {resources.shadowMapSampler, VK_NULL_HANDLE,
-                                                            VK_IMAGE_LAYOUT_UNDEFINED};
-    const VkDescriptorImageInfo  descTexture = {VK_NULL_HANDLE, texture_view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
-
-    std::array<VkWriteDescriptorSet, 3> drawPassDescriptorSetWrites = {
-        create_buffer_descriptor_write(descriptor_set, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &drawDescPassParams),
-        create_image_descriptor_write(descriptor_set, 1, VK_DESCRIPTOR_TYPE_SAMPLER, &drawDescShadowMapSampler),
-        create_image_descriptor_write(descriptor_set, 2, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, &descTexture),
+    std::vector<VkWriteDescriptorSet> writes = {
+        create_buffer_descriptor_write(resources.descriptor_set, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &passParams),
+        create_image_descriptor_write(resources.descriptor_set, 1, VK_DESCRIPTOR_TYPE_SAMPLER, &shadowMapSampler),
+        create_image_descriptor_write(resources.descriptor_set, 2, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, &sceneTexture),
     };
 
-    vkUpdateDescriptorSets(backend.device, static_cast<u32>(drawPassDescriptorSetWrites.size()),
-                           drawPassDescriptorSetWrites.data(), 0, nullptr);
-
-    return descriptor_set;
+    vkUpdateDescriptorSets(backend.device, static_cast<u32>(writes.size()), writes.data(), 0, nullptr);
 }
 
 namespace
@@ -510,13 +515,6 @@ namespace
                           1.0f};
     }
 } // namespace
-
-void upload_swapchain_frame_resources(ReaperRoot& root, VulkanBackend& backend, SwapchainPassResources& pass_resources,
-                                      VkImageView hdr_buffer_view)
-{
-    pass_resources.frame.descriptor_set =
-        create_swapchain_pass_descriptor_set(root, backend, pass_resources, hdr_buffer_view);
-}
 
 void record_swapchain_command_buffer(VkCommandBuffer cmdBuffer, const FrameData& frame_data,
                                      const SwapchainPassResources& pass_resources, VkImageView swapchain_buffer_view)
@@ -547,7 +545,7 @@ void record_swapchain_command_buffer(VkCommandBuffer cmdBuffer, const FrameData&
     vkCmdSetScissor(cmdBuffer, 0, 1, &blitPassRect);
 
     vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pass_resources.swapchainPipe.pipelineLayout, 0,
-                            1, &pass_resources.frame.descriptor_set, 0, nullptr);
+                            1, &pass_resources.descriptor_set, 0, nullptr);
 
     vkCmdDraw(cmdBuffer, 3, 1, 0, 0);
 

@@ -47,6 +47,5 @@ struct ReaperRoot;
 MaterialResources create_material_resources(ReaperRoot& root, VulkanBackend& backend, VkCommandBuffer cmdBuffer);
 void              destroy_material_resources(VulkanBackend& backend, const MaterialResources& resources);
 
-VkDescriptorSet create_material_descriptor_set(ReaperRoot& root, VulkanBackend& backend,
-                                               const MaterialResources& resources);
+void update_material_descriptor_set(VulkanBackend& backend, const MaterialResources& resources);
 } // namespace Reaper

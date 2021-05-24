@@ -22,6 +22,21 @@
 
 namespace Reaper
 {
+namespace
+{
+    VkDescriptorSet create_histogram_pass_descriptor_set(ReaperRoot& root, VulkanBackend& backend,
+                                                         VkDescriptorSetLayout layout)
+    {
+        VkDescriptorSetAllocateInfo descriptorSetAllocInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr,
+                                                              backend.global_descriptor_pool, 1, &layout};
+
+        VkDescriptorSet descriptor_set = VK_NULL_HANDLE;
+        Assert(vkAllocateDescriptorSets(backend.device, &descriptorSetAllocInfo, &descriptor_set) == VK_SUCCESS);
+        log_debug(root, "vulkan: created descriptor set with handle: {}", static_cast<void*>(descriptor_set));
+
+        return descriptor_set;
+    }
+} // namespace
 HistogramPipelineInfo create_histogram_pipeline(ReaperRoot& root, VulkanBackend& backend)
 {
     std::array<VkDescriptorSetLayoutBinding, 3> descriptorSetLayoutBinding = {
@@ -98,6 +113,9 @@ HistogramPassResources create_histogram_pass_resources(ReaperRoot& root, VulkanB
 
     resources.histogramPipe = create_histogram_pipeline(root, backend);
 
+    resources.descriptor_set =
+        create_histogram_pass_descriptor_set(root, backend, resources.histogramPipe.descSetLayout);
+
     return resources;
 }
 
@@ -114,40 +132,29 @@ void destroy_histogram_pass_resources(VulkanBackend& backend, HistogramPassResou
                      resources.passHistogramBuffer.allocation);
 }
 
-VkDescriptorSet create_histogram_pass_descriptor_set(ReaperRoot& root, VulkanBackend& backend,
-                                                     const HistogramPassResources& resources, VkImageView texture_view)
+void update_histogram_pass_descriptor_set(VulkanBackend& backend, const HistogramPassResources& resources,
+                                          VkImageView texture_view)
 {
-    VkDescriptorSetAllocateInfo descriptorSetAllocInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr,
-                                                          backend.frame_descriptor_pool, 1,
-                                                          &resources.histogramPipe.descSetLayout};
-
-    VkDescriptorSet descriptor_set = VK_NULL_HANDLE;
-    Assert(vkAllocateDescriptorSets(backend.device, &descriptorSetAllocInfo, &descriptor_set) == VK_SUCCESS);
-    log_debug(root, "vulkan: created descriptor set with handle: {}", static_cast<void*>(descriptor_set));
-
     const VkDescriptorBufferInfo drawDescPassParams = default_descriptor_buffer_info(resources.passConstantBuffer);
     const VkDescriptorImageInfo  descTexture = {VK_NULL_HANDLE, texture_view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
     const VkDescriptorBufferInfo descOutput = default_descriptor_buffer_info(resources.passHistogramBuffer);
 
     std::array<VkWriteDescriptorSet, 3> drawPassDescriptorSetWrites = {
-        create_buffer_descriptor_write(descriptor_set, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &drawDescPassParams),
-        create_image_descriptor_write(descriptor_set, 1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, &descTexture),
-        create_buffer_descriptor_write(descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &descOutput),
+        create_buffer_descriptor_write(resources.descriptor_set, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                                       &drawDescPassParams),
+        create_image_descriptor_write(resources.descriptor_set, 1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, &descTexture),
+        create_buffer_descriptor_write(resources.descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &descOutput),
     };
 
     vkUpdateDescriptorSets(backend.device, static_cast<u32>(drawPassDescriptorSetWrites.size()),
                            drawPassDescriptorSetWrites.data(), 0, nullptr);
-
-    return descriptor_set;
 }
 
-void upload_histogram_frame_resources(ReaperRoot& root, VulkanBackend& backend, HistogramPassResources& pass_resources,
-                                      VkExtent2D backbufferExtent, VkImageView hdrRenderView)
+void upload_histogram_frame_resources(VulkanBackend& backend, const HistogramPassResources& pass_resources,
+                                      VkExtent2D backbufferExtent)
 {
     ReduceHDRPassParams params = {};
     params.input_size_ts = glm::uvec2(backbufferExtent.width, backbufferExtent.height);
-
-    pass_resources.descriptor_set = create_histogram_pass_descriptor_set(root, backend, pass_resources, hdrRenderView);
 
     upload_buffer_data(backend.device, backend.vma_instance, pass_resources.passConstantBuffer, &params,
                        sizeof(ReduceHDRPassParams));

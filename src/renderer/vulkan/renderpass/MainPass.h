@@ -61,9 +61,8 @@ void              destroy_main_pass_resources(VulkanBackend& backend, MainPassRe
 void resize_main_pass_resources(ReaperRoot& root, VulkanBackend& backend, MainPassResources& resources,
                                 glm::uvec2 extent);
 
-VkDescriptorSet create_main_pass_descriptor_set(ReaperRoot& root, VulkanBackend& backend,
-                                                const MainPassResources&        resources,
-                                                const nonstd::span<VkImageView> shadow_map_views);
+void update_main_pass_descriptor_set(VulkanBackend& backend, const MainPassResources& resources,
+                                     const nonstd::span<VkImageView> shadow_map_views);
 
 struct PreparedData;
 
