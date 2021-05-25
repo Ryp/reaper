@@ -252,9 +252,6 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                 Assert(vkResetFences(backend.device, 1, &drawFence) == VK_SUCCESS);
             }
 
-            log_debug(root, "vulkan: record command buffer");
-            Assert(vkResetCommandBuffer(resources.gfxCmdBuffer, 0) == VK_SUCCESS);
-
             const VkExtent2D backbufferExtent = backend.presentInfo.surfaceExtent;
 
             const auto timeSecs = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - startTime);
@@ -306,6 +303,9 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
             update_histogram_pass_descriptor_set(backend, histogram_pass_resources, main_pass_resources.hdrBufferView);
             update_swapchain_pass_descriptor_set(backend, swapchain_pass_resources, main_pass_resources.hdrBufferView);
             update_material_descriptor_set(backend, material_resources);
+
+            log_debug(root, "vulkan: record command buffer");
+            Assert(vkResetCommandBuffer(resources.gfxCmdBuffer, 0) == VK_SUCCESS);
 
             VkCommandBufferBeginInfo cmdBufferBeginInfo = {
                 VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, nullptr,
