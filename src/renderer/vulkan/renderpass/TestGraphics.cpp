@@ -49,31 +49,6 @@
 
 namespace Reaper
 {
-namespace
-{
-    void cmd_transition_swapchain_layout(VulkanBackend& backend, VkCommandBuffer commandBuffer)
-    {
-        for (u32 swapchainImageIndex = 0; swapchainImageIndex < static_cast<u32>(backend.presentInfo.images.size());
-             swapchainImageIndex++)
-        {
-            VkImageMemoryBarrier swapchainImageBarrierInfo = {
-                VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-                nullptr,
-                0,
-                VK_ACCESS_MEMORY_READ_BIT,
-                VK_IMAGE_LAYOUT_UNDEFINED,
-                VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-                backend.physicalDeviceInfo.presentQueueIndex,
-                backend.physicalDeviceInfo.presentQueueIndex,
-                backend.presentInfo.images[swapchainImageIndex],
-                {VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS}};
-
-            vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
-                                 0, 0, nullptr, 0, nullptr, 1, &swapchainImageBarrierInfo);
-        }
-    }
-} // namespace
-
 void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResources& resources)
 {
     std::vector<Mesh2> mesh2_instances;
@@ -325,7 +300,27 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
             {
                 REAPER_PROFILE_SCOPE_GPU("Barrier", MP_RED);
 
-                cmd_transition_swapchain_layout(backend, resources.gfxCmdBuffer);
+                for (u32 swapchainImageIndex = 0;
+                     swapchainImageIndex < static_cast<u32>(backend.presentInfo.images.size());
+                     swapchainImageIndex++)
+                {
+                    VkImageMemoryBarrier swapchainImageBarrierInfo = {
+                        VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+                        nullptr,
+                        0,
+                        VK_ACCESS_MEMORY_READ_BIT,
+                        VK_IMAGE_LAYOUT_UNDEFINED,
+                        VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+                        backend.physicalDeviceInfo.presentQueueIndex,
+                        backend.physicalDeviceInfo.presentQueueIndex,
+                        backend.presentInfo.images[swapchainImageIndex],
+                        {VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS}};
+
+                    vkCmdPipelineBarrier(resources.gfxCmdBuffer, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                                         VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, nullptr, 0, nullptr, 1,
+                                         &swapchainImageBarrierInfo);
+                }
+
                 mustTransitionSwapchain = false;
             }
 
