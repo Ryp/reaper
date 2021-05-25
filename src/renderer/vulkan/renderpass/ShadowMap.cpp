@@ -475,7 +475,7 @@ void upload_shadow_map_resources(VulkanBackend& backend, const PreparedData& pre
 void record_shadow_map_command_buffer(const CullOptions& cull_options, VkCommandBuffer cmdBuffer,
                                       VulkanBackend& backend, const PreparedData& prepared,
                                       ShadowMapResources& resources, const CullResources& cull_resources,
-                                      VkBuffer vertex_buffer)
+                                      VkBuffer vertex_positon_buffer)
 {
     for (const ShadowPassData& shadow_pass : prepared.shadow_passes)
     {
@@ -510,7 +510,7 @@ void record_shadow_map_command_buffer(const CullOptions& cull_options, VkCommand
         vkCmdSetScissor(cmdBuffer, 0, 1, &pass_rect);
 
         std::vector<VkBuffer> vertexBuffers = {
-            vertex_buffer,
+            vertex_positon_buffer,
         };
         std::vector<VkDeviceSize> vertexBufferOffsets = {0};
 

@@ -7,6 +7,7 @@
 
 #include "renderer/texture/GPUTextureProperties.h"
 #include "renderer/vulkan/Debug.h"
+#include "renderer/vulkan/api/VulkanStringConversion.h"
 
 namespace Reaper
 {
@@ -972,12 +973,13 @@ ImageInfo create_image(ReaperRoot& root, VkDevice device, const char* debug_stri
 {
     const VkExtent3D    extent = {properties.width, properties.height, properties.depth};
     const VkImageTiling tilingMode = VK_IMAGE_TILING_OPTIMAL;
+    const VkFormat      vulkan_format = PixelFormatToVulkan(properties.format);
 
     const VkImageCreateInfo imageInfo = {VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
                                          nullptr,
                                          GetVulkanCreateFlags(properties),
                                          VK_IMAGE_TYPE_2D,
-                                         PixelFormatToVulkan(properties.format),
+                                         vulkan_format,
                                          extent,
                                          properties.mipCount,
                                          properties.layerCount,
@@ -993,8 +995,7 @@ ImageInfo create_image(ReaperRoot& root, VkDevice device, const char* debug_stri
     allocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
 
     log_debug(root, "vulkan: creating new image: extent = {}x{}x{}, format = {}", properties.width, properties.height,
-              properties.depth,
-              static_cast<u32>(properties.format)); // FIXME print format
+              properties.depth, GetFormatToString(vulkan_format));
     log_debug(root, "- mips = {}, layers = {}, samples = {}", properties.mipCount, properties.layerCount,
               properties.sampleCount);
 
