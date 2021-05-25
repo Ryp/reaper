@@ -294,10 +294,10 @@ void destroy_material_resources(VulkanBackend& backend, MaterialResources& resou
                      resources.staging.staging_buffer.allocation);
 }
 
-void load_textures(ReaperRoot& root, VulkanBackend& backend, MaterialResources& resources, u32 texture_count,
-                   const char** texture_filenames, ResourceHandle* output_handles)
+void load_textures(ReaperRoot& root, VulkanBackend& backend, MaterialResources& resources,
+                   nonstd::span<const char*> texture_filenames, ResourceHandle* output_handles)
 {
-    for (u32 i = 0; i < texture_count; i++)
+    for (u32 i = 0; i < texture_filenames.size(); i++)
     {
         output_handles[i] = load_texture(root, backend, resources, texture_filenames[i]);
     }

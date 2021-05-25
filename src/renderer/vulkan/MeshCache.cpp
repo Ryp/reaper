@@ -106,13 +106,16 @@ namespace
     }
 } // namespace
 
-void load_meshes(VulkanBackend& backend, MeshCache& mesh_cache, std::vector<Mesh2>& mesh2_instances)
+void load_meshes(VulkanBackend& backend, MeshCache& mesh_cache, nonstd::span<const char*> mesh_filenames,
+                 std::vector<Mesh2>& mesh2_output)
 {
     // Read mesh file
     std::vector<Mesh> mesh_instances;
-    mesh_instances.emplace_back(ModelLoader::loadOBJ("res/model/teapot.obj"));
-    mesh_instances.emplace_back(ModelLoader::loadOBJ("res/model/suzanne.obj"));
-    mesh_instances.emplace_back(ModelLoader::loadOBJ("res/model/dragon.obj"));
+
+    for (auto filename : mesh_filenames)
+    {
+        mesh_instances.emplace_back(ModelLoader::loadOBJ(filename));
+    }
 
     for (auto& mesh : mesh_instances)
     {
@@ -200,7 +203,7 @@ void load_meshes(VulkanBackend& backend, MeshCache& mesh_cache, std::vector<Mesh
         std::swap(mesh.normals, optimized_normal_buffer);
         std::swap(mesh.uvs, optimized_uv_buffer);
 
-        Mesh2& mesh2 = mesh2_instances.emplace_back();
+        Mesh2& mesh2 = mesh2_output.emplace_back();
 
         mesh2 = create_mesh2(mesh_cache_allocate_mesh(mesh_cache, mesh));
 

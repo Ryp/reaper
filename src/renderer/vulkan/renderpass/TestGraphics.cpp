@@ -63,8 +63,14 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
     HistogramPassResources histogram_pass_resources = create_histogram_pass_resources(root, backend);
     SwapchainPassResources swapchain_pass_resources = create_swapchain_pass_resources(root, backend, swapchain_extent);
 
+    std::vector<const char*> mesh_filenames = {
+        "res/model/teapot.obj",
+        "res/model/suzanne.obj",
+        "res/model/dragon.obj",
+    };
+
     std::vector<Mesh2> mesh2_instances;
-    load_meshes(backend, mesh_cache, mesh2_instances);
+    load_meshes(backend, mesh_cache, mesh_filenames, mesh2_instances);
 
     std::vector<const char*> texture_filenames = {
         "res/texture/default.dds",
@@ -73,8 +79,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
     };
 
     std::vector<ResourceHandle> texture_resource_handles(texture_filenames.size());
-    load_textures(root, backend, material_resources, static_cast<u32>(texture_filenames.size()),
-                  texture_filenames.data(), texture_resource_handles.data());
+    load_textures(root, backend, material_resources, texture_filenames, texture_resource_handles.data());
 
     // Create fence
     VkFenceCreateInfo fenceInfo = {

@@ -60,8 +60,8 @@ void              destroy_material_resources(VulkanBackend& backend, MaterialRes
 
 using ResourceHandle = u32;
 
-void load_textures(ReaperRoot& root, VulkanBackend& backend, MaterialResources& resources, u32 texture_count,
-                   const char** texture_filenames, ResourceHandle* output_handles);
+void load_textures(ReaperRoot& root, VulkanBackend& backend, MaterialResources& resources,
+                   nonstd::span<const char*> texture_filenames, ResourceHandle* output_handles);
 
 // handles will contain which texture to bind for each descriptor slot
 void update_material_descriptor_set(VulkanBackend& backend, const MaterialResources& resources,

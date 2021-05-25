@@ -9,6 +9,7 @@
 
 #include "Buffer.h"
 
+#include <nonstd/span.hpp>
 #include <vector>
 
 #include "renderer/Mesh2.h"
@@ -41,5 +42,6 @@ void      destroy_mesh_cache(VulkanBackend& backend, const MeshCache& mesh_cache
 
 struct MeshAlloc;
 
-void load_meshes(VulkanBackend& backend, MeshCache& mesh_cache, std::vector<Mesh2>& mesh2_instances);
+void load_meshes(VulkanBackend& backend, MeshCache& mesh_cache, nonstd::span<const char*> mesh_filenames,
+                 std::vector<Mesh2>& mesh2_output);
 } // namespace Reaper
