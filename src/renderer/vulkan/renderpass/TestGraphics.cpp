@@ -51,12 +51,20 @@ namespace Reaper
 {
 void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResources& resources)
 {
-    std::vector<Mesh2> mesh2_instances;
+    const glm::uvec2 swapchain_extent(backend.presentInfo.surfaceExtent.width,
+                                      backend.presentInfo.surfaceExtent.height);
+
     MeshCache          mesh_cache = create_mesh_cache(root, backend);
+    MaterialResources  material_resources = create_material_resources(root, backend);
+    CullResources      cull_resources = create_culling_resources(root, backend);
+    ShadowMapResources shadow_map_resources = create_shadow_map_resources(root, backend);
+    MainPassResources  main_pass_resources =
+        create_main_pass_resources(root, backend, swapchain_extent, material_resources.descSetLayout);
+    HistogramPassResources histogram_pass_resources = create_histogram_pass_resources(root, backend);
+    SwapchainPassResources swapchain_pass_resources = create_swapchain_pass_resources(root, backend, swapchain_extent);
 
+    std::vector<Mesh2> mesh2_instances;
     load_meshes(backend, mesh_cache, mesh2_instances);
-
-    MaterialResources material_resources = create_material_resources(root, backend);
 
     std::vector<const char*> texture_filenames = {
         "res/texture/default.dds",
@@ -67,19 +75,6 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
     std::vector<ResourceHandle> texture_resource_handles(texture_filenames.size());
     load_textures(root, backend, material_resources, static_cast<u32>(texture_filenames.size()),
                   texture_filenames.data(), texture_resource_handles.data());
-
-    CullResources cull_resources = create_culling_resources(root, backend);
-
-    ShadowMapResources shadow_map_resources = create_shadow_map_resources(root, backend);
-
-    const glm::uvec2  swapchain_extent(backend.presentInfo.surfaceExtent.width,
-                                      backend.presentInfo.surfaceExtent.height);
-    MainPassResources main_pass_resources =
-        create_main_pass_resources(root, backend, swapchain_extent, material_resources.descSetLayout);
-
-    HistogramPassResources histogram_pass_resources = create_histogram_pass_resources(root, backend);
-
-    SwapchainPassResources swapchain_pass_resources = create_swapchain_pass_resources(root, backend, swapchain_extent);
 
     // Create fence
     VkFenceCreateInfo fenceInfo = {
@@ -449,7 +444,6 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
     destroy_shadow_map_resources(backend, shadow_map_resources);
     destroy_culling_resources(backend, cull_resources);
     destroy_material_resources(backend, material_resources);
-
     destroy_mesh_cache(backend, mesh_cache);
 }
 } // namespace Reaper
