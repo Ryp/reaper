@@ -58,6 +58,16 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
 
     MaterialResources material_resources = create_material_resources(root, backend);
 
+    std::vector<const char*> texture_filenames = {
+        "res/texture/default.dds",
+        "res/texture/bricks_diffuse.dds",
+        "res/texture/bricks_specular.dds",
+    };
+
+    std::vector<ResourceHandle> texture_resource_handles(texture_filenames.size());
+    load_textures(root, backend, material_resources, static_cast<u32>(texture_filenames.size()),
+                  texture_filenames.data(), texture_resource_handles.data());
+
     CullResources cull_resources = create_culling_resources(root, backend);
 
     ShadowMapResources shadow_map_resources = create_shadow_map_resources(root, backend);
@@ -271,12 +281,12 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
             upload_histogram_frame_resources(backend, histogram_pass_resources, backbufferExtent);
             upload_swapchain_frame_resources(backend, prepared, swapchain_pass_resources);
 
+            update_material_descriptor_set(backend, material_resources, texture_resource_handles);
             update_culling_pass_descriptor_sets(backend, prepared, cull_resources, mesh_cache);
             update_shadow_map_pass_descriptor_sets(backend, prepared, shadow_map_resources);
             update_main_pass_descriptor_set(backend, main_pass_resources, shadow_map_resources.shadowMapView);
             update_histogram_pass_descriptor_set(backend, histogram_pass_resources, main_pass_resources.hdrBufferView);
             update_swapchain_pass_descriptor_set(backend, swapchain_pass_resources, main_pass_resources.hdrBufferView);
-            update_material_descriptor_set(backend, material_resources);
 
             log_debug(root, "vulkan: record command buffer");
             Assert(vkResetCommandBuffer(resources.gfxCmdBuffer, 0) == VK_SUCCESS);

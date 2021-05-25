@@ -24,6 +24,8 @@
 
 namespace Reaper
 {
+constexpr u32 DiffuseMapMaxCount = 8;
+
 namespace
 {
     PixelFormat get_dds_pixel_format(tinyddsloader::DDSFile::DXGIFormat dds_format)
@@ -191,11 +193,30 @@ namespace
         staging.bufferCopyRegions.clear();
         staging.staging_queue.clear();
     }
+
+    u32 load_texture(ReaperRoot& root, VulkanBackend& backend, MaterialResources& resources, const char* filename)
+    {
+        const u32        resource_index = resources.textures.size();
+        TextureResource& new_texture = resources.textures.emplace_back();
+
+        StagingEntry staging_entry = copy_texture_to_staging_area(root, backend, resources.staging, filename);
+
+        ImageInfo image_info =
+            create_image(root, backend.device, filename, staging_entry.texture_properties, backend.vma_instance);
+
+        staging_entry.target = image_info.handle;
+        resources.staging.staging_queue.push_back(staging_entry);
+
+        new_texture.texture = image_info;
+        new_texture.default_view = create_default_image_view(root, backend.device, image_info);
+
+        return resource_index;
+    }
 } // namespace
 
 MaterialResources create_material_resources(ReaperRoot& root, VulkanBackend& backend)
 {
-    constexpr u32 StagingBufferSizeBytes = 4_MiB;
+    constexpr u32 StagingBufferSizeBytes = 8_MiB;
 
     BufferInfo staging_buffer =
         create_buffer(root, backend.device, "Staging Buffer",
@@ -207,32 +228,6 @@ MaterialResources create_material_resources(ReaperRoot& root, VulkanBackend& bac
     staging.staging_buffer = staging_buffer;
 
     log_debug(root, "vulkan: copy texture to staging texture");
-
-    StagingEntry default_diffuse_entry =
-        copy_texture_to_staging_area(root, backend, staging, "res/texture/default.dds");
-    StagingEntry bricks_diffuse_entry =
-        copy_texture_to_staging_area(root, backend, staging, "res/texture/bricks_diffuse.dds");
-    StagingEntry bricks_roughness_entry =
-        copy_texture_to_staging_area(root, backend, staging, "res/texture/bricks_specular.dds");
-
-    ImageInfo default_diffuse = create_image(root, backend.device, "Default Diffuse Map",
-                                             default_diffuse_entry.texture_properties, backend.vma_instance);
-    ImageInfo bricks_diffuse = create_image(root, backend.device, "Bricks Diffuse Map",
-                                            bricks_diffuse_entry.texture_properties, backend.vma_instance);
-    ImageInfo bricks_roughness = create_image(root, backend.device, "Bricks Roughness Map",
-                                              bricks_roughness_entry.texture_properties, backend.vma_instance);
-
-    default_diffuse_entry.target = default_diffuse.handle;
-    bricks_diffuse_entry.target = bricks_diffuse.handle;
-    bricks_roughness_entry.target = bricks_roughness.handle;
-
-    staging.staging_queue.push_back(default_diffuse_entry);
-    staging.staging_queue.push_back(bricks_diffuse_entry);
-    staging.staging_queue.push_back(bricks_roughness_entry);
-
-    VkImageView default_diffuse_view = create_default_image_view(root, backend.device, default_diffuse);
-    VkImageView bricks_diffuse_view = create_default_image_view(root, backend.device, bricks_diffuse);
-    VkImageView bricks_roughness_view = create_default_image_view(root, backend.device, bricks_roughness);
 
     VkSamplerCreateInfo samplerCreateInfo = {};
     samplerCreateInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -253,8 +248,6 @@ MaterialResources create_material_resources(ReaperRoot& root, VulkanBackend& bac
     VkSampler sampler = VK_NULL_HANDLE;
     Assert(vkCreateSampler(backend.device, &samplerCreateInfo, nullptr, &sampler) == VK_SUCCESS);
     log_debug(root, "vulkan: created sampler with handle: {}", static_cast<void*>(sampler));
-
-    constexpr u32 DiffuseMapMaxCount = 8; // FIXME
 
     std::array<VkDescriptorSetLayoutBinding, 2> descriptorSetLayoutBinding = {
         VkDescriptorSetLayoutBinding{0, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
@@ -278,33 +271,72 @@ MaterialResources create_material_resources(ReaperRoot& root, VulkanBackend& bac
 
     return MaterialResources{
         staging,
-        default_diffuse,
-        default_diffuse_view,
-        bricks_diffuse,
-        bricks_diffuse_view,
-        bricks_roughness,
-        bricks_roughness_view,
+        {},
         sampler,
         descriptorSetLayoutCB,
         create_material_descriptor_set(root, backend, descriptorSetLayoutCB),
     };
 }
 
-void destroy_material_resources(VulkanBackend& backend, const MaterialResources& resources)
+void destroy_material_resources(VulkanBackend& backend, MaterialResources& resources)
 {
-    vkDestroyImageView(backend.device, resources.default_diffuse_view, nullptr);
-    vmaDestroyImage(backend.vma_instance, resources.default_diffuse.handle, resources.default_diffuse.allocation);
-
-    vkDestroyImageView(backend.device, resources.bricks_diffuse_view, nullptr);
-    vmaDestroyImage(backend.vma_instance, resources.bricks_diffuse.handle, resources.bricks_diffuse.allocation);
-    vkDestroyImageView(backend.device, resources.bricks_roughness_view, nullptr);
-    vmaDestroyImage(backend.vma_instance, resources.bricks_roughness.handle, resources.bricks_roughness.allocation);
+    for (const auto& texture : resources.textures)
+    {
+        vkDestroyImageView(backend.device, texture.default_view, nullptr);
+        vmaDestroyImage(backend.vma_instance, texture.texture.handle, texture.texture.allocation);
+    }
+    resources.textures.clear();
 
     vkDestroySampler(backend.device, resources.diffuseMapSampler, nullptr);
     vkDestroyDescriptorSetLayout(backend.device, resources.descSetLayout, nullptr);
 
     vmaDestroyBuffer(backend.vma_instance, resources.staging.staging_buffer.buffer,
                      resources.staging.staging_buffer.allocation);
+}
+
+void load_textures(ReaperRoot& root, VulkanBackend& backend, MaterialResources& resources, u32 texture_count,
+                   const char** texture_filenames, ResourceHandle* output_handles)
+{
+    for (u32 i = 0; i < texture_count; i++)
+    {
+        output_handles[i] = load_texture(root, backend, resources, texture_filenames[i]);
+    }
+}
+
+void update_material_descriptor_set(VulkanBackend& backend, const MaterialResources& resources,
+                                    nonstd::span<const ResourceHandle> handles)
+{
+    std::vector<VkDescriptorImageInfo> descriptor_maps;
+
+    for (auto handle : handles)
+    {
+        VkImageView image_view = resources.textures[handle].default_view;
+        descriptor_maps.push_back({VK_NULL_HANDLE, image_view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL});
+    }
+
+    Assert(descriptor_maps.size() <= DiffuseMapMaxCount);
+
+    const VkWriteDescriptorSet diffuseMapBindlessImageWrite = {
+        VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+        nullptr,
+        resources.descriptor_set,
+        1,
+        0,
+        static_cast<u32>(descriptor_maps.size()),
+        VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+        descriptor_maps.data(),
+        nullptr,
+        nullptr,
+    };
+
+    const VkDescriptorImageInfo diffuseMapSampler = {resources.diffuseMapSampler, VK_NULL_HANDLE,
+                                                     VK_IMAGE_LAYOUT_UNDEFINED};
+
+    std::vector<VkWriteDescriptorSet> writes = {
+        create_image_descriptor_write(resources.descriptor_set, 0, VK_DESCRIPTOR_TYPE_SAMPLER, &diffuseMapSampler),
+        diffuseMapBindlessImageWrite};
+
+    vkUpdateDescriptorSets(backend.device, static_cast<u32>(writes.size()), writes.data(), 0, nullptr);
 }
 
 void record_material_upload_command_buffer(VulkanBackend& backend, ResourceStagingArea& staging,
@@ -341,35 +373,5 @@ void record_material_upload_command_buffer(VulkanBackend& backend, ResourceStagi
     }
 
     flush_staging_area_state(staging);
-}
-
-void update_material_descriptor_set(VulkanBackend& backend, const MaterialResources& resources)
-{
-    const VkDescriptorImageInfo diffuseMapSampler = {resources.diffuseMapSampler, VK_NULL_HANDLE,
-                                                     VK_IMAGE_LAYOUT_UNDEFINED};
-
-    std::vector<VkDescriptorImageInfo> diffuseMaps;
-    diffuseMaps.push_back({VK_NULL_HANDLE, resources.default_diffuse_view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL});
-    diffuseMaps.push_back({VK_NULL_HANDLE, resources.bricks_diffuse_view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL});
-    diffuseMaps.push_back({VK_NULL_HANDLE, resources.bricks_roughness_view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL});
-
-    const VkWriteDescriptorSet diffuseMapBindlessImageWrite = {
-        VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-        nullptr,
-        resources.descriptor_set,
-        1,
-        0,
-        static_cast<u32>(diffuseMaps.size()),
-        VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-        diffuseMaps.data(),
-        nullptr,
-        nullptr,
-    };
-
-    std::vector<VkWriteDescriptorSet> writes = {
-        create_image_descriptor_write(resources.descriptor_set, 0, VK_DESCRIPTOR_TYPE_SAMPLER, &diffuseMapSampler),
-        diffuseMapBindlessImageWrite};
-
-    vkUpdateDescriptorSets(backend.device, static_cast<u32>(writes.size()), writes.data(), 0, nullptr);
 }
 } // namespace Reaper

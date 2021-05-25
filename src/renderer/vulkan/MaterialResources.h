@@ -11,6 +11,7 @@
 #include "renderer/vulkan/Image.h"
 #include "renderer/vulkan/api/Vulkan.h"
 
+#include <nonstd/span.hpp>
 #include <vector>
 
 namespace Reaper
@@ -33,17 +34,17 @@ struct ResourceStagingArea
     std::vector<StagingEntry> staging_queue;
 };
 
+struct TextureResource
+{
+    ImageInfo   texture;
+    VkImageView default_view;
+};
+
 struct MaterialResources
 {
     ResourceStagingArea staging;
 
-    ImageInfo   default_diffuse;
-    VkImageView default_diffuse_view;
-
-    ImageInfo   bricks_diffuse;
-    VkImageView bricks_diffuse_view;
-    ImageInfo   bricks_roughness;
-    VkImageView bricks_roughness_view;
+    std::vector<TextureResource> textures;
 
     VkSampler diffuseMapSampler;
 
@@ -55,10 +56,17 @@ struct VulkanBackend;
 struct ReaperRoot;
 
 MaterialResources create_material_resources(ReaperRoot& root, VulkanBackend& backend);
-void              destroy_material_resources(VulkanBackend& backend, const MaterialResources& resources);
+void              destroy_material_resources(VulkanBackend& backend, MaterialResources& resources);
+
+using ResourceHandle = u32;
+
+void load_textures(ReaperRoot& root, VulkanBackend& backend, MaterialResources& resources, u32 texture_count,
+                   const char** texture_filenames, ResourceHandle* output_handles);
+
+// handles will contain which texture to bind for each descriptor slot
+void update_material_descriptor_set(VulkanBackend& backend, const MaterialResources& resources,
+                                    nonstd::span<const ResourceHandle> handles);
 
 void record_material_upload_command_buffer(VulkanBackend& backend, ResourceStagingArea& staging,
                                            VkCommandBuffer cmdBuffer);
-
-void update_material_descriptor_set(VulkanBackend& backend, const MaterialResources& resources);
 } // namespace Reaper
