@@ -269,8 +269,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
             upload_shadow_map_resources(backend, prepared, shadow_map_resources);
             upload_main_pass_frame_resources(backend, prepared, main_pass_resources);
             upload_histogram_frame_resources(backend, histogram_pass_resources, backbufferExtent);
-            upload_buffer_data(backend.device, backend.vma_instance, swapchain_pass_resources.passConstantBuffer,
-                               &prepared.swapchain_pass_params, sizeof(SwapchainPassParams));
+            upload_swapchain_frame_resources(backend, prepared, swapchain_pass_resources);
 
             update_culling_pass_descriptor_sets(backend, prepared, cull_resources, mesh_cache);
             update_shadow_map_pass_descriptor_sets(backend, prepared, shadow_map_resources);

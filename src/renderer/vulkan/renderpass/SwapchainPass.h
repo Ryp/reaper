@@ -57,6 +57,11 @@ void resize_swapchain_pass_resources(ReaperRoot& root, VulkanBackend& backend, S
 void update_swapchain_pass_descriptor_set(VulkanBackend& backend, const SwapchainPassResources& resources,
                                           VkImageView texture_view);
 
+struct PreparedData;
+
+void upload_swapchain_frame_resources(VulkanBackend& backend, const PreparedData& prepared,
+                                      const SwapchainPassResources& pass_resources);
+
 struct FrameData;
 
 void record_swapchain_command_buffer(VkCommandBuffer cmdBuffer, const FrameData& frame_data,

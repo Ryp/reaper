@@ -15,6 +15,7 @@
 #include "renderer/vulkan/Image.h"
 #include "renderer/vulkan/MaterialResources.h"
 #include "renderer/vulkan/MeshCache.h"
+#include "renderer/vulkan/RenderPassHelpers.h"
 #include "renderer/vulkan/Shader.h"
 #include "renderer/vulkan/SwapchainRendererBase.h"
 
@@ -29,46 +30,6 @@ namespace Reaper
 {
 constexpr u32  DrawInstanceCountMax = 512;
 constexpr bool UseReverseZ = true;
-
-namespace
-{
-    // FIXME dedup
-    VkViewport default_vk_viewport(VkRect2D output_rect)
-    {
-        return VkViewport{static_cast<float>(output_rect.offset.x),
-                          static_cast<float>(output_rect.offset.y),
-                          static_cast<float>(output_rect.extent.width),
-                          static_cast<float>(output_rect.extent.height),
-                          0.0f,
-                          1.0f};
-    }
-
-    // FIXME dedup
-    VkRect2D default_vk_rect(VkExtent2D image_extent) { return VkRect2D{{0, 0}, image_extent}; }
-
-    // FIXME dedup
-    VkClearValue VkClearColor(const glm::vec4& color)
-    {
-        VkClearValue clearValue;
-
-        clearValue.color.float32[0] = color.x;
-        clearValue.color.float32[1] = color.y;
-        clearValue.color.float32[2] = color.z;
-        clearValue.color.float32[3] = color.w;
-
-        return clearValue;
-    }
-
-    VkClearValue VkClearDepthStencil(float depth, u32 stencil)
-    {
-        VkClearValue clearValue;
-
-        clearValue.depthStencil.depth = depth;
-        clearValue.depthStencil.stencil = stencil;
-
-        return clearValue;
-    }
-} // namespace
 
 MainPipelineInfo create_main_pipeline(ReaperRoot& root, VulkanBackend& backend, VkRenderPass renderPass,
                                       VkDescriptorSetLayout material_descriptor_set_layout)
@@ -385,25 +346,6 @@ namespace
         Assert(vkCreateRenderPass2(backend.device, &renderPassInfo, nullptr, &renderPass) == VK_SUCCESS);
 
         return renderPass;
-    }
-
-    // FIXME de-duplicate
-    VkFramebufferAttachmentImageInfo get_attachment_info_from_image_properties(const GPUTextureProperties& properties,
-                                                                               VkFormat* output_format_ptr)
-    {
-        *output_format_ptr = PixelFormatToVulkan(properties.format);
-
-        return VkFramebufferAttachmentImageInfo{
-            VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENT_IMAGE_INFO,
-            nullptr,
-            GetVulkanCreateFlags(properties),           // VkImageCreateFlags    flags;
-            GetVulkanUsageFlags(properties.usageFlags), // VkImageUsageFlags     usage;
-            properties.width,                           // uint32_t              width;
-            properties.height,                          // uint32_t              height;
-            1,                                          // uint32_t              layerCount;
-            1,                                          // uint32_t              viewFormatCount;
-            output_format_ptr                           // const VkFormat*       pViewFormats;
-        };
     }
 
     VkFramebuffer create_main_framebuffer(VulkanBackend& backend, MainPassResources& resources)

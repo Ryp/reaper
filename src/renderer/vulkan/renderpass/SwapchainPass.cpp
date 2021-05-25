@@ -10,7 +10,9 @@
 #include "Frame.h"
 #include "ShadowConstants.h"
 
+#include "renderer/PrepareBuckets.h"
 #include "renderer/vulkan/Image.h"
+#include "renderer/vulkan/RenderPassHelpers.h"
 #include "renderer/vulkan/Shader.h"
 #include "renderer/vulkan/SwapchainRendererBase.h"
 
@@ -328,25 +330,6 @@ namespace
         return renderPass;
     }
 
-    // FIXME de-duplicate
-    VkFramebufferAttachmentImageInfo get_attachment_info_from_image_properties(const GPUTextureProperties& properties,
-                                                                               VkFormat* output_format_ptr)
-    {
-        *output_format_ptr = PixelFormatToVulkan(properties.format);
-
-        return VkFramebufferAttachmentImageInfo{
-            VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENT_IMAGE_INFO,
-            nullptr,
-            GetVulkanCreateFlags(properties),           // VkImageCreateFlags    flags;
-            GetVulkanUsageFlags(properties.usageFlags), // VkImageUsageFlags     usage;
-            properties.width,                           // uint32_t              width;
-            properties.height,                          // uint32_t              height;
-            1,                                          // uint32_t              layerCount;
-            1,                                          // uint32_t              viewFormatCount;
-            output_format_ptr                           // const VkFormat*       pViewFormats;
-        };
-    }
-
     VkFramebuffer create_swapchain_framebuffer(VulkanBackend& backend, SwapchainPassResources& resources)
     {
         std::array<VkFormat, 1>                         formats; // Kept alive until vkCreateFramebuffer() call
@@ -501,22 +484,12 @@ void update_swapchain_pass_descriptor_set(VulkanBackend& backend, const Swapchai
     vkUpdateDescriptorSets(backend.device, static_cast<u32>(writes.size()), writes.data(), 0, nullptr);
 }
 
-namespace
+void upload_swapchain_frame_resources(VulkanBackend& backend, const PreparedData& prepared,
+                                      const SwapchainPassResources& pass_resources)
 {
-    // FIXME dedup
-    VkRect2D default_vk_rect(VkExtent2D image_extent) { return VkRect2D{{0, 0}, image_extent}; }
-
-    // FIXME dedup
-    VkViewport default_vk_viewport(VkRect2D output_rect)
-    {
-        return VkViewport{static_cast<float>(output_rect.offset.x),
-                          static_cast<float>(output_rect.offset.y),
-                          static_cast<float>(output_rect.extent.width),
-                          static_cast<float>(output_rect.extent.height),
-                          0.0f,
-                          1.0f};
-    }
-} // namespace
+    upload_buffer_data(backend.device, backend.vma_instance, pass_resources.passConstantBuffer,
+                       &prepared.swapchain_pass_params, sizeof(SwapchainPassParams));
+}
 
 void record_swapchain_command_buffer(VkCommandBuffer cmdBuffer, const FrameData& frame_data,
                                      const SwapchainPassResources& pass_resources, VkImageView swapchain_buffer_view)

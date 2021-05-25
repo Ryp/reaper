@@ -13,6 +13,7 @@
 #include "renderer/PrepareBuckets.h"
 #include "renderer/texture/GPUTextureProperties.h"
 #include "renderer/vulkan/Image.h"
+#include "renderer/vulkan/RenderPassHelpers.h"
 #include "renderer/vulkan/Shader.h"
 #include "renderer/vulkan/SwapchainRendererBase.h"
 #include "renderer/vulkan/api/Vulkan.h"
@@ -34,31 +35,6 @@ constexpr u32  MaxShadowPassCount = 4;
 
 namespace
 {
-    // FIXME dedup
-    VkRect2D default_vk_rect(VkExtent2D image_extent) { return VkRect2D{{0, 0}, image_extent}; }
-
-    // FIXME dedup
-    VkViewport default_vk_viewport(VkRect2D output_rect)
-    {
-        return VkViewport{static_cast<float>(output_rect.offset.x),
-                          static_cast<float>(output_rect.offset.y),
-                          static_cast<float>(output_rect.extent.width),
-                          static_cast<float>(output_rect.extent.height),
-                          0.0f,
-                          1.0f};
-    }
-
-    // FIXME de-duplicate
-    VkClearValue VkClearDepthStencil(float depth, u32 stencil)
-    {
-        VkClearValue clearValue;
-
-        clearValue.depthStencil.depth = depth;
-        clearValue.depthStencil.stencil = stencil;
-
-        return clearValue;
-    }
-
     VkRenderPass create_shadow_raster_pass(ReaperRoot& /*root*/, VulkanBackend& backend)
     {
         constexpr u32 depth_index = 0;
