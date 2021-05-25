@@ -15,12 +15,22 @@
 
 namespace Reaper
 {
+struct StagingEntry
+{
+    GPUTextureProperties texture_properties;
+    u32                  copy_command_offset;
+    u32                  copy_command_count;
+    VkImage              target;
+};
+
 struct ResourceStagingArea
 {
     u32        offset_bytes; // FIXME u32 enough?
     BufferInfo staging_buffer;
     // Setup buffer copy regions for each mip level
     std::vector<VkBufferImageCopy> bufferCopyRegions;
+
+    std::vector<StagingEntry> staging_queue;
 };
 
 struct MaterialResources
@@ -44,8 +54,11 @@ struct MaterialResources
 struct VulkanBackend;
 struct ReaperRoot;
 
-MaterialResources create_material_resources(ReaperRoot& root, VulkanBackend& backend, VkCommandBuffer cmdBuffer);
+MaterialResources create_material_resources(ReaperRoot& root, VulkanBackend& backend);
 void              destroy_material_resources(VulkanBackend& backend, const MaterialResources& resources);
+
+void record_material_upload_command_buffer(VulkanBackend& backend, ResourceStagingArea& staging,
+                                           VkCommandBuffer cmdBuffer);
 
 void update_material_descriptor_set(VulkanBackend& backend, const MaterialResources& resources);
 } // namespace Reaper

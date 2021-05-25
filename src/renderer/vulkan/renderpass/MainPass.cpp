@@ -21,6 +21,8 @@
 #include "common/Log.h"
 #include "common/ReaperRoot.h"
 
+#include "core/Profile.h"
+
 #include "renderer/shader/share/draw.hlsl"
 
 namespace Reaper
@@ -620,7 +622,7 @@ void record_main_pass_command_buffer(const CullOptions& cull_options, VkCommandB
                                      const CullResources& cull_resources, const MaterialResources& material_resources,
                                      const MeshCache& mesh_cache, VkExtent2D backbufferExtent)
 {
-    // REAPER_PROFILE_SCOPE_GPU(pGpuLog, "Draw Pass", MP_DARKGOLDENROD);
+    REAPER_PROFILE_SCOPE_GPU("Main Pass", MP_DARKGOLDENROD);
 
     const float                 depthClearValue = UseReverseZ ? 0.f : 1.f;
     const glm::fvec4            clearColor = {0.1f, 0.1f, 0.1f, 0.0f};

@@ -17,6 +17,8 @@
 #include "common/Log.h"
 #include "common/ReaperRoot.h"
 
+#include "core/Profile.h"
+
 #include "renderer/shader/share/color_space.hlsl"
 #include "renderer/shader/share/hdr.hlsl"
 
@@ -167,6 +169,8 @@ void upload_histogram_frame_resources(VulkanBackend& backend, const HistogramPas
 void record_histogram_command_buffer(VkCommandBuffer cmdBuffer, const FrameData& frame_data,
                                      const HistogramPassResources& pass_resources)
 {
+    REAPER_PROFILE_SCOPE_GPU("Histogram Pass", MP_DARKGOLDENROD);
+
     vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pass_resources.histogramPipe.pipeline);
 
     vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pass_resources.histogramPipe.pipelineLayout, 0,

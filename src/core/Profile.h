@@ -10,7 +10,7 @@
 #if defined(REAPER_USE_MICROPROFILE)
 #    include "microprofile.h"
 #    define REAPER_PROFILE_SCOPE(group, color) MICROPROFILE_SCOPEI(group, __func__, color)
-#    define REAPER_PROFILE_SCOPE_GPU(gpu_log, name, color) MICROPROFILE_SCOPEGPUI_L(gpu_log, name, color)
+#    define REAPER_PROFILE_SCOPE_GPU(name, color) MICROPROFILE_SCOPEGPUI(name, color)
 #else
 #    define REAPER_PROFILE_SCOPE(group, color) \
         do                                     \

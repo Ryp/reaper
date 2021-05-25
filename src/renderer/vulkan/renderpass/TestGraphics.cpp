@@ -74,9 +74,6 @@ namespace
     }
 } // namespace
 
-namespace
-{} // namespace
-
 void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResources& resources)
 {
     std::vector<Mesh2> mesh2_instances;
@@ -84,7 +81,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
 
     load_meshes(backend, mesh_cache, mesh2_instances);
 
-    MaterialResources material_resources = create_material_resources(root, backend, resources.gfxCmdBuffer);
+    MaterialResources material_resources = create_material_resources(root, backend);
 
     CullResources cull_resources = create_culling_resources(root, backend);
 
@@ -238,8 +235,8 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                 log_debug(root, "vulkan: wait for fence");
                 VkResult waitResult;
                 {
-                    REAPER_PROFILE_SCOPE("Vulkan", MP_ORANGE);
-                    const u64 waitTimeoutUs = 100000000;
+                    REAPER_PROFILE_SCOPE("Wait", MP_BLUE);
+                    const u64 waitTimeoutUs = 300000000;
                     waitResult = vkWaitForFences(backend.device, 1, &drawFence, VK_TRUE, waitTimeoutUs);
                 }
 
@@ -319,33 +316,30 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
             Assert(vkBeginCommandBuffer(resources.gfxCmdBuffer, &cmdBufferBeginInfo) == VK_SUCCESS);
 
 #if defined(REAPER_USE_MICROPROFILE)
-            MicroProfileThreadLogGpu* pGpuLog = MicroProfileThreadLogGpuAlloc();
-            MICROPROFILE_GPU_BEGIN(resources.gfxCmdBuffer, pGpuLog);
-            MICROPROFILE_GPU_ENTERI_L(pGpuLog, "GPU", "Frame", MP_BLUE2);
+            MICROPROFILE_GPU_SET_CONTEXT(resources.gfxCmdBuffer, MicroProfileGetGlobalGpuThreadLog());
 #endif
+
+            record_material_upload_command_buffer(backend, material_resources.staging, resources.gfxCmdBuffer);
 
             if (mustTransitionSwapchain)
             {
-                REAPER_PROFILE_SCOPE_GPU(pGpuLog, "Barrier", MP_RED);
+                REAPER_PROFILE_SCOPE_GPU("Barrier", MP_RED);
 
                 cmd_transition_swapchain_layout(backend, resources.gfxCmdBuffer);
                 mustTransitionSwapchain = false;
             }
 
-            // Culling
             record_culling_command_buffer(cull_options, resources.gfxCmdBuffer, prepared, cull_resources);
 
-            // Shadow pass
             record_shadow_map_command_buffer(cull_options, resources.gfxCmdBuffer, backend, prepared,
                                              shadow_map_resources, cull_resources,
                                              mesh_cache.vertexBufferPosition.buffer);
 
-            // Draw pass
             record_main_pass_command_buffer(cull_options, resources.gfxCmdBuffer, prepared, main_pass_resources,
                                             cull_resources, material_resources, mesh_cache, backbufferExtent);
 
             {
-                REAPER_PROFILE_SCOPE_GPU(pGpuLog, "Barrier", MP_RED);
+                REAPER_PROFILE_SCOPE_GPU("Barrier", MP_RED);
 
                 VkImageMemoryBarrier hdrImageBarrierInfo = {
                     VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
@@ -364,30 +358,12 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                                      &hdrImageBarrierInfo);
             }
 
-            // Histogram pass
-            {
-                REAPER_PROFILE_SCOPE_GPU(pGpuLog, "Histogram Pass", MP_DARKGOLDENROD);
+            record_histogram_command_buffer(resources.gfxCmdBuffer, frame_data, histogram_pass_resources);
 
-                record_histogram_command_buffer(resources.gfxCmdBuffer, frame_data, histogram_pass_resources);
-            }
-
-            // Swapchain output pass
-            {
-                REAPER_PROFILE_SCOPE_GPU(pGpuLog, "Swapchain Pass", MP_DARKGOLDENROD);
-
-                VkImageView swapchain_buffer_view = backend.presentInfo.imageViews[current_swapchain_index];
-
-                record_swapchain_command_buffer(resources.gfxCmdBuffer, frame_data, swapchain_pass_resources,
-                                                swapchain_buffer_view);
-            }
+            record_swapchain_command_buffer(resources.gfxCmdBuffer, frame_data, swapchain_pass_resources,
+                                            backend.presentInfo.imageViews[current_swapchain_index]);
 
 #if defined(REAPER_USE_MICROPROFILE)
-            MICROPROFILE_GPU_LEAVE_L(pGpuLog);
-
-            const u64 microprofile_data = MicroProfileGpuEnd(pGpuLog);
-            MicroProfileThreadLogGpuFree(pGpuLog);
-
-            MICROPROFILE_GPU_SUBMIT(MicroProfileGetGlobalGpuQueue(), microprofile_data);
             MicroProfileFlip(resources.gfxCmdBuffer);
 #endif
 
@@ -442,7 +418,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
 
             if (saveMyLaptop)
             {
-                REAPER_PROFILE_SCOPE("Vulkan", MP_GREEN);
+                REAPER_PROFILE_SCOPE("Battery saver wait", MP_GREEN);
                 std::this_thread::sleep_for(std::chrono::milliseconds(60));
             }
 

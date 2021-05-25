@@ -17,6 +17,8 @@
 #include "common/Log.h"
 #include "common/ReaperRoot.h"
 
+#include "core/Profile.h"
+
 #include <array>
 
 #include <glm/gtc/matrix_transform.hpp>
@@ -478,7 +480,7 @@ void update_culling_pass_descriptor_sets(VulkanBackend& backend, const PreparedD
 void record_culling_command_buffer(const CullOptions& options, VkCommandBuffer cmdBuffer, const PreparedData& prepared,
                                    CullResources& resources)
 {
-    // REAPER_PROFILE_SCOPE_GPU(pGpuLog, "Culling Pass", MP_DARKGOLDENROD);
+    REAPER_PROFILE_SCOPE_GPU("Culling Pass", MP_DARKGOLDENROD);
 
     if (!options.freeze_culling)
     {
@@ -503,13 +505,13 @@ void record_culling_command_buffer(const CullOptions& options, VkCommandBuffer c
     }
 
     {
-        // REAPER_PROFILE_SCOPE_GPU(pGpuLog, "Barrier", MP_RED);
+        REAPER_PROFILE_SCOPE_GPU("Barrier", MP_RED);
         cmd_insert_compute_to_compute_barrier(cmdBuffer);
     }
 
     // Compaction prepare pass
     {
-        // REAPER_PROFILE_SCOPE_GPU(pGpuLog, "Cull Compaction Prepare", MP_DARKGOLDENROD);
+        REAPER_PROFILE_SCOPE_GPU("Cull Compaction Prepare", MP_DARKGOLDENROD);
 
         vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, resources.compactPrepPipe.pipeline);
 
@@ -525,13 +527,13 @@ void record_culling_command_buffer(const CullOptions& options, VkCommandBuffer c
     }
 
     {
-        // REAPER_PROFILE_SCOPE_GPU(pGpuLog, "Barrier", MP_RED);
+        REAPER_PROFILE_SCOPE_GPU("Barrier", MP_RED);
         cmd_insert_compute_to_compute_barrier(cmdBuffer);
     }
 
     // Compaction pass
     {
-        // REAPER_PROFILE_SCOPE_GPU(pGpuLog, "Cull Compaction", MP_DARKGOLDENROD);
+        REAPER_PROFILE_SCOPE_GPU("Cull Compaction", MP_DARKGOLDENROD);
 
         vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, resources.compactionPipe.pipeline);
 
@@ -547,7 +549,7 @@ void record_culling_command_buffer(const CullOptions& options, VkCommandBuffer c
     }
 
     {
-        // REAPER_PROFILE_SCOPE_GPU(pGpuLog, "Barrier", MP_RED);
+        REAPER_PROFILE_SCOPE_GPU("Barrier", MP_RED);
 
         std::array<VkMemoryBarrier, 1> memoryBarriers = {VkMemoryBarrier{
             VK_STRUCTURE_TYPE_MEMORY_BARRIER,

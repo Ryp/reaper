@@ -58,13 +58,6 @@ namespace
         }
     }
 
-    struct StagingEntry
-    {
-        GPUTextureProperties texture_properties;
-        u32                  copy_command_offset;
-        u32                  copy_command_count;
-    };
-
     StagingEntry copy_texture_to_staging_area(ReaperRoot& root, VulkanBackend& backend, ResourceStagingArea& staging,
                                               const char* file_path)
     {
@@ -123,14 +116,13 @@ namespace
         const u32 command_count = staging.bufferCopyRegions.size() - command_offset;
 
         return {
-            properties,
-            command_offset,
-            command_count,
+            properties, command_offset, command_count,
+            VK_NULL_HANDLE, // FIXME
         };
     }
 
-    void flush_pending_staging_commands(VulkanBackend& backend, ResourceStagingArea& staging, VkCommandBuffer cmdBuffer,
-                                        const StagingEntry& entry, VkImage output_image)
+    void flush_pending_staging_commands(VulkanBackend& backend, const ResourceStagingArea& staging,
+                                        VkCommandBuffer cmdBuffer, const StagingEntry& entry)
     {
         // The sub resource range describes the regions of the image that will be transitioned using the memory
         // barriers below Transition the texture image layout to transfer target, so we can safely copy our buffer
@@ -144,7 +136,7 @@ namespace
             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
             backend.physicalDeviceInfo.graphicsQueueIndex,
             backend.physicalDeviceInfo.graphicsQueueIndex,
-            output_image,
+            entry.target,
             {VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS}};
 
         // Insert a memory dependency at the proper pipeline stages that will execute the image layout transition
@@ -153,13 +145,13 @@ namespace
         vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_HOST_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0,
                              nullptr, 1, &imageMemoryBarrier);
 
-        const nonstd::span<VkBufferImageCopy> copy_regions(&staging.bufferCopyRegions[entry.copy_command_offset],
-                                                           entry.copy_command_count);
+        const nonstd::span<const VkBufferImageCopy> copy_regions(&staging.bufferCopyRegions[entry.copy_command_offset],
+                                                                 entry.copy_command_count);
 
         // Copy mip levels from staging buffer
         vkCmdCopyBufferToImage(cmdBuffer,
                                staging.staging_buffer.buffer,
-                               output_image,
+                               entry.target,
                                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                                static_cast<u32>(copy_regions.size()),
                                copy_regions.data());
@@ -192,9 +184,16 @@ namespace
 
         return descriptor_set;
     }
+
+    void flush_staging_area_state(ResourceStagingArea& staging)
+    {
+        staging.offset_bytes = 0;
+        staging.bufferCopyRegions.clear();
+        staging.staging_queue.clear();
+    }
 } // namespace
 
-MaterialResources create_material_resources(ReaperRoot& root, VulkanBackend& backend, VkCommandBuffer cmdBuffer)
+MaterialResources create_material_resources(ReaperRoot& root, VulkanBackend& backend)
 {
     constexpr u32 StagingBufferSizeBytes = 4_MiB;
 
@@ -209,13 +208,11 @@ MaterialResources create_material_resources(ReaperRoot& root, VulkanBackend& bac
 
     log_debug(root, "vulkan: copy texture to staging texture");
 
-    const StagingEntry default_diffuse_entry =
+    StagingEntry default_diffuse_entry =
         copy_texture_to_staging_area(root, backend, staging, "res/texture/default.dds");
-
-    const StagingEntry bricks_diffuse_entry =
+    StagingEntry bricks_diffuse_entry =
         copy_texture_to_staging_area(root, backend, staging, "res/texture/bricks_diffuse.dds");
-
-    const StagingEntry bricks_roughness_entry =
+    StagingEntry bricks_roughness_entry =
         copy_texture_to_staging_area(root, backend, staging, "res/texture/bricks_specular.dds");
 
     ImageInfo default_diffuse = create_image(root, backend.device, "Default Diffuse Map",
@@ -225,70 +222,13 @@ MaterialResources create_material_resources(ReaperRoot& root, VulkanBackend& bac
     ImageInfo bricks_roughness = create_image(root, backend.device, "Bricks Roughness Map",
                                               bricks_roughness_entry.texture_properties, backend.vma_instance);
 
-    {
-        VkCommandBufferBeginInfo cmdBufferBeginInfo = {
-            VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, nullptr,
-            0,      // Not caring yet
-            nullptr // No inheritance yet
-        };
+    default_diffuse_entry.target = default_diffuse.handle;
+    bricks_diffuse_entry.target = bricks_diffuse.handle;
+    bricks_roughness_entry.target = bricks_roughness.handle;
 
-        Assert(vkResetCommandBuffer(cmdBuffer, 0) == VK_SUCCESS);
-
-        Assert(vkBeginCommandBuffer(cmdBuffer, &cmdBufferBeginInfo) == VK_SUCCESS);
-
-#if defined(REAPER_USE_MICROPROFILE)
-        MicroProfileThreadLogGpu* pGpuLog = MicroProfileThreadLogGpuAlloc();
-        MICROPROFILE_GPU_BEGIN(cmdBuffer, pGpuLog);
-        MICROPROFILE_GPU_ENTERI_L(pGpuLog, "GPU", "Upload", MP_BLUE2);
-#endif
-
-        {
-            REAPER_PROFILE_SCOPE_GPU(pGpuLog, "Upload", MP_DARKGOLDENROD);
-
-            flush_pending_staging_commands(backend, staging, cmdBuffer, bricks_diffuse_entry, bricks_diffuse.handle);
-            flush_pending_staging_commands(backend, staging, cmdBuffer, bricks_roughness_entry,
-                                           bricks_roughness.handle);
-            flush_pending_staging_commands(backend, staging, cmdBuffer, default_diffuse_entry, default_diffuse.handle);
-        }
-
-        {
-            REAPER_PROFILE_SCOPE_GPU(pGpuLog, "Image Barriers", MP_RED);
-
-            std::vector<VkImageMemoryBarrier> prerender_barriers;
-
-            prerender_barriers.push_back(prerender_barrier(backend, default_diffuse.handle));
-            prerender_barriers.push_back(prerender_barrier(backend, bricks_diffuse.handle));
-            prerender_barriers.push_back(prerender_barrier(backend, bricks_roughness.handle));
-
-            // Insert a memory dependency at the proper pipeline stages that will execute the image layout
-            // transition Source pipeline stage is host write/read execution (VK_PIPELINE_STAGE_HOST_BIT)
-            // Destination pipeline stage is copy command execution (VK_PIPELINE_STAGE_TRANSFER_BIT)
-            vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0,
-                                 nullptr, 0, nullptr, static_cast<u32>(prerender_barriers.size()),
-                                 prerender_barriers.data());
-        }
-
-#if defined(REAPER_USE_MICROPROFILE)
-        MICROPROFILE_GPU_LEAVE_L(pGpuLog);
-
-        const u64 microprofile_data = MicroProfileGpuEnd(pGpuLog);
-        MicroProfileThreadLogGpuFree(pGpuLog);
-
-        MICROPROFILE_GPU_SUBMIT(MicroProfileGetGlobalGpuQueue(), microprofile_data);
-        MicroProfileFlip(cmdBuffer);
-#endif
-
-        Assert(vkEndCommandBuffer(cmdBuffer) == VK_SUCCESS);
-
-        VkSubmitInfo submitInfo = {
-            VK_STRUCTURE_TYPE_SUBMIT_INFO, nullptr, 0, nullptr, nullptr, 1, &cmdBuffer, 0, nullptr};
-
-        log_debug(root, "vulkan: submit commands");
-        Assert(vkQueueSubmit(backend.deviceInfo.graphicsQueue, 1, &submitInfo, nullptr) == VK_SUCCESS);
-
-        log_debug(root, "vulkan: wait for idle queue");
-        Assert(vkQueueWaitIdle(backend.deviceInfo.graphicsQueue) == VK_SUCCESS);
-    }
+    staging.staging_queue.push_back(default_diffuse_entry);
+    staging.staging_queue.push_back(bricks_diffuse_entry);
+    staging.staging_queue.push_back(bricks_roughness_entry);
 
     VkImageView default_diffuse_view = create_default_image_view(root, backend.device, default_diffuse);
     VkImageView bricks_diffuse_view = create_default_image_view(root, backend.device, bricks_diffuse);
@@ -365,6 +305,42 @@ void destroy_material_resources(VulkanBackend& backend, const MaterialResources&
 
     vmaDestroyBuffer(backend.vma_instance, resources.staging.staging_buffer.buffer,
                      resources.staging.staging_buffer.allocation);
+}
+
+void record_material_upload_command_buffer(VulkanBackend& backend, ResourceStagingArea& staging,
+                                           VkCommandBuffer cmdBuffer)
+{
+    if (staging.staging_queue.empty())
+        return;
+
+    {
+        REAPER_PROFILE_SCOPE_GPU("Upload", MP_DARKGOLDENROD);
+
+        for (const auto& entry : staging.staging_queue)
+        {
+            flush_pending_staging_commands(backend, staging, cmdBuffer, entry);
+        }
+    }
+
+    {
+        REAPER_PROFILE_SCOPE_GPU("Image Barriers", MP_RED);
+
+        std::vector<VkImageMemoryBarrier> prerender_barriers;
+
+        for (const auto& entry : staging.staging_queue)
+        {
+            prerender_barriers.push_back(prerender_barrier(backend, entry.target));
+        }
+
+        // Insert a memory dependency at the proper pipeline stages that will execute the image layout
+        // transition Source pipeline stage is host write/read execution (VK_PIPELINE_STAGE_HOST_BIT)
+        // Destination pipeline stage is copy command execution (VK_PIPELINE_STAGE_TRANSFER_BIT)
+        vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0,
+                             nullptr, 0, nullptr, static_cast<u32>(prerender_barriers.size()),
+                             prerender_barriers.data());
+    }
+
+    flush_staging_area_state(staging);
 }
 
 void update_material_descriptor_set(VulkanBackend& backend, const MaterialResources& resources)

@@ -17,6 +17,8 @@
 #include "common/Log.h"
 #include "common/ReaperRoot.h"
 
+#include "core/Profile.h"
+
 #include "renderer/shader/share/color_space.hlsl"
 #include "renderer/shader/share/swapchain.hlsl"
 
@@ -519,6 +521,8 @@ namespace
 void record_swapchain_command_buffer(VkCommandBuffer cmdBuffer, const FrameData& frame_data,
                                      const SwapchainPassResources& pass_resources, VkImageView swapchain_buffer_view)
 {
+    REAPER_PROFILE_SCOPE_GPU("Swapchain Pass", MP_DARKGOLDENROD);
+
     const VkRect2D blitPassRect = default_vk_rect(frame_data.backbufferExtent);
 
     std::array<VkImageView, 1> main_pass_framebuffer_views = {swapchain_buffer_view};

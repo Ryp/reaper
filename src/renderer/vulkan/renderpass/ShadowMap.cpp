@@ -20,6 +20,8 @@
 #include "common/Log.h"
 #include "common/ReaperRoot.h"
 
+#include "core/Profile.h"
+
 #include <array>
 
 #include "renderer/shader/share/shadow_map_pass.hlsl"
@@ -501,7 +503,7 @@ void record_shadow_map_command_buffer(const CullOptions& cull_options, VkCommand
 {
     for (const ShadowPassData& shadow_pass : prepared.shadow_passes)
     {
-        // REAPER_PROFILE_SCOPE_GPU(pGpuLog, "Shadow Pass", MP_DARKGOLDENROD);
+        REAPER_PROFILE_SCOPE_GPU("Shadow Pass", MP_DARKGOLDENROD);
 
         const VkClearValue clearValue =
             VkClearDepthStencil(UseReverseZ ? 0.f : 1.f, 0); // NOTE: handle reverse Z more gracefully
@@ -568,7 +570,7 @@ void record_shadow_map_command_buffer(const CullOptions& cull_options, VkCommand
     }
 
     {
-        // REAPER_PROFILE_SCOPE_GPU(pGpuLog, "Barrier", MP_RED);
+        REAPER_PROFILE_SCOPE_GPU("Barrier", MP_RED);
 
         std::vector<VkImageMemoryBarrier> shadowMapImageBarrierInfo;
 
