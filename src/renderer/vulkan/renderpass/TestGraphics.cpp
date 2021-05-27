@@ -54,12 +54,11 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
     const glm::uvec2 swapchain_extent(backend.presentInfo.surfaceExtent.width,
                                       backend.presentInfo.surfaceExtent.height);
 
-    MeshCache          mesh_cache = create_mesh_cache(root, backend);
-    MaterialResources  material_resources = create_material_resources(root, backend);
-    CullResources      cull_resources = create_culling_resources(root, backend);
-    ShadowMapResources shadow_map_resources = create_shadow_map_resources(root, backend);
-    MainPassResources  main_pass_resources =
-        create_main_pass_resources(root, backend, swapchain_extent, material_resources.descSetLayout);
+    MeshCache              mesh_cache = create_mesh_cache(root, backend);
+    MaterialResources      material_resources = create_material_resources(root, backend);
+    CullResources          cull_resources = create_culling_resources(root, backend);
+    ShadowMapResources     shadow_map_resources = create_shadow_map_resources(root, backend);
+    MainPassResources      main_pass_resources = create_main_pass_resources(root, backend, swapchain_extent);
     HistogramPassResources histogram_pass_resources = create_histogram_pass_resources(root, backend);
     SwapchainPassResources swapchain_pass_resources = create_swapchain_pass_resources(root, backend, swapchain_extent);
 
@@ -281,10 +280,10 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
             upload_histogram_frame_resources(backend, histogram_pass_resources, backbufferExtent);
             upload_swapchain_frame_resources(backend, prepared, swapchain_pass_resources);
 
-            update_material_descriptor_set(backend, material_resources, texture_handles);
             update_culling_pass_descriptor_sets(backend, prepared, cull_resources, mesh_cache);
             update_shadow_map_pass_descriptor_sets(backend, prepared, shadow_map_resources);
-            update_main_pass_descriptor_set(backend, main_pass_resources, shadow_map_resources.shadowMapView);
+            update_main_pass_descriptor_sets(backend, main_pass_resources, material_resources,
+                                             shadow_map_resources.shadowMapView, texture_handles);
             update_histogram_pass_descriptor_set(backend, histogram_pass_resources, main_pass_resources.hdrBufferView);
             update_swapchain_pass_descriptor_set(backend, swapchain_pass_resources, main_pass_resources.hdrBufferView);
 
@@ -340,7 +339,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                                              mesh_cache.vertexBufferPosition.buffer);
 
             record_main_pass_command_buffer(cull_options, resources.gfxCmdBuffer, prepared, main_pass_resources,
-                                            cull_resources, material_resources, mesh_cache, backbufferExtent);
+                                            cull_resources, mesh_cache, backbufferExtent);
 
             {
                 REAPER_PROFILE_SCOPE_GPU("Barrier", MP_RED);

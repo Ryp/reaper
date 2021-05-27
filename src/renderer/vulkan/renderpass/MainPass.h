@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include "renderer/ResourceHandle.h"
 #include "renderer/vulkan/Buffer.h"
 #include "renderer/vulkan/Image.h"
 #include "renderer/vulkan/api/Vulkan.h"
@@ -24,14 +25,14 @@ struct MainPipelineInfo
     VkPipeline            pipeline;
     VkPipelineLayout      pipelineLayout;
     VkDescriptorSetLayout descSetLayout;
+    VkDescriptorSetLayout descSetLayout2;
 };
 
 struct ReaperRoot;
 struct VulkanBackend;
 struct GPUTextureProperties;
 
-MainPipelineInfo create_main_pipeline(ReaperRoot& root, VulkanBackend& backend, VkRenderPass renderPass,
-                                      VkDescriptorSetLayout material_descriptor_set_layout);
+MainPipelineInfo create_main_pipeline(ReaperRoot& root, VulkanBackend& backend, VkRenderPass renderPass);
 
 struct MainPassResources
 {
@@ -50,19 +51,24 @@ struct MainPassResources
     MainPipelineInfo mainPipe;
 
     VkSampler shadowMapSampler;
+    VkSampler diffuseMapSampler;
 
     VkDescriptorSet descriptor_set;
+    VkDescriptorSet material_descriptor_set;
 };
 
-MainPassResources create_main_pass_resources(ReaperRoot& root, VulkanBackend& backend, glm::uvec2 extent,
-                                             VkDescriptorSetLayout material_descriptor_set_layout);
+MainPassResources create_main_pass_resources(ReaperRoot& root, VulkanBackend& backend, glm::uvec2 extent);
 void              destroy_main_pass_resources(VulkanBackend& backend, MainPassResources& resources);
 
 void resize_main_pass_resources(ReaperRoot& root, VulkanBackend& backend, MainPassResources& resources,
                                 glm::uvec2 extent);
 
-void update_main_pass_descriptor_set(VulkanBackend& backend, const MainPassResources& resources,
-                                     const nonstd::span<VkImageView> shadow_map_views);
+struct MaterialResources;
+
+void update_main_pass_descriptor_sets(VulkanBackend& backend, const MainPassResources& resources,
+                                      const MaterialResources&          material_resources,
+                                      const nonstd::span<VkImageView>   shadow_map_views,
+                                      const nonstd::span<TextureHandle> handles);
 
 struct PreparedData;
 
@@ -72,10 +78,9 @@ void upload_main_pass_frame_resources(VulkanBackend& backend, const PreparedData
 struct CullOptions;
 struct CullResources;
 struct MeshCache;
-struct MaterialResources;
 
 void record_main_pass_command_buffer(const CullOptions& cull_options, VkCommandBuffer cmdBuffer,
                                      const PreparedData& prepared, const MainPassResources& pass_resources,
-                                     const CullResources& cull_resources, const MaterialResources& material_resources,
-                                     const MeshCache& mesh_cache, VkExtent2D backbufferExtent);
+                                     const CullResources& cull_resources, const MeshCache& mesh_cache,
+                                     VkExtent2D backbufferExtent);
 } // namespace Reaper

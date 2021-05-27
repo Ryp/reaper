@@ -24,8 +24,6 @@
 
 namespace Reaper
 {
-constexpr u32 DiffuseMapMaxCount = 8;
-
 namespace
 {
     PixelFormat get_dds_pixel_format(tinyddsloader::DDSFile::DXGIFormat dds_format)
@@ -174,19 +172,6 @@ namespace
             {VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS}};
     }
 
-    VkDescriptorSet create_material_descriptor_set(ReaperRoot& root, VulkanBackend& backend,
-                                                   VkDescriptorSetLayout layout)
-    {
-        VkDescriptorSetAllocateInfo descriptorSetAllocInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr,
-                                                              backend.global_descriptor_pool, 1, &layout};
-
-        VkDescriptorSet descriptor_set = VK_NULL_HANDLE;
-        Assert(vkAllocateDescriptorSets(backend.device, &descriptorSetAllocInfo, &descriptor_set) == VK_SUCCESS);
-        log_debug(root, "vulkan: created descriptor set with handle: {}", static_cast<void*>(descriptor_set));
-
-        return descriptor_set;
-    }
-
     void flush_staging_area_state(ResourceStagingArea& staging)
     {
         staging.offset_bytes = 0;
@@ -230,52 +215,9 @@ MaterialResources create_material_resources(ReaperRoot& root, VulkanBackend& bac
 
     log_debug(root, "vulkan: copy texture to staging texture");
 
-    VkSamplerCreateInfo samplerCreateInfo = {};
-    samplerCreateInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-    samplerCreateInfo.magFilter = VK_FILTER_LINEAR;
-    samplerCreateInfo.minFilter = VK_FILTER_LINEAR;
-    samplerCreateInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    samplerCreateInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    samplerCreateInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    samplerCreateInfo.anisotropyEnable = VK_TRUE;
-    samplerCreateInfo.anisotropyEnable = VK_FALSE; // FIXME enable at higher level
-    samplerCreateInfo.maxAnisotropy = 8;
-    samplerCreateInfo.unnormalizedCoordinates = VK_FALSE;
-    samplerCreateInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-    samplerCreateInfo.mipLodBias = 0.f;
-    samplerCreateInfo.minLod = 0.f;
-    samplerCreateInfo.maxLod = FLT_MAX;
-
-    VkSampler sampler = VK_NULL_HANDLE;
-    Assert(vkCreateSampler(backend.device, &samplerCreateInfo, nullptr, &sampler) == VK_SUCCESS);
-    log_debug(root, "vulkan: created sampler with handle: {}", static_cast<void*>(sampler));
-
-    std::array<VkDescriptorSetLayoutBinding, 2> descriptorSetLayoutBinding = {
-        VkDescriptorSetLayoutBinding{0, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
-        VkDescriptorSetLayoutBinding{1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, DiffuseMapMaxCount,
-                                     VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
-    };
-
-    std::array<VkDescriptorBindingFlags, 2> bindingFlags = {VK_FLAGS_NONE, VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT};
-
-    const VkDescriptorSetLayoutBindingFlagsCreateInfo descriptorSetLayoutBindingFlags = {
-        VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO, nullptr, bindingFlags.size(),
-        bindingFlags.data()};
-
-    const VkDescriptorSetLayoutCreateInfo descriptorSetLayoutInfo = {
-        VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, &descriptorSetLayoutBindingFlags, 0,
-        static_cast<u32>(descriptorSetLayoutBinding.size()), descriptorSetLayoutBinding.data()};
-
-    VkDescriptorSetLayout descriptorSetLayoutCB = VK_NULL_HANDLE;
-    Assert(vkCreateDescriptorSetLayout(backend.device, &descriptorSetLayoutInfo, nullptr, &descriptorSetLayoutCB)
-           == VK_SUCCESS);
-
     return MaterialResources{
         staging,
         {},
-        sampler,
-        descriptorSetLayoutCB,
-        create_material_descriptor_set(root, backend, descriptorSetLayoutCB),
     };
 }
 
@@ -287,9 +229,6 @@ void destroy_material_resources(VulkanBackend& backend, MaterialResources& resou
         vmaDestroyImage(backend.vma_instance, texture.texture.handle, texture.texture.allocation);
     }
     resources.textures.clear();
-
-    vkDestroySampler(backend.device, resources.diffuseMapSampler, nullptr);
-    vkDestroyDescriptorSetLayout(backend.device, resources.descSetLayout, nullptr);
 
     vmaDestroyBuffer(backend.vma_instance, resources.staging.staging_buffer.buffer,
                      resources.staging.staging_buffer.allocation);
@@ -304,42 +243,6 @@ void load_textures(ReaperRoot& root, VulkanBackend& backend, MaterialResources& 
     {
         output_handles[i] = load_texture(root, backend, resources, texture_filenames[i]);
     }
-}
-
-void update_material_descriptor_set(VulkanBackend& backend, const MaterialResources& resources,
-                                    const nonstd::span<TextureHandle> handles)
-{
-    std::vector<VkDescriptorImageInfo> descriptor_maps;
-
-    for (auto handle : handles)
-    {
-        VkImageView image_view = resources.textures[handle].default_view;
-        descriptor_maps.push_back({VK_NULL_HANDLE, image_view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL});
-    }
-
-    Assert(descriptor_maps.size() <= DiffuseMapMaxCount);
-
-    const VkWriteDescriptorSet diffuseMapBindlessImageWrite = {
-        VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-        nullptr,
-        resources.descriptor_set,
-        1,
-        0,
-        static_cast<u32>(descriptor_maps.size()),
-        VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-        descriptor_maps.data(),
-        nullptr,
-        nullptr,
-    };
-
-    const VkDescriptorImageInfo diffuseMapSampler = {resources.diffuseMapSampler, VK_NULL_HANDLE,
-                                                     VK_IMAGE_LAYOUT_UNDEFINED};
-
-    std::vector<VkWriteDescriptorSet> writes = {
-        create_image_descriptor_write(resources.descriptor_set, 0, VK_DESCRIPTOR_TYPE_SAMPLER, &diffuseMapSampler),
-        diffuseMapBindlessImageWrite};
-
-    vkUpdateDescriptorSets(backend.device, static_cast<u32>(writes.size()), writes.data(), 0, nullptr);
 }
 
 void record_material_upload_command_buffer(VulkanBackend& backend, ResourceStagingArea& staging,

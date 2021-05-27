@@ -46,11 +46,6 @@ struct MaterialResources
     ResourceStagingArea staging;
 
     std::vector<TextureResource> textures;
-
-    VkSampler diffuseMapSampler;
-
-    VkDescriptorSetLayout descSetLayout;
-    VkDescriptorSet       descriptor_set;
 };
 
 struct VulkanBackend;
@@ -61,10 +56,6 @@ void              destroy_material_resources(VulkanBackend& backend, MaterialRes
 
 void load_textures(ReaperRoot& root, VulkanBackend& backend, MaterialResources& resources,
                    nonstd::span<const char*> texture_filenames, nonstd::span<TextureHandle> output_handles);
-
-// handles will contain which texture to bind for each descriptor slot
-void update_material_descriptor_set(VulkanBackend& backend, const MaterialResources& resources,
-                                    const nonstd::span<TextureHandle> handles);
 
 void record_material_upload_command_buffer(VulkanBackend& backend, ResourceStagingArea& staging,
                                            VkCommandBuffer cmdBuffer);
