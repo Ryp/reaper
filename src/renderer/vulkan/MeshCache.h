@@ -22,7 +22,7 @@ namespace Reaper
 struct MeshCache
 {
     static constexpr u32 MAX_INDEX_COUNT = 1000000;
-    static constexpr u32 MAX_VERTEX_COUNT = 1000000;
+    static constexpr u32 MAX_VERTEX_COUNT = 2000000;
 
     BufferInfo vertexBufferPosition;
     BufferInfo vertexBufferNormal;

@@ -30,6 +30,7 @@ struct PS_INPUT
     float3 NormalVS     : TEXCOORD1;
     float2 UV           : TEXCOORD2;
     float3 PositionWS   : TEXCOORD3;
+    nointerpolation uint texture_index : TEXCOORD4;
 };
 
 struct PS_OUTPUT
@@ -82,11 +83,8 @@ void main(in PS_INPUT input, out PS_OUTPUT output)
     const float3 view_direction_vs = -normalize(input.PositionVS);
     const float3 normal_vs = normalize(input.NormalVS);
 
-    // NOTE: index MUST be uniform
-    const uint diffuse_map_index = 0; // FIXME
-
     StandardMaterial material;
-    material.albedo = t_diffuse_map[diffuse_map_index].Sample(diffuse_map_sampler, input.UV);
+    material.albedo = t_diffuse_map[input.texture_index].Sample(diffuse_map_sampler, input.UV);
     material.roughness = 0.5;
     material.f0 = 0.1;
 

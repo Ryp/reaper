@@ -33,6 +33,8 @@ struct DrawInstanceParams
 {
     hlsl_float3x4 model;
     hlsl_float3x3 normal_ms_to_vs_matrix;
+    hlsl_uint3    _pad;
+    hlsl_uint     texture_index;
 };
 
 #endif

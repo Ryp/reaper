@@ -81,7 +81,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
     load_textures(root, backend, material_resources, texture_filenames, texture_handles);
 
     SceneGraph scene;
-    build_scene_graph(scene, mesh_handles);
+    build_scene_graph(scene, mesh_handles, texture_handles);
 
     // Create fence
     VkFenceCreateInfo fenceInfo = {

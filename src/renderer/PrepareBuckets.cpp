@@ -44,7 +44,8 @@ namespace
     }
 } // namespace
 
-void build_scene_graph(SceneGraph& scene, const nonstd::span<MeshHandle> mesh_handles)
+void build_scene_graph(SceneGraph& scene, const nonstd::span<MeshHandle> mesh_handles,
+                       const nonstd::span<TextureHandle> texture_handles)
 {
     Assert(!mesh_handles.empty());
 
@@ -54,7 +55,8 @@ void build_scene_graph(SceneGraph& scene, const nonstd::span<MeshHandle> mesh_ha
         {
             Node& node = scene.nodes.emplace_back();
             node.instance_id = mesh_index * MeshInstanceCount + i;
-            node.mesh_handle = mesh_handles[mesh_index];
+            node.mesh_handle = mesh_handles[mesh_index]; // FIXME
+            node.texture_handle = texture_handles[0];    // FIXME
         }
     }
 
@@ -323,6 +325,8 @@ void prepare_scene(SceneGraph& scene, PreparedData& prepared, const MeshCache& m
             DrawInstanceParams& draw_instance = prepared.draw_instance_params.emplace_back();
             draw_instance.model = node.transform_matrix;
             draw_instance.normal_ms_to_vs_matrix = glm::mat3(modelView);
+            draw_instance.normal_ms_to_vs_matrix = glm::mat3(modelView);
+            draw_instance.texture_index = node.texture_handle;
 
             CullMeshInstanceParams& cull_instance = prepared.cull_mesh_instance_params.emplace_back();
             const u32               cull_instance_index = prepared.cull_mesh_instance_params.size() - 1;

@@ -31,9 +31,10 @@ struct Light
 
 struct Node
 {
-    glm::mat4x3 transform_matrix;
-    u32         instance_id;
-    MeshHandle  mesh_handle;
+    glm::mat4x3   transform_matrix;
+    u32           instance_id;
+    MeshHandle    mesh_handle;
+    TextureHandle texture_handle;
 };
 
 struct SceneCamera
@@ -51,7 +52,8 @@ struct SceneGraph
     SceneCamera        camera;
 };
 
-void build_scene_graph(SceneGraph& scene, const nonstd::span<MeshHandle> mesh_handles);
+void build_scene_graph(SceneGraph& scene, const nonstd::span<MeshHandle> mesh_handles,
+                       const nonstd::span<TextureHandle> texture_handles);
 void update_scene_graph(SceneGraph& scene, float time_ms, glm::uvec2 viewport_extent, const glm::mat4x3& view_matrix);
 
 struct CullCmd
