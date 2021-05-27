@@ -295,8 +295,10 @@ void destroy_material_resources(VulkanBackend& backend, MaterialResources& resou
 }
 
 void load_textures(ReaperRoot& root, VulkanBackend& backend, MaterialResources& resources,
-                   nonstd::span<const char*> texture_filenames, ResourceHandle* output_handles)
+                   nonstd::span<const char*> texture_filenames, nonstd::span<ResourceHandle> output_handles)
 {
+    Assert(output_handles.size() >= texture_filenames.size());
+
     for (u32 i = 0; i < texture_filenames.size(); i++)
     {
         output_handles[i] = load_texture(root, backend, resources, texture_filenames[i]);

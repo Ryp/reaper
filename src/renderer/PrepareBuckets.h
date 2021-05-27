@@ -7,6 +7,7 @@
 
 #include <glm/glm.hpp>
 
+#include <nonstd/span.hpp>
 #include <vector>
 
 #include "renderer/shader/share/compaction.hlsl"
@@ -17,8 +18,6 @@
 
 namespace Reaper
 {
-struct Mesh2;
-
 struct Light
 {
     glm::mat4  projection_matrix;
@@ -30,9 +29,9 @@ struct Light
 
 struct Node
 {
-    glm::mat4x3  transform_matrix;
-    u32          instance_id;
-    const Mesh2* mesh;
+    glm::mat4x3 transform_matrix;
+    u32         instance_id;
+    MeshHandle  mesh_handle;
 };
 
 struct SceneCamera
@@ -50,7 +49,7 @@ struct SceneGraph
     SceneCamera        camera;
 };
 
-void build_scene_graph(SceneGraph& scene, const Mesh2* meshes, u32 mesh_count);
+void build_scene_graph(SceneGraph& scene, const nonstd::span<MeshHandle> mesh_handles);
 void update_scene_graph(SceneGraph& scene, float time_ms, glm::uvec2 viewport_extent, const glm::mat4x3& view_matrix);
 
 struct CullCmd
@@ -102,5 +101,7 @@ struct PreparedData
     SwapchainPassParams swapchain_pass_params;
 };
 
-void prepare_scene(SceneGraph& scene, PreparedData& prepared);
+struct MeshCache;
+
+void prepare_scene(SceneGraph& scene, PreparedData& prepared, const MeshCache& mesh_cache);
 } // namespace Reaper

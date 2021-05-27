@@ -69,17 +69,20 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
         "res/model/dragon.obj",
     };
 
-    std::vector<Mesh2> mesh2_instances;
-    load_meshes(backend, mesh_cache, mesh_filenames, mesh2_instances);
-
     std::vector<const char*> texture_filenames = {
         "res/texture/default.dds",
         "res/texture/bricks_diffuse.dds",
         "res/texture/bricks_specular.dds",
     };
 
+    std::vector<MeshHandle> mesh_resource_handles(mesh_filenames.size());
+    load_meshes(backend, mesh_cache, mesh_filenames, mesh_resource_handles);
+
     std::vector<ResourceHandle> texture_resource_handles(texture_filenames.size());
-    load_textures(root, backend, material_resources, texture_filenames, texture_resource_handles.data());
+    load_textures(root, backend, material_resources, texture_filenames, texture_resource_handles);
+
+    SceneGraph scene;
+    build_scene_graph(scene, mesh_resource_handles);
 
     // Create fence
     VkFenceCreateInfo fenceInfo = {
@@ -111,9 +114,6 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
 
     CameraState camera_state = {};
     camera_state.position = glm::vec3(-5.f, 0.f, 0.f);
-
-    SceneGraph scene;
-    build_scene_graph(scene, mesh2_instances.data(), mesh2_instances.size());
 
     const auto startTime = std::chrono::system_clock::now();
     auto       lastFrameStart = startTime;
@@ -271,7 +271,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
             update_scene_graph(scene, animationTimeMs, backbuffer_viewport_extent, view_matrix);
 
             PreparedData prepared;
-            prepare_scene(scene, prepared);
+            prepare_scene(scene, prepared, mesh_cache);
 
             prepare_shadow_map_objects(root, backend, prepared, shadow_map_resources);
 

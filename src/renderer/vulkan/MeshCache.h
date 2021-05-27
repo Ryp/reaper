@@ -18,6 +18,8 @@ struct Mesh;
 
 namespace Reaper
 {
+using MeshHandle = u32;
+
 struct MeshCache
 {
     static constexpr u32 MAX_INDEX_COUNT = 1000000;
@@ -32,6 +34,8 @@ struct MeshCache
     u32 current_normal_offset;
     u32 current_position_offset;
     u32 current_index_offset;
+
+    std::vector<Mesh2> mesh2_instances;
 };
 
 struct ReaperRoot;
@@ -43,5 +47,5 @@ void      destroy_mesh_cache(VulkanBackend& backend, const MeshCache& mesh_cache
 struct MeshAlloc;
 
 void load_meshes(VulkanBackend& backend, MeshCache& mesh_cache, nonstd::span<const char*> mesh_filenames,
-                 std::vector<Mesh2>& mesh2_output);
+                 nonstd::span<MeshHandle> output_handles);
 } // namespace Reaper

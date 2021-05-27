@@ -24,27 +24,32 @@ namespace Reaper
 {
 MeshCache create_mesh_cache(ReaperRoot& root, VulkanBackend& backend)
 {
-    BufferInfo vertexBufferPosition =
+    MeshCache cache;
+
+    cache.vertexBufferPosition =
         create_buffer(root, backend.device, "Position buffer",
                       DefaultGPUBufferProperties(MeshCache::MAX_VERTEX_COUNT, 3 * sizeof(float),
                                                  GPUBufferUsage::VertexBuffer | GPUBufferUsage::StorageBuffer),
                       backend.vma_instance);
-    BufferInfo vertexBufferNormal = create_buffer(
+    cache.vertexBufferNormal = create_buffer(
         root, backend.device, "Normal buffer",
         DefaultGPUBufferProperties(MeshCache::MAX_VERTEX_COUNT, 3 * sizeof(float), GPUBufferUsage::VertexBuffer),
         backend.vma_instance);
-    BufferInfo vertexBufferUV = create_buffer(
+    cache.vertexBufferUV = create_buffer(
         root, backend.device, "UV buffer",
         DefaultGPUBufferProperties(MeshCache::MAX_VERTEX_COUNT, 2 * sizeof(float), GPUBufferUsage::VertexBuffer),
         backend.vma_instance);
-    BufferInfo indexBuffer = create_buffer(
+    cache.indexBuffer = create_buffer(
         root, backend.device, "Index buffer",
         DefaultGPUBufferProperties(MeshCache::MAX_INDEX_COUNT, sizeof(int), GPUBufferUsage::StorageBuffer),
         backend.vma_instance);
 
-    return {
-        vertexBufferPosition, vertexBufferNormal, vertexBufferUV, indexBuffer, 0, 0, 0, 0,
-    };
+    cache.current_uv_offset = 0;
+    cache.current_normal_offset = 0;
+    cache.current_position_offset = 0;
+    cache.current_index_offset = 0;
+
+    return cache;
 }
 
 void destroy_mesh_cache(VulkanBackend& backend, const MeshCache& mesh_cache)
@@ -107,18 +112,14 @@ namespace
 } // namespace
 
 void load_meshes(VulkanBackend& backend, MeshCache& mesh_cache, nonstd::span<const char*> mesh_filenames,
-                 std::vector<Mesh2>& mesh2_output)
+                 nonstd::span<MeshHandle> output_handles)
 {
-    // Read mesh file
-    std::vector<Mesh> mesh_instances;
+    Assert(output_handles.size() >= mesh_filenames.size());
 
-    for (auto filename : mesh_filenames)
+    for (u32 file_index = 0; file_index < mesh_filenames.size(); file_index++)
     {
-        mesh_instances.emplace_back(ModelLoader::loadOBJ(filename));
-    }
+        Mesh mesh = ModelLoader::loadOBJ(mesh_filenames[file_index]);
 
-    for (auto& mesh : mesh_instances)
-    {
         // FIXME Filling empty buffers with garbage to preserve correct index offsets
         // This can be removed if we do vertex pulling with per-buffer offsets
         if (mesh.normals.empty())
@@ -179,12 +180,13 @@ void load_meshes(VulkanBackend& backend, MeshCache& mesh_cache, nonstd::span<con
         {
             const u32 meshlet_index_count = meshlet.triangle_count * 3;
 
-            for (u32 i = 0; i < meshlet_index_count; i++)
+            for (u32 meshlet_index = 0; meshlet_index < meshlet_index_count; meshlet_index++)
             {
-                const u32 index_input_offset = meshlet.triangle_offset + i;
+                const u32 index_input_offset = meshlet.triangle_offset + meshlet_index;
                 const u32 local_index = static_cast<u32>(meshlet_triangles[index_input_offset]);
 
-                optimized_index_buffer[index_output_offset + i] = meshlet.vertex_offset + local_index; // FIXME
+                optimized_index_buffer[index_output_offset + meshlet_index] =
+                    meshlet.vertex_offset + local_index; // FIXME
             }
 
             MeshletInstance& meshlet_instance = optimized_meshlets.emplace_back();
@@ -203,13 +205,16 @@ void load_meshes(VulkanBackend& backend, MeshCache& mesh_cache, nonstd::span<con
         std::swap(mesh.normals, optimized_normal_buffer);
         std::swap(mesh.uvs, optimized_uv_buffer);
 
-        Mesh2& mesh2 = mesh2_output.emplace_back();
+        const MeshHandle new_handle = mesh_cache.mesh2_instances.size();
+        Mesh2&           mesh2 = mesh_cache.mesh2_instances.emplace_back();
 
         mesh2 = create_mesh2(mesh_cache_allocate_mesh(mesh_cache, mesh));
 
         std::swap(mesh2.meshlets, optimized_meshlets);
 
         upload_mesh_to_mesh_cache(mesh_cache, mesh, mesh2.lods_allocs[0], backend);
+
+        output_handles[file_index] = new_handle;
     }
 }
 } // namespace Reaper
