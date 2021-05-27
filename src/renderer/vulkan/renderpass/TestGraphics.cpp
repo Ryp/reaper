@@ -75,14 +75,14 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
         "res/texture/bricks_specular.dds",
     };
 
-    std::vector<MeshHandle> mesh_resource_handles(mesh_filenames.size());
-    load_meshes(backend, mesh_cache, mesh_filenames, mesh_resource_handles);
+    std::vector<MeshHandle> mesh_handles(mesh_filenames.size());
+    load_meshes(backend, mesh_cache, mesh_filenames, mesh_handles);
 
-    std::vector<ResourceHandle> texture_resource_handles(texture_filenames.size());
-    load_textures(root, backend, material_resources, texture_filenames, texture_resource_handles);
+    std::vector<TextureHandle> texture_handles(texture_filenames.size());
+    load_textures(root, backend, material_resources, texture_filenames, texture_handles);
 
     SceneGraph scene;
-    build_scene_graph(scene, mesh_resource_handles);
+    build_scene_graph(scene, mesh_handles);
 
     // Create fence
     VkFenceCreateInfo fenceInfo = {
@@ -281,7 +281,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
             upload_histogram_frame_resources(backend, histogram_pass_resources, backbufferExtent);
             upload_swapchain_frame_resources(backend, prepared, swapchain_pass_resources);
 
-            update_material_descriptor_set(backend, material_resources, texture_resource_handles);
+            update_material_descriptor_set(backend, material_resources, texture_handles);
             update_culling_pass_descriptor_sets(backend, prepared, cull_resources, mesh_cache);
             update_shadow_map_pass_descriptor_sets(backend, prepared, shadow_map_resources);
             update_main_pass_descriptor_set(backend, main_pass_resources, shadow_map_resources.shadowMapView);

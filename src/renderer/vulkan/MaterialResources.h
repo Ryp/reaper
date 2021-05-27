@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include "renderer/ResourceHandle.h"
 #include "renderer/vulkan/Buffer.h"
 #include "renderer/vulkan/Image.h"
 #include "renderer/vulkan/api/Vulkan.h"
@@ -58,14 +59,12 @@ struct ReaperRoot;
 MaterialResources create_material_resources(ReaperRoot& root, VulkanBackend& backend);
 void              destroy_material_resources(VulkanBackend& backend, MaterialResources& resources);
 
-using ResourceHandle = u32;
-
 void load_textures(ReaperRoot& root, VulkanBackend& backend, MaterialResources& resources,
-                   nonstd::span<const char*> texture_filenames, nonstd::span<ResourceHandle> output_handles);
+                   nonstd::span<const char*> texture_filenames, nonstd::span<TextureHandle> output_handles);
 
 // handles will contain which texture to bind for each descriptor slot
 void update_material_descriptor_set(VulkanBackend& backend, const MaterialResources& resources,
-                                    nonstd::span<const ResourceHandle> handles);
+                                    const nonstd::span<TextureHandle> handles);
 
 void record_material_upload_command_buffer(VulkanBackend& backend, ResourceStagingArea& staging,
                                            VkCommandBuffer cmdBuffer);

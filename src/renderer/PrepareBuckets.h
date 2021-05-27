@@ -7,6 +7,8 @@
 
 #include <glm/glm.hpp>
 
+#include "renderer/ResourceHandle.h"
+
 #include <nonstd/span.hpp>
 #include <vector>
 

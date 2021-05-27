@@ -194,10 +194,11 @@ namespace
         staging.staging_queue.clear();
     }
 
-    u32 load_texture(ReaperRoot& root, VulkanBackend& backend, MaterialResources& resources, const char* filename)
+    TextureHandle load_texture(ReaperRoot& root, VulkanBackend& backend, MaterialResources& resources,
+                               const char* filename)
     {
-        const u32        resource_index = resources.textures.size();
-        TextureResource& new_texture = resources.textures.emplace_back();
+        const TextureHandle resource_index = static_cast<TextureHandle>(resources.textures.size());
+        TextureResource&    new_texture = resources.textures.emplace_back();
 
         StagingEntry staging_entry = copy_texture_to_staging_area(root, backend, resources.staging, filename);
 
@@ -295,7 +296,7 @@ void destroy_material_resources(VulkanBackend& backend, MaterialResources& resou
 }
 
 void load_textures(ReaperRoot& root, VulkanBackend& backend, MaterialResources& resources,
-                   nonstd::span<const char*> texture_filenames, nonstd::span<ResourceHandle> output_handles)
+                   nonstd::span<const char*> texture_filenames, nonstd::span<TextureHandle> output_handles)
 {
     Assert(output_handles.size() >= texture_filenames.size());
 
@@ -306,7 +307,7 @@ void load_textures(ReaperRoot& root, VulkanBackend& backend, MaterialResources& 
 }
 
 void update_material_descriptor_set(VulkanBackend& backend, const MaterialResources& resources,
-                                    nonstd::span<const ResourceHandle> handles)
+                                    const nonstd::span<TextureHandle> handles)
 {
     std::vector<VkDescriptorImageInfo> descriptor_maps;
 

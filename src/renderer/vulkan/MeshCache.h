@@ -13,13 +13,12 @@
 #include <vector>
 
 #include "renderer/Mesh2.h"
+#include "renderer/ResourceHandle.h"
 
 struct Mesh;
 
 namespace Reaper
 {
-using MeshHandle = u32;
-
 struct MeshCache
 {
     static constexpr u32 MAX_INDEX_COUNT = 1000000;

@@ -205,7 +205,7 @@ void load_meshes(VulkanBackend& backend, MeshCache& mesh_cache, nonstd::span<con
         std::swap(mesh.normals, optimized_normal_buffer);
         std::swap(mesh.uvs, optimized_uv_buffer);
 
-        const MeshHandle new_handle = mesh_cache.mesh2_instances.size();
+        const MeshHandle new_handle = static_cast<MeshHandle>(mesh_cache.mesh2_instances.size());
         Mesh2&           mesh2 = mesh_cache.mesh2_instances.emplace_back();
 
         mesh2 = create_mesh2(mesh_cache_allocate_mesh(mesh_cache, mesh));
