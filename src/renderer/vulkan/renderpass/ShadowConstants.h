@@ -11,6 +11,7 @@
 
 namespace Reaper
 {
+constexpr bool        ShadowUseReverseZ = true;
 constexpr u32         ShadowMapResolution = 1024;
 constexpr u32         ShadowMapMaxCount = 8;
 constexpr PixelFormat ShadowMapFormat = PixelFormat::D16_UNORM;

@@ -29,9 +29,8 @@
 
 namespace Reaper
 {
-constexpr bool UseReverseZ = true;
-constexpr u32  ShadowInstanceCountMax = 512;
-constexpr u32  MaxShadowPassCount = 4;
+constexpr u32 ShadowInstanceCountMax = 512;
+constexpr u32 MaxShadowPassCount = 4;
 
 namespace
 {
@@ -187,7 +186,7 @@ namespace
             0,
             true, // depth test
             true, // depth write
-            UseReverseZ ? VK_COMPARE_OP_GREATER : VK_COMPARE_OP_LESS,
+            ShadowUseReverseZ ? VK_COMPARE_OP_GREATER : VK_COMPARE_OP_LESS,
             false,
             false,
             VkStencilOpState{},
@@ -482,7 +481,7 @@ void record_shadow_map_command_buffer(const CullOptions& cull_options, VkCommand
         REAPER_PROFILE_SCOPE_GPU("Shadow Pass", MP_DARKGOLDENROD);
 
         const VkClearValue clearValue =
-            VkClearDepthStencil(UseReverseZ ? 0.f : 1.f, 0); // NOTE: handle reverse Z more gracefully
+            VkClearDepthStencil(ShadowUseReverseZ ? 0.f : 1.f, 0); // NOTE: handle reverse Z more gracefully
         const VkExtent2D framebuffer_extent = {shadow_pass.shadow_map_size.x, shadow_pass.shadow_map_size.y};
         const VkRect2D   pass_rect = default_vk_rect(framebuffer_extent);
 
