@@ -241,7 +241,10 @@ target_sources(${target} PRIVATE
     ${REAPER_GCN_OUTPUT})
 
 find_package(Vulkan REQUIRED)
-target_compile_definitions(${target} PRIVATE REAPER_VK_LIB_NAME="${VULKAN_LIBRARY}")
+
+# Get the shared library name for each platform
+get_filename_component(REAPER_VK_LIB_NAME ${Vulkan_LIBRARY} NAME_WLE)
+target_compile_definitions(${target} PRIVATE REAPER_VK_LIB_NAME="${REAPER_VK_LIB_NAME}${CMAKE_SHARED_LIBRARY_SUFFIX}")
 
 # Choose windowing system
 if(WIN32)
