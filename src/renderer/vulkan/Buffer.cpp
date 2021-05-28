@@ -105,8 +105,8 @@ void upload_buffer_data(VkDevice device, const VmaAllocator& allocator, const Bu
 
     const u64 offset_bytes = buffer.descriptor.stride * offset_elements;
 
-    Assert(vkMapMemory(device, allocation_info.deviceMemory, allocation_info.offset + offset_bytes,
-                       allocation_info.size, 0, reinterpret_cast<void**>(&writePtr))
+    Assert(vkMapMemory(device, allocation_info.deviceMemory, allocation_info.offset + offset_bytes, size, VK_FLAGS_NONE,
+                       reinterpret_cast<void**>(&writePtr))
            == VK_SUCCESS);
 
     Assert(size <= allocation_info.size,
