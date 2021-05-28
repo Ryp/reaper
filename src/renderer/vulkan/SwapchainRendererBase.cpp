@@ -46,11 +46,11 @@ namespace
         // Create descriptor pool
         // FIXME Sizes are arbitrary for now, as long as everything fits
         constexpr u32                     MaxDescriptorSets = 100;
-        std::vector<VkDescriptorPoolSize> descriptorPoolSizes = {{VK_DESCRIPTOR_TYPE_SAMPLER, 10},
-                                                                 {VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 10},
-                                                                 {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 10},
-                                                                 {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 10},
-                                                                 {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 10}};
+        std::vector<VkDescriptorPoolSize> descriptorPoolSizes = {{VK_DESCRIPTOR_TYPE_SAMPLER, 16},
+                                                                 {VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 256},
+                                                                 {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 32},
+                                                                 {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 32},
+                                                                 {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 32}};
 
         VkDescriptorPoolCreateInfo poolInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
                                                nullptr,
