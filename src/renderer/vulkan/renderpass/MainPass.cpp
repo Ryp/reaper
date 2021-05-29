@@ -49,8 +49,8 @@ namespace
                                                                 VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT};
 
         const VkDescriptorSetLayoutBindingFlagsCreateInfo descriptorSetLayoutBindingFlags = {
-            VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO, nullptr, bindingFlags.size(),
-            bindingFlags.data()};
+            VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO, nullptr,
+            static_cast<u32>(bindingFlags.size()), bindingFlags.data()};
 
         const VkDescriptorSetLayoutCreateInfo descriptorSetLayoutInfo = {
             VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, &descriptorSetLayoutBindingFlags, 0,
@@ -114,8 +114,8 @@ namespace
                                                                 VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT};
 
         const VkDescriptorSetLayoutBindingFlagsCreateInfo descriptorSetLayoutBindingFlags = {
-            VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO, nullptr, bindingFlags.size(),
-            bindingFlags.data()};
+            VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO, nullptr,
+            static_cast<u32>(bindingFlags.size()), bindingFlags.data()};
 
         const VkDescriptorSetLayoutCreateInfo descriptorSetLayoutInfo = {
             VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, &descriptorSetLayoutBindingFlags, 0,
@@ -325,7 +325,11 @@ MainPipelineInfo create_main_pipeline(ReaperRoot& root, VulkanBackend& backend, 
 
     const std::array<VkDynamicState, 2> dynamicStates = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
     VkPipelineDynamicStateCreateInfo    blitDynamicState = {
-        VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO, nullptr, 0, dynamicStates.size(), dynamicStates.data(),
+        VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
+        nullptr,
+        0,
+        static_cast<u32>(dynamicStates.size()),
+        dynamicStates.data(),
     };
 
     VkGraphicsPipelineCreateInfo blitPipelineCreateInfo = {VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
@@ -467,19 +471,19 @@ namespace
         };
 
         VkFramebufferAttachmentsCreateInfo framebufferAttachmentsInfo = {
-            VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENTS_CREATE_INFO, nullptr, framebufferAttachmentInfo.size(),
-            framebufferAttachmentInfo.data()};
+            VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENTS_CREATE_INFO, nullptr,
+            static_cast<u32>(framebufferAttachmentInfo.size()), framebufferAttachmentInfo.data()};
 
         VkFramebufferCreateInfo framebuffer_create_info = {
-            VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO, // VkStructureType                sType
-            &framebufferAttachmentsInfo,               // const void                    *pNext
-            VK_FRAMEBUFFER_CREATE_IMAGELESS_BIT,       // VkFramebufferCreateFlags       flags
-            resources.mainRenderPass,                  // VkRenderPass                   renderPass
-            framebufferAttachmentInfo.size(),          // uint32_t                       attachmentCount
-            nullptr,                                   // const VkImageView             *pAttachments
-            framebufferAttachmentInfo[0].width,        // uint32_t                       width
-            framebufferAttachmentInfo[0].height,       // uint32_t                       height
-            1                                          // uint32_t                       layers
+            VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,          // VkStructureType                sType
+            &framebufferAttachmentsInfo,                        // const void                    *pNext
+            VK_FRAMEBUFFER_CREATE_IMAGELESS_BIT,                // VkFramebufferCreateFlags       flags
+            resources.mainRenderPass,                           // VkRenderPass                   renderPass
+            static_cast<u32>(framebufferAttachmentInfo.size()), // uint32_t                       attachmentCount
+            nullptr,                                            // const VkImageView             *pAttachments
+            framebufferAttachmentInfo[0].width,                 // uint32_t                       width
+            framebufferAttachmentInfo[0].height,                // uint32_t                       height
+            1                                                   // uint32_t                       layers
         };
 
         VkFramebuffer framebuffer = VK_NULL_HANDLE;
@@ -702,9 +706,9 @@ void record_main_pass_command_buffer(const CullOptions& cull_options, VkCommandB
     std::array<VkImageView, 2> main_pass_framebuffer_views = {pass_resources.hdrBufferView,
                                                               pass_resources.depthBufferView};
 
-    VkRenderPassAttachmentBeginInfo main_pass_attachments = {VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO,
-                                                             nullptr, main_pass_framebuffer_views.size(),
-                                                             main_pass_framebuffer_views.data()};
+    VkRenderPassAttachmentBeginInfo main_pass_attachments = {
+        VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO, nullptr,
+        static_cast<u32>(main_pass_framebuffer_views.size()), main_pass_framebuffer_views.data()};
 
     VkRenderPassBeginInfo blitRenderPassBeginInfo = {VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
                                                      &main_pass_attachments,
