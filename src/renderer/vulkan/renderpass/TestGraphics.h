@@ -11,7 +11,7 @@ namespace Reaper
 {
 struct ReaperRoot;
 struct VulkanBackend;
-struct GlobalResources;
 
-void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResources& resources);
+REAPER_RENDERER_API
+void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend);
 } // namespace Reaper

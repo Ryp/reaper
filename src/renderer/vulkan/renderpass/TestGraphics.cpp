@@ -21,7 +21,6 @@
 #include "renderer/vulkan/MeshCache.h"
 #include "renderer/vulkan/Swapchain.h"
 #include "renderer/vulkan/SwapchainRendererBase.h"
-#include "renderer/vulkan/Test.h"
 #include "renderer/vulkan/api/Vulkan.h"
 #include "renderer/vulkan/api/VulkanStringConversion.h"
 
@@ -49,8 +48,26 @@
 
 namespace Reaper
 {
-void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResources& resources)
+void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend)
 {
+    log_info(root, "test begin ////////////////////////////////////////");
+
+    // Create command buffer
+    VkCommandPool           graphicsCommandPool = VK_NULL_HANDLE;
+    VkCommandPoolCreateInfo poolCreateInfo = {VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO, nullptr,
+                                              VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+                                              backend.physicalDeviceInfo.graphicsQueueIndex};
+
+    Assert(vkCreateCommandPool(backend.device, &poolCreateInfo, nullptr, &graphicsCommandPool) == VK_SUCCESS);
+    log_debug(root, "vulkan: created command pool with handle: {}", static_cast<void*>(graphicsCommandPool));
+
+    VkCommandBufferAllocateInfo cmdBufferAllocInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO, nullptr,
+                                                      graphicsCommandPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, 1};
+
+    VkCommandBuffer cmdBuffer = VK_NULL_HANDLE;
+    Assert(vkAllocateCommandBuffers(backend.device, &cmdBufferAllocInfo, &cmdBuffer) == VK_SUCCESS);
+    log_debug(root, "vulkan: created command buffer with handle: {}", static_cast<void*>(cmdBuffer));
+
     const glm::uvec2 swapchain_extent(backend.presentInfo.surfaceExtent.width,
                                       backend.presentInfo.surfaceExtent.height);
 
@@ -288,7 +305,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
             update_swapchain_pass_descriptor_set(backend, swapchain_pass_resources, main_pass_resources.hdrBufferView);
 
             log_debug(root, "vulkan: record command buffer");
-            Assert(vkResetCommandBuffer(resources.gfxCmdBuffer, 0) == VK_SUCCESS);
+            Assert(vkResetCommandBuffer(cmdBuffer, 0) == VK_SUCCESS);
 
             VkCommandBufferBeginInfo cmdBufferBeginInfo = {
                 VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, nullptr,
@@ -296,13 +313,13 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                 nullptr // No inheritance yet
             };
 
-            Assert(vkBeginCommandBuffer(resources.gfxCmdBuffer, &cmdBufferBeginInfo) == VK_SUCCESS);
+            Assert(vkBeginCommandBuffer(cmdBuffer, &cmdBufferBeginInfo) == VK_SUCCESS);
 
 #if defined(REAPER_USE_MICROPROFILE)
-            MICROPROFILE_GPU_SET_CONTEXT(resources.gfxCmdBuffer, MicroProfileGetGlobalGpuThreadLog());
+            MICROPROFILE_GPU_SET_CONTEXT(cmdBuffer, MicroProfileGetGlobalGpuThreadLog());
 #endif
 
-            record_material_upload_command_buffer(backend, material_resources.staging, resources.gfxCmdBuffer);
+            record_material_upload_command_buffer(backend, material_resources.staging, cmdBuffer);
 
             if (mustTransitionSwapchain)
             {
@@ -324,7 +341,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                         backend.presentInfo.images[swapchainImageIndex],
                         {VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS}};
 
-                    vkCmdPipelineBarrier(resources.gfxCmdBuffer, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                    vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
                                          VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, nullptr, 0, nullptr, 1,
                                          &swapchainImageBarrierInfo);
                 }
@@ -332,14 +349,13 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                 mustTransitionSwapchain = false;
             }
 
-            record_culling_command_buffer(cull_options, resources.gfxCmdBuffer, prepared, cull_resources);
+            record_culling_command_buffer(cull_options, cmdBuffer, prepared, cull_resources);
 
-            record_shadow_map_command_buffer(cull_options, resources.gfxCmdBuffer, backend, prepared,
-                                             shadow_map_resources, cull_resources,
-                                             mesh_cache.vertexBufferPosition.buffer);
+            record_shadow_map_command_buffer(cull_options, cmdBuffer, backend, prepared, shadow_map_resources,
+                                             cull_resources, mesh_cache.vertexBufferPosition.buffer);
 
-            record_main_pass_command_buffer(cull_options, resources.gfxCmdBuffer, prepared, main_pass_resources,
-                                            cull_resources, mesh_cache, backbufferExtent);
+            record_main_pass_command_buffer(cull_options, cmdBuffer, prepared, main_pass_resources, cull_resources,
+                                            mesh_cache, backbufferExtent);
 
             {
                 REAPER_PROFILE_SCOPE_GPU("Barrier", MP_RED);
@@ -356,21 +372,20 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                     main_pass_resources.hdrBuffer.handle,
                     {VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS}};
 
-                vkCmdPipelineBarrier(resources.gfxCmdBuffer, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-                                     VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, nullptr, 0, nullptr, 1,
-                                     &hdrImageBarrierInfo);
+                vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+                                     0, 0, nullptr, 0, nullptr, 1, &hdrImageBarrierInfo);
             }
 
-            record_histogram_command_buffer(resources.gfxCmdBuffer, frame_data, histogram_pass_resources);
+            record_histogram_command_buffer(cmdBuffer, frame_data, histogram_pass_resources);
 
-            record_swapchain_command_buffer(resources.gfxCmdBuffer, frame_data, swapchain_pass_resources,
+            record_swapchain_command_buffer(cmdBuffer, frame_data, swapchain_pass_resources,
                                             backend.presentInfo.imageViews[current_swapchain_index]);
 
 #if defined(REAPER_USE_MICROPROFILE)
-            MicroProfileFlip(resources.gfxCmdBuffer);
+            MicroProfileFlip(cmdBuffer);
 #endif
 
-            Assert(vkEndCommandBuffer(resources.gfxCmdBuffer) == VK_SUCCESS);
+            Assert(vkEndCommandBuffer(cmdBuffer) == VK_SUCCESS);
             // Stop recording
 
             VkPipelineStageFlags blitWaitDstMask = VK_PIPELINE_STAGE_TRANSFER_BIT;
@@ -398,7 +413,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
                                            &backend.presentInfo.imageAvailableSemaphore,
                                            &blitWaitDstMask,
                                            1,
-                                           &resources.gfxCmdBuffer,
+                                           &cmdBuffer,
                                            semaphores_to_signal.size(),
                                            semaphores_to_signal.data()};
 
@@ -449,5 +464,11 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend, GlobalResour
     destroy_culling_resources(backend, cull_resources);
     destroy_material_resources(backend, material_resources);
     destroy_mesh_cache(backend, mesh_cache);
+
+    // cleanup
+    vkFreeCommandBuffers(backend.device, graphicsCommandPool, 1, &cmdBuffer);
+    vkDestroyCommandPool(backend.device, graphicsCommandPool, nullptr);
+
+    log_info(root, "test end ////////////////////////////////////////");
 }
 } // namespace Reaper

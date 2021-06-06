@@ -9,7 +9,7 @@
 #include "common/ReaperRoot.h"
 
 #include "renderer/Renderer.h"
-#include "renderer/vulkan/Test.h"
+#include "renderer/vulkan/renderpass/TestGraphics.h"
 
 #include "core/Profile.h"
 
@@ -33,7 +33,7 @@ int main(int /*ac*/, char** /*av*/)
         {
             if (create_renderer(root))
             {
-                vulkan_test(root, *root.renderer->backend);
+                vulkan_test_graphics(root, *root.renderer->backend);
                 destroy_renderer(root);
             }
         }
