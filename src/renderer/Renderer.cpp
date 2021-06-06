@@ -8,7 +8,6 @@
 #include "Renderer.h"
 
 #include "renderer/vulkan/SwapchainRendererBase.h"
-#include "renderer/vulkan/VulkanRenderer.h"
 
 #include "renderer/renderdoc/RenderDoc.h"
 

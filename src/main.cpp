@@ -10,7 +10,6 @@
 
 #include "renderer/Renderer.h"
 #include "renderer/vulkan/Test.h"
-#include "renderer/vulkan/VulkanRenderer.h"
 
 #include "core/Profile.h"
 
