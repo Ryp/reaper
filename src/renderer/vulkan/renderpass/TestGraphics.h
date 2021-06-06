@@ -7,6 +7,8 @@
 
 #pragma once
 
+#include "renderer/RendererExport.h"
+
 namespace Reaper
 {
 struct ReaperRoot;
