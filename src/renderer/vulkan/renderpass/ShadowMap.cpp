@@ -279,8 +279,6 @@ namespace
                == VK_SUCCESS);
         log_debug(root, "vulkan: created blit pipeline with handle: {}", static_cast<void*>(pipeline));
 
-        Assert(backend.physicalDeviceInfo.graphicsQueueIndex == backend.physicalDeviceInfo.presentQueueIndex);
-
         vkDestroyShaderModule(backend.device, blitShaderVS, nullptr);
         vkDestroyShaderModule(backend.device, blitShaderFS, nullptr);
 
