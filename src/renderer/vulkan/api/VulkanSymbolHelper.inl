@@ -120,7 +120,13 @@ REAPER_VK_DEVICE_LEVEL_FUNCTION(vkCreateSampler)
 REAPER_VK_DEVICE_LEVEL_FUNCTION(vkDestroySampler)
 REAPER_VK_DEVICE_LEVEL_FUNCTION(vkResetDescriptorPool)
 
-#include "VulkanSymbolHelperSwapchainKHR.inl"
+#if defined(REAPER_VK_USE_SWAPCHAIN_EXTENSIONS)
+#    include "VK_KHR_swapchain.inl"
+#endif
+
+#if defined(REAPER_VK_USE_DISPLAY_EXTENSIONS)
+#    include "VK_KHR_display.inl"
+#endif
 
 #if REAPER_DEBUG
 #    include "VK_EXT_debug_utils.inl"
