@@ -204,7 +204,11 @@ void configure_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backen
     }
 
     // Usage flags
-    presentInfo.usageFlags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+    // NOTE: Some flags might be added at runtime by external forces (driver, layers?)
+    // and might trigger a validation warning down the line.
+    // I suspect this is primarily done for frame capture purposes, like adding TRANSFER_SRC to allow copies.
+    // It should be safe to ignore in this case.
+    presentInfo.swapchainUsageFlags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
     Assert((surfaceCaps.supportedUsageFlags & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT) != 0, "Vulkan API error");
 
     // Transform
@@ -226,7 +230,7 @@ void create_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backend, 
         presentInfo.surfaceFormat.colorSpace,        // VkColorSpaceKHR                imageColorSpace
         presentInfo.surfaceExtent,                   // VkExtent2D                     imageExtent
         1,                                           // uint32_t                       imageArrayLayers
-        presentInfo.usageFlags,                      // VkImageUsageFlags              imageUsage
+        presentInfo.swapchainUsageFlags,             // VkImageUsageFlags              imageUsage
         VK_SHARING_MODE_EXCLUSIVE,                   // VkSharingMode                  imageSharingMode
         0,                                           // uint32_t                       queueFamilyIndexCount
         nullptr,                                     // const uint32_t                *pQueueFamilyIndices

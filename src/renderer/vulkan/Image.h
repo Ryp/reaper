@@ -31,6 +31,7 @@ VkFormat              PixelFormatToVulkan(PixelFormat format);
 VkSampleCountFlagBits SampleCountToVulkan(u32 sampleCount);
 VkImageCreateFlags    GetVulkanCreateFlags(const GPUTextureProperties& properties);
 VkImageUsageFlags     GetVulkanUsageFlags(u32 usageFlags);
+u32                   GetUsageFlags(VkImageUsageFlags usageFlags);
 
 ImageInfo   create_image(ReaperRoot& root, VkDevice device, const char* debug_string,
                          const GPUTextureProperties& properties, VmaAllocator& allocator);

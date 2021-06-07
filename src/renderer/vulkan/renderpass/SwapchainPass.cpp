@@ -362,8 +362,8 @@ namespace
     void create_swapchain_pass_resizable_resources(ReaperRoot& /*root*/, VulkanBackend& backend,
                                                    SwapchainPassResources& resources, glm::uvec2 /*extent*/)
     {
-        // FIXME Get all infos from surface caps
-        Assert(backend.presentInfo.usageFlags == VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
+        VkImageUsageFlags swapchain_usage_flags = backend.presentInfo.swapchainUsageFlags;
+
         const GPUTextureProperties swapchain_properties = {
             backend.presentInfo.surfaceExtent.width,
             backend.presentInfo.surfaceExtent.height,
@@ -372,7 +372,7 @@ namespace
             1,
             1,
             1,
-            GPUTextureUsage::ColorAttachment,
+            GetUsageFlags(swapchain_usage_flags),
             GPUMiscFlags::None,
         };
 

@@ -28,7 +28,7 @@ struct PresentationInfo
     u32                           imageCount;
     VkPresentModeKHR              presentMode;
     VkExtent2D                    surfaceExtent;
-    VkImageUsageFlags             usageFlags;
+    VkImageUsageFlags             swapchainUsageFlags;
     VkSurfaceTransformFlagBitsKHR transform;
 
     VkSwapchainKHR swapchain;

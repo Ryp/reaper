@@ -968,6 +968,22 @@ VkImageUsageFlags GetVulkanUsageFlags(u32 usageFlags)
     return flags;
 }
 
+u32 GetUsageFlags(VkImageUsageFlags usageFlags)
+{
+    u32 flags = 0;
+
+    flags |= (usageFlags & VK_IMAGE_USAGE_TRANSFER_SRC_BIT) ? GPUTextureUsage::TransferSrc : 0u;
+    flags |= (usageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT) ? GPUTextureUsage::TransferDst : 0u;
+    flags |= (usageFlags & VK_IMAGE_USAGE_SAMPLED_BIT) ? GPUTextureUsage::Sampled : 0u;
+    flags |= (usageFlags & VK_IMAGE_USAGE_STORAGE_BIT) ? GPUTextureUsage::Storage : 0u;
+    flags |= (usageFlags & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT) ? GPUTextureUsage::ColorAttachment : 0u;
+    flags |= (usageFlags & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT) ? GPUTextureUsage::DepthStencilAttachment : 0u;
+    flags |= (usageFlags & VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT) ? GPUTextureUsage::TransientAttachment : 0u;
+    flags |= (usageFlags & VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT) ? GPUTextureUsage::InputAttachment : 0u;
+
+    return flags;
+}
+
 ImageInfo create_image(ReaperRoot& root, VkDevice device, const char* debug_string,
                        const GPUTextureProperties& properties, VmaAllocator& allocator)
 {
