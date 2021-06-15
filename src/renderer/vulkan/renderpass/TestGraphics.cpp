@@ -134,22 +134,6 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend)
     const auto startTime = std::chrono::system_clock::now();
     auto       lastFrameStart = startTime;
 
-    VkSemaphore timelineSemaphore = VK_NULL_HANDLE;
-    {
-        VkSemaphoreTypeCreateInfo timelineCreateInfo;
-        timelineCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO;
-        timelineCreateInfo.pNext = NULL;
-        timelineCreateInfo.semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE;
-        timelineCreateInfo.initialValue = 0;
-
-        VkSemaphoreCreateInfo createInfo;
-        createInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-        createInfo.pNext = &timelineCreateInfo;
-        createInfo.flags = 0;
-
-        vkCreateSemaphore(backend.device, &createInfo, NULL, &timelineSemaphore);
-    }
-
     while (!shouldExit)
     {
         const auto currentTime = std::chrono::system_clock::now();
@@ -390,25 +374,10 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend)
 
             VkPipelineStageFlags blitWaitDstMask = VK_PIPELINE_STAGE_TRANSFER_BIT;
 
-            std::array<VkSemaphore, 2> semaphores_to_signal = {backend.presentInfo.renderingFinishedSemaphore,
-                                                               timelineSemaphore};
-
-            std::array<u64, 2> signal_values = {
-                0,              // Not a timeline semaphore
-                frameIndex + 1, // Unused timeline semaphore value
-            };
-
-            VkTimelineSemaphoreSubmitInfo timelineSemaphoreSubmitInfo = {
-                VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO,
-                nullptr,
-                0,                    // uint32_t         waitSemaphoreValueCount;
-                nullptr,              // const uint64_t*  pWaitSemaphoreValues;
-                signal_values.size(), // uint32_t         signalSemaphoreValueCount;
-                signal_values.data()  // const uint64_t*  pSignalSemaphoreValues;
-            };
+            std::array<VkSemaphore, 1> semaphores_to_signal = {backend.presentInfo.renderingFinishedSemaphore};
 
             VkSubmitInfo blitSubmitInfo = {VK_STRUCTURE_TYPE_SUBMIT_INFO,
-                                           &timelineSemaphoreSubmitInfo,
+                                           nullptr,
                                            1,
                                            &backend.presentInfo.imageAvailableSemaphore,
                                            &blitWaitDstMask,
@@ -449,8 +418,6 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend)
     }
 
     vkQueueWaitIdle(backend.deviceInfo.presentQueue);
-
-    vkDestroySemaphore(backend.device, timelineSemaphore, nullptr);
 
     log_info(root, "window: unmap window");
     window->unmap();
