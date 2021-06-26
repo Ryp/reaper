@@ -12,10 +12,10 @@
 
 #include "renderer/PrepareBuckets.h"
 #include "renderer/texture/GPUTextureProperties.h"
+#include "renderer/vulkan/Backend.h"
 #include "renderer/vulkan/Image.h"
 #include "renderer/vulkan/RenderPassHelpers.h"
 #include "renderer/vulkan/Shader.h"
-#include "renderer/vulkan/SwapchainRendererBase.h"
 #include "renderer/vulkan/api/Vulkan.h"
 
 #include "common/Log.h"

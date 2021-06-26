@@ -7,7 +7,7 @@
 
 #include "Display.h"
 
-#include "SwapchainRendererBase.h"
+#include "Backend.h"
 #include "api/Vulkan.h"
 
 #include "common/Log.h"

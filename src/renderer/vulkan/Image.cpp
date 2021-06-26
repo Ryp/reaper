@@ -3,7 +3,7 @@
 #include "common/Log.h"
 #include "common/ReaperRoot.h"
 
-#include "SwapchainRendererBase.h"
+#include "Backend.h"
 
 #include "renderer/texture/GPUTextureProperties.h"
 #include "renderer/vulkan/Debug.h"

@@ -7,9 +7,9 @@
 
 #include "MaterialResources.h"
 
+#include "renderer/vulkan/Backend.h"
 #include "renderer/vulkan/Buffer.h"
 #include "renderer/vulkan/Image.h"
-#include "renderer/vulkan/SwapchainRendererBase.h"
 
 #include "common/Log.h"
 #include "common/ReaperRoot.h"

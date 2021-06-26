@@ -7,7 +7,7 @@
 
 #include "MeshCache.h"
 
-#include "renderer/vulkan/SwapchainRendererBase.h"
+#include "renderer/vulkan/Backend.h"
 #include "renderer/vulkan/api/Vulkan.h"
 
 #include "mesh/Mesh.h"

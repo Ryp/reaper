@@ -15,13 +15,13 @@
 #include "ShadowMap.h"
 #include "SwapchainPass.h"
 
+#include "renderer/vulkan/Backend.h"
 #include "renderer/vulkan/Debug.h"
 #include "renderer/vulkan/FrameSync.h"
 #include "renderer/vulkan/MaterialResources.h"
 #include "renderer/vulkan/Memory.h"
 #include "renderer/vulkan/MeshCache.h"
 #include "renderer/vulkan/Swapchain.h"
-#include "renderer/vulkan/SwapchainRendererBase.h"
 #include "renderer/vulkan/api/Vulkan.h"
 #include "renderer/vulkan/api/VulkanStringConversion.h"
 

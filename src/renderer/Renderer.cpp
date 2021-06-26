@@ -7,7 +7,7 @@
 
 #include "Renderer.h"
 
-#include "renderer/vulkan/SwapchainRendererBase.h"
+#include "renderer/vulkan/Backend.h"
 
 #include "renderer/renderdoc/RenderDoc.h"
 

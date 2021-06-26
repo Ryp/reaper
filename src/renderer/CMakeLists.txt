@@ -51,6 +51,8 @@ target_sources(${target} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/texture/TextureLoader.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/texture/TextureLoader.h
 
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Backend.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Backend.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Buffer.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Buffer.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Debug.cpp
@@ -75,8 +77,6 @@ target_sources(${target} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Shader.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Swapchain.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Swapchain.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/SwapchainRendererBase.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/SwapchainRendererBase.h
 
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/allocator/AMDVulkanMemoryAllocator.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/allocator/AMDVulkanMemoryAllocator.h

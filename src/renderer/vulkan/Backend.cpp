@@ -5,7 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "SwapchainRendererBase.h"
+#include "Backend.h"
 
 // TODO use Pimpl to prevent name clashes between Xlib and fmt and move this include forward
 #include "common/Log.h"

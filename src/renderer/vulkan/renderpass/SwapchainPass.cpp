@@ -11,10 +11,10 @@
 #include "ShadowConstants.h"
 
 #include "renderer/PrepareBuckets.h"
+#include "renderer/vulkan/Backend.h"
 #include "renderer/vulkan/Image.h"
 #include "renderer/vulkan/RenderPassHelpers.h"
 #include "renderer/vulkan/Shader.h"
-#include "renderer/vulkan/SwapchainRendererBase.h"
 
 #include "common/Log.h"
 #include "common/ReaperRoot.h"
