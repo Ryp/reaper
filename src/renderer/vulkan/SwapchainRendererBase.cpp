@@ -100,7 +100,11 @@ VulkanBackend::VulkanBackend()
     , deviceInfo({VK_NULL_HANDLE, VK_NULL_HANDLE})
     , presentInfo({})
     , debugMessenger(VK_NULL_HANDLE)
-{}
+    , mustTransitionSwapchain(false)
+{
+    options.freeze_culling = false;
+    options.use_compacted_draw = true;
+}
 
 void create_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& backend)
 {

@@ -128,11 +128,11 @@ namespace
     }
 
     void update_descriptor_set_1(VulkanBackend& backend, const MainPassResources& resources,
-                                 const MaterialResources& material_resources, const nonstd::span<TextureHandle> handles)
+                                 const MaterialResources& material_resources)
     {
         std::vector<VkDescriptorImageInfo> descriptor_maps;
 
-        for (auto handle : handles)
+        for (auto handle : material_resources.texture_handles)
         {
             VkImageView image_view = material_resources.textures[handle].default_view;
             descriptor_maps.push_back({VK_NULL_HANDLE, image_view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL});
@@ -671,12 +671,11 @@ void resize_main_pass_resources(ReaperRoot& root, VulkanBackend& backend, MainPa
 }
 
 void update_main_pass_descriptor_sets(VulkanBackend& backend, const MainPassResources& resources,
-                                      const MaterialResources&          material_resources,
-                                      const nonstd::span<VkImageView>   shadow_map_views,
-                                      const nonstd::span<TextureHandle> handles)
+                                      const MaterialResources&        material_resources,
+                                      const nonstd::span<VkImageView> shadow_map_views)
 {
     update_descriptor_set_0(backend, resources, shadow_map_views);
-    update_descriptor_set_1(backend, resources, material_resources, handles);
+    update_descriptor_set_1(backend, resources, material_resources);
 }
 
 void upload_main_pass_frame_resources(VulkanBackend& backend, const PreparedData& prepared,
@@ -689,10 +688,9 @@ void upload_main_pass_frame_resources(VulkanBackend& backend, const PreparedData
                        prepared.draw_instance_params.size() * sizeof(DrawInstanceParams));
 }
 
-void record_main_pass_command_buffer(const CullOptions& cull_options, VkCommandBuffer cmdBuffer,
-                                     const PreparedData& prepared, const MainPassResources& pass_resources,
-                                     const CullResources& cull_resources, const MeshCache& mesh_cache,
-                                     VkExtent2D backbufferExtent)
+void record_main_pass_command_buffer(VkCommandBuffer cmdBuffer, VulkanBackend& backend, const PreparedData& prepared,
+                                     const MainPassResources& pass_resources, const CullResources& cull_resources,
+                                     const MeshCache& mesh_cache, VkExtent2D backbufferExtent)
 {
     REAPER_PROFILE_SCOPE_GPU("Main Pass", MP_DARKGOLDENROD);
 
@@ -753,7 +751,7 @@ void record_main_pass_command_buffer(const CullOptions& cull_options, VkCommandB
     const u32 draw_buffer_offset = pass_index * MaxIndirectDrawCount * sizeof(VkDrawIndexedIndirectCommand);
     const u32 draw_buffer_max_count = MaxIndirectDrawCount;
 
-    if (cull_options.use_compacted_draw)
+    if (backend.options.use_compacted_draw)
     {
         const u32 draw_buffer_count_offset = pass_index * 1 * sizeof(u32);
         vkCmdDrawIndexedIndirectCount(cmdBuffer, cull_resources.compactIndirectDrawBuffer.buffer, draw_buffer_offset,

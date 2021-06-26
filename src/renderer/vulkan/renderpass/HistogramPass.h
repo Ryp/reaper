@@ -43,7 +43,7 @@ struct HistogramPassResources
 };
 
 HistogramPassResources create_histogram_pass_resources(ReaperRoot& root, VulkanBackend& backend);
-void                   destroy_histogram_pass_resources(VulkanBackend& backend, HistogramPassResources& resources);
+void destroy_histogram_pass_resources(VulkanBackend& backend, const HistogramPassResources& resources);
 
 void update_histogram_pass_descriptor_set(VulkanBackend& backend, const HistogramPassResources& resources,
                                           VkImageView texture_view);

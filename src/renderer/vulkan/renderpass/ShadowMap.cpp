@@ -469,8 +469,7 @@ void upload_shadow_map_resources(VulkanBackend& backend, const PreparedData& pre
                        prepared.shadow_instance_params.size() * sizeof(ShadowMapInstanceParams));
 }
 
-void record_shadow_map_command_buffer(const CullOptions& cull_options, VkCommandBuffer cmdBuffer,
-                                      VulkanBackend& backend, const PreparedData& prepared,
+void record_shadow_map_command_buffer(VkCommandBuffer cmdBuffer, VulkanBackend& backend, const PreparedData& prepared,
                                       ShadowMapResources& resources, const CullResources& cull_resources,
                                       VkBuffer vertex_positon_buffer)
 {
@@ -522,7 +521,7 @@ void record_shadow_map_command_buffer(const CullOptions& cull_options, VkCommand
             shadow_pass.culling_pass_index * MaxIndirectDrawCount * sizeof(VkDrawIndexedIndirectCommand);
         const u32 draw_buffer_max_count = MaxIndirectDrawCount;
 
-        if (cull_options.use_compacted_draw)
+        if (backend.options.use_compacted_draw)
         {
             const u32 draw_buffer_count_offset = shadow_pass.culling_pass_index * 1 * sizeof(u32);
             vkCmdDrawIndexedIndirectCount(cmdBuffer, cull_resources.compactIndirectDrawBuffer.buffer,
@@ -556,8 +555,8 @@ void record_shadow_map_command_buffer(const CullOptions& cull_options, VkCommand
                 VK_ACCESS_MEMORY_READ_BIT,
                 VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
                 VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                backend.physicalDeviceInfo.graphicsQueueIndex,
-                backend.physicalDeviceInfo.graphicsQueueIndex,
+                0,
+                0,
                 resources.shadowMap[shadow_pass.pass_index].handle,
                 {VK_IMAGE_ASPECT_DEPTH_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS}});
         }

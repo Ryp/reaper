@@ -46,6 +46,7 @@ struct MaterialResources
     ResourceStagingArea staging;
 
     std::vector<TextureResource> textures;
+    std::vector<TextureHandle>   texture_handles;
 };
 
 struct VulkanBackend;
@@ -57,6 +58,5 @@ void              destroy_material_resources(VulkanBackend& backend, MaterialRes
 void load_textures(ReaperRoot& root, VulkanBackend& backend, MaterialResources& resources,
                    nonstd::span<const char*> texture_filenames, nonstd::span<TextureHandle> output_handles);
 
-void record_material_upload_command_buffer(VulkanBackend& backend, ResourceStagingArea& staging,
-                                           VkCommandBuffer cmdBuffer);
+void record_material_upload_command_buffer(ResourceStagingArea& staging, VkCommandBuffer cmdBuffer);
 } // namespace Reaper

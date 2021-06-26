@@ -87,20 +87,13 @@ CullPassResources create_culling_pass_descriptor_sets(ReaperRoot& root, VulkanBa
 
 struct PreparedData;
 
-struct CullOptions
-{
-    bool freeze_culling;
-    bool use_compacted_draw;
-};
-
-void upload_culling_resources(VulkanBackend& backend, const CullOptions& options, const PreparedData& prepared,
-                              CullResources& resources);
+void upload_culling_resources(VulkanBackend& backend, const PreparedData& prepared, CullResources& resources);
 
 struct MeshCache;
 
 void update_culling_pass_descriptor_sets(VulkanBackend& backend, const PreparedData& prepared, CullResources& resources,
                                          const MeshCache& mesh_cache);
 
-void record_culling_command_buffer(const CullOptions& options, VkCommandBuffer cmdBuffer, const PreparedData& prepared,
+void record_culling_command_buffer(bool freeze_culling, VkCommandBuffer cmdBuffer, const PreparedData& prepared,
                                    CullResources& resources);
 } // namespace Reaper

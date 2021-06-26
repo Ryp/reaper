@@ -381,7 +381,7 @@ namespace
         resources.swapchain_framebuffer = create_swapchain_framebuffer(backend, resources);
     }
 
-    void destroy_swapchain_pass_resizable_resources(VulkanBackend& backend, SwapchainPassResources& resources)
+    void destroy_swapchain_pass_resizable_resources(VulkanBackend& backend, const SwapchainPassResources& resources)
     {
         vkDestroyFramebuffer(backend.device, resources.swapchain_framebuffer, nullptr);
     }
@@ -443,7 +443,7 @@ SwapchainPassResources create_swapchain_pass_resources(ReaperRoot& root, VulkanB
     return resources;
 }
 
-void destroy_swapchain_pass_resources(VulkanBackend& backend, SwapchainPassResources& resources)
+void destroy_swapchain_pass_resources(VulkanBackend& backend, const SwapchainPassResources& resources)
 {
     vkDestroySampler(backend.device, resources.shadowMapSampler, nullptr);
 

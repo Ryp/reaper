@@ -121,8 +121,8 @@ namespace
         };
     }
 
-    void flush_pending_staging_commands(VulkanBackend& backend, const ResourceStagingArea& staging,
-                                        VkCommandBuffer cmdBuffer, const StagingEntry& entry)
+    void flush_pending_staging_commands(const ResourceStagingArea& staging, VkCommandBuffer cmdBuffer,
+                                        const StagingEntry& entry)
     {
         // The sub resource range describes the regions of the image that will be transitioned using the memory
         // barriers below Transition the texture image layout to transfer target, so we can safely copy our buffer
@@ -134,8 +134,8 @@ namespace
             VK_ACCESS_TRANSFER_WRITE_BIT,
             VK_IMAGE_LAYOUT_UNDEFINED,
             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-            backend.physicalDeviceInfo.graphicsQueueIndex,
-            backend.physicalDeviceInfo.graphicsQueueIndex,
+            0,
+            0,
             entry.target,
             {VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS}};
 
@@ -157,7 +157,7 @@ namespace
                                copy_regions.data());
     }
 
-    VkImageMemoryBarrier prerender_barrier(VulkanBackend& backend, VkImage output_image)
+    VkImageMemoryBarrier prerender_barrier(VkImage output_image)
     {
         return VkImageMemoryBarrier{
             VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
@@ -166,8 +166,8 @@ namespace
             VK_ACCESS_SHADER_READ_BIT,
             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-            backend.physicalDeviceInfo.graphicsQueueIndex,
-            backend.physicalDeviceInfo.graphicsQueueIndex,
+            0,
+            0,
             output_image,
             {VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS}};
     }
@@ -218,6 +218,7 @@ MaterialResources create_material_resources(ReaperRoot& root, VulkanBackend& bac
     return MaterialResources{
         staging,
         {},
+        {},
     };
 }
 
@@ -245,8 +246,7 @@ void load_textures(ReaperRoot& root, VulkanBackend& backend, MaterialResources& 
     }
 }
 
-void record_material_upload_command_buffer(VulkanBackend& backend, ResourceStagingArea& staging,
-                                           VkCommandBuffer cmdBuffer)
+void record_material_upload_command_buffer(ResourceStagingArea& staging, VkCommandBuffer cmdBuffer)
 {
     if (staging.staging_queue.empty())
         return;
@@ -256,7 +256,7 @@ void record_material_upload_command_buffer(VulkanBackend& backend, ResourceStagi
 
         for (const auto& entry : staging.staging_queue)
         {
-            flush_pending_staging_commands(backend, staging, cmdBuffer, entry);
+            flush_pending_staging_commands(staging, cmdBuffer, entry);
         }
     }
 
@@ -267,7 +267,7 @@ void record_material_upload_command_buffer(VulkanBackend& backend, ResourceStagi
 
         for (const auto& entry : staging.staging_queue)
         {
-            prerender_barriers.push_back(prerender_barrier(backend, entry.target));
+            prerender_barriers.push_back(prerender_barrier(entry.target));
         }
 
         // Insert a memory dependency at the proper pipeline stages that will execute the image layout

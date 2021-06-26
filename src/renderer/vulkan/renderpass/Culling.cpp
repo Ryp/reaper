@@ -446,8 +446,7 @@ void destroy_culling_resources(VulkanBackend& backend, CullResources& resources)
     vkDestroyDescriptorSetLayout(backend.device, resources.compactionPipe.descSetLayout, nullptr);
 }
 
-void upload_culling_resources(VulkanBackend& backend, const CullOptions& options, const PreparedData& prepared,
-                              CullResources& resources)
+void upload_culling_resources(VulkanBackend& backend, const PreparedData& prepared, CullResources& resources)
 {
     upload_buffer_data(backend.device, backend.vma_instance, resources.cullPassConstantBuffer,
                        prepared.cull_pass_params.data(), prepared.cull_pass_params.size() * sizeof(CullPassParams));
@@ -456,7 +455,7 @@ void upload_culling_resources(VulkanBackend& backend, const CullOptions& options
                        prepared.cull_mesh_instance_params.data(),
                        prepared.cull_mesh_instance_params.size() * sizeof(CullMeshInstanceParams));
 
-    if (!options.freeze_culling)
+    if (!backend.options.freeze_culling)
     {
         std::array<u32, IndirectDrawCountCount* MaxCullPassCount> zero = {};
         upload_buffer_data(backend.device, backend.vma_instance, resources.indirectDrawCountBuffer, zero.data(),
@@ -477,12 +476,12 @@ void update_culling_pass_descriptor_sets(VulkanBackend& backend, const PreparedD
     }
 }
 
-void record_culling_command_buffer(const CullOptions& options, VkCommandBuffer cmdBuffer, const PreparedData& prepared,
+void record_culling_command_buffer(bool freeze_culling, VkCommandBuffer cmdBuffer, const PreparedData& prepared,
                                    CullResources& resources)
 {
     REAPER_PROFILE_SCOPE_GPU("Culling Pass", MP_DARKGOLDENROD);
 
-    if (!options.freeze_culling)
+    if (!freeze_culling)
     {
         vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, resources.cullPipe.pipeline);
 

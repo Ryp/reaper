@@ -121,7 +121,7 @@ HistogramPassResources create_histogram_pass_resources(ReaperRoot& root, VulkanB
     return resources;
 }
 
-void destroy_histogram_pass_resources(VulkanBackend& backend, HistogramPassResources& resources)
+void destroy_histogram_pass_resources(VulkanBackend& backend, const HistogramPassResources& resources)
 {
     vkDestroyPipeline(backend.device, resources.histogramPipe.pipeline, nullptr);
     vkDestroyPipelineLayout(backend.device, resources.histogramPipe.pipelineLayout, nullptr);

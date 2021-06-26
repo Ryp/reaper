@@ -9,6 +9,12 @@
 
 namespace Reaper
 {
+struct FrameData2
+{
+    u32   index;
+    float timeMs;
+};
+
 struct FrameData
 {
     VkExtent2D backbufferExtent;

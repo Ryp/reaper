@@ -75,6 +75,14 @@ struct REAPER_RENDERER_API VulkanBackend
 
     VkDebugUtilsMessengerEXT debugMessenger;
 
+    bool mustTransitionSwapchain;
+
+    struct Options
+    {
+        bool freeze_culling;
+        bool use_compacted_draw;
+    } options;
+
     VulkanBackend();
 };
 

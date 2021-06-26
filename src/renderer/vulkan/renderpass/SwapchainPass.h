@@ -49,7 +49,7 @@ struct SwapchainPassResources
 };
 
 SwapchainPassResources create_swapchain_pass_resources(ReaperRoot& root, VulkanBackend& backend, glm::uvec2 extent);
-void                   destroy_swapchain_pass_resources(VulkanBackend& backend, SwapchainPassResources& resources);
+void destroy_swapchain_pass_resources(VulkanBackend& backend, const SwapchainPassResources& resources);
 
 void resize_swapchain_pass_resources(ReaperRoot& root, VulkanBackend& backend, SwapchainPassResources& resources,
                                      glm::uvec2 extent);
