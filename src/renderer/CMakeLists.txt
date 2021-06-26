@@ -57,6 +57,8 @@ target_sources(${target} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Debug.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Display.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Display.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/FrameSync.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/FrameSync.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Image.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Image.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/MaterialResources.cpp
