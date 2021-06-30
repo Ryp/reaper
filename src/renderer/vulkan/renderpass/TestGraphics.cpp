@@ -122,7 +122,7 @@ namespace
     }
 
     void vulkan_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuffer& cmdBuffer,
-                              const SceneGraph& scene, BackendResources& resources)
+                              const PreparedData& prepared, BackendResources& resources)
     {
         VkResult acquireResult;
         u64      acquireTimeoutUs = 1000000000;
@@ -186,9 +186,6 @@ namespace
 
         FrameData frame_data = {};
         frame_data.backbufferExtent = backbufferExtent;
-
-        PreparedData prepared;
-        prepare_scene(scene, prepared, resources.mesh_cache);
 
         prepare_shadow_map_objects(root, backend, prepared, resources.shadow_map_resources);
 
@@ -439,7 +436,10 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend)
 
         log_debug(root, "vulkan: begin frame {}", frameIndex);
 
-        vulkan_execute_frame(root, backend, gfxCmdBuffer, scene, backend_resources);
+        PreparedData prepared;
+        prepare_scene(scene, prepared, backend_resources.mesh_cache);
+
+        vulkan_execute_frame(root, backend, gfxCmdBuffer, prepared, backend_resources);
 
         if (saveMyLaptop)
         {
