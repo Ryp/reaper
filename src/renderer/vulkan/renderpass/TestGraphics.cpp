@@ -16,6 +16,7 @@
 #include "SwapchainPass.h"
 
 #include "renderer/vulkan/Backend.h"
+#include "renderer/vulkan/CommandBuffer.h"
 #include "renderer/vulkan/Debug.h"
 #include "renderer/vulkan/FrameSync.h"
 #include "renderer/vulkan/MaterialResources.h"
@@ -51,12 +52,6 @@ namespace Reaper
 {
 namespace
 {
-    struct CommandBuffer
-    {
-        VkCommandBuffer handle;
-        // FIXME Something with microprofile
-    };
-
     struct BackendResources
     {
         MeshCache              mesh_cache;
@@ -238,7 +233,7 @@ namespace
         MICROPROFILE_GPU_SET_CONTEXT(cmdBuffer.handle, MicroProfileGetGlobalGpuThreadLog());
 #endif
 
-        record_material_upload_command_buffer(resources.material_resources.staging, cmdBuffer.handle);
+        record_material_upload_command_buffer(resources.material_resources.staging, cmdBuffer);
 
         if (backend.mustTransitionSwapchain)
         {
@@ -267,13 +262,12 @@ namespace
             backend.mustTransitionSwapchain = false;
         }
 
-        record_culling_command_buffer(backend.options.freeze_culling, cmdBuffer.handle, prepared,
-                                      resources.cull_resources);
+        record_culling_command_buffer(backend.options.freeze_culling, cmdBuffer, prepared, resources.cull_resources);
 
-        record_shadow_map_command_buffer(cmdBuffer.handle, backend, prepared, resources.shadow_map_resources,
+        record_shadow_map_command_buffer(cmdBuffer, backend, prepared, resources.shadow_map_resources,
                                          resources.cull_resources, resources.mesh_cache.vertexBufferPosition.buffer);
 
-        record_main_pass_command_buffer(cmdBuffer.handle, backend, prepared, resources.main_pass_resources,
+        record_main_pass_command_buffer(cmdBuffer, backend, prepared, resources.main_pass_resources,
                                         resources.cull_resources, resources.mesh_cache, backbufferExtent);
 
         {

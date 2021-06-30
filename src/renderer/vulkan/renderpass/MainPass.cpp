@@ -13,6 +13,7 @@
 #include "renderer/PrepareBuckets.h"
 
 #include "renderer/vulkan/Backend.h"
+#include "renderer/vulkan/CommandBuffer.h"
 #include "renderer/vulkan/Image.h"
 #include "renderer/vulkan/MaterialResources.h"
 #include "renderer/vulkan/MeshCache.h"
@@ -688,7 +689,7 @@ void upload_main_pass_frame_resources(VulkanBackend& backend, const PreparedData
                        prepared.draw_instance_params.size() * sizeof(DrawInstanceParams));
 }
 
-void record_main_pass_command_buffer(VkCommandBuffer cmdBuffer, VulkanBackend& backend, const PreparedData& prepared,
+void record_main_pass_command_buffer(CommandBuffer& cmdBuffer, VulkanBackend& backend, const PreparedData& prepared,
                                      const MainPassResources& pass_resources, const CullResources& cull_resources,
                                      const MeshCache& mesh_cache, VkExtent2D backbufferExtent)
 {
@@ -714,14 +715,14 @@ void record_main_pass_command_buffer(VkCommandBuffer cmdBuffer, VulkanBackend& b
                                                      static_cast<u32>(clearValues.size()),
                                                      clearValues.data()};
 
-    vkCmdBeginRenderPass(cmdBuffer, &blitRenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+    vkCmdBeginRenderPass(cmdBuffer.handle, &blitRenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-    vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pass_resources.mainPipe.pipeline);
+    vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, pass_resources.mainPipe.pipeline);
 
     const VkViewport blitViewport = default_vk_viewport(blitPassRect);
 
-    vkCmdSetViewport(cmdBuffer, 0, 1, &blitViewport);
-    vkCmdSetScissor(cmdBuffer, 0, 1, &blitPassRect);
+    vkCmdSetViewport(cmdBuffer.handle, 0, 1, &blitViewport);
+    vkCmdSetScissor(cmdBuffer.handle, 0, 1, &blitPassRect);
 
     std::vector<VkBuffer> vertexBuffers = {
         mesh_cache.vertexBufferPosition.buffer,
@@ -734,8 +735,8 @@ void record_main_pass_command_buffer(VkCommandBuffer cmdBuffer, VulkanBackend& b
         0,
     };
     Assert(vertexBuffers.size() == vertexBufferOffsets.size());
-    vkCmdBindIndexBuffer(cmdBuffer, cull_resources.dynamicIndexBuffer.buffer, 0, get_vk_culling_index_type());
-    vkCmdBindVertexBuffers(cmdBuffer, 0, static_cast<u32>(vertexBuffers.size()), vertexBuffers.data(),
+    vkCmdBindIndexBuffer(cmdBuffer.handle, cull_resources.dynamicIndexBuffer.buffer, 0, get_vk_culling_index_type());
+    vkCmdBindVertexBuffers(cmdBuffer.handle, 0, static_cast<u32>(vertexBuffers.size()), vertexBuffers.data(),
                            vertexBufferOffsets.data());
 
     std::array<VkDescriptorSet, 2> main_pass_descriptors = {
@@ -743,8 +744,9 @@ void record_main_pass_command_buffer(VkCommandBuffer cmdBuffer, VulkanBackend& b
         pass_resources.material_descriptor_set,
     };
 
-    vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pass_resources.mainPipe.pipelineLayout, 0,
-                            static_cast<u32>(main_pass_descriptors.size()), main_pass_descriptors.data(), 0, nullptr);
+    vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, pass_resources.mainPipe.pipelineLayout,
+                            0, static_cast<u32>(main_pass_descriptors.size()), main_pass_descriptors.data(), 0,
+                            nullptr);
 
     const u32 pass_index = prepared.draw_culling_pass_index;
 
@@ -754,19 +756,19 @@ void record_main_pass_command_buffer(VkCommandBuffer cmdBuffer, VulkanBackend& b
     if (backend.options.use_compacted_draw)
     {
         const u32 draw_buffer_count_offset = pass_index * 1 * sizeof(u32);
-        vkCmdDrawIndexedIndirectCount(cmdBuffer, cull_resources.compactIndirectDrawBuffer.buffer, draw_buffer_offset,
-                                      cull_resources.compactIndirectDrawCountBuffer.buffer, draw_buffer_count_offset,
-                                      draw_buffer_max_count,
+        vkCmdDrawIndexedIndirectCount(cmdBuffer.handle, cull_resources.compactIndirectDrawBuffer.buffer,
+                                      draw_buffer_offset, cull_resources.compactIndirectDrawCountBuffer.buffer,
+                                      draw_buffer_count_offset, draw_buffer_max_count,
                                       cull_resources.compactIndirectDrawBuffer.descriptor.elementSize);
     }
     else
     {
         const u32 draw_buffer_count_offset = pass_index * IndirectDrawCountCount * sizeof(u32);
-        vkCmdDrawIndexedIndirectCount(cmdBuffer, cull_resources.indirectDrawBuffer.buffer, draw_buffer_offset,
+        vkCmdDrawIndexedIndirectCount(cmdBuffer.handle, cull_resources.indirectDrawBuffer.buffer, draw_buffer_offset,
                                       cull_resources.indirectDrawCountBuffer.buffer, draw_buffer_count_offset,
                                       draw_buffer_max_count, cull_resources.indirectDrawBuffer.descriptor.elementSize);
     }
 
-    vkCmdEndRenderPass(cmdBuffer);
+    vkCmdEndRenderPass(cmdBuffer.handle);
 }
 } // namespace Reaper

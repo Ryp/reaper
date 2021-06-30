@@ -74,10 +74,11 @@ struct PreparedData;
 void upload_main_pass_frame_resources(VulkanBackend& backend, const PreparedData& prepared,
                                       MainPassResources& pass_resources);
 
+struct CommandBuffer;
 struct CullResources;
 struct MeshCache;
 
-void record_main_pass_command_buffer(VkCommandBuffer cmdBuffer, VulkanBackend& backend, const PreparedData& prepared,
+void record_main_pass_command_buffer(CommandBuffer& cmdBuffer, VulkanBackend& backend, const PreparedData& prepared,
                                      const MainPassResources& pass_resources, const CullResources& cull_resources,
                                      const MeshCache& mesh_cache, VkExtent2D backbufferExtent);
 } // namespace Reaper

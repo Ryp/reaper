@@ -12,6 +12,7 @@
 
 #include "renderer/PrepareBuckets.h"
 #include "renderer/vulkan/Backend.h"
+#include "renderer/vulkan/CommandBuffer.h"
 #include "renderer/vulkan/Image.h"
 #include "renderer/vulkan/RenderPassHelpers.h"
 #include "renderer/vulkan/Shader.h"
@@ -491,7 +492,7 @@ void upload_swapchain_frame_resources(VulkanBackend& backend, const PreparedData
                        &prepared.swapchain_pass_params, sizeof(SwapchainPassParams));
 }
 
-void record_swapchain_command_buffer(VkCommandBuffer cmdBuffer, const FrameData& frame_data,
+void record_swapchain_command_buffer(CommandBuffer& cmdBuffer, const FrameData& frame_data,
                                      const SwapchainPassResources& pass_resources, VkImageView swapchain_buffer_view)
 {
     REAPER_PROFILE_SCOPE_GPU("Swapchain Pass", MP_DARKGOLDENROD);
@@ -512,20 +513,21 @@ void record_swapchain_command_buffer(VkCommandBuffer cmdBuffer, const FrameData&
                                                      0,
                                                      nullptr};
 
-    vkCmdBeginRenderPass(cmdBuffer, &blitRenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+    vkCmdBeginRenderPass(cmdBuffer.handle, &blitRenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-    vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pass_resources.swapchainPipe.pipeline);
+    vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, pass_resources.swapchainPipe.pipeline);
 
     const VkViewport blitViewport = default_vk_viewport(blitPassRect);
 
-    vkCmdSetViewport(cmdBuffer, 0, 1, &blitViewport);
-    vkCmdSetScissor(cmdBuffer, 0, 1, &blitPassRect);
+    vkCmdSetViewport(cmdBuffer.handle, 0, 1, &blitViewport);
+    vkCmdSetScissor(cmdBuffer.handle, 0, 1, &blitPassRect);
 
-    vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pass_resources.swapchainPipe.pipelineLayout, 0,
-                            1, &pass_resources.descriptor_set, 0, nullptr);
+    vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                            pass_resources.swapchainPipe.pipelineLayout, 0, 1, &pass_resources.descriptor_set, 0,
+                            nullptr);
 
-    vkCmdDraw(cmdBuffer, 3, 1, 0, 0);
+    vkCmdDraw(cmdBuffer.handle, 3, 1, 0, 0);
 
-    vkCmdEndRenderPass(cmdBuffer);
+    vkCmdEndRenderPass(cmdBuffer.handle);
 }
 } // namespace Reaper

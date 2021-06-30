@@ -10,6 +10,7 @@
 #include "renderer/PrepareBuckets.h"
 
 #include "renderer/vulkan/Backend.h"
+#include "renderer/vulkan/CommandBuffer.h"
 #include "renderer/vulkan/ComputeHelper.h"
 #include "renderer/vulkan/MeshCache.h"
 #include "renderer/vulkan/Shader.h"
@@ -29,7 +30,7 @@ namespace Reaper
 {
 namespace
 {
-    void cmd_insert_compute_to_compute_barrier(VkCommandBuffer cmdBuffer)
+    void cmd_insert_compute_to_compute_barrier(CommandBuffer& cmdBuffer)
     {
         std::array<VkMemoryBarrier, 1> memoryBarriers = {VkMemoryBarrier{
             VK_STRUCTURE_TYPE_MEMORY_BARRIER,
@@ -38,8 +39,9 @@ namespace
             VK_ACCESS_SHADER_READ_BIT,
         }};
 
-        vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0,
-                             static_cast<u32>(memoryBarriers.size()), memoryBarriers.data(), 0, nullptr, 0, nullptr);
+        vkCmdPipelineBarrier(cmdBuffer.handle, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                             VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, static_cast<u32>(memoryBarriers.size()),
+                             memoryBarriers.data(), 0, nullptr, 0, nullptr);
     }
 
     CullPassResources create_descriptor_sets(VulkanBackend& backend, CullResources& resources)
@@ -476,28 +478,29 @@ void update_culling_pass_descriptor_sets(VulkanBackend& backend, const PreparedD
     }
 }
 
-void record_culling_command_buffer(bool freeze_culling, VkCommandBuffer cmdBuffer, const PreparedData& prepared,
+void record_culling_command_buffer(bool freeze_culling, CommandBuffer& cmdBuffer, const PreparedData& prepared,
                                    CullResources& resources)
 {
     REAPER_PROFILE_SCOPE_GPU("Culling Pass", MP_DARKGOLDENROD);
 
     if (!freeze_culling)
     {
-        vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, resources.cullPipe.pipeline);
+        vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE, resources.cullPipe.pipeline);
 
         for (const CullPassData& cull_pass : prepared.cull_passes)
         {
             const CullPassResources& pass_resources = resources.passes[cull_pass.pass_index];
 
-            vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, resources.cullPipe.pipelineLayout, 0, 1,
-                                    &pass_resources.cull_descriptor_set, 0, nullptr);
+            vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE, resources.cullPipe.pipelineLayout,
+                                    0, 1, &pass_resources.cull_descriptor_set, 0, nullptr);
 
             for (const CullCmd& command : cull_pass.cull_cmds)
             {
-                vkCmdPushConstants(cmdBuffer, resources.cullPipe.pipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0,
+                vkCmdPushConstants(cmdBuffer.handle, resources.cullPipe.pipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0,
                                    sizeof(command.push_constants), &command.push_constants);
 
-                vkCmdDispatch(cmdBuffer, div_round_up(command.push_constants.triangleCount, ComputeCullingGroupSize),
+                vkCmdDispatch(cmdBuffer.handle,
+                              div_round_up(command.push_constants.triangleCount, ComputeCullingGroupSize),
                               command.instanceCount, 1);
             }
         }
@@ -512,16 +515,17 @@ void record_culling_command_buffer(bool freeze_culling, VkCommandBuffer cmdBuffe
     {
         REAPER_PROFILE_SCOPE_GPU("Cull Compaction Prepare", MP_DARKGOLDENROD);
 
-        vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, resources.compactPrepPipe.pipeline);
+        vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE, resources.compactPrepPipe.pipeline);
 
         for (const CullPassData& cull_pass : prepared.cull_passes)
         {
             const CullPassResources& pass_resources = resources.passes[cull_pass.pass_index];
 
-            vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, resources.compactPrepPipe.pipelineLayout,
-                                    0, 1, &pass_resources.compact_prep_descriptor_set, 0, nullptr);
+            vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE,
+                                    resources.compactPrepPipe.pipelineLayout, 0, 1,
+                                    &pass_resources.compact_prep_descriptor_set, 0, nullptr);
 
-            vkCmdDispatch(cmdBuffer, 1, 1, 1);
+            vkCmdDispatch(cmdBuffer.handle, 1, 1, 1);
         }
     }
 
@@ -534,16 +538,17 @@ void record_culling_command_buffer(bool freeze_culling, VkCommandBuffer cmdBuffe
     {
         REAPER_PROFILE_SCOPE_GPU("Cull Compaction", MP_DARKGOLDENROD);
 
-        vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, resources.compactionPipe.pipeline);
+        vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE, resources.compactionPipe.pipeline);
 
         for (const CullPassData& cull_pass : prepared.cull_passes)
         {
             const CullPassResources& pass_resources = resources.passes[cull_pass.pass_index];
 
-            vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, resources.compactionPipe.pipelineLayout,
-                                    0, 1, &pass_resources.compact_descriptor_set, 0, nullptr);
+            vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE,
+                                    resources.compactionPipe.pipelineLayout, 0, 1,
+                                    &pass_resources.compact_descriptor_set, 0, nullptr);
 
-            vkCmdDispatchIndirect(cmdBuffer, resources.compactionIndirectDispatchBuffer.buffer, 0);
+            vkCmdDispatchIndirect(cmdBuffer.handle, resources.compactionIndirectDispatchBuffer.buffer, 0);
         }
     }
 
@@ -557,7 +562,7 @@ void record_culling_command_buffer(bool freeze_culling, VkCommandBuffer cmdBuffe
             VK_ACCESS_INDEX_READ_BIT | VK_ACCESS_INDIRECT_COMMAND_READ_BIT,
         }};
 
-        vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+        vkCmdPipelineBarrier(cmdBuffer.handle, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                              VK_PIPELINE_STAGE_VERTEX_INPUT_BIT | VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT, 0,
                              static_cast<u32>(memoryBarriers.size()), memoryBarriers.data(), 0, nullptr, 0, nullptr);
     }

@@ -62,8 +62,9 @@ struct PreparedData;
 void upload_swapchain_frame_resources(VulkanBackend& backend, const PreparedData& prepared,
                                       const SwapchainPassResources& pass_resources);
 
+struct CommandBuffer;
 struct FrameData;
 
-void record_swapchain_command_buffer(VkCommandBuffer cmdBuffer, const FrameData& frame_data,
+void record_swapchain_command_buffer(CommandBuffer& cmdBuffer, const FrameData& frame_data,
                                      const SwapchainPassResources& pass_resources, VkImageView swapchain_buffer_view);
 } // namespace Reaper

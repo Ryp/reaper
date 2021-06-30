@@ -13,6 +13,7 @@
 #include "renderer/PrepareBuckets.h"
 #include "renderer/texture/GPUTextureProperties.h"
 #include "renderer/vulkan/Backend.h"
+#include "renderer/vulkan/CommandBuffer.h"
 #include "renderer/vulkan/Image.h"
 #include "renderer/vulkan/RenderPassHelpers.h"
 #include "renderer/vulkan/Shader.h"
@@ -469,9 +470,9 @@ void upload_shadow_map_resources(VulkanBackend& backend, const PreparedData& pre
                        prepared.shadow_instance_params.size() * sizeof(ShadowMapInstanceParams));
 }
 
-void record_shadow_map_command_buffer(VkCommandBuffer cmdBuffer, VulkanBackend& backend, const PreparedData& prepared,
+void record_shadow_map_command_buffer(CommandBuffer& cmdBuffer, VulkanBackend& backend, const PreparedData& prepared,
                                       ShadowMapResources& resources, const CullResources& cull_resources,
-                                      VkBuffer vertex_positon_buffer)
+                                      VkBuffer vertex_position_buffer)
 {
     for (const ShadowPassData& shadow_pass : prepared.shadow_passes)
     {
@@ -496,25 +497,26 @@ void record_shadow_map_command_buffer(VkCommandBuffer cmdBuffer, VulkanBackend& 
                                                               1,
                                                               &clearValue};
 
-        vkCmdBeginRenderPass(cmdBuffer, &shadowMapRenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+        vkCmdBeginRenderPass(cmdBuffer.handle, &shadowMapRenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-        vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, resources.pipe.pipeline);
+        vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, resources.pipe.pipeline);
 
         const VkViewport viewport = default_vk_viewport(pass_rect);
 
-        vkCmdSetViewport(cmdBuffer, 0, 1, &viewport);
-        vkCmdSetScissor(cmdBuffer, 0, 1, &pass_rect);
+        vkCmdSetViewport(cmdBuffer.handle, 0, 1, &viewport);
+        vkCmdSetScissor(cmdBuffer.handle, 0, 1, &pass_rect);
 
         std::vector<VkBuffer> vertexBuffers = {
-            vertex_positon_buffer,
+            vertex_position_buffer,
         };
         std::vector<VkDeviceSize> vertexBufferOffsets = {0};
 
         Assert(vertexBuffers.size() == vertexBufferOffsets.size());
-        vkCmdBindIndexBuffer(cmdBuffer, cull_resources.dynamicIndexBuffer.buffer, 0, get_vk_culling_index_type());
-        vkCmdBindVertexBuffers(cmdBuffer, 0, static_cast<u32>(vertexBuffers.size()), vertexBuffers.data(),
+        vkCmdBindIndexBuffer(cmdBuffer.handle, cull_resources.dynamicIndexBuffer.buffer, 0,
+                             get_vk_culling_index_type());
+        vkCmdBindVertexBuffers(cmdBuffer.handle, 0, static_cast<u32>(vertexBuffers.size()), vertexBuffers.data(),
                                vertexBufferOffsets.data());
-        vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, resources.pipe.pipelineLayout, 0, 1,
+        vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, resources.pipe.pipelineLayout, 0, 1,
                                 &resources.descriptor_sets[shadow_pass.pass_index], 0, nullptr);
 
         const u32 draw_buffer_offset =
@@ -524,7 +526,7 @@ void record_shadow_map_command_buffer(VkCommandBuffer cmdBuffer, VulkanBackend& 
         if (backend.options.use_compacted_draw)
         {
             const u32 draw_buffer_count_offset = shadow_pass.culling_pass_index * 1 * sizeof(u32);
-            vkCmdDrawIndexedIndirectCount(cmdBuffer, cull_resources.compactIndirectDrawBuffer.buffer,
+            vkCmdDrawIndexedIndirectCount(cmdBuffer.handle, cull_resources.compactIndirectDrawBuffer.buffer,
                                           draw_buffer_offset, cull_resources.compactIndirectDrawCountBuffer.buffer,
                                           draw_buffer_count_offset, draw_buffer_max_count,
                                           cull_resources.compactIndirectDrawBuffer.descriptor.elementSize);
@@ -532,13 +534,13 @@ void record_shadow_map_command_buffer(VkCommandBuffer cmdBuffer, VulkanBackend& 
         else
         {
             const u32 draw_buffer_count_offset = shadow_pass.culling_pass_index * IndirectDrawCountCount * sizeof(u32);
-            vkCmdDrawIndexedIndirectCount(cmdBuffer, cull_resources.indirectDrawBuffer.buffer, draw_buffer_offset,
-                                          cull_resources.indirectDrawCountBuffer.buffer, draw_buffer_count_offset,
-                                          draw_buffer_max_count,
+            vkCmdDrawIndexedIndirectCount(cmdBuffer.handle, cull_resources.indirectDrawBuffer.buffer,
+                                          draw_buffer_offset, cull_resources.indirectDrawCountBuffer.buffer,
+                                          draw_buffer_count_offset, draw_buffer_max_count,
                                           cull_resources.indirectDrawBuffer.descriptor.elementSize);
         }
 
-        vkCmdEndRenderPass(cmdBuffer);
+        vkCmdEndRenderPass(cmdBuffer.handle);
     }
 
     {
@@ -562,8 +564,8 @@ void record_shadow_map_command_buffer(VkCommandBuffer cmdBuffer, VulkanBackend& 
         }
 
         // FIXME is this a noop when there's no barriers?
-        vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0,
-                             nullptr, 0, nullptr, static_cast<u32>(shadowMapImageBarrierInfo.size()),
+        vkCmdPipelineBarrier(cmdBuffer.handle, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+                             0, 0, nullptr, 0, nullptr, static_cast<u32>(shadowMapImageBarrierInfo.size()),
                              shadowMapImageBarrierInfo.data());
     }
 }

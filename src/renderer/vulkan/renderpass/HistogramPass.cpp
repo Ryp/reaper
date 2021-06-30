@@ -10,6 +10,7 @@
 #include "Frame.h"
 
 #include "renderer/vulkan/Backend.h"
+#include "renderer/vulkan/CommandBuffer.h"
 #include "renderer/vulkan/ComputeHelper.h"
 #include "renderer/vulkan/Image.h"
 #include "renderer/vulkan/Shader.h"
@@ -166,17 +167,18 @@ void upload_histogram_frame_resources(VulkanBackend& backend, const HistogramPas
                        zero.size() * sizeof(u32));
 }
 
-void record_histogram_command_buffer(VkCommandBuffer cmdBuffer, const FrameData& frame_data,
+void record_histogram_command_buffer(CommandBuffer& cmdBuffer, const FrameData& frame_data,
                                      const HistogramPassResources& pass_resources)
 {
     REAPER_PROFILE_SCOPE_GPU("Histogram Pass", MP_DARKGOLDENROD);
 
-    vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pass_resources.histogramPipe.pipeline);
+    vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE, pass_resources.histogramPipe.pipeline);
 
-    vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pass_resources.histogramPipe.pipelineLayout, 0,
-                            1, &pass_resources.descriptor_set, 0, nullptr);
+    vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE,
+                            pass_resources.histogramPipe.pipelineLayout, 0, 1, &pass_resources.descriptor_set, 0,
+                            nullptr);
 
-    vkCmdDispatch(cmdBuffer,
+    vkCmdDispatch(cmdBuffer.handle,
                   div_round_up(frame_data.backbufferExtent.width, ReduceHDRGroupSizeX),
                   div_round_up(frame_data.backbufferExtent.height, ReduceHDRGroupSizeY),
                   1);

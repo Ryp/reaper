@@ -94,6 +94,8 @@ struct MeshCache;
 void update_culling_pass_descriptor_sets(VulkanBackend& backend, const PreparedData& prepared, CullResources& resources,
                                          const MeshCache& mesh_cache);
 
-void record_culling_command_buffer(bool freeze_culling, VkCommandBuffer cmdBuffer, const PreparedData& prepared,
+struct CommandBuffer;
+
+void record_culling_command_buffer(bool freeze_culling, CommandBuffer& cmdBuffer, const PreparedData& prepared,
                                    CullResources& resources);
 } // namespace Reaper

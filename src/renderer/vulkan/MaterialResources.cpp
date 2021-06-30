@@ -9,6 +9,7 @@
 
 #include "renderer/vulkan/Backend.h"
 #include "renderer/vulkan/Buffer.h"
+#include "renderer/vulkan/CommandBuffer.h"
 #include "renderer/vulkan/Image.h"
 
 #include "common/Log.h"
@@ -121,7 +122,7 @@ namespace
         };
     }
 
-    void flush_pending_staging_commands(const ResourceStagingArea& staging, VkCommandBuffer cmdBuffer,
+    void flush_pending_staging_commands(CommandBuffer& cmdBuffer, const ResourceStagingArea& staging,
                                         const StagingEntry& entry)
     {
         // The sub resource range describes the regions of the image that will be transitioned using the memory
@@ -142,14 +143,14 @@ namespace
         // Insert a memory dependency at the proper pipeline stages that will execute the image layout transition
         // Source pipeline stage is host write/read execution (VK_PIPELINE_STAGE_HOST_BIT)
         // Destination pipeline stage is copy command execution (VK_PIPELINE_STAGE_TRANSFER_BIT)
-        vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_HOST_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0,
-                             nullptr, 1, &imageMemoryBarrier);
+        vkCmdPipelineBarrier(cmdBuffer.handle, VK_PIPELINE_STAGE_HOST_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0,
+                             nullptr, 0, nullptr, 1, &imageMemoryBarrier);
 
         const nonstd::span<const VkBufferImageCopy> copy_regions(&staging.bufferCopyRegions[entry.copy_command_offset],
                                                                  entry.copy_command_count);
 
         // Copy mip levels from staging buffer
-        vkCmdCopyBufferToImage(cmdBuffer,
+        vkCmdCopyBufferToImage(cmdBuffer.handle,
                                staging.staging_buffer.buffer,
                                entry.target,
                                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
@@ -246,7 +247,7 @@ void load_textures(ReaperRoot& root, VulkanBackend& backend, MaterialResources& 
     }
 }
 
-void record_material_upload_command_buffer(ResourceStagingArea& staging, VkCommandBuffer cmdBuffer)
+void record_material_upload_command_buffer(ResourceStagingArea& staging, CommandBuffer& cmdBuffer)
 {
     if (staging.staging_queue.empty())
         return;
@@ -256,7 +257,7 @@ void record_material_upload_command_buffer(ResourceStagingArea& staging, VkComma
 
         for (const auto& entry : staging.staging_queue)
         {
-            flush_pending_staging_commands(staging, cmdBuffer, entry);
+            flush_pending_staging_commands(cmdBuffer, staging, entry);
         }
     }
 
@@ -273,8 +274,8 @@ void record_material_upload_command_buffer(ResourceStagingArea& staging, VkComma
         // Insert a memory dependency at the proper pipeline stages that will execute the image layout
         // transition Source pipeline stage is host write/read execution (VK_PIPELINE_STAGE_HOST_BIT)
         // Destination pipeline stage is copy command execution (VK_PIPELINE_STAGE_TRANSFER_BIT)
-        vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0,
-                             nullptr, 0, nullptr, static_cast<u32>(prerender_barriers.size()),
+        vkCmdPipelineBarrier(cmdBuffer.handle, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0,
+                             0, nullptr, 0, nullptr, static_cast<u32>(prerender_barriers.size()),
                              prerender_barriers.data());
     }
 
