@@ -43,8 +43,8 @@ struct PresentationInfo
 
 struct PhysicalDeviceInfo
 {
-    uint32_t                         graphicsQueueIndex;
-    uint32_t                         presentQueueIndex;
+    uint32_t                         graphicsQueueFamilyIndex;
+    uint32_t                         presentQueueFamilyIndex;
     VkPhysicalDeviceMemoryProperties memory;
 };
 

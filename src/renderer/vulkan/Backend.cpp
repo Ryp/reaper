@@ -233,7 +233,7 @@ void create_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& backend)
 #if defined(REAPER_USE_MICROPROFILE)
     const u32 node_count = 1; // NOTE: not sure what this is for
     MicroProfileGpuInitVulkan(&backend.device, &backend.physicalDevice, &backend.deviceInfo.graphicsQueue,
-                              &backend.physicalDeviceInfo.graphicsQueueIndex, node_count);
+                              &backend.physicalDeviceInfo.graphicsQueueFamilyIndex, node_count);
 #endif
 
     log_info(root, "vulkan: ready");
@@ -586,8 +586,8 @@ void vulkan_choose_physical_device(ReaperRoot&                     root,
 
     Assert(chosenPhysicalDevice != VK_NULL_HANDLE, "could not select physical device based on the chosen properties");
 
-    physicalDeviceInfo.graphicsQueueIndex = selected_queue_family_index;
-    physicalDeviceInfo.presentQueueIndex = selected_present_queue_family_index;
+    physicalDeviceInfo.graphicsQueueFamilyIndex = selected_queue_family_index;
+    physicalDeviceInfo.presentQueueFamilyIndex = selected_present_queue_family_index;
 
     vkGetPhysicalDeviceMemoryProperties(chosenPhysicalDevice, &physicalDeviceInfo.memory);
 
@@ -663,23 +663,23 @@ void vulkan_create_logical_device(ReaperRoot&                     root,
     std::vector<float>                   queue_priorities = {1.0f};
 
     queue_create_infos.push_back({
-        VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,     // VkStructureType              sType
-        nullptr,                                        // const void                  *pNext
-        0,                                              // VkDeviceQueueCreateFlags     flags
-        backend.physicalDeviceInfo.graphicsQueueIndex,  // uint32_t                     queueFamilyIndex
-        static_cast<uint32_t>(queue_priorities.size()), // uint32_t                     queueCount
-        &queue_priorities[0]                            // const float                 *pQueuePriorities
+        VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,          // VkStructureType              sType
+        nullptr,                                             // const void                  *pNext
+        0,                                                   // VkDeviceQueueCreateFlags     flags
+        backend.physicalDeviceInfo.graphicsQueueFamilyIndex, // uint32_t                     queueFamilyIndex
+        static_cast<uint32_t>(queue_priorities.size()),      // uint32_t                     queueCount
+        &queue_priorities[0]                                 // const float                 *pQueuePriorities
     });
 
-    if (backend.physicalDeviceInfo.graphicsQueueIndex != backend.physicalDeviceInfo.presentQueueIndex)
+    if (backend.physicalDeviceInfo.graphicsQueueFamilyIndex != backend.physicalDeviceInfo.presentQueueFamilyIndex)
     {
         queue_create_infos.push_back({
-            VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,     // VkStructureType              sType
-            nullptr,                                        // const void                  *pNext
-            0,                                              // VkDeviceQueueCreateFlags     flags
-            backend.physicalDeviceInfo.presentQueueIndex,   // uint32_t                     queueFamilyIndex
-            static_cast<uint32_t>(queue_priorities.size()), // uint32_t                     queueCount
-            &queue_priorities[0]                            // const float                 *pQueuePriorities
+            VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,         // VkStructureType              sType
+            nullptr,                                            // const void                  *pNext
+            0,                                                  // VkDeviceQueueCreateFlags     flags
+            backend.physicalDeviceInfo.presentQueueFamilyIndex, // uint32_t                     queueFamilyIndex
+            static_cast<uint32_t>(queue_priorities.size()),     // uint32_t                     queueCount
+            &queue_priorities[0]                                // const float                 *pQueuePriorities
         });
     }
 
@@ -731,8 +731,9 @@ void vulkan_create_logical_device(ReaperRoot&                     root,
 
     vulkan_load_device_level_functions(backend.device);
 
-    vkGetDeviceQueue(backend.device, backend.physicalDeviceInfo.graphicsQueueIndex, 0,
+    vkGetDeviceQueue(backend.device, backend.physicalDeviceInfo.graphicsQueueFamilyIndex, 0,
                      &backend.deviceInfo.graphicsQueue);
-    vkGetDeviceQueue(backend.device, backend.physicalDeviceInfo.presentQueueIndex, 0, &backend.deviceInfo.presentQueue);
+    vkGetDeviceQueue(backend.device, backend.physicalDeviceInfo.presentQueueFamilyIndex, 0,
+                     &backend.deviceInfo.presentQueue);
 }
 } // namespace Reaper

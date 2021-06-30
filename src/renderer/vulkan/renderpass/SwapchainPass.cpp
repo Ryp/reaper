@@ -256,7 +256,7 @@ SwapchainPipelineInfo create_swapchain_pipeline(ReaperRoot& root, VulkanBackend&
            == VK_SUCCESS);
     log_debug(root, "vulkan: created blit pipeline with handle: {}", static_cast<void*>(pipeline));
 
-    Assert(backend.physicalDeviceInfo.graphicsQueueIndex == backend.physicalDeviceInfo.presentQueueIndex);
+    Assert(backend.physicalDeviceInfo.graphicsQueueFamilyIndex == backend.physicalDeviceInfo.presentQueueFamilyIndex);
 
     vkDestroyShaderModule(backend.device, shaderVS, nullptr);
     vkDestroyShaderModule(backend.device, shaderFS, nullptr);

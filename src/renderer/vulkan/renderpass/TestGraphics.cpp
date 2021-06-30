@@ -254,8 +254,8 @@ namespace
                     VK_ACCESS_MEMORY_READ_BIT,
                     VK_IMAGE_LAYOUT_UNDEFINED,
                     VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-                    backend.physicalDeviceInfo.presentQueueIndex,
-                    backend.physicalDeviceInfo.presentQueueIndex,
+                    backend.physicalDeviceInfo.presentQueueFamilyIndex,
+                    backend.physicalDeviceInfo.presentQueueFamilyIndex,
                     backend.presentInfo.images[swapchainImageIndex],
                     {VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS}};
 
@@ -351,7 +351,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend)
     VkCommandPool           graphicsCommandPool = VK_NULL_HANDLE;
     VkCommandPoolCreateInfo poolCreateInfo = {VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO, nullptr,
                                               VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
-                                              backend.physicalDeviceInfo.graphicsQueueIndex};
+                                              backend.physicalDeviceInfo.graphicsQueueFamilyIndex};
 
     Assert(vkCreateCommandPool(backend.device, &poolCreateInfo, nullptr, &graphicsCommandPool) == VK_SUCCESS);
     log_debug(root, "vulkan: created command pool with handle: {}", static_cast<void*>(graphicsCommandPool));
