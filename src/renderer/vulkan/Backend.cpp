@@ -101,6 +101,7 @@ VulkanBackend::VulkanBackend()
     , presentInfo({})
     , debugMessenger(VK_NULL_HANDLE)
     , mustTransitionSwapchain(false)
+    , new_swapchain_extent({0, 0})
 {
     options.freeze_culling = false;
     options.use_compacted_draw = true;

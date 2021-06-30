@@ -75,7 +75,8 @@ struct REAPER_RENDERER_API VulkanBackend
 
     VkDebugUtilsMessengerEXT debugMessenger;
 
-    bool mustTransitionSwapchain;
+    bool       mustTransitionSwapchain;
+    VkExtent2D new_swapchain_extent;
 
     struct Options
     {

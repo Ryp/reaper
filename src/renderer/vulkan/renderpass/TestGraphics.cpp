@@ -76,8 +76,7 @@ namespace
         destroy_frame_sync_resources(backend, resources.frame_sync_resources);
     }
 
-    bool vulkan_process_window_events(ReaperRoot& root, VulkanBackend& backend, IWindow* window,
-                                      BackendResources& resources)
+    bool vulkan_process_window_events(ReaperRoot& root, VulkanBackend& backend, IWindow* window)
     {
         log_info(root, "window: pump events");
 
@@ -92,19 +91,11 @@ namespace
                 const u32 height = event.message.resize.height;
                 log_debug(root, "window: resize event, width = {}, height = {}", width, height);
 
-                {
-                    vkQueueWaitIdle(backend.deviceInfo.presentQueue);
+                Assert(width > 0);
+                Assert(height > 0);
 
-                    resize_vulkan_wm_swapchain(root, backend, backend.presentInfo, {width, height});
-
-                    const glm::uvec2 new_swapchain_extent(backend.presentInfo.surfaceExtent.width,
-                                                          backend.presentInfo.surfaceExtent.height);
-
-                    resize_main_pass_resources(root, backend, resources.main_pass_resources, new_swapchain_extent);
-                    resize_swapchain_pass_resources(root, backend, resources.swapchain_pass_resources,
-                                                    new_swapchain_extent);
-                }
-
+                // FIXME Do not set for duplicate events
+                backend.new_swapchain_extent = {width, height};
                 backend.mustTransitionSwapchain = true;
             }
             else if (event.type == Window::EventType::KeyPress)
@@ -124,6 +115,24 @@ namespace
     void vulkan_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuffer& cmdBuffer,
                               const PreparedData& prepared, BackendResources& resources)
     {
+        // Resize swapchain if necessary
+        if (backend.new_swapchain_extent.width != 0)
+        {
+            vkQueueWaitIdle(backend.deviceInfo.presentQueue); // FIXME
+
+            Assert(backend.new_swapchain_extent.height > 0);
+            resize_vulkan_wm_swapchain(root, backend, backend.presentInfo, backend.new_swapchain_extent);
+
+            const glm::uvec2 new_swapchain_extent(backend.presentInfo.surfaceExtent.width,
+                                                  backend.presentInfo.surfaceExtent.height);
+
+            resize_main_pass_resources(root, backend, resources.main_pass_resources, new_swapchain_extent);
+            resize_swapchain_pass_resources(root, backend, resources.swapchain_pass_resources, new_swapchain_extent);
+
+            backend.new_swapchain_extent.width = 0;
+            backend.new_swapchain_extent.height = 0;
+        }
+
         VkResult acquireResult;
         u64      acquireTimeoutUs = 1000000000;
         uint32_t current_swapchain_index = 0;
@@ -414,7 +423,7 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend)
         const float timeMs = static_cast<float>(timeSecs.count()) * 0.001f;
         const float timeDtSecs = static_cast<float>(timeDeltaMs.count()) * 0.001f;
 
-        shouldExit = vulkan_process_window_events(root, backend, window, backend_resources);
+        shouldExit = vulkan_process_window_events(root, backend, window);
 
         ds4.update();
 
