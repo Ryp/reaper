@@ -476,7 +476,7 @@ void record_shadow_map_command_buffer(CommandBuffer& cmdBuffer, VulkanBackend& b
 {
     for (const ShadowPassData& shadow_pass : prepared.shadow_passes)
     {
-        REAPER_PROFILE_SCOPE_GPU("Shadow Pass", MP_DARKGOLDENROD);
+        REAPER_PROFILE_SCOPE_GPU(cmdBuffer.mlog, "Shadow Pass", MP_DARKGOLDENROD);
 
         const VkClearValue clearValue =
             VkClearDepthStencil(ShadowUseReverseZ ? 0.f : 1.f, 0); // NOTE: handle reverse Z more gracefully
@@ -544,7 +544,7 @@ void record_shadow_map_command_buffer(CommandBuffer& cmdBuffer, VulkanBackend& b
     }
 
     {
-        REAPER_PROFILE_SCOPE_GPU("Barrier", MP_RED);
+        REAPER_PROFILE_SCOPE_GPU(cmdBuffer.mlog, "Barrier", MP_RED);
 
         std::vector<VkImageMemoryBarrier> shadowMapImageBarrierInfo;
 

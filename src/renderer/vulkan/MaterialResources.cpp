@@ -253,7 +253,7 @@ void record_material_upload_command_buffer(ResourceStagingArea& staging, Command
         return;
 
     {
-        REAPER_PROFILE_SCOPE_GPU("Upload", MP_DARKGOLDENROD);
+        REAPER_PROFILE_SCOPE_GPU(cmdBuffer.mlog, "Upload", MP_DARKGOLDENROD);
 
         for (const auto& entry : staging.staging_queue)
         {
@@ -262,7 +262,7 @@ void record_material_upload_command_buffer(ResourceStagingArea& staging, Command
     }
 
     {
-        REAPER_PROFILE_SCOPE_GPU("Image Barriers", MP_RED);
+        REAPER_PROFILE_SCOPE_GPU(cmdBuffer.mlog, "Image Barriers", MP_RED);
 
         std::vector<VkImageMemoryBarrier> prerender_barriers;
 

@@ -170,7 +170,7 @@ void upload_histogram_frame_resources(VulkanBackend& backend, const HistogramPas
 void record_histogram_command_buffer(CommandBuffer& cmdBuffer, const FrameData& frame_data,
                                      const HistogramPassResources& pass_resources)
 {
-    REAPER_PROFILE_SCOPE_GPU("Histogram Pass", MP_DARKGOLDENROD);
+    REAPER_PROFILE_SCOPE_GPU(cmdBuffer.mlog, "Histogram Pass", MP_DARKGOLDENROD);
 
     vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE, pass_resources.histogramPipe.pipeline);
 

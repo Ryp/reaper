@@ -481,7 +481,7 @@ void update_culling_pass_descriptor_sets(VulkanBackend& backend, const PreparedD
 void record_culling_command_buffer(bool freeze_culling, CommandBuffer& cmdBuffer, const PreparedData& prepared,
                                    CullResources& resources)
 {
-    REAPER_PROFILE_SCOPE_GPU("Culling Pass", MP_DARKGOLDENROD);
+    REAPER_PROFILE_SCOPE_GPU(cmdBuffer.mlog, "Culling Pass", MP_DARKGOLDENROD);
 
     if (!freeze_culling)
     {
@@ -507,13 +507,13 @@ void record_culling_command_buffer(bool freeze_culling, CommandBuffer& cmdBuffer
     }
 
     {
-        REAPER_PROFILE_SCOPE_GPU("Barrier", MP_RED);
+        REAPER_PROFILE_SCOPE_GPU(cmdBuffer.mlog, "Barrier", MP_RED);
         cmd_insert_compute_to_compute_barrier(cmdBuffer);
     }
 
     // Compaction prepare pass
     {
-        REAPER_PROFILE_SCOPE_GPU("Cull Compaction Prepare", MP_DARKGOLDENROD);
+        REAPER_PROFILE_SCOPE_GPU(cmdBuffer.mlog, "Cull Compaction Prepare", MP_DARKGOLDENROD);
 
         vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE, resources.compactPrepPipe.pipeline);
 
@@ -530,13 +530,13 @@ void record_culling_command_buffer(bool freeze_culling, CommandBuffer& cmdBuffer
     }
 
     {
-        REAPER_PROFILE_SCOPE_GPU("Barrier", MP_RED);
+        REAPER_PROFILE_SCOPE_GPU(cmdBuffer.mlog, "Barrier", MP_RED);
         cmd_insert_compute_to_compute_barrier(cmdBuffer);
     }
 
     // Compaction pass
     {
-        REAPER_PROFILE_SCOPE_GPU("Cull Compaction", MP_DARKGOLDENROD);
+        REAPER_PROFILE_SCOPE_GPU(cmdBuffer.mlog, "Cull Compaction", MP_DARKGOLDENROD);
 
         vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE, resources.compactionPipe.pipeline);
 
@@ -553,7 +553,7 @@ void record_culling_command_buffer(bool freeze_culling, CommandBuffer& cmdBuffer
     }
 
     {
-        REAPER_PROFILE_SCOPE_GPU("Barrier", MP_RED);
+        REAPER_PROFILE_SCOPE_GPU(cmdBuffer.mlog, "Barrier", MP_RED);
 
         std::array<VkMemoryBarrier, 1> memoryBarriers = {VkMemoryBarrier{
             VK_STRUCTURE_TYPE_MEMORY_BARRIER,

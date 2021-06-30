@@ -693,7 +693,7 @@ void record_main_pass_command_buffer(CommandBuffer& cmdBuffer, VulkanBackend& ba
                                      const MainPassResources& pass_resources, const CullResources& cull_resources,
                                      const MeshCache& mesh_cache, VkExtent2D backbufferExtent)
 {
-    REAPER_PROFILE_SCOPE_GPU("Main Pass", MP_DARKGOLDENROD);
+    REAPER_PROFILE_SCOPE_GPU(cmdBuffer.mlog, "Main Pass", MP_DARKGOLDENROD);
 
     const float                 depthClearValue = UseReverseZ ? 0.f : 1.f;
     const glm::fvec4            clearColor = {0.1f, 0.1f, 0.1f, 0.0f};

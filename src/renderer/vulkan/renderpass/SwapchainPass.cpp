@@ -495,7 +495,7 @@ void upload_swapchain_frame_resources(VulkanBackend& backend, const PreparedData
 void record_swapchain_command_buffer(CommandBuffer& cmdBuffer, const FrameData& frame_data,
                                      const SwapchainPassResources& pass_resources, VkImageView swapchain_buffer_view)
 {
-    REAPER_PROFILE_SCOPE_GPU("Swapchain Pass", MP_DARKGOLDENROD);
+    REAPER_PROFILE_SCOPE_GPU(cmdBuffer.mlog, "Swapchain Pass", MP_DARKGOLDENROD);
 
     const VkRect2D blitPassRect = default_vk_rect(frame_data.backbufferExtent);
 

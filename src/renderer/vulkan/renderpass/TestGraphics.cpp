@@ -230,14 +230,15 @@ namespace
         Assert(vkBeginCommandBuffer(cmdBuffer.handle, &cmdBufferBeginInfo) == VK_SUCCESS);
 
 #if defined(REAPER_USE_MICROPROFILE)
-        MICROPROFILE_GPU_SET_CONTEXT(cmdBuffer.handle, MicroProfileGetGlobalGpuThreadLog());
+        cmdBuffer.mlog = MicroProfileThreadLogGpuAlloc();
+        MICROPROFILE_GPU_BEGIN(cmdBuffer.handle, cmdBuffer.mlog);
 #endif
 
         record_material_upload_command_buffer(resources.material_resources.staging, cmdBuffer);
 
         if (backend.mustTransitionSwapchain)
         {
-            REAPER_PROFILE_SCOPE_GPU("Barrier", MP_RED);
+            REAPER_PROFILE_SCOPE_GPU(cmdBuffer.mlog, "Barrier", MP_RED);
 
             for (u32 swapchainImageIndex = 0; swapchainImageIndex < static_cast<u32>(backend.presentInfo.images.size());
                  swapchainImageIndex++)
@@ -271,7 +272,7 @@ namespace
                                         resources.cull_resources, resources.mesh_cache, backbufferExtent);
 
         {
-            REAPER_PROFILE_SCOPE_GPU("Barrier", MP_RED);
+            REAPER_PROFILE_SCOPE_GPU(cmdBuffer.mlog, "Barrier", MP_RED);
 
             VkImageMemoryBarrier hdrImageBarrierInfo = {
                 VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
@@ -290,17 +291,21 @@ namespace
                                  &hdrImageBarrierInfo);
         }
 
-        record_histogram_command_buffer(cmdBuffer.handle, frame_data, resources.histogram_pass_resources);
+        record_histogram_command_buffer(cmdBuffer, frame_data, resources.histogram_pass_resources);
 
-        record_swapchain_command_buffer(cmdBuffer.handle, frame_data, resources.swapchain_pass_resources,
+        record_swapchain_command_buffer(cmdBuffer, frame_data, resources.swapchain_pass_resources,
                                         backend.presentInfo.imageViews[current_swapchain_index]);
 
 #if defined(REAPER_USE_MICROPROFILE)
+        const u64 microprofile_data = MicroProfileGpuEnd(cmdBuffer.mlog);
+        MicroProfileThreadLogGpuFree(cmdBuffer.mlog);
+
+        MICROPROFILE_GPU_SUBMIT(MicroProfileGetGlobalGpuQueue(), microprofile_data);
         MicroProfileFlip(cmdBuffer.handle);
 #endif
 
-        Assert(vkEndCommandBuffer(cmdBuffer.handle) == VK_SUCCESS);
         // Stop recording
+        Assert(vkEndCommandBuffer(cmdBuffer.handle) == VK_SUCCESS);
 
         VkPipelineStageFlags blitWaitDstMask = VK_PIPELINE_STAGE_TRANSFER_BIT;
 
