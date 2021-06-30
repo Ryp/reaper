@@ -112,8 +112,7 @@ namespace
         return false;
     }
 
-    void vulkan_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuffer& cmdBuffer,
-                              const PreparedData& prepared, BackendResources& resources)
+    void resize_swapchain(ReaperRoot& root, VulkanBackend& backend, BackendResources& resources)
     {
         // Resize swapchain if necessary
         if (backend.new_swapchain_extent.width != 0)
@@ -132,7 +131,11 @@ namespace
             backend.new_swapchain_extent.width = 0;
             backend.new_swapchain_extent.height = 0;
         }
+    }
 
+    void vulkan_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuffer& cmdBuffer,
+                              const PreparedData& prepared, BackendResources& resources)
+    {
         VkResult acquireResult;
         u64      acquireTimeoutUs = 1000000000;
         uint32_t current_swapchain_index = 0;
@@ -323,7 +326,6 @@ namespace
 
         log_debug(root, "vulkan: present");
 
-        VkResult         presentResult;
         VkPresentInfoKHR presentInfo = {VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
                                         nullptr,
                                         1,
@@ -331,9 +333,11 @@ namespace
                                         1,
                                         &backend.presentInfo.swapchain,
                                         &current_swapchain_index,
-                                        &presentResult};
-        Assert(vkQueuePresentKHR(backend.deviceInfo.presentQueue, &presentInfo) == VK_SUCCESS);
-        Assert(presentResult == VK_SUCCESS);
+                                        nullptr};
+
+        VkResult presentResult = vkQueuePresentKHR(backend.deviceInfo.presentQueue, &presentInfo);
+        // NOTE: window can change state between event handling and presenting, so it's normal to get OOD events.
+        Assert(presentResult == VK_SUCCESS || presentResult == VK_ERROR_OUT_OF_DATE_KHR);
     }
 } // namespace
 
@@ -436,6 +440,8 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend)
             glm::vec2(ds4.getAxis(DS4::LeftAnalogY), ds4.getAxis(DS4::LeftAnalogX)) * timeDtSecs;
 
         update_camera_state(camera_state, yaw_pitch_delta, forward_side_delta);
+
+        resize_swapchain(root, backend, backend_resources);
 
         const VkExtent2D backbufferExtent = backend.presentInfo.surfaceExtent;
         const glm::uvec2 backbuffer_viewport_extent(backbufferExtent.width, backbufferExtent.height);
