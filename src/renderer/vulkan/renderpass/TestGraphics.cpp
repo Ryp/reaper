@@ -122,11 +122,8 @@ namespace
     }
 
     void vulkan_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuffer& cmdBuffer,
-                              const FrameData2& frame_data2, SceneGraph& scene, BackendResources& resources,
-                              const CameraState& camera_state)
+                              const SceneGraph& scene, BackendResources& resources)
     {
-        log_debug(root, "vulkan: begin frame {}", frame_data2.index);
-
         VkResult acquireResult;
         u64      acquireTimeoutUs = 1000000000;
         uint32_t current_swapchain_index = 0;
@@ -162,8 +159,6 @@ namespace
 
         log_debug(root, "vulkan: image index = {}", current_swapchain_index);
 
-        // Only wait for a previous frame fence
-        if (frame_data2.index > 0)
         {
             VkFence drawFence = resources.frame_sync_resources.drawFence;
 
@@ -189,14 +184,8 @@ namespace
 
         const VkExtent2D backbufferExtent = backend.presentInfo.surfaceExtent;
 
-        const glm::uvec2 backbuffer_viewport_extent(backbufferExtent.width, backbufferExtent.height);
-
         FrameData frame_data = {};
         frame_data.backbufferExtent = backbufferExtent;
-
-        const glm::mat4 view_matrix = compute_camera_view_matrix(camera_state);
-
-        update_scene_graph(scene, frame_data2.timeMs, backbuffer_viewport_extent, view_matrix);
 
         PreparedData prepared;
         prepare_scene(scene, prepared, resources.mesh_cache);
@@ -432,10 +421,6 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend)
 
         ds4.update();
 
-        FrameData2 frame_data = {};
-        frame_data.index = frameIndex;
-        frame_data.timeMs = timeMs;
-
         if (ds4.isPressed(DS4::Square))
             toggle(backend.options.freeze_culling);
 
@@ -446,7 +431,15 @@ void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend)
 
         update_camera_state(camera_state, yaw_pitch_delta, forward_side_delta);
 
-        vulkan_execute_frame(root, backend, gfxCmdBuffer, frame_data, scene, backend_resources, camera_state);
+        const VkExtent2D backbufferExtent = backend.presentInfo.surfaceExtent;
+        const glm::uvec2 backbuffer_viewport_extent(backbufferExtent.width, backbufferExtent.height);
+        const glm::mat4  view_matrix = compute_camera_view_matrix(camera_state);
+
+        update_scene_graph(scene, timeMs, backbuffer_viewport_extent, view_matrix);
+
+        log_debug(root, "vulkan: begin frame {}", frameIndex);
+
+        vulkan_execute_frame(root, backend, gfxCmdBuffer, scene, backend_resources);
 
         if (saveMyLaptop)
         {

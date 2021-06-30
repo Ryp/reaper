@@ -225,7 +225,7 @@ namespace
     }
 } // namespace
 
-void prepare_scene(SceneGraph& scene, PreparedData& prepared, const MeshCache& mesh_cache)
+void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCache& mesh_cache)
 {
     // Shadow pass
     for (const auto& light : scene.lights)
