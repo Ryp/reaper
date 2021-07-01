@@ -50,9 +50,7 @@ jobs:
         run: cmake --build build
 
       - name: Test
-        env:
-          CTEST_OUTPUT_ON_FAILURE: 1
-        run: cmake --build build --target test
+        run: ctest --test-dir build --output-on-failure
 
       - name: Setup tmate session
         if: ${{ failure() }}
@@ -102,6 +100,4 @@ jobs:
         run: cmake --build build --config ${{ matrix.cmake_build_type }}
 
       - name: Test
-        env:
-          CTEST_OUTPUT_ON_FAILURE: 1
-        run: cmake --build build --target RUN_TESTS
+        run: ctest --test-dir build --output-on-failure
