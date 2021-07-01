@@ -54,6 +54,11 @@ jobs:
           CTEST_OUTPUT_ON_FAILURE: 1
         run: cmake --build build --target test
 
+      - name: Setup tmate session
+        if: ${{ failure() }}
+        uses: mxschmitt/action-tmate@v3
+        timeout-minutes: 10
+
   build_windows:
     runs-on: windows-latest
     env:
