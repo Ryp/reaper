@@ -65,9 +65,8 @@ namespace
         case VK_COLOR_SPACE_BT709_LINEAR_EXT:
         case VK_COLOR_SPACE_BT709_NONLINEAR_EXT:
             return COLOR_SPACE_REC709;
-        case VK_COLOR_SPACE_DCI_P3_LINEAR_EXT:
-            // case VK_COLOR_SPACE_DCI_P3_NONLINEAR_EXT:
-            return COLOR_SPACE_DCI_P3;
+        case VK_COLOR_SPACE_DISPLAY_P3_LINEAR_EXT:
+            return COLOR_SPACE_DISPLAY_P3;
         case VK_COLOR_SPACE_BT2020_LINEAR_EXT:
         case VK_COLOR_SPACE_HDR10_ST2084_EXT:
         case VK_COLOR_SPACE_HDR10_HLG_EXT:

@@ -12,7 +12,7 @@
 
 static const hlsl_uint COLOR_SPACE_SRGB = 0;
 static const hlsl_uint COLOR_SPACE_REC709 = 1;
-static const hlsl_uint COLOR_SPACE_DCI_P3 = 2;
+static const hlsl_uint COLOR_SPACE_DISPLAY_P3 = 2;
 static const hlsl_uint COLOR_SPACE_REC2020 = 3;
 
 static const hlsl_uint TRANSFER_FUNC_LINEAR = 0;

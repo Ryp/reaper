@@ -58,8 +58,8 @@ float3 apply_output_color_space_transform(float3 color_rec709, uint color_space)
         return rec709_to_srgb(color_rec709);
     else if (color_space == COLOR_SPACE_REC709)
         return color_rec709;
-    else if (color_space == COLOR_SPACE_DCI_P3)
-        return rec709_to_dci_p3(color_rec709);
+    else if (color_space == COLOR_SPACE_DISPLAY_P3)
+        return rec709_to_display_p3(color_rec709);
     else if (color_space == COLOR_SPACE_REC2020)
         return rec709_to_rec2020(color_rec709);
     else

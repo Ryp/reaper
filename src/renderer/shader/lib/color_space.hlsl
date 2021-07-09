@@ -66,30 +66,30 @@ float luma_rec2020(float3 color_rec2020)
 }
 
 // -----------------------------------------------------------------------------
-// DCI-P3
+// Display-P3
 
-float3 rec709_to_dci_p3(float3 color_rec709)
+float3 rec709_to_display_p3(float3 color_rec709)
 {
-    static const float3x3 rec709_to_dci_p3_matrix =
+    static const float3x3 rec709_to_display_p3_matrix =
     {
-        0.822458, 0.177542, 0.000000,
-        0.033193, 0.966807, 0.000000,
-        0.017085, 0.072410, 0.910505
+        0.8224619687, 0.1775380313, 0.0000000000,
+        0.0331941989, 0.9668058011, 0.0000000000,
+        0.0170826307, 0.0723974407, 0.9105199286,
     };
 
-    return mul(rec709_to_dci_p3_matrix, color_rec709);
+    return mul(rec709_to_display_p3_matrix, color_rec709);
 }
 
-float3 dci_p3_to_rec709(float3 color_dci_p3)
+float3 display_p3_to_rec709(float3 color_display_p3)
 {
-    static const float3x3 dci_p3_to_rec709_matrix =
+    static const float3x3 display_p3_to_rec709_matrix =
     {
-        1.224947, -0.224947, 0.000000,
-        -0.042056, 1.042056, 0.000000,
-        -0.019641, -0.078651, 1.098291
+         1.2249401763, -0.2249401763,  0.0000000000,
+        -0.0420569547,  1.0420569547, -0.0000000000,
+        -0.0196375546, -0.0786360456,  1.0982736001,
     };
 
-    return mul(dci_p3_to_rec709_matrix, color_dci_p3);
+    return mul(display_p3_to_rec709_matrix, color_display_p3);
 }
 
 #endif
