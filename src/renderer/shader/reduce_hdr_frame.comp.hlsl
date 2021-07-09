@@ -52,11 +52,11 @@ void main(uint3 gtid : SV_GroupThreadID,
 
     GroupMemoryBarrierWithGroupSync();
 
-    const float3 scene_color_rec709_linear = t_hdr_color[position_ts];
+    const float3 scene_color_srgb_linear = t_hdr_color[position_ts];
 
-    const float scene_luma_rec709_linear = luma_rec709(scene_color_rec709_linear);
+    const float scene_luma = luma_srgb(scene_color_srgb_linear);
 
-    const uint bucket_index = compute_histogram_bucket_index(scene_luma_rec709_linear);
+    const uint bucket_index = compute_histogram_bucket_index(scene_luma);
 
     InterlockedAdd(lds_histogram[bucket_index], 1);
 
