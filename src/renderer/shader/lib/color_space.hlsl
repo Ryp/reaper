@@ -4,6 +4,12 @@
 /// Copyright (c) 2015-2020 Thibault Schueller
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
+//
+// All color spaces in this file have the same white point (D65)
+// This makes simple matrix-style conversion possible.
+//
+// NOTE: There's a python script in this repo to regenerate matrix values
+// from scratch (convert-rgb-space-xyz.py)
 
 #ifndef LIB_COLOR_SPACE_INCLUDED
 #define LIB_COLOR_SPACE_INCLUDED
@@ -38,9 +44,9 @@ float3 rec709_to_rec2020(float3 color_rec709)
 {
     static const float3x3 rec709_to_rec2020_matrix =
     {
-        0.627402, 0.329292, 0.043306,
-        0.069095, 0.919544, 0.011360,
-        0.016394, 0.088028, 0.895578
+        0.6274038959, 0.3292830384, 0.0433130657,
+        0.0690972894, 0.9195403951, 0.0113623156,
+        0.0163914389, 0.0880133079, 0.8955952532,
     };
 
     return mul(rec709_to_rec2020_matrix, color_rec709);
@@ -50,9 +56,9 @@ float3 rec2020_to_rec709(float3 color_rec2020)
 {
     static const float3x3 rec2020_to_rec709_matrix =
     {
-        1.660496, -0.587656, -0.072840,
-        -0.124547, 1.132895, -0.008348,
-        -0.018154, -0.100597, 1.118751
+         1.6604910021, -0.5876411388, -0.0728498633,
+        -0.1245504745,  1.1328998971, -0.0083494226,
+        -0.0181507634, -0.1005788980,  1.1187296614,
     };
 
     return mul(rec2020_to_rec709_matrix, color_rec2020);
