@@ -1,6 +1,7 @@
 #include "lib/base.hlsl"
 
 #include "lib/color_space.hlsl"
+#include "lib/eotf.hlsl"
 
 #include "share/color_space.hlsl"
 #include "share/swapchain.hlsl"
