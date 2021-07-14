@@ -11,18 +11,17 @@ set(REAPER_RENDERER_BIN ${target} PARENT_SCOPE)
 add_library(${target} ${REAPER_BUILD_TYPE})
 
 target_sources(${target} PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/PrepareBuckets.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/PrepareBuckets.h
-
     ${CMAKE_CURRENT_SOURCE_DIR}/Camera.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Camera.h
-
+    ${CMAKE_CURRENT_SOURCE_DIR}/ExecuteFrame.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/ExecuteFrame.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Material.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Material.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/PrepareBuckets.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/PrepareBuckets.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Renderer.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Renderer.h
     ${CMAKE_CURRENT_SOURCE_DIR}/RendererExport.h
-
     ${CMAKE_CURRENT_SOURCE_DIR}/Scene.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Scene.h
 
@@ -53,6 +52,8 @@ target_sources(${target} PRIVATE
 
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Backend.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Backend.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/BackendResources.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/BackendResources.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Buffer.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Buffer.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Debug.cpp
@@ -283,7 +284,6 @@ target_link_libraries(${target} PUBLIC
     ${REAPER_CORE_BIN}
     ${REAPER_MESH_BIN}
     ${REAPER_COMMON_BIN}
-    ${REAPER_INPUT_BIN}
     Vulkan::Vulkan
     fmt
     gli

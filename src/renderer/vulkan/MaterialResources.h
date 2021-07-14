@@ -55,8 +55,9 @@ struct ReaperRoot;
 MaterialResources create_material_resources(ReaperRoot& root, VulkanBackend& backend);
 void              destroy_material_resources(VulkanBackend& backend, MaterialResources& resources);
 
-void load_textures(ReaperRoot& root, VulkanBackend& backend, MaterialResources& resources,
-                   nonstd::span<const char*> texture_filenames, nonstd::span<TextureHandle> output_handles);
+REAPER_RENDERER_API void load_textures(ReaperRoot& root, VulkanBackend& backend, MaterialResources& resources,
+                                       nonstd::span<const char*>   texture_filenames,
+                                       nonstd::span<TextureHandle> output_handles);
 
 struct CommandBuffer;
 

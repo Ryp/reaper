@@ -7,6 +7,8 @@
 
 #pragma once
 
+#include "api/Vulkan.h"
+
 struct MicroProfileThreadLogGpu;
 
 namespace Reaper

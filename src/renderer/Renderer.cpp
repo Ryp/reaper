@@ -20,7 +20,7 @@ constexpr bool enable_renderdoc_integration = true;
 constexpr bool enable_renderdoc_integration = false;
 #endif
 
-bool create_renderer(ReaperRoot& root)
+void create_renderer(ReaperRoot& root)
 {
     if (enable_renderdoc_integration)
         RenderDoc::start_integration(root);
@@ -31,8 +31,6 @@ bool create_renderer(ReaperRoot& root)
     root.renderer->backend = new VulkanBackend();
 
     create_vulkan_renderer_backend(root, *root.renderer->backend);
-
-    return true;
 }
 
 void destroy_renderer(ReaperRoot& root)

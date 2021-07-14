@@ -9,14 +9,8 @@
 
 namespace Reaper
 {
-class GameLogic;
-class ILog;
-struct Renderer;
+struct ReaperRoot;
+struct VulkanBackend;
 
-struct ReaperRoot
-{
-    GameLogic* game;
-    Renderer*  renderer;
-    ILog*      log;
-};
+void execute_game_loop(ReaperRoot& root, VulkanBackend& backend);
 } // namespace Reaper

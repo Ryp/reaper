@@ -29,16 +29,11 @@ add_executable(${REAPER_BIN})
 target_sources(${REAPER_BIN} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp
 
-    ${CMAKE_CURRENT_SOURCE_DIR}/AssetCache.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/AssetCache.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/GameLoop.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/GameLoop.h
 
     ${CMAKE_CURRENT_SOURCE_DIR}/cvar/CVar.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/cvar/CVar.h
-
-#     ${CMAKE_CURRENT_SOURCE_DIR}/input/AbstractController.cpp
-#     ${CMAKE_CURRENT_SOURCE_DIR}/input/AbstractController.h
-#     ${CMAKE_CURRENT_SOURCE_DIR}/input/SixAxisController.cpp
-#     ${CMAKE_CURRENT_SOURCE_DIR}/input/SixAxisController.h
 
     ${CMAKE_CURRENT_SOURCE_DIR}/pch/stdafx.h
 

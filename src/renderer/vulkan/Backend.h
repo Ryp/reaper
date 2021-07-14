@@ -55,6 +55,8 @@ struct DeviceInfo
     VkQueue presentQueue;
 };
 
+struct BackendResources;
+
 struct REAPER_RENDERER_API VulkanBackend
 {
     LibHandle  vulkanLib;
@@ -84,6 +86,9 @@ struct REAPER_RENDERER_API VulkanBackend
         bool use_compacted_draw;
     } options;
 
+    BackendResources* resources;
+
+public:
     VulkanBackend();
 };
 

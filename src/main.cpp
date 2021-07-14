@@ -9,44 +9,57 @@
 #include "common/ReaperRoot.h"
 
 #include "renderer/Renderer.h"
-#include "renderer/vulkan/renderpass/TestGraphics.h"
 
 #include "core/Profile.h"
 
-int main(int /*ac*/, char** /*av*/)
+#include "GameLoop.h"
+
+namespace Reaper
 {
-#if defined(REAPER_USE_MICROPROFILE)
-    MicroProfileOnThreadCreate("Main");
-    MicroProfileSetEnableAllGroups(true);
-    MicroProfileSetForceMetaCounters(true);
-    MicroProfileStartContextSwitchTrace();
-#endif
-
+namespace
+{
+    void start_engine(ReaperRoot& root)
     {
-        using namespace Reaper;
-
-        ReaperRoot root = {};
+#if defined(REAPER_USE_MICROPROFILE)
+        MicroProfileOnThreadCreate("Main");
+        MicroProfileSetEnableAllGroups(true);
+        MicroProfileSetForceMetaCounters(true);
+        MicroProfileStartContextSwitchTrace();
+#endif
 
         root.log = new DebugLog();
 
-        log_info(root, "engine: startup");
-        {
-            if (create_renderer(root))
-            {
-                vulkan_test_graphics(root, *root.renderer->backend);
-                destroy_renderer(root);
-            }
-        }
-        log_info(root, "engine: shutdown");
+        log_info(root, "engine: start");
+
+        create_renderer(root);
+    }
+
+    void stop_engine(ReaperRoot& root)
+    {
+        log_info(root, "engine: stop");
+
+        destroy_renderer(root);
 
         delete root.log;
         root.log = nullptr;
-    }
 
 #if defined(REAPER_USE_MICROPROFILE)
-    // MicroProfileDumpFileImmediately("profile.html", nullptr, nullptr);
-    MicroProfileShutdown();
+        // MicroProfileDumpFileImmediately("profile.html", nullptr, nullptr);
+        MicroProfileShutdown();
 #endif
+    }
+} // namespace
+} // namespace Reaper
+
+int main(int /*ac*/, char** /*av*/)
+{
+    Reaper::ReaperRoot root = {};
+
+    Reaper::start_engine(root);
+
+    Reaper::execute_game_loop(root, *root.renderer->backend);
+
+    Reaper::stop_engine(root);
 
     return 0;
 }

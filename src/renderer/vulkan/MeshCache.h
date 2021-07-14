@@ -45,6 +45,6 @@ void      destroy_mesh_cache(VulkanBackend& backend, const MeshCache& mesh_cache
 
 struct MeshAlloc;
 
-void load_meshes(VulkanBackend& backend, MeshCache& mesh_cache, nonstd::span<const char*> mesh_filenames,
-                 nonstd::span<MeshHandle> output_handles);
+REAPER_RENDERER_API void load_meshes(VulkanBackend& backend, MeshCache& mesh_cache,
+                                     nonstd::span<const char*> mesh_filenames, nonstd::span<MeshHandle> output_handles);
 } // namespace Reaper

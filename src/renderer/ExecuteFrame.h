@@ -7,18 +7,12 @@
 
 #pragma once
 
-#include <string>
-
-#include "common/ReaperRoot.h"
-
 namespace Reaper
 {
-struct AssetCache
-{
-    const std::string m_basePath;
+struct ReaperRoot;
+struct SceneGraph;
+struct CameraState;
 
-    AssetCache(const std::string& basePath);
-};
-
-void load_pak_to_asset_cache(ReaperRoot& root, AssetCache& assetCache, const std::string& filename);
+REAPER_RENDERER_API void renderer_execute_frame(ReaperRoot& root, SceneGraph& scene, const CameraState& camera_state,
+                                                u32 frameIndex, float timeMs);
 } // namespace Reaper

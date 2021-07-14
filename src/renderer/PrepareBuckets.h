@@ -52,8 +52,8 @@ struct SceneGraph
     SceneCamera        camera;
 };
 
-void build_scene_graph(SceneGraph& scene, const nonstd::span<MeshHandle> mesh_handles,
-                       const nonstd::span<TextureHandle> texture_handles);
+REAPER_RENDERER_API void build_scene_graph(SceneGraph& scene, const nonstd::span<MeshHandle> mesh_handles,
+                                           const nonstd::span<TextureHandle> texture_handles);
 void update_scene_graph(SceneGraph& scene, float time_ms, glm::uvec2 viewport_extent, const glm::mat4x3& view_matrix);
 
 struct CullCmd
