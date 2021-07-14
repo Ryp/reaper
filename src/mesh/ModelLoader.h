@@ -12,7 +12,6 @@
 #include <string>
 
 #include "Mesh.h"
-#include "MeshCache.h"
 
 class REAPER_MESH_API ModelLoader
 {
@@ -21,7 +20,7 @@ public:
     ~ModelLoader() = default;
 
 public:
-    void load(std::string filename, MeshCache& cache);
+    void load(std::string filename);
 
     static Mesh loadOBJ(std::ifstream& src);
     static Mesh loadOBJ(const std::string& filename);

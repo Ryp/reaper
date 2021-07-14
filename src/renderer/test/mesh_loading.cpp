@@ -12,13 +12,10 @@
 
 TEST_CASE("Mesh Loading")
 {
-    ModelLoader loader;
-    MeshCache   cache;
-
     SUBCASE("OBJ files")
     {
-        loader.load("res/model/bunny.obj", cache);
-        loader.load("res/model/quad.obj", cache);
-        loader.load("res/model/ship.obj", cache);
+        ModelLoader::loadOBJ("res/model/bunny.obj");
+        ModelLoader::loadOBJ("res/model/quad.obj");
+        ModelLoader::loadOBJ("res/model/ship.obj");
     }
 }

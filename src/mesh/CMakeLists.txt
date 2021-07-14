@@ -13,8 +13,6 @@ add_library(${target} ${REAPER_BUILD_TYPE})
 target_sources(${target} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/Mesh.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Mesh.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/MeshCache.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/MeshCache.h
     ${CMAKE_CURRENT_SOURCE_DIR}/ModelLoader.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/ModelLoader.h
 )

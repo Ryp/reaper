@@ -23,29 +23,6 @@ ModelLoader::ModelLoader()
     _loaders["obj"] = &ModelLoader::loadOBJTinyObjLoader;
 }
 
-void ModelLoader::load(std::string filename, MeshCache& cache)
-{
-    std::ifstream file;
-    std::size_t   extensionLength;
-    std::string   extension;
-
-    extensionLength = filename.find_last_of(".");
-    Assert(extensionLength != std::string::npos, "Invalid file name \'" + filename + "\'");
-
-    extension = filename.substr(extensionLength + 1);
-    std::transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
-
-    Assert(_loaders.count(extension) > 0, "Unknown file extension \'" + extension + "\'");
-
-    file.open(filename);
-    Assert(file.good(), "Could not open file \'" + filename + "\'");
-
-    Mesh mesh = (_loaders.at(extension))(file);
-    cache.loadMesh(filename, mesh);
-
-    Assert(mesh.vertices.size() > 0, "loaded empty mesh");
-}
-
 Mesh ModelLoader::loadOBJ(std::ifstream& src)
 {
     return loadOBJTinyObjLoader(src);
