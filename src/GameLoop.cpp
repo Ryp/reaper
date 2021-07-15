@@ -11,7 +11,6 @@
 #include "renderer/vulkan/BackendResources.h"
 #include "renderer/vulkan/renderpass/TestGraphics.h"
 
-#include "renderer/Camera.h"
 #include "renderer/ExecuteFrame.h"
 #include "renderer/PrepareBuckets.h"
 #include "renderer/ResourceHandle.h"
@@ -22,6 +21,8 @@
 #include "math/Spline.h"
 #include "mesh/ModelLoader.h"
 #include "splinesonic/trackgen/Track.h"
+
+#include "Camera.h"
 
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -131,10 +132,8 @@ void execute_game_loop(ReaperRoot& root, VulkanBackend& backend)
 
         update_camera_state(camera_state, yaw_pitch_delta, forward_side_delta);
 
-        const glm::mat4 view_matrix = compute_camera_view_matrix(camera_state);
-
         Node& camera_node = scene.nodes[scene.camera.scene_node];
-        camera_node.transform_matrix = view_matrix;
+        camera_node.transform_matrix = compute_camera_view_matrix(camera_state);
 
         renderer_execute_frame(root, scene, frameIndex);
 

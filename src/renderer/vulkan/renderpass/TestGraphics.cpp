@@ -7,14 +7,6 @@
 
 #include "TestGraphics.h"
 
-#include "Culling.h"
-#include "CullingConstants.h"
-#include "Frame.h"
-#include "HistogramPass.h"
-#include "MainPass.h"
-#include "ShadowMap.h"
-#include "SwapchainPass.h"
-
 #include "renderer/vulkan/Backend.h"
 #include "renderer/vulkan/BackendResources.h"
 #include "renderer/vulkan/CommandBuffer.h"
@@ -27,9 +19,7 @@
 #include "renderer/vulkan/api/Vulkan.h"
 #include "renderer/vulkan/api/VulkanStringConversion.h"
 
-#include "renderer/Camera.h"
 #include "renderer/Mesh2.h"
-#include "renderer/PrepareBuckets.h"
 #include "renderer/texture/GPUTextureProperties.h"
 #include "renderer/window/Event.h"
 #include "renderer/window/Window.h"
@@ -41,11 +31,7 @@
 #include "core/Profile.h"
 #include "core/memory/Allocator.h"
 
-#include <glm/gtc/matrix_transform.hpp>
-
 #include <array>
-#include <chrono>
-#include <thread>
 
 namespace Reaper
 {

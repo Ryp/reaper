@@ -29,6 +29,8 @@ add_executable(${REAPER_BIN})
 target_sources(${REAPER_BIN} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp
 
+    ${CMAKE_CURRENT_SOURCE_DIR}/Camera.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Camera.h
     ${CMAKE_CURRENT_SOURCE_DIR}/GameLoop.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/GameLoop.h
 
