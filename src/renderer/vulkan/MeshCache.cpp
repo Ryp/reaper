@@ -11,7 +11,6 @@
 #include "renderer/vulkan/api/Vulkan.h"
 
 #include "mesh/Mesh.h"
-#include "mesh/ModelLoader.h"
 
 #include "common/Log.h"
 #include "common/ReaperRoot.h"
@@ -111,14 +110,14 @@ namespace
     }
 } // namespace
 
-void load_meshes(VulkanBackend& backend, MeshCache& mesh_cache, nonstd::span<const char*> mesh_filenames,
+void load_meshes(VulkanBackend& backend, MeshCache& mesh_cache, nonstd::span<Mesh> meshes,
                  nonstd::span<MeshHandle> output_handles)
 {
-    Assert(output_handles.size() >= mesh_filenames.size());
+    Assert(output_handles.size() >= meshes.size());
 
-    for (u32 file_index = 0; file_index < mesh_filenames.size(); file_index++)
+    for (u32 mesh_index = 0; mesh_index < meshes.size(); mesh_index++)
     {
-        Mesh mesh = ModelLoader::loadOBJ(mesh_filenames[file_index]);
+        Mesh& mesh = meshes[mesh_index];
 
         // FIXME Filling empty buffers with garbage to preserve correct index offsets
         // This can be removed if we do vertex pulling with per-buffer offsets
@@ -214,7 +213,7 @@ void load_meshes(VulkanBackend& backend, MeshCache& mesh_cache, nonstd::span<con
 
         upload_mesh_to_mesh_cache(mesh_cache, mesh, mesh2.lods_allocs[0], backend);
 
-        output_handles[file_index] = new_handle;
+        output_handles[mesh_index] = new_handle;
     }
 }
 } // namespace Reaper

@@ -19,6 +19,9 @@
 #include "common/Log.h"
 #include "core/Profile.h"
 #include "input/DS4.h"
+#include "math/Spline.h"
+#include "mesh/ModelLoader.h"
+#include "splinesonic/trackgen/Track.h"
 
 #include <array>
 #include <chrono>
@@ -32,20 +35,49 @@ void execute_game_loop(ReaperRoot& root, VulkanBackend& backend)
 
     renderer_start(root, backend, window);
 
+    SplineSonic::TrackGen::Track testTrack;
+
+    SplineSonic::TrackGen::GenerationInfo genInfo = {};
+    genInfo.length = 3;
+    genInfo.width = 10.0f;
+    genInfo.chaos = 1.0f;
+
+    testTrack.genInfo = genInfo;
+
+    SplineSonic::TrackGen::GenerateTrackSkeleton(genInfo, testTrack.skeletonNodes);
+    SplineSonic::TrackGen::GenerateTrackSplines(testTrack.skeletonNodes, testTrack.splinesMS);
+    SplineSonic::TrackGen::GenerateTrackSkinning(testTrack.skeletonNodes, testTrack.splinesMS, testTrack.skinning);
+
+    const std::string assetFile("res/model/track/chunk_simple.obj");
+    std::vector<Mesh> meshes(genInfo.length);
+
+    for (u32 i = 0; i < genInfo.length; i++)
+    {
+        std::ifstream file(assetFile);
+        meshes[i] = ModelLoader::loadOBJ(file);
+
+        SplineSonic::TrackGen::SkinTrackChunkMesh(testTrack.skeletonNodes[i], testTrack.skinning[i], meshes[i], 10.0f);
+    }
+
     std::vector<const char*> mesh_filenames = {
         "res/model/teapot.obj",
         "res/model/suzanne.obj",
         "res/model/dragon.obj",
     };
 
+    for (auto mesh_filename : mesh_filenames)
+    {
+        meshes.push_back(ModelLoader::loadOBJ(mesh_filename));
+    }
+
+    std::vector<MeshHandle> mesh_handles(meshes.size());
+    load_meshes(backend, backend.resources->mesh_cache, meshes, mesh_handles);
+
     std::vector<const char*> texture_filenames = {
         "res/texture/default.dds",
         "res/texture/bricks_diffuse.dds",
         "res/texture/bricks_specular.dds",
     };
-
-    std::vector<MeshHandle> mesh_handles(mesh_filenames.size());
-    load_meshes(backend, backend.resources->mesh_cache, mesh_filenames, mesh_handles);
 
     //
     backend.resources->material_resources.texture_handles.resize(texture_filenames.size());

@@ -33,7 +33,7 @@ constexpr float WidthMax = 50.0f * MeterInGameUnits;
 constexpr float RadiusMin = 100.0f * MeterInGameUnits;
 constexpr float RadiusMax = 300.0f * MeterInGameUnits;
 
-constexpr u32 MinLength = 5;
+constexpr u32 MinLength = 3;
 constexpr u32 MaxLength = 1000;
 constexpr u32 MaxTryCount = 10000;
 
