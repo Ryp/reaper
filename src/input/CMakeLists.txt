@@ -6,7 +6,6 @@
 #///////////////////////////////////////////////////////////////////////////////
 
 set(target reaper_input)
-set(REAPER_INPUT_BIN ${target} PARENT_SCOPE)
 
 add_library(${target} ${REAPER_BUILD_TYPE})
 

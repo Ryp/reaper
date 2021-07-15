@@ -6,7 +6,6 @@
 #///////////////////////////////////////////////////////////////////////////////
 
 set(target reaper_renderer)
-set(REAPER_RENDERER_BIN ${target} PARENT_SCOPE)
 
 add_library(${target} ${REAPER_BUILD_TYPE})
 
@@ -281,9 +280,9 @@ add_subdirectory(${CMAKE_SOURCE_DIR}/external/meshoptimizer ${CMAKE_BINARY_DIR}/
 set_target_properties(meshoptimizer PROPERTIES FOLDER External)
 
 target_link_libraries(${target} PUBLIC
-    ${REAPER_CORE_BIN}
-    ${REAPER_MESH_BIN}
-    ${REAPER_COMMON_BIN}
+    reaper_core
+    reaper_mesh
+    reaper_common
     Vulkan::Vulkan
     fmt
     gli

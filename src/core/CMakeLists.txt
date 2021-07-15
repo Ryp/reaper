@@ -6,7 +6,6 @@
 #///////////////////////////////////////////////////////////////////////////////
 
 set(target reaper_core)
-set(REAPER_CORE_BIN ${target} PARENT_SCOPE)
 
 add_library(${target} ${REAPER_BUILD_TYPE})
 

@@ -42,13 +42,14 @@ target_sources(${REAPER_BIN} PRIVATE
 )
 
 target_link_libraries(${REAPER_BIN} PRIVATE
-    ${REAPER_CORE_BIN}
-    ${REAPER_COMMON_BIN}
-    ${REAPER_GAMELOGIC_BIN}
-    ${REAPER_MATH_BIN}
-    ${REAPER_MESH_BIN}
-    ${REAPER_RENDERER_BIN}
-    ${REAPER_INPUT_BIN}
+    reaper_core
+    reaper_common
+    reaper_gamelogic
+    reaper_math
+    reaper_renderer
+    reaper_mesh
+    reaper_trackgen
+    reaper_input
 )
 
 # Configure main VS projet

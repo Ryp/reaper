@@ -6,7 +6,6 @@
 #///////////////////////////////////////////////////////////////////////////////
 
 set(target reaper_math)
-set(REAPER_MATH_BIN ${target} PARENT_SCOPE)
 
 add_library(${target} ${REAPER_BUILD_TYPE})
 
@@ -20,7 +19,7 @@ target_sources(${target} PRIVATE
 )
 
 target_link_libraries(${target} PUBLIC
-    ${REAPER_CORE_BIN}
+    reaper_core
     glm
 )
 

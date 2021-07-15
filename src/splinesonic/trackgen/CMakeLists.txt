@@ -6,7 +6,6 @@
 #///////////////////////////////////////////////////////////////////////////////
 
 set(target reaper_trackgen)
-set(REAPER_TRACKGEN_BIN ${target} PARENT_SCOPE)
 
 add_library(${target} ${REAPER_BUILD_TYPE})
 
@@ -19,9 +18,9 @@ target_sources(${target} PRIVATE
 )
 
 target_link_libraries(${target} PUBLIC
-    ${REAPER_CORE_BIN}
-    ${REAPER_MATH_BIN}
-    ${REAPER_MESH_BIN}
+    reaper_core
+    reaper_math
+    reaper_mesh
     glm
 )
 

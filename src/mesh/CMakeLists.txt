@@ -6,7 +6,6 @@
 #///////////////////////////////////////////////////////////////////////////////
 
 set(target reaper_mesh)
-set(REAPER_MESH_BIN ${target} PARENT_SCOPE)
 
 add_library(${target} ${REAPER_BUILD_TYPE})
 
@@ -20,7 +19,7 @@ target_sources(${target} PRIVATE
 include(tinyobjloader)
 
 target_link_libraries(${target} PUBLIC
-    ${REAPER_CORE_BIN}
+    reaper_core
     glm
     tinyobjloader
 )
