@@ -7,6 +7,7 @@
 
 #include "ExecuteFrame.h"
 
+#include "window/Window.h"
 #include "vulkan/Backend.h"
 #include "vulkan/BackendResources.h"
 #include "vulkan/renderpass/TestGraphics.h"
@@ -18,6 +19,24 @@
 
 namespace Reaper
 {
+void renderer_start(ReaperRoot& root, VulkanBackend& backend, IWindow* window)
+{
+    create_backend_resources(root, backend);
+
+    log_info(root, "window: map window");
+    window->map();
+}
+
+void renderer_stop(ReaperRoot& root, VulkanBackend& backend, IWindow* window)
+{
+    vkQueueWaitIdle(backend.deviceInfo.presentQueue);
+
+    log_info(root, "window: unmap window");
+    window->unmap();
+
+    destroy_backend_resources(backend);
+}
+
 // FIXME make scene const
 void renderer_execute_frame(ReaperRoot& root, SceneGraph& scene, const CameraState& camera_state, u32 frameIndex,
                             float timeMs)

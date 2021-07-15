@@ -24,6 +24,4 @@ struct PreparedData;
 
 void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuffer& cmdBuffer,
                            const PreparedData& prepared, BackendResources& resources);
-
-REAPER_RENDERER_API void vulkan_test_graphics(ReaperRoot& root, VulkanBackend& backend);
 } // namespace Reaper

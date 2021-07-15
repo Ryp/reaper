@@ -40,6 +40,6 @@ struct BackendResources
     CommandBuffer gfxCmdBuffer;
 };
 
-REAPER_RENDERER_API void create_backend_resources(ReaperRoot& root, VulkanBackend& backend);
-REAPER_RENDERER_API void destroy_backend_resources(VulkanBackend& backend);
+void create_backend_resources(ReaperRoot& root, VulkanBackend& backend);
+void destroy_backend_resources(VulkanBackend& backend);
 } // namespace Reaper

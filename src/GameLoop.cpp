@@ -15,7 +15,6 @@
 #include "renderer/ExecuteFrame.h"
 #include "renderer/PrepareBuckets.h"
 #include "renderer/ResourceHandle.h"
-#include "renderer/window/Window.h"
 
 #include "common/Log.h"
 #include "core/Profile.h"
@@ -29,7 +28,9 @@ namespace Reaper
 {
 void execute_game_loop(ReaperRoot& root, VulkanBackend& backend)
 {
-    create_backend_resources(root, backend);
+    IWindow* window = root.renderer->window;
+
+    renderer_start(root, backend, window);
 
     std::vector<const char*> mesh_filenames = {
         "res/model/teapot.obj",
@@ -53,10 +54,6 @@ void execute_game_loop(ReaperRoot& root, VulkanBackend& backend)
 
     SceneGraph scene;
     build_scene_graph(scene, mesh_handles, backend.resources->material_resources.texture_handles);
-
-    IWindow* window = root.renderer->window;
-    log_info(root, "window: map window");
-    window->map();
 
     backend.mustTransitionSwapchain = true;
 
@@ -113,12 +110,6 @@ void execute_game_loop(ReaperRoot& root, VulkanBackend& backend)
         lastFrameStart = currentTime;
     }
 
-    // FIXME
-    // vkQueueWaitIdle(backend.deviceInfo.presentQueue);
-
-    log_info(root, "window: unmap window");
-    window->unmap();
-
-    destroy_backend_resources(backend);
+    renderer_stop(root, backend, window);
 }
 } // namespace Reaper
