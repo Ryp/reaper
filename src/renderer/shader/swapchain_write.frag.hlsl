@@ -71,7 +71,6 @@ void main(in PS_INPUT input, out PS_OUTPUT output)
     float3 scene_color_srgb_linear = t_hdr_color.SampleLevel(linear_sampler, input.PositionUV, 0);
 
     scene_color_srgb_linear *= pass_params.dummy_boost;
-    scene_color_srgb_linear *= 0.001;
 
     float3 scene_color_linear = apply_output_color_space_transform(scene_color_srgb_linear, spec_color_space);
 

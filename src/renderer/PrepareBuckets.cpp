@@ -78,7 +78,7 @@ void build_scene_graph(SceneGraph& scene, const nonstd::span<MeshHandle> mesh_ha
 
             Light& light = scene.lights.emplace_back();
             light.color = glm::fvec3(0.03f, 0.21f, 0.61f);
-            light.intensity = 1.f;
+            light.intensity = 6.f;
             light.scene_node = light_node_index;
             light.projection_matrix = light_projection_matrix;
             light.shadow_map_size = glm::uvec2(1024, 1024);
@@ -96,7 +96,7 @@ void build_scene_graph(SceneGraph& scene, const nonstd::span<MeshHandle> mesh_ha
 
             Light& light = scene.lights.emplace_back();
             light.color = glm::fvec3(0.61f, 0.21f, 0.03f);
-            light.intensity = 6400.f;
+            light.intensity = 6.f;
             light.scene_node = light_node_index;
             light.projection_matrix = light_projection_matrix;
             light.shadow_map_size = glm::uvec2(512, 512);
@@ -114,7 +114,7 @@ void build_scene_graph(SceneGraph& scene, const nonstd::span<MeshHandle> mesh_ha
 
             Light& light = scene.lights.emplace_back();
             light.color = glm::fvec3(0.03f, 0.8f, 0.21f);
-            light.intensity = 8.f;
+            light.intensity = 6.f;
             light.scene_node = light_node_index;
             light.projection_matrix = light_projection_matrix;
             light.shadow_map_size = glm::uvec2(256, 256);
