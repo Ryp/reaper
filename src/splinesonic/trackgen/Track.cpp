@@ -300,8 +300,7 @@ void SkinTrackChunkMesh(const TrackSkeletonNode& node, const TrackSkinning& trac
         if (glm::abs(skinnedVertex.w) > 0.0f)
             skinnedVertices[i] = glm::fvec3(skinnedVertex) / skinnedVertex.w;
 
-        // FIXME hack to get a full track easily
-        skinnedVertices[i] = node.orientationWS * skinnedVertices[i] + node.positionWS;
+        skinnedVertices[i] = node.orientationWS * skinnedVertices[i];
     }
     mesh.vertices = skinnedVertices;
 }
