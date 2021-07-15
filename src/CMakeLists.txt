@@ -33,14 +33,13 @@ target_sources(${REAPER_BIN} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/Camera.h
     ${CMAKE_CURRENT_SOURCE_DIR}/GameLoop.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/GameLoop.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Resource.h
 
     ${CMAKE_CURRENT_SOURCE_DIR}/cvar/CVar.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/cvar/CVar.h
 
     ${CMAKE_CURRENT_SOURCE_DIR}/pch/stdafx.h
 
-    ${CMAKE_CURRENT_SOURCE_DIR}/resource/Resource.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/resource/Resource.h
 )
 
 target_link_libraries(${REAPER_BIN} PRIVATE

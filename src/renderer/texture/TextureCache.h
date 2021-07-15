@@ -10,8 +10,8 @@
 #include <map>
 #include <string>
 
+#include "Resource.h"
 #include "core/memory/StackAllocator.h"
-#include "resource/Resource.h"
 
 #include "Texture.h"
 
