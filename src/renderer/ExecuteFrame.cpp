@@ -12,7 +12,6 @@
 #include "vulkan/BackendResources.h"
 #include "vulkan/renderpass/TestGraphics.h"
 
-#include "Camera.h"
 #include "PrepareBuckets.h"
 
 #include "common/Log.h"
