@@ -128,7 +128,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         break;
     }
 
-    log_debug(root, "vulkan: image index = {}", current_swapchain_index);
+    log_debug(root, "vulkan: swapchain image index = {}", current_swapchain_index);
 
     {
         VkFence drawFence = resources.frame_sync_resources.drawFence;

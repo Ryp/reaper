@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include "resource/Resource.h"
+#include "Resource.h"
 
 struct Material
 {

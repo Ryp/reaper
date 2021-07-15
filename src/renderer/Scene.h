@@ -12,7 +12,7 @@
 
 #include <vector>
 
-#include "resource/Resource.h"
+#include "Resource.h"
 
 struct Model
 {
