@@ -131,7 +131,12 @@ void execute_game_loop(ReaperRoot& root, VulkanBackend& backend)
 
         update_camera_state(camera_state, yaw_pitch_delta, forward_side_delta);
 
-        renderer_execute_frame(root, scene, camera_state, frameIndex);
+        const glm::mat4 view_matrix = compute_camera_view_matrix(camera_state);
+
+        Node& camera_node = scene.nodes[scene.camera.scene_node];
+        camera_node.transform_matrix = view_matrix;
+
+        renderer_execute_frame(root, scene, frameIndex);
 
         if (saveMyLaptop)
         {

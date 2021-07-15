@@ -117,24 +117,6 @@ void build_scene_graph(SceneGraph& scene)
     }
 }
 
-void update_scene_graph(SceneGraph& scene, glm::uvec2 viewport_extent, const glm::mat4x3& view_matrix)
-{
-    // Update camera node
-    {
-        const float near_plane_distance = 0.1f;
-        const float far_plane_distance = 100.f;
-        const float fov_radian = glm::pi<float>() * 0.25f;
-        const float aspect_ratio = static_cast<float>(viewport_extent.x) / static_cast<float>(viewport_extent.y);
-
-        scene.camera.viewport_extent = viewport_extent;
-        scene.camera.projection_matrix =
-            build_perspective_matrix(near_plane_distance, far_plane_distance, aspect_ratio, fov_radian);
-
-        Node& camera_node = scene.nodes[scene.camera.scene_node];
-        camera_node.transform_matrix = view_matrix;
-    }
-}
-
 namespace
 {
     void insert_cull_cmd(CullPassData& cull_pass, const MeshAlloc& mesh_alloc, u32 cull_instance_index_start,
@@ -162,7 +144,8 @@ namespace
     }
 } // namespace
 
-void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCache& mesh_cache)
+void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCache& mesh_cache,
+                   glm::uvec2 viewport_extent)
 {
     // Shadow pass
     for (const auto& light : scene.lights)
@@ -213,13 +196,21 @@ void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCa
         shadow_pass.instance_count = shadow_total_instance_count - shadow_pass.instance_offset;
     }
 
+    const float near_plane_distance = 0.1f;
+    const float far_plane_distance = 100.f;
+    const float fov_radian = glm::pi<float>() * 0.25f;
+    const float aspect_ratio = static_cast<float>(viewport_extent.x) / static_cast<float>(viewport_extent.y);
+
+    glm::mat4 camera_projection_matrix =
+        build_perspective_matrix(near_plane_distance, far_plane_distance, aspect_ratio, fov_radian);
+
     const Node& camera_node = scene.nodes[scene.camera.scene_node];
 
     // Main + culling pass
-    const glm::mat4 main_camera_view_proj = scene.camera.projection_matrix * glm::mat4(camera_node.transform_matrix);
+    const glm::mat4 main_camera_view_proj = camera_projection_matrix * glm::mat4(camera_node.transform_matrix);
 
     prepared.draw_pass_params.view = camera_node.transform_matrix;
-    prepared.draw_pass_params.proj = scene.camera.projection_matrix;
+    prepared.draw_pass_params.proj = camera_projection_matrix;
     prepared.draw_pass_params.view_proj = main_camera_view_proj;
 
     Assert(scene.lights.size() == PointLightCount);
@@ -246,7 +237,7 @@ void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCa
         cull_pass.pass_index = prepared.cull_passes.size() - 1;
 
         CullPassParams& cull_pass_params = prepared.cull_pass_params.emplace_back();
-        cull_pass_params.output_size_ts = glm::fvec2(scene.camera.viewport_extent);
+        cull_pass_params.output_size_ts = glm::fvec2(viewport_extent);
 
         prepared.draw_culling_pass_index = cull_pass.pass_index;
 

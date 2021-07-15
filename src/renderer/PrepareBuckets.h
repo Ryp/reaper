@@ -39,9 +39,7 @@ struct Node
 
 struct SceneCamera
 {
-    glm::mat4  projection_matrix;
-    glm::uvec2 viewport_extent;
-    u32        scene_node;
+    u32 scene_node;
 };
 
 struct SceneGraph
@@ -53,7 +51,6 @@ struct SceneGraph
 };
 
 REAPER_RENDERER_API void build_scene_graph(SceneGraph& scene);
-void update_scene_graph(SceneGraph& scene, glm::uvec2 viewport_extent, const glm::mat4x3& view_matrix);
 
 struct CullCmd
 {
@@ -106,5 +103,6 @@ struct PreparedData
 
 struct MeshCache;
 
-void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCache& mesh_cache);
+void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCache& mesh_cache,
+                   glm::uvec2 viewport_extent);
 } // namespace Reaper

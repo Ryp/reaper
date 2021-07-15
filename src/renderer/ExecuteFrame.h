@@ -17,8 +17,6 @@ REAPER_RENDERER_API void renderer_start(ReaperRoot& root, VulkanBackend& backend
 REAPER_RENDERER_API void renderer_stop(ReaperRoot& root, VulkanBackend& backend, IWindow* window);
 
 struct SceneGraph;
-struct CameraState;
 
-REAPER_RENDERER_API void renderer_execute_frame(ReaperRoot& root, SceneGraph& scene, const CameraState& camera_state,
-                                                u32 frameIndex);
+REAPER_RENDERER_API void renderer_execute_frame(ReaperRoot& root, const SceneGraph& scene, u32 frameIndex);
 } // namespace Reaper
