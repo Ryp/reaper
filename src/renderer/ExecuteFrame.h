@@ -20,5 +20,5 @@ struct SceneGraph;
 struct CameraState;
 
 REAPER_RENDERER_API void renderer_execute_frame(ReaperRoot& root, SceneGraph& scene, const CameraState& camera_state,
-                                                u32 frameIndex, float timeMs);
+                                                u32 frameIndex);
 } // namespace Reaper

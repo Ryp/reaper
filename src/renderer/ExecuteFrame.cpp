@@ -38,8 +38,7 @@ void renderer_stop(ReaperRoot& root, VulkanBackend& backend, IWindow* window)
 }
 
 // FIXME make scene const
-void renderer_execute_frame(ReaperRoot& root, SceneGraph& scene, const CameraState& camera_state, u32 frameIndex,
-                            float timeMs)
+void renderer_execute_frame(ReaperRoot& root, SceneGraph& scene, const CameraState& camera_state, u32 frameIndex)
 {
     VulkanBackend& backend = *root.renderer->backend;
 
@@ -49,7 +48,7 @@ void renderer_execute_frame(ReaperRoot& root, SceneGraph& scene, const CameraSta
     const glm::uvec2 backbuffer_viewport_extent(backbufferExtent.width, backbufferExtent.height);
     const glm::mat4  view_matrix = compute_camera_view_matrix(camera_state);
 
-    update_scene_graph(scene, timeMs, backbuffer_viewport_extent, view_matrix);
+    update_scene_graph(scene, backbuffer_viewport_extent, view_matrix);
 
     log_debug(root, "vulkan: begin frame {}", frameIndex);
 

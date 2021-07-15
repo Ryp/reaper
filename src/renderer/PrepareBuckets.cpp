@@ -18,7 +18,6 @@
 namespace Reaper
 {
 constexpr bool UseReverseZ = true;
-constexpr u32  MeshInstanceCount = 6;
 constexpr u32  InvalidMeshInstanceId = -1;
 
 namespace
@@ -44,22 +43,8 @@ namespace
     }
 } // namespace
 
-void build_scene_graph(SceneGraph& scene, const nonstd::span<MeshHandle> mesh_handles,
-                       const nonstd::span<TextureHandle> texture_handles)
+void build_scene_graph(SceneGraph& scene)
 {
-    Assert(!mesh_handles.empty());
-
-    for (u32 mesh_index = 0; mesh_index < mesh_handles.size(); mesh_index++)
-    {
-        for (u32 i = 0; i < MeshInstanceCount; i++)
-        {
-            Node& node = scene.nodes.emplace_back();
-            node.instance_id = mesh_index * MeshInstanceCount + i;
-            node.mesh_handle = mesh_handles[mesh_index]; // FIXME
-            node.texture_handle = texture_handles[0];    // FIXME
-        }
-    }
-
     // Add lights
     {
         const glm::mat4 light_projection_matrix = build_perspective_matrix(0.1f, 100.f, 1.f, glm::pi<float>() * 0.25f);
@@ -132,56 +117,8 @@ void build_scene_graph(SceneGraph& scene, const nonstd::span<MeshHandle> mesh_ha
     }
 }
 
-void update_scene_graph(SceneGraph& scene, float time_ms, glm::uvec2 viewport_extent, const glm::mat4x3& view_matrix)
+void update_scene_graph(SceneGraph& scene, glm::uvec2 viewport_extent, const glm::mat4x3& view_matrix)
 {
-    // Update meshes
-    // This code is completely ad-hoc but allows to build some kind of scene without relying on loading a file.
-    // FIXME hacky way to reference nodes with meshes
-    const u32 mesh_count = 3;
-
-    for (u32 mesh_index = 0; mesh_index < mesh_count; mesh_index++)
-    {
-        for (u32 i = 0; i < MeshInstanceCount; i++)
-        {
-            Node& mesh_node = scene.nodes[mesh_index * MeshInstanceCount + i];
-
-            const float ratio = static_cast<float>(i) / static_cast<float>(MeshInstanceCount) * Math::Pi * 2.f;
-
-            glm::vec3  object_position_ws = glm::vec3(glm::cos(ratio + time_ms), glm::cos(ratio), glm::sin(ratio));
-            float      uniform_scale;
-            glm::fvec3 tilt;
-
-            switch (mesh_index)
-            {
-            case 0: { // Teapot
-                uniform_scale = 0.17f;
-                tilt = glm::vec3(1.f, 0.f, 1.f);
-                break;
-            }
-            case 1: { // Monke
-                uniform_scale = 0.7f;
-                tilt = glm::vec3(0.f, 1.f, 1.f);
-                std::swap(object_position_ws.x, object_position_ws.z);
-                break;
-            }
-            case 2: { // Dragon
-                uniform_scale = 0.5f;
-                tilt = glm::vec3(1.f, 1.f, 0.f);
-                std::swap(object_position_ws.y, object_position_ws.z);
-                break;
-            }
-            default:
-                break;
-            }
-
-            const glm::mat4 model = glm::rotate(glm::scale(glm::translate(glm::mat4(1.0f), object_position_ws),
-                                                           glm::vec3(uniform_scale, uniform_scale, uniform_scale)),
-                                                time_ms + ratio, tilt);
-
-            mesh_node.transform_matrix = glm::mat4x3(model);
-        }
-    }
-
     // Update camera node
     {
         const float near_plane_distance = 0.1f;

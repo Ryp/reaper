@@ -23,6 +23,8 @@
 #include "mesh/ModelLoader.h"
 #include "splinesonic/trackgen/Track.h"
 
+#include <glm/gtc/matrix_transform.hpp>
+
 #include <array>
 #include <chrono>
 #include <thread>
@@ -38,7 +40,7 @@ void execute_game_loop(ReaperRoot& root, VulkanBackend& backend)
     SplineSonic::TrackGen::Track testTrack;
 
     SplineSonic::TrackGen::GenerationInfo genInfo = {};
-    genInfo.length = 3;
+    genInfo.length = 100;
     genInfo.width = 10.0f;
     genInfo.chaos = 1.0f;
 
@@ -59,17 +61,6 @@ void execute_game_loop(ReaperRoot& root, VulkanBackend& backend)
         SplineSonic::TrackGen::SkinTrackChunkMesh(testTrack.skeletonNodes[i], testTrack.skinning[i], meshes[i], 10.0f);
     }
 
-    std::vector<const char*> mesh_filenames = {
-        "res/model/teapot.obj",
-        "res/model/suzanne.obj",
-        "res/model/dragon.obj",
-    };
-
-    for (auto mesh_filename : mesh_filenames)
-    {
-        meshes.push_back(ModelLoader::loadOBJ(mesh_filename));
-    }
-
     std::vector<MeshHandle> mesh_handles(meshes.size());
     load_meshes(backend, backend.resources->mesh_cache, meshes, mesh_handles);
 
@@ -85,7 +76,23 @@ void execute_game_loop(ReaperRoot& root, VulkanBackend& backend)
                   backend.resources->material_resources.texture_handles);
 
     SceneGraph scene;
-    build_scene_graph(scene, mesh_handles, backend.resources->material_resources.texture_handles);
+
+    Assert(!mesh_handles.empty());
+    for (u32 mesh_index = 0; mesh_index < mesh_handles.size(); mesh_index++)
+    {
+        // const SplineSonic::TrackGen::TrackSkeletonNode track_node = testTrack.skeletonNodes[mesh_index];
+
+        Node& node = scene.nodes.emplace_back();
+        node.instance_id = mesh_index;
+        node.mesh_handle = mesh_handles[mesh_index];                                    // FIXME
+        node.texture_handle = backend.resources->material_resources.texture_handles[0]; // FIXME
+
+        const glm::mat4 model = glm::mat4(1.0f); // FIXME baked ws transform in ms vertices
+        // const glm::mat4 model = glm::translate(glm::mat4(1.0f), track_node.positionWS);
+        node.transform_matrix = glm::mat4x3(model);
+    }
+
+    build_scene_graph(scene);
 
     backend.mustTransitionSwapchain = true;
 
@@ -108,9 +115,7 @@ void execute_game_loop(ReaperRoot& root, VulkanBackend& backend)
 
         const auto currentTime = std::chrono::system_clock::now();
 
-        const auto  timeSecs = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - startTime);
         const auto  timeDeltaMs = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - lastFrameStart);
-        const float timeMs = static_cast<float>(timeSecs.count()) * 0.001f;
         const float timeDtSecs = static_cast<float>(timeDeltaMs.count()) * 0.001f;
 
         shouldExit = vulkan_process_window_events(root, backend, window);
@@ -127,7 +132,7 @@ void execute_game_loop(ReaperRoot& root, VulkanBackend& backend)
 
         update_camera_state(camera_state, yaw_pitch_delta, forward_side_delta);
 
-        renderer_execute_frame(root, scene, camera_state, frameIndex, timeMs);
+        renderer_execute_frame(root, scene, camera_state, frameIndex);
 
         if (saveMyLaptop)
         {
