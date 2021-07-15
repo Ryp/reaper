@@ -121,16 +121,6 @@ endif()
 
 set(REAPER_SHADER_DIR ${CMAKE_CURRENT_SOURCE_DIR}/shader)
 set(REAPER_SHADER_SRCS
-    ${REAPER_SHADER_DIR}/samples/push_constants.frag.glsl
-    ${REAPER_SHADER_DIR}/samples/push_constants.vert.glsl
-    ${REAPER_SHADER_DIR}/samples/texture.frag.glsl
-    ${REAPER_SHADER_DIR}/samples/texture.vert.glsl
-    ${REAPER_SHADER_DIR}/samples/tri.frag.glsl
-    ${REAPER_SHADER_DIR}/samples/tri.vert.glsl
-    ${REAPER_SHADER_DIR}/samples/uniform.frag.glsl
-    ${REAPER_SHADER_DIR}/samples/uniform.vert.glsl
-    ${REAPER_SHADER_DIR}/blit.frag.glsl
-    ${REAPER_SHADER_DIR}/blit.vert.glsl
     ${REAPER_SHADER_DIR}/compaction_prepare_indirect_dispatch.comp.hlsl
     ${REAPER_SHADER_DIR}/cull_meshlet.comp.hlsl
     ${REAPER_SHADER_DIR}/cull_triangle_batch.comp.hlsl
@@ -138,18 +128,11 @@ set(REAPER_SHADER_SRCS
     ${REAPER_SHADER_DIR}/fullscreen_triangle.vert.hlsl
     ${REAPER_SHADER_DIR}/reduce_hdr_frame.comp.hlsl
     ${REAPER_SHADER_DIR}/matrix_row_major_codegen_bug.comp.hlsl
-    ${REAPER_SHADER_DIR}/mesh_shade.frag.glsl
-    ${REAPER_SHADER_DIR}/mesh_shade.vert.glsl
-    ${REAPER_SHADER_DIR}/mesh_simple.frag.glsl
-    ${REAPER_SHADER_DIR}/mesh_simple.vert.glsl
-    ${REAPER_SHADER_DIR}/mesh_transformed.frag.glsl
     ${REAPER_SHADER_DIR}/mesh_transformed_shaded.frag.hlsl
     ${REAPER_SHADER_DIR}/mesh_transformed_shaded.vert.hlsl
-    ${REAPER_SHADER_DIR}/mesh_transformed.vert.glsl
     ${REAPER_SHADER_DIR}/render_shadow.frag.hlsl
     ${REAPER_SHADER_DIR}/render_shadow.vert.hlsl
     ${REAPER_SHADER_DIR}/swapchain_write.frag.hlsl
-    ${REAPER_SHADER_DIR}/test.comp.glsl
 )
 
 # Shader compilation
