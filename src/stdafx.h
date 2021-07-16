@@ -13,6 +13,7 @@
 #include "math/MathExport.h"
 #include "mesh/MeshExport.h"
 #include "renderer/RendererExport.h"
+#include "splinesonic/sim/SimExport.h"
 #include "splinesonic/trackgen/TrackGenExport.h"
 
 #include "core/Assert.h"

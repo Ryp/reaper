@@ -45,8 +45,9 @@ target_link_libraries(${REAPER_BIN} PRIVATE
     reaper_math
     reaper_renderer
     reaper_mesh
-    reaper_trackgen
     reaper_input
+    splinesonic_sim
+    splinesonic_trackgen
 )
 
 # Configure main VS projet
