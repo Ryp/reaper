@@ -6,7 +6,7 @@
 #///////////////////////////////////////////////////////////////////////////////
 
 # Set precompiled header
-set(REAPER_PCH ${CMAKE_CURRENT_SOURCE_DIR}/pch/stdafx.h)
+set(REAPER_PCH ${CMAKE_CURRENT_SOURCE_DIR}/stdafx.h)
 
 # Generate version header
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/core/Version.h.in ${CMAKE_CURRENT_SOURCE_DIR}/core/Version.h NEWLINE_STYLE UNIX)
@@ -31,15 +31,11 @@ target_sources(${REAPER_BIN} PRIVATE
 
     ${CMAKE_CURRENT_SOURCE_DIR}/Camera.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Camera.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/CVar.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/CVar.h
     ${CMAKE_CURRENT_SOURCE_DIR}/GameLoop.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/GameLoop.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Resource.h
-
-    ${CMAKE_CURRENT_SOURCE_DIR}/cvar/CVar.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/cvar/CVar.h
-
-    ${CMAKE_CURRENT_SOURCE_DIR}/pch/stdafx.h
-
 )
 
 target_link_libraries(${REAPER_BIN} PRIVATE

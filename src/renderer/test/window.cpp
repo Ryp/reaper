@@ -5,7 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "pch/stdafx.h"
+#include "stdafx.h"
 #include <doctest/doctest.h>
 
 #include "renderer/window/Window.h"

@@ -167,7 +167,7 @@ function(reaper_add_tests library testfiles)
     if(REAPER_BUILD_TESTS)
         set(REAPER_TEST_FILES ${testfiles} ${ARGN}) # Expecting a list here
         set(REAPER_TEST_BIN ${library}_tests)
-        set(REAPER_TEST_SRCS ${REAPER_TEST_FILES} ${CMAKE_SOURCE_DIR}/src/test/test_main.cpp)
+        set(REAPER_TEST_SRCS ${REAPER_TEST_FILES} ${CMAKE_SOURCE_DIR}/src/test_main.cpp)
 
         add_executable(${REAPER_TEST_BIN} ${REAPER_TEST_SRCS})
 
