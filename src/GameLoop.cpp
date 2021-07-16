@@ -85,8 +85,8 @@ void execute_game_loop(ReaperRoot& root, VulkanBackend& backend)
 
         Node& node = scene.nodes.emplace_back();
         node.instance_id = mesh_index;
-        node.mesh_handle = mesh_handles[mesh_index];                                    // FIXME
-        node.texture_handle = backend.resources->material_resources.texture_handles[0]; // FIXME
+        node.mesh_handle = mesh_handles[mesh_index];
+        node.texture_handle = backend.resources->material_resources.texture_handles[0];
 
         const glm::mat4 model = glm::translate(glm::mat4(1.0f), track_node.positionWS);
         node.transform_matrix = glm::mat4x3(model);
