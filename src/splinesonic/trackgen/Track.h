@@ -59,19 +59,19 @@ struct Track
     std::vector<TrackSkinning>        skinning;
 };
 
-REAPER_TRACKGEN_API
+SPLINESONIC_TRACKGEN_API
 void GenerateTrackSkeleton(const GenerationInfo& genInfo, std::vector<TrackSkeletonNode>& skeletonNodes);
 
-REAPER_TRACKGEN_API
+SPLINESONIC_TRACKGEN_API
 void GenerateTrackSplines(const std::vector<TrackSkeletonNode>& skeletonNodes,
                           std::vector<Reaper::Math::Spline>&    splines);
 
-REAPER_TRACKGEN_API
+SPLINESONIC_TRACKGEN_API
 void GenerateTrackSkinning(const std::vector<TrackSkeletonNode>&    skeletonNodes,
                            const std::vector<Reaper::Math::Spline>& splines,
                            std::vector<TrackSkinning>&              skinning);
 
-REAPER_TRACKGEN_API
+SPLINESONIC_TRACKGEN_API
 void SkinTrackChunkMesh(const TrackSkeletonNode& node,
                         const TrackSkinning&     trackSkinning,
                         Mesh&                    mesh,
