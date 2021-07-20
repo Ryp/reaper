@@ -7,27 +7,34 @@
 
 #include "Mesh.h"
 
+namespace
+{
 u32 getTriangleCount(const Mesh& mesh)
 {
-    if (mesh.isIndexed)
+    if (!mesh.indexes.empty())
         return static_cast<u32>(mesh.indexes.size());
     else
-        return static_cast<u32>(mesh.vertices.size()) / 3;
+        return static_cast<u32>(mesh.positions.size()) / 3;
 }
+} // namespace
 
 void computeNormalsSimple(Mesh& mesh)
 {
     std::size_t trianglesNo = getTriangleCount(mesh);
 
-    mesh.normals.resize(mesh.vertices.size());
+    mesh.normals.resize(mesh.positions.size());
     for (std::size_t i = 0; i < trianglesNo; ++i)
     {
-        glm::vec3 a = mesh.vertices[i * 3 + 1] - mesh.vertices[i * 3 + 0];
-        glm::vec3 b = mesh.vertices[i * 3 + 2] - mesh.vertices[i * 3 + 0];
+        u32 index0 = i * 3 + 0;
+        u32 index1 = i * 3 + 1;
+        u32 index2 = i * 3 + 2;
+
+        glm::vec3 a = mesh.positions[index1] - mesh.positions[index0];
+        glm::vec3 b = mesh.positions[index2] - mesh.positions[index0];
         glm::vec3 n = glm::normalize(glm::cross(a, b));
 
-        mesh.normals[i * 3 + 0] = n;
-        mesh.normals[i * 3 + 1] = n;
-        mesh.normals[i * 3 + 2] = n;
+        mesh.normals[index0] = n;
+        mesh.normals[index1] = n;
+        mesh.normals[index2] = n;
     }
 }

@@ -15,7 +15,7 @@
 #include "splinesonic/trackgen/Track.h"
 #include "splinesonic/trackgen/TrackDebug.h"
 
-using namespace SplineSonic::TrackGen;
+using namespace SplineSonic;
 
 TEST_CASE("Track generation")
 {
@@ -30,7 +30,7 @@ TEST_CASE("Track generation")
 
     SUBCASE("Generate skeleton")
     {
-        GenerateTrackSkeleton(genInfo, testTrack.skeletonNodes);
+        generate_track_skeleton(genInfo, testTrack.skeletonNodes);
 
         CHECK_EQ(testTrack.skeletonNodes.size(), testTrack.genInfo.length);
 
@@ -42,7 +42,7 @@ TEST_CASE("Track generation")
         }
         SUBCASE("Generate splines")
         {
-            GenerateTrackSplines(testTrack.skeletonNodes, testTrack.splinesMS);
+            generate_track_splines(testTrack.skeletonNodes, testTrack.splinesMS);
 
             SUBCASE("") {}
             SUBCASE("Save splines as obj")
@@ -52,7 +52,7 @@ TEST_CASE("Track generation")
             }
             SUBCASE("Generate bones")
             {
-                GenerateTrackSkinning(testTrack.skeletonNodes, testTrack.splinesMS, testTrack.skinning);
+                generate_track_skinning(testTrack.skeletonNodes, testTrack.splinesMS, testTrack.skinning);
 
                 SUBCASE("") {}
                 SUBCASE("Save bones as obj")
@@ -78,9 +78,9 @@ TEST_CASE("Track mesh generation")
 
     testTrack.genInfo = genInfo;
 
-    GenerateTrackSkeleton(genInfo, testTrack.skeletonNodes);
-    GenerateTrackSplines(testTrack.skeletonNodes, testTrack.splinesMS);
-    GenerateTrackSkinning(testTrack.skeletonNodes, testTrack.splinesMS, testTrack.skinning);
+    generate_track_skeleton(genInfo, testTrack.skeletonNodes);
+    generate_track_splines(testTrack.skeletonNodes, testTrack.splinesMS);
+    generate_track_skinning(testTrack.skeletonNodes, testTrack.splinesMS, testTrack.skinning);
 
     const std::string assetFile("res/model/track/chunk_simple.obj");
 
@@ -92,7 +92,7 @@ TEST_CASE("Track mesh generation")
         std::ifstream file(assetFile);
         meshes[i] = ModelLoader::loadOBJ(file);
 
-        SkinTrackChunkMesh(testTrack.skeletonNodes[i], testTrack.skinning[i], meshes[i], 10.0f);
+        skin_track_chunk_mesh(testTrack.skeletonNodes[i], testTrack.skinning[i], meshes[i], 10.0f);
     }
 
     SaveMeshesAsObj(outFile, &meshes[0], static_cast<u32>(meshes.size()));
