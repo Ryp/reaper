@@ -19,8 +19,6 @@ public:
     XLibWindow(const WindowCreationDescriptor& creationInfo);
     ~XLibWindow();
 
-    bool renderLoop(AbstractRenderer* renderer) override;
-
 public:
     Display* DisplayPtr;
     Window   Handle;

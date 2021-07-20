@@ -11,23 +11,8 @@
 
 namespace Reaper
 {
-class IWindow;
-
-class REAPER_RENDERER_API AbstractRenderer
-{
-public:
-    virtual ~AbstractRenderer() {}
-
-public:
-    virtual void startup(IWindow* window) = 0;
-    virtual void shutdown() = 0;
-    virtual void render() = 0;
-
-public:
-    static AbstractRenderer* createRenderer();
-};
-
 struct VulkanBackend;
+class IWindow;
 
 struct REAPER_RENDERER_API Renderer
 {
