@@ -16,8 +16,6 @@ namespace Window
     struct Event;
 }
 
-class AbstractRenderer;
-
 class REAPER_RENDERER_API IWindow
 {
 public:
