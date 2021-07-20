@@ -11,7 +11,7 @@
 
 #include "math/Spline.h"
 
-namespace SplineSonic::TrackGen
+namespace SplineSonic
 {
 void SaveTrackSkeletonAsObj(std::ostream& output, std::vector<TrackSkeletonNode>& skeleton)
 {
@@ -116,4 +116,4 @@ void SaveTrackBonesAsObj(std::ostream& output, std::vector<TrackSkinning>& skinn
         output << std::endl;
     }
 }
-} // namespace SplineSonic::TrackGen
+} // namespace SplineSonic

@@ -20,6 +20,7 @@
 #include "input/DS4.h"
 #include "math/Spline.h"
 #include "mesh/ModelLoader.h"
+#include "splinesonic/sim/Test.h"
 #include "splinesonic/trackgen/Track.h"
 
 #include "Camera.h"
@@ -38,29 +39,45 @@ void execute_game_loop(ReaperRoot& root, VulkanBackend& backend)
 
     renderer_start(root, backend, window);
 
-    SplineSonic::TrackGen::Track testTrack;
+    SplineSonic::PhysicsSim sim = SplineSonic::create_sim();
+    SplineSonic::sim_start(&sim);
 
-    SplineSonic::TrackGen::GenerationInfo genInfo = {};
+    SplineSonic::Track game_track;
+
+    SplineSonic::GenerationInfo genInfo = {};
     genInfo.length = 100;
     genInfo.width = 10.0f;
     genInfo.chaos = 1.0f;
 
-    testTrack.genInfo = genInfo;
+    game_track.genInfo = genInfo;
 
-    SplineSonic::TrackGen::GenerateTrackSkeleton(genInfo, testTrack.skeletonNodes);
-    SplineSonic::TrackGen::GenerateTrackSplines(testTrack.skeletonNodes, testTrack.splinesMS);
-    SplineSonic::TrackGen::GenerateTrackSkinning(testTrack.skeletonNodes, testTrack.splinesMS, testTrack.skinning);
+    SplineSonic::generate_track_skeleton(genInfo, game_track.skeletonNodes);
+    SplineSonic::generate_track_splines(game_track.skeletonNodes, game_track.splinesMS);
+    SplineSonic::generate_track_skinning(game_track.skeletonNodes, game_track.splinesMS, game_track.skinning);
 
-    const std::string assetFile("res/model/track/chunk_simple.obj");
-    std::vector<Mesh> meshes(genInfo.length);
+    const std::string      assetFile("res/model/track/chunk_simple.obj");
+    std::vector<Mesh>      meshes(genInfo.length);
+    std::vector<glm::mat4> transforms(genInfo.length);
 
     for (u32 i = 0; i < genInfo.length; i++)
     {
         std::ifstream file(assetFile);
         meshes[i] = ModelLoader::loadOBJ(file);
 
-        SplineSonic::TrackGen::SkinTrackChunkMesh(testTrack.skeletonNodes[i], testTrack.skinning[i], meshes[i], 10.0f);
+        const SplineSonic::TrackSkeletonNode& track_node = game_track.skeletonNodes[i];
+
+        transforms[i] = glm::translate(glm::mat4(1.0f), track_node.positionWS);
+
+        SplineSonic::skin_track_chunk_mesh(track_node, game_track.skinning[i], meshes[i], 10.0f);
     }
+
+    // NOTE: bullet will hold pointers to the original mesh data without copy
+    SplineSonic::sim_register_static_collision_meshes(sim, meshes, transforms);
+
+    std::ifstream ship_obj_file("res/model/fighter.obj");
+    meshes.push_back(ModelLoader::loadOBJ(ship_obj_file));
+
+    SplineSonic::sim_create_player_rigid_body(sim);
 
     std::vector<MeshHandle> mesh_handles(meshes.size());
     load_meshes(backend, backend.resources->mesh_cache, meshes, mesh_handles);
@@ -71,28 +88,37 @@ void execute_game_loop(ReaperRoot& root, VulkanBackend& backend)
         "res/texture/bricks_specular.dds",
     };
 
-    //
     backend.resources->material_resources.texture_handles.resize(texture_filenames.size());
     load_textures(root, backend, backend.resources->material_resources, texture_filenames,
                   backend.resources->material_resources.texture_handles);
 
     SceneGraph scene;
 
-    Assert(!mesh_handles.empty());
-    for (u32 mesh_index = 0; mesh_index < mesh_handles.size(); mesh_index++)
+    // Build scene
     {
-        const SplineSonic::TrackGen::TrackSkeletonNode track_node = testTrack.skeletonNodes[mesh_index];
+        // Place static track
+        for (u32 chunk_index = 0; chunk_index < genInfo.length; chunk_index++)
+        {
+            Node& node = scene.nodes.emplace_back();
+            node.instance_id = chunk_index;
+            node.mesh_handle = mesh_handles[chunk_index]; // FIXME
+            node.texture_handle = backend.resources->material_resources.texture_handles[0];
+            node.transform_matrix = transforms[chunk_index];
+        }
 
-        Node& node = scene.nodes.emplace_back();
-        node.instance_id = mesh_index;
-        node.mesh_handle = mesh_handles[mesh_index];
-        node.texture_handle = backend.resources->material_resources.texture_handles[0];
+        // Ship scene node
+        {
+            Node& node = scene.nodes.emplace_back();
+            node.instance_id = genInfo.length;      // FIXME
+            node.mesh_handle = mesh_handles.back(); // FIXME
+            node.texture_handle = backend.resources->material_resources.texture_handles[1];
 
-        const glm::mat4 model = glm::translate(glm::mat4(1.0f), track_node.positionWS);
-        node.transform_matrix = glm::mat4x3(model);
+            const glm::mat4 model = glm::scale(glm::mat4(1.0f), glm::vec3(0.1f)); // FIXME
+            node.transform_matrix = glm::mat4x3(model);
+        }
+
+        build_scene_graph(scene);
     }
-
-    build_scene_graph(scene);
 
     backend.mustTransitionSwapchain = true;
 
@@ -130,6 +156,8 @@ void execute_game_loop(ReaperRoot& root, VulkanBackend& backend)
         const glm::vec2 forward_side_delta =
             glm::vec2(ds4.getAxis(DS4::LeftAnalogY), ds4.getAxis(DS4::LeftAnalogX)) * timeDtSecs;
 
+        SplineSonic::sim_update(sim, timeDtSecs);
+
         update_camera_state(camera_state, yaw_pitch_delta, forward_side_delta);
 
         Node& camera_node = scene.nodes[scene.camera.scene_node];
@@ -149,6 +177,8 @@ void execute_game_loop(ReaperRoot& root, VulkanBackend& backend)
 
         lastFrameStart = currentTime;
     }
+
+    SplineSonic::destroy_sim(sim);
 
     renderer_stop(root, backend, window);
 }

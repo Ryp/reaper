@@ -23,7 +23,7 @@
 
 using namespace Reaper;
 
-namespace SplineSonic::TrackGen
+namespace SplineSonic
 {
 constexpr float ThetaMax = 0.8f * Math::HalfPi;
 constexpr float PhiMax = 1.0f * Math::Pi;
@@ -125,7 +125,7 @@ namespace
     }
 } // namespace
 
-void GenerateTrackSkeleton(const GenerationInfo& genInfo, std::vector<TrackSkeletonNode>& skeletonNodes)
+void generate_track_skeleton(const GenerationInfo& genInfo, std::vector<TrackSkeletonNode>& skeletonNodes)
 {
     Assert(genInfo.length >= MinLength);
     Assert(genInfo.length <= MaxLength);
@@ -154,7 +154,7 @@ void GenerateTrackSkeleton(const GenerationInfo& genInfo, std::vector<TrackSkele
     Assert(tryCount < MaxTryCount, "something is majorly FUBAR");
 }
 
-void GenerateTrackSplines(const std::vector<TrackSkeletonNode>& skeletonNodes, std::vector<Math::Spline>& splines)
+void generate_track_splines(const std::vector<TrackSkeletonNode>& skeletonNodes, std::vector<Math::Spline>& splines)
 {
     std::vector<glm::vec4> controlPoints(4);
     const u32              trackChunkCount = static_cast<u32>(skeletonNodes.size());
@@ -243,9 +243,9 @@ namespace
     }
 } // namespace
 
-void GenerateTrackSkinning(const std::vector<TrackSkeletonNode>& skeletonNodes,
-                           const std::vector<Math::Spline>&      splines,
-                           std::vector<TrackSkinning>&           skinning)
+void generate_track_skinning(const std::vector<TrackSkeletonNode>& skeletonNodes,
+                             const std::vector<Math::Spline>&      splines,
+                             std::vector<TrackSkinning>&           skinning)
 {
     const u32 trackChunkCount = static_cast<u32>(splines.size());
 
@@ -272,9 +272,10 @@ namespace
     }
 } // namespace
 
-void SkinTrackChunkMesh(const TrackSkeletonNode& node, const TrackSkinning& trackSkinning, Mesh& mesh, float meshLength)
+void skin_track_chunk_mesh(const TrackSkeletonNode& node, const TrackSkinning& trackSkinning, Mesh& mesh,
+                           float meshLength)
 {
-    const u32               vertexCount = static_cast<u32>(mesh.vertices.size());
+    const u32               vertexCount = static_cast<u32>(mesh.positions.size());
     const u32               boneCount = 4; // FIXME choose if this is a hard limit or not
     std::vector<glm::fvec3> skinnedVertices(vertexCount);
 
@@ -284,7 +285,7 @@ void SkinTrackChunkMesh(const TrackSkeletonNode& node, const TrackSkinning& trac
 
     for (u32 i = 0; i < vertexCount; i++)
     {
-        const glm::fvec3 vertex = mesh.vertices[i] * glm::fvec3(scaleX, 1.0f, 1.0f);
+        const glm::fvec3 vertex = mesh.positions[i] * glm::fvec3(scaleX, 1.0f, 1.0f);
         const glm::fvec4 boneWeights = ComputeBoneWeights(vertex, node.radius);
 
         const float debugSum = boneWeights.x + boneWeights.y + boneWeights.z + boneWeights.w;
@@ -302,6 +303,6 @@ void SkinTrackChunkMesh(const TrackSkeletonNode& node, const TrackSkinning& trac
 
         skinnedVertices[i] = node.orientationWS * skinnedVertices[i];
     }
-    mesh.vertices = skinnedVertices;
+    mesh.positions = skinnedVertices;
 }
-} // namespace SplineSonic::TrackGen
+} // namespace SplineSonic

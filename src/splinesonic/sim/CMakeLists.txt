@@ -20,6 +20,8 @@ include(bullet)
 target_link_libraries(${target} PUBLIC
     reaper_core
     bullet
+    glm
+    span
 )
 
 set_target_properties(${target} PROPERTIES FOLDER SplineSonic)

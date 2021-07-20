@@ -68,7 +68,7 @@ namespace
         MeshAlloc alloc = {};
 
         const u32 index_count = mesh.indexes.size();
-        const u32 position_count = mesh.vertices.size();
+        const u32 position_count = mesh.positions.size();
         const u32 normal_count = mesh.normals.size();
         const u32 uv_count = mesh.uvs.size();
 
@@ -101,8 +101,8 @@ namespace
     {
         upload_buffer_data(backend.device, backend.vma_instance, mesh_cache.indexBuffer, mesh.indexes.data(),
                            mesh.indexes.size() * sizeof(mesh.indexes[0]), mesh_alloc.index_offset);
-        upload_buffer_data(backend.device, backend.vma_instance, mesh_cache.vertexBufferPosition, mesh.vertices.data(),
-                           mesh.vertices.size() * sizeof(mesh.vertices[0]), mesh_alloc.position_offset);
+        upload_buffer_data(backend.device, backend.vma_instance, mesh_cache.vertexBufferPosition, mesh.positions.data(),
+                           mesh.positions.size() * sizeof(mesh.positions[0]), mesh_alloc.position_offset);
         upload_buffer_data(backend.device, backend.vma_instance, mesh_cache.vertexBufferNormal, mesh.normals.data(),
                            mesh.normals.size() * sizeof(mesh.normals[0]), mesh_alloc.normal_offset);
         upload_buffer_data(backend.device, backend.vma_instance, mesh_cache.vertexBufferUV, mesh.uvs.data(),
@@ -110,22 +110,23 @@ namespace
     }
 } // namespace
 
-void load_meshes(VulkanBackend& backend, MeshCache& mesh_cache, nonstd::span<Mesh> meshes,
+void load_meshes(VulkanBackend& backend, MeshCache& mesh_cache, const nonstd::span<Mesh> meshes,
                  nonstd::span<MeshHandle> output_handles)
 {
     Assert(output_handles.size() >= meshes.size());
 
     for (u32 mesh_index = 0; mesh_index < meshes.size(); mesh_index++)
     {
-        Mesh& mesh = meshes[mesh_index];
+        // NOTE: Deep copy to keep the input immutable
+        Mesh mesh = meshes[mesh_index];
 
         // FIXME Filling empty buffers with garbage to preserve correct index offsets
         // This can be removed if we do vertex pulling with per-buffer offsets
         if (mesh.normals.empty())
-            mesh.normals.resize(mesh.vertices.size());
+            mesh.normals.resize(mesh.positions.size());
 
         if (mesh.uvs.empty())
-            mesh.uvs.resize(mesh.vertices.size());
+            mesh.uvs.resize(mesh.positions.size());
 
         const size_t max_vertices = ComputeCullingGroupSize / 2;
         const size_t max_triangles = ComputeCullingGroupSize;
@@ -141,8 +142,8 @@ void load_meshes(VulkanBackend& backend, MeshCache& mesh_cache, nonstd::span<Mes
 
         size_t meshlet_count = meshopt_buildMeshlets(
             meshlets.data(), meshlet_vertices.data(), meshlet_triangles.data(), mesh.indexes.data(),
-            mesh.indexes.size(), reinterpret_cast<const float*>(mesh.vertices.data()), mesh.vertices.size(),
-            sizeof(mesh.vertices[0]), max_vertices, max_triangles, cone_weight);
+            mesh.indexes.size(), reinterpret_cast<const float*>(mesh.positions.data()), mesh.positions.size(),
+            sizeof(mesh.positions[0]), max_vertices, max_triangles, cone_weight);
 
         const meshopt_Meshlet& last = meshlets[meshlet_count - 1];
 
@@ -150,15 +151,11 @@ void load_meshes(VulkanBackend& backend, MeshCache& mesh_cache, nonstd::span<Mes
         meshlet_triangles.resize(last.triangle_offset + last.triangle_count * 3);
         meshlets.resize(meshlet_count);
 
-        // Rewrite index buffer
-        // TODO Also rebuilt vertex buffer since it was optimized for cache locality
-        mesh.indexes.clear();
-
         const u32 meshlet_vertex_count = meshlet_vertices.size();
         const u32 total_mesh_index_count = meshlet_triangles.size();
 
         std::vector<u32>             optimized_index_buffer(total_mesh_index_count);
-        std::vector<glm::fvec3>      optimized_vertex_buffer(meshlet_vertex_count);
+        std::vector<glm::fvec3>      optimized_position_buffer(meshlet_vertex_count);
         std::vector<glm::fvec3>      optimized_normal_buffer(meshlet_vertex_count);
         std::vector<glm::fvec2>      optimized_uv_buffer(meshlet_vertex_count);
         std::vector<MeshletInstance> optimized_meshlets(meshlet_count);
@@ -167,7 +164,7 @@ void load_meshes(VulkanBackend& backend, MeshCache& mesh_cache, nonstd::span<Mes
         {
             const u32 index = meshlet_vertices[i];
 
-            optimized_vertex_buffer[i] = mesh.vertices[index];
+            optimized_position_buffer[i] = mesh.positions[index];
             optimized_normal_buffer[i] = mesh.normals[index];
             optimized_uv_buffer[i] = mesh.uvs[index];
         }
@@ -200,7 +197,7 @@ void load_meshes(VulkanBackend& backend, MeshCache& mesh_cache, nonstd::span<Mes
         optimized_index_buffer.resize(index_output_offset); // Trim excess
 
         std::swap(mesh.indexes, optimized_index_buffer);
-        std::swap(mesh.vertices, optimized_vertex_buffer);
+        std::swap(mesh.positions, optimized_position_buffer);
         std::swap(mesh.normals, optimized_normal_buffer);
         std::swap(mesh.uvs, optimized_uv_buffer);
 

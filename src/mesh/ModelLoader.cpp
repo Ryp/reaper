@@ -50,7 +50,7 @@ Mesh ModelLoader::loadOBJTinyObjLoader(std::ifstream& src)
     Assert(shapes.size() > 0, "no shapes to load");
 
     Mesh mesh;
-    mesh.vertices.reserve(attrib.vertices.size());
+    mesh.positions.reserve(attrib.vertices.size());
     mesh.normals.reserve(attrib.normals.size());
     mesh.uvs.reserve(attrib.texcoords.size());
 
@@ -75,7 +75,7 @@ Mesh ModelLoader::loadOBJTinyObjLoader(std::ifstream& src)
                 tinyobj::real_t  vy = attrib.vertices[3 * indexInfo.vertex_index + 1];
                 tinyobj::real_t  vz = attrib.vertices[3 * indexInfo.vertex_index + 2];
                 const glm::fvec3 vertex(vx, vy, vz);
-                mesh.vertices.push_back(vertex);
+                mesh.positions.push_back(vertex);
 
                 if (!attrib.normals.empty())
                 {
@@ -109,7 +109,7 @@ Mesh ModelLoader::loadOBJCustom(std::ifstream& src)
     glm::vec3               tmpVec3;
     glm::vec2               tmpVec2;
     glm::uvec3              vIdx;
-    std::vector<glm::vec3>  vertices;
+    std::vector<glm::vec3>  positions;
     std::vector<glm::vec3>  normals;
     std::vector<glm::vec2>  uvs;
     std::vector<glm::uvec3> indexes;
@@ -121,7 +121,7 @@ Mesh ModelLoader::loadOBJCustom(std::ifstream& src)
         if (line == "v")
         {
             ss >> tmpVec3[0] >> tmpVec3[1] >> tmpVec3[2];
-            vertices.push_back(tmpVec3);
+            positions.push_back(tmpVec3);
         }
         else if (line == "vn")
         {
@@ -176,16 +176,17 @@ Mesh ModelLoader::loadOBJCustom(std::ifstream& src)
             }
         }
     }
-    mesh.hasUVs = !(uvs.empty());
-    mesh.hasNormals = !(normals.empty());
 
-    Assert(!vertices.empty() && !indexes.empty(), "Empty model");
+    const bool hasUVs = !(uvs.empty());
+    const bool hasNormals = !(normals.empty());
+
+    Assert(!positions.empty() && !indexes.empty(), "Empty model");
 
     // CW Winding test
-    if (mesh.hasNormals)
+    if (hasNormals)
     {
-        glm::vec3 a = vertices[indexes[1][0]] - vertices[indexes[0][0]];
-        glm::vec3 b = vertices[indexes[2][0]] - vertices[indexes[0][0]];
+        glm::vec3 a = positions[indexes[1][0]] - positions[indexes[0][0]];
+        glm::vec3 b = positions[indexes[2][0]] - positions[indexes[0][0]];
         glm::vec3 n = normals[indexes[0][2]] + normals[indexes[1][2]] + normals[indexes[2][2]];
         if (glm::dot(glm::cross(a, b), n) < 0.0f)
         {
@@ -201,15 +202,15 @@ Mesh ModelLoader::loadOBJCustom(std::ifstream& src)
     }
     for (unsigned i = 0; i < indexes.size(); ++i)
     {
-        mesh.vertices.push_back(vertices[indexes[i][0]]);
-        if (mesh.hasUVs)
+        mesh.positions.push_back(positions[indexes[i][0]]);
+        if (hasUVs)
             mesh.uvs.push_back(uvs[indexes[i][1]]);
-        if (mesh.hasNormals)
+        if (hasNormals)
             mesh.normals.push_back(normals[indexes[i][2]]);
         mesh.indexes.push_back(i);
     }
 
-    if (!mesh.hasNormals)
+    if (!hasNormals)
         computeNormalsSimple(mesh);
 
     return mesh;
@@ -225,7 +226,7 @@ void SaveMeshesAsObj(std::ostream& output, const Mesh* meshes, u32 meshCount)
     for (u32 meshIndex = 0; meshIndex < meshCount; meshIndex++)
     {
         const Mesh& mesh = meshes[meshIndex];
-        const u32   vertexCount = static_cast<u32>(mesh.vertices.size());
+        const u32   vertexCount = static_cast<u32>(mesh.positions.size());
         const u32   uvCount = static_cast<u32>(mesh.uvs.size());
         const u32   normalCount = static_cast<u32>(mesh.normals.size());
         const u32   indexCount = static_cast<u32>(mesh.indexes.size());
@@ -236,7 +237,7 @@ void SaveMeshesAsObj(std::ostream& output, const Mesh* meshes, u32 meshCount)
         {
             output << 'v';
             for (u32 j = 0; j < 3; ++j)
-                output << ' ' << mesh.vertices[i][j];
+                output << ' ' << mesh.positions[i][j];
             output << std::endl;
         }
 
