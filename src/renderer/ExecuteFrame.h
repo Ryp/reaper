@@ -11,7 +11,7 @@ namespace Reaper
 {
 struct ReaperRoot;
 struct VulkanBackend;
-struct IWindow;
+class IWindow;
 
 REAPER_RENDERER_API void renderer_start(ReaperRoot& root, VulkanBackend& backend, IWindow* window);
 REAPER_RENDERER_API void renderer_stop(ReaperRoot& root, VulkanBackend& backend, IWindow* window);
