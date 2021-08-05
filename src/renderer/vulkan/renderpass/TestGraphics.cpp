@@ -165,6 +165,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     upload_main_pass_frame_resources(backend, prepared, resources.main_pass_resources);
     upload_histogram_frame_resources(backend, resources.histogram_pass_resources, backbufferExtent);
     upload_swapchain_frame_resources(backend, prepared, resources.swapchain_pass_resources);
+    upload_audio_frame_resources(backend, prepared, resources.audio_resources);
 
     update_culling_pass_descriptor_sets(backend, prepared, resources.cull_resources, resources.mesh_cache);
     update_shadow_map_pass_descriptor_sets(backend, prepared, resources.shadow_map_resources);
@@ -174,6 +175,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
                                          resources.main_pass_resources.hdrBufferView);
     update_swapchain_pass_descriptor_set(backend, resources.swapchain_pass_resources,
                                          resources.main_pass_resources.hdrBufferView);
+    update_audio_pass_descriptor_set(backend, resources.audio_resources);
 
     log_debug(root, "vulkan: record command buffer");
     Assert(vkResetCommandBuffer(cmdBuffer.handle, 0) == VK_SUCCESS);
@@ -252,6 +254,8 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     record_swapchain_command_buffer(cmdBuffer, frame_data, resources.swapchain_pass_resources,
                                     backend.presentInfo.imageViews[current_swapchain_index]);
 
+    record_audio_command_buffer(cmdBuffer, prepared, resources.audio_resources);
+
 #if defined(REAPER_USE_MICROPROFILE)
     const u64 microprofile_data = MicroProfileGpuEnd(cmdBuffer.mlog);
     MicroProfileThreadLogGpuFree(cmdBuffer.mlog);
@@ -295,5 +299,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     VkResult presentResult = vkQueuePresentKHR(backend.deviceInfo.presentQueue, &presentInfo);
     // NOTE: window can change state between event handling and presenting, so it's normal to get OOD events.
     Assert(presentResult == VK_SUCCESS || presentResult == VK_ERROR_OUT_OF_DATE_KHR);
+
+    read_gpu_audio_data(backend, resources.audio_resources);
 }
 } // namespace Reaper

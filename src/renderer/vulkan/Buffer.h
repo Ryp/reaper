@@ -28,6 +28,7 @@ enum class MemUsage
 {
     Default,
     CPU_Only, // FIXME
+    GPU_to_CPU,
 };
 
 BufferInfo create_buffer(ReaperRoot& root, VkDevice device, const char* debug_string,

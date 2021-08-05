@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include "audio/AudioExport.h"
 #include "common/CommonExport.h"
 #include "core/CoreExport.h"
 #include "gamelogic/GameLogicExport.h"

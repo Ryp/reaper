@@ -46,6 +46,7 @@ void create_backend_resources(ReaperRoot& root, VulkanBackend& backend)
     resources.histogram_pass_resources = create_histogram_pass_resources(root, backend);
     resources.swapchain_pass_resources = create_swapchain_pass_resources(root, backend, swapchain_extent);
     resources.frame_sync_resources = create_frame_sync_resources(root, backend);
+    resources.audio_resources = create_audio_resources(root, backend);
 }
 
 void destroy_backend_resources(VulkanBackend& backend)
@@ -60,6 +61,7 @@ void destroy_backend_resources(VulkanBackend& backend)
     destroy_material_resources(backend, resources.material_resources);
     destroy_mesh_cache(backend, resources.mesh_cache);
     destroy_frame_sync_resources(backend, resources.frame_sync_resources);
+    destroy_audio_resources(backend, resources.audio_resources);
 
     vkFreeCommandBuffers(backend.device, resources.graphicsCommandPool, 1, &resources.gfxCmdBuffer.handle);
     vkDestroyCommandPool(backend.device, resources.graphicsCommandPool, nullptr);

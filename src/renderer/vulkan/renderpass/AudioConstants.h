@@ -9,16 +9,5 @@
 
 namespace Reaper
 {
-class GameLogic;
-class ILog;
-struct Renderer;
-struct AudioBackend;
-
-struct ReaperRoot
-{
-    GameLogic*    game;
-    Renderer*     renderer;
-    ILog*         log;
-    AudioBackend* audio;
-};
+constexpr u32 FrameCountPerDispatch = 256;
 } // namespace Reaper

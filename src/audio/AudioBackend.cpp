@@ -5,20 +5,19 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#pragma once
+#include "AudioBackend.h"
 
 namespace Reaper
 {
-class GameLogic;
-class ILog;
-struct Renderer;
-struct AudioBackend;
-
-struct ReaperRoot
+AudioBackend create_audio_backend()
 {
-    GameLogic*    game;
-    Renderer*     renderer;
-    ILog*         log;
-    AudioBackend* audio;
-};
+    AudioBackend backend = {};
+
+    return backend;
+}
+
+void destroy_audio_backend(AudioBackend& backend)
+{
+    backend.audio_buffer.clear();
+}
 } // namespace Reaper

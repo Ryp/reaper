@@ -88,6 +88,8 @@ target_sources(${target} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/api/VulkanStringConversion.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/api/VulkanSymbolHelper.inl
 
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/Audio.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/Audio.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/Culling.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/Culling.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/HistogramPass.cpp
@@ -131,6 +133,7 @@ set(REAPER_SHADER_SRCS
     ${REAPER_SHADER_DIR}/render_shadow.frag.hlsl
     ${REAPER_SHADER_DIR}/render_shadow.vert.hlsl
     ${REAPER_SHADER_DIR}/swapchain_write.frag.hlsl
+    ${REAPER_SHADER_DIR}/sound/oscillator.comp.hlsl
 )
 
 # Shader compilation

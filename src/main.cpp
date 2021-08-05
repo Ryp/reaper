@@ -10,6 +10,8 @@
 
 #include "renderer/Renderer.h"
 
+#include "audio/AudioBackend.h"
+
 #include "core/Profile.h"
 
 #include "GameLoop.h"
@@ -32,11 +34,17 @@ namespace
         log_info(root, "engine: start");
 
         create_renderer(root);
+
+        root.audio = new AudioBackend();
+        *root.audio = create_audio_backend();
     }
 
     void stop_engine(ReaperRoot& root)
     {
         log_info(root, "engine: stop");
+
+        destroy_audio_backend(*root.audio);
+        delete root.audio;
 
         destroy_renderer(root);
 
@@ -57,7 +65,7 @@ int main(int /*ac*/, char** /*av*/)
 
     Reaper::start_engine(root);
 
-    Reaper::execute_game_loop(root, *root.renderer->backend);
+    Reaper::execute_game_loop(root);
 
     Reaper::stop_engine(root);
 

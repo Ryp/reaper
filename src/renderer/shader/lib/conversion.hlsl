@@ -5,20 +5,15 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#pragma once
+#ifndef LIB_CONVERSION_INCLUDED
+#define LIB_CONVERSION_INCLUDED
 
-namespace Reaper
+int float_to_snorm(float v, uint bits)
 {
-class GameLogic;
-class ILog;
-struct Renderer;
-struct AudioBackend;
+    float v_clamp = max(min(v, 1.0), -1.0);
+    uint max_value = (1 << (bits - 1)) - 1;
 
-struct ReaperRoot
-{
-    GameLogic*    game;
-    Renderer*     renderer;
-    ILog*         log;
-    AudioBackend* audio;
-};
-} // namespace Reaper
+    return (int)trunc(v_clamp * max_value + (v_clamp >= 0.f ? 0.5f : -0.5f));
+}
+
+#endif

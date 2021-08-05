@@ -17,6 +17,7 @@ add_subdirectory(mesh)
 add_subdirectory(input)
 add_subdirectory(common)
 add_subdirectory(gamelogic)
+add_subdirectory(audio)
 add_subdirectory(renderer)
 
 add_subdirectory(splinesonic)
@@ -46,6 +47,7 @@ target_link_libraries(${REAPER_BIN} PRIVATE
     reaper_renderer
     reaper_mesh
     reaper_input
+    reaper_audio
     splinesonic_sim
     splinesonic_trackgen
 )

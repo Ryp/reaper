@@ -12,6 +12,7 @@
 #include "MaterialResources.h"
 #include "MeshCache.h"
 
+#include "renderpass/Audio.h"
 #include "renderpass/Culling.h"
 #include "renderpass/CullingConstants.h"
 #include "renderpass/Frame.h"
@@ -34,6 +35,7 @@ struct BackendResources
     HistogramPassResources histogram_pass_resources;
     SwapchainPassResources swapchain_pass_resources;
     FrameSyncResources     frame_sync_resources;
+    AudioResources         audio_resources;
 
     // FIXME wrap this
     VkCommandPool graphicsCommandPool;

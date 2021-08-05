@@ -15,6 +15,8 @@
 #include "renderer/PrepareBuckets.h"
 #include "renderer/ResourceHandle.h"
 
+#include "audio/AudioBackend.h"
+#include "audio/WaveFormat.h"
 #include "common/Log.h"
 #include "core/Profile.h"
 #include "input/DS4.h"
@@ -33,9 +35,11 @@
 
 namespace Reaper
 {
-void execute_game_loop(ReaperRoot& root, VulkanBackend& backend)
+void execute_game_loop(ReaperRoot& root)
 {
-    IWindow* window = root.renderer->window;
+    IWindow*       window = root.renderer->window;
+    VulkanBackend& backend = *root.renderer->backend;
+    AudioBackend&  audio_backend = *root.audio;
 
     renderer_start(root, backend, window);
 
@@ -165,7 +169,7 @@ void execute_game_loop(ReaperRoot& root, VulkanBackend& backend)
 
         log_debug(root, "renderer: begin frame {}", frameIndex);
 
-        renderer_execute_frame(root, scene);
+        renderer_execute_frame(root, scene, audio_backend.audio_buffer);
 
         if (saveMyLaptop)
         {
@@ -178,6 +182,19 @@ void execute_game_loop(ReaperRoot& root, VulkanBackend& backend)
             shouldExit = true;
 
         lastFrameStart = currentTime;
+    }
+
+    const bool write_audio_to_file = true;
+    if (write_audio_to_file)
+    {
+        // Write recorded audio to filesystem
+        std::ofstream output_file("output.wav", std::ios::binary | std::ios::out);
+        Assert(output_file.is_open());
+
+        Audio::write_wav(output_file, audio_backend.audio_buffer.data(), audio_backend.audio_buffer.size(),
+                         BitsPerChannel, SampleRate);
+
+        output_file.close();
     }
 
     SplineSonic::destroy_sim(sim);
