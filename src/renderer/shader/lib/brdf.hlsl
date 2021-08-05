@@ -8,6 +8,8 @@
 #ifndef LIB_BRDF_INCLUDED
 #define LIB_BRDF_INCLUDED
 
+#include "constants.h"
+
 // Quick and dirty copy/paste from this blog:
 // http://filmicworlds.com/blog/optimizing-ggx-shaders-with-dotlh/
 float G1V(float dotNV, float k)
@@ -30,9 +32,8 @@ float LightingFuncGGX_REF(float3 N, float3 V, float3 L, float roughness, float F
 
     // D
     float alphaSqr = alpha*alpha;
-    float pi = 3.14159f;
     float denom = dotNH * dotNH *(alphaSqr-1.0) + 1.0f;
-    D = alphaSqr/(pi * denom * denom);
+    D = alphaSqr/(PI * denom * denom);
 
     // F
     float dotLH5 = pow(1.0f-dotLH,5);

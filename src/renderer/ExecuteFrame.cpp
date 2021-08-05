@@ -36,7 +36,7 @@ void renderer_stop(ReaperRoot& root, VulkanBackend& backend, IWindow* window)
     destroy_backend_resources(backend);
 }
 
-void renderer_execute_frame(ReaperRoot& root, const SceneGraph& scene)
+void renderer_execute_frame(ReaperRoot& root, const SceneGraph& scene, std::vector<u8>& audio_output)
 {
     VulkanBackend& backend = *root.renderer->backend;
 
@@ -49,5 +49,8 @@ void renderer_execute_frame(ReaperRoot& root, const SceneGraph& scene)
     prepare_scene(scene, prepared, backend.resources->mesh_cache, backbuffer_viewport_extent);
 
     backend_execute_frame(root, backend, backend.resources->gfxCmdBuffer, prepared, *backend.resources);
+
+    const auto& gpu_audio_buffer = backend.resources->audio_resources.frame_audio_data;
+    audio_output.insert(audio_output.end(), gpu_audio_buffer.begin(), gpu_audio_buffer.end());
 }
 } // namespace Reaper

@@ -16,6 +16,7 @@
 #include "renderer/shader/share/culling.hlsl"
 #include "renderer/shader/share/draw.hlsl"
 #include "renderer/shader/share/shadow_map_pass.hlsl"
+#include "renderer/shader/share/sound.hlsl"
 #include "renderer/shader/share/swapchain.hlsl"
 
 namespace Reaper
@@ -97,6 +98,9 @@ struct PreparedData
     std::vector<ShadowPassData>          shadow_passes;
     std::vector<ShadowMapPassParams>     shadow_pass_params;
     std::vector<ShadowMapInstanceParams> shadow_instance_params;
+
+    SoundPushConstants              audio_push_constants;
+    std::vector<OscillatorInstance> audio_instance_params;
 
     SwapchainPassParams swapchain_pass_params;
 };

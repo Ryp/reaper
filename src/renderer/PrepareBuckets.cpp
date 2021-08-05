@@ -11,6 +11,7 @@
 #include "renderer/vulkan/renderpass/CullingConstants.h"
 #include "renderer/vulkan/renderpass/ShadowConstants.h"
 
+#include <cmath>
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "math/Constants.h"
@@ -41,6 +42,8 @@ namespace
 
         return projection;
     }
+
+    float note(float semitone_offset, float base_freq = 440.f) { return base_freq * powf(2.f, semitone_offset / 12.f); }
 } // namespace
 
 void build_scene_graph(SceneGraph& scene)
@@ -275,6 +278,16 @@ void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCa
         params.dummy_boost = 1.f;
 
         prepared.swapchain_pass_params = params;
+    }
+
+    // Audio pass
+    prepared.audio_push_constants.start_sample = 0.f; // FIXME
+    for (u32 i = 0; i < OscillatorCount; i++)
+    {
+        OscillatorInstance& instance = prepared.audio_instance_params.emplace_back();
+
+        instance.frequency = note(0 + i * 5);
+        instance.pan = 0.35f + i * 0.2f;
     }
 }
 } // namespace Reaper

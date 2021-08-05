@@ -7,18 +7,14 @@
 
 #pragma once
 
-namespace Reaper
-{
-class GameLogic;
-class ILog;
-struct Renderer;
-struct AudioBackend;
+#include "AudioExport.h"
 
-struct ReaperRoot
+#include <fstream>
+
+namespace Reaper::Audio
 {
-    GameLogic*    game;
-    Renderer*     renderer;
-    ILog*         log;
-    AudioBackend* audio;
-};
-} // namespace Reaper
+REAPER_AUDIO_API void test_alsa();
+REAPER_AUDIO_API void test_alsa2();
+REAPER_AUDIO_API void test_alsa3();
+REAPER_AUDIO_API void test_mmap();
+} // namespace Reaper::Audio

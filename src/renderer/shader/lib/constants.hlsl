@@ -5,20 +5,10 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#pragma once
+#ifndef LIB_CONSTANTS_INCLUDED
+#define LIB_CONSTANTS_INCLUDED
 
-namespace Reaper
-{
-class GameLogic;
-class ILog;
-struct Renderer;
-struct AudioBackend;
+static const float PI = 3.141592f;
+static const float TWO_PI = 2.f * PI;
 
-struct ReaperRoot
-{
-    GameLogic*    game;
-    Renderer*     renderer;
-    ILog*         log;
-    AudioBackend* audio;
-};
-} // namespace Reaper
+#endif

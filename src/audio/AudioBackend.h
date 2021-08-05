@@ -7,18 +7,15 @@
 
 #pragma once
 
+#include <vector>
+
 namespace Reaper
 {
-class GameLogic;
-class ILog;
-struct Renderer;
-struct AudioBackend;
-
-struct ReaperRoot
+struct AudioBackend
 {
-    GameLogic*    game;
-    Renderer*     renderer;
-    ILog*         log;
-    AudioBackend* audio;
+    std::vector<u8> audio_buffer;
 };
+
+REAPER_AUDIO_API AudioBackend create_audio_backend();
+REAPER_AUDIO_API void         destroy_audio_backend(AudioBackend& backend);
 } // namespace Reaper

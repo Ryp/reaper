@@ -7,6 +7,8 @@
 
 #pragma once
 
+#include <vector>
+
 namespace Reaper
 {
 struct ReaperRoot;
@@ -18,5 +20,6 @@ REAPER_RENDERER_API void renderer_stop(ReaperRoot& root, VulkanBackend& backend,
 
 struct SceneGraph;
 
-REAPER_RENDERER_API void renderer_execute_frame(ReaperRoot& root, const SceneGraph& scene);
+REAPER_RENDERER_API void renderer_execute_frame(ReaperRoot& root, const SceneGraph& scene,
+                                                std::vector<u8>& audio_output);
 } // namespace Reaper

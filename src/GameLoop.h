@@ -12,5 +12,5 @@ namespace Reaper
 struct ReaperRoot;
 struct VulkanBackend;
 
-void execute_game_loop(ReaperRoot& root, VulkanBackend& backend);
+void execute_game_loop(ReaperRoot& root);
 } // namespace Reaper
