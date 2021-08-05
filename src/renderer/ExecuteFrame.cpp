@@ -36,7 +36,7 @@ void renderer_stop(ReaperRoot& root, VulkanBackend& backend, IWindow* window)
     destroy_backend_resources(backend);
 }
 
-void renderer_execute_frame(ReaperRoot& root, const SceneGraph& scene, u32 frameIndex)
+void renderer_execute_frame(ReaperRoot& root, const SceneGraph& scene)
 {
     VulkanBackend& backend = *root.renderer->backend;
 
@@ -44,8 +44,6 @@ void renderer_execute_frame(ReaperRoot& root, const SceneGraph& scene, u32 frame
 
     const VkExtent2D backbufferExtent = backend.presentInfo.surfaceExtent;
     const glm::uvec2 backbuffer_viewport_extent(backbufferExtent.width, backbufferExtent.height);
-
-    log_debug(root, "vulkan: begin frame {}", frameIndex);
 
     PreparedData prepared;
     prepare_scene(scene, prepared, backend.resources->mesh_cache, backbuffer_viewport_extent);
