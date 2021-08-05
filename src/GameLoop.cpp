@@ -137,7 +137,7 @@ void execute_game_loop(ReaperRoot& root, VulkanBackend& backend)
 
     while (!shouldExit)
     {
-        REAPER_PROFILE_SCOPE("Vulkan", MP_YELLOW);
+        REAPER_PROFILE_SCOPE("Frame", MP_YELLOW);
 
         const auto currentTime = std::chrono::system_clock::now();
 
@@ -163,7 +163,9 @@ void execute_game_loop(ReaperRoot& root, VulkanBackend& backend)
         Node& camera_node = scene.nodes[scene.camera.scene_node];
         camera_node.transform_matrix = compute_camera_view_matrix(camera_state);
 
-        renderer_execute_frame(root, scene, frameIndex);
+        log_debug(root, "renderer: begin frame {}", frameIndex);
+
+        renderer_execute_frame(root, scene);
 
         if (saveMyLaptop)
         {

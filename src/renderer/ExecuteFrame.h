@@ -18,5 +18,5 @@ REAPER_RENDERER_API void renderer_stop(ReaperRoot& root, VulkanBackend& backend,
 
 struct SceneGraph;
 
-REAPER_RENDERER_API void renderer_execute_frame(ReaperRoot& root, const SceneGraph& scene, u32 frameIndex);
+REAPER_RENDERER_API void renderer_execute_frame(ReaperRoot& root, const SceneGraph& scene);
 } // namespace Reaper
