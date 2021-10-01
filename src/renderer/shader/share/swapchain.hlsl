@@ -12,10 +12,10 @@
 
 struct SwapchainPassParams
 {
-    hlsl_float dummy_boost;
     hlsl_float _pad0;
     hlsl_float _pad1;
     hlsl_float _pad2;
+    hlsl_float _pad3;
 };
 
 #endif

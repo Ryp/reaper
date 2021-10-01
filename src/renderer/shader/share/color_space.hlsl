@@ -20,4 +20,8 @@ static const hlsl_uint TRANSFER_FUNC_SRGB = 1;
 static const hlsl_uint TRANSFER_FUNC_REC709 = 2;
 static const hlsl_uint TRANSFER_FUNC_PQ = 3;
 
+static const hlsl_uint TONEMAP_FUNC_NONE = 0;
+static const hlsl_uint TONEMAP_FUNC_UNCHARTED2 = 1;
+static const hlsl_uint TONEMAP_FUNC_ACES = 2;
+
 #endif

@@ -2,12 +2,14 @@
 
 #include "lib/color_space.hlsl"
 #include "lib/eotf.hlsl"
+#include "lib/tonemapping.hlsl"
 
 #include "share/color_space.hlsl"
 #include "share/swapchain.hlsl"
 
 VK_CONSTANT(0) const uint spec_transfer_function = 0;
 VK_CONSTANT(1) const uint spec_color_space = 0;
+VK_CONSTANT(2) const uint spec_tonemap_function = 0;
 
 VK_BINDING(0, 0) ConstantBuffer<SwapchainPassParams> pass_params;
 VK_BINDING(1, 0) SamplerState linear_sampler;
@@ -66,15 +68,31 @@ float3 apply_output_color_space_transform(float3 color_srgb, uint color_space)
         return 0.4242; // Invalid
 }
 
+float3 apply_tonemapping_operator(float3 color, uint tonemap_function)
+{
+    if (tonemap_function == TONEMAP_FUNC_NONE)
+        return color;
+    else if (tonemap_function == TONEMAP_FUNC_UNCHARTED2)
+        return tonemapping_uncharted2(color);
+    else if (tonemap_function == TONEMAP_FUNC_ACES)
+        return tonemapping_filmic_aces(color);
+    else
+        return 0.42; // Invalid
+}
+
+static const float exposure = 1.f; // FIXME
+
 void main(in PS_INPUT input, out PS_OUTPUT output)
 {
-    float3 scene_color_srgb_linear = t_hdr_color.SampleLevel(linear_sampler, input.PositionUV, 0);
+    // Unexposed scene color in linear sRGB
+    float3 color = t_hdr_color.SampleLevel(linear_sampler, input.PositionUV, 0);
 
-    scene_color_srgb_linear *= pass_params.dummy_boost;
+    color *= exposure;
+    color = apply_tonemapping_operator(color, spec_tonemap_function);
 
-    float3 scene_color_linear = apply_output_color_space_transform(scene_color_srgb_linear, spec_color_space);
+    // Display transforms
+    color = apply_output_color_space_transform(color, spec_color_space);
+    color = apply_transfer_func(color, spec_transfer_function);
 
-    float3 display_color = apply_transfer_func(scene_color_linear, spec_transfer_function);
-
-    output.color = display_color;
+    output.color = color;
 }

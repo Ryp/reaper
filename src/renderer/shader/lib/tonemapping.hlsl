@@ -5,9 +5,10 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#define LIB_TONEMAPPING_INCLUDED
 #ifndef LIB_TONEMAPPING_INCLUDED
+#define LIB_TONEMAPPING_INCLUDED
 
+// Mainly for reference, it probably shouldn't be used
 // http://filmicworlds.com/blog/filmic-tonemapping-operators/
 float3 tonemapping_uncharted2(float3 x)
 {

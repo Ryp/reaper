@@ -88,12 +88,13 @@ SwapchainPipelineInfo create_swapchain_pipeline(ReaperRoot& root, VulkanBackend&
     const char*    fileNameFS = "./build/shader/swapchain_write.frag.spv";
     const char*    entryPoint = "main";
 
-    std::array<hlsl_uint, 2> constants = {
+    std::array<hlsl_uint, 3> constants = {
         get_transfer_function(backend.presentInfo.surfaceFormat),
         get_color_space(backend.presentInfo.surfaceFormat.colorSpace),
+        TONEMAP_FUNC_NONE,
     };
 
-    std::array<VkSpecializationMapEntry, 2> specialization_constants_entries = {
+    std::array<VkSpecializationMapEntry, 3> specialization_constants_entries = {
         VkSpecializationMapEntry{
             0,
             0 * sizeof(hlsl_uint),
@@ -102,6 +103,11 @@ SwapchainPipelineInfo create_swapchain_pipeline(ReaperRoot& root, VulkanBackend&
         VkSpecializationMapEntry{
             1,
             1 * sizeof(hlsl_uint),
+            sizeof(hlsl_uint),
+        },
+        VkSpecializationMapEntry{
+            2,
+            2 * sizeof(hlsl_uint),
             sizeof(hlsl_uint),
         },
     };
