@@ -34,8 +34,8 @@ public:
     BuddyAllocator& operator=(const BuddyAllocator& other) = delete;
 
 public:
-    void* alloc(std::size_t sizeBytes) override;
-    void  free(void* ptr, std::size_t sizeBytes);
+    virtual void* alloc(std::size_t sizeBytes) override;
+    void          free(void* ptr, std::size_t sizeBytes);
 
 private:
     u32  allocBlock(u32 level);
