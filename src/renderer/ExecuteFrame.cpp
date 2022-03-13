@@ -46,7 +46,8 @@ void renderer_execute_frame(ReaperRoot& root, const SceneGraph& scene, std::vect
     const glm::uvec2 backbuffer_viewport_extent(backbufferExtent.width, backbufferExtent.height);
 
     PreparedData prepared;
-    prepare_scene(scene, prepared, backend.resources->mesh_cache, backbuffer_viewport_extent);
+    prepare_scene(scene, prepared, backend.resources->mesh_cache, backbuffer_viewport_extent,
+                  static_cast<u32>(audio_output.size() / 8));
 
     backend_execute_frame(root, backend, backend.resources->gfxCmdBuffer, prepared, *backend.resources);
 

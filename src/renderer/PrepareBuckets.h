@@ -99,5 +99,5 @@ struct PreparedData
 struct MeshCache;
 
 void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCache& mesh_cache,
-                   glm::uvec2 viewport_extent);
+                   glm::uvec2 viewport_extent, u32 current_audio_frame);
 } // namespace Reaper

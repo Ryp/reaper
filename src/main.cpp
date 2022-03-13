@@ -35,15 +35,17 @@ namespace
 
         create_renderer(root);
 
+        AudioConfig audio_config;
+
         root.audio = new AudioBackend();
-        *root.audio = create_audio_backend();
+        *root.audio = create_audio_backend(root, audio_config);
     }
 
     void stop_engine(ReaperRoot& root)
     {
         log_info(root, "engine: stop");
 
-        destroy_audio_backend(*root.audio);
+        destroy_audio_backend(root, *root.audio);
         delete root.audio;
 
         destroy_renderer(root);

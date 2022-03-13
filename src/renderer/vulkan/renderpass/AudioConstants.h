@@ -9,5 +9,5 @@
 
 namespace Reaper
 {
-constexpr u32 FrameCountPerDispatch = 256;
+constexpr u32 FrameCountPerDispatch = 1024;
 } // namespace Reaper

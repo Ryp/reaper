@@ -34,10 +34,15 @@ float2 stereo_pan(float2 s, float pan)
     );
 }
 
+float osc_sin(float time_secs, float frequency)
+{
+    return sin(time_secs * TAU * frequency);
+}
+
 float2 sample_oscillator(OscillatorInstance osc, float time_secs)
 {
-    const float smp_mono = sin(time_secs * osc.frequency * TWO_PI);
-    const float2 smp_stereo = float2(smp_mono, smp_mono);
+    const float smp_mono = osc_sin(time_secs, osc.frequency);
+    const float2 smp_stereo = smp_mono.xx;
 
     return stereo_pan(smp_stereo, osc.pan);
 }
@@ -74,7 +79,7 @@ void main(uint3 gtid : SV_GroupThreadID,
         mix += oscillator_output; // FIXME naive mix
     }
 
-    const float2 output = apply_gain(mix, -6.f);
+    const float2 output = apply_gain(mix, -18.f);
     const uint2 encoded_output = encode_sample_stereo_integer(output, 32);
 
     Output.Store2(sample_index * SampleSizeInBytes, encoded_output);

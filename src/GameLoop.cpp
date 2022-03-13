@@ -172,6 +172,8 @@ void execute_game_loop(ReaperRoot& root)
 
         renderer_execute_frame(root, scene, audio_backend.audio_buffer);
 
+        audio_execute_frame(root, audio_backend);
+
         if (saveMyLaptop)
         {
             REAPER_PROFILE_SCOPE("Battery saver wait", MP_GREEN);

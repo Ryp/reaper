@@ -143,7 +143,7 @@ namespace
 } // namespace
 
 void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCache& mesh_cache,
-                   glm::uvec2 viewport_extent)
+                   glm::uvec2 viewport_extent, u32 current_audio_frame)
 {
     // Shadow pass
     for (const auto& light : scene.lights)
@@ -274,13 +274,13 @@ void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCa
     }
 
     // Audio pass
-    prepared.audio_push_constants.start_sample = 0.f; // FIXME
+    prepared.audio_push_constants.start_sample = current_audio_frame;
     for (u32 i = 0; i < OscillatorCount; i++)
     {
         OscillatorInstance& instance = prepared.audio_instance_params.emplace_back();
 
         instance.frequency = note(0 + i * 5);
-        instance.pan = 0.35f + i * 0.2f;
+        instance.pan = -0.60f + i * 0.4f;
     }
 }
 } // namespace Reaper

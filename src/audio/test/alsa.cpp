@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 /// Reaper
 ///
-/// Copyright (c) 2015-2019 Thibault Schueller
+#// Copyright (c) 2015-2022 Thibault Schueller
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -15,8 +15,8 @@ namespace Reaper::Audio
 TEST_CASE("Alsa")
 {
     // test_alsa();
-    // test_alsa2();
-    test_alsa3();
-    // test_mmap();
+    test_alsa2();
+    // test_alsa3();
+    //  test_mmap();
 }
 } // namespace Reaper::Audio
