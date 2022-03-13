@@ -546,15 +546,17 @@ void record_shadow_map_command_buffer(CommandBuffer& cmdBuffer, VulkanBackend& b
     {
         REAPER_PROFILE_SCOPE_GPU(cmdBuffer.mlog, "Barrier", MP_RED);
 
-        std::vector<VkImageMemoryBarrier> shadowMapImageBarrierInfo;
+        std::vector<VkImageMemoryBarrier2> imageBarriers;
 
         for (const ShadowPassData& shadow_pass : prepared.shadow_passes)
         {
-            shadowMapImageBarrierInfo.push_back(VkImageMemoryBarrier{
-                VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+            imageBarriers.emplace_back(VkImageMemoryBarrier2{
+                VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
                 nullptr,
-                0,
-                VK_ACCESS_MEMORY_READ_BIT,
+                VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                VK_ACCESS_2_NONE,
+                VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+                VK_ACCESS_2_MEMORY_READ_BIT,
                 VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
                 VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                 VK_QUEUE_FAMILY_IGNORED,
@@ -563,10 +565,19 @@ void record_shadow_map_command_buffer(CommandBuffer& cmdBuffer, VulkanBackend& b
                 {VK_IMAGE_ASPECT_DEPTH_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS}});
         }
 
-        // FIXME is this a noop when there's no barriers?
-        vkCmdPipelineBarrier(cmdBuffer.handle, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
-                             0, 0, nullptr, 0, nullptr, static_cast<u32>(shadowMapImageBarrierInfo.size()),
-                             shadowMapImageBarrierInfo.data());
+        const VkDependencyInfo dependencies = {
+            VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+            nullptr,
+            VK_DEPENDENCY_BY_REGION_BIT,
+            0,
+            nullptr,
+            0,
+            nullptr,
+            static_cast<u32>(imageBarriers.size()),
+            imageBarriers.data(),
+        };
+
+        vkCmdPipelineBarrier2(cmdBuffer.handle, &dependencies);
     }
 }
 } // namespace Reaper

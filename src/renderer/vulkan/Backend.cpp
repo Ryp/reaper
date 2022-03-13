@@ -198,11 +198,8 @@ void create_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& backend)
     vulkan_create_presentation_surface(backend.instance, backend.presentInfo.surface, window);
 
     std::vector<const char*> device_extensions = {
-        VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-        VK_EXT_SHADER_SUBGROUP_BALLOT_EXTENSION_NAME,
-        VK_EXT_SHADER_SUBGROUP_VOTE_EXTENSION_NAME,
-        VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,
-    };
+        VK_KHR_SWAPCHAIN_EXTENSION_NAME, VK_EXT_SHADER_SUBGROUP_BALLOT_EXTENSION_NAME,
+        VK_EXT_SHADER_SUBGROUP_VOTE_EXTENSION_NAME, VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME};
 
     log_debug(root, "vulkan: choosing physical device");
     vulkan_choose_physical_device(root, backend, device_extensions, backend.physicalDeviceInfo);
@@ -706,8 +703,8 @@ void vulkan_create_logical_device(ReaperRoot&                     root,
         log_debug(root, "- {}", e);
 
     VkPhysicalDeviceFeatures deviceFeatures = {};
-    deviceFeatures.multiDrawIndirect = true;
-    deviceFeatures.drawIndirectFirstInstance = true;
+    deviceFeatures.multiDrawIndirect = VK_TRUE;
+    deviceFeatures.drawIndirectFirstInstance = VK_TRUE;
 
     VkPhysicalDeviceVulkan12Features device_features_1_2 = {};
     device_features_1_2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;

@@ -125,14 +125,13 @@ namespace
     void flush_pending_staging_commands(CommandBuffer& cmdBuffer, const ResourceStagingArea& staging,
                                         const StagingEntry& entry)
     {
-        // The sub resource range describes the regions of the image that will be transitioned using the memory
-        // barriers below Transition the texture image layout to transfer target, so we can safely copy our buffer
-        // data to it.
-        VkImageMemoryBarrier imageMemoryBarrier = {
-            VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+        VkImageMemoryBarrier2 imageMemoryBarrier = {
+            VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
             nullptr,
-            0,
-            VK_ACCESS_TRANSFER_WRITE_BIT,
+            VK_PIPELINE_STAGE_2_HOST_BIT,
+            VK_ACCESS_2_NONE,
+            VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+            VK_ACCESS_2_TRANSFER_WRITE_BIT,
             VK_IMAGE_LAYOUT_UNDEFINED,
             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
             VK_QUEUE_FAMILY_IGNORED,
@@ -140,11 +139,19 @@ namespace
             entry.target,
             {VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS}};
 
-        // Insert a memory dependency at the proper pipeline stages that will execute the image layout transition
-        // Source pipeline stage is host write/read execution (VK_PIPELINE_STAGE_HOST_BIT)
-        // Destination pipeline stage is copy command execution (VK_PIPELINE_STAGE_TRANSFER_BIT)
-        vkCmdPipelineBarrier(cmdBuffer.handle, VK_PIPELINE_STAGE_HOST_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0,
-                             nullptr, 0, nullptr, 1, &imageMemoryBarrier);
+        const VkDependencyInfo dependencies = {
+            VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+            nullptr,
+            VK_DEPENDENCY_BY_REGION_BIT,
+            0,
+            nullptr,
+            0,
+            nullptr,
+            1,
+            &imageMemoryBarrier,
+        };
+
+        vkCmdPipelineBarrier2(cmdBuffer.handle, &dependencies);
 
         const nonstd::span<const VkBufferImageCopy> copy_regions(&staging.bufferCopyRegions[entry.copy_command_offset],
                                                                  entry.copy_command_count);
@@ -156,21 +163,6 @@ namespace
                                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                                static_cast<u32>(copy_regions.size()),
                                copy_regions.data());
-    }
-
-    VkImageMemoryBarrier prerender_barrier(VkImage output_image)
-    {
-        return VkImageMemoryBarrier{
-            VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-            nullptr,
-            VK_ACCESS_TRANSFER_WRITE_BIT,
-            VK_ACCESS_SHADER_READ_BIT,
-            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-            VK_QUEUE_FAMILY_IGNORED,
-            VK_QUEUE_FAMILY_IGNORED,
-            output_image,
-            {VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS}};
     }
 
     void flush_staging_area_state(ResourceStagingArea& staging)
@@ -264,19 +256,38 @@ void record_material_upload_command_buffer(ResourceStagingArea& staging, Command
     {
         REAPER_PROFILE_SCOPE_GPU(cmdBuffer.mlog, "Image Barriers", MP_RED);
 
-        std::vector<VkImageMemoryBarrier> prerender_barriers;
+        std::vector<VkImageMemoryBarrier2> prerender_barriers;
 
         for (const auto& entry : staging.staging_queue)
         {
-            prerender_barriers.push_back(prerender_barrier(entry.target));
+            prerender_barriers.emplace_back(VkImageMemoryBarrier2{
+                VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+                nullptr,
+                VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+                VK_ACCESS_2_TRANSFER_WRITE_BIT,
+                VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+                VK_ACCESS_2_SHADER_READ_BIT,
+                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                VK_QUEUE_FAMILY_IGNORED,
+                VK_QUEUE_FAMILY_IGNORED,
+                entry.target,
+                {VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS}});
         }
 
-        // Insert a memory dependency at the proper pipeline stages that will execute the image layout
-        // transition Source pipeline stage is host write/read execution (VK_PIPELINE_STAGE_HOST_BIT)
-        // Destination pipeline stage is copy command execution (VK_PIPELINE_STAGE_TRANSFER_BIT)
-        vkCmdPipelineBarrier(cmdBuffer.handle, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0,
-                             0, nullptr, 0, nullptr, static_cast<u32>(prerender_barriers.size()),
-                             prerender_barriers.data());
+        const VkDependencyInfo dependencies = {
+            VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+            nullptr,
+            VK_DEPENDENCY_BY_REGION_BIT,
+            0,
+            nullptr,
+            0,
+            nullptr,
+            static_cast<u32>(prerender_barriers.size()),
+            prerender_barriers.data(),
+        };
+
+        vkCmdPipelineBarrier2(cmdBuffer.handle, &dependencies);
     }
 
     flush_staging_area_state(staging);

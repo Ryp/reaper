@@ -215,18 +215,31 @@ void record_audio_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& p
     REAPER_PROFILE_SCOPE_GPU(cmdBuffer.mlog, "Audio Pass", MP_GREEN);
 
     {
-        VkBufferMemoryBarrier buf_barrier = {};
-        buf_barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
-        buf_barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-        buf_barrier.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
-        buf_barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        buf_barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        buf_barrier.buffer = resources.audioOutputBuffer.buffer;
-        buf_barrier.offset = 0;
-        buf_barrier.size = VK_WHOLE_SIZE;
+        const VkBufferMemoryBarrier2 buffer_barrier = {VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2,
+                                                       nullptr,
+                                                       VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+                                                       VK_ACCESS_2_TRANSFER_READ_BIT,
+                                                       VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+                                                       VK_ACCESS_2_SHADER_WRITE_BIT,
+                                                       VK_QUEUE_FAMILY_IGNORED,
+                                                       VK_QUEUE_FAMILY_IGNORED,
+                                                       resources.audioOutputBuffer.buffer,
+                                                       0,
+                                                       VK_WHOLE_SIZE};
 
-        vkCmdPipelineBarrier(cmdBuffer.handle, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0,
-                             0, nullptr, 1, &buf_barrier, 0, nullptr);
+        const VkDependencyInfo dependencies = {
+            VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+            nullptr,
+            VK_DEPENDENCY_BY_REGION_BIT,
+            0,
+            nullptr,
+            1,
+            &buffer_barrier,
+            0,
+            nullptr,
+        };
+
+        vkCmdPipelineBarrier2(cmdBuffer.handle, &dependencies);
     }
 
     vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE, resources.audioPipe.pipeline);
@@ -240,33 +253,31 @@ void record_audio_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& p
     vkCmdDispatch(cmdBuffer.handle, FrameCountPerDispatch, 1, 1);
 
     {
-        VkBufferMemoryBarrier buf_barrier = {};
-        buf_barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
-        buf_barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
-        buf_barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-        buf_barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        buf_barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        buf_barrier.buffer = resources.audioOutputBuffer.buffer;
-        buf_barrier.offset = 0;
-        buf_barrier.size = VK_WHOLE_SIZE;
+        std::vector<VkBufferMemoryBarrier2> buffer_barriers;
 
-        vkCmdPipelineBarrier(cmdBuffer.handle, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
-                             0, nullptr, 1, &buf_barrier, 0, nullptr);
-    }
+        buffer_barriers.emplace_back(VkBufferMemoryBarrier2{
+            VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2, nullptr, VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+            VK_ACCESS_2_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_READ_BIT,
+            VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED, resources.audioOutputBuffer.buffer, 0, VK_WHOLE_SIZE});
 
-    {
-        VkBufferMemoryBarrier buf_barrier = {};
-        buf_barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
-        buf_barrier.srcAccessMask = VK_ACCESS_HOST_READ_BIT;
-        buf_barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-        buf_barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        buf_barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        buf_barrier.buffer = resources.audioOutputBufferStaging.buffer;
-        buf_barrier.offset = 0;
-        buf_barrier.size = VK_WHOLE_SIZE;
+        buffer_barriers.emplace_back(VkBufferMemoryBarrier2{
+            VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2, nullptr, VK_PIPELINE_STAGE_2_HOST_BIT, VK_ACCESS_2_HOST_READ_BIT,
+            VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT, VK_QUEUE_FAMILY_IGNORED,
+            VK_QUEUE_FAMILY_IGNORED, resources.audioOutputBufferStaging.buffer, 0, VK_WHOLE_SIZE});
 
-        vkCmdPipelineBarrier(cmdBuffer.handle, VK_PIPELINE_STAGE_HOST_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0,
-                             nullptr, 1, &buf_barrier, 0, nullptr);
+        const VkDependencyInfo dependencies = {
+            VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+            nullptr,
+            VK_DEPENDENCY_BY_REGION_BIT,
+            0,
+            nullptr,
+            static_cast<u32>(buffer_barriers.size()),
+            buffer_barriers.data(),
+            0,
+            nullptr,
+        };
+
+        vkCmdPipelineBarrier2(cmdBuffer.handle, &dependencies);
     }
 
     VkBufferCopy region = {};
@@ -277,18 +288,31 @@ void record_audio_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& p
                     &region);
 
     {
-        VkBufferMemoryBarrier buf_barrier = {};
-        buf_barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
-        buf_barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-        buf_barrier.dstAccessMask = VK_ACCESS_HOST_READ_BIT;
-        buf_barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        buf_barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        buf_barrier.buffer = resources.audioOutputBufferStaging.buffer;
-        buf_barrier.offset = 0;
-        buf_barrier.size = VK_WHOLE_SIZE;
+        const VkBufferMemoryBarrier2 buffer_barrier = {VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2,
+                                                       nullptr,
+                                                       VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+                                                       VK_ACCESS_2_TRANSFER_WRITE_BIT,
+                                                       VK_PIPELINE_STAGE_2_HOST_BIT,
+                                                       VK_ACCESS_2_HOST_READ_BIT,
+                                                       VK_QUEUE_FAMILY_IGNORED,
+                                                       VK_QUEUE_FAMILY_IGNORED,
+                                                       resources.audioOutputBufferStaging.buffer,
+                                                       0,
+                                                       VK_WHOLE_SIZE};
 
-        vkCmdPipelineBarrier(cmdBuffer.handle, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_HOST_BIT, 0, 0,
-                             nullptr, 1, &buf_barrier, 0, nullptr);
+        const VkDependencyInfo dependencies = {
+            VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+            nullptr,
+            VK_DEPENDENCY_BY_REGION_BIT,
+            0,
+            nullptr,
+            1,
+            &buffer_barrier,
+            0,
+            nullptr,
+        };
+
+        vkCmdPipelineBarrier2(cmdBuffer.handle, &dependencies);
     }
 }
 
