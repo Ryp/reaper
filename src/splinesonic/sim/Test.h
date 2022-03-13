@@ -50,8 +50,9 @@ SPLINESONIC_SIM_API void       destroy_sim(PhysicsSim& sim);
 SPLINESONIC_SIM_API void sim_start(PhysicsSim* sim);
 
 SPLINESONIC_SIM_API void sim_update(PhysicsSim& sim, float dt);
+SPLINESONIC_SIM_API glm::fmat4x3 get_player_transform(PhysicsSim& sim);
 
 SPLINESONIC_SIM_API void sim_register_static_collision_meshes(PhysicsSim& sim, const nonstd::span<Mesh> meshes,
-                                                              const nonstd::span<glm::mat4> transforms);
-SPLINESONIC_SIM_API void sim_create_player_rigid_body(PhysicsSim& sim);
+                                                              const nonstd::span<glm::fmat4x3> transforms);
+SPLINESONIC_SIM_API void sim_create_player_rigid_body(PhysicsSim& sim, const glm::fmat4x3& player_transform);
 } // namespace SplineSonic

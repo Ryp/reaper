@@ -16,8 +16,13 @@
 
 #include "mesh/Mesh.h"
 
+#include "core/Profile.h"
+
+#include <glm/gtc/matrix_access.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/vec3.hpp>
+
+#include <bit>
 
 #if defined(REAPER_USE_BULLET_PHYSICS)
 inline glm::vec3 toGlm(btVector3 const& vec)
@@ -30,14 +35,44 @@ inline glm::quat toGlm(btQuaternion const& quat)
     return glm::quat(quat.getW(), quat.getX(), quat.getY(), quat.getZ());
 }
 
+inline bool is_nan(f32 v)
+{
+    static constexpr u32 NanMask = 0x7fc00000;
+
+    u32* v_u = reinterpret_cast<u32*>(&v);
+    return (*v_u & NanMask) == NanMask;
+}
+
+inline glm::fmat4x3 toGlm(const btTransform& transform)
+{
+    const btMatrix3x3 basis = transform.getBasis();
+
+    const glm::fvec3 translation = toGlm(transform.getOrigin());
+
+    return glm::fmat4x3(toGlm(basis[0]), toGlm(basis[1]), toGlm(basis[2]), translation);
+}
+
 inline btVector3 toBt(glm::vec3 const& vec)
 {
     return btVector3(vec.x, vec.y, vec.z);
 }
 
+inline btMatrix3x3 m33toBt(const glm::fmat3x3& m)
+{
+    return btMatrix3x3(m[0].x, m[1].x, m[2].x, m[0].y, m[1].y, m[2].y, m[0].z, m[1].z, m[2].z);
+}
+
 inline btQuaternion toBt(glm::quat const& quat)
 {
     return btQuaternion(quat.w, quat.x, quat.y, quat.z);
+}
+
+inline btTransform toBt(const glm::fmat4x3& transform)
+{
+    btMatrix3x3 mat = m33toBt(glm::fmat3x3(transform));
+    btTransform ret = btTransform(mat, toBt(glm::column(transform, 3)));
+
+    return ret;
 }
 #endif
 
@@ -78,56 +113,83 @@ namespace
     */
 
 #if defined(REAPER_USE_BULLET_PHYSICS)
+
+    struct ShipInput
+    {
+        float brake;    // 0.0 not braking - 1.0 max
+        float throttle; // 0.0 no trottle - 1.0 max
+        float steer;    // 0.0 no steering - -1.0 max left - 1.0 max right
+    };
+
     void pre_tick(PhysicsSim& sim, float dt)
     {
-        static_cast<void>(sim);
-        static_cast<void>(dt);
+        REAPER_PROFILE_SCOPE_FUNC();
 
-        /*
-        // FIXME
-        btRigidBody* playerRigidBody = sim.players[0].body;
-        IPlayer*     player = sim.players[0].player;
-        glm::vec3    forces;
-        const auto&  factors = player->getMovementFactor();
-        auto&        movement = player->getMovement();
-        TrackChunk*  nearestChunk = sim.track->getNearestChunk(movement.position);
-        auto         projection = nearestChunk->projectPosition(movement.position);
-        glm::vec3    shipUp;
-        glm::vec3    shipFwd;
+        (void)dt;
+        // ShipInput ship_input = {};
 
-        shipUp = projection.orientation * glm::up();
-        shipFwd = movement.orientation * glm::forward();
-        shipFwd = glm::normalize(shipFwd - glm::proj(shipFwd, shipUp)); // Ship Fwd in on slice plane
+        btRigidBody*       playerRigidBody = sim.players[0];
+        const glm::fmat4x3 player_transform = toGlm(playerRigidBody->getWorldTransform());
+        const glm::fvec3   player_position_ws = player_transform[3];
+        const glm::quat    player_orientation = toGlm(playerRigidBody->getWorldTransform().getRotation());
+
+        float              min_dist_sq = 10000000.f;
+        const btRigidBody* closest_track_chunk = nullptr;
+        for (auto track_chunk : sim.static_meshes)
+        {
+            glm::fvec3 delta = player_position_ws - toGlm(track_chunk->getWorldTransform().getOrigin());
+            float      dist_sq = glm::dot(delta, delta);
+
+            if (dist_sq < min_dist_sq)
+            {
+                min_dist_sq = dist_sq;
+                closest_track_chunk = track_chunk;
+            }
+        }
+
+        Assert(closest_track_chunk);
+
+        // FIXME const glm::fmat4x3 projected_transform = toGlm(closest_track_chunk->getWorldTransform());
+        const glm::quat projected_orientation = toGlm(closest_track_chunk->getWorldTransform().getRotation());
+        glm::vec3       shipUp;
+        glm::vec3       shipFwd;
+
+        shipUp = projected_orientation * glm::up();
+        shipFwd = player_orientation * glm::forward();
+        // FIXME shipFwd = glm::normalize(shipFwd - glm::proj(shipFwd, shipUp)); // Ship Fwd in on slice plane
 
         // Re-eval ship orientation
-        movement.orientation = glm::quat(glm::mat3(shipFwd, shipUp, glm::cross(shipFwd, shipUp)));
+        // FIXME player_orientation = glm::quat(glm::mat3(shipFwd, shipUp, glm::cross(shipFwd, shipUp)));
 
         // change steer angle
-        steer(dt, movement, factors.getTurnFactor());
+        // steer(dt, movement, factors.getTurnFactor());
 
-        // sum all forces
+        // Integrate forces
+        glm::vec3 forces = {};
         // forces += - shipUp * 98.331f; // 10x earth gravity
-        forces += -shipUp * 450.0f;                                                // lot of times earth
-        gravity forces += shipFwd * factors.getThrustFactor() * player->getAcceleration(); // Engine thrust
-        //     forces += shipFwd * player.getAcceleration(); // Engine thrust
-        forces += -glm::proj(movement.speed, shipFwd) * factors.getBrakeFactor() * sim.pBrakesForce; // Brakes
-        force forces += -glm::proj(movement.speed, glm::cross(shipFwd, shipUp)) * sim.pHandling;           //
-        Handling term forces += -movement.speed * sim.pLinearFriction;                             // Linear
-        friction term forces += -movement.speed * glm::length(movement.speed) * sim.pQuadFriction; //
-        Quadratic friction term
+        forces += -shipUp * 450.0f; // lot of times earth gravity
+        // forces += shipFwd * factors.getThrustFactor() * player->getAcceleration(); // Engine thrust
+        //      forces += shipFwd * player.getAcceleration(); // Engine thrust
+        // forces += -glm::proj(movement.speed, shipFwd) * factors.getBrakeFactor() * sim.pBrakesForce; // Brakes force
+        // forces += -glm::proj(movement.speed, glm::cross(shipFwd, shipUp)) * sim.pHandling;           // Handling term
+        const glm::fvec3 linear_speed = toGlm(playerRigidBody->getLinearVelocity());
+        forces += -linear_speed * sim.pLinearFriction;                           // Linear friction term
+        forces += -linear_speed * glm::length(linear_speed) * sim.pQuadFriction; // Quadratic friction term
 
         // Progressive repelling force that pushes the ship downwards
-        float upSpeed = glm::length(movement.speed - glm::proj(movement.speed, shipUp));
-        if (projection.relativePosition.y > 2.0f && upSpeed > 0.0f)
-            forces += movement.orientation * (glm::vec3(0.0f, 2.0f - upSpeed, 0.0f) * 10.0f);
+        // FIXME
+        // float upSpeed = glm::length(movement.speed - glm::proj(movement.speed, shipUp));
+        // if (projection.relativePosition.y > 2.0f && upSpeed > 0.0f)
+        //     forces += player_orientation * (glm::vec3(0.0f, 2.0f - upSpeed, 0.0f) * 10.0f);
 
         playerRigidBody->clearForces();
         playerRigidBody->applyCentralForce(toBt(forces));
-        */
     }
 
     void post_tick(PhysicsSim& sim, float /*dt*/)
     {
+        REAPER_PROFILE_SCOPE_FUNC();
+
         btRigidBody* playerRigidBody = sim.players.front(); // FIXME
         toGlm(playerRigidBody->getLinearVelocity());
         toGlm(playerRigidBody->getOrientation());
@@ -215,6 +277,8 @@ namespace
 
 void sim_start(PhysicsSim* sim)
 {
+    REAPER_PROFILE_SCOPE_FUNC();
+
     Assert(sim);
 
 #if defined(REAPER_USE_BULLET_PHYSICS)
@@ -225,6 +289,8 @@ void sim_start(PhysicsSim* sim)
 
 void sim_update(PhysicsSim& sim, float dt)
 {
+    REAPER_PROFILE_SCOPE_FUNC();
+
 #if defined(REAPER_USE_BULLET_PHYSICS)
     sim.dynamicsWorld->stepSimulation(dt, SimulationMaxSubStep);
 #else
@@ -233,8 +299,24 @@ void sim_update(PhysicsSim& sim, float dt)
 #endif
 }
 
+glm::fmat4x3 get_player_transform(PhysicsSim& sim)
+{
+#if defined(REAPER_USE_BULLET_PHYSICS)
+    const btRigidBody*   playerRigidBody = sim.players.front();
+    const btMotionState* playerMotionState = playerRigidBody->getMotionState();
+
+    btTransform output;
+    playerMotionState->getWorldTransform(output);
+
+    return toGlm(output);
+#else
+    AssertUnreachable();
+    return glm::fmat4x3(1.f); // FIXME
+#endif
+}
+
 void sim_register_static_collision_meshes(PhysicsSim& sim, const nonstd::span<Mesh> meshes,
-                                          const nonstd::span<glm::mat4> transforms)
+                                          const nonstd::span<glm::fmat4x3> transforms)
 {
 #if defined(REAPER_USE_BULLET_PHYSICS)
     Assert(meshes.size() == transforms.size());
@@ -282,10 +364,10 @@ void sim_register_static_collision_meshes(PhysicsSim& sim, const nonstd::span<Me
 #endif
 }
 
-void sim_create_player_rigid_body(PhysicsSim& sim)
+void sim_create_player_rigid_body(PhysicsSim& sim, const glm::fmat4x3& player_transform)
 {
 #if defined(REAPER_USE_BULLET_PHYSICS)
-    btMotionState*    motionState = new btDefaultMotionState;
+    btMotionState*    motionState = new btDefaultMotionState(toBt(player_transform));
     btCollisionShape* collisionShape = new btCapsuleShapeX(2.0f, 3.0f);
     btScalar          mass = 10.f; // FIXME
     btVector3         inertia(0.f, 0.f, 0.f);
