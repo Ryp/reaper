@@ -41,6 +41,9 @@ project(Reaper
     LANGUAGES CXX
     DESCRIPTION "Tiny C++ Engine")
 
+# This should be set to ON on CI builds at least.
+option(REAPER_BUILD_WARNINGS_AS_ERRORS  "Treats warnings as errors"     OFF)
+
 # This will automatically keep git hooks up-to-date. Do NOT disable this option
 # if you intent to push code from your local copy.
 option(REAPER_GIT_HOOKS_AUTO_UPDATE     "Update git hooks"              ON)
