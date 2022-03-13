@@ -40,8 +40,6 @@ target_sources(${target} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/memory/Allocator.h
     ${CMAKE_CURRENT_SOURCE_DIR}/memory/BuddyAllocator.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/memory/BuddyAllocator.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/memory/CacheLine.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/memory/CacheLine.h
     ${CMAKE_CURRENT_SOURCE_DIR}/memory/LinearAllocator.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/memory/LinearAllocator.h
     ${CMAKE_CURRENT_SOURCE_DIR}/memory/StackAllocator.cpp
@@ -72,7 +70,6 @@ cotire(${target})
 reaper_add_tests(${target}
     ${CMAKE_CURRENT_SOURCE_DIR}/test/alignment.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test/buddy_allocator.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/test/cache.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test/stack_allocator.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test/intrusive_list.cpp
 )
