@@ -49,7 +49,7 @@ void execute_game_loop(ReaperRoot& root)
     SplineSonic::Track game_track;
 
     SplineSonic::GenerationInfo genInfo = {};
-    genInfo.length = 100;
+    genInfo.length = 5;
     genInfo.width = 10.0f;
     genInfo.chaos = 1.0f;
 
