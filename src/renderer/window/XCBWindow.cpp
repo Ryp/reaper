@@ -5,6 +5,8 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
+// See also:
+// https://www.x.org/releases/X11R7.5/doc/libxcb/tutorial/#xevents
 #include "XCBWindow.h"
 
 #include "Event.h"
@@ -15,6 +17,32 @@
 
 namespace Reaper
 {
+namespace Window
+{
+    namespace
+    {
+        KeyCode::type convert_xcb_keycode(xcb_keycode_t key_code)
+        {
+            switch (key_code)
+            {
+            // case XK_Escape: return KeyCode::ESCAPE;
+            // case XK_Return: return KeyCode::ENTER;
+            // case XK_space: return KeyCode::SPACE;
+            // case XK_Right: return KeyCode::RIGHT;
+            // case XK_Left: return KeyCode::LEFT;
+            // case XK_Down: return KeyCode::DOWN;
+            // case XK_Up: return KeyCode::UP;
+            // case XK_W: return KeyCode::W;
+            // case XK_A: return KeyCode::A;
+            // case XK_S: return KeyCode::S;
+            // case XK_D: return KeyCode::D;
+            default:
+                return KeyCode::UNKNOWN;
+            }
+        }
+    } // namespace
+} // namespace Window
+
 XCBWindow::XCBWindow(const WindowCreationDescriptor& creationInfo)
     : m_connection()
     , m_handle()
@@ -37,8 +65,8 @@ XCBWindow::XCBWindow(const WindowCreationDescriptor& creationInfo)
     m_handle = xcb_generate_id(m_connection);
 
     uint32_t mask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
-    uint32_t value_list[] = {m_screen->white_pixel,
-                             XCB_EVENT_MASK_EXPOSURE | XCB_EVENT_MASK_KEY_PRESS | XCB_EVENT_MASK_STRUCTURE_NOTIFY};
+    uint32_t value_list[] = {m_screen->white_pixel, XCB_EVENT_MASK_EXPOSURE | XCB_EVENT_MASK_KEY_PRESS
+                                                        | XCB_EVENT_MASK_KEY_RELEASE | XCB_EVENT_MASK_STRUCTURE_NOTIFY};
 
     xcb_create_window(m_connection,
                       XCB_COPY_FROM_PARENT,
@@ -143,8 +171,13 @@ namespace
             // AssertUnreachable();
             break;
         }
-        case XCB_KEY_PRESS:
-            return Window::createKeyPressEvent(42);
+        // case XCB_KEY_RELEASE:
+        case XCB_KEY_PRESS: {
+            xcb_key_release_event_t* key_event = (xcb_key_release_event_t*)event;
+            xcb_keycode_t            key_code = key_event->detail;
+
+            return Window::createKeyPressEvent(Window::convert_xcb_keycode(key_code));
+        }
         default:
             // AssertUnreachable();
             break;

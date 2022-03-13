@@ -17,6 +17,25 @@ enum class EventType
     Close
 };
 
+namespace KeyCode
+{
+    enum type : u32
+    {
+        UNKNOWN,
+        ESCAPE,
+        ENTER,
+        SPACE,
+        RIGHT,
+        LEFT,
+        DOWN,
+        UP,
+        W,
+        A,
+        S,
+        D,
+    };
+};
+
 struct Event
 {
     EventType type;
