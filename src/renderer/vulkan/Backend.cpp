@@ -377,7 +377,17 @@ namespace
             }
         }
 
-        Assert(messageSeverity < VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT);
+        constexpr i32    ID_CoreValidation_Shader_OutputNotConsumed = 101294395;
+        std::vector<i32> ignored_ids = {ID_CoreValidation_Shader_OutputNotConsumed};
+
+        bool ignore_assert = false;
+        for (auto ignored_id : ignored_ids)
+        {
+            if (ignored_id == pCallbackData->messageIdNumber)
+                ignore_assert = true;
+        }
+
+        Assert(messageSeverity < VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT || ignore_assert);
 
         return VK_FALSE;
     }
