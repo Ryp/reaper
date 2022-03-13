@@ -132,6 +132,7 @@ void execute_game_loop(ReaperRoot& root)
     u64       frameIndex = 0;
 
     DS4 ds4("/dev/input/js0");
+    ds4.connect();
 
     CameraState camera_state = {};
     camera_state.position = glm::vec3(-5.f, 0.f, 0.f);

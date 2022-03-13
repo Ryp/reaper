@@ -25,7 +25,7 @@ const float DS4::AxisDeadzone = 0.12f;
 DS4::DS4(const std::string& device)
     : AbstractController(TotalButtonsNumber, TotalAxesNumber)
     , _device(device)
-    , _connected(connect())
+    , _connected(false)
 {
     AbstractController::reset();
 }

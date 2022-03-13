@@ -64,7 +64,6 @@ public:
     virtual void update() override;
     virtual void destroy() override;
 
-private:
     bool connect();
 
 private:

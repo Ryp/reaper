@@ -25,7 +25,7 @@ const float DS3::AxisDeadzone = 0.12f;
 DS3::DS3(const std::string& device)
     : AbstractController(TotalButtonsNumber, TotalAxesNumber)
     , _device(device)
-    , _connected(connect())
+    , _connected(false)
 {
     AbstractController::reset();
 }
