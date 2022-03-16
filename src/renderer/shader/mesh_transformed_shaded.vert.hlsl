@@ -27,9 +27,9 @@ void main(in VS_INPUT input, uint instance_id : SV_InstanceID, out VS_OUTPUT out
     const DrawInstanceParams instance_data = instance_params[instance_id];
 
     const float3 positionMS = input.PositionMS;
-    const float3 positionWS = mul(instance_data.model, float4(positionMS, 1.0));
-    const float3 positionVS = mul(pass_params.view, float4(positionWS, 1.0));
-    const float4 positionCS = mul(pass_params.proj, float4(positionVS, 1.0));
+    const float3 positionWS = mul(instance_data.ms_to_ws_matrix, float4(positionMS, 1.0));
+    const float3 positionVS = mul(pass_params.ws_to_vs_matrix, float4(positionWS, 1.0));
+    const float4 positionCS = mul(pass_params.vs_to_cs_matrix, float4(positionVS, 1.0));
 
     output.PositionCS = positionCS;
     output.PositionVS = positionVS;

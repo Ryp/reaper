@@ -212,9 +212,9 @@ void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCa
     // Main + culling pass
     const glm::mat4 main_camera_view_proj = camera_projection_matrix * glm::mat4(camera_node.transform_matrix);
 
-    prepared.draw_pass_params.view = camera_node.transform_matrix;
-    prepared.draw_pass_params.proj = camera_projection_matrix;
-    prepared.draw_pass_params.view_proj = main_camera_view_proj;
+    prepared.draw_pass_params.ws_to_vs_matrix = camera_node.transform_matrix;
+    prepared.draw_pass_params.vs_to_cs_matrix = camera_projection_matrix;
+    prepared.draw_pass_params.ws_to_cs_matrix = main_camera_view_proj;
 
     Assert(scene.lights.size() == PointLightCount);
     for (u32 i = 0; i < PointLightCount; i++)
@@ -254,8 +254,7 @@ void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCa
             const glm::mat4x3 modelView = glm::mat4(camera_node.transform_matrix) * glm::mat4(node.transform_matrix);
 
             DrawInstanceParams& draw_instance = prepared.draw_instance_params.emplace_back();
-            draw_instance.model = node.transform_matrix;
-            draw_instance.normal_ms_to_vs_matrix = glm::mat3(modelView);
+            draw_instance.ms_to_ws_matrix = node.transform_matrix;
             draw_instance.normal_ms_to_vs_matrix = glm::mat3(modelView);
             draw_instance.texture_index = node.texture_handle;
 
