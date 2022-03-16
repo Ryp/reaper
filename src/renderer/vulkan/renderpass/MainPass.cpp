@@ -29,9 +29,11 @@
 
 namespace Reaper
 {
-constexpr u32  DiffuseMapMaxCount = 8;
-constexpr u32  DrawInstanceCountMax = 512;
-constexpr bool UseReverseZ = true;
+constexpr u32         DiffuseMapMaxCount = 8;
+constexpr u32         DrawInstanceCountMax = 512;
+constexpr bool        UseReverseZ = true;
+constexpr PixelFormat ColorFormat = PixelFormat::B10G11R11_UFLOAT_PACK32;
+constexpr PixelFormat DepthFormat = PixelFormat::D16_UNORM;
 
 namespace
 {
@@ -166,7 +168,7 @@ namespace
     }
 } // namespace
 
-MainPipelineInfo create_main_pipeline(ReaperRoot& root, VulkanBackend& backend, VkRenderPass renderPass)
+MainPipelineInfo create_main_pipeline(ReaperRoot& root, VulkanBackend& backend)
 {
     VkShaderModule        blitShaderFS = VK_NULL_HANDLE;
     VkShaderModule        blitShaderVS = VK_NULL_HANDLE;
@@ -333,8 +335,21 @@ MainPipelineInfo create_main_pipeline(ReaperRoot& root, VulkanBackend& backend, 
         dynamicStates.data(),
     };
 
+    const VkFormat color_format = PixelFormatToVulkan(ColorFormat);
+    const VkFormat depth_format = PixelFormatToVulkan(DepthFormat);
+
+    VkPipelineRenderingCreateInfo pipelineRenderingCreateInfo = {
+        VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
+        nullptr,
+        0, // viewMask;
+        1,
+        &color_format,
+        depth_format,
+        VK_FORMAT_UNDEFINED,
+    };
+
     VkGraphicsPipelineCreateInfo blitPipelineCreateInfo = {VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
-                                                           nullptr,
+                                                           &pipelineRenderingCreateInfo,
                                                            VK_FLAGS_NONE,
                                                            static_cast<u32>(blitShaderStages.size()),
                                                            blitShaderStages.data(),
@@ -348,7 +363,7 @@ MainPipelineInfo create_main_pipeline(ReaperRoot& root, VulkanBackend& backend, 
                                                            &blitBlendStateInfo,
                                                            &blitDynamicState,
                                                            pipelineLayout,
-                                                           renderPass,
+                                                           VK_NULL_HANDLE,
                                                            0,
                                                            VK_NULL_HANDLE,
                                                            -1};
@@ -366,131 +381,6 @@ MainPipelineInfo create_main_pipeline(ReaperRoot& root, VulkanBackend& backend, 
 
 namespace
 {
-    VkRenderPass create_main_pass(ReaperRoot& /*root*/, VulkanBackend& backend, const MainPassResources& resources)
-    {
-        const GPUTextureProperties& depthProperties = resources.depthBuffer.properties;
-        const GPUTextureProperties& hdrProperties = resources.hdrBuffer.properties;
-
-        const VkAttachmentDescription2 color_attachment = {VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2,
-                                                           nullptr,
-                                                           VK_FLAGS_NONE,
-                                                           PixelFormatToVulkan(hdrProperties.format),
-                                                           SampleCountToVulkan(hdrProperties.sampleCount),
-                                                           VK_ATTACHMENT_LOAD_OP_CLEAR,
-                                                           VK_ATTACHMENT_STORE_OP_STORE,
-                                                           VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-                                                           VK_ATTACHMENT_STORE_OP_DONT_CARE,
-                                                           VK_IMAGE_LAYOUT_UNDEFINED,
-                                                           VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
-
-        const VkAttachmentDescription2 depth_attachment = {VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2,
-                                                           nullptr,
-                                                           VK_FLAGS_NONE,
-                                                           PixelFormatToVulkan(depthProperties.format),
-                                                           SampleCountToVulkan(depthProperties.sampleCount),
-                                                           VK_ATTACHMENT_LOAD_OP_CLEAR,
-                                                           VK_ATTACHMENT_STORE_OP_DONT_CARE,
-                                                           VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-                                                           VK_ATTACHMENT_STORE_OP_DONT_CARE,
-                                                           VK_IMAGE_LAYOUT_UNDEFINED,
-                                                           VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL};
-
-        std::array<VkAttachmentDescription2, 2> attachmentDescriptions = {
-            color_attachment,
-            depth_attachment,
-        };
-
-        VkAttachmentReference2 colorReference = {VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2, nullptr, 0,
-                                                 VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT};
-        VkAttachmentReference2 depthReference = {VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2, nullptr, 1,
-                                                 VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL, VK_IMAGE_ASPECT_DEPTH_BIT};
-
-        VkSubpassDescription2 subpassDescription = {};
-        subpassDescription.sType = VK_STRUCTURE_TYPE_SUBPASS_DESCRIPTION_2;
-        subpassDescription.pNext = nullptr;
-        subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-        subpassDescription.colorAttachmentCount = 1;
-        subpassDescription.pColorAttachments = &colorReference;
-        subpassDescription.pDepthStencilAttachment = &depthReference;
-
-        const VkSubpassDependency2 color_dep = {
-            VK_STRUCTURE_TYPE_SUBPASS_DEPENDENCY_2,
-            nullptr,
-            VK_SUBPASS_EXTERNAL,
-            0,
-            VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-            VK_ACCESS_SHADER_READ_BIT,
-            VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-            VK_DEPENDENCY_BY_REGION_BIT,
-            0,
-        };
-
-        const VkSubpassDependency2 depth_dep = {
-            VK_STRUCTURE_TYPE_SUBPASS_DEPENDENCY_2,
-            nullptr,
-            0,
-            VK_SUBPASS_EXTERNAL,
-            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-            VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-            VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-            VK_ACCESS_SHADER_READ_BIT,
-            VK_DEPENDENCY_BY_REGION_BIT,
-            0,
-        };
-
-        // Use subpass dependencies for layout transitions
-        std::array<VkSubpassDependency2, 2> dependencies = {color_dep, depth_dep};
-
-        // Create the actual renderpass
-        VkRenderPassCreateInfo2 renderPassInfo = {};
-        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO_2;
-        renderPassInfo.pNext = nullptr;
-        renderPassInfo.attachmentCount = static_cast<uint32_t>(attachmentDescriptions.size());
-        renderPassInfo.pAttachments = attachmentDescriptions.data();
-        renderPassInfo.subpassCount = 1;
-        renderPassInfo.pSubpasses = &subpassDescription;
-        renderPassInfo.dependencyCount = static_cast<uint32_t>(dependencies.size());
-        renderPassInfo.pDependencies = dependencies.data();
-        renderPassInfo.correlatedViewMaskCount = 0;
-        renderPassInfo.pCorrelatedViewMasks = nullptr;
-
-        VkRenderPass renderPass = VK_NULL_HANDLE;
-        Assert(vkCreateRenderPass2(backend.device, &renderPassInfo, nullptr, &renderPass) == VK_SUCCESS);
-
-        return renderPass;
-    }
-
-    VkFramebuffer create_main_framebuffer(VulkanBackend& backend, MainPassResources& resources)
-    {
-        std::array<VkFormat, 2>                         formats; // Kept alive until vkCreateFramebuffer() call
-        std::array<VkFramebufferAttachmentImageInfo, 2> framebufferAttachmentInfo = {
-            get_attachment_info_from_image_properties(resources.hdrBuffer.properties, &formats[0]),
-            get_attachment_info_from_image_properties(resources.depthBuffer.properties, &formats[1]),
-        };
-
-        VkFramebufferAttachmentsCreateInfo framebufferAttachmentsInfo = {
-            VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENTS_CREATE_INFO, nullptr,
-            static_cast<u32>(framebufferAttachmentInfo.size()), framebufferAttachmentInfo.data()};
-
-        VkFramebufferCreateInfo framebuffer_create_info = {
-            VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,          // VkStructureType                sType
-            &framebufferAttachmentsInfo,                        // const void                    *pNext
-            VK_FRAMEBUFFER_CREATE_IMAGELESS_BIT,                // VkFramebufferCreateFlags       flags
-            resources.mainRenderPass,                           // VkRenderPass                   renderPass
-            static_cast<u32>(framebufferAttachmentInfo.size()), // uint32_t                       attachmentCount
-            nullptr,                                            // const VkImageView             *pAttachments
-            framebufferAttachmentInfo[0].width,                 // uint32_t                       width
-            framebufferAttachmentInfo[0].height,                // uint32_t                       height
-            1                                                   // uint32_t                       layers
-        };
-
-        VkFramebuffer framebuffer = VK_NULL_HANDLE;
-        Assert(vkCreateFramebuffer(backend.device, &framebuffer_create_info, nullptr, &framebuffer) == VK_SUCCESS);
-
-        return framebuffer;
-    }
-
     void create_main_pass_resizable_resources(ReaperRoot& root, VulkanBackend& backend, MainPassResources& resources)
     {
         resources.hdrBuffer =
@@ -500,14 +390,10 @@ namespace
         resources.depthBuffer = create_image(root, backend.device, "Main Depth Target",
                                              resources.depthBuffer.properties, backend.vma_instance);
         resources.depthBufferView = create_depth_image_view(root, backend.device, resources.depthBuffer);
-
-        resources.main_framebuffer = create_main_framebuffer(backend, resources);
     }
 
     void destroy_main_pass_resizable_resources(VulkanBackend& backend, MainPassResources& resources)
     {
-        vkDestroyFramebuffer(backend.device, resources.main_framebuffer, nullptr);
-
         vkDestroyImageView(backend.device, resources.hdrBufferView, nullptr);
         vmaDestroyImage(backend.vma_instance, resources.hdrBuffer.handle, resources.hdrBuffer.allocation);
         vkDestroyImageView(backend.device, resources.depthBufferView, nullptr);
@@ -521,11 +407,10 @@ namespace
 
     void update_resource_properties(MainPassResources& resources, glm::uvec2 extent)
     {
-        GPUTextureProperties hdrProperties =
-            DefaultGPUTextureProperties(extent.x, extent.y, PixelFormat::B10G11R11_UFLOAT_PACK32);
+        GPUTextureProperties hdrProperties = DefaultGPUTextureProperties(extent.x, extent.y, ColorFormat);
         hdrProperties.usageFlags = GPUTextureUsage::ColorAttachment | GPUTextureUsage::Sampled;
 
-        GPUTextureProperties depthProperties = DefaultGPUTextureProperties(extent.x, extent.y, PixelFormat::D16_UNORM);
+        GPUTextureProperties depthProperties = DefaultGPUTextureProperties(extent.x, extent.y, DepthFormat);
         depthProperties.usageFlags = GPUTextureUsage::DepthStencilAttachment;
 
         resources.hdrBuffer.properties = hdrProperties;
@@ -614,6 +499,8 @@ MainPassResources create_main_pass_resources(ReaperRoot& root, VulkanBackend& ba
 {
     MainPassResources resources = {};
 
+    resources.mainPipe = create_main_pipeline(root, backend);
+
     resources.drawPassConstantBuffer = create_buffer(
         root, backend.device, "Draw Pass Constant buffer",
         DefaultGPUBufferProperties(1, sizeof(DrawPassParams), GPUBufferUsage::UniformBuffer), backend.vma_instance);
@@ -623,20 +510,16 @@ MainPassResources create_main_pass_resources(ReaperRoot& root, VulkanBackend& ba
         DefaultGPUBufferProperties(DrawInstanceCountMax, sizeof(DrawInstanceParams), GPUBufferUsage::StorageBuffer),
         backend.vma_instance);
 
-    update_resource_properties(resources, extent);
-
-    resources.mainRenderPass = create_main_pass(root, backend, resources);
-
-    create_main_pass_resizable_resources(root, backend, resources);
-
-    resources.mainPipe = create_main_pipeline(root, backend, resources.mainRenderPass);
-
     resources.descriptor_set = create_main_pass_descriptor_set(root, backend, resources.mainPipe.descSetLayout);
     resources.material_descriptor_set =
         create_material_descriptor_set(root, backend, resources.mainPipe.descSetLayout2);
 
     resources.shadowMapSampler = create_shadow_map_sampler(backend);
     resources.diffuseMapSampler = create_diffuse_map_sampler(backend);
+
+    update_resource_properties(resources, extent);
+
+    create_main_pass_resizable_resources(root, backend, resources);
 
     return resources;
 }
@@ -650,8 +533,6 @@ void destroy_main_pass_resources(VulkanBackend& backend, MainPassResources& reso
     vkDestroyPipelineLayout(backend.device, resources.mainPipe.pipelineLayout, nullptr);
     vkDestroyDescriptorSetLayout(backend.device, resources.mainPipe.descSetLayout, nullptr);
     vkDestroyDescriptorSetLayout(backend.device, resources.mainPipe.descSetLayout2, nullptr);
-
-    vkDestroyRenderPass(backend.device, resources.mainRenderPass, nullptr);
 
     destroy_main_pass_resizable_resources(backend, resources);
 
@@ -695,27 +576,50 @@ void record_main_pass_command_buffer(CommandBuffer& cmdBuffer, VulkanBackend& ba
 {
     REAPER_PROFILE_SCOPE_GPU(cmdBuffer.mlog, "Main Pass", MP_DARKGOLDENROD);
 
-    const float                 depthClearValue = UseReverseZ ? 0.f : 1.f;
-    const glm::fvec4            clearColor = {0.1f, 0.1f, 0.1f, 0.0f};
-    std::array<VkClearValue, 2> clearValues = {VkClearColor(clearColor), VkClearDepthStencil(depthClearValue, 0)};
-    const VkRect2D              blitPassRect = default_vk_rect(backbufferExtent);
+    const glm::fvec4 clearColor = {0.1f, 0.1f, 0.1f, 0.0f};
+    const float      depthClearValue = UseReverseZ ? 0.f : 1.f;
+    const VkRect2D   blitPassRect = default_vk_rect(backbufferExtent);
 
-    std::array<VkImageView, 2> main_pass_framebuffer_views = {pass_resources.hdrBufferView,
-                                                              pass_resources.depthBufferView};
+    const VkRenderingAttachmentInfo color_attachment = {
+        VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+        nullptr,
+        pass_resources.hdrBufferView,
+        VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
+        VK_RESOLVE_MODE_NONE,
+        VK_NULL_HANDLE,
+        VK_IMAGE_LAYOUT_UNDEFINED,
+        VK_ATTACHMENT_LOAD_OP_CLEAR,
+        VK_ATTACHMENT_STORE_OP_STORE,
+        VkClearColor(clearColor),
+    };
 
-    VkRenderPassAttachmentBeginInfo main_pass_attachments = {
-        VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO, nullptr,
-        static_cast<u32>(main_pass_framebuffer_views.size()), main_pass_framebuffer_views.data()};
+    const VkRenderingAttachmentInfo depth_attachment = {
+        VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+        nullptr,
+        pass_resources.depthBufferView,
+        VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
+        VK_RESOLVE_MODE_NONE,
+        VK_NULL_HANDLE,
+        VK_IMAGE_LAYOUT_UNDEFINED,
+        VK_ATTACHMENT_LOAD_OP_CLEAR,
+        VK_ATTACHMENT_STORE_OP_DONT_CARE,
+        VkClearDepthStencil(depthClearValue, 0),
+    };
 
-    VkRenderPassBeginInfo blitRenderPassBeginInfo = {VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-                                                     &main_pass_attachments,
-                                                     pass_resources.mainRenderPass,
-                                                     pass_resources.main_framebuffer,
-                                                     blitPassRect,
-                                                     static_cast<u32>(clearValues.size()),
-                                                     clearValues.data()};
+    VkRenderingInfo renderingInfo = {
+        VK_STRUCTURE_TYPE_RENDERING_INFO,
+        nullptr,
+        VK_FLAGS_NONE,
+        blitPassRect,
+        1, // layerCount
+        0, // viewMask
+        1,
+        &color_attachment,
+        &depth_attachment,
+        nullptr,
+    };
 
-    vkCmdBeginRenderPass(cmdBuffer.handle, &blitRenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+    vkCmdBeginRendering(cmdBuffer.handle, &renderingInfo);
 
     vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, pass_resources.mainPipe.pipeline);
 
@@ -769,6 +673,6 @@ void record_main_pass_command_buffer(CommandBuffer& cmdBuffer, VulkanBackend& ba
                                       draw_buffer_max_count, cull_resources.indirectDrawBuffer.descriptor.elementSize);
     }
 
-    vkCmdEndRenderPass(cmdBuffer.handle);
+    vkCmdEndRendering(cmdBuffer.handle);
 }
 } // namespace Reaper

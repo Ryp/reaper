@@ -32,8 +32,6 @@ struct ReaperRoot;
 struct VulkanBackend;
 struct GPUTextureProperties;
 
-MainPipelineInfo create_main_pipeline(ReaperRoot& root, VulkanBackend& backend, VkRenderPass renderPass);
-
 struct MainPassResources
 {
     BufferInfo drawPassConstantBuffer;
@@ -43,10 +41,6 @@ struct MainPassResources
     VkImageView hdrBufferView;
     ImageInfo   depthBuffer;
     VkImageView depthBufferView;
-
-    VkFramebuffer main_framebuffer;
-
-    VkRenderPass mainRenderPass;
 
     MainPipelineInfo mainPipe;
 

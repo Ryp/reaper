@@ -461,20 +461,21 @@ bool vulkan_check_physical_device(IWindow*                        window,
     vkGetPhysicalDeviceProperties2(physical_device, &device_properties2);
     VkPhysicalDeviceProperties& device_properties = device_properties2.properties;
 
-    // NOTE:
-    // For some reason the validation layer barks at us if we don't initialize sType to this value.
-    // This shouldn't be the case since vkGetPhysicalDeviceFeatures2 should overwrite it.
+    VkPhysicalDeviceVulkan13Features device_vulkan13_features = {};
+    device_vulkan13_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
+
     VkPhysicalDeviceFeatures2 device_features2 = {};
     device_features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+    device_features2.pNext = &device_vulkan13_features;
 
-    // NOTE:
-    // Even if VkPhysicalDeviceVulkan12Features is used during device creation,
-    // Vulkan 1.2 does NOT force vkGetPhysicalDeviceFeatures2 to include it in the pNext chain.
     vkGetPhysicalDeviceFeatures2(physical_device, &device_features2);
 
     Assert(device_properties.apiVersion >= REAPER_VK_API_VERSION);
     Assert(device_properties.limits.maxImageDimension2D >= 4096);
     Assert(device_features2.features.shaderClipDistance == VK_TRUE); // This is just checked, not enabled
+    Assert(device_features2.features.shaderClipDistance == VK_TRUE); // This is just checked, not enabled
+    Assert(device_vulkan13_features.synchronization2 == VK_TRUE);
+    Assert(device_vulkan13_features.dynamicRendering == VK_TRUE);
 
     uint32_t queue_families_count = 0;
     vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_families_count, nullptr);
@@ -706,9 +707,14 @@ void vulkan_create_logical_device(ReaperRoot&                     root,
     deviceFeatures.multiDrawIndirect = VK_TRUE;
     deviceFeatures.drawIndirectFirstInstance = VK_TRUE;
 
+    VkPhysicalDeviceVulkan13Features device_vulkan13_features = {};
+    device_vulkan13_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
+    device_vulkan13_features.synchronization2 = VK_TRUE;
+    device_vulkan13_features.dynamicRendering = VK_TRUE;
+
     VkPhysicalDeviceVulkan12Features device_features_1_2 = {};
     device_features_1_2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
-    device_features_1_2.pNext = nullptr;
+    device_features_1_2.pNext = &device_vulkan13_features;
     device_features_1_2.drawIndirectCount = VK_TRUE;
     device_features_1_2.imagelessFramebuffer = VK_TRUE;
     device_features_1_2.separateDepthStencilLayouts = VK_TRUE;
