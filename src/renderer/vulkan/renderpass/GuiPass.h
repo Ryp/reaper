@@ -30,15 +30,9 @@ struct ReaperRoot;
 struct VulkanBackend;
 struct GPUTextureProperties;
 
-GuiPipelineInfo create_gui_pipeline(ReaperRoot& root, VulkanBackend& backend, VkRenderPass renderPass);
-
 struct GuiPassResources
 {
-    VkRenderPass    guiRenderPass;
     GuiPipelineInfo guiPipe;
-
-    GPUTextureProperties swapchain_properties; // FIXME
-    VkFramebuffer        gui_framebuffer;
 
     ImageInfo   guiTexture;
     VkImageView guiTextureView;
@@ -47,7 +41,7 @@ struct GuiPassResources
 };
 
 GuiPassResources create_gui_pass_resources(ReaperRoot& root, VulkanBackend& backend, glm::uvec2 extent);
-void             destroy_gui_pass_resources(VulkanBackend& backend, const GuiPassResources& resources);
+void             destroy_gui_pass_resources(VulkanBackend& backend, GuiPassResources& resources);
 
 void resize_gui_pass_resources(ReaperRoot& root, VulkanBackend& backend, GuiPassResources& resources,
                                glm::uvec2 extent);
