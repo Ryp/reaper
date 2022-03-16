@@ -85,7 +85,6 @@ void resize_swapchain(ReaperRoot& root, VulkanBackend& backend, BackendResources
                                               backend.presentInfo.surfaceExtent.height);
 
         resize_main_pass_resources(root, backend, resources.main_pass_resources, new_swapchain_extent);
-        resize_swapchain_pass_resources(root, backend, resources.swapchain_pass_resources, new_swapchain_extent);
         resize_gui_pass_resources(root, backend, resources.gui_pass_resources, new_swapchain_extent);
 
         backend.new_swapchain_extent.width = 0;

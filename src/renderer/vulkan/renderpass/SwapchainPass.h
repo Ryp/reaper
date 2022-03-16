@@ -30,29 +30,19 @@ struct ReaperRoot;
 struct VulkanBackend;
 struct GPUTextureProperties;
 
-SwapchainPipelineInfo create_swapchain_pipeline(ReaperRoot& root, VulkanBackend& backend, VkRenderPass renderPass);
-
 struct SwapchainPassResources
 {
     BufferInfo passConstantBuffer;
 
-    VkRenderPass swapchainRenderPass;
-
     SwapchainPipelineInfo swapchainPipe;
 
-    GPUTextureProperties swapchain_properties; // FIXME
-    VkFramebuffer        swapchain_framebuffer;
-
-    VkSampler shadowMapSampler;
+    VkSampler linearBlackBorderSampler;
 
     VkDescriptorSet descriptor_set;
 };
 
-SwapchainPassResources create_swapchain_pass_resources(ReaperRoot& root, VulkanBackend& backend, glm::uvec2 extent);
+SwapchainPassResources create_swapchain_pass_resources(ReaperRoot& root, VulkanBackend& backend);
 void destroy_swapchain_pass_resources(VulkanBackend& backend, const SwapchainPassResources& resources);
-
-void resize_swapchain_pass_resources(ReaperRoot& root, VulkanBackend& backend, SwapchainPassResources& resources,
-                                     glm::uvec2 extent);
 
 void update_swapchain_pass_descriptor_set(VulkanBackend& backend, const SwapchainPassResources& resources,
                                           VkImageView hdr_scene_texture_view, VkImageView gui_texture_view);

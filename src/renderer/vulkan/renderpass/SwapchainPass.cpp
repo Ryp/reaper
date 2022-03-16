@@ -13,6 +13,7 @@
 #include "renderer/PrepareBuckets.h"
 #include "renderer/vulkan/Backend.h"
 #include "renderer/vulkan/CommandBuffer.h"
+#include "renderer/vulkan/Debug.h"
 #include "renderer/vulkan/Image.h"
 #include "renderer/vulkan/RenderPassHelpers.h"
 #include "renderer/vulkan/Shader.h"
@@ -80,7 +81,7 @@ namespace
     }
 } // namespace
 
-SwapchainPipelineInfo create_swapchain_pipeline(ReaperRoot& root, VulkanBackend& backend, VkRenderPass renderPass)
+SwapchainPipelineInfo create_swapchain_pipeline(ReaperRoot& root, VulkanBackend& backend, VkFormat swapchain_format)
 {
     VkShaderModule shaderFS = VK_NULL_HANDLE;
     VkShaderModule shaderVS = VK_NULL_HANDLE;
@@ -238,8 +239,18 @@ SwapchainPipelineInfo create_swapchain_pipeline(ReaperRoot& root, VulkanBackend&
         VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO, nullptr, 0, dynamicStates.size(), dynamicStates.data(),
     };
 
+    VkPipelineRenderingCreateInfo pipelineRenderingCreateInfo = {
+        VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
+        nullptr,
+        0, // viewMask;
+        1,
+        &swapchain_format,
+        VK_FORMAT_UNDEFINED,
+        VK_FORMAT_UNDEFINED,
+    };
+
     VkGraphicsPipelineCreateInfo blitPipelineCreateInfo = {VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
-                                                           nullptr,
+                                                           &pipelineRenderingCreateInfo,
                                                            VK_FLAGS_NONE,
                                                            static_cast<u32>(blitShaderStages.size()),
                                                            blitShaderStages.data(),
@@ -253,7 +264,7 @@ SwapchainPipelineInfo create_swapchain_pipeline(ReaperRoot& root, VulkanBackend&
                                                            &blitBlendStateInfo,
                                                            &blitDynamicState,
                                                            pipelineLayout,
-                                                           renderPass,
+                                                           VK_NULL_HANDLE,
                                                            0,
                                                            VK_NULL_HANDLE,
                                                            -1};
@@ -273,126 +284,6 @@ SwapchainPipelineInfo create_swapchain_pipeline(ReaperRoot& root, VulkanBackend&
 
 namespace
 {
-    VkRenderPass create_swapchain_pass(ReaperRoot& /*root*/, VulkanBackend& backend, VkFormat swapchain_format)
-    {
-        const VkAttachmentDescription2 color_attachment = {VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2,
-                                                           nullptr,
-                                                           VK_FLAGS_NONE,
-                                                           swapchain_format,
-                                                           VK_SAMPLE_COUNT_1_BIT,
-                                                           VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-                                                           VK_ATTACHMENT_STORE_OP_STORE,
-                                                           VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-                                                           VK_ATTACHMENT_STORE_OP_DONT_CARE,
-                                                           VK_IMAGE_LAYOUT_UNDEFINED,
-                                                           VK_IMAGE_LAYOUT_PRESENT_SRC_KHR};
-
-        std::array<VkAttachmentDescription2, 1> attachmentDescriptions = {
-            color_attachment,
-        };
-
-        VkAttachmentReference2 colorReference = {VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2, nullptr, 0,
-                                                 VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT};
-
-        VkSubpassDescription2 subpassDescription = {};
-        subpassDescription.sType = VK_STRUCTURE_TYPE_SUBPASS_DESCRIPTION_2;
-        subpassDescription.pNext = nullptr;
-        subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-        subpassDescription.colorAttachmentCount = 1;
-        subpassDescription.pColorAttachments = &colorReference;
-        subpassDescription.pDepthStencilAttachment = nullptr;
-
-        const VkSubpassDependency2 color_dep = {
-            VK_STRUCTURE_TYPE_SUBPASS_DEPENDENCY_2,
-            nullptr,
-            VK_SUBPASS_EXTERNAL,
-            0,
-            VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-            VK_ACCESS_SHADER_READ_BIT,
-            VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-            VK_DEPENDENCY_BY_REGION_BIT,
-            0,
-        };
-
-        // Use subpass dependencies for layout transitions
-        std::array<VkSubpassDependency2, 1> dependencies = {color_dep};
-
-        // Create the actual renderpass
-        VkRenderPassCreateInfo2 renderPassInfo = {};
-        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO_2;
-        renderPassInfo.pNext = nullptr;
-        renderPassInfo.attachmentCount = static_cast<uint32_t>(attachmentDescriptions.size());
-        renderPassInfo.pAttachments = attachmentDescriptions.data();
-        renderPassInfo.subpassCount = 1;
-        renderPassInfo.pSubpasses = &subpassDescription;
-        renderPassInfo.dependencyCount = static_cast<uint32_t>(dependencies.size());
-        renderPassInfo.pDependencies = dependencies.data();
-        renderPassInfo.correlatedViewMaskCount = 0;
-        renderPassInfo.pCorrelatedViewMasks = nullptr;
-
-        VkRenderPass renderPass = VK_NULL_HANDLE;
-        Assert(vkCreateRenderPass2(backend.device, &renderPassInfo, nullptr, &renderPass) == VK_SUCCESS);
-
-        return renderPass;
-    }
-
-    VkFramebuffer create_swapchain_framebuffer(VulkanBackend& backend, SwapchainPassResources& resources)
-    {
-        std::array<VkFormat, 1>                         formats; // Kept alive until vkCreateFramebuffer() call
-        std::array<VkFramebufferAttachmentImageInfo, 1> framebufferAttachmentInfo = {
-            get_attachment_info_from_image_properties(resources.swapchain_properties, &formats[0]),
-        };
-
-        VkFramebufferAttachmentsCreateInfo framebufferAttachmentsInfo = {
-            VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENTS_CREATE_INFO, nullptr, framebufferAttachmentInfo.size(),
-            framebufferAttachmentInfo.data()};
-
-        VkFramebufferCreateInfo framebuffer_create_info = {
-            VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO, // VkStructureType                sType
-            &framebufferAttachmentsInfo,               // const void                    *pNext
-            VK_FRAMEBUFFER_CREATE_IMAGELESS_BIT,       // VkFramebufferCreateFlags       flags
-            resources.swapchainRenderPass,             // VkRenderPass                   renderPass
-            framebufferAttachmentInfo.size(),          // uint32_t                       attachmentCount
-            nullptr,                                   // const VkImageView             *pAttachments
-            framebufferAttachmentInfo[0].width,        // uint32_t                       width
-            framebufferAttachmentInfo[0].height,       // uint32_t                       height
-            1                                          // uint32_t                       layers
-        };
-
-        VkFramebuffer framebuffer = VK_NULL_HANDLE;
-        Assert(vkCreateFramebuffer(backend.device, &framebuffer_create_info, nullptr, &framebuffer) == VK_SUCCESS);
-
-        return framebuffer;
-    }
-
-    void create_swapchain_pass_resizable_resources(ReaperRoot& /*root*/, VulkanBackend& backend,
-                                                   SwapchainPassResources& resources, glm::uvec2 /*extent*/)
-    {
-        VkImageUsageFlags swapchain_usage_flags = backend.presentInfo.swapchainUsageFlags;
-
-        const GPUTextureProperties swapchain_properties = {
-            backend.presentInfo.surfaceExtent.width,
-            backend.presentInfo.surfaceExtent.height,
-            1,
-            VulkanToPixelFormat(backend.presentInfo.surfaceFormat.format),
-            1,
-            1,
-            1,
-            GetUsageFlags(swapchain_usage_flags),
-            GPUMiscFlags::None,
-        };
-
-        resources.swapchain_properties = swapchain_properties;
-
-        resources.swapchain_framebuffer = create_swapchain_framebuffer(backend, resources);
-    }
-
-    void destroy_swapchain_pass_resizable_resources(VulkanBackend& backend, const SwapchainPassResources& resources)
-    {
-        vkDestroyFramebuffer(backend.device, resources.swapchain_framebuffer, nullptr);
-    }
-
     VkDescriptorSet create_swapchain_pass_descriptor_set(ReaperRoot& root, VulkanBackend& backend,
                                                          VkDescriptorSetLayout layout)
     {
@@ -407,79 +298,67 @@ namespace
     }
 } // namespace
 
-SwapchainPassResources create_swapchain_pass_resources(ReaperRoot& root, VulkanBackend& backend, glm::uvec2 extent)
+SwapchainPassResources create_swapchain_pass_resources(ReaperRoot& root, VulkanBackend& backend)
 {
     SwapchainPassResources resources = {};
+
+    resources.swapchainPipe = create_swapchain_pipeline(root, backend, backend.presentInfo.surfaceFormat.format);
 
     resources.passConstantBuffer =
         create_buffer(root, backend.device, "Swapchain Pass Constant buffer",
                       DefaultGPUBufferProperties(1, sizeof(SwapchainPassParams), GPUBufferUsage::UniformBuffer),
                       backend.vma_instance);
 
-    resources.swapchainRenderPass = create_swapchain_pass(root, backend, backend.presentInfo.surfaceFormat.format);
-
-    create_swapchain_pass_resizable_resources(root, backend, resources, extent);
-
-    resources.swapchainPipe = create_swapchain_pipeline(root, backend, resources.swapchainRenderPass);
-
     resources.descriptor_set =
         create_swapchain_pass_descriptor_set(root, backend, resources.swapchainPipe.descSetLayout);
 
-    VkSamplerCreateInfo shadowMapSamplerCreateInfo = {};
-    shadowMapSamplerCreateInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-    shadowMapSamplerCreateInfo.magFilter = VK_FILTER_LINEAR;
-    shadowMapSamplerCreateInfo.minFilter = VK_FILTER_LINEAR;
-    shadowMapSamplerCreateInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-    shadowMapSamplerCreateInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-    shadowMapSamplerCreateInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-    shadowMapSamplerCreateInfo.anisotropyEnable = VK_FALSE;
-    shadowMapSamplerCreateInfo.maxAnisotropy = 16;
-    shadowMapSamplerCreateInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
-    shadowMapSamplerCreateInfo.unnormalizedCoordinates = VK_FALSE;
-    shadowMapSamplerCreateInfo.compareEnable = VK_FALSE;
-    shadowMapSamplerCreateInfo.compareOp = VK_COMPARE_OP_ALWAYS;
-    shadowMapSamplerCreateInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
-    shadowMapSamplerCreateInfo.mipLodBias = 0.f;
-    shadowMapSamplerCreateInfo.minLod = 0.f;
-    shadowMapSamplerCreateInfo.maxLod = FLT_MAX;
+    VkSamplerCreateInfo linearBlackBorderSamplerCreateInfo = {};
+    linearBlackBorderSamplerCreateInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+    linearBlackBorderSamplerCreateInfo.magFilter = VK_FILTER_LINEAR;
+    linearBlackBorderSamplerCreateInfo.minFilter = VK_FILTER_LINEAR;
+    linearBlackBorderSamplerCreateInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    linearBlackBorderSamplerCreateInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    linearBlackBorderSamplerCreateInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    linearBlackBorderSamplerCreateInfo.anisotropyEnable = VK_FALSE;
+    linearBlackBorderSamplerCreateInfo.maxAnisotropy = 16;
+    linearBlackBorderSamplerCreateInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+    linearBlackBorderSamplerCreateInfo.unnormalizedCoordinates = VK_FALSE;
+    linearBlackBorderSamplerCreateInfo.compareEnable = VK_FALSE;
+    linearBlackBorderSamplerCreateInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+    linearBlackBorderSamplerCreateInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+    linearBlackBorderSamplerCreateInfo.mipLodBias = 0.f;
+    linearBlackBorderSamplerCreateInfo.minLod = 0.f;
+    linearBlackBorderSamplerCreateInfo.maxLod = FLT_MAX;
 
-    Assert(vkCreateSampler(backend.device, &shadowMapSamplerCreateInfo, nullptr, &resources.shadowMapSampler)
+    Assert(vkCreateSampler(backend.device, &linearBlackBorderSamplerCreateInfo, nullptr,
+                           &resources.linearBlackBorderSampler)
            == VK_SUCCESS);
-    log_debug(root, "vulkan: created sampler with handle: {}", static_cast<void*>(resources.shadowMapSampler));
+
+    log_debug(root, "vulkan: created sampler with handle: {}", static_cast<void*>(resources.linearBlackBorderSampler));
+
+    VulkanSetDebugName(backend.device, resources.linearBlackBorderSampler, "LinearBlackBorderSampler");
 
     return resources;
 }
 
 void destroy_swapchain_pass_resources(VulkanBackend& backend, const SwapchainPassResources& resources)
 {
-    vkDestroySampler(backend.device, resources.shadowMapSampler, nullptr);
+    vkDestroySampler(backend.device, resources.linearBlackBorderSampler, nullptr);
 
     vkDestroyPipeline(backend.device, resources.swapchainPipe.pipeline, nullptr);
     vkDestroyPipelineLayout(backend.device, resources.swapchainPipe.pipelineLayout, nullptr);
     vkDestroyDescriptorSetLayout(backend.device, resources.swapchainPipe.descSetLayout, nullptr);
 
-    vkDestroyRenderPass(backend.device, resources.swapchainRenderPass, nullptr);
-
-    destroy_swapchain_pass_resizable_resources(backend, resources);
-
     vmaDestroyBuffer(backend.vma_instance, resources.passConstantBuffer.buffer,
                      resources.passConstantBuffer.allocation);
-}
-
-void resize_swapchain_pass_resources(ReaperRoot& root, VulkanBackend& backend, SwapchainPassResources& resources,
-                                     glm::uvec2 extent)
-{
-    destroy_swapchain_pass_resizable_resources(backend, resources);
-
-    create_swapchain_pass_resizable_resources(root, backend, resources, extent);
 }
 
 void update_swapchain_pass_descriptor_set(VulkanBackend& backend, const SwapchainPassResources& resources,
                                           VkImageView hdr_scene_texture_view, VkImageView gui_texture_view)
 {
     const VkDescriptorBufferInfo passParams = default_descriptor_buffer_info(resources.passConstantBuffer);
-    const VkDescriptorImageInfo  shadowMapSampler = {resources.shadowMapSampler, VK_NULL_HANDLE,
-                                                    VK_IMAGE_LAYOUT_UNDEFINED};
+    const VkDescriptorImageInfo  linearBlackBorderSampler = {resources.linearBlackBorderSampler, VK_NULL_HANDLE,
+                                                            VK_IMAGE_LAYOUT_UNDEFINED};
     const VkDescriptorImageInfo  sceneTexture = {VK_NULL_HANDLE, hdr_scene_texture_view,
                                                 VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
     const VkDescriptorImageInfo  guiTexture = {VK_NULL_HANDLE, gui_texture_view,
@@ -487,7 +366,8 @@ void update_swapchain_pass_descriptor_set(VulkanBackend& backend, const Swapchai
 
     std::vector<VkWriteDescriptorSet> writes = {
         create_buffer_descriptor_write(resources.descriptor_set, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &passParams),
-        create_image_descriptor_write(resources.descriptor_set, 1, VK_DESCRIPTOR_TYPE_SAMPLER, &shadowMapSampler),
+        create_image_descriptor_write(resources.descriptor_set, 1, VK_DESCRIPTOR_TYPE_SAMPLER,
+                                      &linearBlackBorderSampler),
         create_image_descriptor_write(resources.descriptor_set, 2, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, &sceneTexture),
         create_image_descriptor_write(resources.descriptor_set, 3, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, &guiTexture),
     };
@@ -509,21 +389,33 @@ void record_swapchain_command_buffer(CommandBuffer& cmdBuffer, const FrameData& 
 
     const VkRect2D blitPassRect = default_vk_rect(frame_data.backbufferExtent);
 
-    std::array<VkImageView, 1> main_pass_framebuffer_views = {swapchain_buffer_view};
+    const VkRenderingAttachmentInfo color_attachment = {
+        VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+        nullptr,
+        swapchain_buffer_view,
+        VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
+        VK_RESOLVE_MODE_NONE,
+        VK_NULL_HANDLE,
+        VK_IMAGE_LAYOUT_UNDEFINED,
+        VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+        VK_ATTACHMENT_STORE_OP_STORE,
+        VkClearValue{},
+    };
 
-    VkRenderPassAttachmentBeginInfo main_pass_attachments = {VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO,
-                                                             nullptr, main_pass_framebuffer_views.size(),
-                                                             main_pass_framebuffer_views.data()};
+    VkRenderingInfo renderingInfo = {
+        VK_STRUCTURE_TYPE_RENDERING_INFO,
+        nullptr,
+        VK_FLAGS_NONE,
+        blitPassRect,
+        1, // layerCount
+        0, // viewMask
+        1,
+        &color_attachment,
+        nullptr,
+        nullptr,
+    };
 
-    VkRenderPassBeginInfo blitRenderPassBeginInfo = {VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-                                                     &main_pass_attachments,
-                                                     pass_resources.swapchainRenderPass,
-                                                     pass_resources.swapchain_framebuffer,
-                                                     blitPassRect,
-                                                     0,
-                                                     nullptr};
-
-    vkCmdBeginRenderPass(cmdBuffer.handle, &blitRenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+    vkCmdBeginRendering(cmdBuffer.handle, &renderingInfo);
 
     vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, pass_resources.swapchainPipe.pipeline);
 
@@ -538,6 +430,6 @@ void record_swapchain_command_buffer(CommandBuffer& cmdBuffer, const FrameData& 
 
     vkCmdDraw(cmdBuffer.handle, 3, 1, 0, 0);
 
-    vkCmdEndRenderPass(cmdBuffer.handle);
+    vkCmdEndRendering(cmdBuffer.handle);
 }
 } // namespace Reaper

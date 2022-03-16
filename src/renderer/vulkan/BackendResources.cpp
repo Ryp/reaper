@@ -47,7 +47,7 @@ void create_backend_resources(ReaperRoot& root, VulkanBackend& backend)
     resources.material_resources = create_material_resources(root, backend);
     resources.mesh_cache = create_mesh_cache(root, backend);
     resources.shadow_map_resources = create_shadow_map_resources(root, backend);
-    resources.swapchain_pass_resources = create_swapchain_pass_resources(root, backend, swapchain_extent);
+    resources.swapchain_pass_resources = create_swapchain_pass_resources(root, backend);
 }
 
 void destroy_backend_resources(VulkanBackend& backend)
