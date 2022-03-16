@@ -197,9 +197,7 @@ void create_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& backend)
     log_debug(root, "vulkan: creating presentation surface");
     vulkan_create_presentation_surface(backend.instance, backend.presentInfo.surface, window);
 
-    std::vector<const char*> device_extensions = {
-        VK_KHR_SWAPCHAIN_EXTENSION_NAME, VK_EXT_SHADER_SUBGROUP_BALLOT_EXTENSION_NAME,
-        VK_EXT_SHADER_SUBGROUP_VOTE_EXTENSION_NAME, VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME};
+    std::vector<const char*> device_extensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 
     log_debug(root, "vulkan: choosing physical device");
     vulkan_choose_physical_device(root, backend, device_extensions, backend.physicalDeviceInfo);
