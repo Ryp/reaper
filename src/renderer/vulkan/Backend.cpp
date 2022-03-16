@@ -26,7 +26,7 @@
 #endif
 
 // Version of the API to query when loading vulkan symbols
-#define REAPER_VK_API_VERSION VK_MAKE_VERSION(1, 2, 0)
+#define REAPER_VK_API_VERSION VK_MAKE_VERSION(1, 3, 0)
 
 // Decide which swapchain extension to use
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
