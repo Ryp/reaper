@@ -196,6 +196,9 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     record_material_upload_command_buffer(resources.material_resources.staging, cmdBuffer);
 
+    // FIXME Right now we recreate shadow maps every frame
+    record_shadow_map_creation_barriers(cmdBuffer, resources.shadow_map_resources);
+
     if (backend.mustTransitionSwapchain)
     {
         REAPER_PROFILE_SCOPE_GPU(cmdBuffer.mlog, "Barrier", MP_RED);
@@ -281,8 +284,82 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     record_culling_command_buffer(backend.options.freeze_culling, cmdBuffer, prepared, resources.cull_resources);
 
+    {
+        REAPER_PROFILE_SCOPE_GPU(cmdBuffer.mlog, "Barrier", MP_RED);
+
+        std::vector<VkImageMemoryBarrier2> imageBarriers;
+
+        for (ImageInfo& shadow_map : resources.shadow_map_resources.shadowMap)
+        {
+            imageBarriers.emplace_back(VkImageMemoryBarrier2{
+                VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+                nullptr,
+                VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+                VK_ACCESS_2_SHADER_READ_BIT,
+                VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT,
+                VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+                VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL,
+                VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
+                VK_QUEUE_FAMILY_IGNORED,
+                VK_QUEUE_FAMILY_IGNORED,
+                shadow_map.handle,
+                {VK_IMAGE_ASPECT_DEPTH_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS}});
+        }
+
+        const VkDependencyInfo dependencies = {
+            VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+            nullptr,
+            VK_DEPENDENCY_BY_REGION_BIT,
+            0,
+            nullptr,
+            0,
+            nullptr,
+            static_cast<u32>(imageBarriers.size()),
+            imageBarriers.data(),
+        };
+
+        vkCmdPipelineBarrier2(cmdBuffer.handle, &dependencies);
+    }
+
     record_shadow_map_command_buffer(cmdBuffer, backend, prepared, resources.shadow_map_resources,
                                      resources.cull_resources, resources.mesh_cache.vertexBufferPosition.buffer);
+
+    {
+        REAPER_PROFILE_SCOPE_GPU(cmdBuffer.mlog, "Barrier", MP_RED);
+
+        std::vector<VkImageMemoryBarrier2> imageBarriers;
+
+        for (ImageInfo& shadow_map : resources.shadow_map_resources.shadowMap)
+        {
+            imageBarriers.emplace_back(VkImageMemoryBarrier2{
+                VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+                nullptr,
+                VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT,
+                VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+                VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+                VK_ACCESS_2_SHADER_READ_BIT,
+                VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
+                VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL,
+                VK_QUEUE_FAMILY_IGNORED,
+                VK_QUEUE_FAMILY_IGNORED,
+                shadow_map.handle,
+                {VK_IMAGE_ASPECT_DEPTH_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS}});
+        }
+
+        const VkDependencyInfo dependencies = {
+            VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+            nullptr,
+            VK_DEPENDENCY_BY_REGION_BIT,
+            0,
+            nullptr,
+            0,
+            nullptr,
+            static_cast<u32>(imageBarriers.size()),
+            imageBarriers.data(),
+        };
+
+        vkCmdPipelineBarrier2(cmdBuffer.handle, &dependencies);
+    }
 
     {
         REAPER_PROFILE_SCOPE_GPU(cmdBuffer.mlog, "Barrier", MP_RED);

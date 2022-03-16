@@ -35,70 +35,7 @@ constexpr u32 MaxShadowPassCount = 4;
 
 namespace
 {
-    VkRenderPass create_shadow_raster_pass(ReaperRoot& /*root*/, VulkanBackend& backend)
-    {
-        constexpr u32 depth_index = 0;
-
-        std::array<VkAttachmentDescription2, 1> attachmentDescriptions = {};
-
-        // Depth attachment
-        attachmentDescriptions[depth_index].sType = VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2;
-        attachmentDescriptions[depth_index].pNext = nullptr;
-        attachmentDescriptions[depth_index].format = PixelFormatToVulkan(ShadowMapFormat);
-        attachmentDescriptions[depth_index].samples = VK_SAMPLE_COUNT_1_BIT; // NOTE: hardcoded, has no reason to change
-        attachmentDescriptions[depth_index].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-        attachmentDescriptions[depth_index].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-        attachmentDescriptions[depth_index].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-        attachmentDescriptions[depth_index].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        attachmentDescriptions[depth_index].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        attachmentDescriptions[depth_index].finalLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
-
-        VkAttachmentReference2 depthReference = {VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2, nullptr, depth_index,
-                                                 VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL, VK_IMAGE_ASPECT_DEPTH_BIT};
-
-        VkSubpassDescription2 subpassDescription = {};
-        subpassDescription.sType = VK_STRUCTURE_TYPE_SUBPASS_DESCRIPTION_2;
-        subpassDescription.pNext = nullptr;
-        subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-        subpassDescription.colorAttachmentCount = 0;
-        subpassDescription.pColorAttachments = nullptr;
-        subpassDescription.pDepthStencilAttachment = &depthReference;
-
-        // Use subpass dependencies for layout transitions
-        std::array<VkSubpassDependency2, 1> dependencies;
-
-        dependencies[depth_index].sType = VK_STRUCTURE_TYPE_SUBPASS_DEPENDENCY_2;
-        dependencies[depth_index].pNext = nullptr;
-        dependencies[depth_index].srcSubpass = 0;
-        dependencies[depth_index].dstSubpass = VK_SUBPASS_EXTERNAL;
-        dependencies[depth_index].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-        dependencies[depth_index].dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-        dependencies[depth_index].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-        dependencies[depth_index].dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-        dependencies[depth_index].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
-        dependencies[depth_index].viewOffset = 0;
-
-        // Create the actual renderpass
-        VkRenderPassCreateInfo2 renderPassInfo = {};
-        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO_2;
-        renderPassInfo.pNext = nullptr;
-        renderPassInfo.flags = VK_FLAGS_NONE;
-        renderPassInfo.attachmentCount = static_cast<uint32_t>(attachmentDescriptions.size());
-        renderPassInfo.pAttachments = attachmentDescriptions.data();
-        renderPassInfo.subpassCount = 1;
-        renderPassInfo.pSubpasses = &subpassDescription;
-        renderPassInfo.dependencyCount = static_cast<uint32_t>(dependencies.size());
-        renderPassInfo.pDependencies = dependencies.data();
-        renderPassInfo.correlatedViewMaskCount = 0;
-        renderPassInfo.pCorrelatedViewMasks = nullptr;
-
-        VkRenderPass renderPass = VK_NULL_HANDLE;
-        Assert(vkCreateRenderPass2(backend.device, &renderPassInfo, nullptr, &renderPass) == VK_SUCCESS);
-
-        return renderPass;
-    }
-
-    ShadowMapPipelineInfo create_shadow_map_pipeline(ReaperRoot& root, VulkanBackend& backend, VkRenderPass renderPass)
+    ShadowMapPipelineInfo create_shadow_map_pipeline(ReaperRoot& root, VulkanBackend& backend)
     {
         VkShaderModule        blitShaderFS = VK_NULL_HANDLE;
         VkShaderModule        blitShaderVS = VK_NULL_HANDLE;
@@ -255,8 +192,20 @@ namespace
             dynamicStates.data(),
         };
 
+        const VkFormat shadowMapFormat = PixelFormatToVulkan(ShadowMapFormat);
+
+        const VkPipelineRenderingCreateInfo pipelineRenderingCreateInfo = {
+            VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
+            nullptr,
+            0, // viewMask
+            0,
+            nullptr,
+            shadowMapFormat,
+            VK_FORMAT_UNDEFINED,
+        };
+
         VkGraphicsPipelineCreateInfo blitPipelineCreateInfo = {VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
-                                                               nullptr,
+                                                               &pipelineRenderingCreateInfo,
                                                                VK_FLAGS_NONE,
                                                                static_cast<u32>(blitShaderStages.size()),
                                                                blitShaderStages.data(),
@@ -270,7 +219,7 @@ namespace
                                                                &blitBlendStateInfo,
                                                                &blitDynamicState,
                                                                pipelineLayout,
-                                                               renderPass,
+                                                               VK_NULL_HANDLE,
                                                                0,
                                                                VK_NULL_HANDLE,
                                                                -1};
@@ -322,62 +271,23 @@ namespace
         vkUpdateDescriptorSets(backend.device, static_cast<u32>(shadowMapPassDescriptorSetWrites.size()),
                                shadowMapPassDescriptorSetWrites.data(), 0, nullptr);
     }
+
+    GPUTextureProperties get_shadow_map_texture_properties(glm::uvec2 size)
+    {
+        GPUTextureProperties properties = DefaultGPUTextureProperties(size.x, size.y, ShadowMapFormat);
+
+        properties.usageFlags =
+            GPUTextureUsage::DepthStencilAttachment | GPUTextureUsage::InputAttachment | GPUTextureUsage::Sampled;
+
+        return properties;
+    }
 } // namespace
-
-GPUTextureProperties get_shadow_map_texture_properties(glm::uvec2 size)
-{
-    GPUTextureProperties properties = DefaultGPUTextureProperties(size.x, size.y, ShadowMapFormat);
-
-    properties.usageFlags =
-        GPUTextureUsage::DepthStencilAttachment | GPUTextureUsage::InputAttachment | GPUTextureUsage::Sampled;
-
-    return properties;
-}
-
-VkFramebuffer create_shadow_map_framebuffer(VulkanBackend& backend, VkRenderPass renderPass,
-                                            const GPUTextureProperties& properties)
-{
-    VkFormat format = PixelFormatToVulkan(properties.format);
-
-    VkFramebufferAttachmentImageInfo shadowMapFramebufferAttachmentInfo = {
-        VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENT_IMAGE_INFO,
-        nullptr,
-        GetVulkanCreateFlags(properties),           // VkImageCreateFlags    flags;
-        GetVulkanUsageFlags(properties.usageFlags), // VkImageUsageFlags     usage;
-        properties.width,                           // uint32_t              width;
-        properties.height,                          // uint32_t              height;
-        1,                                          // uint32_t              layerCount;
-        1,                                          // uint32_t              viewFormatCount;
-        &format                                     // const VkFormat*       pViewFormats;
-    };
-
-    VkFramebufferAttachmentsCreateInfo shadowMapFramebufferAttachmentsInfo = {
-        VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENTS_CREATE_INFO, nullptr, 1, &shadowMapFramebufferAttachmentInfo};
-
-    VkFramebufferCreateInfo shadowMapFramebufferInfo = {
-        VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO, // VkStructureType                sType
-        &shadowMapFramebufferAttachmentsInfo,      // const void                    *pNext
-        VK_FRAMEBUFFER_CREATE_IMAGELESS_BIT,       // VkFramebufferCreateFlags       flags
-        renderPass,                                // VkRenderPass                   renderPass
-        1,                                         // uint32_t                       attachmentCount
-        nullptr,                                   // const VkImageView             *pAttachments
-        properties.width,                          // uint32_t                       width
-        properties.height,                         // uint32_t                       height
-        1                                          // uint32_t                       layers
-    };
-
-    VkFramebuffer framebuffer = VK_NULL_HANDLE;
-    Assert(vkCreateFramebuffer(backend.device, &shadowMapFramebufferInfo, nullptr, &framebuffer) == VK_SUCCESS);
-
-    return framebuffer;
-}
 
 ShadowMapResources create_shadow_map_resources(ReaperRoot& root, VulkanBackend& backend)
 {
     ShadowMapResources resources = {};
 
-    resources.shadowMapPass = create_shadow_raster_pass(root, backend);
-    resources.pipe = create_shadow_map_pipeline(root, backend, resources.shadowMapPass);
+    resources.pipe = create_shadow_map_pipeline(root, backend);
 
     resources.shadowMapPassConstantBuffer = create_buffer(
         root, backend.device, "Shadow Map Pass Constant buffer",
@@ -406,15 +316,12 @@ void destroy_shadow_map_resources(VulkanBackend& backend, ShadowMapResources& re
     {
         vmaDestroyImage(backend.vma_instance, resources.shadowMap[i].handle, resources.shadowMap[i].allocation);
         vkDestroyImageView(backend.device, resources.shadowMapView[i], nullptr);
-        vkDestroyFramebuffer(backend.device, resources.shadowMapFramebuffer[i], nullptr);
     }
 
     vmaDestroyBuffer(backend.vma_instance, resources.shadowMapPassConstantBuffer.buffer,
                      resources.shadowMapPassConstantBuffer.allocation);
     vmaDestroyBuffer(backend.vma_instance, resources.shadowMapInstanceConstantBuffer.buffer,
                      resources.shadowMapInstanceConstantBuffer.allocation);
-
-    vkDestroyRenderPass(backend.device, resources.shadowMapPass, nullptr);
 
     vkDestroyPipeline(backend.device, resources.pipe.pipeline, nullptr);
     vkDestroyPipelineLayout(backend.device, resources.pipe.pipelineLayout, nullptr);
@@ -429,12 +336,10 @@ void prepare_shadow_map_objects(ReaperRoot& root, VulkanBackend& backend, const 
         vmaDestroyImage(backend.vma_instance, pass_resources.shadowMap[i].handle,
                         pass_resources.shadowMap[i].allocation);
         vkDestroyImageView(backend.device, pass_resources.shadowMapView[i], nullptr);
-        vkDestroyFramebuffer(backend.device, pass_resources.shadowMapFramebuffer[i], nullptr);
     }
 
     pass_resources.shadowMap.clear();
     pass_resources.shadowMapView.clear();
-    pass_resources.shadowMapFramebuffer.clear();
     for (const ShadowPassData& shadow_pass : prepared.shadow_passes)
     {
         const GPUTextureProperties texture_properties = get_shadow_map_texture_properties(shadow_pass.shadow_map_size);
@@ -444,9 +349,6 @@ void prepare_shadow_map_objects(ReaperRoot& root, VulkanBackend& backend, const 
         shadow_map = create_image(root, backend.device, "Shadow Map", texture_properties, backend.vma_instance);
 
         pass_resources.shadowMapView.push_back(create_depth_image_view(root, backend.device, shadow_map));
-
-        pass_resources.shadowMapFramebuffer.push_back(
-            create_shadow_map_framebuffer(backend, pass_resources.shadowMapPass, shadow_map.properties));
     }
 }
 
@@ -470,6 +372,44 @@ void upload_shadow_map_resources(VulkanBackend& backend, const PreparedData& pre
                        prepared.shadow_instance_params.size() * sizeof(ShadowMapInstanceParams));
 }
 
+void record_shadow_map_creation_barriers(CommandBuffer& cmdBuffer, ShadowMapResources& resources)
+{
+    REAPER_PROFILE_SCOPE_GPU(cmdBuffer.mlog, "Barrier", MP_RED);
+
+    std::vector<VkImageMemoryBarrier2> imageBarriers;
+
+    for (ImageInfo& shadow_map : resources.shadowMap)
+    {
+        imageBarriers.emplace_back(VkImageMemoryBarrier2{
+            VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+            nullptr,
+            VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT,
+            VK_ACCESS_2_NONE,
+            VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+            VK_ACCESS_2_SHADER_READ_BIT,
+            VK_IMAGE_LAYOUT_UNDEFINED,
+            VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL,
+            VK_QUEUE_FAMILY_IGNORED,
+            VK_QUEUE_FAMILY_IGNORED,
+            shadow_map.handle,
+            {VK_IMAGE_ASPECT_DEPTH_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS}});
+    }
+
+    const VkDependencyInfo dependencies = {
+        VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+        nullptr,
+        VK_DEPENDENCY_BY_REGION_BIT,
+        0,
+        nullptr,
+        0,
+        nullptr,
+        static_cast<u32>(imageBarriers.size()),
+        imageBarriers.data(),
+    };
+
+    vkCmdPipelineBarrier2(cmdBuffer.handle, &dependencies);
+}
+
 void record_shadow_map_command_buffer(CommandBuffer& cmdBuffer, VulkanBackend& backend, const PreparedData& prepared,
                                       ShadowMapResources& resources, const CullResources& cull_resources,
                                       VkBuffer vertex_position_buffer)
@@ -478,26 +418,39 @@ void record_shadow_map_command_buffer(CommandBuffer& cmdBuffer, VulkanBackend& b
     {
         REAPER_PROFILE_SCOPE_GPU(cmdBuffer.mlog, "Shadow Pass", MP_DARKGOLDENROD);
 
-        const VkClearValue clearValue =
+        const VkImageView  shadowMapView = resources.shadowMapView[shadow_pass.pass_index];
+        const VkExtent2D   output_extent = {shadow_pass.shadow_map_size.x, shadow_pass.shadow_map_size.y};
+        const VkRect2D     pass_rect = default_vk_rect(output_extent);
+        const VkClearValue shadowMapClearValue =
             VkClearDepthStencil(ShadowUseReverseZ ? 0.f : 1.f, 0); // NOTE: handle reverse Z more gracefully
-        const VkExtent2D framebuffer_extent = {shadow_pass.shadow_map_size.x, shadow_pass.shadow_map_size.y};
-        const VkRect2D   pass_rect = default_vk_rect(framebuffer_extent);
 
-        const VkImageView   shadowMapView = resources.shadowMapView[shadow_pass.pass_index];
-        const VkFramebuffer shadowMapFramebuffer = resources.shadowMapFramebuffer[shadow_pass.pass_index];
+        const VkRenderingAttachmentInfo depth_attachment = {
+            VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+            nullptr,
+            shadowMapView,
+            VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
+            VK_RESOLVE_MODE_NONE,
+            VK_NULL_HANDLE,
+            VK_IMAGE_LAYOUT_UNDEFINED,
+            VK_ATTACHMENT_LOAD_OP_CLEAR,
+            VK_ATTACHMENT_STORE_OP_STORE,
+            shadowMapClearValue,
+        };
 
-        VkRenderPassAttachmentBeginInfo shadowMapRenderPassAttachment = {
-            VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO, nullptr, 1, &shadowMapView};
+        VkRenderingInfo renderingInfo = {
+            VK_STRUCTURE_TYPE_RENDERING_INFO,
+            nullptr,
+            VK_FLAGS_NONE,
+            pass_rect,
+            1, // layerCount
+            0, // viewMask
+            0,
+            nullptr,
+            &depth_attachment,
+            nullptr,
+        };
 
-        VkRenderPassBeginInfo shadowMapRenderPassBeginInfo = {VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-                                                              &shadowMapRenderPassAttachment,
-                                                              resources.shadowMapPass,
-                                                              shadowMapFramebuffer,
-                                                              pass_rect,
-                                                              1,
-                                                              &clearValue};
-
-        vkCmdBeginRenderPass(cmdBuffer.handle, &shadowMapRenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+        vkCmdBeginRendering(cmdBuffer.handle, &renderingInfo);
 
         vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, resources.pipe.pipeline);
 
@@ -540,44 +493,7 @@ void record_shadow_map_command_buffer(CommandBuffer& cmdBuffer, VulkanBackend& b
                                           cull_resources.indirectDrawBuffer.descriptor.elementSize);
         }
 
-        vkCmdEndRenderPass(cmdBuffer.handle);
-    }
-
-    {
-        REAPER_PROFILE_SCOPE_GPU(cmdBuffer.mlog, "Barrier", MP_RED);
-
-        std::vector<VkImageMemoryBarrier2> imageBarriers;
-
-        for (const ShadowPassData& shadow_pass : prepared.shadow_passes)
-        {
-            imageBarriers.emplace_back(VkImageMemoryBarrier2{
-                VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
-                nullptr,
-                VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT,
-                VK_ACCESS_2_NONE,
-                VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT,
-                VK_ACCESS_2_MEMORY_READ_BIT,
-                VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
-                VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL,
-                VK_QUEUE_FAMILY_IGNORED,
-                VK_QUEUE_FAMILY_IGNORED,
-                resources.shadowMap[shadow_pass.pass_index].handle,
-                {VK_IMAGE_ASPECT_DEPTH_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS}});
-        }
-
-        const VkDependencyInfo dependencies = {
-            VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
-            nullptr,
-            VK_DEPENDENCY_BY_REGION_BIT,
-            0,
-            nullptr,
-            0,
-            nullptr,
-            static_cast<u32>(imageBarriers.size()),
-            imageBarriers.data(),
-        };
-
-        vkCmdPipelineBarrier2(cmdBuffer.handle, &dependencies);
+        vkCmdEndRendering(cmdBuffer.handle);
     }
 }
 } // namespace Reaper

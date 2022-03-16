@@ -33,8 +33,6 @@ struct ShadowMapPipelineInfo
 
 struct ShadowMapResources
 {
-    VkRenderPass shadowMapPass;
-
     ShadowMapPipelineInfo pipe;
 
     BufferInfo shadowMapPassConstantBuffer;
@@ -43,15 +41,9 @@ struct ShadowMapResources
     std::vector<VkDescriptorSet> descriptor_sets;
 
     // These are valid for ONE FRAME ONLY
-    std::vector<ImageInfo>     shadowMap;
-    std::vector<VkImageView>   shadowMapView;
-    std::vector<VkFramebuffer> shadowMapFramebuffer;
+    std::vector<ImageInfo>   shadowMap;
+    std::vector<VkImageView> shadowMapView;
 };
-
-GPUTextureProperties get_shadow_map_texture_properties(glm::uvec2 size);
-
-VkFramebuffer create_shadow_map_framebuffer(VulkanBackend& backend, VkRenderPass renderPass,
-                                            const GPUTextureProperties& properties);
 
 ShadowMapResources create_shadow_map_resources(ReaperRoot& root, VulkanBackend& backend);
 void               destroy_shadow_map_resources(VulkanBackend& backend, ShadowMapResources& resources);
@@ -66,6 +58,9 @@ void update_shadow_map_pass_descriptor_sets(VulkanBackend& backend, const Prepar
                                             ShadowMapResources& pass_resources);
 
 struct CommandBuffer;
+
+void record_shadow_map_creation_barriers(CommandBuffer& cmdBuffer, ShadowMapResources& resources);
+
 struct CullResources;
 
 void record_shadow_map_command_buffer(CommandBuffer& cmdBuffer, VulkanBackend& backend, const PreparedData& prepared,
