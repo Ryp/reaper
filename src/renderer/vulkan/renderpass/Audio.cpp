@@ -280,12 +280,18 @@ void record_audio_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& p
         vkCmdPipelineBarrier2(cmdBuffer.handle, &dependencies);
     }
 
-    VkBufferCopy region = {};
+    VkBufferCopy2 region = {};
+    region.sType = VK_STRUCTURE_TYPE_BUFFER_COPY_2;
+    region.pNext = nullptr;
     region.srcOffset = 0;
     region.dstOffset = 0;
     region.size = FrameCountPerGroup * FrameCountPerDispatch * sizeof(RawSample);
-    vkCmdCopyBuffer(cmdBuffer.handle, resources.audioOutputBuffer.buffer, resources.audioOutputBufferStaging.buffer, 1,
-                    &region);
+
+    const VkCopyBufferInfo2 copy = {
+        VK_STRUCTURE_TYPE_COPY_BUFFER_INFO_2,      nullptr, resources.audioOutputBuffer.buffer,
+        resources.audioOutputBufferStaging.buffer, 1,       &region};
+
+    vkCmdCopyBuffer2(cmdBuffer.handle, &copy);
 
     {
         const VkBufferMemoryBarrier2 buffer_barrier = {VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2,

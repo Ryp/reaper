@@ -30,7 +30,7 @@ struct ResourceStagingArea
     u32        offset_bytes; // FIXME u32 enough?
     BufferInfo staging_buffer;
     // Setup buffer copy regions for each mip level
-    std::vector<VkBufferImageCopy> bufferCopyRegions;
+    std::vector<VkBufferImageCopy2> bufferCopyRegions;
 
     std::vector<StagingEntry> staging_queue;
 };

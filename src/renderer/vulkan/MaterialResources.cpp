@@ -89,7 +89,9 @@ namespace
                                    size_bytes, staging.offset_bytes);
 
                 // Setup a buffer image copy structure for the current mip level
-                VkBufferImageCopy& bufferCopyRegion = staging.bufferCopyRegions.emplace_back();
+                VkBufferImageCopy2& bufferCopyRegion = staging.bufferCopyRegions.emplace_back();
+                bufferCopyRegion.sType = VK_STRUCTURE_TYPE_BUFFER_IMAGE_COPY_2;
+                bufferCopyRegion.pNext = nullptr;
                 bufferCopyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
                 bufferCopyRegion.imageSubresource.mipLevel = mipIdx;
                 bufferCopyRegion.imageSubresource.baseArrayLayer = arrayIdx;
@@ -153,16 +155,21 @@ namespace
 
         vkCmdPipelineBarrier2(cmdBuffer.handle, &dependencies);
 
-        const nonstd::span<const VkBufferImageCopy> copy_regions(&staging.bufferCopyRegions[entry.copy_command_offset],
-                                                                 entry.copy_command_count);
+        const nonstd::span<const VkBufferImageCopy2> copy_regions(&staging.bufferCopyRegions[entry.copy_command_offset],
+                                                                  entry.copy_command_count);
 
         // Copy mip levels from staging buffer
-        vkCmdCopyBufferToImage(cmdBuffer.handle,
-                               staging.staging_buffer.buffer,
-                               entry.target,
-                               VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                               static_cast<u32>(copy_regions.size()),
-                               copy_regions.data());
+        const VkCopyBufferToImageInfo2 copy = {
+            VK_STRUCTURE_TYPE_COPY_BUFFER_TO_IMAGE_INFO_2,
+            nullptr,
+            staging.staging_buffer.buffer,
+            entry.target,
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            static_cast<u32>(copy_regions.size()),
+            copy_regions.data(),
+        };
+
+        vkCmdCopyBufferToImage2(cmdBuffer.handle, &copy);
     }
 
     void flush_staging_area_state(ResourceStagingArea& staging)
