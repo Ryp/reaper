@@ -127,6 +127,9 @@ REAPER_VK_DEVICE_LEVEL_FUNCTION(vkDestroySampler)
 REAPER_VK_DEVICE_LEVEL_FUNCTION(vkResetDescriptorPool)
 REAPER_VK_DEVICE_LEVEL_FUNCTION(vkCmdBeginRendering)
 REAPER_VK_DEVICE_LEVEL_FUNCTION(vkCmdEndRendering)
+REAPER_VK_DEVICE_LEVEL_FUNCTION(vkGetDeviceBufferMemoryRequirements)
+REAPER_VK_DEVICE_LEVEL_FUNCTION(vkGetDeviceImageMemoryRequirements)
+REAPER_VK_DEVICE_LEVEL_FUNCTION(vkGetDeviceImageSparseMemoryRequirements)
 
 #if defined(REAPER_VK_USE_SWAPCHAIN_EXTENSIONS)
 #    include "VK_KHR_swapchain.inl"
