@@ -13,6 +13,7 @@
 
 #include "renderer/format/PixelFormat.h"
 #include "renderer/texture/GPUTextureProperties.h"
+#include "renderer/texture/GPUTextureView.h"
 
 namespace Reaper
 {
@@ -35,6 +36,7 @@ u32                   GetUsageFlags(VkImageUsageFlags usageFlags);
 
 ImageInfo   create_image(ReaperRoot& root, VkDevice device, const char* debug_string,
                          const GPUTextureProperties& properties, VmaAllocator& allocator);
+VkImageView create_image_view(ReaperRoot& root, VkDevice device, const ImageInfo& image, const GPUTextureView& view);
 VkImageView create_default_image_view(ReaperRoot& root, VkDevice device, const ImageInfo& image);
 VkImageView create_depth_image_view(ReaperRoot& root, VkDevice device, const ImageInfo& image);
 

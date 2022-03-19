@@ -1026,18 +1026,23 @@ ImageInfo create_image(ReaperRoot& root, VkDevice device, const char* debug_stri
     return {image, allocation, properties};
 }
 
-VkImageView create_default_image_view(ReaperRoot& root, VkDevice device, const ImageInfo& image)
+VkImageView create_image_view(ReaperRoot& root, VkDevice device, const ImageInfo& image, const GPUTextureView& view)
 {
-    VkImageSubresourceRange viewRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, image.properties.mipCount, 0,
-                                         image.properties.layerCount};
+    Assert(view.mipCount > 0);
+    Assert(view.mipCount + view.mipOffset <= image.properties.mipCount);
+    Assert(view.layerCount > 0);
+    Assert(view.layerCount + view.layerOffset <= image.properties.layerCount);
+
+    VkImageSubresourceRange viewRange = {VK_IMAGE_ASPECT_COLOR_BIT, view.mipOffset, view.mipCount, view.layerOffset,
+                                         view.layerCount};
 
     VkImageViewCreateInfo imageViewInfo = {
         VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
         nullptr,
-        0, // reserved
+        VK_FLAGS_NONE,
         image.handle,
         VK_IMAGE_VIEW_TYPE_2D,
-        PixelFormatToVulkan(image.properties.format),
+        PixelFormatToVulkan(view.format),
         VkComponentMapping{VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
                            VK_COMPONENT_SWIZZLE_IDENTITY},
         viewRange};
@@ -1050,6 +1055,13 @@ VkImageView create_default_image_view(ReaperRoot& root, VkDevice device, const I
     return imageView;
 }
 
+VkImageView create_default_image_view(ReaperRoot& root, VkDevice device, const ImageInfo& image)
+{
+    const GPUTextureView view = DefaultGPUTextureView(image.properties);
+
+    return create_image_view(root, device, image, view);
+}
+
 VkImageView create_depth_image_view(ReaperRoot& root, VkDevice device, const ImageInfo& image)
 {
     VkImageSubresourceRange viewRange = {VK_IMAGE_ASPECT_DEPTH_BIT, 0, image.properties.mipCount, 0,
@@ -1058,7 +1070,7 @@ VkImageView create_depth_image_view(ReaperRoot& root, VkDevice device, const Ima
     VkImageViewCreateInfo imageViewInfo = {
         VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
         nullptr,
-        0, // reserved
+        VK_FLAGS_NONE,
         image.handle,
         VK_IMAGE_VIEW_TYPE_2D,
         PixelFormatToVulkan(image.properties.format),

@@ -40,6 +40,8 @@ target_sources(${target} PRIVATE
 
     ${CMAKE_CURRENT_SOURCE_DIR}/texture/GPUTextureProperties.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/texture/GPUTextureProperties.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/texture/GPUTextureView.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/texture/GPUTextureView.h
     ${CMAKE_CURRENT_SOURCE_DIR}/texture/Texture.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/texture/Texture.h
     ${CMAKE_CURRENT_SOURCE_DIR}/texture/TextureCache.cpp
