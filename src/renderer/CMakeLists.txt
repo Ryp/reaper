@@ -276,6 +276,8 @@ set(MESHOPT_BUILD_SHARED_LIBS ${REAPER_BUILD_SHARED_LIBS})
 add_subdirectory(${CMAKE_SOURCE_DIR}/external/meshoptimizer ${CMAKE_BINARY_DIR}/external/meshoptimizer)
 set_target_properties(meshoptimizer PROPERTIES FOLDER External)
 
+include(imgui)
+
 target_link_libraries(${target} PUBLIC
     reaper_core
     reaper_mesh
@@ -288,6 +290,7 @@ target_link_libraries(${target} PUBLIC
     amd-vma
     meshoptimizer
     tinyddsloader
+    imgui
 )
 
 reaper_configure_library(${target} "Renderer")

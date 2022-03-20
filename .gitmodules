@@ -15,20 +15,24 @@
     url = https://github.com/Ryp/microprofile
     ignore = untracked
 [submodule "external/amd-rga"]
-	path = external/amd-rga
-	url = https://github.com/GPUOpen-Tools/RGA
+    path = external/amd-rga
+    url = https://github.com/GPUOpen-Tools/RGA
 [submodule "external/tinyobjloader"]
-	path = external/tinyobjloader
-	url = https://github.com/syoyo/tinyobjloader
+    path = external/tinyobjloader
+    url = https://github.com/syoyo/tinyobjloader
 [submodule "external/span-lite"]
-	path = external/span-lite
-	url = https://github.com/martinmoene/span-lite
+    path = external/span-lite
+    url = https://github.com/martinmoene/span-lite
 [submodule "external/amd-vma"]
-	path = external/amd-vma
-	url = https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator
+    path = external/amd-vma
+    url = https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator
 [submodule "external/meshoptimizer"]
-	path = external/meshoptimizer
-	url = https://github.com/zeux/meshoptimizer
+    path = external/meshoptimizer
+    url = https://github.com/zeux/meshoptimizer
 [submodule "external/tinyddsloader"]
-	path = external/tinyddsloader
-	url = https://github.com/benikabocha/tinyddsloader
+    path = external/tinyddsloader
+    url = https://github.com/benikabocha/tinyddsloader
+[submodule "external/imgui"]
+    path = external/imgui
+    url = https://github.com/ocornut/imgui
+    ignore = untracked
