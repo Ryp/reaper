@@ -92,4 +92,9 @@ def compute_full_transform(A_to_XYZ, B_to_XYZ):
 if __name__ == '__main__':
     numpy.set_printoptions(precision = 10, suppress = True, floatmode = 'fixed')
 
-    compute_full_transform(compute_rec709_rgb_to_xyz(), compute_rec2020_rgb_to_xyz())
+    rgb_xyz = compute_srgb_to_xyz()
+    xyz_rgb = numpy.linalg.inv(rgb_xyz)
+
+    print(f'M\n{xyz_rgb}')
+
+    #compute_full_transform(compute_rec709_rgb_to_xyz(), compute_rec2020_rgb_to_xyz())

@@ -125,8 +125,8 @@ void create_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& backend)
     vulkan_load_exported_functions(backend.vulkanLib);
     vulkan_load_global_level_functions();
 
-    std::vector<const char*> instanceExtensions = {VK_KHR_SURFACE_EXTENSION_NAME, REAPER_VK_SWAPCHAIN_EXTENSION_NAME};
-
+    std::vector<const char*> instanceExtensions = {VK_KHR_GET_SURFACE_CAPABILITIES_2_EXTENSION_NAME,
+                                                   VK_KHR_SURFACE_EXTENSION_NAME, REAPER_VK_SWAPCHAIN_EXTENSION_NAME};
 #if REAPER_DEBUG
     instanceExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 #endif
@@ -186,8 +186,8 @@ void create_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& backend)
 
     WindowCreationDescriptor windowDescriptor;
     windowDescriptor.title = "Vulkan";
-    windowDescriptor.width = 800;
-    windowDescriptor.height = 600;
+    windowDescriptor.width = 2560;
+    windowDescriptor.height = 1440;
     windowDescriptor.fullscreen = false;
 
     log_info(root,
@@ -206,6 +206,10 @@ void create_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& backend)
     std::vector<const char*> device_extensions = {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME,
         VK_KHR_SWAPCHAIN_MUTABLE_FORMAT_EXTENSION_NAME,
+#if 0
+        VK_EXT_HDR_METADATA_EXTENSION_NAME,
+        VK_EXT_FULL_SCREEN_EXCLUSIVE_EXTENSION_NAME,
+#endif
     };
 
     log_debug(root, "vulkan: choosing physical device");
@@ -228,6 +232,8 @@ void create_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& backend)
     SwapchainDescriptor swapchainDesc;
     swapchainDesc.preferredImageCount = 3;
     swapchainDesc.preferredFormat = {VK_FORMAT_B8G8R8A8_SRGB, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR};
+    swapchainDesc.preferredFormat = {VK_FORMAT_A2R10G10B10_UNORM_PACK32, VK_COLOR_SPACE_HDR10_ST2084_EXT};
+
     swapchainDesc.preferredExtent = {windowDescriptor.width, windowDescriptor.height};
 
     configure_vulkan_wm_swapchain(root, backend, swapchainDesc, backend.presentInfo);

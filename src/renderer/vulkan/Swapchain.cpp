@@ -121,6 +121,10 @@ VkFormat vulkan_swapchain_view_format_override(VkSurfaceFormatKHR surface_format
 
 using namespace vk;
 
+#if 0
+#include "renderer/window/Win32Window.h"
+#endif
+
 namespace Reaper
 {
 void configure_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backend,
@@ -133,6 +137,26 @@ void configure_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backen
         == VK_SUCCESS);
 
     VkSurfaceCapabilitiesKHR& surfaceCaps = presentInfo.surfaceCaps;
+
+#if 0
+    {
+        Win32Window* win32Window = dynamic_cast<Win32Window*>(root.renderer->window);
+        HMONITOR     monitor = MonitorFromWindow(win32Window->m_handle, MONITOR_DEFAULTTOPRIMARY);
+        VkSurfaceFullScreenExclusiveWin32InfoEXT fullscreen_exclusive_info = {
+            VK_STRUCTURE_TYPE_SURFACE_FULL_SCREEN_EXCLUSIVE_WIN32_INFO_EXT,
+            nullptr,
+            monitor,
+        };
+        VkPhysicalDeviceSurfaceInfo2KHR             hey = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SURFACE_INFO_2_KHR,
+                                               &fullscreen_exclusive_info, presentInfo.surface};
+        VkSurfaceCapabilitiesFullScreenExclusiveEXT fullscreen_caps = {
+            VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_FULL_SCREEN_EXCLUSIVE_EXT, nullptr, {}};
+        VkSurfaceCapabilities2KHR surfaceCaps2 = {VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_2_KHR, &fullscreen_caps, {}};
+
+        Assert(vkGetPhysicalDeviceSurfaceCapabilities2KHR(backend.physicalDevice, &hey, &surfaceCaps2) == VK_SUCCESS);
+        Assert(fullscreen_caps.fullScreenExclusiveSupported == VK_TRUE);
+    }
+#endif
 
     // Choose surface format
     VkSurfaceFormatKHR& surfaceFormat = presentInfo.surfaceFormat;
@@ -178,7 +202,7 @@ void configure_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backen
         log_debug(root, "vulkan: swapchain image count support: min = {}, max = {}", surfaceCaps.minImageCount,
                   surfaceCaps.maxImageCount);
 
-        imageCount = swapchainDesc.preferredImageCount;
+        imageCount = 3;
         if (imageCount < surfaceCaps.minImageCount)
             imageCount = surfaceCaps.minImageCount;
         else if (surfaceCaps.maxImageCount > 0 && imageCount > surfaceCaps.maxImageCount)
@@ -242,13 +266,25 @@ void create_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backend, 
     REAPER_PROFILE_SCOPE_FUNC();
     log_debug(root, "vulkan: creating wm swapchain");
 
+#if 0
+    VkSurfaceFullScreenExclusiveInfoEXT fullscreen_info = {
+        VK_STRUCTURE_TYPE_SURFACE_FULL_SCREEN_EXCLUSIVE_INFO_EXT,
+        nullptr,
+        VK_FULL_SCREEN_EXCLUSIVE_APPLICATION_CONTROLLED_EXT,
+    };
+#endif
+
     const std::vector<VkFormat> view_formats = {
         presentInfo.view_format,
     };
 
     const VkImageFormatListCreateInfo format_list = {
         VK_STRUCTURE_TYPE_IMAGE_FORMAT_LIST_CREATE_INFO,
+#if 0
+        &fullscreen_info,
+#else
         nullptr,
+#endif
         static_cast<u32>(view_formats.size()),
         view_formats.data(),
     };

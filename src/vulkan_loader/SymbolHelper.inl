@@ -169,6 +169,12 @@ REAPER_VK_DEVICE_LEVEL_FUNCTION(vkCmdPipelineBarrier)
 #    include "extension/VK_EXT_debug_utils.inl"
 #endif
 
+#if 0
+#    include "extension/VK_EXT_full_screen_exclusive.inl"
+#    include "extension/VK_EXT_hdr_metadata.inl"
+#endif
+#include "extension/VK_KHR_get_surface_capabilities2.inl"
+
 #undef REAPER_VK_EXPORTED_FUNCTION
 #undef REAPER_VK_GLOBAL_LEVEL_FUNCTION
 #undef REAPER_VK_INSTANCE_LEVEL_FUNCTION

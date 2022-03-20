@@ -8,6 +8,9 @@
 #ifndef LIB_EOTF_INCLUDED
 #define LIB_EOTF_INCLUDED
 
+// -----------------------------------------------------------------------------
+// sRGB
+
 float3 srgb_eotf(float3 color)
 {
     // Looks like the gamma 2.2 function
@@ -33,6 +36,7 @@ float3 srgb_eotf_inverse_fast(float3 x)
 }
 
 // -----------------------------------------------------------------------------
+// Rec.709
 
 float3 rec709_eotf(float3 color)
 {
@@ -45,7 +49,9 @@ float3 rec709_eotf_inverse(float3 x)
 }
 
 // -----------------------------------------------------------------------------
+// ST.2084 (or PQ)
 
+static const float PQ_MAX_NITS = 10000.0;
 static const float PQ_M1 = 2610.0 / 4096.0 / 4.0;
 static const float PQ_M2 = 2523.0 / 4096.0 * 128.0;
 static const float PQ_C1 = 3424.0 / 4096.0;
@@ -65,6 +71,7 @@ float3 pq_eotf_inverse(float3 pq_eotf_color)
 }
 
 // -----------------------------------------------------------------------------
+// Miscellaneous
 
 float3 gamma22(float3 color)
 {

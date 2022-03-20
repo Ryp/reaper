@@ -184,6 +184,26 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         upload_audio_frame_resources(backend, prepared, resources.audio_resources);
     }
 
+#if 0
+    VkHdrMetadataEXT hdrMetaData = {};
+    hdrMetaData.sType = VK_STRUCTURE_TYPE_HDR_METADATA_EXT, hdrMetaData.pNext = nullptr,
+    hdrMetaData.displayPrimaryRed.x = 0.708f;
+    hdrMetaData.displayPrimaryRed.y = 0.292f;
+    hdrMetaData.displayPrimaryGreen.x = 0.170f;
+    hdrMetaData.displayPrimaryGreen.y = 0.797f;
+    hdrMetaData.displayPrimaryBlue.x = 0.131f;
+    hdrMetaData.displayPrimaryBlue.y = 0.046f;
+    hdrMetaData.minLuminance = 0.0f;
+    hdrMetaData.maxLuminance =
+        10000.0f; // This will cause tonemapping to happen on display end as long as it's greater than display's actual
+                  // queried max luminance. The look will change and it will be display dependent!
+    hdrMetaData.maxContentLightLevel = 10000.0f;
+    hdrMetaData.maxFrameAverageLightLevel =
+        400.0f; // max and average content light level data will be used to do tonemapping on display
+
+    vkSetHdrMetadataEXT(backend.device, 1, &backend.presentInfo.swapchain, &hdrMetaData);
+#endif
+
     FrameGraph::FrameGraph framegraph;
 
     using namespace FrameGraph;
@@ -562,6 +582,9 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     VkResult presentResult = vkQueuePresentKHR(backend.deviceInfo.presentQueue, &presentInfo);
     // NOTE: window can change state between event handling and presenting, so it's normal to get OOD events.
     Assert(presentResult == VK_SUCCESS || presentResult == VK_ERROR_OUT_OF_DATE_KHR);
+
+    // VkResult acquireFullscreenResult = vkAcquireFullScreenExclusiveModeEXT(backend.device,
+    // backend.presentInfo.swapchain); Assert(acquireFullscreenResult == VK_SUCCESS);
 
     {
         const VkResult event_status = vkGetEventStatus(backend.device, resources.cull_resources.countersReadyEvent);

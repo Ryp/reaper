@@ -62,6 +62,9 @@ Win32Window::Win32Window(const WindowCreationDescriptor& creationInfo)
     : m_instance()
     , m_handle()
 {
+    // Make sure Windows doesn't do any rescaling behind our backs
+    Assert(SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE) != FALSE);
+
     m_instance = GetModuleHandle(nullptr);
     Assert(m_instance != nullptr);
 
@@ -88,23 +91,23 @@ Win32Window::Win32Window(const WindowCreationDescriptor& creationInfo)
         return;
     }
 
-    constexpr u32 DefaultX = 40;
-    constexpr u32 DefaultY = DefaultX;
+    constexpr i32 DefaultX = 0;
+    constexpr i32 DefaultY = 0;
 
     RECT rect;
     rect.left = DefaultX;
     rect.top = DefaultY;
-    rect.right = creationInfo.width + DefaultX;
-    rect.bottom = creationInfo.height + DefaultY;
+    rect.right = DefaultX + creationInfo.width;
+    rect.bottom = DefaultY + creationInfo.height;
 
-    const DWORD style = WS_OVERLAPPEDWINDOW;
+    const DWORD style = WS_POPUP;
     const HWND  parent = nullptr;
 
     const HMENU menu = nullptr;
     const BOOL  hasMenu = (menu == nullptr ? FALSE : TRUE);
 
-    // Adjust rect to account for window decorations so we get the desired resolution
-    Assert(AdjustWindowRect(&rect, style, hasMenu) != FALSE);
+    // Adjust rect to account for window decorations and dpi so we get the desired resolution
+    Assert(AdjustWindowRectExForDpi(&rect, style, hasMenu, 0, 96) != FALSE);
 
     const LPVOID param = nullptr;
 
@@ -125,7 +128,14 @@ Win32Window::~Win32Window()
 
 void Win32Window::map()
 {
+    LONG exStyle = GetWindowLong(m_handle, GWL_EXSTYLE);
+    LONG style = GetWindowLong(m_handle, GWL_STYLE);
+
+    SetWindowLong(m_handle, GWL_STYLE, (style & ~WS_OVERLAPPEDWINDOW) | WS_POPUPWINDOW);
+    SetWindowLong(m_handle, GWL_EXSTYLE, exStyle | WS_EX_TOPMOST);
+
     ShowWindow(m_handle, SW_SHOWNORMAL);
+
     UpdateWindow(m_handle);
 }
 
@@ -144,7 +154,8 @@ void Win32Window::pumpEvents(std::vector<Window::Event>& eventOutput)
     {
         switch (message.message)
         {
-        case REAPER_WM_UPDATE_SIZE: {
+        case REAPER_WM_UPDATE_SIZE:
+        {
             const WindowSize window_size = getWindowSize(m_handle);
             eventOutput.emplace_back(Window::createResizeEvent(window_size.width, window_size.height));
             break;

@@ -34,16 +34,22 @@ namespace
     {
         switch (surface_format.colorSpace)
         {
-        case VK_COLOR_SPACE_SRGB_NONLINEAR_KHR: {
+        case VK_COLOR_SPACE_SRGB_NONLINEAR_KHR:
+        {
             switch (view_format)
             {
             case VK_FORMAT_B8G8R8A8_SRGB:
             case VK_FORMAT_R8G8B8A8_SRGB:
             case VK_FORMAT_A8B8G8R8_SRGB_PACK32:
                 return TRANSFER_FUNC_LINEAR; // The EOTF is performed by the view format
+            case VK_FORMAT_R16G16B16A16_UNORM:
+            case VK_FORMAT_A2R10G10B10_UNORM_PACK32:
+                return TRANSFER_FUNC_SRGB; // We have to manually apply the EOTF
             default:
-                break; // This shouldn't happen
+                break;
             }
+
+            AssertUnreachable();
             break;
         }
         case VK_COLOR_SPACE_BT709_LINEAR_EXT:
