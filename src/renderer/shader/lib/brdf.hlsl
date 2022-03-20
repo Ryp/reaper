@@ -8,7 +8,7 @@
 #ifndef LIB_BRDF_INCLUDED
 #define LIB_BRDF_INCLUDED
 
-#include "constants.h"
+#include "constants.hlsl"
 
 // Quick and dirty copy/paste from this blog:
 // http://filmicworlds.com/blog/optimizing-ggx-shaders-with-dotlh/

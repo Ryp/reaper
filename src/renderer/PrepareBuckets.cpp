@@ -275,7 +275,6 @@ void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCa
     // Swapchain pass
     {
         SwapchainPassParams params = {};
-        params.dummy_boost = 1.f;
 
         prepared.swapchain_pass_params = params;
     }

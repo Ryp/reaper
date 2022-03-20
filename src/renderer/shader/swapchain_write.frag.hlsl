@@ -13,7 +13,8 @@ VK_CONSTANT(2) const uint spec_tonemap_function = 0;
 
 VK_BINDING(0, 0) ConstantBuffer<SwapchainPassParams> pass_params;
 VK_BINDING(1, 0) SamplerState linear_sampler;
-VK_BINDING(2, 0) Texture2D<float3> t_hdr_color;
+VK_BINDING(2, 0) Texture2D<float3> t_hdr_scene;
+VK_BINDING(3, 0) Texture2D<float4> t_ldr_gui;
 
 struct PS_INPUT
 {
@@ -85,10 +86,18 @@ static const float exposure = 1.f; // FIXME
 void main(in PS_INPUT input, out PS_OUTPUT output)
 {
     // Unexposed scene color in linear sRGB
-    float3 color = t_hdr_color.SampleLevel(linear_sampler, input.PositionUV, 0);
+    float3 color = t_hdr_scene.SampleLevel(linear_sampler, input.PositionUV, 0);
+    float4 ldr_gui_color = t_ldr_gui.SampleLevel(linear_sampler, input.PositionUV, 0);
 
     color *= exposure;
     color = apply_tonemapping_operator(color, spec_tonemap_function);
+
+    // Blend in GUI
+    // FIXME This is wrong:
+    // - dynamic range (SDR vs HDR and paperwhite constants)
+    // - alpha blending
+    // - probably more
+    color = lerp(color, ldr_gui_color.rgb, ldr_gui_color.a);
 
     // Display transforms
     color = apply_output_color_space_transform(color, spec_color_space);

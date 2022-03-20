@@ -38,30 +38,32 @@ void create_backend_resources(ReaperRoot& root, VulkanBackend& backend)
     const glm::uvec2 swapchain_extent(backend.presentInfo.surfaceExtent.width,
                                       backend.presentInfo.surfaceExtent.height);
 
-    resources.mesh_cache = create_mesh_cache(root, backend);
-    resources.material_resources = create_material_resources(root, backend);
-    resources.cull_resources = create_culling_resources(root, backend);
-    resources.shadow_map_resources = create_shadow_map_resources(root, backend);
-    resources.main_pass_resources = create_main_pass_resources(root, backend, swapchain_extent);
-    resources.histogram_pass_resources = create_histogram_pass_resources(root, backend);
-    resources.swapchain_pass_resources = create_swapchain_pass_resources(root, backend, swapchain_extent);
-    resources.frame_sync_resources = create_frame_sync_resources(root, backend);
     resources.audio_resources = create_audio_resources(root, backend);
+    resources.cull_resources = create_culling_resources(root, backend);
+    resources.frame_sync_resources = create_frame_sync_resources(root, backend);
+    resources.gui_pass_resources = create_gui_pass_resources(root, backend, swapchain_extent);
+    resources.histogram_pass_resources = create_histogram_pass_resources(root, backend);
+    resources.main_pass_resources = create_main_pass_resources(root, backend, swapchain_extent);
+    resources.material_resources = create_material_resources(root, backend);
+    resources.mesh_cache = create_mesh_cache(root, backend);
+    resources.shadow_map_resources = create_shadow_map_resources(root, backend);
+    resources.swapchain_pass_resources = create_swapchain_pass_resources(root, backend, swapchain_extent);
 }
 
 void destroy_backend_resources(VulkanBackend& backend)
 {
     BackendResources& resources = *backend.resources;
 
-    destroy_swapchain_pass_resources(backend, resources.swapchain_pass_resources);
+    destroy_audio_resources(backend, resources.audio_resources);
+    destroy_culling_resources(backend, resources.cull_resources);
+    destroy_frame_sync_resources(backend, resources.frame_sync_resources);
+    destroy_gui_pass_resources(backend, resources.gui_pass_resources);
     destroy_histogram_pass_resources(backend, resources.histogram_pass_resources);
     destroy_main_pass_resources(backend, resources.main_pass_resources);
-    destroy_shadow_map_resources(backend, resources.shadow_map_resources);
-    destroy_culling_resources(backend, resources.cull_resources);
     destroy_material_resources(backend, resources.material_resources);
     destroy_mesh_cache(backend, resources.mesh_cache);
-    destroy_frame_sync_resources(backend, resources.frame_sync_resources);
-    destroy_audio_resources(backend, resources.audio_resources);
+    destroy_shadow_map_resources(backend, resources.shadow_map_resources);
+    destroy_swapchain_pass_resources(backend, resources.swapchain_pass_resources);
 
     vkFreeCommandBuffers(backend.device, resources.graphicsCommandPool, 1, &resources.gfxCmdBuffer.handle);
     vkDestroyCommandPool(backend.device, resources.graphicsCommandPool, nullptr);

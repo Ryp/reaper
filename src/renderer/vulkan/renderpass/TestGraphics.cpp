@@ -86,6 +86,7 @@ void resize_swapchain(ReaperRoot& root, VulkanBackend& backend, BackendResources
 
         resize_main_pass_resources(root, backend, resources.main_pass_resources, new_swapchain_extent);
         resize_swapchain_pass_resources(root, backend, resources.swapchain_pass_resources, new_swapchain_extent);
+        resize_gui_pass_resources(root, backend, resources.gui_pass_resources, new_swapchain_extent);
 
         backend.new_swapchain_extent.width = 0;
         backend.new_swapchain_extent.height = 0;
@@ -174,7 +175,8 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     update_histogram_pass_descriptor_set(backend, resources.histogram_pass_resources,
                                          resources.main_pass_resources.hdrBufferView);
     update_swapchain_pass_descriptor_set(backend, resources.swapchain_pass_resources,
-                                         resources.main_pass_resources.hdrBufferView);
+                                         resources.main_pass_resources.hdrBufferView,
+                                         resources.gui_pass_resources.guiTextureView);
     update_audio_pass_descriptor_set(backend, resources.audio_resources);
 
     log_debug(root, "vulkan: record command buffer");
@@ -219,6 +221,21 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
                                  &swapchainImageBarrierInfo);
         }
 
+        VkImageMemoryBarrier guiImageBarrierInfo = {
+            VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+            nullptr,
+            0,
+            VK_ACCESS_SHADER_READ_BIT,
+            VK_IMAGE_LAYOUT_UNDEFINED,
+            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            VK_QUEUE_FAMILY_IGNORED,
+            VK_QUEUE_FAMILY_IGNORED,
+            resources.gui_pass_resources.guiTexture.handle,
+            {VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS}};
+
+        vkCmdPipelineBarrier(cmdBuffer.handle, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+                             VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 1, &guiImageBarrierInfo);
+
         backend.mustTransitionSwapchain = false;
     }
 
@@ -230,14 +247,37 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     record_main_pass_command_buffer(cmdBuffer, backend, prepared, resources.main_pass_resources,
                                     resources.cull_resources, resources.mesh_cache, backbufferExtent);
 
+    // Render GUI
+    {
+        {
+            VkImageMemoryBarrier guiImageBarrierInfo = {
+                VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+                nullptr,
+                VK_ACCESS_SHADER_READ_BIT,
+                VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                VK_QUEUE_FAMILY_IGNORED,
+                VK_QUEUE_FAMILY_IGNORED,
+                resources.gui_pass_resources.guiTexture.handle,
+                {VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS}};
+
+            vkCmdPipelineBarrier(cmdBuffer.handle, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                                 VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 0, 0, nullptr, 0, nullptr, 1,
+                                 &guiImageBarrierInfo);
+        }
+
+        record_gui_command_buffer(cmdBuffer, resources.gui_pass_resources);
+    }
+
     {
         REAPER_PROFILE_SCOPE_GPU(cmdBuffer.mlog, "Barrier", MP_RED);
 
         VkImageMemoryBarrier hdrImageBarrierInfo = {
             VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
             nullptr,
-            0,
-            VK_ACCESS_MEMORY_READ_BIT,
+            VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+            VK_ACCESS_SHADER_READ_BIT,
             VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
             VK_QUEUE_FAMILY_IGNORED,
@@ -245,11 +285,26 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
             resources.main_pass_resources.hdrBuffer.handle,
             {VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS}};
 
-        vkCmdPipelineBarrier(cmdBuffer.handle, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
-                             0, 0, nullptr, 0, nullptr, 1, &hdrImageBarrierInfo);
+        VkImageMemoryBarrier guiImageBarrierInfo = {
+            VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+            nullptr,
+            VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+            VK_ACCESS_SHADER_READ_BIT,
+            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            VK_QUEUE_FAMILY_IGNORED,
+            VK_QUEUE_FAMILY_IGNORED,
+            resources.gui_pass_resources.guiTexture.handle,
+            {VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS}};
+
+        // FIXME Batch
+        vkCmdPipelineBarrier(cmdBuffer.handle, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                             VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 1, &hdrImageBarrierInfo);
+        vkCmdPipelineBarrier(cmdBuffer.handle, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                             VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 1, &guiImageBarrierInfo);
     }
 
-    record_histogram_command_buffer(cmdBuffer, frame_data, resources.histogram_pass_resources);
+    // record_histogram_command_buffer(cmdBuffer, frame_data, resources.histogram_pass_resources);
 
     record_swapchain_command_buffer(cmdBuffer, frame_data, resources.swapchain_pass_resources,
                                     backend.presentInfo.imageViews[current_swapchain_index]);

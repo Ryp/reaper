@@ -55,7 +55,7 @@ void resize_swapchain_pass_resources(ReaperRoot& root, VulkanBackend& backend, S
                                      glm::uvec2 extent);
 
 void update_swapchain_pass_descriptor_set(VulkanBackend& backend, const SwapchainPassResources& resources,
-                                          VkImageView texture_view);
+                                          VkImageView hdr_scene_texture_view, VkImageView gui_texture_view);
 
 struct PreparedData;
 

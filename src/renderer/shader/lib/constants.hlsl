@@ -9,6 +9,7 @@
 #define LIB_CONSTANTS_INCLUDED
 
 static const float PI = 3.141592f;
-static const float TWO_PI = 2.f * PI;
+static const float TAU = 6.2831853071;
+static const float TWO_PI = TAU;
 
 #endif
