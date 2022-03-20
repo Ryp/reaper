@@ -383,10 +383,6 @@ namespace
 {
     void create_main_pass_resizable_resources(ReaperRoot& root, VulkanBackend& backend, MainPassResources& resources)
     {
-        resources.hdrBuffer =
-            create_image(root, backend.device, "Main HDR Target", resources.hdrBuffer.properties, backend.vma_instance);
-        resources.hdrBufferView = create_default_image_view(root, backend.device, resources.hdrBuffer);
-
         resources.depthBuffer = create_image(root, backend.device, "Main Depth Target",
                                              resources.depthBuffer.properties, backend.vma_instance);
         resources.depthBufferView = create_depth_image_view(root, backend.device, resources.depthBuffer);
@@ -394,26 +390,18 @@ namespace
 
     void destroy_main_pass_resizable_resources(VulkanBackend& backend, MainPassResources& resources)
     {
-        vkDestroyImageView(backend.device, resources.hdrBufferView, nullptr);
-        vmaDestroyImage(backend.vma_instance, resources.hdrBuffer.handle, resources.hdrBuffer.allocation);
         vkDestroyImageView(backend.device, resources.depthBufferView, nullptr);
         vmaDestroyImage(backend.vma_instance, resources.depthBuffer.handle, resources.depthBuffer.allocation);
 
-        resources.hdrBuffer = {};
-        resources.hdrBufferView = VK_NULL_HANDLE;
         resources.depthBuffer = {};
         resources.depthBufferView = VK_NULL_HANDLE;
     }
 
     void update_resource_properties(MainPassResources& resources, glm::uvec2 extent)
     {
-        GPUTextureProperties hdrProperties = DefaultGPUTextureProperties(extent.x, extent.y, ColorFormat);
-        hdrProperties.usageFlags = GPUTextureUsage::ColorAttachment | GPUTextureUsage::Sampled;
-
         GPUTextureProperties depthProperties = DefaultGPUTextureProperties(extent.x, extent.y, DepthFormat);
         depthProperties.usageFlags = GPUTextureUsage::DepthStencilAttachment;
 
-        resources.hdrBuffer.properties = hdrProperties;
         resources.depthBuffer.properties = depthProperties;
     }
 
@@ -572,7 +560,8 @@ void upload_main_pass_frame_resources(VulkanBackend& backend, const PreparedData
 
 void record_main_pass_command_buffer(CommandBuffer& cmdBuffer, VulkanBackend& backend, const PreparedData& prepared,
                                      const MainPassResources& pass_resources, const CullResources& cull_resources,
-                                     const MeshCache& mesh_cache, VkExtent2D backbufferExtent)
+                                     const MeshCache& mesh_cache, VkExtent2D backbufferExtent,
+                                     VkImageView hdrBufferView)
 {
     REAPER_PROFILE_SCOPE_GPU(cmdBuffer.mlog, "Main Pass", MP_DARKGOLDENROD);
 
@@ -583,7 +572,7 @@ void record_main_pass_command_buffer(CommandBuffer& cmdBuffer, VulkanBackend& ba
     const VkRenderingAttachmentInfo color_attachment = {
         VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
         nullptr,
-        pass_resources.hdrBufferView,
+        hdrBufferView,
         VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
         VK_RESOLVE_MODE_NONE,
         VK_NULL_HANDLE,

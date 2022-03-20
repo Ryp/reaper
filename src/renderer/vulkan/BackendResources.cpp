@@ -38,6 +38,7 @@ void create_backend_resources(ReaperRoot& root, VulkanBackend& backend)
     const glm::uvec2 swapchain_extent(backend.presentInfo.surfaceExtent.width,
                                       backend.presentInfo.surfaceExtent.height);
 
+    resources.framegraph_resources = {}; // framegraph resources are created later
     resources.audio_resources = create_audio_resources(root, backend);
     resources.cull_resources = create_culling_resources(root, backend);
     resources.frame_sync_resources = create_frame_sync_resources(root, backend);
@@ -64,6 +65,7 @@ void destroy_backend_resources(VulkanBackend& backend)
     destroy_mesh_cache(backend, resources.mesh_cache);
     destroy_shadow_map_resources(backend, resources.shadow_map_resources);
     destroy_swapchain_pass_resources(backend, resources.swapchain_pass_resources);
+    destroy_framegraph_resources(backend, resources.framegraph_resources);
 
     vkFreeCommandBuffers(backend.device, resources.graphicsCommandPool, 1, &resources.gfxCmdBuffer.handle);
     vkDestroyCommandPool(backend.device, resources.graphicsCommandPool, nullptr);

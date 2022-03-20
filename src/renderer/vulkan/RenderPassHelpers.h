@@ -49,9 +49,4 @@ inline VkClearValue VkClearDepthStencil(float depth, u32 stencil)
 
     return clearValue;
 }
-
-struct GPUTextureProperties;
-
-VkFramebufferAttachmentImageInfo get_attachment_info_from_image_properties(const GPUTextureProperties& properties,
-                                                                           VkFormat* output_format_ptr);
 } // namespace Reaper

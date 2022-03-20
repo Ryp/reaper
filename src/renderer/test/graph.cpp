@@ -43,7 +43,7 @@ namespace FrameGraph
 
         void ShadowPass(FrameGraphBuilder& builder, ShadowPassOutput& output)
         {
-            const RenderPassHandle shadowPass = builder.CreateRenderPass("Shadow");
+            const RenderPassHandle shadowPass = builder.create_render_pass("Shadow");
 
             // Outputs
             {
@@ -55,14 +55,14 @@ namespace FrameGraph
                 shadowRTUsage.Layout = EImageLayout::ColorAttachmentOptimal;
 
                 const ResourceUsageHandle shadowRTHandle =
-                    builder.CreateTexture(shadowPass, "VSM", shadowRTDesc, shadowRTUsage);
+                    builder.create_texture(shadowPass, "VSM", shadowRTDesc, shadowRTUsage);
                 output.ShadowRT = shadowRTHandle;
             }
         }
 
         void GBufferPass(FrameGraphBuilder& builder, GBufferPassOutput& output)
         {
-            const RenderPassHandle gbufferPass = builder.CreateRenderPass("GBuffer");
+            const RenderPassHandle gbufferPass = builder.create_render_pass("GBuffer");
 
             // Outputs
             {
@@ -74,21 +74,21 @@ namespace FrameGraph
                 gbufferUsage.Layout = EImageLayout::ColorAttachmentOptimal;
 
                 const ResourceUsageHandle gbufferRTHandle =
-                    builder.CreateTexture(gbufferPass, "GBuffer", gbufferRTDesc, gbufferUsage);
+                    builder.create_texture(gbufferPass, "GBuffer", gbufferRTDesc, gbufferUsage);
                 output.GBufferRT = gbufferRTHandle;
             }
         }
 
         void UselessPass(FrameGraphBuilder& builder, const GBufferPassOutput& gBufferInput)
         {
-            const RenderPassHandle uselessPass = builder.CreateRenderPass("PruneMe");
+            const RenderPassHandle uselessPass = builder.create_render_pass("PruneMe");
 
             // Inputs
             {
                 TGPUTextureUsage gbufferRTUsage = {};
                 gbufferRTUsage.Layout = EImageLayout::ShaderReadOnlyOptimal;
 
-                builder.ReadTexture(uselessPass, gBufferInput.GBufferRT, gbufferRTUsage);
+                builder.read_texture(uselessPass, gBufferInput.GBufferRT, gbufferRTUsage);
             }
 
             // Outputs
@@ -102,7 +102,7 @@ namespace FrameGraph
                 uselessRTUsage.Layout = EImageLayout::ColorAttachmentOptimal;
 
                 const ResourceUsageHandle uselessRTHandle =
-                    builder.CreateTexture(uselessPass, "UselessTexture", uselessRTDesc, uselessRTUsage);
+                    builder.create_texture(uselessPass, "UselessTexture", uselessRTDesc, uselessRTUsage);
 
                 (void)uselessRTHandle; // FIXME
             };
@@ -111,7 +111,7 @@ namespace FrameGraph
         void LightingPass(FrameGraphBuilder& builder, LightingPassOutput& output, const ShadowPassOutput& shadowOutput,
                           const GBufferPassOutput& gBufferInput)
         {
-            const RenderPassHandle lightingPass = builder.CreateRenderPass("Lighting");
+            const RenderPassHandle lightingPass = builder.create_render_pass("Lighting");
 
             // Inputs
             {
@@ -121,8 +121,8 @@ namespace FrameGraph
                 TGPUTextureUsage shadowRTUsage = {};
                 shadowRTUsage.Layout = EImageLayout::ShaderReadOnlyOptimal;
 
-                builder.ReadTexture(lightingPass, gBufferInput.GBufferRT, gbufferRTUsage);
-                builder.ReadTexture(lightingPass, shadowOutput.ShadowRT, shadowRTUsage);
+                builder.read_texture(lightingPass, gBufferInput.GBufferRT, gbufferRTUsage);
+                builder.read_texture(lightingPass, shadowOutput.ShadowRT, shadowRTUsage);
             }
 
             // Outputs
@@ -135,7 +135,7 @@ namespace FrameGraph
                 opaqueRTUsage.Layout = EImageLayout::ColorAttachmentOptimal;
 
                 const ResourceUsageHandle opaqueRTHandle =
-                    builder.CreateTexture(lightingPass, "Opaque", opaqueRTDesc, opaqueRTUsage);
+                    builder.create_texture(lightingPass, "Opaque", opaqueRTDesc, opaqueRTUsage);
                 output.OpaqueRT = opaqueRTHandle;
             }
         }
@@ -143,14 +143,14 @@ namespace FrameGraph
         void CompositePass(FrameGraphBuilder& builder, CompositePassOutput& output,
                            const LightingPassOutput& lightingOutput)
         {
-            const RenderPassHandle compositePass = builder.CreateRenderPass("Composite");
+            const RenderPassHandle compositePass = builder.create_render_pass("Composite");
 
             // Inputs
             {
                 TGPUTextureUsage opaqueRTUsage = {};
                 opaqueRTUsage.Layout = EImageLayout::ColorAttachmentOptimal;
 
-                builder.ReadTexture(compositePass, lightingOutput.OpaqueRT, opaqueRTUsage);
+                builder.read_texture(compositePass, lightingOutput.OpaqueRT, opaqueRTUsage);
             }
 
             // Outputs
@@ -163,7 +163,7 @@ namespace FrameGraph
                 backBufferRTUsage.Layout = EImageLayout::ColorAttachmentOptimal;
 
                 const ResourceUsageHandle backBufferRTHandle =
-                    builder.CreateTexture(compositePass, "BackBuffer", backBufferRTDesc, backBufferRTUsage);
+                    builder.create_texture(compositePass, "BackBuffer", backBufferRTDesc, backBufferRTUsage);
                 output.BackBufferRT = backBufferRTHandle;
             }
         }
@@ -171,14 +171,14 @@ namespace FrameGraph
         void PresentPass(FrameGraphBuilder& builder, const CompositePassOutput& compositeOutput)
         {
             const bool             HasSideEffects = true;
-            const RenderPassHandle presentPass = builder.CreateRenderPass("Present", HasSideEffects);
+            const RenderPassHandle presentPass = builder.create_render_pass("Present", HasSideEffects);
 
             // Inputs
             {
                 TGPUTextureUsage backBufferRTUsage = {};
                 backBufferRTUsage.Layout = EImageLayout::ColorAttachmentOptimal;
 
-                builder.ReadTexture(presentPass, compositeOutput.BackBufferRT, backBufferRTUsage);
+                builder.read_texture(presentPass, compositeOutput.BackBufferRT, backBufferRTUsage);
             }
         }
 
@@ -209,7 +209,7 @@ TEST_CASE("Frame Graph")
 
     RecordFrame(builder);
 
-    builder.Build();
+    builder.build();
 
     // DumpFrameGraph(frameGraph);
 }

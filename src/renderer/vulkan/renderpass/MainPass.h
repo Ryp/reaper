@@ -37,8 +37,6 @@ struct MainPassResources
     BufferInfo drawPassConstantBuffer;
     BufferInfo drawInstanceConstantBuffer;
 
-    ImageInfo   hdrBuffer;
-    VkImageView hdrBufferView;
     ImageInfo   depthBuffer;
     VkImageView depthBufferView;
 
@@ -74,5 +72,6 @@ struct MeshCache;
 
 void record_main_pass_command_buffer(CommandBuffer& cmdBuffer, VulkanBackend& backend, const PreparedData& prepared,
                                      const MainPassResources& pass_resources, const CullResources& cull_resources,
-                                     const MeshCache& mesh_cache, VkExtent2D backbufferExtent);
+                                     const MeshCache& mesh_cache, VkExtent2D backbufferExtent,
+                                     VkImageView hdrBufferView);
 } // namespace Reaper

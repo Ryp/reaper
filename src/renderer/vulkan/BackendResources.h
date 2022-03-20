@@ -8,6 +8,7 @@
 #pragma once
 
 #include "CommandBuffer.h"
+#include "FrameGraphResources.h"
 #include "FrameSync.h"
 #include "MaterialResources.h"
 #include "MeshCache.h"
@@ -29,6 +30,7 @@ namespace Reaper
 struct BackendResources
 {
     // TODO remove *_resources suffix
+    FrameGraphResources    framegraph_resources;
     MeshCache              mesh_cache;
     MaterialResources      material_resources;
     CullResources          cull_resources;

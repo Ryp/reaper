@@ -21,8 +21,11 @@
 
 #include "renderer/Mesh2.h"
 #include "renderer/texture/GPUTextureProperties.h"
+#include "renderer/texture/GPUTextureView.h"
 #include "renderer/window/Event.h"
 #include "renderer/window/Window.h"
+
+#include "renderer/graph/FrameGraphBuilder.h"
 
 #include "common/Log.h"
 #include "common/ReaperRoot.h"
@@ -167,15 +170,57 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     upload_swapchain_frame_resources(backend, prepared, resources.swapchain_pass_resources);
     upload_audio_frame_resources(backend, prepared, resources.audio_resources);
 
+    FrameGraph::FrameGraph frame_graph;
+
+    using namespace FrameGraph;
+
+    FrameGraphBuilder builder(frame_graph);
+
+    // Main
+    const RenderPassHandle main_pass_handle = builder.create_render_pass("Main Pass");
+
+    constexpr PixelFormat HDRColorFormat = PixelFormat::B10G11R11_UFLOAT_PACK32;
+    GPUTextureProperties  scene_hdr_properties =
+        DefaultGPUTextureProperties(backbufferExtent.width, backbufferExtent.height, HDRColorFormat);
+    scene_hdr_properties.usageFlags = GPUTextureUsage::ColorAttachment | GPUTextureUsage::Sampled; // FIXME deduced?
+
+    const GPUTextureView scene_hdr_view = DefaultGPUTextureView(scene_hdr_properties);
+    TGPUTextureUsage     scene_hdr_texture_usage = {};
+    scene_hdr_texture_usage.LoadOp = ELoadOp::DontCare;
+    scene_hdr_texture_usage.Layout = EImageLayout::ColorAttachmentOptimal;
+    scene_hdr_texture_usage.view = scene_hdr_view;
+
+    const ResourceUsageHandle main_hdr_usage_handle =
+        builder.create_texture(main_pass_handle, "Scene HDR", scene_hdr_properties, scene_hdr_texture_usage);
+
+    // Swapchain
+    const RenderPassHandle swapchain_pass_handle = builder.create_render_pass("Swapchain Pass", true);
+
+    TGPUTextureUsage swapchain_hdr_usage = {};
+    swapchain_hdr_usage.LoadOp = ELoadOp::DontCare;
+    swapchain_hdr_usage.Layout = EImageLayout::ColorAttachmentOptimal;
+    swapchain_hdr_usage.view = scene_hdr_view;
+
+    const ResourceUsageHandle swapchain_hdr_usage_handle =
+        builder.read_texture(swapchain_pass_handle, main_hdr_usage_handle, swapchain_hdr_usage);
+    builder.build();
+
+    allocate_framegraph_resources(root, backend, resources.framegraph_resources, frame_graph);
+
+    const ResourceUsage& main_hdr_usage = GetResourceUsage(frame_graph, main_hdr_usage_handle);
+    const ResourceHandle main_hdr_resource_handle = main_hdr_usage.Resource;
+
+    ImageInfo& hdrBuffer = get_frame_graph_texture(resources.framegraph_resources, main_hdr_resource_handle);
+
     update_culling_pass_descriptor_sets(backend, prepared, resources.cull_resources, resources.mesh_cache);
     update_shadow_map_pass_descriptor_sets(backend, prepared, resources.shadow_map_resources);
     update_main_pass_descriptor_sets(backend, resources.main_pass_resources, resources.material_resources,
                                      resources.shadow_map_resources.shadowMapView);
-    update_histogram_pass_descriptor_set(backend, resources.histogram_pass_resources,
-                                         resources.main_pass_resources.hdrBufferView);
-    update_swapchain_pass_descriptor_set(backend, resources.swapchain_pass_resources,
-                                         resources.main_pass_resources.hdrBufferView,
-                                         resources.gui_pass_resources.guiTextureView);
+    // update_histogram_pass_descriptor_set(backend, resources.histogram_pass_resources, hdrBufferView);
+    update_swapchain_pass_descriptor_set(
+        backend, resources.swapchain_pass_resources,
+        get_frame_graph_texture_view(resources.framegraph_resources, swapchain_hdr_usage_handle),
+        resources.gui_pass_resources.guiTextureView);
     update_audio_pass_descriptor_set(backend, resources.audio_resources);
 
     log_debug(root, "vulkan: record command buffer");
@@ -196,8 +241,57 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     record_material_upload_command_buffer(resources.material_resources.staging, cmdBuffer);
 
-    // FIXME Right now we recreate shadow maps every frame
-    record_shadow_map_creation_barriers(cmdBuffer, resources.shadow_map_resources);
+    {
+        // FIXME Right now we recreate shadow maps every frame
+        REAPER_PROFILE_SCOPE_GPU(cmdBuffer.mlog, "Barrier", MP_RED);
+
+        std::vector<VkImageMemoryBarrier2> imageBarriers;
+
+        for (ImageInfo& shadow_map : resources.shadow_map_resources.shadowMap)
+        {
+            imageBarriers.emplace_back(VkImageMemoryBarrier2{
+                VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+                nullptr,
+                VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT,
+                VK_ACCESS_2_NONE,
+                VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+                VK_ACCESS_2_SHADER_READ_BIT,
+                VK_IMAGE_LAYOUT_UNDEFINED,
+                VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL,
+                VK_QUEUE_FAMILY_IGNORED,
+                VK_QUEUE_FAMILY_IGNORED,
+                shadow_map.handle,
+                {VK_IMAGE_ASPECT_DEPTH_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS}});
+        }
+
+        imageBarriers.emplace_back(VkImageMemoryBarrier2{
+            VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+            nullptr,
+            VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT,
+            VK_ACCESS_2_NONE,
+            VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, // So that we can keep the barrier before the render pass
+            VK_ACCESS_2_SHADER_READ_BIT,
+            VK_IMAGE_LAYOUT_UNDEFINED,
+            VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL,
+            VK_QUEUE_FAMILY_IGNORED,
+            VK_QUEUE_FAMILY_IGNORED,
+            hdrBuffer.handle,
+            {VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS}});
+
+        const VkDependencyInfo dependencies = {
+            VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+            nullptr,
+            VK_DEPENDENCY_BY_REGION_BIT,
+            0,
+            nullptr,
+            0,
+            nullptr,
+            static_cast<u32>(imageBarriers.size()),
+            imageBarriers.data(),
+        };
+
+        vkCmdPipelineBarrier2(cmdBuffer.handle, &dependencies);
+    }
 
     if (backend.mustTransitionSwapchain)
     {
@@ -222,20 +316,6 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
                 backend.presentInfo.images[swapchainImageIndex],
                 {VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS}});
         }
-
-        imageBarriers.emplace_back(VkImageMemoryBarrier2{
-            VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
-            nullptr,
-            VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT,
-            VK_ACCESS_2_NONE,
-            VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, // So that we can keep the barrier before the render pass
-            VK_ACCESS_2_SHADER_READ_BIT,
-            VK_IMAGE_LAYOUT_UNDEFINED,
-            VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL,
-            VK_QUEUE_FAMILY_IGNORED,
-            VK_QUEUE_FAMILY_IGNORED,
-            resources.main_pass_resources.hdrBuffer.handle,
-            {VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS}});
 
         imageBarriers.emplace_back(VkImageMemoryBarrier2{
             VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
@@ -377,7 +457,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
             VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
             VK_QUEUE_FAMILY_IGNORED,
             VK_QUEUE_FAMILY_IGNORED,
-            resources.main_pass_resources.hdrBuffer.handle,
+            hdrBuffer.handle,
             {VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS}});
 
         const VkDependencyInfo dependencies = {
@@ -395,8 +475,9 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         vkCmdPipelineBarrier2(cmdBuffer.handle, &dependencies);
     }
 
-    record_main_pass_command_buffer(cmdBuffer, backend, prepared, resources.main_pass_resources,
-                                    resources.cull_resources, resources.mesh_cache, backbufferExtent);
+    record_main_pass_command_buffer(
+        cmdBuffer, backend, prepared, resources.main_pass_resources, resources.cull_resources, resources.mesh_cache,
+        backbufferExtent, get_frame_graph_texture_view(resources.framegraph_resources, main_hdr_usage_handle));
 
     // Render GUI
     {
@@ -451,7 +532,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
             VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL,
             VK_QUEUE_FAMILY_IGNORED,
             VK_QUEUE_FAMILY_IGNORED,
-            resources.main_pass_resources.hdrBuffer.handle,
+            hdrBuffer.handle,
             {VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS}});
 
         imageBarriers.emplace_back(VkImageMemoryBarrier2{

@@ -26,12 +26,6 @@ struct HistogramPipelineInfo
     VkDescriptorSetLayout descSetLayout;
 };
 
-struct ReaperRoot;
-struct VulkanBackend;
-struct GPUTextureProperties;
-
-HistogramPipelineInfo create_histogram_pipeline(ReaperRoot& root, VulkanBackend& backend);
-
 struct HistogramPassResources
 {
     BufferInfo passConstantBuffer;
@@ -41,6 +35,9 @@ struct HistogramPassResources
 
     VkDescriptorSet descriptor_set; // FIXME
 };
+
+struct ReaperRoot;
+struct VulkanBackend;
 
 HistogramPassResources create_histogram_pass_resources(ReaperRoot& root, VulkanBackend& backend);
 void destroy_histogram_pass_resources(VulkanBackend& backend, const HistogramPassResources& resources);

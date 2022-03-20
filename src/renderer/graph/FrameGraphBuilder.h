@@ -28,22 +28,22 @@ public:
     FrameGraphBuilder(FrameGraph& frameGraph);
 
 public:
-    RenderPassHandle CreateRenderPass(const char* identifier, bool hasSideEffects = false);
+    RenderPassHandle create_render_pass(const char* identifier, bool hasSideEffects = false);
 
 public:
-    ResourceUsageHandle CreateTexture(RenderPassHandle            renderPass,
-                                      const char*                 name,
-                                      const GPUTextureProperties& resourceDesc,
-                                      TGPUTextureUsage            usage);
+    ResourceUsageHandle create_texture(RenderPassHandle            renderPass,
+                                       const char*                 name,
+                                       const GPUTextureProperties& resourceDesc,
+                                       TGPUTextureUsage            usage);
 
     ResourceUsageHandle
-    ReadTexture(RenderPassHandle renderPass, ResourceUsageHandle inputUsageHandle, TGPUTextureUsage usage);
+    read_texture(RenderPassHandle renderPass, ResourceUsageHandle inputUsageHandle, TGPUTextureUsage usage);
 
     ResourceUsageHandle
     WriteTexture(RenderPassHandle renderPass, ResourceUsageHandle inputUsageHandle, TGPUTextureUsage usage);
 
 public:
-    void Build();
+    void build();
 
 private:
     ResourceHandle

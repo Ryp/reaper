@@ -3,6 +3,7 @@
 #include "FrameGraphBasicTypes.h"
 
 #include "renderer/texture/GPUTextureProperties.h"
+#include "renderer/texture/GPUTextureView.h"
 
 #include <vector>
 
@@ -54,7 +55,6 @@ struct Resource
 
     char                 Identifier[MaxIdentifierLength];
     GPUTextureProperties Descriptor;
-    EntityHandle         entity_handle;
     RenderPassHandle     LifeBegin;
     RenderPassHandle     LifeEnd;
     bool                 IsUsed;
@@ -62,9 +62,10 @@ struct Resource
 
 struct TGPUTextureUsage // FIXME
 {
-    ELoadOp      LoadOp;
-    EStoreOp     StoreOp;
-    EImageLayout Layout;
+    ELoadOp        LoadOp;
+    EStoreOp       StoreOp;
+    EImageLayout   Layout;
+    GPUTextureView view;
 };
 
 struct ResourceUsage

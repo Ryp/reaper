@@ -58,9 +58,6 @@ void update_shadow_map_pass_descriptor_sets(VulkanBackend& backend, const Prepar
                                             ShadowMapResources& pass_resources);
 
 struct CommandBuffer;
-
-void record_shadow_map_creation_barriers(CommandBuffer& cmdBuffer, ShadowMapResources& resources);
-
 struct CullResources;
 
 void record_shadow_map_command_buffer(CommandBuffer& cmdBuffer, VulkanBackend& backend, const PreparedData& prepared,

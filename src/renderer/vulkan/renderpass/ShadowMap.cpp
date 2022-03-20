@@ -372,44 +372,6 @@ void upload_shadow_map_resources(VulkanBackend& backend, const PreparedData& pre
                        prepared.shadow_instance_params.size() * sizeof(ShadowMapInstanceParams));
 }
 
-void record_shadow_map_creation_barriers(CommandBuffer& cmdBuffer, ShadowMapResources& resources)
-{
-    REAPER_PROFILE_SCOPE_GPU(cmdBuffer.mlog, "Barrier", MP_RED);
-
-    std::vector<VkImageMemoryBarrier2> imageBarriers;
-
-    for (ImageInfo& shadow_map : resources.shadowMap)
-    {
-        imageBarriers.emplace_back(VkImageMemoryBarrier2{
-            VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
-            nullptr,
-            VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT,
-            VK_ACCESS_2_NONE,
-            VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
-            VK_ACCESS_2_SHADER_READ_BIT,
-            VK_IMAGE_LAYOUT_UNDEFINED,
-            VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL,
-            VK_QUEUE_FAMILY_IGNORED,
-            VK_QUEUE_FAMILY_IGNORED,
-            shadow_map.handle,
-            {VK_IMAGE_ASPECT_DEPTH_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS}});
-    }
-
-    const VkDependencyInfo dependencies = {
-        VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
-        nullptr,
-        VK_DEPENDENCY_BY_REGION_BIT,
-        0,
-        nullptr,
-        0,
-        nullptr,
-        static_cast<u32>(imageBarriers.size()),
-        imageBarriers.data(),
-    };
-
-    vkCmdPipelineBarrier2(cmdBuffer.handle, &dependencies);
-}
-
 void record_shadow_map_command_buffer(CommandBuffer& cmdBuffer, VulkanBackend& backend, const PreparedData& prepared,
                                       ShadowMapResources& resources, const CullResources& cull_resources,
                                       VkBuffer vertex_position_buffer)

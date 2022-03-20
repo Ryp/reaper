@@ -22,7 +22,6 @@ ResourceHandle FrameGraphBuilder::CreateResource(RenderPassHandle            ren
     newResource.Identifier[Resource::MaxIdentifierLength - 1] = '\0';
 
     newResource.Descriptor = descriptor;
-    newResource.entity_handle = InvalidEntityHandle;
     newResource.LifeBegin = renderPassHandle;
     newResource.LifeEnd = renderPassHandle;
 
@@ -45,7 +44,7 @@ ResourceUsageHandle FrameGraphBuilder::CreateResourceUsage(UsageType           u
     return ResourceUsageHandle(m_Graph.ResourceUsages.size() - 1);
 }
 
-RenderPassHandle FrameGraphBuilder::CreateRenderPass(const char* identifier, bool hasSideEffects)
+RenderPassHandle FrameGraphBuilder::create_render_pass(const char* identifier, bool hasSideEffects)
 {
     // TODO test for name clashes
     RenderPass& newRenderPass = m_Graph.RenderPasses.emplace_back();
@@ -59,10 +58,10 @@ RenderPassHandle FrameGraphBuilder::CreateRenderPass(const char* identifier, boo
     return RenderPassHandle(m_Graph.RenderPasses.size() - 1);
 }
 
-ResourceUsageHandle FrameGraphBuilder::CreateTexture(RenderPassHandle            renderPassHandle,
-                                                     const char*                 name,
-                                                     const GPUTextureProperties& resourceDesc,
-                                                     TGPUTextureUsage            usage)
+ResourceUsageHandle FrameGraphBuilder::create_texture(RenderPassHandle            renderPassHandle,
+                                                      const char*                 name,
+                                                      const GPUTextureProperties& resourceDesc,
+                                                      TGPUTextureUsage            usage)
 {
     const ResourceHandle resourceHandle = CreateResource(renderPassHandle, name, resourceDesc);
     Assert(resourceHandle != InvalidResourceHandle);
@@ -76,9 +75,9 @@ ResourceUsageHandle FrameGraphBuilder::CreateTexture(RenderPassHandle           
     return resourceUsageHandle;
 }
 
-ResourceUsageHandle FrameGraphBuilder::ReadTexture(RenderPassHandle    renderPassHandle,
-                                                   ResourceUsageHandle inputUsageHandle,
-                                                   TGPUTextureUsage    usage)
+ResourceUsageHandle FrameGraphBuilder::read_texture(RenderPassHandle    renderPassHandle,
+                                                    ResourceUsageHandle inputUsageHandle,
+                                                    TGPUTextureUsage    usage)
 {
     const ResourceHandle resourceHandle = GetResourceUsage(m_Graph, inputUsageHandle).Resource;
     Assert(resourceHandle != InvalidResourceHandle);
@@ -98,7 +97,7 @@ ResourceUsageHandle FrameGraphBuilder::WriteTexture(RenderPassHandle    renderPa
 {
     // FIXME do something about the texture usage
     const TGPUTextureUsage    readUsage = {};
-    const ResourceUsageHandle readUsageHandle = ReadTexture(renderPassHandle, inputUsageHandle, readUsage);
+    const ResourceUsageHandle readUsageHandle = read_texture(renderPassHandle, inputUsageHandle, readUsage);
 
     const ResourceHandle resourceHandle = GetResourceUsage(m_Graph, inputUsageHandle).Resource;
     Assert(resourceHandle != InvalidResourceHandle);
@@ -263,7 +262,7 @@ namespace
     }
 } // namespace
 
-void FrameGraphBuilder::Build()
+void FrameGraphBuilder::build()
 {
     // Use the current graph to build an alternate representation
     // for easier processing.
