@@ -45,6 +45,7 @@ struct BackendResources
     // FIXME wrap this
     VkCommandPool graphicsCommandPool;
     CommandBuffer gfxCmdBuffer;
+    VkEvent       my_event;
 };
 
 void create_backend_resources(ReaperRoot& root, VulkanBackend& backend);

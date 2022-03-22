@@ -463,7 +463,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         const VkDependencyInfo dependencies = {
             VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
             nullptr,
-            VK_DEPENDENCY_BY_REGION_BIT,
+            VK_FLAGS_NONE,
             0,
             nullptr,
             0,
@@ -472,7 +472,8 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
             imageBarriers.data(),
         };
 
-        vkCmdPipelineBarrier2(cmdBuffer.handle, &dependencies);
+        vkCmdSetEvent2(cmdBuffer.handle, resources.my_event, &dependencies);
+        vkCmdWaitEvents2(cmdBuffer.handle, 1, &resources.my_event, &dependencies);
     }
 
     record_main_pass_command_buffer(

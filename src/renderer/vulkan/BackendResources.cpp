@@ -35,6 +35,13 @@ void create_backend_resources(ReaperRoot& root, VulkanBackend& backend)
     log_debug(
         root, "vulkan: created command buffer with handle: {}", static_cast<void*>(resources.gfxCmdBuffer.handle));
 
+    const VkEventCreateInfo event_info = {
+        VK_STRUCTURE_TYPE_EVENT_CREATE_INFO,
+        nullptr,
+        VK_EVENT_CREATE_DEVICE_ONLY_BIT,
+    };
+    vkCreateEvent(backend.device, &event_info, nullptr, &resources.my_event);
+
     const glm::uvec2 swapchain_extent(backend.presentInfo.surfaceExtent.width,
                                       backend.presentInfo.surfaceExtent.height);
 
@@ -67,6 +74,7 @@ void destroy_backend_resources(VulkanBackend& backend)
     destroy_swapchain_pass_resources(backend, resources.swapchain_pass_resources);
     destroy_framegraph_resources(backend, resources.framegraph_resources);
 
+    vkDestroyEvent(backend.device, resources.my_event, nullptr);
     vkFreeCommandBuffers(backend.device, resources.graphicsCommandPool, 1, &resources.gfxCmdBuffer.handle);
     vkDestroyCommandPool(backend.device, resources.graphicsCommandPool, nullptr);
 
