@@ -19,30 +19,26 @@
 
 namespace Reaper
 {
-struct SwapchainPipelineInfo
+struct SwapchainPassResources
 {
     VkPipeline            pipeline;
     VkPipelineLayout      pipelineLayout;
-    VkDescriptorSetLayout descSetLayout;
-};
+    VkDescriptorSetLayout descriptorSetLayout;
 
-struct ReaperRoot;
-struct VulkanBackend;
-struct GPUTextureProperties;
-
-struct SwapchainPassResources
-{
     BufferInfo passConstantBuffer;
-
-    SwapchainPipelineInfo swapchainPipe;
 
     VkSampler linearBlackBorderSampler;
 
     VkDescriptorSet descriptor_set;
 };
 
+struct ReaperRoot;
+struct VulkanBackend;
+
 SwapchainPassResources create_swapchain_pass_resources(ReaperRoot& root, VulkanBackend& backend);
 void destroy_swapchain_pass_resources(VulkanBackend& backend, const SwapchainPassResources& resources);
+
+void reload_swapchain_pipeline(ReaperRoot& root, VulkanBackend& backend, SwapchainPassResources& resources);
 
 void update_swapchain_pass_descriptor_set(VulkanBackend& backend, const SwapchainPassResources& resources,
                                           VkImageView hdr_scene_texture_view, VkImageView gui_texture_view);
