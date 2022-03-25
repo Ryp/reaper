@@ -11,9 +11,20 @@
 
 namespace Reaper
 {
+namespace ViewAspect
+{
+    enum type : u32
+    {
+        Color = bit(0),
+        Depth = bit(1),
+        Stencil = bit(2),
+    };
+}
+
 struct GPUTextureView
 {
     PixelFormat format;
+    u32         aspect;
     u32         mipOffset;
     u32         mipCount;
     u32         layerOffset;

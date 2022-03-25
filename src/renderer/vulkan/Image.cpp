@@ -984,6 +984,24 @@ u32 GetUsageFlags(VkImageUsageFlags usageFlags)
     return flags;
 }
 
+VkImageAspectFlags GetVulkanImageAspectFlags(u32 aspect)
+{
+    VkImageAspectFlags flags = VK_FLAGS_NONE;
+
+    flags |= (aspect == ViewAspect::Color) ? VK_IMAGE_ASPECT_COLOR_BIT : 0;
+    flags |= (aspect == ViewAspect::Depth) ? VK_IMAGE_ASPECT_DEPTH_BIT : 0;
+    flags |= (aspect == ViewAspect::Stencil) ? VK_IMAGE_ASPECT_STENCIL_BIT : 0;
+
+    return flags;
+}
+
+VkImageSubresourceRange GetVulkanImageSubresourceRange(const GPUTextureView& view)
+{
+    return VkImageSubresourceRange{
+        GetVulkanImageAspectFlags(view.aspect), view.mipOffset, view.mipCount, view.layerOffset, view.layerCount,
+    };
+}
+
 ImageInfo create_image(ReaperRoot& root, VkDevice device, const char* debug_string,
                        const GPUTextureProperties& properties, VmaAllocator& allocator)
 {
@@ -1033,8 +1051,7 @@ VkImageView create_image_view(ReaperRoot& root, VkDevice device, const ImageInfo
     Assert(view.layerCount > 0);
     Assert(view.layerCount + view.layerOffset <= image.properties.layerCount);
 
-    VkImageSubresourceRange viewRange = {VK_IMAGE_ASPECT_COLOR_BIT, view.mipOffset, view.mipCount, view.layerOffset,
-                                         view.layerCount};
+    const VkImageSubresourceRange viewRange = GetVulkanImageSubresourceRange(view);
 
     VkImageViewCreateInfo imageViewInfo = {
         VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
@@ -1057,33 +1074,9 @@ VkImageView create_image_view(ReaperRoot& root, VkDevice device, const ImageInfo
 
 VkImageView create_default_image_view(ReaperRoot& root, VkDevice device, const ImageInfo& image)
 {
-    const GPUTextureView view = DefaultGPUTextureView(image.properties);
+    const GPUTextureView default_view = DefaultGPUTextureView(image.properties);
 
-    return create_image_view(root, device, image, view);
-}
-
-VkImageView create_depth_image_view(ReaperRoot& root, VkDevice device, const ImageInfo& image)
-{
-    VkImageSubresourceRange viewRange = {VK_IMAGE_ASPECT_DEPTH_BIT, 0, image.properties.mipCount, 0,
-                                         image.properties.layerCount};
-
-    VkImageViewCreateInfo imageViewInfo = {
-        VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-        nullptr,
-        VK_FLAGS_NONE,
-        image.handle,
-        VK_IMAGE_VIEW_TYPE_2D,
-        PixelFormatToVulkan(image.properties.format),
-        VkComponentMapping{VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
-                           VK_COMPONENT_SWIZZLE_IDENTITY},
-        viewRange};
-
-    VkImageView imageView = VK_NULL_HANDLE;
-    Assert(vkCreateImageView(device, &imageViewInfo, nullptr, &imageView) == VK_SUCCESS);
-
-    log_debug(root, "vulkan: created image view with handle: {}", static_cast<void*>(imageView));
-
-    return imageView;
+    return create_image_view(root, device, image, default_view);
 }
 
 VkWriteDescriptorSet create_image_descriptor_write(VkDescriptorSet descriptorSet, u32 binding,

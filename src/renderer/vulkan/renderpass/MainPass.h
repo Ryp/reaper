@@ -37,9 +37,6 @@ struct MainPassResources
     BufferInfo drawPassConstantBuffer;
     BufferInfo drawInstanceConstantBuffer;
 
-    ImageInfo   depthBuffer;
-    VkImageView depthBufferView;
-
     MainPipelineInfo mainPipe;
 
     VkSampler shadowMapSampler;
@@ -49,11 +46,8 @@ struct MainPassResources
     VkDescriptorSet material_descriptor_set;
 };
 
-MainPassResources create_main_pass_resources(ReaperRoot& root, VulkanBackend& backend, glm::uvec2 extent);
+MainPassResources create_main_pass_resources(ReaperRoot& root, VulkanBackend& backend);
 void              destroy_main_pass_resources(VulkanBackend& backend, MainPassResources& resources);
-
-void resize_main_pass_resources(ReaperRoot& root, VulkanBackend& backend, MainPassResources& resources,
-                                glm::uvec2 extent);
 
 struct MaterialResources;
 
@@ -73,5 +67,5 @@ struct MeshCache;
 void record_main_pass_command_buffer(CommandBuffer& cmdBuffer, VulkanBackend& backend, const PreparedData& prepared,
                                      const MainPassResources& pass_resources, const CullResources& cull_resources,
                                      const MeshCache& mesh_cache, VkExtent2D backbufferExtent,
-                                     VkImageView hdrBufferView);
+                                     VkImageView hdrBufferView, VkImageView depthBufferView);
 } // namespace Reaper

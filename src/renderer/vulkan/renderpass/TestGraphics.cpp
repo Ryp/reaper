@@ -87,7 +87,6 @@ void resize_swapchain(ReaperRoot& root, VulkanBackend& backend, BackendResources
         const glm::uvec2 new_swapchain_extent(backend.presentInfo.surfaceExtent.width,
                                               backend.presentInfo.surfaceExtent.height);
 
-        resize_main_pass_resources(root, backend, resources.main_pass_resources, new_swapchain_extent);
         resize_gui_pass_resources(root, backend, resources.gui_pass_resources, new_swapchain_extent);
 
         backend.new_swapchain_extent.width = 0;
@@ -183,9 +182,15 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     const RenderPassHandle main_pass_handle = builder.create_render_pass("Main Pass");
 
     constexpr PixelFormat HDRColorFormat = PixelFormat::B10G11R11_UFLOAT_PACK32;
-    GPUTextureProperties  scene_hdr_properties =
+    constexpr PixelFormat DepthFormat = PixelFormat::D16_UNORM;
+
+    GPUTextureProperties scene_hdr_properties =
         DefaultGPUTextureProperties(backbufferExtent.width, backbufferExtent.height, HDRColorFormat);
     scene_hdr_properties.usageFlags = GPUTextureUsage::ColorAttachment | GPUTextureUsage::Sampled; // FIXME deduced?
+
+    GPUTextureProperties scene_depth_properties =
+        DefaultGPUTextureProperties(backbufferExtent.width, backbufferExtent.height, DepthFormat);
+    scene_depth_properties.usageFlags = GPUTextureUsage::DepthStencilAttachment; // FIXME deduced?
 
     const GPUTextureView scene_hdr_view = DefaultGPUTextureView(scene_hdr_properties);
     TGPUTextureUsage     scene_hdr_texture_usage = {};
@@ -193,8 +198,17 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     scene_hdr_texture_usage.Layout = EImageLayout::ColorAttachmentOptimal;
     scene_hdr_texture_usage.view = scene_hdr_view;
 
+    const GPUTextureView scene_depth_view = DefaultGPUTextureView(scene_depth_properties);
+    TGPUTextureUsage     scene_depth_texture_usage = {};
+    scene_depth_texture_usage.LoadOp = ELoadOp::DontCare;
+    scene_depth_texture_usage.Layout = EImageLayout::ColorAttachmentOptimal;
+    scene_depth_texture_usage.view = scene_depth_view;
+
     const ResourceUsageHandle main_hdr_usage_handle =
         builder.create_texture(main_pass_handle, "Scene HDR", scene_hdr_properties, scene_hdr_texture_usage);
+
+    const ResourceUsageHandle main_depth_usage_handle =
+        builder.create_texture(main_pass_handle, "Scene Depth", scene_depth_properties, scene_depth_texture_usage);
 
     // Swapchain
     const RenderPassHandle swapchain_pass_handle = builder.create_render_pass("Swapchain Pass", true);
@@ -210,10 +224,14 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     allocate_framegraph_resources(root, backend, resources.framegraph_resources, frame_graph);
 
+    const ResourceUsage& main_depth_usage = GetResourceUsage(frame_graph, main_depth_usage_handle);
+    const ResourceHandle main_depth_resource_handle = main_depth_usage.Resource;
+
     const ResourceUsage& main_hdr_usage = GetResourceUsage(frame_graph, main_hdr_usage_handle);
     const ResourceHandle main_hdr_resource_handle = main_hdr_usage.Resource;
 
     ImageInfo& hdrBuffer = get_frame_graph_texture(resources.framegraph_resources, main_hdr_resource_handle);
+    ImageInfo& depthBuffer = get_frame_graph_texture(resources.framegraph_resources, main_depth_resource_handle);
 
     update_culling_pass_descriptor_sets(backend, prepared, resources.cull_resources, resources.mesh_cache);
     update_shadow_map_pass_descriptor_sets(backend, prepared, resources.shadow_map_resources);
@@ -279,7 +297,23 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
             VK_QUEUE_FAMILY_IGNORED,
             VK_QUEUE_FAMILY_IGNORED,
             hdrBuffer.handle,
-            {VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS}});
+            GetVulkanImageSubresourceRange(scene_hdr_view),
+        });
+
+        imageBarriers.emplace_back(VkImageMemoryBarrier2{
+            VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+            nullptr,
+            VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT,
+            VK_ACCESS_2_NONE,
+            VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT,
+            VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+            VK_IMAGE_LAYOUT_UNDEFINED,
+            VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
+            VK_QUEUE_FAMILY_IGNORED,
+            VK_QUEUE_FAMILY_IGNORED,
+            depthBuffer.handle,
+            GetVulkanImageSubresourceRange(scene_depth_view),
+        });
 
         const VkDependencyInfo dependencies = {
             VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
@@ -319,20 +353,6 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
                 backend.presentInfo.images[swapchainImageIndex],
                 {VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS}});
         }
-
-        imageBarriers.emplace_back(VkImageMemoryBarrier2{
-            VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
-            nullptr,
-            VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT,
-            VK_ACCESS_2_NONE,
-            VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT,
-            VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
-            VK_IMAGE_LAYOUT_UNDEFINED,
-            VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
-            VK_QUEUE_FAMILY_IGNORED,
-            VK_QUEUE_FAMILY_IGNORED,
-            resources.main_pass_resources.depthBuffer.handle,
-            {VK_IMAGE_ASPECT_DEPTH_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS}});
 
         imageBarriers.emplace_back(VkImageMemoryBarrier2KHR{
             VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
@@ -461,7 +481,8 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
             VK_QUEUE_FAMILY_IGNORED,
             VK_QUEUE_FAMILY_IGNORED,
             hdrBuffer.handle,
-            {VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS}});
+            GetVulkanImageSubresourceRange(scene_hdr_view),
+        });
 
         const VkDependencyInfo dependencies = {
             VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
@@ -481,7 +502,8 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     record_main_pass_command_buffer(
         cmdBuffer, backend, prepared, resources.main_pass_resources, resources.cull_resources, resources.mesh_cache,
-        backbufferExtent, get_frame_graph_texture_view(resources.framegraph_resources, main_hdr_usage_handle));
+        backbufferExtent, get_frame_graph_texture_view(resources.framegraph_resources, main_hdr_usage_handle),
+        get_frame_graph_texture_view(resources.framegraph_resources, main_depth_usage_handle));
 
     // Render GUI
     {
@@ -537,7 +559,8 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
             VK_QUEUE_FAMILY_IGNORED,
             VK_QUEUE_FAMILY_IGNORED,
             hdrBuffer.handle,
-            {VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS}});
+            GetVulkanImageSubresourceRange(scene_hdr_view),
+        });
 
         imageBarriers.emplace_back(VkImageMemoryBarrier2{
             VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
