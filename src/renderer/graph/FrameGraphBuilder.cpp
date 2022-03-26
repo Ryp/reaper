@@ -215,6 +215,22 @@ namespace
             }
         }
 
+        for (const auto& renderPass : frameGraph.RenderPasses)
+        {
+            if (!renderPass.IsUsed)
+                continue;
+
+            for (auto resourceUsageHandle : renderPass.ResourceUsageHandles)
+            {
+                ResourceUsage& resourceUsage = frameGraph.ResourceUsages[resourceUsageHandle];
+
+                if (resourceUsage.Type == UsageType::RenderPassOutput)
+                {
+                    resourceUsage.IsUsed = true;
+                }
+            }
+        }
+
         for (auto& resourceUsage : frameGraph.ResourceUsages)
         {
             if (!resourceUsage.IsUsed)
