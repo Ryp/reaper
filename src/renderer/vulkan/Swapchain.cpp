@@ -92,13 +92,6 @@ VkPresentModeKHR vulkan_swapchain_choose_present_mode(std::vector<VkPresentModeK
             return present_mode;
     }
 
-    for (VkPresentModeKHR& present_mode : present_modes)
-    {
-        if (present_mode == VK_PRESENT_MODE_FIFO_KHR)
-            return present_mode;
-    }
-
-    Assert(false, "FIFO present mode is not supported by the swap chain!"); // Normally enforced by the API
     return VK_PRESENT_MODE_FIFO_KHR;
 }
 } // namespace
