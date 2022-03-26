@@ -30,14 +30,14 @@ namespace Reaper
 {
 namespace
 {
-    hlsl_uint get_transfer_function(VkSurfaceFormatKHR surface_format)
+    hlsl_uint get_transfer_function(VkSurfaceFormatKHR surface_format, VkFormat view_format)
     {
         switch (surface_format.colorSpace)
         {
         case VK_COLOR_SPACE_SRGB_NONLINEAR_KHR: {
-            if (surface_format.format == VK_FORMAT_B8G8R8A8_SRGB)
+            if (view_format == VK_FORMAT_B8G8R8A8_SRGB)
                 return TRANSFER_FUNC_LINEAR; // Cancelled out by the texture format
-            else if (surface_format.format == VK_FORMAT_B8G8R8A8_UNORM)
+            else if (view_format == VK_FORMAT_B8G8R8A8_UNORM)
                 return TRANSFER_FUNC_SRGB;
             break;
         }
@@ -121,7 +121,7 @@ namespace
         const char*    entryPoint = "main";
 
         std::array<hlsl_uint, 3> constants = {
-            get_transfer_function(backend.presentInfo.surfaceFormat),
+            get_transfer_function(backend.presentInfo.surfaceFormat, backend.presentInfo.view_format),
             get_color_space(backend.presentInfo.surfaceFormat.colorSpace),
             TONEMAP_FUNC_NONE,
         };

@@ -25,6 +25,7 @@ struct PresentationInfo
     // Split this in another struct
     VkSurfaceCapabilitiesKHR      surfaceCaps;
     VkSurfaceFormatKHR            surfaceFormat;
+    VkFormat                      view_format;
     u32                           imageCount;
     VkPresentModeKHR              presentMode;
     VkExtent2D                    surfaceExtent;

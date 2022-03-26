@@ -197,7 +197,10 @@ void create_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& backend)
     log_debug(root, "vulkan: creating presentation surface");
     vulkan_create_presentation_surface(backend.instance, backend.presentInfo.surface, window);
 
-    std::vector<const char*> device_extensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+    std::vector<const char*> device_extensions = {
+        VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+        VK_KHR_SWAPCHAIN_MUTABLE_FORMAT_EXTENSION_NAME,
+    };
 
     log_debug(root, "vulkan: choosing physical device");
     vulkan_choose_physical_device(root, backend, device_extensions, backend.physicalDeviceInfo);
@@ -219,7 +222,6 @@ void create_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& backend)
     SwapchainDescriptor swapchainDesc;
     swapchainDesc.preferredImageCount = 2; // Double buffering
     swapchainDesc.preferredFormat = {VK_FORMAT_B8G8R8A8_SRGB, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR};
-    // swapchainDesc.preferredFormat = {VK_FORMAT_B8G8R8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR};
     swapchainDesc.preferredExtent = {windowDescriptor.width, windowDescriptor.height};
 
     configure_vulkan_wm_swapchain(root, backend, swapchainDesc, backend.presentInfo);

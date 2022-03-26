@@ -134,7 +134,7 @@ void configure_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backen
 
         log_debug(root, "vulkan: swapchain supports {} formats", formats_count);
         for (auto& format : surface_formats)
-            log_debug(root, "- pixel format = {}, colorspace = {}", GetFormatToString(format.format),
+            log_debug(root, "- format = {}, colorspace = {}", GetFormatToString(format.format),
                       GetColorSpaceKHRToString(format.colorSpace));
 
         surfaceFormat = vulkan_swapchain_choose_surface_format(surface_formats, swapchainDesc.preferredFormat);
@@ -143,11 +143,26 @@ void configure_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backen
             || surfaceFormat.colorSpace != swapchainDesc.preferredFormat.colorSpace)
         {
             // TODO format to_string() function
-            log_warning(root, "vulkan: incompatible swapchain format: pixel format = {}, colorspace = {}",
+            log_warning(root, "vulkan: incompatible swapchain format: format = {}, colorspace = {}",
                         swapchainDesc.preferredFormat.format, swapchainDesc.preferredFormat.colorSpace);
-            log_warning(root, "- falling back to: pixel format = {}, colorspace = {}", surfaceFormat.format,
+            log_warning(root, "- falling back to: format = {}, colorspace = {}", surfaceFormat.format,
                         surfaceFormat.colorSpace);
         }
+
+        // Choose view format
+        {
+            VkFormat view_format = surfaceFormat.format;
+
+            // VK_KHR_swapchain_mutable_format is needed for this
+            if (view_format == VK_FORMAT_B8G8R8A8_UNORM)
+                view_format = VK_FORMAT_B8G8R8A8_SRGB;
+
+            presentInfo.view_format = view_format;
+        }
+
+        log_debug(root, "vulkan: selecting swapchain format = {}, colorspace = {}",
+                  GetFormatToString(surfaceFormat.format), GetColorSpaceKHRToString(surfaceFormat.colorSpace));
+        log_debug(root, "vulkan: selecting swapchain view format = {}", GetFormatToString(presentInfo.view_format));
     }
 
     // Image count
@@ -220,10 +235,21 @@ void create_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backend, 
     REAPER_PROFILE_SCOPE("Vulkan", MP_RED);
     log_debug(root, "vulkan: creating wm swapchain");
 
+    const std::vector<VkFormat> view_formats = {
+        presentInfo.view_format,
+    };
+
+    const VkImageFormatListCreateInfo format_list = {
+        VK_STRUCTURE_TYPE_IMAGE_FORMAT_LIST_CREATE_INFO,
+        nullptr,
+        static_cast<u32>(view_formats.size()),
+        view_formats.data(),
+    };
+
     VkSwapchainCreateInfoKHR swap_chain_create_info = {
         VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR, // VkStructureType                sType
-        nullptr,                                     // const void                    *pNext
-        0,                                           // VkSwapchainCreateFlagsKHR      flags
+        &format_list,                                // const void                    *pNext
+        VK_SWAPCHAIN_CREATE_MUTABLE_FORMAT_BIT_KHR,  // VkSwapchainCreateFlagsKHR      flags
         presentInfo.surface,                         // VkSurfaceKHR                   surface
         presentInfo.imageCount,                      // uint32_t                       minImageCount
         presentInfo.surfaceFormat.format,            // VkFormat                       imageFormat
@@ -332,7 +358,7 @@ void create_swapchain_views(const VulkanBackend& backend, PresentationInfo& pres
             0,                                        // VkImageViewCreateFlags         flags
             presentInfo.images[i],                    // VkImage                        image
             VK_IMAGE_VIEW_TYPE_2D,                    // VkImageViewType                viewType
-            presentInfo.surfaceFormat.format,         // VkFormat                       format
+            presentInfo.view_format,                  // VkFormat                       format
             {
                 // VkComponentMapping             components
                 VK_COMPONENT_SWIZZLE_IDENTITY, // VkComponentSwizzle             r
