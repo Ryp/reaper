@@ -29,13 +29,13 @@ struct PS_OUTPUT
 
 float3 apply_transfer_func(float3 color, uint transfer_function)
 {
-    if (spec_transfer_function == TRANSFER_FUNC_LINEAR)
+    if (transfer_function == TRANSFER_FUNC_LINEAR)
         return color;
-    else if (spec_transfer_function == TRANSFER_FUNC_SRGB)
+    else if (transfer_function == TRANSFER_FUNC_SRGB)
         return srgb_eotf(color);
-    else if (spec_transfer_function == TRANSFER_FUNC_REC709)
+    else if (transfer_function == TRANSFER_FUNC_REC709)
         return rec709_eotf(color);
-    else if (spec_transfer_function == TRANSFER_FUNC_PQ)
+    else if (transfer_function == TRANSFER_FUNC_PQ)
         return pq_eotf(color);
     else
         return 0.42; // Invalid
@@ -43,13 +43,13 @@ float3 apply_transfer_func(float3 color, uint transfer_function)
 
 float3 apply_transfer_func_inverse(float3 color, uint transfer_function)
 {
-    if (spec_transfer_function == TRANSFER_FUNC_LINEAR)
+    if (transfer_function == TRANSFER_FUNC_LINEAR)
         return color;
-    else if (spec_transfer_function == TRANSFER_FUNC_SRGB)
+    else if (transfer_function == TRANSFER_FUNC_SRGB)
         return srgb_eotf_inverse(color);
-    else if (spec_transfer_function == TRANSFER_FUNC_REC709)
+    else if (transfer_function == TRANSFER_FUNC_REC709)
         return rec709_eotf_inverse(color);
-    else if (spec_transfer_function == TRANSFER_FUNC_PQ)
+    else if (transfer_function == TRANSFER_FUNC_PQ)
         return pq_eotf_inverse(color);
     else
         return 0.42; // Invalid

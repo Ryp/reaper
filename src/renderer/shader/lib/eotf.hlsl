@@ -46,28 +46,22 @@ float3 rec709_eotf_inverse(float3 x)
 
 // -----------------------------------------------------------------------------
 
+static const float PQ_M1 = 2610.0 / 4096.0 / 4.0;
+static const float PQ_M2 = 2523.0 / 4096.0 * 128.0;
+static const float PQ_C1 = 3424.0 / 4096.0;
+static const float PQ_C2 = 2413.0 / 4096.0 * 32.0;
+static const float PQ_C3 = 2392.0 / 4096.0 * 32.0;
+
 float3 pq_eotf(float3 color)
 {
-    float m1 = 2610.0 / 4096.0 / 4;
-    float m2 = 2523.0 / 4096.0 * 128;
-    float c1 = 3424.0 / 4096.0;
-    float c2 = 2413.0 / 4096.0 * 32;
-    float c3 = 2392.0 / 4096.0 * 32;
-
-    float3 Lp = pow(color, m1);
-    return pow((c1 + c2 * Lp) / (1 + c3 * Lp), m2);
+    float3 Lp = pow(color, PQ_M1);
+    return pow((PQ_C1 + PQ_C2 * Lp) / (1.0 + PQ_C3 * Lp), PQ_M2);
 }
 
 float3 pq_eotf_inverse(float3 pq_eotf_color)
 {
-    float m1 = 2610.0 / 4096.0 / 4;
-    float m2 = 2523.0 / 4096.0 * 128;
-    float c1 = 3424.0 / 4096.0;
-    float c2 = 2413.0 / 4096.0 * 32;
-    float c3 = 2392.0 / 4096.0 * 32;
-
-    float3 Np = pow(pq_eotf_color, 1.0 / m2);
-    return pow(max(Np - c1, 0.0) / (c2 - c3 * Np), 1 / m1);
+    float3 Np = pow(pq_eotf_color, 1.0 / PQ_M2);
+    return pow(max(Np - PQ_C1, 0.0) / (PQ_C2 - PQ_C3 * Np), 1.0 / PQ_M1);
 }
 
 // -----------------------------------------------------------------------------
