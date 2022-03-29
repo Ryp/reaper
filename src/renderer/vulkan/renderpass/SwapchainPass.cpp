@@ -35,10 +35,15 @@ namespace
         switch (surface_format.colorSpace)
         {
         case VK_COLOR_SPACE_SRGB_NONLINEAR_KHR: {
-            if (view_format == VK_FORMAT_B8G8R8A8_SRGB)
-                return TRANSFER_FUNC_LINEAR; // Cancelled out by the texture format
-            else if (view_format == VK_FORMAT_B8G8R8A8_UNORM)
-                return TRANSFER_FUNC_SRGB;
+            switch (view_format)
+            {
+            case VK_FORMAT_B8G8R8A8_SRGB:
+            case VK_FORMAT_R8G8B8A8_SRGB:
+            case VK_FORMAT_A8B8G8R8_SRGB_PACK32:
+                return TRANSFER_FUNC_LINEAR; // The EOTF is performed by the view format
+            default:
+                break; // This shouldn't happen
+            }
             break;
         }
         case VK_COLOR_SPACE_BT709_LINEAR_EXT:

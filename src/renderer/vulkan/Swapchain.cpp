@@ -94,6 +94,28 @@ VkPresentModeKHR vulkan_swapchain_choose_present_mode(std::vector<VkPresentModeK
 
     return VK_PRESENT_MODE_FIFO_KHR;
 }
+
+// Overriding the view format lets us get the sRGB eotf for free in some cases.
+// This needs VK_KHR_swapchain_mutable_format to work
+VkFormat vulkan_swapchain_view_format_override(VkSurfaceFormatKHR surface_format)
+{
+    if (surface_format.colorSpace == VK_COLORSPACE_SRGB_NONLINEAR_KHR)
+    {
+        switch (surface_format.format)
+        {
+        case VK_FORMAT_B8G8R8A8_UNORM:
+            return VK_FORMAT_B8G8R8A8_SRGB;
+        case VK_FORMAT_R8G8B8A8_UNORM:
+            return VK_FORMAT_R8G8B8A8_SRGB;
+        case VK_FORMAT_A8B8G8R8_UNORM_PACK32:
+            return VK_FORMAT_A8B8G8R8_SRGB_PACK32;
+        default:
+            break;
+        }
+    }
+
+    return surface_format.format;
+}
 } // namespace
 
 using namespace vk;
@@ -142,16 +164,7 @@ void configure_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backen
                         surfaceFormat.colorSpace);
         }
 
-        // Choose view format
-        {
-            VkFormat view_format = surfaceFormat.format;
-
-            // VK_KHR_swapchain_mutable_format is needed for this
-            if (view_format == VK_FORMAT_B8G8R8A8_UNORM)
-                view_format = VK_FORMAT_B8G8R8A8_SRGB;
-
-            presentInfo.view_format = view_format;
-        }
+        presentInfo.view_format = vulkan_swapchain_view_format_override(surfaceFormat);
 
         log_debug(root, "vulkan: selecting swapchain format = {}, colorspace = {}",
                   GetFormatToString(surfaceFormat.format), GetColorSpaceKHRToString(surfaceFormat.colorSpace));
