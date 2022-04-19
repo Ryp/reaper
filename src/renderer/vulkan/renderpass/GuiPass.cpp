@@ -24,8 +24,6 @@
 
 namespace Reaper
 {
-constexpr PixelFormat GUIFormat = PixelFormat::R8G8B8A8_SRGB;
-
 namespace
 {
     GuiPipelineInfo create_gui_pipeline(ReaperRoot& root, VulkanBackend& backend)
@@ -214,31 +212,6 @@ namespace
         return GuiPipelineInfo{pipeline, pipelineLayout, descriptorSetLayoutCB};
     }
 
-    void create_gui_pass_resizable_resources(ReaperRoot& root, VulkanBackend& backend, GuiPassResources& resources,
-                                             glm::uvec2 /*extent*/)
-    {
-        resources.guiTexture =
-            create_image(root, backend.device, "GUI", resources.guiTexture.properties, backend.vma_instance);
-        resources.guiTextureView = create_default_image_view(root, backend.device, resources.guiTexture);
-    }
-
-    void destroy_gui_pass_resizable_resources(VulkanBackend& backend, GuiPassResources& resources)
-    {
-        vkDestroyImageView(backend.device, resources.guiTextureView, nullptr);
-        vmaDestroyImage(backend.vma_instance, resources.guiTexture.handle, resources.guiTexture.allocation);
-
-        resources.guiTexture = {};
-        resources.guiTextureView = VK_NULL_HANDLE;
-    }
-
-    void update_resource_properties(GuiPassResources& resources, glm::uvec2 extent)
-    {
-        GPUTextureProperties properties = DefaultGPUTextureProperties(extent.x, extent.y, GUIFormat);
-        properties.usageFlags = GPUTextureUsage::ColorAttachment | GPUTextureUsage::Sampled;
-
-        resources.guiTexture.properties = properties;
-    }
-
     VkDescriptorSet create_gui_pass_descriptor_set(ReaperRoot& root, VulkanBackend& backend,
                                                    VkDescriptorSetLayout layout)
     {
@@ -261,10 +234,6 @@ GuiPassResources create_gui_pass_resources(ReaperRoot& root, VulkanBackend& back
 
     resources.descriptor_set = create_gui_pass_descriptor_set(root, backend, resources.guiPipe.descSetLayout);
 
-    update_resource_properties(resources, extent);
-
-    create_gui_pass_resizable_resources(root, backend, resources, extent);
-
     return resources;
 }
 
@@ -273,31 +242,20 @@ void destroy_gui_pass_resources(VulkanBackend& backend, GuiPassResources& resour
     vkDestroyPipeline(backend.device, resources.guiPipe.pipeline, nullptr);
     vkDestroyPipelineLayout(backend.device, resources.guiPipe.pipelineLayout, nullptr);
     vkDestroyDescriptorSetLayout(backend.device, resources.guiPipe.descSetLayout, nullptr);
-
-    destroy_gui_pass_resizable_resources(backend, resources);
 }
 
-void resize_gui_pass_resources(ReaperRoot& root, VulkanBackend& backend, GuiPassResources& resources, glm::uvec2 extent)
-{
-    destroy_gui_pass_resizable_resources(backend, resources);
-
-    update_resource_properties(resources, extent);
-
-    create_gui_pass_resizable_resources(root, backend, resources, extent);
-}
-
-void record_gui_command_buffer(CommandBuffer& cmdBuffer, const GuiPassResources& pass_resources)
+void record_gui_command_buffer(CommandBuffer& cmdBuffer, const GuiPassResources& pass_resources,
+                               VkExtent2D backbufferExtent, VkImageView guiBufferView)
 {
     REAPER_PROFILE_SCOPE_GPU(cmdBuffer.mlog, "Gui Pass", MP_DARKGOLDENROD);
 
-    const GPUTextureProperties& p = pass_resources.guiTexture.properties;
-    const VkRect2D              blitPassRect = default_vk_rect({p.width, p.height});
-    const glm::fvec4            clearColor = {0.f, 0.f, 0.f, 0.f};
+    const glm::fvec4 clearColor = {0.f, 0.f, 0.f, 0.f};
+    const VkRect2D   blitPassRect = default_vk_rect(backbufferExtent);
 
     const VkRenderingAttachmentInfo color_attachment = {
         VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
         nullptr,
-        pass_resources.guiTextureView,
+        guiBufferView,
         VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
         VK_RESOLVE_MODE_NONE,
         VK_NULL_HANDLE,

@@ -20,6 +20,9 @@
 
 namespace Reaper
 {
+constexpr PixelFormat MainHDRColorFormat = PixelFormat::B10G11R11_UFLOAT_PACK32;
+constexpr PixelFormat MainDepthFormat = PixelFormat::D16_UNORM;
+
 struct MainPipelineInfo
 {
     VkPipeline            pipeline;

@@ -1037,7 +1037,7 @@ ImageInfo create_image(ReaperRoot& root, VkDevice device, const char* debug_stri
     VmaAllocation allocation;
     Assert(vmaCreateImage(allocator, &imageInfo, &allocInfo, &image, &allocation, nullptr) == VK_SUCCESS);
 
-    log_debug(root, "vulkan: created image with handle: {}", static_cast<void*>(image));
+    log_debug(root, "vulkan: created image '{}' with handle: {}", debug_string, static_cast<void*>(image));
 
     VulkanSetDebugName(device, image, debug_string);
 
@@ -1070,13 +1070,6 @@ VkImageView create_image_view(ReaperRoot& root, VkDevice device, const ImageInfo
     log_debug(root, "vulkan: created image view with handle: {}", static_cast<void*>(imageView));
 
     return imageView;
-}
-
-VkImageView create_default_image_view(ReaperRoot& root, VkDevice device, const ImageInfo& image)
-{
-    const GPUTextureView default_view = DefaultGPUTextureView(image.properties);
-
-    return create_image_view(root, device, image, default_view);
 }
 
 VkWriteDescriptorSet create_image_descriptor_write(VkDescriptorSet descriptorSet, u32 binding,

@@ -87,8 +87,6 @@ void resize_swapchain(ReaperRoot& root, VulkanBackend& backend, BackendResources
         const glm::uvec2 new_swapchain_extent(backend.presentInfo.surfaceExtent.width,
                                               backend.presentInfo.surfaceExtent.height);
 
-        resize_gui_pass_resources(root, backend, resources.gui_pass_resources, new_swapchain_extent);
-
         backend.new_swapchain_extent.width = 0;
         backend.new_swapchain_extent.height = 0;
     }
@@ -180,17 +178,19 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     // Main
     const RenderPassHandle main_pass_handle = builder.create_render_pass("Main Pass");
-
-    constexpr PixelFormat HDRColorFormat = PixelFormat::B10G11R11_UFLOAT_PACK32;
-    constexpr PixelFormat DepthFormat = PixelFormat::D16_UNORM;
+    const RenderPassHandle gui_pass_handle = builder.create_render_pass("GUI Pass");
 
     GPUTextureProperties scene_hdr_properties =
-        DefaultGPUTextureProperties(backbufferExtent.width, backbufferExtent.height, HDRColorFormat);
+        DefaultGPUTextureProperties(backbufferExtent.width, backbufferExtent.height, MainHDRColorFormat);
     scene_hdr_properties.usageFlags = GPUTextureUsage::ColorAttachment | GPUTextureUsage::Sampled; // FIXME deduced?
 
     GPUTextureProperties scene_depth_properties =
-        DefaultGPUTextureProperties(backbufferExtent.width, backbufferExtent.height, DepthFormat);
+        DefaultGPUTextureProperties(backbufferExtent.width, backbufferExtent.height, MainDepthFormat);
     scene_depth_properties.usageFlags = GPUTextureUsage::DepthStencilAttachment; // FIXME deduced?
+
+    GPUTextureProperties gui_properties =
+        DefaultGPUTextureProperties(backbufferExtent.width, backbufferExtent.height, GUIFormat);
+    gui_properties.usageFlags = GPUTextureUsage::ColorAttachment | GPUTextureUsage::Sampled;
 
     const GPUTextureView scene_hdr_view = DefaultGPUTextureView(scene_hdr_properties);
     TGPUTextureUsage     scene_hdr_texture_usage = {};
@@ -204,34 +204,54 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     scene_depth_texture_usage.Layout = EImageLayout::ColorAttachmentOptimal;
     scene_depth_texture_usage.view = scene_depth_view;
 
+    const GPUTextureView gui_view = DefaultGPUTextureView(gui_properties);
+    TGPUTextureUsage     gui_texture_usage = {};
+    gui_texture_usage.LoadOp = ELoadOp::Clear;
+    gui_texture_usage.Layout = EImageLayout::ColorAttachmentOptimal;
+    gui_texture_usage.view = gui_view;
+
     const ResourceUsageHandle main_hdr_usage_handle =
         builder.create_texture(main_pass_handle, "Scene HDR", scene_hdr_properties, scene_hdr_texture_usage);
 
-    const ResourceUsageHandle main_depth_usage_handle =
+    const ResourceUsageHandle main_depth_create_usage_handle =
         builder.create_texture(main_pass_handle, "Scene Depth", scene_depth_properties, scene_depth_texture_usage);
+
+    const ResourceUsageHandle gui_create_usage_handle =
+        builder.create_texture(gui_pass_handle, "GUI SDR", gui_properties, gui_texture_usage);
 
     // Swapchain
     const RenderPassHandle swapchain_pass_handle = builder.create_render_pass("Swapchain Pass", true);
 
     TGPUTextureUsage swapchain_hdr_usage = {};
-    swapchain_hdr_usage.LoadOp = ELoadOp::DontCare;
-    swapchain_hdr_usage.Layout = EImageLayout::ColorAttachmentOptimal;
+    swapchain_hdr_usage.LoadOp = ELoadOp::Load;
+    swapchain_hdr_usage.Layout = EImageLayout::ShaderReadOnlyOptimal;
     swapchain_hdr_usage.view = scene_hdr_view;
+
+    TGPUTextureUsage swapchain_gui_usage = {};
+    swapchain_gui_usage.LoadOp = ELoadOp::Load;
+    swapchain_gui_usage.Layout = EImageLayout::ShaderReadOnlyOptimal;
+    swapchain_gui_usage.view = gui_view;
 
     const ResourceUsageHandle swapchain_hdr_usage_handle =
         builder.read_texture(swapchain_pass_handle, main_hdr_usage_handle, swapchain_hdr_usage);
+    const ResourceUsageHandle swapchain_gui_usage_handle =
+        builder.read_texture(swapchain_pass_handle, gui_create_usage_handle, swapchain_gui_usage);
     builder.build();
 
     allocate_framegraph_resources(root, backend, resources.framegraph_resources, frame_graph);
 
-    const ResourceUsage& main_depth_usage = GetResourceUsage(frame_graph, main_depth_usage_handle);
-    const ResourceHandle main_depth_resource_handle = main_depth_usage.Resource;
-
     const ResourceUsage& main_hdr_usage = GetResourceUsage(frame_graph, main_hdr_usage_handle);
     const ResourceHandle main_hdr_resource_handle = main_hdr_usage.Resource;
 
+    const ResourceUsage& main_depth_usage = GetResourceUsage(frame_graph, main_depth_create_usage_handle);
+    const ResourceHandle main_depth_resource_handle = main_depth_usage.Resource;
+
+    const ResourceUsage& gui_usage = GetResourceUsage(frame_graph, gui_create_usage_handle);
+    const ResourceHandle gui_resource_handle = gui_usage.Resource;
+
     ImageInfo& hdrBuffer = get_frame_graph_texture(resources.framegraph_resources, main_hdr_resource_handle);
     ImageInfo& depthBuffer = get_frame_graph_texture(resources.framegraph_resources, main_depth_resource_handle);
+    ImageInfo& guiBuffer = get_frame_graph_texture(resources.framegraph_resources, gui_resource_handle);
 
     update_culling_pass_descriptor_sets(backend, prepared, resources.cull_resources, resources.mesh_cache);
     update_shadow_map_pass_descriptor_sets(backend, prepared, resources.shadow_map_resources);
@@ -241,7 +261,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     update_swapchain_pass_descriptor_set(
         backend, resources.swapchain_pass_resources,
         get_frame_graph_texture_view(resources.framegraph_resources, swapchain_hdr_usage_handle),
-        resources.gui_pass_resources.guiTextureView);
+        get_frame_graph_texture_view(resources.framegraph_resources, swapchain_gui_usage_handle));
     update_audio_pass_descriptor_set(backend, resources.audio_resources);
 
     log_debug(root, "vulkan: record command buffer");
@@ -365,7 +385,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
             VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL,
             VK_QUEUE_FAMILY_IGNORED,
             VK_QUEUE_FAMILY_IGNORED,
-            resources.gui_pass_resources.guiTexture.handle,
+            guiBuffer.handle,
             {VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS}});
 
         const VkDependencyInfo dependencies = {
@@ -503,7 +523,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     record_main_pass_command_buffer(
         cmdBuffer, backend, prepared, resources.main_pass_resources, resources.cull_resources, resources.mesh_cache,
         backbufferExtent, get_frame_graph_texture_view(resources.framegraph_resources, main_hdr_usage_handle),
-        get_frame_graph_texture_view(resources.framegraph_resources, main_depth_usage_handle));
+        get_frame_graph_texture_view(resources.framegraph_resources, main_depth_create_usage_handle));
 
     // Render GUI
     {
@@ -521,7 +541,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
                 VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
                 VK_QUEUE_FAMILY_IGNORED,
                 VK_QUEUE_FAMILY_IGNORED,
-                resources.gui_pass_resources.guiTexture.handle,
+                guiBuffer.handle,
                 {VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS}});
 
             const VkDependencyInfo dependencies = {
@@ -539,7 +559,9 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
             vkCmdPipelineBarrier2(cmdBuffer.handle, &dependencies);
         }
 
-        record_gui_command_buffer(cmdBuffer, resources.gui_pass_resources);
+        record_gui_command_buffer(
+            cmdBuffer, resources.gui_pass_resources, backbufferExtent,
+            get_frame_graph_texture_view(resources.framegraph_resources, gui_create_usage_handle));
     }
 
     {
@@ -573,7 +595,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
             VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL,
             VK_QUEUE_FAMILY_IGNORED,
             VK_QUEUE_FAMILY_IGNORED,
-            resources.gui_pass_resources.guiTexture.handle,
+            guiBuffer.handle,
             {VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS}});
 
         const VkDependencyInfo dependencies = {

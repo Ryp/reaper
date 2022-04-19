@@ -29,11 +29,9 @@
 
 namespace Reaper
 {
-constexpr u32         DiffuseMapMaxCount = 8;
-constexpr u32         DrawInstanceCountMax = 512;
-constexpr bool        UseReverseZ = true;
-constexpr PixelFormat ColorFormat = PixelFormat::B10G11R11_UFLOAT_PACK32;
-constexpr PixelFormat DepthFormat = PixelFormat::D16_UNORM;
+constexpr u32  DiffuseMapMaxCount = 8;
+constexpr u32  DrawInstanceCountMax = 512;
+constexpr bool UseReverseZ = true;
 
 namespace
 {
@@ -335,8 +333,8 @@ MainPipelineInfo create_main_pipeline(ReaperRoot& root, VulkanBackend& backend)
         dynamicStates.data(),
     };
 
-    const VkFormat color_format = PixelFormatToVulkan(ColorFormat);
-    const VkFormat depth_format = PixelFormatToVulkan(DepthFormat);
+    const VkFormat color_format = PixelFormatToVulkan(MainHDRColorFormat);
+    const VkFormat depth_format = PixelFormatToVulkan(MainDepthFormat);
 
     VkPipelineCreationFeedback              feedback = {};
     std::vector<VkPipelineCreationFeedback> feedback_stages(blitShaderStages.size());

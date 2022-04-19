@@ -39,7 +39,6 @@ VkImageSubresourceRange GetVulkanImageSubresourceRange(const GPUTextureView& vie
 ImageInfo   create_image(ReaperRoot& root, VkDevice device, const char* debug_string,
                          const GPUTextureProperties& properties, VmaAllocator& allocator);
 VkImageView create_image_view(ReaperRoot& root, VkDevice device, const ImageInfo& image, const GPUTextureView& view);
-VkImageView create_default_image_view(ReaperRoot& root, VkDevice device, const ImageInfo& image);
 
 VkWriteDescriptorSet create_image_descriptor_write(VkDescriptorSet descriptorSet, u32 binding,
                                                    VkDescriptorType             descriptorType,

@@ -348,7 +348,8 @@ void prepare_shadow_map_objects(ReaperRoot& root, VulkanBackend& backend, const 
 
         shadow_map = create_image(root, backend.device, "Shadow Map", texture_properties, backend.vma_instance);
 
-        pass_resources.shadowMapView.push_back(create_default_image_view(root, backend.device, shadow_map));
+        const GPUTextureView default_view = DefaultGPUTextureView(texture_properties);
+        pass_resources.shadowMapView.push_back(create_image_view(root, backend.device, shadow_map, default_view));
     }
 }
 

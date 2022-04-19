@@ -194,7 +194,9 @@ namespace
         resources.staging.staging_queue.push_back(staging_entry);
 
         new_texture.texture = image_info;
-        new_texture.default_view = create_default_image_view(root, backend.device, image_info);
+
+        const GPUTextureView default_view = DefaultGPUTextureView(image_info.properties);
+        new_texture.default_view = create_image_view(root, backend.device, image_info, default_view);
 
         return resource_index;
     }

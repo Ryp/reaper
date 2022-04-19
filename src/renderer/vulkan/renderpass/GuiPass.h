@@ -19,6 +19,8 @@
 
 namespace Reaper
 {
+constexpr PixelFormat GUIFormat = PixelFormat::R8G8B8A8_SRGB;
+
 struct GuiPipelineInfo
 {
     VkPipeline            pipeline;
@@ -34,20 +36,15 @@ struct GuiPassResources
 {
     GuiPipelineInfo guiPipe;
 
-    ImageInfo   guiTexture;
-    VkImageView guiTextureView;
-
     VkDescriptorSet descriptor_set;
 };
 
 GuiPassResources create_gui_pass_resources(ReaperRoot& root, VulkanBackend& backend, glm::uvec2 extent);
 void             destroy_gui_pass_resources(VulkanBackend& backend, GuiPassResources& resources);
 
-void resize_gui_pass_resources(ReaperRoot& root, VulkanBackend& backend, GuiPassResources& resources,
-                               glm::uvec2 extent);
-
 struct CommandBuffer;
 struct FrameData;
 
-void record_gui_command_buffer(CommandBuffer& cmdBuffer, const GuiPassResources& pass_resources);
+void record_gui_command_buffer(CommandBuffer& cmdBuffer, const GuiPassResources& pass_resources,
+                               VkExtent2D backbufferExtent, VkImageView guiBufferView);
 } // namespace Reaper
