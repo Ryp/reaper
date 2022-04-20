@@ -338,7 +338,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         const VkDependencyInfo dependencies = {
             VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
             nullptr,
-            VK_DEPENDENCY_BY_REGION_BIT,
+            VK_FLAGS_NONE,
             0,
             nullptr,
             0,
@@ -347,7 +347,8 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
             imageBarriers.data(),
         };
 
-        vkCmdPipelineBarrier2(cmdBuffer.handle, &dependencies);
+        vkCmdSetEvent2(cmdBuffer.handle, resources.my_event, &dependencies);
+        vkCmdWaitEvents2(cmdBuffer.handle, 1, &resources.my_event, &dependencies);
     }
 
     if (backend.mustTransitionSwapchain)
@@ -374,7 +375,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
                 {VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS}});
         }
 
-        imageBarriers.emplace_back(VkImageMemoryBarrier2KHR{
+        imageBarriers.emplace_back(VkImageMemoryBarrier2{
             VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
             nullptr,
             VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
@@ -391,7 +392,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         const VkDependencyInfo dependencies = {
             VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
             nullptr,
-            VK_DEPENDENCY_BY_REGION_BIT,
+            VK_FLAGS_NONE,
             0,
             nullptr,
             0,
@@ -400,7 +401,8 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
             imageBarriers.data(),
         };
 
-        vkCmdPipelineBarrier2(cmdBuffer.handle, &dependencies);
+        vkCmdSetEvent2(cmdBuffer.handle, resources.my_event, &dependencies);
+        vkCmdWaitEvents2(cmdBuffer.handle, 1, &resources.my_event, &dependencies);
 
         backend.mustTransitionSwapchain = false;
     }
@@ -432,7 +434,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         const VkDependencyInfo dependencies = {
             VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
             nullptr,
-            VK_DEPENDENCY_BY_REGION_BIT,
+            VK_FLAGS_NONE,
             0,
             nullptr,
             0,
@@ -441,7 +443,8 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
             imageBarriers.data(),
         };
 
-        vkCmdPipelineBarrier2(cmdBuffer.handle, &dependencies);
+        vkCmdSetEvent2(cmdBuffer.handle, resources.my_event, &dependencies);
+        vkCmdWaitEvents2(cmdBuffer.handle, 1, &resources.my_event, &dependencies);
     }
 
     record_shadow_map_command_buffer(cmdBuffer, backend, prepared, resources.shadow_map_resources,
@@ -472,7 +475,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         const VkDependencyInfo dependencies = {
             VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
             nullptr,
-            VK_DEPENDENCY_BY_REGION_BIT,
+            VK_FLAGS_NONE,
             0,
             nullptr,
             0,
@@ -481,7 +484,8 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
             imageBarriers.data(),
         };
 
-        vkCmdPipelineBarrier2(cmdBuffer.handle, &dependencies);
+        vkCmdSetEvent2(cmdBuffer.handle, resources.my_event, &dependencies);
+        vkCmdWaitEvents2(cmdBuffer.handle, 1, &resources.my_event, &dependencies);
     }
 
     {
@@ -547,7 +551,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
             const VkDependencyInfo dependencies = {
                 VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
                 nullptr,
-                VK_DEPENDENCY_BY_REGION_BIT,
+                VK_FLAGS_NONE,
                 0,
                 nullptr,
                 0,
@@ -556,7 +560,8 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
                 imageBarriers.data(),
             };
 
-            vkCmdPipelineBarrier2(cmdBuffer.handle, &dependencies);
+            vkCmdSetEvent2(cmdBuffer.handle, resources.my_event, &dependencies);
+            vkCmdWaitEvents2(cmdBuffer.handle, 1, &resources.my_event, &dependencies);
         }
 
         record_gui_command_buffer(
@@ -601,7 +606,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         const VkDependencyInfo dependencies = {
             VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
             nullptr,
-            VK_DEPENDENCY_BY_REGION_BIT,
+            VK_FLAGS_NONE,
             0,
             nullptr,
             0,
@@ -610,7 +615,8 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
             imageBarriers.data(),
         };
 
-        vkCmdPipelineBarrier2(cmdBuffer.handle, &dependencies);
+        vkCmdSetEvent2(cmdBuffer.handle, resources.my_event, &dependencies);
+        vkCmdWaitEvents2(cmdBuffer.handle, 1, &resources.my_event, &dependencies);
     }
 
     // record_histogram_command_buffer(cmdBuffer, frame_data, resources.histogram_pass_resources);
