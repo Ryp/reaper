@@ -21,7 +21,7 @@ VK_BINDING(2, 0) SamplerComparisonState shadow_map_sampler;
 VK_BINDING(3, 0) Texture2D<float> t_shadow_map[];
 
 VK_BINDING(0, 1) SamplerState diffuse_map_sampler;
-VK_BINDING(1, 1) Texture2D<float4> t_diffuse_map[];
+VK_BINDING(1, 1) Texture2D<float3> t_diffuse_map[];
 
 struct PS_INPUT
 {
