@@ -17,7 +17,7 @@ struct BackendResources;
 class IWindow;
 
 REAPER_RENDERER_API bool vulkan_process_window_events(ReaperRoot& root, VulkanBackend& backend, IWindow* window);
-void                     resize_swapchain(ReaperRoot& root, VulkanBackend& backend, BackendResources& resources);
+void                     resize_swapchain(ReaperRoot& root, VulkanBackend& backend);
 
 struct CommandBuffer;
 struct PreparedData;

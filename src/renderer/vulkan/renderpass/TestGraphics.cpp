@@ -38,6 +38,41 @@
 
 namespace Reaper
 {
+namespace
+{
+    struct Access
+    {
+        VkPipelineStageFlags2 stage_mask;
+        VkAccessFlags2        access_mask;
+        VkImageLayout         layout;
+        u32                   queueFamilyIndex;
+    };
+
+    VkDependencyInfo get_vk_image_barrier_depency_info(u32 barrier_count, const VkImageMemoryBarrier2* barriers)
+    {
+        return VkDependencyInfo{
+            VK_STRUCTURE_TYPE_DEPENDENCY_INFO, nullptr, VK_FLAGS_NONE, 0, nullptr, 0, nullptr, barrier_count, barriers,
+        };
+    }
+
+    VkImageMemoryBarrier2 get_vk_image_barrier(VkImage handle, GPUTextureView view, Access src, Access dst)
+    {
+        const VkImageSubresourceRange view_range = GetVulkanImageSubresourceRange(view);
+
+        return VkImageMemoryBarrier2{VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+                                     nullptr,
+                                     src.stage_mask,
+                                     src.access_mask,
+                                     dst.stage_mask,
+                                     dst.access_mask,
+                                     src.layout,
+                                     dst.layout,
+                                     src.queueFamilyIndex,
+                                     dst.queueFamilyIndex,
+                                     handle,
+                                     view_range};
+    }
+} // namespace
 bool vulkan_process_window_events(ReaperRoot& root, VulkanBackend& backend, IWindow* window)
 {
     log_info(root, "window: pump events");
@@ -74,7 +109,7 @@ bool vulkan_process_window_events(ReaperRoot& root, VulkanBackend& backend, IWin
     return false;
 }
 
-void resize_swapchain(ReaperRoot& root, VulkanBackend& backend, BackendResources& resources)
+void resize_swapchain(ReaperRoot& root, VulkanBackend& backend)
 {
     // Resize swapchain if necessary
     if (backend.new_swapchain_extent.width != 0)
@@ -290,62 +325,41 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
         for (ImageInfo& shadow_map : resources.shadow_map_resources.shadowMap)
         {
-            imageBarriers.emplace_back(VkImageMemoryBarrier2{
-                VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
-                nullptr,
-                VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT,
-                VK_ACCESS_2_NONE,
-                VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
-                VK_ACCESS_2_SHADER_READ_BIT,
-                VK_IMAGE_LAYOUT_UNDEFINED,
-                VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL,
-                VK_QUEUE_FAMILY_IGNORED,
-                VK_QUEUE_FAMILY_IGNORED,
-                shadow_map.handle,
-                {VK_IMAGE_ASPECT_DEPTH_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS}});
+            const Access src = {VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT, VK_ACCESS_2_NONE, VK_IMAGE_LAYOUT_UNDEFINED,
+                                VK_QUEUE_FAMILY_IGNORED};
+            const Access dst = {VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
+                                VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL, VK_QUEUE_FAMILY_IGNORED};
+            imageBarriers.emplace_back(
+                get_vk_image_barrier(shadow_map.handle, DefaultGPUTextureView(shadow_map.properties), src, dst));
         }
 
-        imageBarriers.emplace_back(VkImageMemoryBarrier2{
-            VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
-            nullptr,
-            VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT,
-            VK_ACCESS_2_NONE,
-            VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, // So that we can keep the barrier before the render pass
-            VK_ACCESS_2_SHADER_READ_BIT,
-            VK_IMAGE_LAYOUT_UNDEFINED,
-            VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL,
-            VK_QUEUE_FAMILY_IGNORED,
-            VK_QUEUE_FAMILY_IGNORED,
-            hdrBuffer.handle,
-            GetVulkanImageSubresourceRange(scene_hdr_view),
-        });
+        {
+            const Access src = {VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT, VK_ACCESS_2_NONE, VK_IMAGE_LAYOUT_UNDEFINED,
+                                VK_QUEUE_FAMILY_IGNORED};
+            const Access dst = {VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
+                                VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL, VK_QUEUE_FAMILY_IGNORED};
+            imageBarriers.emplace_back(get_vk_image_barrier(hdrBuffer.handle, scene_hdr_view, src, dst));
+        }
 
-        imageBarriers.emplace_back(VkImageMemoryBarrier2{
-            VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
-            nullptr,
-            VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT,
-            VK_ACCESS_2_NONE,
-            VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT,
-            VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
-            VK_IMAGE_LAYOUT_UNDEFINED,
-            VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
-            VK_QUEUE_FAMILY_IGNORED,
-            VK_QUEUE_FAMILY_IGNORED,
-            depthBuffer.handle,
-            GetVulkanImageSubresourceRange(scene_depth_view),
-        });
+        {
+            const Access src = {VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT, VK_ACCESS_2_NONE, VK_IMAGE_LAYOUT_UNDEFINED,
+                                VK_QUEUE_FAMILY_IGNORED};
+            const Access dst = {VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT,
+                                VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+                                VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL, VK_QUEUE_FAMILY_IGNORED};
+            imageBarriers.emplace_back(get_vk_image_barrier(depthBuffer.handle, scene_depth_view, src, dst));
+        }
 
-        const VkDependencyInfo dependencies = {
-            VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
-            nullptr,
-            VK_FLAGS_NONE,
-            0,
-            nullptr,
-            0,
-            nullptr,
-            static_cast<u32>(imageBarriers.size()),
-            imageBarriers.data(),
-        };
+        {
+            const Access src = {VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT, VK_ACCESS_2_NONE, VK_IMAGE_LAYOUT_UNDEFINED,
+                                VK_QUEUE_FAMILY_IGNORED};
+            const Access dst = {VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
+                                VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL, VK_QUEUE_FAMILY_IGNORED};
+            imageBarriers.emplace_back(get_vk_image_barrier(guiBuffer.handle, gui_view, src, dst));
+        }
+
+        const VkDependencyInfo dependencies =
+            get_vk_image_barrier_depency_info(static_cast<u32>(imageBarriers.size()), imageBarriers.data());
 
         vkCmdSetEvent2(cmdBuffer.handle, resources.my_event, &dependencies);
         vkCmdWaitEvents2(cmdBuffer.handle, 1, &resources.my_event, &dependencies);
@@ -360,46 +374,23 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         for (u32 swapchainImageIndex = 0; swapchainImageIndex < static_cast<u32>(backend.presentInfo.images.size());
              swapchainImageIndex++)
         {
-            imageBarriers.emplace_back(VkImageMemoryBarrier2{
-                VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
-                nullptr,
-                VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT,
-                VK_ACCESS_2_NONE,
-                VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT,
-                VK_ACCESS_2_MEMORY_READ_BIT,
-                VK_IMAGE_LAYOUT_UNDEFINED,
-                VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-                VK_QUEUE_FAMILY_IGNORED,
-                VK_QUEUE_FAMILY_IGNORED,
-                backend.presentInfo.images[swapchainImageIndex],
-                {VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS}});
+            const Access src = {VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT, VK_ACCESS_2_NONE, VK_IMAGE_LAYOUT_UNDEFINED,
+                                VK_QUEUE_FAMILY_IGNORED};
+            const Access dst = {VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT, VK_ACCESS_2_MEMORY_READ_BIT,
+                                VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_QUEUE_FAMILY_IGNORED};
+
+            GPUTextureView view = {};
+            // view.format;
+            view.aspect = ViewAspect::Color;
+            view.mipCount = 1;
+            view.layerCount = 1;
+
+            imageBarriers.emplace_back(
+                get_vk_image_barrier(backend.presentInfo.images[swapchainImageIndex], view, src, dst));
         }
 
-        imageBarriers.emplace_back(VkImageMemoryBarrier2{
-            VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
-            nullptr,
-            VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
-            VK_ACCESS_2_NONE,
-            VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-            VK_ACCESS_2_SHADER_READ_BIT,
-            VK_IMAGE_LAYOUT_UNDEFINED,
-            VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL,
-            VK_QUEUE_FAMILY_IGNORED,
-            VK_QUEUE_FAMILY_IGNORED,
-            guiBuffer.handle,
-            {VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS}});
-
-        const VkDependencyInfo dependencies = {
-            VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
-            nullptr,
-            VK_FLAGS_NONE,
-            0,
-            nullptr,
-            0,
-            nullptr,
-            static_cast<u32>(imageBarriers.size()),
-            imageBarriers.data(),
-        };
+        const VkDependencyInfo dependencies =
+            get_vk_image_barrier_depency_info(static_cast<u32>(imageBarriers.size()), imageBarriers.data());
 
         vkCmdSetEvent2(cmdBuffer.handle, resources.my_event, &dependencies);
         vkCmdWaitEvents2(cmdBuffer.handle, 1, &resources.my_event, &dependencies);
@@ -416,32 +407,17 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
         for (ImageInfo& shadow_map : resources.shadow_map_resources.shadowMap)
         {
-            imageBarriers.emplace_back(VkImageMemoryBarrier2{
-                VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
-                nullptr,
-                VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
-                VK_ACCESS_2_SHADER_READ_BIT,
-                VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT,
-                VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
-                VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL,
-                VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
-                VK_QUEUE_FAMILY_IGNORED,
-                VK_QUEUE_FAMILY_IGNORED,
-                shadow_map.handle,
-                {VK_IMAGE_ASPECT_DEPTH_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS}});
+            const Access src = {VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
+                                VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL, VK_QUEUE_FAMILY_IGNORED};
+            const Access dst = {VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT,
+                                VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
+                                VK_QUEUE_FAMILY_IGNORED};
+            imageBarriers.emplace_back(
+                get_vk_image_barrier(shadow_map.handle, DefaultGPUTextureView(shadow_map.properties), src, dst));
         }
 
-        const VkDependencyInfo dependencies = {
-            VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
-            nullptr,
-            VK_FLAGS_NONE,
-            0,
-            nullptr,
-            0,
-            nullptr,
-            static_cast<u32>(imageBarriers.size()),
-            imageBarriers.data(),
-        };
+        const VkDependencyInfo dependencies =
+            get_vk_image_barrier_depency_info(static_cast<u32>(imageBarriers.size()), imageBarriers.data());
 
         vkCmdSetEvent2(cmdBuffer.handle, resources.my_event, &dependencies);
         vkCmdWaitEvents2(cmdBuffer.handle, 1, &resources.my_event, &dependencies);
@@ -457,68 +433,23 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
         for (ImageInfo& shadow_map : resources.shadow_map_resources.shadowMap)
         {
-            imageBarriers.emplace_back(VkImageMemoryBarrier2{
-                VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
-                nullptr,
-                VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT,
-                VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
-                VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
-                VK_ACCESS_2_SHADER_READ_BIT,
-                VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
-                VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL,
-                VK_QUEUE_FAMILY_IGNORED,
-                VK_QUEUE_FAMILY_IGNORED,
-                shadow_map.handle,
-                {VK_IMAGE_ASPECT_DEPTH_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS}});
+            const Access shadow_src = {VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT,
+                                       VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+                                       VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL, VK_QUEUE_FAMILY_IGNORED};
+            const Access shadow_dst = {VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
+                                       VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL, VK_QUEUE_FAMILY_IGNORED};
+            imageBarriers.emplace_back(get_vk_image_barrier(
+                shadow_map.handle, DefaultGPUTextureView(shadow_map.properties), shadow_src, shadow_dst));
         }
 
-        const VkDependencyInfo dependencies = {
-            VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
-            nullptr,
-            VK_FLAGS_NONE,
-            0,
-            nullptr,
-            0,
-            nullptr,
-            static_cast<u32>(imageBarriers.size()),
-            imageBarriers.data(),
-        };
+        const Access src = {VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
+                            VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL, VK_QUEUE_FAMILY_IGNORED};
+        const Access dst = {VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+                            VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL, VK_QUEUE_FAMILY_IGNORED};
+        imageBarriers.emplace_back(get_vk_image_barrier(hdrBuffer.handle, scene_hdr_view, src, dst));
 
-        vkCmdSetEvent2(cmdBuffer.handle, resources.my_event, &dependencies);
-        vkCmdWaitEvents2(cmdBuffer.handle, 1, &resources.my_event, &dependencies);
-    }
-
-    {
-        REAPER_PROFILE_SCOPE_GPU(cmdBuffer.mlog, "Barrier", MP_RED);
-
-        std::vector<VkImageMemoryBarrier2> imageBarriers;
-
-        imageBarriers.emplace_back(VkImageMemoryBarrier2{
-            VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
-            nullptr,
-            VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
-            VK_ACCESS_2_SHADER_READ_BIT,
-            VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-            VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-            VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL,
-            VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
-            VK_QUEUE_FAMILY_IGNORED,
-            VK_QUEUE_FAMILY_IGNORED,
-            hdrBuffer.handle,
-            GetVulkanImageSubresourceRange(scene_hdr_view),
-        });
-
-        const VkDependencyInfo dependencies = {
-            VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
-            nullptr,
-            VK_FLAGS_NONE,
-            0,
-            nullptr,
-            0,
-            nullptr,
-            static_cast<u32>(imageBarriers.size()),
-            imageBarriers.data(),
-        };
+        const VkDependencyInfo dependencies =
+            get_vk_image_barrier_depency_info(static_cast<u32>(imageBarriers.size()), imageBarriers.data());
 
         vkCmdSetEvent2(cmdBuffer.handle, resources.my_event, &dependencies);
         vkCmdWaitEvents2(cmdBuffer.handle, 1, &resources.my_event, &dependencies);
@@ -532,33 +463,16 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     // Render GUI
     {
         {
+            const Access src = {VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
+                                VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL, VK_QUEUE_FAMILY_IGNORED};
+            const Access dst = {VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+                                VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL, VK_QUEUE_FAMILY_IGNORED};
+
             std::vector<VkImageMemoryBarrier2> imageBarriers;
+            imageBarriers.emplace_back(get_vk_image_barrier(guiBuffer.handle, gui_view, src, dst));
 
-            imageBarriers.emplace_back(VkImageMemoryBarrier2{
-                VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
-                nullptr,
-                VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-                VK_ACCESS_2_SHADER_READ_BIT,
-                VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-                VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-                VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL,
-                VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
-                VK_QUEUE_FAMILY_IGNORED,
-                VK_QUEUE_FAMILY_IGNORED,
-                guiBuffer.handle,
-                {VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS}});
-
-            const VkDependencyInfo dependencies = {
-                VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
-                nullptr,
-                VK_FLAGS_NONE,
-                0,
-                nullptr,
-                0,
-                nullptr,
-                static_cast<u32>(imageBarriers.size()),
-                imageBarriers.data(),
-            };
+            const VkDependencyInfo dependencies =
+                get_vk_image_barrier_depency_info(static_cast<u32>(imageBarriers.size()), imageBarriers.data());
 
             vkCmdSetEvent2(cmdBuffer.handle, resources.my_event, &dependencies);
             vkCmdWaitEvents2(cmdBuffer.handle, 1, &resources.my_event, &dependencies);
@@ -574,46 +488,24 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
         std::vector<VkImageMemoryBarrier2> imageBarriers;
 
-        imageBarriers.emplace_back(VkImageMemoryBarrier2{
-            VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
-            nullptr,
-            VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-            VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-            VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
-            VK_ACCESS_2_SHADER_READ_BIT,
-            VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
-            VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL,
-            VK_QUEUE_FAMILY_IGNORED,
-            VK_QUEUE_FAMILY_IGNORED,
-            hdrBuffer.handle,
-            GetVulkanImageSubresourceRange(scene_hdr_view),
-        });
+        {
+            const Access src = {VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+                                VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL, VK_QUEUE_FAMILY_IGNORED};
+            const Access dst = {VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
+                                VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL, VK_QUEUE_FAMILY_IGNORED};
+            imageBarriers.emplace_back(get_vk_image_barrier(hdrBuffer.handle, scene_hdr_view, src, dst));
+        }
 
-        imageBarriers.emplace_back(VkImageMemoryBarrier2{
-            VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
-            nullptr,
-            VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-            VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-            VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
-            VK_ACCESS_2_SHADER_READ_BIT,
-            VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
-            VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL,
-            VK_QUEUE_FAMILY_IGNORED,
-            VK_QUEUE_FAMILY_IGNORED,
-            guiBuffer.handle,
-            {VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS}});
+        {
+            const Access src = {VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+                                VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL, VK_QUEUE_FAMILY_IGNORED};
+            const Access dst = {VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
+                                VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL, VK_QUEUE_FAMILY_IGNORED};
+            imageBarriers.emplace_back(get_vk_image_barrier(guiBuffer.handle, gui_view, src, dst));
+        }
 
-        const VkDependencyInfo dependencies = {
-            VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
-            nullptr,
-            VK_FLAGS_NONE,
-            0,
-            nullptr,
-            0,
-            nullptr,
-            static_cast<u32>(imageBarriers.size()),
-            imageBarriers.data(),
-        };
+        const VkDependencyInfo dependencies =
+            get_vk_image_barrier_depency_info(static_cast<u32>(imageBarriers.size()), imageBarriers.data());
 
         vkCmdSetEvent2(cmdBuffer.handle, resources.my_event, &dependencies);
         vkCmdWaitEvents2(cmdBuffer.handle, 1, &resources.my_event, &dependencies);

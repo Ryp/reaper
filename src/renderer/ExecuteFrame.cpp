@@ -40,7 +40,7 @@ void renderer_execute_frame(ReaperRoot& root, const SceneGraph& scene, std::vect
 {
     VulkanBackend& backend = *root.renderer->backend;
 
-    resize_swapchain(root, backend, *backend.resources);
+    resize_swapchain(root, backend);
 
     const VkExtent2D backbufferExtent = backend.presentInfo.surfaceExtent;
     const glm::uvec2 backbuffer_viewport_extent(backbufferExtent.width, backbufferExtent.height);
