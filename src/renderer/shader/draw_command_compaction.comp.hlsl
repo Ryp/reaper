@@ -37,13 +37,7 @@ void main(uint3 gtid : SV_GroupThreadID,
     const bool is_used = command_index_count > 0;
 
     const uint is_used_count = WaveActiveCountBits(is_used);
-
-// https://github.com/KhronosGroup/glslang/issues/2929
-#if defined(_DXC)
     const uint is_used_prefix_count = WavePrefixCountBits(is_used);
-#else
-    const uint is_used_prefix_count = WavePrefixCountBits(is_used) - 1;
-#endif
 
     uint wave_output_command_offset;
 

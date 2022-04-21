@@ -121,13 +121,7 @@ void main(/*uint3 gtid : SV_GroupThreadID,*/
     }
 
     const uint visible_count = WaveActiveCountBits(is_visible);
-
-// https://github.com/KhronosGroup/glslang/issues/2929
-#if defined(_DXC)
     const uint visible_prefix_count = WavePrefixCountBits(is_visible);
-#else
-    const uint visible_prefix_count = WavePrefixCountBits(is_visible) - 1;
-#endif
 
     uint wave_triangle_offset;
 
