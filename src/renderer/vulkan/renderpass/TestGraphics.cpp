@@ -288,6 +288,32 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     ImageInfo& depthBuffer = get_frame_graph_texture(resources.framegraph_resources, main_depth_resource_handle);
     ImageInfo& guiBuffer = get_frame_graph_texture(resources.framegraph_resources, gui_resource_handle);
 
+    const Access src_undefined = {VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT, VK_ACCESS_2_NONE, VK_IMAGE_LAYOUT_UNDEFINED,
+                                  VK_QUEUE_FAMILY_IGNORED};
+
+    const Access scene_hdr_access_main_pass = {VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                                               VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+                                               VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL, VK_QUEUE_FAMILY_IGNORED};
+    const Access scene_hdr_access_swapchain_pass = {VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+                                                    VK_ACCESS_2_SHADER_READ_BIT, VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL,
+                                                    VK_QUEUE_FAMILY_IGNORED};
+
+    const Access depth_access_main_pass = {VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT,
+                                           VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+                                           VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL, VK_QUEUE_FAMILY_IGNORED};
+
+    const Access gui_access_gui_pass = {VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                                        VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
+                                        VK_QUEUE_FAMILY_IGNORED};
+    const Access gui_access_swapchain_pass = {VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
+                                              VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL, VK_QUEUE_FAMILY_IGNORED};
+
+    const Access shadow_access_main_pass = {VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
+                                            VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL, VK_QUEUE_FAMILY_IGNORED};
+    const Access shadow_access_shadow_pass = {VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT,
+                                              VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+                                              VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL, VK_QUEUE_FAMILY_IGNORED};
+
     update_culling_pass_descriptor_sets(backend, prepared, resources.cull_resources, resources.mesh_cache);
     update_shadow_map_pass_descriptor_sets(backend, prepared, resources.shadow_map_resources);
     update_main_pass_descriptor_sets(backend, resources.main_pass_resources, resources.material_resources,
@@ -325,38 +351,17 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
         for (ImageInfo& shadow_map : resources.shadow_map_resources.shadowMap)
         {
-            const Access src = {VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT, VK_ACCESS_2_NONE, VK_IMAGE_LAYOUT_UNDEFINED,
-                                VK_QUEUE_FAMILY_IGNORED};
-            const Access dst = {VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
-                                VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL, VK_QUEUE_FAMILY_IGNORED};
-            imageBarriers.emplace_back(
-                get_vk_image_barrier(shadow_map.handle, DefaultGPUTextureView(shadow_map.properties), src, dst));
+            imageBarriers.emplace_back(get_vk_image_barrier(shadow_map.handle,
+                                                            DefaultGPUTextureView(shadow_map.properties), src_undefined,
+                                                            shadow_access_main_pass));
         }
 
-        {
-            const Access src = {VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT, VK_ACCESS_2_NONE, VK_IMAGE_LAYOUT_UNDEFINED,
-                                VK_QUEUE_FAMILY_IGNORED};
-            const Access dst = {VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
-                                VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL, VK_QUEUE_FAMILY_IGNORED};
-            imageBarriers.emplace_back(get_vk_image_barrier(hdrBuffer.handle, scene_hdr_view, src, dst));
-        }
-
-        {
-            const Access src = {VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT, VK_ACCESS_2_NONE, VK_IMAGE_LAYOUT_UNDEFINED,
-                                VK_QUEUE_FAMILY_IGNORED};
-            const Access dst = {VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT,
-                                VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
-                                VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL, VK_QUEUE_FAMILY_IGNORED};
-            imageBarriers.emplace_back(get_vk_image_barrier(depthBuffer.handle, scene_depth_view, src, dst));
-        }
-
-        {
-            const Access src = {VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT, VK_ACCESS_2_NONE, VK_IMAGE_LAYOUT_UNDEFINED,
-                                VK_QUEUE_FAMILY_IGNORED};
-            const Access dst = {VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
-                                VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL, VK_QUEUE_FAMILY_IGNORED};
-            imageBarriers.emplace_back(get_vk_image_barrier(guiBuffer.handle, gui_view, src, dst));
-        }
+        imageBarriers.emplace_back(
+            get_vk_image_barrier(hdrBuffer.handle, scene_hdr_view, src_undefined, scene_hdr_access_swapchain_pass));
+        imageBarriers.emplace_back(
+            get_vk_image_barrier(depthBuffer.handle, scene_depth_view, src_undefined, depth_access_main_pass));
+        imageBarriers.emplace_back(
+            get_vk_image_barrier(guiBuffer.handle, gui_view, src_undefined, gui_access_swapchain_pass));
 
         const VkDependencyInfo dependencies =
             get_vk_image_barrier_depency_info(static_cast<u32>(imageBarriers.size()), imageBarriers.data());
@@ -374,8 +379,6 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         for (u32 swapchainImageIndex = 0; swapchainImageIndex < static_cast<u32>(backend.presentInfo.images.size());
              swapchainImageIndex++)
         {
-            const Access src = {VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT, VK_ACCESS_2_NONE, VK_IMAGE_LAYOUT_UNDEFINED,
-                                VK_QUEUE_FAMILY_IGNORED};
             const Access dst = {VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT, VK_ACCESS_2_MEMORY_READ_BIT,
                                 VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_QUEUE_FAMILY_IGNORED};
 
@@ -386,7 +389,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
             view.layerCount = 1;
 
             imageBarriers.emplace_back(
-                get_vk_image_barrier(backend.presentInfo.images[swapchainImageIndex], view, src, dst));
+                get_vk_image_barrier(backend.presentInfo.images[swapchainImageIndex], view, src_undefined, dst));
         }
 
         const VkDependencyInfo dependencies =
@@ -407,13 +410,9 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
         for (ImageInfo& shadow_map : resources.shadow_map_resources.shadowMap)
         {
-            const Access src = {VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
-                                VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL, VK_QUEUE_FAMILY_IGNORED};
-            const Access dst = {VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT,
-                                VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
-                                VK_QUEUE_FAMILY_IGNORED};
-            imageBarriers.emplace_back(
-                get_vk_image_barrier(shadow_map.handle, DefaultGPUTextureView(shadow_map.properties), src, dst));
+            imageBarriers.emplace_back(get_vk_image_barrier(shadow_map.handle,
+                                                            DefaultGPUTextureView(shadow_map.properties),
+                                                            shadow_access_main_pass, shadow_access_shadow_pass));
         }
 
         const VkDependencyInfo dependencies =
@@ -433,20 +432,13 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
         for (ImageInfo& shadow_map : resources.shadow_map_resources.shadowMap)
         {
-            const Access shadow_src = {VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT,
-                                       VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
-                                       VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL, VK_QUEUE_FAMILY_IGNORED};
-            const Access shadow_dst = {VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
-                                       VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL, VK_QUEUE_FAMILY_IGNORED};
-            imageBarriers.emplace_back(get_vk_image_barrier(
-                shadow_map.handle, DefaultGPUTextureView(shadow_map.properties), shadow_src, shadow_dst));
+            imageBarriers.emplace_back(get_vk_image_barrier(shadow_map.handle,
+                                                            DefaultGPUTextureView(shadow_map.properties),
+                                                            shadow_access_shadow_pass, shadow_access_main_pass));
         }
 
-        const Access src = {VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
-                            VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL, VK_QUEUE_FAMILY_IGNORED};
-        const Access dst = {VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-                            VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL, VK_QUEUE_FAMILY_IGNORED};
-        imageBarriers.emplace_back(get_vk_image_barrier(hdrBuffer.handle, scene_hdr_view, src, dst));
+        imageBarriers.emplace_back(get_vk_image_barrier(hdrBuffer.handle, scene_hdr_view,
+                                                        scene_hdr_access_swapchain_pass, scene_hdr_access_main_pass));
 
         const VkDependencyInfo dependencies =
             get_vk_image_barrier_depency_info(static_cast<u32>(imageBarriers.size()), imageBarriers.data());
@@ -460,49 +452,30 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         backbufferExtent, get_frame_graph_texture_view(resources.framegraph_resources, main_hdr_usage_handle),
         get_frame_graph_texture_view(resources.framegraph_resources, main_depth_create_usage_handle));
 
-    // Render GUI
     {
-        {
-            const Access src = {VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
-                                VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL, VK_QUEUE_FAMILY_IGNORED};
-            const Access dst = {VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-                                VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL, VK_QUEUE_FAMILY_IGNORED};
+        std::vector<VkImageMemoryBarrier2> imageBarriers;
+        imageBarriers.emplace_back(
+            get_vk_image_barrier(guiBuffer.handle, gui_view, gui_access_swapchain_pass, gui_access_gui_pass));
 
-            std::vector<VkImageMemoryBarrier2> imageBarriers;
-            imageBarriers.emplace_back(get_vk_image_barrier(guiBuffer.handle, gui_view, src, dst));
+        const VkDependencyInfo dependencies =
+            get_vk_image_barrier_depency_info(static_cast<u32>(imageBarriers.size()), imageBarriers.data());
 
-            const VkDependencyInfo dependencies =
-                get_vk_image_barrier_depency_info(static_cast<u32>(imageBarriers.size()), imageBarriers.data());
-
-            vkCmdSetEvent2(cmdBuffer.handle, resources.my_event, &dependencies);
-            vkCmdWaitEvents2(cmdBuffer.handle, 1, &resources.my_event, &dependencies);
-        }
-
-        record_gui_command_buffer(
-            cmdBuffer, resources.gui_pass_resources, backbufferExtent,
-            get_frame_graph_texture_view(resources.framegraph_resources, gui_create_usage_handle));
+        vkCmdSetEvent2(cmdBuffer.handle, resources.my_event, &dependencies);
+        vkCmdWaitEvents2(cmdBuffer.handle, 1, &resources.my_event, &dependencies);
     }
+
+    record_gui_command_buffer(cmdBuffer, resources.gui_pass_resources, backbufferExtent,
+                              get_frame_graph_texture_view(resources.framegraph_resources, gui_create_usage_handle));
 
     {
         REAPER_PROFILE_SCOPE_GPU(cmdBuffer.mlog, "Barrier", MP_RED);
 
         std::vector<VkImageMemoryBarrier2> imageBarriers;
 
-        {
-            const Access src = {VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-                                VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL, VK_QUEUE_FAMILY_IGNORED};
-            const Access dst = {VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
-                                VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL, VK_QUEUE_FAMILY_IGNORED};
-            imageBarriers.emplace_back(get_vk_image_barrier(hdrBuffer.handle, scene_hdr_view, src, dst));
-        }
-
-        {
-            const Access src = {VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-                                VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL, VK_QUEUE_FAMILY_IGNORED};
-            const Access dst = {VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
-                                VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL, VK_QUEUE_FAMILY_IGNORED};
-            imageBarriers.emplace_back(get_vk_image_barrier(guiBuffer.handle, gui_view, src, dst));
-        }
+        imageBarriers.emplace_back(get_vk_image_barrier(hdrBuffer.handle, scene_hdr_view, scene_hdr_access_main_pass,
+                                                        scene_hdr_access_swapchain_pass));
+        imageBarriers.emplace_back(
+            get_vk_image_barrier(guiBuffer.handle, gui_view, gui_access_gui_pass, gui_access_swapchain_pass));
 
         const VkDependencyInfo dependencies =
             get_vk_image_barrier_depency_info(static_cast<u32>(imageBarriers.size()), imageBarriers.data());
