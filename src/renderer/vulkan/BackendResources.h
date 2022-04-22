@@ -43,9 +43,12 @@ struct BackendResources
     AudioResources         audio_resources;
 
     // FIXME wrap this
-    VkCommandPool graphicsCommandPool;
+    VkCommandPool gfxCommandPool;
     CommandBuffer gfxCmdBuffer;
-    VkEvent       my_event;
+
+    // NOTE: you need to have as many events as concurrent synchronization barriers.
+    // For the first implem we can just have as many events as barrier calls.
+    VkEvent event;
 };
 
 void create_backend_resources(ReaperRoot& root, VulkanBackend& backend);

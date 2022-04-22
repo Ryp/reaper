@@ -24,12 +24,11 @@ void create_backend_resources(ReaperRoot& root, VulkanBackend& backend)
                                               VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
                                               backend.physicalDeviceInfo.graphicsQueueFamilyIndex};
 
-    Assert(vkCreateCommandPool(backend.device, &poolCreateInfo, nullptr, &resources.graphicsCommandPool) == VK_SUCCESS);
-    log_debug(root, "vulkan: created command pool with handle: {}", static_cast<void*>(resources.graphicsCommandPool));
+    Assert(vkCreateCommandPool(backend.device, &poolCreateInfo, nullptr, &resources.gfxCommandPool) == VK_SUCCESS);
+    log_debug(root, "vulkan: created command pool with handle: {}", static_cast<void*>(resources.gfxCommandPool));
 
     VkCommandBufferAllocateInfo cmdBufferAllocInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO, nullptr,
-                                                      resources.graphicsCommandPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-                                                      1};
+                                                      resources.gfxCommandPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, 1};
 
     Assert(vkAllocateCommandBuffers(backend.device, &cmdBufferAllocInfo, &resources.gfxCmdBuffer.handle) == VK_SUCCESS);
     log_debug(
@@ -40,7 +39,7 @@ void create_backend_resources(ReaperRoot& root, VulkanBackend& backend)
         nullptr,
         VK_EVENT_CREATE_DEVICE_ONLY_BIT,
     };
-    vkCreateEvent(backend.device, &event_info, nullptr, &resources.my_event);
+    vkCreateEvent(backend.device, &event_info, nullptr, &resources.event);
 
     const glm::uvec2 swapchain_extent(backend.presentInfo.surfaceExtent.width,
                                       backend.presentInfo.surfaceExtent.height);
@@ -74,9 +73,9 @@ void destroy_backend_resources(VulkanBackend& backend)
     destroy_swapchain_pass_resources(backend, resources.swapchain_pass_resources);
     destroy_framegraph_resources(backend, resources.framegraph_resources);
 
-    vkDestroyEvent(backend.device, resources.my_event, nullptr);
-    vkFreeCommandBuffers(backend.device, resources.graphicsCommandPool, 1, &resources.gfxCmdBuffer.handle);
-    vkDestroyCommandPool(backend.device, resources.graphicsCommandPool, nullptr);
+    vkDestroyEvent(backend.device, resources.event, nullptr);
+    vkFreeCommandBuffers(backend.device, resources.gfxCommandPool, 1, &resources.gfxCmdBuffer.handle);
+    vkDestroyCommandPool(backend.device, resources.gfxCommandPool, nullptr);
 
     delete backend.resources;
     backend.resources = nullptr;
