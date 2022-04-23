@@ -10,6 +10,7 @@
 #include "renderer/PrepareBuckets.h"
 
 #include "renderer/vulkan/Backend.h"
+#include "renderer/vulkan/Barrier.h"
 #include "renderer/vulkan/CommandBuffer.h"
 #include "renderer/vulkan/ComputeHelper.h"
 #include "renderer/vulkan/MeshCache.h"
@@ -30,31 +31,6 @@ namespace Reaper
 {
 namespace
 {
-    void cmd_insert_memory_barrier(CommandBuffer&        cmdBuffer,
-                                   VkPipelineStageFlags2 srcStageMask,
-                                   VkPipelineStageFlags2 dstStageMask,
-                                   VkAccessFlags2        srcAccessMask,
-                                   VkAccessFlags2        dstAccessMask)
-    {
-        const VkMemoryBarrier2 memoryBarrier = {
-            VK_STRUCTURE_TYPE_MEMORY_BARRIER_2, nullptr, srcStageMask, srcAccessMask, dstStageMask, dstAccessMask,
-        };
-
-        const VkDependencyInfo dependencies = {
-            VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
-            nullptr,
-            VK_DEPENDENCY_BY_REGION_BIT,
-            1,
-            &memoryBarrier,
-            0,
-            nullptr,
-            0,
-            nullptr,
-        };
-
-        vkCmdPipelineBarrier2(cmdBuffer.handle, &dependencies);
-    }
-
     CullPassResources create_descriptor_sets(VulkanBackend& backend, CullResources& resources)
     {
         constexpr u32 SetCount = 3;
@@ -519,11 +495,13 @@ void record_culling_command_buffer(bool freeze_culling, CommandBuffer& cmdBuffer
 
     {
         REAPER_PROFILE_SCOPE_GPU(cmdBuffer.mlog, "Barrier", MP_RED);
-        cmd_insert_memory_barrier(cmdBuffer,
-                                  VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-                                  VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-                                  VK_ACCESS_2_SHADER_WRITE_BIT,
-                                  VK_ACCESS_2_SHADER_READ_BIT);
+
+        const GPUMemoryAccess  src = {VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT};
+        const GPUMemoryAccess  dst = {VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT};
+        const VkMemoryBarrier2 memoryBarrier = get_vk_memory_barrier(src, dst);
+        const VkDependencyInfo dependencies = get_vk_memory_barrier_depency_info(1, &memoryBarrier);
+
+        vkCmdPipelineBarrier2(cmdBuffer.handle, &dependencies);
     }
 
     // Compaction prepare pass
@@ -546,11 +524,13 @@ void record_culling_command_buffer(bool freeze_culling, CommandBuffer& cmdBuffer
 
     {
         REAPER_PROFILE_SCOPE_GPU(cmdBuffer.mlog, "Barrier", MP_RED);
-        cmd_insert_memory_barrier(cmdBuffer,
-                                  VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-                                  VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-                                  VK_ACCESS_2_SHADER_WRITE_BIT,
-                                  VK_ACCESS_2_SHADER_READ_BIT);
+
+        const GPUMemoryAccess  src = {VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT};
+        const GPUMemoryAccess  dst = {VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT};
+        const VkMemoryBarrier2 memoryBarrier = get_vk_memory_barrier(src, dst);
+        const VkDependencyInfo dependencies = get_vk_memory_barrier_depency_info(1, &memoryBarrier);
+
+        vkCmdPipelineBarrier2(cmdBuffer.handle, &dependencies);
     }
 
     // Compaction pass
@@ -573,11 +553,14 @@ void record_culling_command_buffer(bool freeze_culling, CommandBuffer& cmdBuffer
 
     {
         REAPER_PROFILE_SCOPE_GPU(cmdBuffer.mlog, "Barrier", MP_RED);
-        cmd_insert_memory_barrier(cmdBuffer,
-                                  VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-                                  VK_PIPELINE_STAGE_2_VERTEX_INPUT_BIT | VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT,
-                                  VK_ACCESS_2_SHADER_WRITE_BIT,
-                                  VK_ACCESS_2_INDEX_READ_BIT | VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT);
+
+        const GPUMemoryAccess  src = {VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT};
+        const GPUMemoryAccess  dst = {VK_PIPELINE_STAGE_2_VERTEX_INPUT_BIT | VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT,
+                                     VK_ACCESS_2_INDEX_READ_BIT | VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT};
+        const VkMemoryBarrier2 memoryBarrier = get_vk_memory_barrier(src, dst);
+        const VkDependencyInfo dependencies = get_vk_memory_barrier_depency_info(1, &memoryBarrier);
+
+        vkCmdPipelineBarrier2(cmdBuffer.handle, &dependencies);
     }
 }
 } // namespace Reaper

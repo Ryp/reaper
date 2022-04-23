@@ -135,18 +135,7 @@ namespace
 
         const GPUTextureView        default_view = DefaultGPUTextureView(entry.texture_properties);
         const VkImageMemoryBarrier2 barrier = get_vk_image_barrier(entry.target, default_view, src, dst);
-
-        const VkDependencyInfo dependencies = {
-            VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
-            nullptr,
-            VK_DEPENDENCY_BY_REGION_BIT,
-            0,
-            nullptr,
-            0,
-            nullptr,
-            1,
-            &barrier,
-        };
+        const VkDependencyInfo      dependencies = get_vk_image_barrier_depency_info(1, &barrier);
 
         vkCmdPipelineBarrier2(cmdBuffer.handle, &dependencies);
 
@@ -275,17 +264,8 @@ void record_material_upload_command_buffer(ResourceStagingArea& staging, Command
             prerender_barriers.emplace_back(barrier);
         }
 
-        const VkDependencyInfo dependencies = {
-            VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
-            nullptr,
-            VK_DEPENDENCY_BY_REGION_BIT,
-            0,
-            nullptr,
-            0,
-            nullptr,
-            static_cast<u32>(prerender_barriers.size()),
-            prerender_barriers.data(),
-        };
+        const VkDependencyInfo dependencies =
+            get_vk_image_barrier_depency_info(static_cast<u32>(prerender_barriers.size()), prerender_barriers.data());
 
         vkCmdPipelineBarrier2(cmdBuffer.handle, &dependencies);
     }
