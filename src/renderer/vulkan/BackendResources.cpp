@@ -31,8 +31,8 @@ void create_backend_resources(ReaperRoot& root, VulkanBackend& backend)
                                                       resources.gfxCommandPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, 1};
 
     Assert(vkAllocateCommandBuffers(backend.device, &cmdBufferAllocInfo, &resources.gfxCmdBuffer.handle) == VK_SUCCESS);
-    log_debug(
-        root, "vulkan: created command buffer with handle: {}", static_cast<void*>(resources.gfxCmdBuffer.handle));
+    log_debug(root, "vulkan: created command buffer with handle: {}",
+              static_cast<void*>(resources.gfxCmdBuffer.handle));
 
     const VkEventCreateInfo event_info = {
         VK_STRUCTURE_TYPE_EVENT_CREATE_INFO,
@@ -41,14 +41,11 @@ void create_backend_resources(ReaperRoot& root, VulkanBackend& backend)
     };
     vkCreateEvent(backend.device, &event_info, nullptr, &resources.event);
 
-    const glm::uvec2 swapchain_extent(backend.presentInfo.surfaceExtent.width,
-                                      backend.presentInfo.surfaceExtent.height);
-
     resources.framegraph_resources = {}; // framegraph resources are created later
     resources.audio_resources = create_audio_resources(root, backend);
     resources.cull_resources = create_culling_resources(root, backend);
     resources.frame_sync_resources = create_frame_sync_resources(root, backend);
-    resources.gui_pass_resources = create_gui_pass_resources(root, backend, swapchain_extent);
+    resources.gui_pass_resources = create_gui_pass_resources(root, backend);
     resources.histogram_pass_resources = create_histogram_pass_resources(root, backend);
     resources.main_pass_resources = create_main_pass_resources(root, backend);
     resources.material_resources = create_material_resources(root, backend);

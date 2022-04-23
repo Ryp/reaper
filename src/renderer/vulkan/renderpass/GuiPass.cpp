@@ -226,7 +226,7 @@ namespace
     }
 } // namespace
 
-GuiPassResources create_gui_pass_resources(ReaperRoot& root, VulkanBackend& backend, glm::uvec2 extent)
+GuiPassResources create_gui_pass_resources(ReaperRoot& root, VulkanBackend& backend)
 {
     GuiPassResources resources = {};
 
