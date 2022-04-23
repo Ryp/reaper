@@ -32,9 +32,9 @@ namespace
 {
     void cmd_insert_memory_barrier(CommandBuffer&        cmdBuffer,
                                    VkPipelineStageFlags2 srcStageMask,
-                                   VkAccessFlags2        srcAccessMask,
                                    VkPipelineStageFlags2 dstStageMask,
-                                   VkAccessFlags         dstAccessMask)
+                                   VkAccessFlags2        srcAccessMask,
+                                   VkAccessFlags2        dstAccessMask)
     {
         const VkMemoryBarrier2 memoryBarrier = {
             VK_STRUCTURE_TYPE_MEMORY_BARRIER_2, nullptr, srcStageMask, srcAccessMask, dstStageMask, dstAccessMask,
@@ -521,8 +521,8 @@ void record_culling_command_buffer(bool freeze_culling, CommandBuffer& cmdBuffer
         REAPER_PROFILE_SCOPE_GPU(cmdBuffer.mlog, "Barrier", MP_RED);
         cmd_insert_memory_barrier(cmdBuffer,
                                   VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-                                  VK_ACCESS_2_SHADER_WRITE_BIT,
                                   VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+                                  VK_ACCESS_2_SHADER_WRITE_BIT,
                                   VK_ACCESS_2_SHADER_READ_BIT);
     }
 
@@ -548,8 +548,8 @@ void record_culling_command_buffer(bool freeze_culling, CommandBuffer& cmdBuffer
         REAPER_PROFILE_SCOPE_GPU(cmdBuffer.mlog, "Barrier", MP_RED);
         cmd_insert_memory_barrier(cmdBuffer,
                                   VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-                                  VK_ACCESS_2_SHADER_WRITE_BIT,
                                   VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+                                  VK_ACCESS_2_SHADER_WRITE_BIT,
                                   VK_ACCESS_2_SHADER_READ_BIT);
     }
 
@@ -573,11 +573,10 @@ void record_culling_command_buffer(bool freeze_culling, CommandBuffer& cmdBuffer
 
     {
         REAPER_PROFILE_SCOPE_GPU(cmdBuffer.mlog, "Barrier", MP_RED);
-
         cmd_insert_memory_barrier(cmdBuffer,
                                   VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-                                  VK_ACCESS_2_SHADER_WRITE_BIT,
                                   VK_PIPELINE_STAGE_2_VERTEX_INPUT_BIT | VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT,
+                                  VK_ACCESS_2_SHADER_WRITE_BIT,
                                   VK_ACCESS_2_INDEX_READ_BIT | VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT);
     }
 }

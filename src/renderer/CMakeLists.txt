@@ -53,6 +53,8 @@ target_sources(${target} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Backend.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/BackendResources.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/BackendResources.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Barrier.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Barrier.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Buffer.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Buffer.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Debug.cpp

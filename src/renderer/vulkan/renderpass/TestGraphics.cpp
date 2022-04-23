@@ -9,6 +9,7 @@
 
 #include "renderer/vulkan/Backend.h"
 #include "renderer/vulkan/BackendResources.h"
+#include "renderer/vulkan/Barrier.h"
 #include "renderer/vulkan/CommandBuffer.h"
 #include "renderer/vulkan/Debug.h"
 #include "renderer/vulkan/FrameSync.h"
@@ -38,41 +39,6 @@
 
 namespace Reaper
 {
-namespace
-{
-    struct Access
-    {
-        VkPipelineStageFlags2 stage_mask;
-        VkAccessFlags2        access_mask;
-        VkImageLayout         layout;
-        u32                   queueFamilyIndex;
-    };
-
-    VkDependencyInfo get_vk_image_barrier_depency_info(u32 barrier_count, const VkImageMemoryBarrier2* barriers)
-    {
-        return VkDependencyInfo{
-            VK_STRUCTURE_TYPE_DEPENDENCY_INFO, nullptr, VK_FLAGS_NONE, 0, nullptr, 0, nullptr, barrier_count, barriers,
-        };
-    }
-
-    VkImageMemoryBarrier2 get_vk_image_barrier(VkImage handle, GPUTextureView view, Access src, Access dst)
-    {
-        const VkImageSubresourceRange view_range = GetVulkanImageSubresourceRange(view);
-
-        return VkImageMemoryBarrier2{VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
-                                     nullptr,
-                                     src.stage_mask,
-                                     src.access_mask,
-                                     dst.stage_mask,
-                                     dst.access_mask,
-                                     src.layout,
-                                     dst.layout,
-                                     src.queueFamilyIndex,
-                                     dst.queueFamilyIndex,
-                                     handle,
-                                     view_range};
-    }
-} // namespace
 bool vulkan_process_window_events(ReaperRoot& root, VulkanBackend& backend, IWindow* window)
 {
     log_info(root, "window: pump events");
@@ -288,31 +254,33 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     ImageInfo& depthBuffer = get_frame_graph_texture(resources.framegraph_resources, main_depth_resource_handle);
     ImageInfo& guiBuffer = get_frame_graph_texture(resources.framegraph_resources, gui_resource_handle);
 
-    const Access src_undefined = {VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT, VK_ACCESS_2_NONE, VK_IMAGE_LAYOUT_UNDEFINED,
-                                  VK_QUEUE_FAMILY_IGNORED};
+    const GPUTextureAccess src_undefined = {VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT, VK_ACCESS_2_NONE,
+                                            VK_IMAGE_LAYOUT_UNDEFINED, VK_QUEUE_FAMILY_IGNORED};
 
-    const Access scene_hdr_access_main_pass = {VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-                                               VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-                                               VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL, VK_QUEUE_FAMILY_IGNORED};
-    const Access scene_hdr_access_swapchain_pass = {VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
-                                                    VK_ACCESS_2_SHADER_READ_BIT, VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL,
-                                                    VK_QUEUE_FAMILY_IGNORED};
+    const GPUTextureAccess scene_hdr_access_main_pass = {VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                                                         VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+                                                         VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL, VK_QUEUE_FAMILY_IGNORED};
+    const GPUTextureAccess scene_hdr_access_swapchain_pass = {
+        VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT, VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL,
+        VK_QUEUE_FAMILY_IGNORED};
 
-    const Access depth_access_main_pass = {VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT,
-                                           VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
-                                           VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL, VK_QUEUE_FAMILY_IGNORED};
+    const GPUTextureAccess depth_access_main_pass = {VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT,
+                                                     VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+                                                     VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL, VK_QUEUE_FAMILY_IGNORED};
 
-    const Access gui_access_gui_pass = {VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-                                        VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
-                                        VK_QUEUE_FAMILY_IGNORED};
-    const Access gui_access_swapchain_pass = {VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
-                                              VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL, VK_QUEUE_FAMILY_IGNORED};
+    const GPUTextureAccess gui_access_gui_pass = {VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                                                  VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+                                                  VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL, VK_QUEUE_FAMILY_IGNORED};
+    const GPUTextureAccess gui_access_swapchain_pass = {VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+                                                        VK_ACCESS_2_SHADER_READ_BIT, VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL,
+                                                        VK_QUEUE_FAMILY_IGNORED};
 
-    const Access shadow_access_main_pass = {VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
-                                            VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL, VK_QUEUE_FAMILY_IGNORED};
-    const Access shadow_access_shadow_pass = {VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT,
-                                              VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
-                                              VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL, VK_QUEUE_FAMILY_IGNORED};
+    const GPUTextureAccess shadow_access_main_pass = {VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+                                                      VK_ACCESS_2_SHADER_READ_BIT, VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL,
+                                                      VK_QUEUE_FAMILY_IGNORED};
+    const GPUTextureAccess shadow_access_shadow_pass = {VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT,
+                                                        VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+                                                        VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL, VK_QUEUE_FAMILY_IGNORED};
 
     update_culling_pass_descriptor_sets(backend, prepared, resources.cull_resources, resources.mesh_cache);
     update_shadow_map_pass_descriptor_sets(backend, prepared, resources.shadow_map_resources);
@@ -379,8 +347,8 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         for (u32 swapchainImageIndex = 0; swapchainImageIndex < static_cast<u32>(backend.presentInfo.images.size());
              swapchainImageIndex++)
         {
-            const Access dst = {VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT, VK_ACCESS_2_MEMORY_READ_BIT,
-                                VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_QUEUE_FAMILY_IGNORED};
+            const GPUTextureAccess dst = {VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT, VK_ACCESS_2_MEMORY_READ_BIT,
+                                          VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_QUEUE_FAMILY_IGNORED};
 
             GPUTextureView view = {};
             // view.format;

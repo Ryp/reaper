@@ -8,6 +8,7 @@
 #include "MaterialResources.h"
 
 #include "renderer/vulkan/Backend.h"
+#include "renderer/vulkan/Barrier.h"
 #include "renderer/vulkan/Buffer.h"
 #include "renderer/vulkan/CommandBuffer.h"
 #include "renderer/vulkan/Image.h"
@@ -127,19 +128,13 @@ namespace
     void flush_pending_staging_commands(CommandBuffer& cmdBuffer, const ResourceStagingArea& staging,
                                         const StagingEntry& entry)
     {
-        VkImageMemoryBarrier2 imageMemoryBarrier = {
-            VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
-            nullptr,
-            VK_PIPELINE_STAGE_2_HOST_BIT,
-            VK_ACCESS_2_NONE,
-            VK_PIPELINE_STAGE_2_TRANSFER_BIT,
-            VK_ACCESS_2_TRANSFER_WRITE_BIT,
-            VK_IMAGE_LAYOUT_UNDEFINED,
-            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-            VK_QUEUE_FAMILY_IGNORED,
-            VK_QUEUE_FAMILY_IGNORED,
-            entry.target,
-            {VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS}};
+        const GPUTextureAccess src = {VK_PIPELINE_STAGE_2_HOST_BIT, VK_ACCESS_2_NONE, VK_IMAGE_LAYOUT_UNDEFINED,
+                                      VK_QUEUE_FAMILY_IGNORED};
+        const GPUTextureAccess dst = {VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT,
+                                      VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_QUEUE_FAMILY_IGNORED};
+
+        const GPUTextureView        default_view = DefaultGPUTextureView(entry.texture_properties);
+        const VkImageMemoryBarrier2 barrier = get_vk_image_barrier(entry.target, default_view, src, dst);
 
         const VkDependencyInfo dependencies = {
             VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
@@ -150,7 +145,7 @@ namespace
             0,
             nullptr,
             1,
-            &imageMemoryBarrier,
+            &barrier,
         };
 
         vkCmdPipelineBarrier2(cmdBuffer.handle, &dependencies);
@@ -269,19 +264,15 @@ void record_material_upload_command_buffer(ResourceStagingArea& staging, Command
 
         for (const auto& entry : staging.staging_queue)
         {
-            prerender_barriers.emplace_back(VkImageMemoryBarrier2{
-                VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
-                nullptr,
-                VK_PIPELINE_STAGE_2_TRANSFER_BIT,
-                VK_ACCESS_2_TRANSFER_WRITE_BIT,
-                VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
-                VK_ACCESS_2_SHADER_READ_BIT,
-                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL,
-                VK_QUEUE_FAMILY_IGNORED,
-                VK_QUEUE_FAMILY_IGNORED,
-                entry.target,
-                {VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS}});
+            const GPUTextureAccess src = {VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT,
+                                          VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_QUEUE_FAMILY_IGNORED};
+            const GPUTextureAccess dst = {VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
+                                          VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL, VK_QUEUE_FAMILY_IGNORED};
+
+            const GPUTextureView        default_view = DefaultGPUTextureView(entry.texture_properties);
+            const VkImageMemoryBarrier2 barrier = get_vk_image_barrier(entry.target, default_view, src, dst);
+
+            prerender_barriers.emplace_back(barrier);
         }
 
         const VkDependencyInfo dependencies = {
