@@ -52,7 +52,6 @@ namespace FrameGraph
 
                 TGPUTextureUsage shadowRTUsage = {};
                 shadowRTUsage.LoadOp = ELoadOp::Clear;
-                shadowRTUsage.Layout = EImageLayout::ColorAttachmentOptimal;
 
                 const ResourceUsageHandle shadowRTHandle =
                     builder.create_texture(shadowPass, "VSM", shadowRTDesc, shadowRTUsage);
@@ -71,7 +70,6 @@ namespace FrameGraph
 
                 TGPUTextureUsage gbufferUsage = {};
                 gbufferUsage.LoadOp = ELoadOp::DontCare;
-                gbufferUsage.Layout = EImageLayout::ColorAttachmentOptimal;
 
                 const ResourceUsageHandle gbufferRTHandle =
                     builder.create_texture(gbufferPass, "GBuffer", gbufferRTDesc, gbufferUsage);
@@ -86,7 +84,6 @@ namespace FrameGraph
             // Inputs
             {
                 TGPUTextureUsage gbufferRTUsage = {};
-                gbufferRTUsage.Layout = EImageLayout::ShaderReadOnlyOptimal;
 
                 builder.read_texture(uselessPass, gBufferInput.GBufferRT, gbufferRTUsage);
             }
@@ -99,7 +96,6 @@ namespace FrameGraph
 
                 TGPUTextureUsage uselessRTUsage = {};
                 uselessRTUsage.LoadOp = ELoadOp::DontCare;
-                uselessRTUsage.Layout = EImageLayout::ColorAttachmentOptimal;
 
                 const ResourceUsageHandle uselessRTHandle =
                     builder.create_texture(uselessPass, "UselessTexture", uselessRTDesc, uselessRTUsage);
@@ -116,10 +112,8 @@ namespace FrameGraph
             // Inputs
             {
                 TGPUTextureUsage gbufferRTUsage = {};
-                gbufferRTUsage.Layout = EImageLayout::ShaderReadOnlyOptimal;
 
                 TGPUTextureUsage shadowRTUsage = {};
-                shadowRTUsage.Layout = EImageLayout::ShaderReadOnlyOptimal;
 
                 builder.read_texture(lightingPass, gBufferInput.GBufferRT, gbufferRTUsage);
                 builder.read_texture(lightingPass, shadowOutput.ShadowRT, shadowRTUsage);
@@ -132,7 +126,6 @@ namespace FrameGraph
 
                 TGPUTextureUsage opaqueRTUsage = {};
                 opaqueRTUsage.LoadOp = ELoadOp::DontCare;
-                opaqueRTUsage.Layout = EImageLayout::ColorAttachmentOptimal;
 
                 const ResourceUsageHandle opaqueRTHandle =
                     builder.create_texture(lightingPass, "Opaque", opaqueRTDesc, opaqueRTUsage);
@@ -148,7 +141,6 @@ namespace FrameGraph
             // Inputs
             {
                 TGPUTextureUsage opaqueRTUsage = {};
-                opaqueRTUsage.Layout = EImageLayout::ColorAttachmentOptimal;
 
                 builder.read_texture(compositePass, lightingOutput.OpaqueRT, opaqueRTUsage);
             }
@@ -160,7 +152,6 @@ namespace FrameGraph
 
                 TGPUTextureUsage backBufferRTUsage = {};
                 backBufferRTUsage.LoadOp = ELoadOp::DontCare;
-                backBufferRTUsage.Layout = EImageLayout::ColorAttachmentOptimal;
 
                 const ResourceUsageHandle backBufferRTHandle =
                     builder.create_texture(compositePass, "BackBuffer", backBufferRTDesc, backBufferRTUsage);
@@ -176,7 +167,6 @@ namespace FrameGraph
             // Inputs
             {
                 TGPUTextureUsage backBufferRTUsage = {};
-                backBufferRTUsage.Layout = EImageLayout::ColorAttachmentOptimal;
 
                 builder.read_texture(presentPass, compositeOutput.BackBufferRT, backBufferRTUsage);
             }

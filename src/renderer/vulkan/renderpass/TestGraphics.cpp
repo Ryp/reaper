@@ -193,23 +193,28 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         DefaultGPUTextureProperties(backbufferExtent.width, backbufferExtent.height, GUIFormat);
     gui_properties.usageFlags = GPUTextureUsage::ColorAttachment | GPUTextureUsage::Sampled;
 
-    const GPUTextureView scene_hdr_view = DefaultGPUTextureView(scene_hdr_properties);
-    TGPUTextureUsage     scene_hdr_texture_usage = {};
+    const GPUTextureAccess scene_hdr_access_main_pass = {VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                                                         VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+                                                         VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL, VK_QUEUE_FAMILY_IGNORED};
+
+    TGPUTextureUsage scene_hdr_texture_usage = {};
     scene_hdr_texture_usage.LoadOp = ELoadOp::DontCare;
-    scene_hdr_texture_usage.Layout = EImageLayout::ColorAttachmentOptimal;
-    scene_hdr_texture_usage.view = scene_hdr_view;
+    scene_hdr_texture_usage.access = scene_hdr_access_main_pass;
+    scene_hdr_texture_usage.view = DefaultGPUTextureView(scene_hdr_properties);
 
-    const GPUTextureView scene_depth_view = DefaultGPUTextureView(scene_depth_properties);
-    TGPUTextureUsage     scene_depth_texture_usage = {};
+    TGPUTextureUsage scene_depth_texture_usage = {};
     scene_depth_texture_usage.LoadOp = ELoadOp::DontCare;
-    scene_depth_texture_usage.Layout = EImageLayout::ColorAttachmentOptimal;
-    scene_depth_texture_usage.view = scene_depth_view;
+    scene_depth_texture_usage.access =
+        GPUTextureAccess{VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT, VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+                         VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL, VK_QUEUE_FAMILY_IGNORED};
+    scene_depth_texture_usage.view = DefaultGPUTextureView(scene_depth_properties);
 
-    const GPUTextureView gui_view = DefaultGPUTextureView(gui_properties);
-    TGPUTextureUsage     gui_texture_usage = {};
+    TGPUTextureUsage gui_texture_usage = {};
     gui_texture_usage.LoadOp = ELoadOp::Clear;
-    gui_texture_usage.Layout = EImageLayout::ColorAttachmentOptimal;
-    gui_texture_usage.view = gui_view;
+    gui_texture_usage.access =
+        GPUTextureAccess{VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+                         VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL, VK_QUEUE_FAMILY_IGNORED};
+    gui_texture_usage.view = DefaultGPUTextureView(gui_properties);
 
     const ResourceUsageHandle main_hdr_usage_handle =
         builder.create_texture(main_pass_handle, "Scene HDR", scene_hdr_properties, scene_hdr_texture_usage);
@@ -225,13 +230,15 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     TGPUTextureUsage swapchain_hdr_usage = {};
     swapchain_hdr_usage.LoadOp = ELoadOp::Load;
-    swapchain_hdr_usage.Layout = EImageLayout::ShaderReadOnlyOptimal;
-    swapchain_hdr_usage.view = scene_hdr_view;
+    swapchain_hdr_usage.access = GPUTextureAccess{VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
+                                                  VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL, VK_QUEUE_FAMILY_IGNORED};
+    swapchain_hdr_usage.view = DefaultGPUTextureView(scene_hdr_properties);
 
     TGPUTextureUsage swapchain_gui_usage = {};
     swapchain_gui_usage.LoadOp = ELoadOp::Load;
-    swapchain_gui_usage.Layout = EImageLayout::ShaderReadOnlyOptimal;
-    swapchain_gui_usage.view = gui_view;
+    swapchain_gui_usage.access = GPUTextureAccess{VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
+                                                  VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL, VK_QUEUE_FAMILY_IGNORED};
+    swapchain_gui_usage.view = DefaultGPUTextureView(gui_properties);
 
     const ResourceUsageHandle swapchain_hdr_usage_handle =
         builder.read_texture(swapchain_pass_handle, main_hdr_usage_handle, swapchain_hdr_usage);
@@ -256,24 +263,6 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     const GPUTextureAccess src_undefined = {VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT, VK_ACCESS_2_NONE,
                                             VK_IMAGE_LAYOUT_UNDEFINED, VK_QUEUE_FAMILY_IGNORED};
-
-    const GPUTextureAccess scene_hdr_access_main_pass = {VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-                                                         VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-                                                         VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL, VK_QUEUE_FAMILY_IGNORED};
-    const GPUTextureAccess scene_hdr_access_swapchain_pass = {
-        VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT, VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL,
-        VK_QUEUE_FAMILY_IGNORED};
-
-    const GPUTextureAccess depth_access_main_pass = {VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT,
-                                                     VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
-                                                     VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL, VK_QUEUE_FAMILY_IGNORED};
-
-    const GPUTextureAccess gui_access_gui_pass = {VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-                                                  VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-                                                  VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL, VK_QUEUE_FAMILY_IGNORED};
-    const GPUTextureAccess gui_access_swapchain_pass = {VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
-                                                        VK_ACCESS_2_SHADER_READ_BIT, VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL,
-                                                        VK_QUEUE_FAMILY_IGNORED};
 
     const GPUTextureAccess shadow_access_main_pass = {VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
                                                       VK_ACCESS_2_SHADER_READ_BIT, VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL,
@@ -324,12 +313,12 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
                                                             shadow_access_main_pass));
         }
 
-        imageBarriers.emplace_back(
-            get_vk_image_barrier(hdrBuffer.handle, scene_hdr_view, src_undefined, scene_hdr_access_swapchain_pass));
-        imageBarriers.emplace_back(
-            get_vk_image_barrier(depthBuffer.handle, scene_depth_view, src_undefined, depth_access_main_pass));
-        imageBarriers.emplace_back(
-            get_vk_image_barrier(guiBuffer.handle, gui_view, src_undefined, gui_access_swapchain_pass));
+        imageBarriers.emplace_back(get_vk_image_barrier(hdrBuffer.handle, swapchain_hdr_usage.view, src_undefined,
+                                                        swapchain_hdr_usage.access));
+        imageBarriers.emplace_back(get_vk_image_barrier(depthBuffer.handle, scene_depth_texture_usage.view,
+                                                        src_undefined, scene_depth_texture_usage.access));
+        imageBarriers.emplace_back(get_vk_image_barrier(guiBuffer.handle, swapchain_gui_usage.view, src_undefined,
+                                                        swapchain_gui_usage.access));
 
         const VkDependencyInfo dependencies =
             get_vk_image_barrier_depency_info(static_cast<u32>(imageBarriers.size()), imageBarriers.data());
@@ -405,8 +394,8 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
                                                             shadow_access_shadow_pass, shadow_access_main_pass));
         }
 
-        imageBarriers.emplace_back(get_vk_image_barrier(hdrBuffer.handle, scene_hdr_view,
-                                                        scene_hdr_access_swapchain_pass, scene_hdr_access_main_pass));
+        imageBarriers.emplace_back(get_vk_image_barrier(hdrBuffer.handle, scene_hdr_texture_usage.view,
+                                                        swapchain_hdr_usage.access, scene_hdr_texture_usage.access));
 
         const VkDependencyInfo dependencies =
             get_vk_image_barrier_depency_info(static_cast<u32>(imageBarriers.size()), imageBarriers.data());
@@ -422,8 +411,8 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     {
         std::vector<VkImageMemoryBarrier2> imageBarriers;
-        imageBarriers.emplace_back(
-            get_vk_image_barrier(guiBuffer.handle, gui_view, gui_access_swapchain_pass, gui_access_gui_pass));
+        imageBarriers.emplace_back(get_vk_image_barrier(guiBuffer.handle, gui_texture_usage.view,
+                                                        swapchain_gui_usage.access, gui_texture_usage.access));
 
         const VkDependencyInfo dependencies =
             get_vk_image_barrier_depency_info(static_cast<u32>(imageBarriers.size()), imageBarriers.data());
@@ -440,10 +429,10 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
         std::vector<VkImageMemoryBarrier2> imageBarriers;
 
-        imageBarriers.emplace_back(get_vk_image_barrier(hdrBuffer.handle, scene_hdr_view, scene_hdr_access_main_pass,
-                                                        scene_hdr_access_swapchain_pass));
-        imageBarriers.emplace_back(
-            get_vk_image_barrier(guiBuffer.handle, gui_view, gui_access_gui_pass, gui_access_swapchain_pass));
+        imageBarriers.emplace_back(get_vk_image_barrier(hdrBuffer.handle, swapchain_hdr_usage.view,
+                                                        scene_hdr_texture_usage.access, swapchain_hdr_usage.access));
+        imageBarriers.emplace_back(get_vk_image_barrier(guiBuffer.handle, swapchain_gui_usage.view,
+                                                        gui_texture_usage.access, swapchain_gui_usage.access));
 
         const VkDependencyInfo dependencies =
             get_vk_image_barrier_depency_info(static_cast<u32>(imageBarriers.size()), imageBarriers.data());

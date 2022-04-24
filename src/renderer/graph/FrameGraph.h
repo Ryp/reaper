@@ -4,6 +4,7 @@
 
 #include "renderer/texture/GPUTextureProperties.h"
 #include "renderer/texture/GPUTextureView.h"
+#include "renderer/vulkan/Barrier.h"
 
 #include <vector>
 
@@ -62,10 +63,10 @@ struct Resource
 
 struct TGPUTextureUsage // FIXME
 {
-    ELoadOp        LoadOp;
-    EStoreOp       StoreOp;
-    EImageLayout   Layout;
-    GPUTextureView view;
+    ELoadOp          LoadOp;
+    EStoreOp         StoreOp;
+    GPUTextureAccess access;
+    GPUTextureView   view;
 };
 
 struct ResourceUsage
