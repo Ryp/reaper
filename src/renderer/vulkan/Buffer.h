@@ -12,6 +12,7 @@
 #include "api/Vulkan.h"
 
 #include "renderer/GPUBufferProperties.h"
+#include "renderer/GPUBufferView.h"
 
 namespace Reaper
 {
@@ -43,12 +44,6 @@ VkWriteDescriptorSet create_buffer_descriptor_write(VkDescriptorSet descriptorSe
                                                     const VkDescriptorBufferInfo* bufferInfo);
 
 VkDescriptorBufferInfo default_descriptor_buffer_info(const BufferInfo& bufferInfo);
-
-struct GPUBufferView
-{
-    u32 elementOffset;
-    u32 elementCount;
-};
 
 inline VkDescriptorBufferInfo get_vk_descriptor_buffer_info(const BufferInfo& bufferInfo, const GPUBufferView& view)
 {

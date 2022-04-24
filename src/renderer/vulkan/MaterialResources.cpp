@@ -135,7 +135,8 @@ namespace
 
         const GPUTextureView        default_view = DefaultGPUTextureView(entry.texture_properties);
         const VkImageMemoryBarrier2 barrier = get_vk_image_barrier(entry.target, default_view, src, dst);
-        const VkDependencyInfo      dependencies = get_vk_image_barrier_depency_info(1, &barrier);
+
+        const VkDependencyInfo dependencies = get_vk_image_barrier_depency_info(1, &barrier);
 
         vkCmdPipelineBarrier2(cmdBuffer.handle, &dependencies);
 

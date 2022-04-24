@@ -9,6 +9,7 @@
 
 #include "renderer/PrepareBuckets.h"
 #include "renderer/vulkan/Backend.h"
+#include "renderer/vulkan/Barrier.h"
 #include "renderer/vulkan/CommandBuffer.h"
 #include "renderer/vulkan/Shader.h"
 
@@ -215,29 +216,16 @@ void record_audio_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& p
     REAPER_PROFILE_SCOPE_GPU(cmdBuffer.mlog, "Audio Pass", MP_GREEN);
 
     {
-        const VkBufferMemoryBarrier2 buffer_barrier = {VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2,
-                                                       nullptr,
-                                                       VK_PIPELINE_STAGE_2_TRANSFER_BIT,
-                                                       VK_ACCESS_2_TRANSFER_READ_BIT,
-                                                       VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-                                                       VK_ACCESS_2_SHADER_WRITE_BIT,
-                                                       VK_QUEUE_FAMILY_IGNORED,
-                                                       VK_QUEUE_FAMILY_IGNORED,
-                                                       resources.audioOutputBuffer.buffer,
-                                                       0,
-                                                       VK_WHOLE_SIZE};
+        const GPUBufferAccess src = {VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_READ_BIT,
+                                     VK_QUEUE_FAMILY_IGNORED};
+        const GPUBufferAccess dst = {VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT,
+                                     VK_QUEUE_FAMILY_IGNORED};
+        const GPUBufferView   default_view = {};
 
-        const VkDependencyInfo dependencies = {
-            VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
-            nullptr,
-            VK_DEPENDENCY_BY_REGION_BIT,
-            0,
-            nullptr,
-            1,
-            &buffer_barrier,
-            0,
-            nullptr,
-        };
+        const VkBufferMemoryBarrier2 buffer_barrier =
+            get_vk_buffer_barrier(resources.audioOutputBuffer.buffer, default_view, src, dst);
+
+        const VkDependencyInfo dependencies = get_vk_buffer_barrier_depency_info(1, &buffer_barrier);
 
         vkCmdPipelineBarrier2(cmdBuffer.handle, &dependencies);
     }
@@ -255,27 +243,30 @@ void record_audio_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& p
     {
         std::vector<VkBufferMemoryBarrier2> buffer_barriers;
 
-        buffer_barriers.emplace_back(VkBufferMemoryBarrier2{
-            VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2, nullptr, VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-            VK_ACCESS_2_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_READ_BIT,
-            VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED, resources.audioOutputBuffer.buffer, 0, VK_WHOLE_SIZE});
+        {
+            const GPUBufferAccess src = {VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT,
+                                         VK_QUEUE_FAMILY_IGNORED};
+            const GPUBufferAccess dst = {VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_READ_BIT,
+                                         VK_QUEUE_FAMILY_IGNORED};
+            const GPUBufferView   default_view = {};
 
-        buffer_barriers.emplace_back(VkBufferMemoryBarrier2{
-            VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2, nullptr, VK_PIPELINE_STAGE_2_HOST_BIT, VK_ACCESS_2_HOST_READ_BIT,
-            VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT, VK_QUEUE_FAMILY_IGNORED,
-            VK_QUEUE_FAMILY_IGNORED, resources.audioOutputBufferStaging.buffer, 0, VK_WHOLE_SIZE});
+            buffer_barriers.emplace_back(
+                get_vk_buffer_barrier(resources.audioOutputBuffer.buffer, default_view, src, dst));
+        }
 
-        const VkDependencyInfo dependencies = {
-            VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
-            nullptr,
-            VK_DEPENDENCY_BY_REGION_BIT,
-            0,
-            nullptr,
-            static_cast<u32>(buffer_barriers.size()),
-            buffer_barriers.data(),
-            0,
-            nullptr,
-        };
+        {
+            const GPUBufferAccess src = {VK_PIPELINE_STAGE_2_HOST_BIT, VK_ACCESS_2_HOST_READ_BIT,
+                                         VK_QUEUE_FAMILY_IGNORED};
+            const GPUBufferAccess dst = {VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT,
+                                         VK_QUEUE_FAMILY_IGNORED};
+            const GPUBufferView   default_view = {};
+
+            buffer_barriers.emplace_back(
+                get_vk_buffer_barrier(resources.audioOutputBufferStaging.buffer, default_view, src, dst));
+        }
+
+        const VkDependencyInfo dependencies =
+            get_vk_buffer_barrier_depency_info(static_cast<uint32_t>(buffer_barriers.size()), buffer_barriers.data());
 
         vkCmdPipelineBarrier2(cmdBuffer.handle, &dependencies);
     }
@@ -294,29 +285,15 @@ void record_audio_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& p
     vkCmdCopyBuffer2(cmdBuffer.handle, &copy);
 
     {
-        const VkBufferMemoryBarrier2 buffer_barrier = {VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2,
-                                                       nullptr,
-                                                       VK_PIPELINE_STAGE_2_TRANSFER_BIT,
-                                                       VK_ACCESS_2_TRANSFER_WRITE_BIT,
-                                                       VK_PIPELINE_STAGE_2_HOST_BIT,
-                                                       VK_ACCESS_2_HOST_READ_BIT,
-                                                       VK_QUEUE_FAMILY_IGNORED,
-                                                       VK_QUEUE_FAMILY_IGNORED,
-                                                       resources.audioOutputBufferStaging.buffer,
-                                                       0,
-                                                       VK_WHOLE_SIZE};
+        const GPUBufferAccess src = {VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT,
+                                     VK_QUEUE_FAMILY_IGNORED};
+        const GPUBufferAccess dst = {VK_PIPELINE_STAGE_2_HOST_BIT, VK_ACCESS_2_HOST_READ_BIT, VK_QUEUE_FAMILY_IGNORED};
+        const GPUBufferView   default_view = {};
 
-        const VkDependencyInfo dependencies = {
-            VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
-            nullptr,
-            VK_DEPENDENCY_BY_REGION_BIT,
-            0,
-            nullptr,
-            1,
-            &buffer_barrier,
-            0,
-            nullptr,
-        };
+        const VkBufferMemoryBarrier2 buffer_barrier =
+            get_vk_buffer_barrier(resources.audioOutputBufferStaging.buffer, default_view, src, dst);
+
+        const VkDependencyInfo dependencies = get_vk_buffer_barrier_depency_info(1, &buffer_barrier);
 
         vkCmdPipelineBarrier2(cmdBuffer.handle, &dependencies);
     }
