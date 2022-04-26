@@ -19,6 +19,13 @@ struct VulkanBackend;
 
 struct FrameGraphResources
 {
+    static const u32 EventCount = 10;
+    // Persistent
+    // NOTE: you need to have as many events as concurrent synchronization barriers.
+    // For the first implem we can just have as many events as barriers.
+    std::array<VkEvent, EventCount> events;
+
+    // Volatile stuff
     std::vector<ImageInfo>   textures;
     std::vector<VkImageView> texture_views;
 
@@ -26,9 +33,12 @@ struct FrameGraphResources
     std::vector<VkImageView> texture_views_b;
 };
 
-void allocate_framegraph_resources(ReaperRoot& root, VulkanBackend& backend, FrameGraphResources& resources,
-                                   const FrameGraph::FrameGraph& frame_graph);
-void destroy_framegraph_resources(VulkanBackend& backend, FrameGraphResources& resources);
+FrameGraphResources create_framegraph_resources(ReaperRoot& root, VulkanBackend& backend);
+void                destroy_framegraph_resources(VulkanBackend& backend, FrameGraphResources& resources);
+
+void allocate_framegraph_volatile_resources(ReaperRoot& root, VulkanBackend& backend, FrameGraphResources& resources,
+                                            const FrameGraph::FrameGraph& frame_graph);
+void destroy_framegraph_volatile_resources(VulkanBackend& backend, FrameGraphResources& resources);
 
 ImageInfo& get_frame_graph_texture(FrameGraphResources& resources, FrameGraph::ResourceHandle resource_handle);
 

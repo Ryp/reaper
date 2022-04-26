@@ -21,10 +21,39 @@ namespace
     }
 } // namespace
 
-void allocate_framegraph_resources(ReaperRoot& root, VulkanBackend& backend, FrameGraphResources& resources,
-                                   const FrameGraph::FrameGraph& frame_graph)
+FrameGraphResources create_framegraph_resources(ReaperRoot& /*root*/, VulkanBackend& backend)
 {
-    destroy_framegraph_resources(backend, resources); // FIXME Reuse previous resources here instead
+    FrameGraphResources resources = {};
+
+    const VkEventCreateInfo event_info = {
+        VK_STRUCTURE_TYPE_EVENT_CREATE_INFO,
+        nullptr,
+        VK_EVENT_CREATE_DEVICE_ONLY_BIT,
+    };
+
+    for (auto& event : resources.events)
+    {
+        vkCreateEvent(backend.device, &event_info, nullptr, &event);
+    }
+
+    // Volatile stuff is created later
+    return resources;
+}
+
+void destroy_framegraph_resources(VulkanBackend& backend, FrameGraphResources& resources)
+{
+    destroy_framegraph_volatile_resources(backend, resources);
+
+    for (auto& event : resources.events)
+    {
+        vkDestroyEvent(backend.device, event, nullptr);
+    }
+}
+
+void allocate_framegraph_volatile_resources(ReaperRoot& root, VulkanBackend& backend, FrameGraphResources& resources,
+                                            const FrameGraph::FrameGraph& frame_graph)
+{
+    destroy_framegraph_volatile_resources(backend, resources); // FIXME Reuse previous resources here instead
     swap_resources(resources);
 
     using namespace FrameGraph;
@@ -64,7 +93,7 @@ void allocate_framegraph_resources(ReaperRoot& root, VulkanBackend& backend, Fra
     }
 }
 
-void destroy_framegraph_resources(VulkanBackend& backend, FrameGraphResources& resources)
+void destroy_framegraph_volatile_resources(VulkanBackend& backend, FrameGraphResources& resources)
 {
     for (ImageInfo& texture : resources.textures)
     {

@@ -41,7 +41,7 @@ void create_backend_resources(ReaperRoot& root, VulkanBackend& backend)
     };
     vkCreateEvent(backend.device, &event_info, nullptr, &resources.event);
 
-    resources.framegraph_resources = {}; // framegraph resources are created later
+    resources.framegraph_resources = create_framegraph_resources(root, backend);
     resources.audio_resources = create_audio_resources(root, backend);
     resources.cull_resources = create_culling_resources(root, backend);
     resources.frame_sync_resources = create_frame_sync_resources(root, backend);

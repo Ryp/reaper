@@ -246,7 +246,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         builder.read_texture(swapchain_pass_handle, gui_create_usage_handle, swapchain_gui_usage);
     builder.build();
 
-    allocate_framegraph_resources(root, backend, resources.framegraph_resources, frame_graph);
+    allocate_framegraph_volatile_resources(root, backend, resources.framegraph_resources, frame_graph);
 
     const ResourceUsage& main_hdr_usage = GetResourceUsage(frame_graph, main_hdr_usage_handle);
     const ResourceHandle main_hdr_resource_handle = main_hdr_usage.Resource;
