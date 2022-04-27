@@ -16,4 +16,5 @@ const char* GetPresentModeKHRToString(VkPresentModeKHR presentMode);
 const char* GetMemoryPropertyFlagBitToString(VkMemoryPropertyFlags memoryFlag);
 const char* GetColorSpaceKHRToString(VkColorSpaceKHR colorSpace);
 const char* GetFormatToString(VkFormat format);
+const char* GetImageLayoutToString(VkImageLayout layout);
 } // namespace vk

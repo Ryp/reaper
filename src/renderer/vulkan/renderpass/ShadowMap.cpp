@@ -271,16 +271,6 @@ namespace
         vkUpdateDescriptorSets(backend.device, static_cast<u32>(shadowMapPassDescriptorSetWrites.size()),
                                shadowMapPassDescriptorSetWrites.data(), 0, nullptr);
     }
-
-    GPUTextureProperties get_shadow_map_texture_properties(glm::uvec2 size)
-    {
-        GPUTextureProperties properties = DefaultGPUTextureProperties(size.x, size.y, ShadowMapFormat);
-
-        properties.usageFlags =
-            GPUTextureUsage::DepthStencilAttachment | GPUTextureUsage::InputAttachment | GPUTextureUsage::Sampled;
-
-        return properties;
-    }
 } // namespace
 
 ShadowMapResources create_shadow_map_resources(ReaperRoot& root, VulkanBackend& backend)
@@ -342,7 +332,10 @@ void prepare_shadow_map_objects(ReaperRoot& root, VulkanBackend& backend, const 
     pass_resources.shadowMapView.clear();
     for (const ShadowPassData& shadow_pass : prepared.shadow_passes)
     {
-        const GPUTextureProperties texture_properties = get_shadow_map_texture_properties(shadow_pass.shadow_map_size);
+        GPUTextureProperties texture_properties =
+            DefaultGPUTextureProperties(shadow_pass.shadow_map_size.x, shadow_pass.shadow_map_size.y, ShadowMapFormat);
+        texture_properties.usageFlags =
+            GPUTextureUsage::DepthStencilAttachment | GPUTextureUsage::InputAttachment | GPUTextureUsage::Sampled;
 
         ImageInfo& shadow_map = pass_resources.shadowMap.emplace_back();
 
