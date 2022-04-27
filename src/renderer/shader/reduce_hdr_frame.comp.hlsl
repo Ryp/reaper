@@ -14,7 +14,7 @@ VK_BINDING(1, 0) Texture2D<float3> t_hdr_color;
 //------------------------------------------------------------------------------
 // Output
 
-VK_BINDING(2, 0) RWByteAddressBuffer HistogramOut;
+VK_BINDING(2, 0) globallycoherent RWByteAddressBuffer HistogramOut;
 
 //------------------------------------------------------------------------------
 

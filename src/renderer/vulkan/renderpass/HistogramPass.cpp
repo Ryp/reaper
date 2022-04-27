@@ -139,10 +139,11 @@ void destroy_histogram_pass_resources(VulkanBackend& backend, const HistogramPas
 }
 
 void update_histogram_pass_descriptor_set(VulkanBackend& backend, const HistogramPassResources& resources,
-                                          VkImageView texture_view)
+                                          VkImageView scene_hdr_view)
 {
     const VkDescriptorBufferInfo drawDescPassParams = default_descriptor_buffer_info(resources.passConstantBuffer);
-    const VkDescriptorImageInfo  descTexture = {VK_NULL_HANDLE, texture_view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
+    const VkDescriptorImageInfo  descTexture = {VK_NULL_HANDLE, scene_hdr_view,
+                                               VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
     const VkDescriptorBufferInfo descOutput = default_descriptor_buffer_info(resources.passHistogramBuffer);
 
     std::array<VkWriteDescriptorSet, 3> drawPassDescriptorSetWrites = {
