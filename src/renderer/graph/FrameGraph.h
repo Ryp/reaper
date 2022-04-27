@@ -73,6 +73,7 @@ struct ResourceUsage
 {
     UsageType           Type;
     ResourceHandle      Resource;
+    RenderPassHandle    RenderPass;
     ResourceUsageHandle Parent;
     TGPUTextureUsage    Usage;
     bool                IsUsed;

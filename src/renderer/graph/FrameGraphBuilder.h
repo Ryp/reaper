@@ -50,6 +50,7 @@ private:
     CreateResource(RenderPassHandle renderPassHandle, const char* identifier, const GPUTextureProperties& descriptor);
 
     ResourceUsageHandle CreateResourceUsage(UsageType           usageType,
+                                            RenderPassHandle    renderPassHandle,
                                             ResourceHandle      resourceHandle,
                                             TGPUTextureUsage    textureUsage,
                                             ResourceUsageHandle parentUsageHandle);

@@ -29,6 +29,7 @@ ResourceHandle FrameGraphBuilder::CreateResource(RenderPassHandle            ren
 }
 
 ResourceUsageHandle FrameGraphBuilder::CreateResourceUsage(UsageType           usageType,
+                                                           RenderPassHandle    renderPassHandle,
                                                            ResourceHandle      resourceHandle,
                                                            TGPUTextureUsage    textureUsage,
                                                            ResourceUsageHandle parentUsageHandle)
@@ -38,6 +39,7 @@ ResourceUsageHandle FrameGraphBuilder::CreateResourceUsage(UsageType           u
     Assert(resourceHandle != InvalidResourceHandle);
     newResourceUsage.Type = usageType;
     newResourceUsage.Resource = resourceHandle;
+    newResourceUsage.RenderPass = renderPassHandle;
     newResourceUsage.Parent = parentUsageHandle;
     newResourceUsage.Usage = textureUsage;
 
@@ -66,8 +68,8 @@ ResourceUsageHandle FrameGraphBuilder::create_texture(RenderPassHandle          
     const ResourceHandle resourceHandle = CreateResource(renderPassHandle, name, resourceDesc);
     Assert(resourceHandle != InvalidResourceHandle);
 
-    const ResourceUsageHandle resourceUsageHandle =
-        CreateResourceUsage(UsageType::RenderPassOutput, resourceHandle, usage, InvalidResourceUsageHandle);
+    const ResourceUsageHandle resourceUsageHandle = CreateResourceUsage(
+        UsageType::RenderPassOutput, renderPassHandle, resourceHandle, usage, InvalidResourceUsageHandle);
 
     RenderPass& renderPass = m_Graph.RenderPasses[renderPassHandle];
     renderPass.ResourceUsageHandles.push_back(resourceUsageHandle);
@@ -83,7 +85,7 @@ ResourceUsageHandle FrameGraphBuilder::read_texture(RenderPassHandle    renderPa
     Assert(resourceHandle != InvalidResourceHandle);
 
     const ResourceUsageHandle resourceUsageHandle =
-        CreateResourceUsage(UsageType::RenderPassInput, resourceHandle, usage, inputUsageHandle);
+        CreateResourceUsage(UsageType::RenderPassInput, renderPassHandle, resourceHandle, usage, inputUsageHandle);
 
     RenderPass& renderPass = m_Graph.RenderPasses[renderPassHandle];
     renderPass.ResourceUsageHandles.push_back(resourceUsageHandle);
@@ -103,7 +105,7 @@ ResourceUsageHandle FrameGraphBuilder::WriteTexture(RenderPassHandle    renderPa
     Assert(resourceHandle != InvalidResourceHandle);
 
     const ResourceUsageHandle resourceUsageHandle =
-        CreateResourceUsage(UsageType::RenderPassOutput, resourceHandle, usage, readUsageHandle);
+        CreateResourceUsage(UsageType::RenderPassOutput, renderPassHandle, resourceHandle, usage, readUsageHandle);
 
     RenderPass& renderPass = m_Graph.RenderPasses[renderPassHandle];
     renderPass.ResourceUsageHandles.push_back(resourceUsageHandle);
