@@ -13,18 +13,13 @@
 
 namespace
 {
-constexpr int Float32MantissaBits = 23;
-constexpr int Float32MantissaMask = 0x7FFFFF;
-constexpr int Float32ExponentBits = 8;
-constexpr int Float32ExponentMask = 0xFF;
-
 union Float32
 {
     float as_float;
     struct
     {
-        u32 mantissa : Float32MantissaBits;
-        u32 exponent : Float32ExponentBits;
+        u32 mantissa : f32_type::MantissaBits;
+        u32 exponent : f32_type::ExponentBits;
         u32 sign : 1;
     };
 };
@@ -32,13 +27,8 @@ union Float32
 static_assert(sizeof(Float32) == sizeof(u32), "malformed bitfields");
 } // namespace
 
-namespace half
+namespace f16
 {
-constexpr int HalfMantissaBits = 10;
-constexpr int HalfMantissaMask = 0x3FF;
-constexpr int HalfExponentBits = 5;
-constexpr int HalfExponentMask = 0x1F;
-
 namespace
 {
     union HalfFloat
@@ -46,8 +36,8 @@ namespace
         u16 as_u16;
         struct
         {
-            u16 mantissa : HalfMantissaBits;
-            u16 exponent : HalfExponentBits;
+            u16 mantissa : MantissaBits;
+            u16 exponent : ExponentBits;
             u16 sign : 1;
         };
     };
@@ -71,25 +61,25 @@ namespace
                     m <<= 1;
                 } while ((m & 0x400) == 0);
 
-                out.mantissa = (m & HalfMantissaMask) << (Float32MantissaBits - HalfMantissaBits);
-                out.exponent = (Float32ExponentMask >> 1) - (HalfExponentMask >> 1) - e;
+                out.mantissa = (m & MantissaMask) << (f32_type::MantissaBits - MantissaBits);
+                out.exponent = (f32_type::ExponentMask >> 1) - (ExponentMask >> 1) - e;
             }
-            else if (in.exponent == HalfExponentMask) // Inf or NaN
+            else if (in.exponent == ExponentMask) // Inf or NaN
             {
-                out.mantissa = in.mantissa << (Float32MantissaBits - HalfMantissaBits);
-                out.exponent = Float32ExponentMask;
+                out.mantissa = in.mantissa << (f32_type::MantissaBits - MantissaBits);
+                out.exponent = f32_type::ExponentMask;
             }
             else // Normalized
             {
-                out.mantissa = in.mantissa << (Float32MantissaBits - HalfMantissaBits);
-                out.exponent = (Float32ExponentMask >> 1) - (HalfExponentMask >> 1) + in.exponent;
+                out.mantissa = in.mantissa << (f32_type::MantissaBits - MantissaBits);
+                out.exponent = (f32_type::ExponentMask >> 1) - (ExponentMask >> 1) + in.exponent;
             }
         }
         return out;
     }
 } // namespace
 
-float toFloat(u16 data)
+float to_f32(u16 data)
 {
     HalfFloat in;
     in.as_u16 = data;
@@ -97,15 +87,10 @@ float toFloat(u16 data)
     Float32 out = HalfToFloatImpl(in);
     return out.as_float;
 }
-} // namespace half
+} // namespace f16
 
 namespace uf10
 {
-constexpr int Uf10MantissaBits = 5;
-constexpr int Uf10MantissaMask = 0x1F;
-constexpr int Uf10ExponentBits = 5;
-constexpr int Uf10ExponentMask = 0x1F;
-
 namespace
 {
     union Uf10
@@ -113,8 +98,8 @@ namespace
         u16 as_u16;
         struct
         {
-            u16 mantissa : Uf10MantissaBits;
-            u16 exponent : Uf10ExponentBits;
+            u16 mantissa : MantissaBits;
+            u16 exponent : ExponentBits;
             u16 : 6;
         };
     };
@@ -130,25 +115,25 @@ namespace
             if (in.exponent == 0) // Denormal
             {
                 // Leave as is for now
-                out.mantissa = in.mantissa << (Float32MantissaBits - Uf10MantissaBits);
-                out.exponent = (Float32ExponentMask >> 1) - (Uf10ExponentMask >> 1) + in.exponent;
+                out.mantissa = in.mantissa << (f32_type::MantissaBits - MantissaBits);
+                out.exponent = (f32_type::ExponentMask >> 1) - (ExponentMask >> 1) + in.exponent;
             }
-            else if (in.exponent == Uf10ExponentMask) // Inf or NaN
+            else if (in.exponent == ExponentMask) // Inf or NaN
             {
-                out.mantissa = in.mantissa << (Float32MantissaBits - Uf10MantissaBits);
-                out.exponent = Float32ExponentMask;
+                out.mantissa = in.mantissa << (f32_type::MantissaBits - MantissaBits);
+                out.exponent = f32_type::ExponentMask;
             }
             else // Normalized
             {
-                out.mantissa = in.mantissa << (Float32MantissaBits - Uf10MantissaBits);
-                out.exponent = (Float32ExponentMask >> 1) - (Uf10ExponentMask >> 1) + in.exponent;
+                out.mantissa = in.mantissa << (f32_type::MantissaBits - MantissaBits);
+                out.exponent = (f32_type::ExponentMask >> 1) - (ExponentMask >> 1) + in.exponent;
             }
         }
         return out;
     }
 } // namespace
 
-float toFloat(u16 data)
+float to_f32(u16 data)
 {
     Uf10 in;
     in.as_u16 = data;
@@ -160,11 +145,6 @@ float toFloat(u16 data)
 
 namespace uf11
 {
-constexpr int Uf11MantissaBits = 6;
-constexpr int Uf11MantissaMask = 0x3F;
-constexpr int Uf11ExponentBits = 5;
-constexpr int Uf11ExponentMask = 0x1F;
-
 namespace
 {
     union Uf11
@@ -172,8 +152,8 @@ namespace
         u16 as_u16;
         struct
         {
-            u16 mantissa : Uf11MantissaBits;
-            u16 exponent : Uf11ExponentBits;
+            u16 mantissa : MantissaBits;
+            u16 exponent : ExponentBits;
             u16 : 5;
         };
     };
@@ -189,25 +169,25 @@ namespace
             if (in.exponent == 0) // Denormal
             {
                 // Leave as is for now
-                out.mantissa = in.mantissa << (Float32MantissaBits - Uf11MantissaBits);
-                out.exponent = (Float32ExponentMask >> 1) - (Uf11ExponentMask >> 1) + in.exponent;
+                out.mantissa = in.mantissa << (f32_type::MantissaBits - MantissaBits);
+                out.exponent = (f32_type::ExponentMask >> 1) - (ExponentMask >> 1) + in.exponent;
             }
-            else if (in.exponent == Uf11ExponentMask) // Inf or NaN
+            else if (in.exponent == ExponentMask) // Inf or NaN
             {
-                out.mantissa = in.mantissa << (Float32MantissaBits - Uf11MantissaBits);
-                out.exponent = Float32ExponentMask;
+                out.mantissa = in.mantissa << (f32_type::MantissaBits - MantissaBits);
+                out.exponent = f32_type::ExponentMask;
             }
             else // Normalized
             {
-                out.mantissa = in.mantissa << (Float32MantissaBits - Uf11MantissaBits);
-                out.exponent = (Float32ExponentMask >> 1) - (Uf11ExponentMask >> 1) + in.exponent;
+                out.mantissa = in.mantissa << (f32_type::MantissaBits - MantissaBits);
+                out.exponent = (f32_type::ExponentMask >> 1) - (ExponentMask >> 1) + in.exponent;
             }
         }
         return out;
     }
 } // namespace
 
-float toFloat(u16 data)
+float to_f32(u16 data)
 {
     Uf11 in;
     in.as_u16 = data;

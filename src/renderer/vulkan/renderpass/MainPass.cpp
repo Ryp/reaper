@@ -164,234 +164,234 @@ namespace
 
         vkUpdateDescriptorSets(backend.device, static_cast<u32>(writes.size()), writes.data(), 0, nullptr);
     }
-} // namespace
 
-MainPipelineInfo create_main_pipeline(ReaperRoot& root, VulkanBackend& backend)
-{
-    VkShaderModule        blitShaderFS = VK_NULL_HANDLE;
-    VkShaderModule        blitShaderVS = VK_NULL_HANDLE;
-    const char*           fileNameVS = "./build/shader/mesh_transformed_shaded.vert.spv";
-    const char*           fileNameFS = "./build/shader/mesh_transformed_shaded.frag.spv";
-    const char*           entryPoint = "main";
-    VkSpecializationInfo* specialization = nullptr;
+    MainPipelineInfo create_main_pipeline(ReaperRoot& root, VulkanBackend& backend)
+    {
+        VkShaderModule        blitShaderFS = VK_NULL_HANDLE;
+        VkShaderModule        blitShaderVS = VK_NULL_HANDLE;
+        const char*           fileNameVS = "./build/shader/mesh_transformed_shaded.vert.spv";
+        const char*           fileNameFS = "./build/shader/mesh_transformed_shaded.frag.spv";
+        const char*           entryPoint = "main";
+        VkSpecializationInfo* specialization = nullptr;
 
-    vulkan_create_shader_module(blitShaderFS, backend.device, fileNameFS);
-    vulkan_create_shader_module(blitShaderVS, backend.device, fileNameVS);
+        vulkan_create_shader_module(blitShaderFS, backend.device, fileNameFS);
+        vulkan_create_shader_module(blitShaderVS, backend.device, fileNameVS);
 
-    std::vector<VkVertexInputBindingDescription> vertexInfoShaderBinding = {
-        {
-            0,                          // binding
-            sizeof(hlsl_float3),        // stride
-            VK_VERTEX_INPUT_RATE_VERTEX // input rate
-        },
-        {
-            1,                          // binding
-            sizeof(hlsl_float3),        // stride
-            VK_VERTEX_INPUT_RATE_VERTEX // input rate
-        },
-        {
-            2,                          // binding
-            sizeof(hlsl_float2),        // stride
-            VK_VERTEX_INPUT_RATE_VERTEX // input rate
-        },
-    };
+        std::vector<VkVertexInputBindingDescription> vertexInfoShaderBinding = {
+            {
+                0,                          // binding
+                sizeof(hlsl_float3),        // stride
+                VK_VERTEX_INPUT_RATE_VERTEX // input rate
+            },
+            {
+                1,                          // binding
+                sizeof(hlsl_float3),        // stride
+                VK_VERTEX_INPUT_RATE_VERTEX // input rate
+            },
+            {
+                2,                          // binding
+                sizeof(hlsl_float2),        // stride
+                VK_VERTEX_INPUT_RATE_VERTEX // input rate
+            },
+        };
 
-    std::vector<VkVertexInputAttributeDescription> vertexAttributes = {
-        {
-            0,                          // location
-            0,                          // binding
-            VK_FORMAT_R32G32B32_SFLOAT, // format
-            0                           // offset
-        },
-        {
-            1,                          // location
-            1,                          // binding
-            VK_FORMAT_R32G32B32_SFLOAT, // format
-            0                           // offset
-        },
-        {
-            2,                       // location
-            2,                       // binding
-            VK_FORMAT_R32G32_SFLOAT, // format
-            0                        // offset
-        },
-    };
+        std::vector<VkVertexInputAttributeDescription> vertexAttributes = {
+            {
+                0,                          // location
+                0,                          // binding
+                VK_FORMAT_R32G32B32_SFLOAT, // format
+                0                           // offset
+            },
+            {
+                1,                          // location
+                1,                          // binding
+                VK_FORMAT_R32G32B32_SFLOAT, // format
+                0                           // offset
+            },
+            {
+                2,                       // location
+                2,                       // binding
+                VK_FORMAT_R32G32_SFLOAT, // format
+                0                        // offset
+            },
+        };
 
-    std::vector<VkPipelineShaderStageCreateInfo> blitShaderStages = {
-        {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_VERTEX_BIT, blitShaderVS,
-         entryPoint, specialization},
-        {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_FRAGMENT_BIT, blitShaderFS,
-         entryPoint, specialization}};
+        std::vector<VkPipelineShaderStageCreateInfo> blitShaderStages = {
+            {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_VERTEX_BIT, blitShaderVS,
+             entryPoint, specialization},
+            {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_FRAGMENT_BIT,
+             blitShaderFS, entryPoint, specialization}};
 
-    VkPipelineVertexInputStateCreateInfo blitVertexInputStateInfo = {
-        VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
-        nullptr,
-        VK_FLAGS_NONE,
-        static_cast<u32>(vertexInfoShaderBinding.size()),
-        vertexInfoShaderBinding.data(),
-        static_cast<u32>(vertexAttributes.size()),
-        vertexAttributes.data()};
+        VkPipelineVertexInputStateCreateInfo blitVertexInputStateInfo = {
+            VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
+            nullptr,
+            VK_FLAGS_NONE,
+            static_cast<u32>(vertexInfoShaderBinding.size()),
+            vertexInfoShaderBinding.data(),
+            static_cast<u32>(vertexAttributes.size()),
+            vertexAttributes.data()};
 
-    VkPipelineInputAssemblyStateCreateInfo blitInputAssemblyInfo = {
-        VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO, nullptr, VK_FLAGS_NONE,
-        VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, VK_FALSE};
+        VkPipelineInputAssemblyStateCreateInfo blitInputAssemblyInfo = {
+            VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO, nullptr, VK_FLAGS_NONE,
+            VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, VK_FALSE};
 
-    VkPipelineViewportStateCreateInfo blitViewportStateInfo = {VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
-                                                               nullptr,
+        VkPipelineViewportStateCreateInfo blitViewportStateInfo = {
+            VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
+            nullptr,
+            VK_FLAGS_NONE,
+            1,
+            nullptr, // dynamic viewport
+            1,
+            nullptr}; // dynamic scissors
+
+        VkPipelineRasterizationStateCreateInfo blitRasterStateInfo = {
+            VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
+            nullptr,
+            VK_FLAGS_NONE,
+            VK_FALSE,
+            VK_FALSE,
+            VK_POLYGON_MODE_FILL,
+            VK_CULL_MODE_BACK_BIT,
+            VK_FRONT_FACE_COUNTER_CLOCKWISE,
+            VK_FALSE,
+            0.0f,
+            0.0f,
+            0.0f,
+            1.0f};
+
+        VkPipelineMultisampleStateCreateInfo blitMSStateInfo = {
+            VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
+            nullptr,
+            VK_FLAGS_NONE,
+            VK_SAMPLE_COUNT_1_BIT,
+            VK_FALSE,
+            1.0f,
+            nullptr,
+            VK_FALSE,
+            VK_FALSE};
+
+        const VkPipelineDepthStencilStateCreateInfo blitDepthStencilInfo = {
+            VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
+            nullptr,
+            0,
+            true, // depth test
+            true, // depth write
+            UseReverseZ ? VK_COMPARE_OP_GREATER : VK_COMPARE_OP_LESS,
+            false,
+            false,
+            VkStencilOpState{},
+            VkStencilOpState{},
+            0.f,
+            0.f};
+
+        VkPipelineColorBlendAttachmentState blitBlendAttachmentState = {
+            VK_FALSE,
+            VK_BLEND_FACTOR_ONE,
+            VK_BLEND_FACTOR_ZERO,
+            VK_BLEND_OP_ADD,
+            VK_BLEND_FACTOR_ONE,
+            VK_BLEND_FACTOR_ZERO,
+            VK_BLEND_OP_ADD,
+            VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT};
+
+        VkPipelineColorBlendStateCreateInfo blitBlendStateInfo = {
+            VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
+            nullptr,
+            VK_FLAGS_NONE,
+            VK_FALSE,
+            VK_LOGIC_OP_COPY,
+            1,
+            &blitBlendAttachmentState,
+            {0.0f, 0.0f, 0.0f, 0.0f}};
+
+        VkDescriptorSetLayout descriptorSetLayoutCB = create_descriptor_set_layout_0(backend);
+        VkDescriptorSetLayout materialDescSetLayout = create_descriptor_set_layout_1(backend);
+
+        std::array<VkDescriptorSetLayout, 2> mainPassDescriptorSetLayouts = {
+            descriptorSetLayoutCB,
+            materialDescSetLayout,
+        };
+
+        VkPipelineLayoutCreateInfo blitPipelineLayoutInfo = {VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+                                                             nullptr,
+                                                             VK_FLAGS_NONE,
+                                                             static_cast<u32>(mainPassDescriptorSetLayouts.size()),
+                                                             mainPassDescriptorSetLayouts.data(),
+                                                             0,
+                                                             nullptr};
+
+        VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
+        Assert(vkCreatePipelineLayout(backend.device, &blitPipelineLayoutInfo, nullptr, &pipelineLayout) == VK_SUCCESS);
+        log_debug(root, "vulkan: created blit pipeline layout with handle: {}", static_cast<void*>(pipelineLayout));
+
+        VkPipelineCache cache = VK_NULL_HANDLE;
+
+        const std::array<VkDynamicState, 2> dynamicStates = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
+        VkPipelineDynamicStateCreateInfo    blitDynamicState = {
+            VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
+            nullptr,
+            0,
+            static_cast<u32>(dynamicStates.size()),
+            dynamicStates.data(),
+        };
+
+        const VkFormat color_format = PixelFormatToVulkan(MainHDRColorFormat);
+        const VkFormat depth_format = PixelFormatToVulkan(MainDepthFormat);
+
+        VkPipelineCreationFeedback              feedback = {};
+        std::vector<VkPipelineCreationFeedback> feedback_stages(blitShaderStages.size());
+        VkPipelineCreationFeedbackCreateInfo    feedback_info = {
+            VK_STRUCTURE_TYPE_PIPELINE_CREATION_FEEDBACK_CREATE_INFO,
+            nullptr,
+            &feedback,
+            static_cast<u32>(blitShaderStages.size()),
+            feedback_stages.data(),
+        };
+
+        VkPipelineRenderingCreateInfo pipelineRenderingCreateInfo = {
+            VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
+            &feedback_info,
+            0, // viewMask;
+            1,
+            &color_format,
+            depth_format,
+            VK_FORMAT_UNDEFINED,
+        };
+
+        VkGraphicsPipelineCreateInfo blitPipelineCreateInfo = {VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
+                                                               &pipelineRenderingCreateInfo,
                                                                VK_FLAGS_NONE,
-                                                               1,
-                                                               nullptr, // dynamic viewport
-                                                               1,
-                                                               nullptr}; // dynamic scissors
+                                                               static_cast<u32>(blitShaderStages.size()),
+                                                               blitShaderStages.data(),
+                                                               &blitVertexInputStateInfo,
+                                                               &blitInputAssemblyInfo,
+                                                               nullptr,
+                                                               &blitViewportStateInfo,
+                                                               &blitRasterStateInfo,
+                                                               &blitMSStateInfo,
+                                                               &blitDepthStencilInfo,
+                                                               &blitBlendStateInfo,
+                                                               &blitDynamicState,
+                                                               pipelineLayout,
+                                                               VK_NULL_HANDLE,
+                                                               0,
+                                                               VK_NULL_HANDLE,
+                                                               -1};
 
-    VkPipelineRasterizationStateCreateInfo blitRasterStateInfo = {
-        VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
-        nullptr,
-        VK_FLAGS_NONE,
-        VK_FALSE,
-        VK_FALSE,
-        VK_POLYGON_MODE_FILL,
-        VK_CULL_MODE_BACK_BIT,
-        VK_FRONT_FACE_COUNTER_CLOCKWISE,
-        VK_FALSE,
-        0.0f,
-        0.0f,
-        0.0f,
-        1.0f};
+        VkPipeline pipeline = VK_NULL_HANDLE;
+        Assert(vkCreateGraphicsPipelines(backend.device, cache, 1, &blitPipelineCreateInfo, nullptr, &pipeline)
+               == VK_SUCCESS);
+        log_debug(root, "vulkan: created blit pipeline with handle: {}", static_cast<void*>(pipeline));
 
-    VkPipelineMultisampleStateCreateInfo blitMSStateInfo = {VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
-                                                            nullptr,
-                                                            VK_FLAGS_NONE,
-                                                            VK_SAMPLE_COUNT_1_BIT,
-                                                            VK_FALSE,
-                                                            1.0f,
-                                                            nullptr,
-                                                            VK_FALSE,
-                                                            VK_FALSE};
+        log_debug(root, "- total time = {}ms, vs = {}ms, fs = {}ms", feedback.duration / 1000,
+                  feedback_stages[0].duration / 1000, feedback_stages[1].duration / 1000);
 
-    const VkPipelineDepthStencilStateCreateInfo blitDepthStencilInfo = {
-        VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
-        nullptr,
-        0,
-        true, // depth test
-        true, // depth write
-        UseReverseZ ? VK_COMPARE_OP_GREATER : VK_COMPARE_OP_LESS,
-        false,
-        false,
-        VkStencilOpState{},
-        VkStencilOpState{},
-        0.f,
-        0.f};
+        vkDestroyShaderModule(backend.device, blitShaderVS, nullptr);
+        vkDestroyShaderModule(backend.device, blitShaderFS, nullptr);
 
-    VkPipelineColorBlendAttachmentState blitBlendAttachmentState = {
-        VK_FALSE,
-        VK_BLEND_FACTOR_ONE,
-        VK_BLEND_FACTOR_ZERO,
-        VK_BLEND_OP_ADD,
-        VK_BLEND_FACTOR_ONE,
-        VK_BLEND_FACTOR_ZERO,
-        VK_BLEND_OP_ADD,
-        VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT};
+        return MainPipelineInfo{pipeline, pipelineLayout, descriptorSetLayoutCB, materialDescSetLayout};
+    }
 
-    VkPipelineColorBlendStateCreateInfo blitBlendStateInfo = {VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
-                                                              nullptr,
-                                                              VK_FLAGS_NONE,
-                                                              VK_FALSE,
-                                                              VK_LOGIC_OP_COPY,
-                                                              1,
-                                                              &blitBlendAttachmentState,
-                                                              {0.0f, 0.0f, 0.0f, 0.0f}};
-
-    VkDescriptorSetLayout descriptorSetLayoutCB = create_descriptor_set_layout_0(backend);
-    VkDescriptorSetLayout materialDescSetLayout = create_descriptor_set_layout_1(backend);
-
-    std::array<VkDescriptorSetLayout, 2> mainPassDescriptorSetLayouts = {
-        descriptorSetLayoutCB,
-        materialDescSetLayout,
-    };
-
-    VkPipelineLayoutCreateInfo blitPipelineLayoutInfo = {VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-                                                         nullptr,
-                                                         VK_FLAGS_NONE,
-                                                         static_cast<u32>(mainPassDescriptorSetLayouts.size()),
-                                                         mainPassDescriptorSetLayouts.data(),
-                                                         0,
-                                                         nullptr};
-
-    VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
-    Assert(vkCreatePipelineLayout(backend.device, &blitPipelineLayoutInfo, nullptr, &pipelineLayout) == VK_SUCCESS);
-    log_debug(root, "vulkan: created blit pipeline layout with handle: {}", static_cast<void*>(pipelineLayout));
-
-    VkPipelineCache cache = VK_NULL_HANDLE;
-
-    const std::array<VkDynamicState, 2> dynamicStates = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
-    VkPipelineDynamicStateCreateInfo    blitDynamicState = {
-        VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
-        nullptr,
-        0,
-        static_cast<u32>(dynamicStates.size()),
-        dynamicStates.data(),
-    };
-
-    const VkFormat color_format = PixelFormatToVulkan(MainHDRColorFormat);
-    const VkFormat depth_format = PixelFormatToVulkan(MainDepthFormat);
-
-    VkPipelineCreationFeedback              feedback = {};
-    std::vector<VkPipelineCreationFeedback> feedback_stages(blitShaderStages.size());
-    VkPipelineCreationFeedbackCreateInfo    feedback_info = {
-        VK_STRUCTURE_TYPE_PIPELINE_CREATION_FEEDBACK_CREATE_INFO,
-        nullptr,
-        &feedback,
-        static_cast<u32>(blitShaderStages.size()),
-        feedback_stages.data(),
-    };
-
-    VkPipelineRenderingCreateInfo pipelineRenderingCreateInfo = {
-        VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
-        &feedback_info,
-        0, // viewMask;
-        1,
-        &color_format,
-        depth_format,
-        VK_FORMAT_UNDEFINED,
-    };
-
-    VkGraphicsPipelineCreateInfo blitPipelineCreateInfo = {VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
-                                                           &pipelineRenderingCreateInfo,
-                                                           VK_FLAGS_NONE,
-                                                           static_cast<u32>(blitShaderStages.size()),
-                                                           blitShaderStages.data(),
-                                                           &blitVertexInputStateInfo,
-                                                           &blitInputAssemblyInfo,
-                                                           nullptr,
-                                                           &blitViewportStateInfo,
-                                                           &blitRasterStateInfo,
-                                                           &blitMSStateInfo,
-                                                           &blitDepthStencilInfo,
-                                                           &blitBlendStateInfo,
-                                                           &blitDynamicState,
-                                                           pipelineLayout,
-                                                           VK_NULL_HANDLE,
-                                                           0,
-                                                           VK_NULL_HANDLE,
-                                                           -1};
-
-    VkPipeline pipeline = VK_NULL_HANDLE;
-    Assert(vkCreateGraphicsPipelines(backend.device, cache, 1, &blitPipelineCreateInfo, nullptr, &pipeline)
-           == VK_SUCCESS);
-    log_debug(root, "vulkan: created blit pipeline with handle: {}", static_cast<void*>(pipeline));
-
-    log_debug(root, "- total time = {}ms, vs = {}ms, fs = {}ms", feedback.duration / 1000,
-              feedback_stages[0].duration / 1000, feedback_stages[1].duration / 1000);
-
-    vkDestroyShaderModule(backend.device, blitShaderVS, nullptr);
-    vkDestroyShaderModule(backend.device, blitShaderFS, nullptr);
-
-    return MainPipelineInfo{pipeline, pipelineLayout, descriptorSetLayoutCB, materialDescSetLayout};
-}
-
-namespace
-{
     VkDescriptorSet create_main_pass_descriptor_set(ReaperRoot& root, VulkanBackend& backend,
                                                     VkDescriptorSetLayout layout)
     {
