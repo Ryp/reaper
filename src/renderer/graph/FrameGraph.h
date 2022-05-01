@@ -111,4 +111,44 @@ void ComputeTransitiveClosure(const DirectedAcyclicGraph& graph,
                               const nonstd::span<DirectedAcyclicGraph::index_type>
                                                                              rootNodes,
                               std::vector<DirectedAcyclicGraph::index_type>& outClosure);
+
+struct ResourceUsageEvent
+{
+    RenderPassHandle    render_pass;
+    ResourceUsageHandle usage_handle;
+    GPUTextureAccess    access;
+};
+
+struct Barrier
+{
+    ResourceUsageEvent src;
+    ResourceUsageEvent dst;
+};
+
+enum class BarrierType
+{
+    SingleBefore, // Executed BEFORE the renderpass
+    SingleAfter,  // Executed AFTER the renderpass
+    SplitBegin,   // Executed AFTER the renderpass
+    SplitEnd,     // Executed BEFORE the renderpass
+};
+
+struct BarrierEvent
+{
+    BarrierType      type;
+    u32              barrier_handle;
+    RenderPassHandle render_pass_handle;
+};
+
+struct FrameGraphSchedule
+{
+    std::vector<RenderPassHandle> queue0;
+    std::vector<Barrier>          barriers;
+    std::vector<BarrierEvent>     barrier_events;
+};
+
+FrameGraphSchedule compute_schedule(const FrameGraph& framegraph);
+
+nonstd::span<const BarrierEvent> get_barriers_to_execute(const FrameGraphSchedule& schedule,
+                                                         RenderPassHandle          render_pass_handle);
 } // namespace Reaper::FrameGraph

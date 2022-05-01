@@ -33,7 +33,7 @@ struct HistogramPassResources
 
     HistogramPipelineInfo histogramPipe;
 
-    VkDescriptorSet descriptor_set; // FIXME
+    VkDescriptorSet descriptor_set;
 };
 
 struct ReaperRoot;

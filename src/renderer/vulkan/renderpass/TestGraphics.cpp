@@ -39,6 +39,87 @@
 
 namespace Reaper
 {
+namespace
+{
+    void log_barriers(ReaperRoot& root, const FrameGraph::FrameGraph& frame_graph,
+                      const FrameGraph::FrameGraphSchedule& schedule)
+    {
+        using namespace FrameGraph;
+
+        log_debug(root, "framegraph: scheduling {} barrier events", schedule.barrier_events.size());
+
+        log_debug(root, "framegraph: schedule has {} barriers", schedule.barriers.size());
+        for (auto event : schedule.barrier_events)
+        {
+            const char* barrier_type_str =
+                event.type == BarrierType::SingleBefore
+                    ? "SingleBefore"
+                    : (event.type == BarrierType::SingleAfter
+                           ? "SingleAfter"
+                           : (event.type == BarrierType::SplitBegin ? "SplitBegin" : "SplitEnd"));
+
+            const char* render_pass_name = frame_graph.RenderPasses[event.render_pass_handle].Identifier;
+
+            const Barrier&       barrier = schedule.barriers[event.barrier_handle];
+            const ResourceUsage& src_usage = frame_graph.ResourceUsages[barrier.src.usage_handle];
+
+            const char* resource_name = frame_graph.Resources[src_usage.Resource].Identifier;
+            log_warning(root, "framegraph: pass '{}', resource '{}', barrier type = '{}'", render_pass_name,
+                        resource_name, barrier_type_str);
+            log_warning(root, "    - src layout = '{}', dst layout = '{}'",
+                        GetImageLayoutToString(barrier.src.access.layout),
+                        GetImageLayoutToString(barrier.dst.access.layout));
+        }
+    }
+
+    // FIXME We have no way of merging events for now (dependencies struct)
+    void record_framegraph_barriers(CommandBuffer& cmdBuffer, const FrameGraph::FrameGraphSchedule& schedule,
+                                    const FrameGraph::FrameGraph& frame_graph, FrameGraphResources& resources,
+                                    nonstd::span<const FrameGraph::BarrierEvent> barriers, bool before)
+    {
+        if (barriers.empty())
+            return;
+
+        using namespace FrameGraph;
+        REAPER_PROFILE_SCOPE_GPU(cmdBuffer.mlog, "FrameGraphBarrier", MP_RED);
+
+        for (const auto& barrier_event : barriers)
+        {
+            const u32     barrier_handle = barrier_event.barrier_handle;
+            const Barrier barrier = schedule.barriers[barrier_handle];
+
+            std::vector<VkImageMemoryBarrier2> imageBarriers;
+
+            const ResourceUsage& dst_usage = GetResourceUsage(frame_graph, barrier.dst.usage_handle);
+
+            ImageInfo& texture = get_frame_graph_texture(resources, dst_usage.Resource);
+
+            imageBarriers.emplace_back(
+                get_vk_image_barrier(texture.handle, dst_usage.Usage.view, barrier.src.access, barrier.dst.access));
+
+            const VkDependencyInfo dependencies =
+                get_vk_image_barrier_depency_info(static_cast<u32>(imageBarriers.size()), imageBarriers.data());
+
+            if (barrier_event.type == BarrierType::SingleBefore && before)
+            {
+                vkCmdPipelineBarrier2(cmdBuffer.handle, &dependencies);
+            }
+            else if (barrier_event.type == BarrierType::SingleAfter && !before)
+            {
+                vkCmdPipelineBarrier2(cmdBuffer.handle, &dependencies);
+            }
+            else if (barrier_event.type == BarrierType::SplitBegin && !before)
+            {
+                vkCmdSetEvent2(cmdBuffer.handle, resources.events[barrier_handle], &dependencies);
+            }
+            else if (barrier_event.type == BarrierType::SplitEnd && before)
+            {
+                vkCmdWaitEvents2(cmdBuffer.handle, 1, &resources.events[barrier_handle], &dependencies);
+            }
+        }
+    }
+} // namespace
+
 bool vulkan_process_window_events(ReaperRoot& root, VulkanBackend& backend, IWindow* window)
 {
     log_info(root, "window: pump events");
@@ -178,8 +259,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     FrameGraphBuilder builder(frame_graph);
 
     // Main
-    const RenderPassHandle main_pass_handle = builder.create_render_pass("Main Pass");
-    const RenderPassHandle gui_pass_handle = builder.create_render_pass("GUI Pass");
+    const RenderPassHandle main_pass_handle = builder.create_render_pass("Forward");
 
     GPUTextureProperties scene_hdr_properties =
         DefaultGPUTextureProperties(backbufferExtent.width, backbufferExtent.height, MainHDRColorFormat);
@@ -188,10 +268,6 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     GPUTextureProperties scene_depth_properties =
         DefaultGPUTextureProperties(backbufferExtent.width, backbufferExtent.height, MainDepthFormat);
     scene_depth_properties.usageFlags = GPUTextureUsage::DepthStencilAttachment; // FIXME deduced?
-
-    GPUTextureProperties gui_properties =
-        DefaultGPUTextureProperties(backbufferExtent.width, backbufferExtent.height, GUIFormat);
-    gui_properties.usageFlags = GPUTextureUsage::ColorAttachment | GPUTextureUsage::Sampled;
 
     const GPUTextureAccess scene_hdr_access_main_pass = {VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
                                                          VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
@@ -202,12 +278,25 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     scene_hdr_texture_usage.access = scene_hdr_access_main_pass;
     scene_hdr_texture_usage.view = DefaultGPUTextureView(scene_hdr_properties);
 
+    const ResourceUsageHandle main_hdr_usage_handle =
+        builder.create_texture(main_pass_handle, "Scene HDR", scene_hdr_properties, scene_hdr_texture_usage);
+
     TGPUTextureUsage scene_depth_texture_usage = {};
     scene_depth_texture_usage.LoadOp = ELoadOp::DontCare;
     scene_depth_texture_usage.access =
         GPUTextureAccess{VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT, VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
                          VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL, VK_QUEUE_FAMILY_IGNORED};
     scene_depth_texture_usage.view = DefaultGPUTextureView(scene_depth_properties);
+
+    const ResourceUsageHandle main_depth_create_usage_handle =
+        builder.create_texture(main_pass_handle, "Scene Depth", scene_depth_properties, scene_depth_texture_usage);
+
+    // GUI
+    const RenderPassHandle gui_pass_handle = builder.create_render_pass("GUI");
+
+    GPUTextureProperties gui_properties =
+        DefaultGPUTextureProperties(backbufferExtent.width, backbufferExtent.height, GUIFormat);
+    gui_properties.usageFlags = GPUTextureUsage::ColorAttachment | GPUTextureUsage::Sampled;
 
     TGPUTextureUsage gui_texture_usage = {};
     gui_texture_usage.LoadOp = ELoadOp::Clear;
@@ -216,17 +305,24 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
                          VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL, VK_QUEUE_FAMILY_IGNORED};
     gui_texture_usage.view = DefaultGPUTextureView(gui_properties);
 
-    const ResourceUsageHandle main_hdr_usage_handle =
-        builder.create_texture(main_pass_handle, "Scene HDR", scene_hdr_properties, scene_hdr_texture_usage);
-
-    const ResourceUsageHandle main_depth_create_usage_handle =
-        builder.create_texture(main_pass_handle, "Scene Depth", scene_depth_properties, scene_depth_texture_usage);
-
     const ResourceUsageHandle gui_create_usage_handle =
         builder.create_texture(gui_pass_handle, "GUI SDR", gui_properties, gui_texture_usage);
 
+    // Histogram
+    const RenderPassHandle histogram_pass_handle = builder.create_render_pass(
+        "Histogram", true); // FIXME Use outputs from this pass so we don't have to force is on
+
+    TGPUTextureUsage histogram_hdr_usage = {};
+    histogram_hdr_usage.LoadOp = ELoadOp::Load;
+    histogram_hdr_usage.access = GPUTextureAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
+                                                  VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL, VK_QUEUE_FAMILY_IGNORED};
+    histogram_hdr_usage.view = DefaultGPUTextureView(scene_hdr_properties);
+
+    const ResourceUsageHandle histogram_hdr_usage_handle =
+        builder.read_texture(histogram_pass_handle, main_hdr_usage_handle, histogram_hdr_usage);
+
     // Swapchain
-    const RenderPassHandle swapchain_pass_handle = builder.create_render_pass("Swapchain Pass", true);
+    const RenderPassHandle swapchain_pass_handle = builder.create_render_pass("Swapchain", true);
 
     TGPUTextureUsage swapchain_hdr_usage = {};
     swapchain_hdr_usage.LoadOp = ELoadOp::Load;
@@ -234,32 +330,25 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
                                                   VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL, VK_QUEUE_FAMILY_IGNORED};
     swapchain_hdr_usage.view = DefaultGPUTextureView(scene_hdr_properties);
 
+    const ResourceUsageHandle swapchain_hdr_usage_handle =
+        builder.read_texture(swapchain_pass_handle, main_hdr_usage_handle, swapchain_hdr_usage);
+
     TGPUTextureUsage swapchain_gui_usage = {};
     swapchain_gui_usage.LoadOp = ELoadOp::Load;
     swapchain_gui_usage.access = GPUTextureAccess{VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
                                                   VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL, VK_QUEUE_FAMILY_IGNORED};
     swapchain_gui_usage.view = DefaultGPUTextureView(gui_properties);
 
-    const ResourceUsageHandle swapchain_hdr_usage_handle =
-        builder.read_texture(swapchain_pass_handle, main_hdr_usage_handle, swapchain_hdr_usage);
     const ResourceUsageHandle swapchain_gui_usage_handle =
         builder.read_texture(swapchain_pass_handle, gui_create_usage_handle, swapchain_gui_usage);
+
     builder.build();
 
+    const FrameGraphSchedule schedule = compute_schedule(frame_graph);
+
+    log_barriers(root, frame_graph, schedule);
+
     allocate_framegraph_volatile_resources(root, backend, resources.framegraph_resources, frame_graph);
-
-    const ResourceUsage& main_hdr_usage = GetResourceUsage(frame_graph, main_hdr_usage_handle);
-    const ResourceHandle main_hdr_resource_handle = main_hdr_usage.Resource;
-
-    const ResourceUsage& main_depth_usage = GetResourceUsage(frame_graph, main_depth_create_usage_handle);
-    const ResourceHandle main_depth_resource_handle = main_depth_usage.Resource;
-
-    const ResourceUsage& gui_usage = GetResourceUsage(frame_graph, gui_create_usage_handle);
-    const ResourceHandle gui_resource_handle = gui_usage.Resource;
-
-    ImageInfo& hdrBuffer = get_frame_graph_texture(resources.framegraph_resources, main_hdr_resource_handle);
-    ImageInfo& depthBuffer = get_frame_graph_texture(resources.framegraph_resources, main_depth_resource_handle);
-    ImageInfo& guiBuffer = get_frame_graph_texture(resources.framegraph_resources, gui_resource_handle);
 
     const GPUTextureAccess src_undefined = {VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT, VK_ACCESS_2_NONE,
                                             VK_IMAGE_LAYOUT_UNDEFINED, VK_QUEUE_FAMILY_IGNORED};
@@ -267,6 +356,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     const GPUTextureAccess shadow_access_main_pass = {VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
                                                       VK_ACCESS_2_SHADER_READ_BIT, VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL,
                                                       VK_QUEUE_FAMILY_IGNORED};
+
     const GPUTextureAccess shadow_access_shadow_pass = {VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT,
                                                         VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
                                                         VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL, VK_QUEUE_FAMILY_IGNORED};
@@ -275,7 +365,11 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     update_shadow_map_pass_descriptor_sets(backend, prepared, resources.shadow_map_resources);
     update_main_pass_descriptor_sets(backend, resources.main_pass_resources, resources.material_resources,
                                      resources.shadow_map_resources.shadowMapView);
-    // update_histogram_pass_descriptor_set(backend, resources.histogram_pass_resources, hdrBufferView);
+
+    update_histogram_pass_descriptor_set(
+        backend, resources.histogram_pass_resources,
+        get_frame_graph_texture_view(resources.framegraph_resources, histogram_hdr_usage_handle));
+
     update_swapchain_pass_descriptor_set(
         backend, resources.swapchain_pass_resources,
         get_frame_graph_texture_view(resources.framegraph_resources, swapchain_hdr_usage_handle),
@@ -312,13 +406,6 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
                                                             DefaultGPUTextureView(shadow_map.properties), src_undefined,
                                                             shadow_access_main_pass));
         }
-
-        imageBarriers.emplace_back(get_vk_image_barrier(hdrBuffer.handle, swapchain_hdr_usage.view, src_undefined,
-                                                        swapchain_hdr_usage.access));
-        imageBarriers.emplace_back(get_vk_image_barrier(depthBuffer.handle, scene_depth_texture_usage.view,
-                                                        src_undefined, scene_depth_texture_usage.access));
-        imageBarriers.emplace_back(get_vk_image_barrier(guiBuffer.handle, swapchain_gui_usage.view, src_undefined,
-                                                        swapchain_gui_usage.access));
 
         const VkDependencyInfo dependencies =
             get_vk_image_barrier_depency_info(static_cast<u32>(imageBarriers.size()), imageBarriers.data());
@@ -394,57 +481,60 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
                                                             shadow_access_shadow_pass, shadow_access_main_pass));
         }
 
-        imageBarriers.emplace_back(get_vk_image_barrier(hdrBuffer.handle, scene_hdr_texture_usage.view,
-                                                        swapchain_hdr_usage.access, scene_hdr_texture_usage.access));
-
         const VkDependencyInfo dependencies =
             get_vk_image_barrier_depency_info(static_cast<u32>(imageBarriers.size()), imageBarriers.data());
 
         vkCmdSetEvent2(cmdBuffer.handle, resources.event, &dependencies);
         vkCmdWaitEvents2(cmdBuffer.handle, 1, &resources.event, &dependencies);
     }
-
-    record_main_pass_command_buffer(
-        cmdBuffer, backend, prepared, resources.main_pass_resources, resources.cull_resources, resources.mesh_cache,
-        backbufferExtent, get_frame_graph_texture_view(resources.framegraph_resources, main_hdr_usage_handle),
-        get_frame_graph_texture_view(resources.framegraph_resources, main_depth_create_usage_handle));
 
     {
-        std::vector<VkImageMemoryBarrier2> imageBarriers;
-        imageBarriers.emplace_back(get_vk_image_barrier(guiBuffer.handle, gui_texture_usage.view,
-                                                        swapchain_gui_usage.access, gui_texture_usage.access));
+        auto barriers = get_barriers_to_execute(schedule, main_pass_handle);
+        log_debug(root, "framegraph: pass '{}', scheduling {} barrier events", main_pass_handle, barriers.size());
 
-        const VkDependencyInfo dependencies =
-            get_vk_image_barrier_depency_info(static_cast<u32>(imageBarriers.size()), imageBarriers.data());
+        record_framegraph_barriers(cmdBuffer, schedule, frame_graph, resources.framegraph_resources, barriers, true);
 
-        vkCmdSetEvent2(cmdBuffer.handle, resources.event, &dependencies);
-        vkCmdWaitEvents2(cmdBuffer.handle, 1, &resources.event, &dependencies);
+        record_main_pass_command_buffer(
+            cmdBuffer, backend, prepared, resources.main_pass_resources, resources.cull_resources, resources.mesh_cache,
+            backbufferExtent, get_frame_graph_texture_view(resources.framegraph_resources, main_hdr_usage_handle),
+            get_frame_graph_texture_view(resources.framegraph_resources, main_depth_create_usage_handle));
+
+        record_framegraph_barriers(cmdBuffer, schedule, frame_graph, resources.framegraph_resources, barriers, false);
     }
-
-    record_gui_command_buffer(cmdBuffer, resources.gui_pass_resources, backbufferExtent,
-                              get_frame_graph_texture_view(resources.framegraph_resources, gui_create_usage_handle));
 
     {
-        REAPER_PROFILE_SCOPE_GPU(cmdBuffer.mlog, "Barrier", MP_RED);
+        auto barriers = get_barriers_to_execute(schedule, gui_pass_handle);
+        log_debug(root, "framegraph: pass '{}', scheduling {} barrier events", gui_pass_handle, barriers.size());
 
-        std::vector<VkImageMemoryBarrier2> imageBarriers;
+        record_framegraph_barriers(cmdBuffer, schedule, frame_graph, resources.framegraph_resources, barriers, true);
 
-        imageBarriers.emplace_back(get_vk_image_barrier(hdrBuffer.handle, swapchain_hdr_usage.view,
-                                                        scene_hdr_texture_usage.access, swapchain_hdr_usage.access));
-        imageBarriers.emplace_back(get_vk_image_barrier(guiBuffer.handle, swapchain_gui_usage.view,
-                                                        gui_texture_usage.access, swapchain_gui_usage.access));
+        record_gui_command_buffer(
+            cmdBuffer, resources.gui_pass_resources, backbufferExtent,
+            get_frame_graph_texture_view(resources.framegraph_resources, gui_create_usage_handle));
 
-        const VkDependencyInfo dependencies =
-            get_vk_image_barrier_depency_info(static_cast<u32>(imageBarriers.size()), imageBarriers.data());
-
-        vkCmdSetEvent2(cmdBuffer.handle, resources.event, &dependencies);
-        vkCmdWaitEvents2(cmdBuffer.handle, 1, &resources.event, &dependencies);
+        record_framegraph_barriers(cmdBuffer, schedule, frame_graph, resources.framegraph_resources, barriers, false);
     }
 
-    // record_histogram_command_buffer(cmdBuffer, frame_data, resources.histogram_pass_resources);
+    {
+        auto barriers = get_barriers_to_execute(schedule, histogram_pass_handle);
+        log_debug(root, "framegraph: pass '{}', scheduling {} barrier events", histogram_pass_handle, barriers.size());
 
-    record_swapchain_command_buffer(cmdBuffer, frame_data, resources.swapchain_pass_resources,
-                                    backend.presentInfo.imageViews[current_swapchain_index]);
+        record_framegraph_barriers(cmdBuffer, schedule, frame_graph, resources.framegraph_resources, barriers, true);
+        record_histogram_command_buffer(cmdBuffer, frame_data, resources.histogram_pass_resources);
+        record_framegraph_barriers(cmdBuffer, schedule, frame_graph, resources.framegraph_resources, barriers, false);
+    }
+
+    {
+        auto barriers = get_barriers_to_execute(schedule, swapchain_pass_handle);
+        log_debug(root, "framegraph: pass '{}', scheduling {} barrier events", swapchain_pass_handle, barriers.size());
+
+        record_framegraph_barriers(cmdBuffer, schedule, frame_graph, resources.framegraph_resources, barriers, true);
+
+        record_swapchain_command_buffer(cmdBuffer, frame_data, resources.swapchain_pass_resources,
+                                        backend.presentInfo.imageViews[current_swapchain_index]);
+
+        record_framegraph_barriers(cmdBuffer, schedule, frame_graph, resources.framegraph_resources, barriers, false);
+    }
 
     record_audio_command_buffer(cmdBuffer, prepared, resources.audio_resources);
 
