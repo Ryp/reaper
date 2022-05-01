@@ -51,7 +51,6 @@ namespace FrameGraph
                     DefaultGPUTextureProperties(512, 512, PixelFormat::R16G16B16A16_UNORM);
 
                 TGPUTextureUsage shadowRTUsage = {};
-                shadowRTUsage.LoadOp = ELoadOp::Clear;
 
                 const ResourceUsageHandle shadowRTHandle =
                     builder.create_texture(shadowPass, "VSM", shadowRTDesc, shadowRTUsage);
@@ -69,7 +68,6 @@ namespace FrameGraph
                     DefaultGPUTextureProperties(1280, 720, PixelFormat::R16G16B16A16_UNORM);
 
                 TGPUTextureUsage gbufferUsage = {};
-                gbufferUsage.LoadOp = ELoadOp::DontCare;
 
                 const ResourceUsageHandle gbufferRTHandle =
                     builder.create_texture(gbufferPass, "GBuffer", gbufferRTDesc, gbufferUsage);
@@ -95,7 +93,6 @@ namespace FrameGraph
                 uselessRTDesc.sampleCount = 4;
 
                 TGPUTextureUsage uselessRTUsage = {};
-                uselessRTUsage.LoadOp = ELoadOp::DontCare;
 
                 const ResourceUsageHandle uselessRTHandle =
                     builder.create_texture(uselessPass, "UselessTexture", uselessRTDesc, uselessRTUsage);
@@ -125,7 +122,6 @@ namespace FrameGraph
                     DefaultGPUTextureProperties(1280, 720, PixelFormat::R16G16B16A16_SFLOAT);
 
                 TGPUTextureUsage opaqueRTUsage = {};
-                opaqueRTUsage.LoadOp = ELoadOp::DontCare;
 
                 const ResourceUsageHandle opaqueRTHandle =
                     builder.create_texture(lightingPass, "Opaque", opaqueRTDesc, opaqueRTUsage);
@@ -151,7 +147,6 @@ namespace FrameGraph
                     DefaultGPUTextureProperties(1280, 720, PixelFormat::R8G8B8_SRGB);
 
                 TGPUTextureUsage backBufferRTUsage = {};
-                backBufferRTUsage.LoadOp = ELoadOp::DontCare;
 
                 const ResourceUsageHandle backBufferRTHandle =
                     builder.create_texture(compositePass, "BackBuffer", backBufferRTDesc, backBufferRTUsage);

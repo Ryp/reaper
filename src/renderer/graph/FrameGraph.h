@@ -61,10 +61,8 @@ struct Resource
     bool                 IsUsed;
 };
 
-struct TGPUTextureUsage // FIXME
+struct TGPUTextureUsage
 {
-    ELoadOp          LoadOp;
-    EStoreOp         StoreOp;
     GPUTextureAccess access;
     GPUTextureView   view;
 };
