@@ -31,7 +31,7 @@ ResourceHandle FrameGraphBuilder::CreateResource(RenderPassHandle            ren
 ResourceUsageHandle FrameGraphBuilder::CreateResourceUsage(UsageType           usageType,
                                                            RenderPassHandle    renderPassHandle,
                                                            ResourceHandle      resourceHandle,
-                                                           TGPUTextureUsage    textureUsage,
+                                                           GPUResourceUsage    textureUsage,
                                                            ResourceUsageHandle parentUsageHandle)
 {
     ResourceUsage& newResourceUsage = m_Graph.ResourceUsages.emplace_back();
@@ -63,7 +63,7 @@ RenderPassHandle FrameGraphBuilder::create_render_pass(const char* identifier, b
 ResourceUsageHandle FrameGraphBuilder::create_texture(RenderPassHandle            renderPassHandle,
                                                       const char*                 name,
                                                       const GPUTextureProperties& resourceDesc,
-                                                      TGPUTextureUsage            usage)
+                                                      GPUResourceUsage            usage)
 {
     const ResourceHandle resourceHandle = CreateResource(renderPassHandle, name, resourceDesc);
     Assert(resourceHandle != InvalidResourceHandle);
@@ -79,7 +79,7 @@ ResourceUsageHandle FrameGraphBuilder::create_texture(RenderPassHandle          
 
 ResourceUsageHandle FrameGraphBuilder::read_texture(RenderPassHandle    renderPassHandle,
                                                     ResourceUsageHandle inputUsageHandle,
-                                                    TGPUTextureUsage    usage)
+                                                    GPUResourceUsage    usage)
 {
     const ResourceHandle resourceHandle = GetResourceUsage(m_Graph, inputUsageHandle).Resource;
     Assert(resourceHandle != InvalidResourceHandle);
@@ -95,10 +95,10 @@ ResourceUsageHandle FrameGraphBuilder::read_texture(RenderPassHandle    renderPa
 
 ResourceUsageHandle FrameGraphBuilder::WriteTexture(RenderPassHandle    renderPassHandle,
                                                     ResourceUsageHandle inputUsageHandle,
-                                                    TGPUTextureUsage    usage)
+                                                    GPUResourceUsage    usage)
 {
     // FIXME do something about the texture usage
-    const TGPUTextureUsage    readUsage = {};
+    const GPUResourceUsage    readUsage = {};
     const ResourceUsageHandle readUsageHandle = read_texture(renderPassHandle, inputUsageHandle, readUsage);
 
     const ResourceHandle resourceHandle = GetResourceUsage(m_Graph, inputUsageHandle).Resource;

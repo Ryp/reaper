@@ -61,7 +61,7 @@ struct Resource
     bool                 IsUsed;
 };
 
-struct TGPUTextureUsage
+struct GPUResourceUsage
 {
     GPUTextureAccess access;
     GPUTextureView   view;
@@ -73,7 +73,7 @@ struct ResourceUsage
     ResourceHandle      Resource;
     RenderPassHandle    RenderPass;
     ResourceUsageHandle Parent;
-    TGPUTextureUsage    Usage;
+    GPUResourceUsage    Usage;
     bool                IsUsed;
 };
 

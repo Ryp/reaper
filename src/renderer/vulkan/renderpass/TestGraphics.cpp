@@ -273,14 +273,14 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
                                                          VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
                                                          VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL, VK_QUEUE_FAMILY_IGNORED};
 
-    TGPUTextureUsage scene_hdr_texture_usage = {};
+    GPUResourceUsage scene_hdr_texture_usage = {};
     scene_hdr_texture_usage.access = scene_hdr_access_main_pass;
     scene_hdr_texture_usage.view = DefaultGPUTextureView(scene_hdr_properties);
 
     const ResourceUsageHandle main_hdr_usage_handle =
         builder.create_texture(main_pass_handle, "Scene HDR", scene_hdr_properties, scene_hdr_texture_usage);
 
-    TGPUTextureUsage scene_depth_texture_usage = {};
+    GPUResourceUsage scene_depth_texture_usage = {};
     scene_depth_texture_usage.access =
         GPUTextureAccess{VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT, VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
                          VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL, VK_QUEUE_FAMILY_IGNORED};
@@ -296,7 +296,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         DefaultGPUTextureProperties(backbufferExtent.width, backbufferExtent.height, GUIFormat);
     gui_properties.usageFlags = GPUTextureUsage::ColorAttachment | GPUTextureUsage::Sampled;
 
-    TGPUTextureUsage gui_texture_usage = {};
+    GPUResourceUsage gui_texture_usage = {};
     gui_texture_usage.access =
         GPUTextureAccess{VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
                          VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL, VK_QUEUE_FAMILY_IGNORED};
@@ -309,7 +309,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     const RenderPassHandle histogram_pass_handle = builder.create_render_pass(
         "Histogram", true); // FIXME Use outputs from this pass so we don't have to force is on
 
-    TGPUTextureUsage histogram_hdr_usage = {};
+    GPUResourceUsage histogram_hdr_usage = {};
     histogram_hdr_usage.access = GPUTextureAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
                                                   VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL, VK_QUEUE_FAMILY_IGNORED};
     histogram_hdr_usage.view = DefaultGPUTextureView(scene_hdr_properties);
@@ -320,7 +320,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     // Swapchain
     const RenderPassHandle swapchain_pass_handle = builder.create_render_pass("Swapchain", true);
 
-    TGPUTextureUsage swapchain_hdr_usage = {};
+    GPUResourceUsage swapchain_hdr_usage = {};
     swapchain_hdr_usage.access = GPUTextureAccess{VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
                                                   VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL, VK_QUEUE_FAMILY_IGNORED};
     swapchain_hdr_usage.view = DefaultGPUTextureView(scene_hdr_properties);
@@ -328,7 +328,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     const ResourceUsageHandle swapchain_hdr_usage_handle =
         builder.read_texture(swapchain_pass_handle, main_hdr_usage_handle, swapchain_hdr_usage);
 
-    TGPUTextureUsage swapchain_gui_usage = {};
+    GPUResourceUsage swapchain_gui_usage = {};
     swapchain_gui_usage.access = GPUTextureAccess{VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
                                                   VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL, VK_QUEUE_FAMILY_IGNORED};
     swapchain_gui_usage.view = DefaultGPUTextureView(gui_properties);

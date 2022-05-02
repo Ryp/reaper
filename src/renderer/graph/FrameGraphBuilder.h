@@ -6,7 +6,6 @@
 namespace Reaper
 {
 struct GPUTextureProperties;
-// enum GPUTextureUsage;
 } // namespace Reaper
 
 namespace Reaper::FrameGraph
@@ -34,13 +33,13 @@ public:
     ResourceUsageHandle create_texture(RenderPassHandle            renderPass,
                                        const char*                 name,
                                        const GPUTextureProperties& resourceDesc,
-                                       TGPUTextureUsage            usage);
+                                       GPUResourceUsage            usage);
 
     ResourceUsageHandle
-    read_texture(RenderPassHandle renderPass, ResourceUsageHandle inputUsageHandle, TGPUTextureUsage usage);
+    read_texture(RenderPassHandle renderPass, ResourceUsageHandle inputUsageHandle, GPUResourceUsage usage);
 
     ResourceUsageHandle
-    WriteTexture(RenderPassHandle renderPass, ResourceUsageHandle inputUsageHandle, TGPUTextureUsage usage);
+    WriteTexture(RenderPassHandle renderPass, ResourceUsageHandle inputUsageHandle, GPUResourceUsage usage);
 
 public:
     void build();
@@ -52,7 +51,7 @@ private:
     ResourceUsageHandle CreateResourceUsage(UsageType           usageType,
                                             RenderPassHandle    renderPassHandle,
                                             ResourceHandle      resourceHandle,
-                                            TGPUTextureUsage    textureUsage,
+                                            GPUResourceUsage    textureUsage,
                                             ResourceUsageHandle parentUsageHandle);
 
 private:

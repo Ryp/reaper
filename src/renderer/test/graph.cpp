@@ -50,7 +50,7 @@ namespace FrameGraph
                 GPUTextureProperties shadowRTDesc =
                     DefaultGPUTextureProperties(512, 512, PixelFormat::R16G16B16A16_UNORM);
 
-                TGPUTextureUsage shadowRTUsage = {};
+                GPUResourceUsage shadowRTUsage = {};
 
                 const ResourceUsageHandle shadowRTHandle =
                     builder.create_texture(shadowPass, "VSM", shadowRTDesc, shadowRTUsage);
@@ -67,7 +67,7 @@ namespace FrameGraph
                 GPUTextureProperties gbufferRTDesc =
                     DefaultGPUTextureProperties(1280, 720, PixelFormat::R16G16B16A16_UNORM);
 
-                TGPUTextureUsage gbufferUsage = {};
+                GPUResourceUsage gbufferUsage = {};
 
                 const ResourceUsageHandle gbufferRTHandle =
                     builder.create_texture(gbufferPass, "GBuffer", gbufferRTDesc, gbufferUsage);
@@ -81,7 +81,7 @@ namespace FrameGraph
 
             // Inputs
             {
-                TGPUTextureUsage gbufferRTUsage = {};
+                GPUResourceUsage gbufferRTUsage = {};
 
                 builder.read_texture(uselessPass, gBufferInput.GBufferRT, gbufferRTUsage);
             }
@@ -92,7 +92,7 @@ namespace FrameGraph
                     DefaultGPUTextureProperties(4096, 4096, PixelFormat::R16G16_SFLOAT);
                 uselessRTDesc.sampleCount = 4;
 
-                TGPUTextureUsage uselessRTUsage = {};
+                GPUResourceUsage uselessRTUsage = {};
 
                 const ResourceUsageHandle uselessRTHandle =
                     builder.create_texture(uselessPass, "UselessTexture", uselessRTDesc, uselessRTUsage);
@@ -108,9 +108,9 @@ namespace FrameGraph
 
             // Inputs
             {
-                TGPUTextureUsage gbufferRTUsage = {};
+                GPUResourceUsage gbufferRTUsage = {};
 
-                TGPUTextureUsage shadowRTUsage = {};
+                GPUResourceUsage shadowRTUsage = {};
 
                 builder.read_texture(lightingPass, gBufferInput.GBufferRT, gbufferRTUsage);
                 builder.read_texture(lightingPass, shadowOutput.ShadowRT, shadowRTUsage);
@@ -121,7 +121,7 @@ namespace FrameGraph
                 GPUTextureProperties opaqueRTDesc =
                     DefaultGPUTextureProperties(1280, 720, PixelFormat::R16G16B16A16_SFLOAT);
 
-                TGPUTextureUsage opaqueRTUsage = {};
+                GPUResourceUsage opaqueRTUsage = {};
 
                 const ResourceUsageHandle opaqueRTHandle =
                     builder.create_texture(lightingPass, "Opaque", opaqueRTDesc, opaqueRTUsage);
@@ -136,7 +136,7 @@ namespace FrameGraph
 
             // Inputs
             {
-                TGPUTextureUsage opaqueRTUsage = {};
+                GPUResourceUsage opaqueRTUsage = {};
 
                 builder.read_texture(compositePass, lightingOutput.OpaqueRT, opaqueRTUsage);
             }
@@ -146,7 +146,7 @@ namespace FrameGraph
                 GPUTextureProperties backBufferRTDesc =
                     DefaultGPUTextureProperties(1280, 720, PixelFormat::R8G8B8_SRGB);
 
-                TGPUTextureUsage backBufferRTUsage = {};
+                GPUResourceUsage backBufferRTUsage = {};
 
                 const ResourceUsageHandle backBufferRTHandle =
                     builder.create_texture(compositePass, "BackBuffer", backBufferRTDesc, backBufferRTUsage);
@@ -161,7 +161,7 @@ namespace FrameGraph
 
             // Inputs
             {
-                TGPUTextureUsage backBufferRTUsage = {};
+                GPUResourceUsage backBufferRTUsage = {};
 
                 builder.read_texture(presentPass, compositeOutput.BackBufferRT, backBufferRTUsage);
             }
