@@ -97,7 +97,7 @@ namespace FrameGraph
                 const ResourceUsageHandle uselessRTHandle =
                     builder.create_texture(uselessPass, "UselessTexture", uselessRTDesc, uselessRTUsage);
 
-                (void)uselessRTHandle; // FIXME
+                static_cast<void>(uselessRTHandle);
             };
         }
 
