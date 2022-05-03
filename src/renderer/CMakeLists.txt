@@ -101,6 +101,8 @@ target_sources(${target} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/Audio.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/Culling.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/Culling.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/FrameGraphPass.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/FrameGraphPass.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/GuiPass.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/GuiPass.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/HistogramPass.cpp
