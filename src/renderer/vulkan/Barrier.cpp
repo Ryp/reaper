@@ -11,8 +11,9 @@
 
 namespace Reaper
 {
-VkImageMemoryBarrier2 get_vk_image_barrier(VkImage handle, const GPUTextureView& view, GPUTextureAccess src,
-                                           GPUTextureAccess dst)
+VkImageMemoryBarrier2 get_vk_image_barrier(VkImage handle, const GPUTextureView& view, GPUResourceAccess src,
+                                           GPUResourceAccess dst, u32 src_queue_family_index,
+                                           u32 dst_queue_family_index)
 {
     const VkImageSubresourceRange view_range = GetVulkanImageSubresourceRange(view);
 
@@ -22,17 +23,21 @@ VkImageMemoryBarrier2 get_vk_image_barrier(VkImage handle, const GPUTextureView&
                                  src.access_mask,
                                  dst.stage_mask,
                                  dst.access_mask,
-                                 src.layout,
-                                 dst.layout,
-                                 src.queueFamilyIndex,
-                                 dst.queueFamilyIndex,
+                                 src.image_layout,
+                                 dst.image_layout,
+                                 src_queue_family_index,
+                                 dst_queue_family_index,
                                  handle,
                                  view_range};
 }
 
-VkBufferMemoryBarrier2 get_vk_buffer_barrier(VkBuffer handle, const GPUBufferView& view, GPUBufferAccess src,
-                                             GPUBufferAccess dst)
+VkBufferMemoryBarrier2 get_vk_buffer_barrier(VkBuffer handle, const GPUBufferView& /*view*/, GPUResourceAccess src,
+                                             GPUResourceAccess dst, u32 src_queue_family_index,
+                                             u32 dst_queue_family_index)
 {
+    Assert(src.image_layout == VK_IMAGE_LAYOUT_UNDEFINED, "Image layout should be left unused for buffers");
+    Assert(dst.image_layout == VK_IMAGE_LAYOUT_UNDEFINED, "Image layout should be left unused for buffers");
+
     return VkBufferMemoryBarrier2{
         VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2,
         nullptr,
@@ -40,10 +45,10 @@ VkBufferMemoryBarrier2 get_vk_buffer_barrier(VkBuffer handle, const GPUBufferVie
         src.access_mask,
         dst.stage_mask,
         dst.access_mask,
-        src.queueFamilyIndex,
-        dst.queueFamilyIndex,
+        src_queue_family_index,
+        dst_queue_family_index,
         handle,
-        view.elementOffset,
+        0,            // FIXME
         VK_WHOLE_SIZE // FIXME
     };
 }

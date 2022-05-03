@@ -128,10 +128,9 @@ namespace
     void flush_pending_staging_commands(CommandBuffer& cmdBuffer, const ResourceStagingArea& staging,
                                         const StagingEntry& entry)
     {
-        const GPUTextureAccess src = {VK_PIPELINE_STAGE_2_HOST_BIT, VK_ACCESS_2_NONE, VK_IMAGE_LAYOUT_UNDEFINED,
-                                      VK_QUEUE_FAMILY_IGNORED};
-        const GPUTextureAccess dst = {VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT,
-                                      VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_QUEUE_FAMILY_IGNORED};
+        const GPUResourceAccess src = {VK_PIPELINE_STAGE_2_HOST_BIT, VK_ACCESS_2_NONE, VK_IMAGE_LAYOUT_UNDEFINED};
+        const GPUResourceAccess dst = {VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT,
+                                       VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL};
 
         const GPUTextureView        default_view = DefaultGPUTextureView(entry.texture_properties);
         const VkImageMemoryBarrier2 barrier = get_vk_image_barrier(entry.target, default_view, src, dst);
@@ -147,7 +146,7 @@ namespace
         const VkCopyBufferToImageInfo2 copy = {
             VK_STRUCTURE_TYPE_COPY_BUFFER_TO_IMAGE_INFO_2,
             nullptr,
-            staging.staging_buffer.buffer,
+            staging.staging_buffer.handle,
             entry.target,
             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
             static_cast<u32>(copy_regions.size()),
@@ -218,7 +217,7 @@ void destroy_material_resources(VulkanBackend& backend, MaterialResources& resou
     }
     resources.textures.clear();
 
-    vmaDestroyBuffer(backend.vma_instance, resources.staging.staging_buffer.buffer,
+    vmaDestroyBuffer(backend.vma_instance, resources.staging.staging_buffer.handle,
                      resources.staging.staging_buffer.allocation);
 }
 
@@ -254,10 +253,10 @@ void record_material_upload_command_buffer(ResourceStagingArea& staging, Command
 
         for (const auto& entry : staging.staging_queue)
         {
-            const GPUTextureAccess src = {VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT,
-                                          VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_QUEUE_FAMILY_IGNORED};
-            const GPUTextureAccess dst = {VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
-                                          VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL, VK_QUEUE_FAMILY_IGNORED};
+            const GPUResourceAccess src = {VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT,
+                                           VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL};
+            const GPUResourceAccess dst = {VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
+                                           VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL};
 
             const GPUTextureView        default_view = DefaultGPUTextureView(entry.texture_properties);
             const VkImageMemoryBarrier2 barrier = get_vk_image_barrier(entry.target, default_view, src, dst);

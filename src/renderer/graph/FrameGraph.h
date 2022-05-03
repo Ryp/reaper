@@ -2,6 +2,8 @@
 
 #include "FrameGraphBasicTypes.h"
 
+#include "renderer/GPUBufferProperties.h"
+#include "renderer/GPUBufferView.h"
 #include "renderer/texture/GPUTextureProperties.h"
 #include "renderer/texture/GPUTextureView.h"
 #include "renderer/vulkan/Barrier.h"
@@ -42,29 +44,34 @@ namespace Reaper::FrameGraph
 {
 struct RenderPass
 {
-    static constexpr u32 MaxNameLength = 64;
-
-    char                             Identifier[MaxNameLength];
+    const char*                      debug_name;
     bool                             HasSideEffects;
     std::vector<ResourceUsageHandle> ResourceUsageHandles;
     bool                             IsUsed;
 };
 
+union GPUResourceProperties
+{
+    GPUTextureProperties texture;
+    GPUBufferProperties  buffer;
+};
+
 struct Resource
 {
-    static constexpr u32 MaxIdentifierLength = 64;
-
-    char                 Identifier[MaxIdentifierLength];
-    GPUTextureProperties Descriptor;
-    RenderPassHandle     LifeBegin;
-    RenderPassHandle     LifeEnd;
-    bool                 IsUsed;
+    const char*           debug_name;
+    GPUResourceProperties properties;
+    bool                  IsUsed;
+    bool                  is_texture;
 };
 
 struct GPUResourceUsage
 {
-    GPUTextureAccess access;
-    GPUTextureView   view;
+    GPUResourceAccess access;
+    union
+    {
+        GPUTextureView texture_view;
+        GPUBufferView  buffer_view;
+    };
 };
 
 struct ResourceUsage
@@ -96,10 +103,9 @@ struct DirectedAcyclicGraph
 };
 
 const ResourceUsage& GetResourceUsage(const FrameGraph& framegraph, ResourceUsageHandle resourceUsageHandle);
+ResourceHandle       GetResourceHandle(const FrameGraph& framegraph, ResourceUsageHandle resourceUsageHandle);
 const Resource&      GetResource(const FrameGraph& framegraph, const ResourceUsage& resourceUsage);
 Resource&            GetResource(FrameGraph& framegraph, const ResourceUsage& resourceUsage);
-
-void VerifyResourceLifetime(const Resource& resource, const RenderPassHandle renderPassHandle);
 
 // Uses depth-first traversal
 bool HasCycles(const DirectedAcyclicGraph& graph, const nonstd::span<DirectedAcyclicGraph::index_type> rootNodes);
@@ -114,7 +120,7 @@ struct ResourceUsageEvent
 {
     RenderPassHandle    render_pass;
     ResourceUsageHandle usage_handle;
-    GPUTextureAccess    access;
+    GPUResourceAccess   access;
 };
 
 struct Barrier

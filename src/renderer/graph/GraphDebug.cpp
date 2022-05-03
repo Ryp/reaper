@@ -95,13 +95,13 @@ namespace FrameGraph
         {
             const ResourceUsage&        resourceUsage = frameGraph.ResourceUsages[resourceUsageIndex];
             const Resource&             resource = frameGraph.Resources[resourceUsage.Resource];
-            const GPUTextureProperties& desc = resource.Descriptor;
+            const GPUTextureProperties& desc = resource.properties.texture;
 
             // Instead of skipping a node, add the hidden info to the corresponding edge
             if (resourceUsage.Type == UsageType::RenderPassInput)
                 continue;
 
-            const std::string label = fmt::format("{0} ({1})\\n{2}x{3}\\n{4}\\n{5} Cube={6} [{7}]", resource.Identifier,
+            const std::string label = fmt::format("{0} ({1})\\n{2}x{3}\\n{4}\\n{5} Cube={6} [{7}]", resource.debug_name,
                                                   resourceUsage.Resource, desc.width, desc.height,
                                                   GetFormatToString(PixelFormatToVulkan(desc.format)), desc.sampleCount,
                                                   desc.miscFlags & GPUMiscFlags::Cubemap, resourceUsageIndex);
@@ -119,7 +119,7 @@ namespace FrameGraph
             const RenderPass& renderPass = frameGraph.RenderPasses[renderPassIndex];
             std::ostream&     output = (renderPass.HasSideEffects ? outRenderPassSEFile : outRenderPassFile);
 
-            const std::string label = fmt::format("{0} [{1}]", renderPass.Identifier, renderPassIndex);
+            const std::string label = fmt::format("{0} [{1}]", renderPass.debug_name, renderPassIndex);
 
             output << "        pass" << renderPassIndex << " [label=\"" << label << "\"";
 

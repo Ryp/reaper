@@ -113,10 +113,6 @@ HistogramPassResources create_histogram_pass_resources(ReaperRoot& root, VulkanB
                       DefaultGPUBufferProperties(1, sizeof(ReduceHDRPassParams), GPUBufferUsage::UniformBuffer),
                       backend.vma_instance);
 
-    resources.passHistogramBuffer = create_buffer(
-        root, backend.device, "Histogram buffer",
-        DefaultGPUBufferProperties(HISTOGRAM_RES, sizeof(u32), GPUBufferUsage::StorageBuffer), backend.vma_instance);
-
     resources.histogramPipe = create_histogram_pipeline(root, backend);
 
     resources.descriptor_set =
@@ -131,20 +127,17 @@ void destroy_histogram_pass_resources(VulkanBackend& backend, const HistogramPas
     vkDestroyPipelineLayout(backend.device, resources.histogramPipe.pipelineLayout, nullptr);
     vkDestroyDescriptorSetLayout(backend.device, resources.histogramPipe.descSetLayout, nullptr);
 
-    vmaDestroyBuffer(backend.vma_instance, resources.passConstantBuffer.buffer,
+    vmaDestroyBuffer(backend.vma_instance, resources.passConstantBuffer.handle,
                      resources.passConstantBuffer.allocation);
-
-    vmaDestroyBuffer(backend.vma_instance, resources.passHistogramBuffer.buffer,
-                     resources.passHistogramBuffer.allocation);
 }
 
 void update_histogram_pass_descriptor_set(VulkanBackend& backend, const HistogramPassResources& resources,
-                                          VkImageView scene_hdr_view)
+                                          VkImageView scene_hdr_view, VkBuffer histogram_buffer)
 {
     const VkDescriptorBufferInfo drawDescPassParams = default_descriptor_buffer_info(resources.passConstantBuffer);
     const VkDescriptorImageInfo  descTexture = {VK_NULL_HANDLE, scene_hdr_view,
                                                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
-    const VkDescriptorBufferInfo descOutput = default_descriptor_buffer_info(resources.passHistogramBuffer);
+    const VkDescriptorBufferInfo descOutput = {histogram_buffer, 0, VK_WHOLE_SIZE}; // FIXME
 
     std::array<VkWriteDescriptorSet, 3> drawPassDescriptorSetWrites = {
         create_buffer_descriptor_write(resources.descriptor_set, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
@@ -165,16 +158,15 @@ void upload_histogram_frame_resources(VulkanBackend& backend, const HistogramPas
 
     upload_buffer_data(backend.device, backend.vma_instance, pass_resources.passConstantBuffer, &params,
                        sizeof(ReduceHDRPassParams));
-
-    std::array<u32, HISTOGRAM_RES> zero = {};
-    upload_buffer_data(backend.device, backend.vma_instance, pass_resources.passHistogramBuffer, zero.data(),
-                       zero.size() * sizeof(u32));
 }
 
 void record_histogram_command_buffer(CommandBuffer& cmdBuffer, const FrameData& frame_data,
-                                     const HistogramPassResources& pass_resources)
+                                     const HistogramPassResources& pass_resources, VkBuffer histogram_buffer)
 {
     REAPER_PROFILE_SCOPE_GPU(cmdBuffer.mlog, "Histogram Pass", MP_DARKGOLDENROD);
+
+    vkCmdFillBuffer(cmdBuffer.handle, histogram_buffer, 0, VK_WHOLE_SIZE, 0);
+    // FIXME Insert barrier?
 
     vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE, pass_resources.histogramPipe.pipeline);
 

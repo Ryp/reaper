@@ -372,7 +372,7 @@ void destroy_swapchain_pass_resources(VulkanBackend& backend, const SwapchainPas
 {
     vkDestroySampler(backend.device, resources.linearBlackBorderSampler, nullptr);
 
-    vmaDestroyBuffer(backend.vma_instance, resources.passConstantBuffer.buffer,
+    vmaDestroyBuffer(backend.vma_instance, resources.passConstantBuffer.handle,
                      resources.passConstantBuffer.allocation);
 
     vkDestroyPipeline(backend.device, resources.pipeline, nullptr);

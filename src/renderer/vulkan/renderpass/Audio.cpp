@@ -163,12 +163,12 @@ AudioResources create_audio_resources(ReaperRoot& root, VulkanBackend& backend)
 
 void destroy_audio_resources(VulkanBackend& backend, AudioResources& resources)
 {
-    vmaDestroyBuffer(backend.vma_instance, resources.audioPassConstantBuffer.buffer,
+    vmaDestroyBuffer(backend.vma_instance, resources.audioPassConstantBuffer.handle,
                      resources.audioPassConstantBuffer.allocation);
-    vmaDestroyBuffer(backend.vma_instance, resources.audioInstanceParamsBuffer.buffer,
+    vmaDestroyBuffer(backend.vma_instance, resources.audioInstanceParamsBuffer.handle,
                      resources.audioInstanceParamsBuffer.allocation);
-    vmaDestroyBuffer(backend.vma_instance, resources.audioOutputBuffer.buffer, resources.audioOutputBuffer.allocation);
-    vmaDestroyBuffer(backend.vma_instance, resources.audioOutputBufferStaging.buffer,
+    vmaDestroyBuffer(backend.vma_instance, resources.audioOutputBuffer.handle, resources.audioOutputBuffer.allocation);
+    vmaDestroyBuffer(backend.vma_instance, resources.audioOutputBufferStaging.handle,
                      resources.audioOutputBufferStaging.allocation);
 
     vkDestroyPipeline(backend.device, resources.audioPipe.pipeline, nullptr);
@@ -216,14 +216,12 @@ void record_audio_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& p
     REAPER_PROFILE_SCOPE_GPU(cmdBuffer.mlog, "Audio Pass", MP_GREEN);
 
     {
-        const GPUBufferAccess src = {VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_READ_BIT,
-                                     VK_QUEUE_FAMILY_IGNORED};
-        const GPUBufferAccess dst = {VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT,
-                                     VK_QUEUE_FAMILY_IGNORED};
-        const GPUBufferView   default_view = {};
+        const GPUResourceAccess src = {VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_READ_BIT};
+        const GPUResourceAccess dst = {VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT};
+        const GPUBufferView     default_view = {};
 
         const VkBufferMemoryBarrier2 buffer_barrier =
-            get_vk_buffer_barrier(resources.audioOutputBuffer.buffer, default_view, src, dst);
+            get_vk_buffer_barrier(resources.audioOutputBuffer.handle, default_view, src, dst);
 
         const VkDependencyInfo dependencies = get_vk_buffer_barrier_depency_info(1, &buffer_barrier);
 
@@ -244,25 +242,21 @@ void record_audio_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& p
         std::vector<VkBufferMemoryBarrier2> buffer_barriers;
 
         {
-            const GPUBufferAccess src = {VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT,
-                                         VK_QUEUE_FAMILY_IGNORED};
-            const GPUBufferAccess dst = {VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_READ_BIT,
-                                         VK_QUEUE_FAMILY_IGNORED};
-            const GPUBufferView   default_view = {};
+            const GPUResourceAccess src = {VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT};
+            const GPUResourceAccess dst = {VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_READ_BIT};
+            const GPUBufferView     default_view = {};
 
             buffer_barriers.emplace_back(
-                get_vk_buffer_barrier(resources.audioOutputBuffer.buffer, default_view, src, dst));
+                get_vk_buffer_barrier(resources.audioOutputBuffer.handle, default_view, src, dst));
         }
 
         {
-            const GPUBufferAccess src = {VK_PIPELINE_STAGE_2_HOST_BIT, VK_ACCESS_2_HOST_READ_BIT,
-                                         VK_QUEUE_FAMILY_IGNORED};
-            const GPUBufferAccess dst = {VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT,
-                                         VK_QUEUE_FAMILY_IGNORED};
-            const GPUBufferView   default_view = {};
+            const GPUResourceAccess src = {VK_PIPELINE_STAGE_2_HOST_BIT, VK_ACCESS_2_HOST_READ_BIT};
+            const GPUResourceAccess dst = {VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT};
+            const GPUBufferView     default_view = {};
 
             buffer_barriers.emplace_back(
-                get_vk_buffer_barrier(resources.audioOutputBufferStaging.buffer, default_view, src, dst));
+                get_vk_buffer_barrier(resources.audioOutputBufferStaging.handle, default_view, src, dst));
         }
 
         const VkDependencyInfo dependencies =
@@ -279,19 +273,18 @@ void record_audio_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& p
     region.size = FrameCountPerGroup * FrameCountPerDispatch * sizeof(RawSample);
 
     const VkCopyBufferInfo2 copy = {
-        VK_STRUCTURE_TYPE_COPY_BUFFER_INFO_2,      nullptr, resources.audioOutputBuffer.buffer,
-        resources.audioOutputBufferStaging.buffer, 1,       &region};
+        VK_STRUCTURE_TYPE_COPY_BUFFER_INFO_2,      nullptr, resources.audioOutputBuffer.handle,
+        resources.audioOutputBufferStaging.handle, 1,       &region};
 
     vkCmdCopyBuffer2(cmdBuffer.handle, &copy);
 
     {
-        const GPUBufferAccess src = {VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT,
-                                     VK_QUEUE_FAMILY_IGNORED};
-        const GPUBufferAccess dst = {VK_PIPELINE_STAGE_2_HOST_BIT, VK_ACCESS_2_HOST_READ_BIT, VK_QUEUE_FAMILY_IGNORED};
-        const GPUBufferView   default_view = {};
+        const GPUResourceAccess src = {VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT};
+        const GPUResourceAccess dst = {VK_PIPELINE_STAGE_2_HOST_BIT, VK_ACCESS_2_HOST_READ_BIT};
+        const GPUBufferView     default_view = {};
 
         const VkBufferMemoryBarrier2 buffer_barrier =
-            get_vk_buffer_barrier(resources.audioOutputBufferStaging.buffer, default_view, src, dst);
+            get_vk_buffer_barrier(resources.audioOutputBufferStaging.handle, default_view, src, dst);
 
         const VkDependencyInfo dependencies = get_vk_buffer_barrier_depency_info(1, &buffer_barrier);
 

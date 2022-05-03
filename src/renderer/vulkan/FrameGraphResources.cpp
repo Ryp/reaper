@@ -58,19 +58,32 @@ void allocate_framegraph_volatile_resources(ReaperRoot& root, VulkanBackend& bac
 
     using namespace FrameGraph;
 
-    resources.textures.resize(frame_graph.Resources.size());
+    resources.textures.resize(frame_graph.Resources.size()); // FIXME
+    resources.buffers.resize(frame_graph.Resources.size());  // FIXME
+
     for (u32 index = 0; index < frame_graph.Resources.size(); index++)
     {
         const Resource& resource = frame_graph.Resources[index];
 
         if (resource.IsUsed)
         {
-            resources.textures[index] =
-                create_image(root, backend.device, resource.Identifier, resource.Descriptor, backend.vma_instance);
+            if (resource.is_texture)
+            {
+                resources.textures[index] = create_image(root, backend.device, resource.debug_name,
+                                                         resource.properties.texture, backend.vma_instance);
+                resources.buffers[index] = {};
+            }
+            else
+            {
+                resources.buffers[index] = create_buffer(root, backend.device, resource.debug_name,
+                                                         resource.properties.buffer, backend.vma_instance);
+                resources.textures[index] = {};
+            }
         }
         else
         {
             resources.textures[index] = {};
+            resources.buffers[index] = {};
         }
     }
 
@@ -78,11 +91,12 @@ void allocate_framegraph_volatile_resources(ReaperRoot& root, VulkanBackend& bac
     for (u32 index = 0; index < frame_graph.ResourceUsages.size(); index++)
     {
         const ResourceUsage& usage = frame_graph.ResourceUsages[index];
+        const Resource&      resource = frame_graph.Resources[usage.Resource];
 
-        if (usage.IsUsed)
+        if (resource.is_texture && usage.IsUsed)
         {
             const ImageInfo&     image = resources.textures[usage.Resource];
-            const GPUTextureView view = usage.Usage.view;
+            const GPUTextureView view = usage.Usage.texture_view;
 
             resources.texture_views[index] = create_image_view(root, backend.device, image, view);
         }
@@ -95,6 +109,12 @@ void allocate_framegraph_volatile_resources(ReaperRoot& root, VulkanBackend& bac
 
 void destroy_framegraph_volatile_resources(VulkanBackend& backend, FrameGraphResources& resources)
 {
+    for (BufferInfo& buffer : resources.buffers)
+    {
+        vmaDestroyBuffer(backend.vma_instance, buffer.handle, buffer.allocation);
+        buffer = {};
+    }
+
     for (ImageInfo& texture : resources.textures)
     {
         vmaDestroyImage(backend.vma_instance, texture.handle, texture.allocation);
@@ -113,19 +133,13 @@ ImageInfo& get_frame_graph_texture(FrameGraphResources& resources, FrameGraph::R
     return resources.textures[resource_handle];
 }
 
-ImageInfo& get_frame_graph_texture(FrameGraphResources& resources, const FrameGraph::FrameGraph& frame_graph,
-                                   FrameGraph::ResourceUsageHandle usage_handle)
-{
-    using namespace FrameGraph;
-
-    const ResourceUsage& usage = GetResourceUsage(frame_graph, usage_handle);
-    const ResourceHandle resource_handle = usage.Resource;
-
-    return get_frame_graph_texture(resources, resource_handle);
-}
-
 VkImageView get_frame_graph_texture_view(FrameGraphResources& resources, FrameGraph::ResourceUsageHandle usage_handle)
 {
     return resources.texture_views[usage_handle];
 }
+
+BufferInfo& get_frame_graph_buffer(FrameGraphResources& resources, FrameGraph::ResourceHandle resource_handle)
+{
+    return resources.buffers[resource_handle];
+};
 } // namespace Reaper

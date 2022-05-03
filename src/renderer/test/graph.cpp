@@ -41,7 +41,7 @@ namespace FrameGraph
             ResourceUsageHandle BackBufferRT;
         };
 
-        void ShadowPass(FrameGraphBuilder& builder, ShadowPassOutput& output)
+        void ShadowPass(Builder& builder, ShadowPassOutput& output)
         {
             const RenderPassHandle shadowPass = builder.create_render_pass("Shadow");
 
@@ -58,7 +58,7 @@ namespace FrameGraph
             }
         }
 
-        void GBufferPass(FrameGraphBuilder& builder, GBufferPassOutput& output)
+        void GBufferPass(Builder& builder, GBufferPassOutput& output)
         {
             const RenderPassHandle gbufferPass = builder.create_render_pass("GBuffer");
 
@@ -75,7 +75,7 @@ namespace FrameGraph
             }
         }
 
-        void UselessPass(FrameGraphBuilder& builder, const GBufferPassOutput& gBufferInput)
+        void UselessPass(Builder& builder, const GBufferPassOutput& gBufferInput)
         {
             const RenderPassHandle uselessPass = builder.create_render_pass("PruneMe");
 
@@ -101,7 +101,7 @@ namespace FrameGraph
             };
         }
 
-        void LightingPass(FrameGraphBuilder& builder, LightingPassOutput& output, const ShadowPassOutput& shadowOutput,
+        void LightingPass(Builder& builder, LightingPassOutput& output, const ShadowPassOutput& shadowOutput,
                           const GBufferPassOutput& gBufferInput)
         {
             const RenderPassHandle lightingPass = builder.create_render_pass("Lighting");
@@ -129,8 +129,7 @@ namespace FrameGraph
             }
         }
 
-        void CompositePass(FrameGraphBuilder& builder, CompositePassOutput& output,
-                           const LightingPassOutput& lightingOutput)
+        void CompositePass(Builder& builder, CompositePassOutput& output, const LightingPassOutput& lightingOutput)
         {
             const RenderPassHandle compositePass = builder.create_render_pass("Composite");
 
@@ -154,7 +153,7 @@ namespace FrameGraph
             }
         }
 
-        void PresentPass(FrameGraphBuilder& builder, const CompositePassOutput& compositeOutput)
+        void PresentPass(Builder& builder, const CompositePassOutput& compositeOutput)
         {
             const bool             HasSideEffects = true;
             const RenderPassHandle presentPass = builder.create_render_pass("Present", HasSideEffects);
@@ -167,7 +166,7 @@ namespace FrameGraph
             }
         }
 
-        void RecordFrame(FrameGraphBuilder& builder)
+        void RecordFrame(Builder& builder)
         {
             GBufferPassOutput   gbufferOut = {};
             ShadowPassOutput    shadowOut = {};
@@ -189,8 +188,8 @@ using namespace Reaper::FrameGraph;
 
 TEST_CASE("Frame Graph")
 {
-    FrameGraph        frameGraph;
-    FrameGraphBuilder builder(frameGraph);
+    FrameGraph frameGraph;
+    Builder    builder(frameGraph);
 
     RecordFrame(builder);
 

@@ -20,7 +20,7 @@ struct ReaperRoot;
 
 struct BufferInfo
 {
-    VkBuffer            buffer;
+    VkBuffer            handle;
     GPUBufferProperties descriptor;
     VmaAllocation       allocation;
 };
@@ -50,7 +50,7 @@ inline VkDescriptorBufferInfo get_vk_descriptor_buffer_info(const BufferInfo& bu
     Assert(bufferInfo.descriptor.stride > 0);
 
     return {
-        bufferInfo.buffer,
+        bufferInfo.handle,
         bufferInfo.descriptor.stride * view.elementOffset,
         bufferInfo.descriptor.stride * view.elementCount,
     };

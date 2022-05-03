@@ -53,12 +53,12 @@ MeshCache create_mesh_cache(ReaperRoot& root, VulkanBackend& backend)
 
 void destroy_mesh_cache(VulkanBackend& backend, const MeshCache& mesh_cache)
 {
-    vmaDestroyBuffer(backend.vma_instance, mesh_cache.indexBuffer.buffer, mesh_cache.indexBuffer.allocation);
-    vmaDestroyBuffer(backend.vma_instance, mesh_cache.vertexBufferPosition.buffer,
+    vmaDestroyBuffer(backend.vma_instance, mesh_cache.indexBuffer.handle, mesh_cache.indexBuffer.allocation);
+    vmaDestroyBuffer(backend.vma_instance, mesh_cache.vertexBufferPosition.handle,
                      mesh_cache.vertexBufferPosition.allocation);
-    vmaDestroyBuffer(backend.vma_instance, mesh_cache.vertexBufferNormal.buffer,
+    vmaDestroyBuffer(backend.vma_instance, mesh_cache.vertexBufferNormal.handle,
                      mesh_cache.vertexBufferNormal.allocation);
-    vmaDestroyBuffer(backend.vma_instance, mesh_cache.vertexBufferUV.buffer, mesh_cache.vertexBufferUV.allocation);
+    vmaDestroyBuffer(backend.vma_instance, mesh_cache.vertexBufferUV.handle, mesh_cache.vertexBufferUV.allocation);
 }
 
 namespace

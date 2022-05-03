@@ -308,9 +308,9 @@ void destroy_shadow_map_resources(VulkanBackend& backend, ShadowMapResources& re
         vkDestroyImageView(backend.device, resources.shadowMapView[i], nullptr);
     }
 
-    vmaDestroyBuffer(backend.vma_instance, resources.shadowMapPassConstantBuffer.buffer,
+    vmaDestroyBuffer(backend.vma_instance, resources.shadowMapPassConstantBuffer.handle,
                      resources.shadowMapPassConstantBuffer.allocation);
-    vmaDestroyBuffer(backend.vma_instance, resources.shadowMapInstanceConstantBuffer.buffer,
+    vmaDestroyBuffer(backend.vma_instance, resources.shadowMapInstanceConstantBuffer.handle,
                      resources.shadowMapInstanceConstantBuffer.allocation);
 
     vkDestroyPipeline(backend.device, resources.pipe.pipeline, nullptr);
@@ -421,7 +421,7 @@ void record_shadow_map_command_buffer(CommandBuffer& cmdBuffer, VulkanBackend& b
         std::vector<VkDeviceSize> vertexBufferOffsets = {0};
 
         Assert(vertexBuffers.size() == vertexBufferOffsets.size());
-        vkCmdBindIndexBuffer(cmdBuffer.handle, cull_resources.dynamicIndexBuffer.buffer, 0,
+        vkCmdBindIndexBuffer(cmdBuffer.handle, cull_resources.dynamicIndexBuffer.handle, 0,
                              get_vk_culling_index_type());
         vkCmdBindVertexBuffers(cmdBuffer.handle, 0, static_cast<u32>(vertexBuffers.size()), vertexBuffers.data(),
                                vertexBufferOffsets.data());
@@ -435,16 +435,16 @@ void record_shadow_map_command_buffer(CommandBuffer& cmdBuffer, VulkanBackend& b
         if (backend.options.use_compacted_draw)
         {
             const u32 draw_buffer_count_offset = shadow_pass.culling_pass_index * 1 * sizeof(u32);
-            vkCmdDrawIndexedIndirectCount(cmdBuffer.handle, cull_resources.compactIndirectDrawBuffer.buffer,
-                                          draw_buffer_offset, cull_resources.compactIndirectDrawCountBuffer.buffer,
+            vkCmdDrawIndexedIndirectCount(cmdBuffer.handle, cull_resources.compactIndirectDrawBuffer.handle,
+                                          draw_buffer_offset, cull_resources.compactIndirectDrawCountBuffer.handle,
                                           draw_buffer_count_offset, draw_buffer_max_count,
                                           cull_resources.compactIndirectDrawBuffer.descriptor.elementSize);
         }
         else
         {
             const u32 draw_buffer_count_offset = shadow_pass.culling_pass_index * IndirectDrawCountCount * sizeof(u32);
-            vkCmdDrawIndexedIndirectCount(cmdBuffer.handle, cull_resources.indirectDrawBuffer.buffer,
-                                          draw_buffer_offset, cull_resources.indirectDrawCountBuffer.buffer,
+            vkCmdDrawIndexedIndirectCount(cmdBuffer.handle, cull_resources.indirectDrawBuffer.handle,
+                                          draw_buffer_offset, cull_resources.indirectDrawCountBuffer.handle,
                                           draw_buffer_count_offset, draw_buffer_max_count,
                                           cull_resources.indirectDrawBuffer.descriptor.elementSize);
         }

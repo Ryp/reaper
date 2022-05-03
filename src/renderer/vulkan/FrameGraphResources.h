@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include "Buffer.h"
 #include "Image.h"
 #include "renderer/graph/FrameGraph.h"
 
@@ -25,6 +26,9 @@ struct FrameGraphResources
     // For the first implem we can just have as many events as barriers.
     std::array<VkEvent, EventCount> events;
 
+    // Buffer
+    std::vector<BufferInfo> buffers;
+
     // Volatile stuff
     std::vector<ImageInfo>   textures;
     std::vector<VkImageView> texture_views;
@@ -42,8 +46,7 @@ void destroy_framegraph_volatile_resources(VulkanBackend& backend, FrameGraphRes
 
 ImageInfo& get_frame_graph_texture(FrameGraphResources& resources, FrameGraph::ResourceHandle resource_handle);
 
-ImageInfo& get_frame_graph_texture(FrameGraphResources& resources, const FrameGraph::FrameGraph& frame_graph,
-                                   FrameGraph::ResourceUsageHandle usage_handle);
-
 VkImageView get_frame_graph_texture_view(FrameGraphResources& resources, FrameGraph::ResourceUsageHandle usage_handle);
+
+BufferInfo& get_frame_graph_buffer(FrameGraphResources& resources, FrameGraph::ResourceHandle resource_handle);
 } // namespace Reaper

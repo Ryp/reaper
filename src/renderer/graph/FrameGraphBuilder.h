@@ -21,38 +21,59 @@ struct FrameGraph;
 // Only textures are supported for now. The API for 'buffers' should
 // be very similar, maybe even simpler though.
 //
-class REAPER_RENDERER_API FrameGraphBuilder
+class REAPER_RENDERER_API Builder
 {
 public:
-    FrameGraphBuilder(FrameGraph& frameGraph);
+    Builder(FrameGraph& frameGraph);
 
 public:
-    RenderPassHandle create_render_pass(const char* identifier, bool hasSideEffects = false);
+    RenderPassHandle create_render_pass(const char* debug_name, bool hasSideEffects = false);
 
 public:
     ResourceUsageHandle create_texture(RenderPassHandle            renderPass,
                                        const char*                 name,
-                                       const GPUTextureProperties& resourceDesc,
-                                       GPUResourceUsage            usage);
+                                       const GPUTextureProperties& texture_properties,
+                                       GPUResourceUsage            texture_usage);
 
-    ResourceUsageHandle
-    read_texture(RenderPassHandle renderPass, ResourceUsageHandle inputUsageHandle, GPUResourceUsage usage);
+    ResourceUsageHandle create_buffer(RenderPassHandle           renderPass,
+                                      const char*                name,
+                                      const GPUBufferProperties& buffer_properties,
+                                      GPUResourceUsage           buffer_usage);
 
-    ResourceUsageHandle
-    WriteTexture(RenderPassHandle renderPass, ResourceUsageHandle inputUsageHandle, GPUResourceUsage usage);
+    ResourceUsageHandle read_texture(RenderPassHandle renderPass, ResourceUsageHandle inputUsageHandle,
+                                     GPUResourceUsage texture_usage);
+
+    ResourceUsageHandle read_buffer(RenderPassHandle renderPassHandle, ResourceUsageHandle inputUsageHandle,
+                                    GPUResourceUsage buffer_usage);
+
+    ResourceUsageHandle write_texture(RenderPassHandle renderPassHandle, ResourceUsageHandle inputUsageHandle,
+                                      GPUResourceUsage texture_usage);
+
+    ResourceUsageHandle write_buffer(RenderPassHandle renderPassHandle, ResourceUsageHandle inputUsageHandle,
+                                     GPUResourceUsage buffer_usage);
 
 public:
     void build();
 
 private:
-    ResourceHandle
-    CreateResource(RenderPassHandle renderPassHandle, const char* identifier, const GPUTextureProperties& descriptor);
+    ResourceHandle create_resource(const char* debug_name, const GPUResourceProperties& properties, bool is_texture);
 
-    ResourceUsageHandle CreateResourceUsage(UsageType           usageType,
-                                            RenderPassHandle    renderPassHandle,
-                                            ResourceHandle      resourceHandle,
-                                            GPUResourceUsage    textureUsage,
-                                            ResourceUsageHandle parentUsageHandle);
+    ResourceUsageHandle create_resource_usage(UsageType           usageType,
+                                              RenderPassHandle    renderPassHandle,
+                                              ResourceHandle      resourceHandle,
+                                              GPUResourceUsage    resourceUsage,
+                                              ResourceUsageHandle parentUsageHandle);
+
+    ResourceUsageHandle create_resource_generic(RenderPassHandle renderPassHandle, const char* name,
+                                                const GPUResourceProperties& properties, GPUResourceUsage usage,
+                                                bool is_texture);
+
+    ResourceUsageHandle read_resource_generic(RenderPassHandle    renderPassHandle,
+                                              ResourceUsageHandle inputUsageHandle,
+                                              GPUResourceUsage    usage);
+
+    ResourceUsageHandle write_resource_generic(RenderPassHandle renderPassHandle, ResourceUsageHandle inputUsageHandle,
+                                               GPUResourceUsage usage);
 
 private:
     FrameGraph& m_Graph;

@@ -6,111 +6,144 @@
 
 namespace Reaper::FrameGraph
 {
-FrameGraphBuilder::FrameGraphBuilder(FrameGraph& frameGraph)
+Builder::Builder(FrameGraph& frameGraph)
     : m_Graph(frameGraph)
 {}
 
-ResourceHandle FrameGraphBuilder::CreateResource(RenderPassHandle            renderPassHandle,
-                                                 const char*                 identifier,
-                                                 const GPUTextureProperties& descriptor)
+ResourceHandle Builder::create_resource(const char* debug_name, const GPUResourceProperties& properties,
+                                        bool is_texture)
 {
     // TODO test for name clashes
     Resource& newResource = m_Graph.Resources.emplace_back();
-
-    // Leave one extra char for null-termination
-    std::strncpy(newResource.Identifier, identifier, Resource::MaxIdentifierLength - 1);
-    newResource.Identifier[Resource::MaxIdentifierLength - 1] = '\0';
-
-    newResource.Descriptor = descriptor;
-    newResource.LifeBegin = renderPassHandle;
-    newResource.LifeEnd = renderPassHandle;
+    newResource.debug_name = debug_name;
+    newResource.properties = properties;
+    newResource.is_texture = is_texture;
 
     return ResourceHandle(m_Graph.Resources.size() - 1);
 }
 
-ResourceUsageHandle FrameGraphBuilder::CreateResourceUsage(UsageType           usageType,
-                                                           RenderPassHandle    renderPassHandle,
-                                                           ResourceHandle      resourceHandle,
-                                                           GPUResourceUsage    textureUsage,
-                                                           ResourceUsageHandle parentUsageHandle)
+ResourceUsageHandle Builder::create_resource_usage(UsageType           usageType,
+                                                   RenderPassHandle    renderPassHandle,
+                                                   ResourceHandle      resourceHandle,
+                                                   GPUResourceUsage    resourceUsage,
+                                                   ResourceUsageHandle parentUsageHandle)
 {
     ResourceUsage& newResourceUsage = m_Graph.ResourceUsages.emplace_back();
 
-    Assert(resourceHandle != InvalidResourceHandle);
+    Assert(resourceHandle != InvalidResourceHandle, "Invalid resource handle");
     newResourceUsage.Type = usageType;
     newResourceUsage.Resource = resourceHandle;
     newResourceUsage.RenderPass = renderPassHandle;
     newResourceUsage.Parent = parentUsageHandle;
-    newResourceUsage.Usage = textureUsage;
+    newResourceUsage.Usage = resourceUsage;
 
     return ResourceUsageHandle(m_Graph.ResourceUsages.size() - 1);
 }
 
-RenderPassHandle FrameGraphBuilder::create_render_pass(const char* identifier, bool hasSideEffects)
+ResourceUsageHandle Builder::create_resource_generic(RenderPassHandle renderPassHandle, const char* name,
+                                                     const GPUResourceProperties& properties,
+                                                     GPUResourceUsage resource_usage, bool is_texture)
+{
+    const ResourceHandle resourceHandle = create_resource(name, properties, is_texture);
+    Assert(resourceHandle != InvalidResourceHandle, "Invalid resource handle");
+
+    const ResourceUsageHandle resourceUsageHandle = create_resource_usage(
+        UsageType::RenderPassOutput, renderPassHandle, resourceHandle, resource_usage, InvalidResourceUsageHandle);
+
+    RenderPass& renderPass = m_Graph.RenderPasses[renderPassHandle];
+    renderPass.ResourceUsageHandles.push_back(resourceUsageHandle);
+
+    return resourceUsageHandle;
+}
+
+ResourceUsageHandle Builder::read_resource_generic(RenderPassHandle    renderPassHandle,
+                                                   ResourceUsageHandle inputUsageHandle,
+                                                   GPUResourceUsage    resource_usage)
+{
+    const ResourceHandle resourceHandle = GetResourceUsage(m_Graph, inputUsageHandle).Resource;
+    Assert(resourceHandle != InvalidResourceHandle, "Invalid resource handle");
+
+    const ResourceUsageHandle resourceUsageHandle = create_resource_usage(
+        UsageType::RenderPassInput, renderPassHandle, resourceHandle, resource_usage, inputUsageHandle);
+
+    RenderPass& renderPass = m_Graph.RenderPasses[renderPassHandle];
+    renderPass.ResourceUsageHandles.push_back(resourceUsageHandle);
+
+    return resourceUsageHandle;
+}
+
+ResourceUsageHandle Builder::write_resource_generic(RenderPassHandle    renderPassHandle,
+                                                    ResourceUsageHandle inputUsageHandle,
+                                                    GPUResourceUsage    resource_usage)
+{
+    // FIXME do something about the texture usage
+    const GPUResourceUsage    read_usage = {};
+    const ResourceUsageHandle readUsageHandle = read_texture(renderPassHandle, inputUsageHandle, read_usage);
+
+    const ResourceHandle resourceHandle = GetResourceUsage(m_Graph, inputUsageHandle).Resource;
+    Assert(resourceHandle != InvalidResourceHandle, "Invalid resource handle");
+
+    const ResourceUsageHandle resourceUsageHandle = create_resource_usage(
+        UsageType::RenderPassOutput, renderPassHandle, resourceHandle, resource_usage, readUsageHandle);
+
+    RenderPass& renderPass = m_Graph.RenderPasses[renderPassHandle];
+    renderPass.ResourceUsageHandles.push_back(resourceUsageHandle);
+
+    return resourceUsageHandle;
+}
+
+RenderPassHandle Builder::create_render_pass(const char* debug_name, bool hasSideEffects)
 {
     // TODO test for name clashes
     RenderPass& newRenderPass = m_Graph.RenderPasses.emplace_back();
-
-    // Leave one extra char for null-termination
-    strncpy(newRenderPass.Identifier, identifier, RenderPass::MaxNameLength - 1);
-    newRenderPass.Identifier[RenderPass::MaxNameLength - 1] = '\0';
-
+    newRenderPass.debug_name = debug_name;
     newRenderPass.HasSideEffects = hasSideEffects;
 
     return RenderPassHandle(m_Graph.RenderPasses.size() - 1);
 }
 
-ResourceUsageHandle FrameGraphBuilder::create_texture(RenderPassHandle            renderPassHandle,
-                                                      const char*                 name,
-                                                      const GPUTextureProperties& resourceDesc,
-                                                      GPUResourceUsage            usage)
+ResourceUsageHandle Builder::create_texture(RenderPassHandle            renderPassHandle,
+                                            const char*                 name,
+                                            const GPUTextureProperties& texture_properties,
+                                            GPUResourceUsage            texture_usage)
 {
-    const ResourceHandle resourceHandle = CreateResource(renderPassHandle, name, resourceDesc);
-    Assert(resourceHandle != InvalidResourceHandle);
-
-    const ResourceUsageHandle resourceUsageHandle = CreateResourceUsage(
-        UsageType::RenderPassOutput, renderPassHandle, resourceHandle, usage, InvalidResourceUsageHandle);
-
-    RenderPass& renderPass = m_Graph.RenderPasses[renderPassHandle];
-    renderPass.ResourceUsageHandles.push_back(resourceUsageHandle);
-
-    return resourceUsageHandle;
+    return create_resource_generic(renderPassHandle, name, GPUResourceProperties{.texture = texture_properties},
+                                   texture_usage, true);
 }
 
-ResourceUsageHandle FrameGraphBuilder::read_texture(RenderPassHandle    renderPassHandle,
-                                                    ResourceUsageHandle inputUsageHandle,
-                                                    GPUResourceUsage    usage)
+ResourceUsageHandle Builder::create_buffer(RenderPassHandle           renderPassHandle,
+                                           const char*                name,
+                                           const GPUBufferProperties& buffer_properties,
+                                           GPUResourceUsage           buffer_usage)
 {
-    const ResourceHandle resourceHandle = GetResourceUsage(m_Graph, inputUsageHandle).Resource;
-    Assert(resourceHandle != InvalidResourceHandle);
-
-    const ResourceUsageHandle resourceUsageHandle =
-        CreateResourceUsage(UsageType::RenderPassInput, renderPassHandle, resourceHandle, usage, inputUsageHandle);
-
-    RenderPass& renderPass = m_Graph.RenderPasses[renderPassHandle];
-    renderPass.ResourceUsageHandles.push_back(resourceUsageHandle);
-
-    return resourceUsageHandle;
+    return create_resource_generic(renderPassHandle, name, GPUResourceProperties{.buffer = buffer_properties},
+                                   buffer_usage, false);
 }
 
-ResourceUsageHandle FrameGraphBuilder::WriteTexture(RenderPassHandle    renderPassHandle,
-                                                    ResourceUsageHandle inputUsageHandle,
-                                                    GPUResourceUsage    usage)
+ResourceUsageHandle Builder::read_texture(RenderPassHandle    renderPassHandle,
+                                          ResourceUsageHandle inputUsageHandle,
+                                          GPUResourceUsage    texture_usage)
 {
-    // FIXME do something about the texture usage
-    const GPUResourceUsage    readUsage = {};
-    const ResourceUsageHandle readUsageHandle = read_texture(renderPassHandle, inputUsageHandle, readUsage);
+    return read_resource_generic(renderPassHandle, inputUsageHandle, texture_usage);
+}
 
-    const ResourceHandle resourceHandle = GetResourceUsage(m_Graph, inputUsageHandle).Resource;
-    Assert(resourceHandle != InvalidResourceHandle);
+ResourceUsageHandle Builder::read_buffer(RenderPassHandle renderPassHandle, ResourceUsageHandle inputUsageHandle,
+                                         GPUResourceUsage buffer_usage)
+{
+    return read_resource_generic(renderPassHandle, inputUsageHandle, buffer_usage);
+}
 
-    const ResourceUsageHandle resourceUsageHandle =
-        CreateResourceUsage(UsageType::RenderPassOutput, renderPassHandle, resourceHandle, usage, readUsageHandle);
+ResourceUsageHandle Builder::write_texture(RenderPassHandle    renderPassHandle,
+                                           ResourceUsageHandle inputUsageHandle,
+                                           GPUResourceUsage    texture_usage)
+{
+    return write_resource_generic(renderPassHandle, inputUsageHandle, texture_usage);
+}
 
-    RenderPass& renderPass = m_Graph.RenderPasses[renderPassHandle];
-    renderPass.ResourceUsageHandles.push_back(resourceUsageHandle);
-
-    return resourceUsageHandle;
+ResourceUsageHandle Builder::write_buffer(RenderPassHandle renderPassHandle, ResourceUsageHandle inputUsageHandle,
+                                          GPUResourceUsage buffer_usage)
+{
+    return write_resource_generic(renderPassHandle, inputUsageHandle, buffer_usage);
 }
 
 namespace
@@ -242,45 +275,9 @@ namespace
             resource.IsUsed = true;
         }
     }
-
-    // Experimental deduction of resource lifetimes, useful for asserting
-    // correct usage of the API and also allow efficient resource aliasing.
-    //
-    // NOTE:
-    // There's a MASSIVE assumption here that renderpasses render in increasing
-    // handle order (which is what currently happens normally).
-    // That means that IF you want to reorder renderpasses (you will at one point)
-    // you'll need to either do it before hand, or ditch the assumption and compute
-    // lifetimes differently.
-    void ComputeResourceLifetimes(FrameGraph& frameGraph)
-    {
-        const u32 renderPassCount = frameGraph.RenderPasses.size();
-
-        for (u32 renderPassIndex = 0; renderPassIndex < renderPassCount; renderPassIndex++)
-        {
-            const RenderPassHandle renderPassHandle = RenderPassHandle(renderPassIndex);
-            const RenderPass&      renderPass = frameGraph.RenderPasses[renderPassIndex];
-
-            if (!renderPass.IsUsed)
-                continue;
-
-            for (const auto& resourceUsageHandle : renderPass.ResourceUsageHandles)
-            {
-                const ResourceUsage& resourceUsage = GetResourceUsage(frameGraph, resourceUsageHandle);
-                Resource&            resource = GetResource(frameGraph, resourceUsage);
-
-                Assert(resource.IsUsed);
-
-                // Thibault S. (09/02/2018) LifeBegin is set while using
-                // the builder API.
-                Assert(renderPassHandle >= resource.LifeBegin);
-                resource.LifeEnd = std::max(renderPassHandle, resource.LifeEnd);
-            }
-        }
-    }
 } // namespace
 
-void FrameGraphBuilder::build()
+void Builder::build()
 {
     // Use the current graph to build an alternate representation
     // for easier processing.
@@ -294,9 +291,5 @@ void FrameGraphBuilder::build()
 
     // Fill usage info from the DAG into the frame graph
     FillFrameGraphUsedNodes(closure, m_Graph);
-
-    // Collecting lifetime info for resources will later allow us to efficiently
-    // alias entity memory for resources.
-    ComputeResourceLifetimes(m_Graph);
 }
 } // namespace Reaper::FrameGraph

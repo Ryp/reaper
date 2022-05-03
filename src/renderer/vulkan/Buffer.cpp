@@ -153,6 +153,6 @@ VkWriteDescriptorSet create_buffer_descriptor_write(VkDescriptorSet descriptorSe
 
 VkDescriptorBufferInfo default_descriptor_buffer_info(const BufferInfo& bufferInfo)
 {
-    return {bufferInfo.buffer, 0, VK_WHOLE_SIZE};
+    return {bufferInfo.handle, 0, VK_WHOLE_SIZE};
 }
 } // namespace Reaper

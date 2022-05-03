@@ -405,21 +405,21 @@ CullResources create_culling_resources(ReaperRoot& root, VulkanBackend& backend)
 
 void destroy_culling_resources(VulkanBackend& backend, CullResources& resources)
 {
-    vmaDestroyBuffer(backend.vma_instance, resources.cullPassConstantBuffer.buffer,
+    vmaDestroyBuffer(backend.vma_instance, resources.cullPassConstantBuffer.handle,
                      resources.cullPassConstantBuffer.allocation);
-    vmaDestroyBuffer(backend.vma_instance, resources.indirectDrawCountBuffer.buffer,
+    vmaDestroyBuffer(backend.vma_instance, resources.indirectDrawCountBuffer.handle,
                      resources.indirectDrawCountBuffer.allocation);
-    vmaDestroyBuffer(backend.vma_instance, resources.cullInstanceParamsBuffer.buffer,
+    vmaDestroyBuffer(backend.vma_instance, resources.cullInstanceParamsBuffer.handle,
                      resources.cullInstanceParamsBuffer.allocation);
-    vmaDestroyBuffer(backend.vma_instance, resources.dynamicIndexBuffer.buffer,
+    vmaDestroyBuffer(backend.vma_instance, resources.dynamicIndexBuffer.handle,
                      resources.dynamicIndexBuffer.allocation);
-    vmaDestroyBuffer(backend.vma_instance, resources.indirectDrawBuffer.buffer,
+    vmaDestroyBuffer(backend.vma_instance, resources.indirectDrawBuffer.handle,
                      resources.indirectDrawBuffer.allocation);
-    vmaDestroyBuffer(backend.vma_instance, resources.compactIndirectDrawBuffer.buffer,
+    vmaDestroyBuffer(backend.vma_instance, resources.compactIndirectDrawBuffer.handle,
                      resources.compactIndirectDrawBuffer.allocation);
-    vmaDestroyBuffer(backend.vma_instance, resources.compactionIndirectDispatchBuffer.buffer,
+    vmaDestroyBuffer(backend.vma_instance, resources.compactionIndirectDispatchBuffer.handle,
                      resources.compactionIndirectDispatchBuffer.allocation);
-    vmaDestroyBuffer(backend.vma_instance, resources.compactIndirectDrawCountBuffer.buffer,
+    vmaDestroyBuffer(backend.vma_instance, resources.compactIndirectDrawCountBuffer.handle,
                      resources.compactIndirectDrawCountBuffer.allocation);
 
     vkDestroyPipeline(backend.device, resources.cullPipe.pipeline, nullptr);
@@ -547,7 +547,7 @@ void record_culling_command_buffer(bool freeze_culling, CommandBuffer& cmdBuffer
                                     resources.compactionPipe.pipelineLayout, 0, 1,
                                     &pass_resources.compact_descriptor_set, 0, nullptr);
 
-            vkCmdDispatchIndirect(cmdBuffer.handle, resources.compactionIndirectDispatchBuffer.buffer, 0);
+            vkCmdDispatchIndirect(cmdBuffer.handle, resources.compactionIndirectDispatchBuffer.handle, 0);
         }
     }
 

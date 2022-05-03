@@ -505,9 +505,9 @@ void destroy_main_pass_resources(VulkanBackend& backend, MainPassResources& reso
     vkDestroyDescriptorSetLayout(backend.device, resources.mainPipe.descSetLayout, nullptr);
     vkDestroyDescriptorSetLayout(backend.device, resources.mainPipe.descSetLayout2, nullptr);
 
-    vmaDestroyBuffer(backend.vma_instance, resources.drawPassConstantBuffer.buffer,
+    vmaDestroyBuffer(backend.vma_instance, resources.drawPassConstantBuffer.handle,
                      resources.drawPassConstantBuffer.allocation);
-    vmaDestroyBuffer(backend.vma_instance, resources.drawInstanceConstantBuffer.buffer,
+    vmaDestroyBuffer(backend.vma_instance, resources.drawInstanceConstantBuffer.handle,
                      resources.drawInstanceConstantBuffer.allocation);
 }
 
@@ -589,9 +589,9 @@ void record_main_pass_command_buffer(CommandBuffer& cmdBuffer, VulkanBackend& ba
     vkCmdSetScissor(cmdBuffer.handle, 0, 1, &blitPassRect);
 
     std::vector<VkBuffer> vertexBuffers = {
-        mesh_cache.vertexBufferPosition.buffer,
-        mesh_cache.vertexBufferNormal.buffer,
-        mesh_cache.vertexBufferUV.buffer,
+        mesh_cache.vertexBufferPosition.handle,
+        mesh_cache.vertexBufferNormal.handle,
+        mesh_cache.vertexBufferUV.handle,
     };
     std::vector<VkDeviceSize> vertexBufferOffsets = {
         0,
@@ -599,7 +599,7 @@ void record_main_pass_command_buffer(CommandBuffer& cmdBuffer, VulkanBackend& ba
         0,
     };
     Assert(vertexBuffers.size() == vertexBufferOffsets.size());
-    vkCmdBindIndexBuffer(cmdBuffer.handle, cull_resources.dynamicIndexBuffer.buffer, 0, get_vk_culling_index_type());
+    vkCmdBindIndexBuffer(cmdBuffer.handle, cull_resources.dynamicIndexBuffer.handle, 0, get_vk_culling_index_type());
     vkCmdBindVertexBuffers(cmdBuffer.handle, 0, static_cast<u32>(vertexBuffers.size()), vertexBuffers.data(),
                            vertexBufferOffsets.data());
 
@@ -620,16 +620,16 @@ void record_main_pass_command_buffer(CommandBuffer& cmdBuffer, VulkanBackend& ba
     if (backend.options.use_compacted_draw)
     {
         const u32 draw_buffer_count_offset = pass_index * 1 * sizeof(u32);
-        vkCmdDrawIndexedIndirectCount(cmdBuffer.handle, cull_resources.compactIndirectDrawBuffer.buffer,
-                                      draw_buffer_offset, cull_resources.compactIndirectDrawCountBuffer.buffer,
+        vkCmdDrawIndexedIndirectCount(cmdBuffer.handle, cull_resources.compactIndirectDrawBuffer.handle,
+                                      draw_buffer_offset, cull_resources.compactIndirectDrawCountBuffer.handle,
                                       draw_buffer_count_offset, draw_buffer_max_count,
                                       cull_resources.compactIndirectDrawBuffer.descriptor.elementSize);
     }
     else
     {
         const u32 draw_buffer_count_offset = pass_index * IndirectDrawCountCount * sizeof(u32);
-        vkCmdDrawIndexedIndirectCount(cmdBuffer.handle, cull_resources.indirectDrawBuffer.buffer, draw_buffer_offset,
-                                      cull_resources.indirectDrawCountBuffer.buffer, draw_buffer_count_offset,
+        vkCmdDrawIndexedIndirectCount(cmdBuffer.handle, cull_resources.indirectDrawBuffer.handle, draw_buffer_offset,
+                                      cull_resources.indirectDrawCountBuffer.handle, draw_buffer_count_offset,
                                       draw_buffer_max_count, cull_resources.indirectDrawBuffer.descriptor.elementSize);
     }
 
