@@ -286,11 +286,11 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     GPUTextureProperties scene_hdr_properties =
         DefaultGPUTextureProperties(backbufferExtent.width, backbufferExtent.height, MainHDRColorFormat);
-    scene_hdr_properties.usageFlags = GPUTextureUsage::ColorAttachment | GPUTextureUsage::Sampled; // FIXME deduced?
+    scene_hdr_properties.usage_flags = GPUTextureUsage::ColorAttachment | GPUTextureUsage::Sampled; // FIXME deduced?
 
     GPUTextureProperties scene_depth_properties =
         DefaultGPUTextureProperties(backbufferExtent.width, backbufferExtent.height, MainDepthFormat);
-    scene_depth_properties.usageFlags = GPUTextureUsage::DepthStencilAttachment; // FIXME deduced?
+    scene_depth_properties.usage_flags = GPUTextureUsage::DepthStencilAttachment; // FIXME deduced?
 
     const GPUResourceAccess scene_hdr_access_main_pass = {VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
                                                           VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
@@ -317,7 +317,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     GPUTextureProperties gui_properties =
         DefaultGPUTextureProperties(backbufferExtent.width, backbufferExtent.height, GUIFormat);
-    gui_properties.usageFlags = GPUTextureUsage::ColorAttachment | GPUTextureUsage::Sampled;
+    gui_properties.usage_flags = GPUTextureUsage::ColorAttachment | GPUTextureUsage::Sampled;
 
     GPUResourceUsage gui_texture_usage = {};
     gui_texture_usage.access =

@@ -1019,7 +1019,7 @@ ImageInfo create_image(ReaperRoot& root, VkDevice device, const char* debug_stri
                                          properties.layerCount,
                                          SampleCountToVulkan(properties.sampleCount),
                                          tilingMode,
-                                         GetVulkanUsageFlags(properties.usageFlags),
+                                         GetVulkanUsageFlags(properties.usage_flags),
                                          VK_SHARING_MODE_EXCLUSIVE,
                                          0,
                                          nullptr,

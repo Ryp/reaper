@@ -29,15 +29,15 @@ namespace GPUBufferUsage
 
 struct GPUBufferProperties
 {
-    u64 elementCount;
-    u32 elementSize;
+    u64 element_count;
+    u32 element_size_bytes;
     u32 stride; // FIXME the API around the stride parameter is somewhat funky. Maybe there's nicer ways to abstract the
                 // concept of discontinuous alignment.
-    u32 usageFlags;
+    u32 usage_flags;
 };
 
-inline GPUBufferProperties DefaultGPUBufferProperties(u32 elementCount, u32 elementSize, u32 usageFlags)
+inline GPUBufferProperties DefaultGPUBufferProperties(u32 element_count, u32 element_size_bytes, u32 usage_flags)
 {
-    return GPUBufferProperties{elementCount, elementSize, elementSize, usageFlags};
+    return GPUBufferProperties{element_count, element_size_bytes, element_size_bytes, usage_flags};
 }
 } // namespace Reaper

@@ -332,7 +332,7 @@ void prepare_shadow_map_objects(ReaperRoot& root, VulkanBackend& backend, const 
     {
         GPUTextureProperties texture_properties =
             DefaultGPUTextureProperties(shadow_pass.shadow_map_size.x, shadow_pass.shadow_map_size.y, ShadowMapFormat);
-        texture_properties.usageFlags =
+        texture_properties.usage_flags =
             GPUTextureUsage::DepthStencilAttachment | GPUTextureUsage::InputAttachment | GPUTextureUsage::Sampled;
 
         ImageInfo& shadow_map = pass_resources.shadowMap.emplace_back();
@@ -436,7 +436,7 @@ void record_shadow_map_command_buffer(CommandBuffer& cmdBuffer, VulkanBackend& b
             vkCmdDrawIndexedIndirectCount(cmdBuffer.handle, cull_resources.compactIndirectDrawBuffer.handle,
                                           draw_buffer_offset, cull_resources.compactIndirectDrawCountBuffer.handle,
                                           draw_buffer_count_offset, draw_buffer_max_count,
-                                          cull_resources.compactIndirectDrawBuffer.properties.elementSize);
+                                          cull_resources.compactIndirectDrawBuffer.properties.element_size_bytes);
         }
         else
         {
@@ -444,7 +444,7 @@ void record_shadow_map_command_buffer(CommandBuffer& cmdBuffer, VulkanBackend& b
             vkCmdDrawIndexedIndirectCount(cmdBuffer.handle, cull_resources.indirectDrawBuffer.handle,
                                           draw_buffer_offset, cull_resources.indirectDrawCountBuffer.handle,
                                           draw_buffer_count_offset, draw_buffer_max_count,
-                                          cull_resources.indirectDrawBuffer.properties.elementSize);
+                                          cull_resources.indirectDrawBuffer.properties.element_size_bytes);
         }
 
         vkCmdEndRendering(cmdBuffer.handle);

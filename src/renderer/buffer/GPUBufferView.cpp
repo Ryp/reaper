@@ -15,7 +15,7 @@ GPUBufferView default_buffer_view(const GPUBufferProperties& properties)
 {
     return GPUBufferView{
         0, // offset_bytes
-        properties.stride * properties.elementCount,
+        properties.stride * properties.element_count,
     };
 }
 

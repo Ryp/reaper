@@ -105,7 +105,7 @@ namespace
                 // Keep track of offset
                 staging.offset_bytes += size_bytes;
 
-                Assert(staging.offset_bytes < staging.staging_buffer.properties.elementCount, "OOB");
+                Assert(staging.offset_bytes < staging.staging_buffer.properties.element_count, "OOB");
             }
         }
 
@@ -115,7 +115,7 @@ namespace
         properties.depth = dds.GetDepth();
         properties.mipCount = dds.GetMipCount();
         properties.layerCount = dds.GetArraySize();
-        properties.usageFlags = GPUTextureUsage::Sampled | GPUTextureUsage::TransferDst;
+        properties.usage_flags = GPUTextureUsage::Sampled | GPUTextureUsage::TransferDst;
 
         const u32 command_count = staging.bufferCopyRegions.size() - command_offset;
 

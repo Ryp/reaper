@@ -45,25 +45,25 @@ BufferInfo create_buffer(ReaperRoot& root, VkDevice device, const char* debug_st
     // There's a minimum buffer offset we need to take into account.
     // That means there's potentially extra padding between elements regardless
     // of the initial element size.
-    if (properties.usageFlags & GPUBufferUsage::UniformBuffer)
+    if (properties.usage_flags & GPUBufferUsage::UniformBuffer)
     {
         // const u64 minUniformBufferOffsetAlignment =
         // backend.physicalDeviceProperties.limits.minUniformBufferOffsetAlignment;
         const u32 minUniformBufferOffsetAlignment = 0x40; // FIXME
-        const u32 stride = std::max(properties.elementSize, minUniformBufferOffsetAlignment);
+        const u32 stride = std::max(properties.element_size_bytes, minUniformBufferOffsetAlignment);
 
         properties.stride = stride;
     }
     else
     {
-        properties.stride = properties.elementSize;
+        properties.stride = properties.element_size_bytes;
     }
 
     const VkBufferCreateInfo bufferInfo = {VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
                                            nullptr,
                                            VK_FLAGS_NONE,
-                                           properties.elementCount * properties.stride,
-                                           BufferUsageToVulkan(properties.usageFlags),
+                                           properties.element_count * properties.stride,
+                                           BufferUsageToVulkan(properties.usage_flags),
                                            VK_SHARING_MODE_EXCLUSIVE,
                                            0,
                                            nullptr};
@@ -115,17 +115,17 @@ void upload_buffer_data(VkDevice device, const VmaAllocator& allocator, const Bu
     Assert(size <= allocation_info.size,
            fmt::format("copy src of size {} on dst of size {}", size, allocation_info.size));
 
-    if (buffer.properties.elementSize == buffer.properties.stride)
+    if (buffer.properties.element_size_bytes == buffer.properties.stride)
     {
         memcpy(writePtr, data, size);
     }
     else
     {
-        for (u32 i = 0; i < buffer.properties.elementCount; i++)
+        for (u32 i = 0; i < buffer.properties.element_count; i++)
         {
             const char* data_char = static_cast<const char*>(data);
-            memcpy(writePtr + i * buffer.properties.stride, data_char + i * buffer.properties.elementSize,
-                   buffer.properties.elementSize);
+            memcpy(writePtr + i * buffer.properties.stride, data_char + i * buffer.properties.element_size_bytes,
+                   buffer.properties.element_size_bytes);
         }
     }
 

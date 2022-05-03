@@ -47,7 +47,7 @@ struct GPUTextureProperties
     u32         mipCount;
     u32         layerCount;
     u32         sampleCount;
-    u32         usageFlags;
+    u32         usage_flags;
     u32         miscFlags;
 };
 

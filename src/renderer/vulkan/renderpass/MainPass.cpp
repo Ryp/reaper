@@ -623,14 +623,15 @@ void record_main_pass_command_buffer(CommandBuffer& cmdBuffer, VulkanBackend& ba
         vkCmdDrawIndexedIndirectCount(cmdBuffer.handle, cull_resources.compactIndirectDrawBuffer.handle,
                                       draw_buffer_offset, cull_resources.compactIndirectDrawCountBuffer.handle,
                                       draw_buffer_count_offset, draw_buffer_max_count,
-                                      cull_resources.compactIndirectDrawBuffer.properties.elementSize);
+                                      cull_resources.compactIndirectDrawBuffer.properties.element_size_bytes);
     }
     else
     {
         const u32 draw_buffer_count_offset = pass_index * IndirectDrawCountCount * sizeof(u32);
         vkCmdDrawIndexedIndirectCount(cmdBuffer.handle, cull_resources.indirectDrawBuffer.handle, draw_buffer_offset,
                                       cull_resources.indirectDrawCountBuffer.handle, draw_buffer_count_offset,
-                                      draw_buffer_max_count, cull_resources.indirectDrawBuffer.properties.elementSize);
+                                      draw_buffer_max_count,
+                                      cull_resources.indirectDrawBuffer.properties.element_size_bytes);
     }
 
     vkCmdEndRendering(cmdBuffer.handle);
