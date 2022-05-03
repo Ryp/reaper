@@ -11,6 +11,8 @@
 #include <map>
 #include <string>
 
+#include <nonstd/span.hpp>
+
 #include "Mesh.h"
 
 class REAPER_MESH_API ModelLoader
@@ -36,4 +38,4 @@ private:
 };
 
 REAPER_MESH_API
-void SaveMeshesAsObj(std::ostream& output, const Mesh* meshes, u32 meshCount);
+void SaveMeshesAsObj(std::ostream& output, nonstd::span<const Mesh> meshes);

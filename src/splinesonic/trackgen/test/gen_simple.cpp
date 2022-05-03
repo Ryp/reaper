@@ -9,6 +9,7 @@
 #include <doctest/doctest.h>
 
 #include <fstream>
+#include <nonstd/span.hpp>
 
 #include "math/Spline.h"
 
@@ -95,5 +96,5 @@ TEST_CASE("Track mesh generation")
         skin_track_chunk_mesh(testTrack.skeletonNodes[i], testTrack.skinning[i], meshes[i], 10.0f);
     }
 
-    SaveMeshesAsObj(outFile, &meshes[0], static_cast<u32>(meshes.size()));
+    SaveMeshesAsObj(outFile, meshes);
 }

@@ -216,14 +216,13 @@ Mesh ModelLoader::loadOBJCustom(std::ifstream& src)
     return mesh;
 }
 
-// FIXME safety checks for ptr+count ?
-void SaveMeshesAsObj(std::ostream& output, const Mesh* meshes, u32 meshCount)
+void SaveMeshesAsObj(std::ostream& output, nonstd::span<const Mesh> meshes)
 {
     u32 vertexOffset = 0;
     u32 uvOffset = 0;
     u32 normalOffset = 0;
 
-    for (u32 meshIndex = 0; meshIndex < meshCount; meshIndex++)
+    for (u32 meshIndex = 0; meshIndex < meshes.size(); meshIndex++)
     {
         const Mesh& mesh = meshes[meshIndex];
         const u32   vertexCount = static_cast<u32>(mesh.positions.size());
