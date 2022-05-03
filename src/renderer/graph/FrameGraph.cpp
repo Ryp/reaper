@@ -209,6 +209,7 @@ FrameGraphSchedule compute_schedule(const FrameGraph& framegraph)
         const Barrier& barrier = schedule.barriers[i];
 
         // Test here if the render passes are consecutive. If so just do an immediate barrier
+        // NOTE: This doesn't catch all cases of really consecutive passes
         const bool is_usage_immediate = (barrier.src.render_pass + 1 == barrier.dst.render_pass);
 
         if (is_usage_immediate)

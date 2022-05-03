@@ -51,19 +51,19 @@ void destroy_framegraph_resources(VulkanBackend& backend, FrameGraphResources& r
 }
 
 void allocate_framegraph_volatile_resources(ReaperRoot& root, VulkanBackend& backend, FrameGraphResources& resources,
-                                            const FrameGraph::FrameGraph& frame_graph)
+                                            const FrameGraph::FrameGraph& framegraph)
 {
     destroy_framegraph_volatile_resources(backend, resources); // FIXME Reuse previous resources here instead
     swap_resources(resources);
 
     using namespace FrameGraph;
 
-    resources.textures.resize(frame_graph.Resources.size()); // FIXME
-    resources.buffers.resize(frame_graph.Resources.size());  // FIXME
+    resources.textures.resize(framegraph.Resources.size()); // FIXME
+    resources.buffers.resize(framegraph.Resources.size());  // FIXME
 
-    for (u32 index = 0; index < frame_graph.Resources.size(); index++)
+    for (u32 index = 0; index < framegraph.Resources.size(); index++)
     {
-        const Resource& resource = frame_graph.Resources[index];
+        const Resource& resource = framegraph.Resources[index];
 
         if (resource.IsUsed)
         {
@@ -87,11 +87,11 @@ void allocate_framegraph_volatile_resources(ReaperRoot& root, VulkanBackend& bac
         }
     }
 
-    resources.texture_views.resize(frame_graph.ResourceUsages.size());
-    for (u32 index = 0; index < frame_graph.ResourceUsages.size(); index++)
+    resources.texture_views.resize(framegraph.ResourceUsages.size());
+    for (u32 index = 0; index < framegraph.ResourceUsages.size(); index++)
     {
-        const ResourceUsage& usage = frame_graph.ResourceUsages[index];
-        const Resource&      resource = frame_graph.Resources[usage.Resource];
+        const ResourceUsage& usage = framegraph.ResourceUsages[index];
+        const Resource&      resource = framegraph.Resources[usage.Resource];
 
         if (resource.is_texture && usage.IsUsed)
         {
@@ -128,18 +128,37 @@ void destroy_framegraph_volatile_resources(VulkanBackend& backend, FrameGraphRes
     }
 }
 
-ImageInfo& get_frame_graph_texture(FrameGraphResources& resources, FrameGraph::ResourceHandle resource_handle)
+VkImage get_frame_graph_texture_handle(FrameGraphResources& resources, FrameGraph::ResourceHandle resource_handle)
 {
-    return resources.textures[resource_handle];
+    return resources.textures[resource_handle].handle;
 }
 
-VkImageView get_frame_graph_texture_view(FrameGraphResources& resources, FrameGraph::ResourceUsageHandle usage_handle)
+FrameGraphTexture get_frame_graph_texture(FrameGraphResources& resources, const FrameGraph::FrameGraph& framegraph,
+                                          FrameGraph::ResourceUsageHandle usage_handle)
 {
-    return resources.texture_views[usage_handle];
+    using namespace FrameGraph;
+
+    const ResourceUsage& usage = GetResourceUsage(framegraph, usage_handle);
+    const ImageInfo&     texture = resources.textures[usage.Resource];
+    const VkImageView&   view_handle = resources.texture_views[usage_handle];
+
+    return FrameGraphTexture{texture.properties, usage.Usage.texture_view, texture.handle, view_handle};
 }
 
-BufferInfo& get_frame_graph_buffer(FrameGraphResources& resources, FrameGraph::ResourceHandle resource_handle)
+VkBuffer get_frame_graph_buffer_handle(FrameGraphResources& resources, FrameGraph::ResourceHandle resource_handle)
 {
-    return resources.buffers[resource_handle];
+    return resources.buffers[resource_handle].handle;
 };
+
+FrameGraphBuffer get_frame_graph_buffer(FrameGraphResources& resources, const FrameGraph::FrameGraph& framegraph,
+                                        FrameGraph::ResourceUsageHandle usage_handle)
+{
+    using namespace FrameGraph;
+
+    const ResourceUsage& usage = GetResourceUsage(framegraph, usage_handle);
+    const BufferInfo&    buffer = resources.buffers[usage.Resource];
+
+    return FrameGraphBuffer{buffer.properties, usage.Usage.buffer_view, buffer.handle};
+}
+
 } // namespace Reaper

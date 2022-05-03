@@ -18,6 +18,23 @@ namespace Reaper
 struct ReaperRoot;
 struct VulkanBackend;
 
+struct FrameGraphTexture
+{
+    GPUTextureProperties properties;
+    GPUTextureView       view;
+
+    VkImage     handle;
+    VkImageView view_handle;
+};
+
+struct FrameGraphBuffer
+{
+    GPUBufferProperties properties;
+    GPUBufferView       view;
+
+    VkBuffer handle;
+};
+
 struct FrameGraphResources
 {
     static const u32 EventCount = 10;
@@ -41,12 +58,14 @@ FrameGraphResources create_framegraph_resources(ReaperRoot& root, VulkanBackend&
 void                destroy_framegraph_resources(VulkanBackend& backend, FrameGraphResources& resources);
 
 void allocate_framegraph_volatile_resources(ReaperRoot& root, VulkanBackend& backend, FrameGraphResources& resources,
-                                            const FrameGraph::FrameGraph& frame_graph);
+                                            const FrameGraph::FrameGraph& framegraph);
 void destroy_framegraph_volatile_resources(VulkanBackend& backend, FrameGraphResources& resources);
 
-ImageInfo& get_frame_graph_texture(FrameGraphResources& resources, FrameGraph::ResourceHandle resource_handle);
+VkImage get_frame_graph_texture_handle(FrameGraphResources& resources, FrameGraph::ResourceHandle resource_handle);
+FrameGraphTexture get_frame_graph_texture(FrameGraphResources& resources, const FrameGraph::FrameGraph& framegraph,
+                                          FrameGraph::ResourceUsageHandle usage_handle);
 
-VkImageView get_frame_graph_texture_view(FrameGraphResources& resources, FrameGraph::ResourceUsageHandle usage_handle);
-
-BufferInfo& get_frame_graph_buffer(FrameGraphResources& resources, FrameGraph::ResourceHandle resource_handle);
+VkBuffer get_frame_graph_buffer_handle(FrameGraphResources& resources, FrameGraph::ResourceHandle resource_handle);
+FrameGraphBuffer get_frame_graph_buffer(FrameGraphResources& resources, const FrameGraph::FrameGraph& framegraph,
+                                        FrameGraph::ResourceUsageHandle usage_handle);
 } // namespace Reaper

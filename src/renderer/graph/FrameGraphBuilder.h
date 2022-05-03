@@ -12,15 +12,10 @@ namespace Reaper::FrameGraph
 {
 struct FrameGraph;
 
-// Thibault S. (28/07/2017) Retained mode API frame graph builder
+// Retained mode API frame graph builder
 //
 // Takes ownership of a Framegraph at construction, you can use it again
 // after it is built.
-//
-// NOTES:
-// Only textures are supported for now. The API for 'buffers' should
-// be very similar, maybe even simpler though.
-//
 class REAPER_RENDERER_API Builder
 {
 public:

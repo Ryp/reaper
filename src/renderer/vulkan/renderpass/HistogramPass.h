@@ -37,13 +37,13 @@ struct HistogramPassResources
 
 struct ReaperRoot;
 struct VulkanBackend;
+struct FrameGraphBuffer;
 
 HistogramPassResources create_histogram_pass_resources(ReaperRoot& root, VulkanBackend& backend);
 void destroy_histogram_pass_resources(VulkanBackend& backend, const HistogramPassResources& resources);
 
 void update_histogram_pass_descriptor_set(VulkanBackend& backend, const HistogramPassResources& resources,
-                                          VkImageView scene_hdr_view, VkBuffer histogram_buffer,
-                                          const GPUBufferView& histogram_buffer_view);
+                                          VkImageView scene_hdr_view, const FrameGraphBuffer& histogram_buffer);
 
 void upload_histogram_frame_resources(VulkanBackend& backend, const HistogramPassResources& pass_resources,
                                       VkExtent2D backbufferExtent);
@@ -52,6 +52,6 @@ struct CommandBuffer;
 struct FrameData;
 
 void record_histogram_command_buffer(CommandBuffer& cmdBuffer, const FrameData& frame_data,
-                                     const HistogramPassResources& pass_resources, VkBuffer histogram_buffer,
-                                     const GPUBufferView& histogram_buffer_view);
+                                     const HistogramPassResources& pass_resources,
+                                     const FrameGraphBuffer&       histogram_buffer);
 } // namespace Reaper
