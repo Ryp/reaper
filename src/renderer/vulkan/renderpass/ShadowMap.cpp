@@ -255,17 +255,14 @@ namespace
         Assert(shadow_pass.pass_index < resources.descriptor_sets.size());
         VkDescriptorSet descriptor_set = resources.descriptor_sets[shadow_pass.pass_index];
 
-        const VkDescriptorBufferInfo shadowMapDescPassParams = get_vk_descriptor_buffer_info(
-            resources.shadowMapPassConstantBuffer, GPUBufferView{shadow_pass.pass_index, 1});
-        const VkDescriptorBufferInfo shadowMapDescInstanceParams =
-            get_vk_descriptor_buffer_info(resources.shadowMapInstanceConstantBuffer,
-                                          GPUBufferView{shadow_pass.instance_offset, shadow_pass.instance_count});
+        const VkDescriptorBufferInfo descPassParams =
+            get_vk_descriptor_buffer_info(resources.passConstantBuffer, GPUBufferView{shadow_pass.pass_index, 1});
+        const VkDescriptorBufferInfo descInstanceParams = get_vk_descriptor_buffer_info(
+            resources.instanceConstantBuffer, GPUBufferView{shadow_pass.instance_offset, shadow_pass.instance_count});
 
         std::array<VkWriteDescriptorSet, 2> shadowMapPassDescriptorSetWrites = {
-            create_buffer_descriptor_write(descriptor_set, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                                           &shadowMapDescPassParams),
-            create_buffer_descriptor_write(descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                                           &shadowMapDescInstanceParams),
+            create_buffer_descriptor_write(descriptor_set, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &descPassParams),
+            create_buffer_descriptor_write(descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &descInstanceParams),
         };
 
         vkUpdateDescriptorSets(backend.device, static_cast<u32>(shadowMapPassDescriptorSetWrites.size()),
@@ -279,12 +276,12 @@ ShadowMapResources create_shadow_map_resources(ReaperRoot& root, VulkanBackend& 
 
     resources.pipe = create_shadow_map_pipeline(root, backend);
 
-    resources.shadowMapPassConstantBuffer = create_buffer(
+    resources.passConstantBuffer = create_buffer(
         root, backend.device, "Shadow Map Pass Constant buffer",
         DefaultGPUBufferProperties(MaxShadowPassCount, sizeof(ShadowMapPassParams), GPUBufferUsage::UniformBuffer),
         backend.vma_instance);
 
-    resources.shadowMapInstanceConstantBuffer =
+    resources.instanceConstantBuffer =
         create_buffer(root, backend.device, "Shadow Map Instance Constant buffer",
                       DefaultGPUBufferProperties(ShadowInstanceCountMax, sizeof(ShadowMapInstanceParams),
                                                  GPUBufferUsage::StorageBuffer),
@@ -308,10 +305,10 @@ void destroy_shadow_map_resources(VulkanBackend& backend, ShadowMapResources& re
         vkDestroyImageView(backend.device, resources.shadowMapView[i], nullptr);
     }
 
-    vmaDestroyBuffer(backend.vma_instance, resources.shadowMapPassConstantBuffer.handle,
-                     resources.shadowMapPassConstantBuffer.allocation);
-    vmaDestroyBuffer(backend.vma_instance, resources.shadowMapInstanceConstantBuffer.handle,
-                     resources.shadowMapInstanceConstantBuffer.allocation);
+    vmaDestroyBuffer(backend.vma_instance, resources.passConstantBuffer.handle,
+                     resources.passConstantBuffer.allocation);
+    vmaDestroyBuffer(backend.vma_instance, resources.instanceConstantBuffer.handle,
+                     resources.instanceConstantBuffer.allocation);
 
     vkDestroyPipeline(backend.device, resources.pipe.pipeline, nullptr);
     vkDestroyPipelineLayout(backend.device, resources.pipe.pipelineLayout, nullptr);
@@ -357,11 +354,11 @@ void update_shadow_map_pass_descriptor_sets(VulkanBackend& backend, const Prepar
 
 void upload_shadow_map_resources(VulkanBackend& backend, const PreparedData& prepared, ShadowMapResources& resources)
 {
-    upload_buffer_data(backend.device, backend.vma_instance, resources.shadowMapPassConstantBuffer,
+    upload_buffer_data(backend.device, backend.vma_instance, resources.passConstantBuffer,
                        prepared.shadow_pass_params.data(),
                        prepared.shadow_pass_params.size() * sizeof(ShadowMapPassParams));
 
-    upload_buffer_data(backend.device, backend.vma_instance, resources.shadowMapInstanceConstantBuffer,
+    upload_buffer_data(backend.device, backend.vma_instance, resources.instanceConstantBuffer,
                        prepared.shadow_instance_params.data(),
                        prepared.shadow_instance_params.size() * sizeof(ShadowMapInstanceParams));
 }

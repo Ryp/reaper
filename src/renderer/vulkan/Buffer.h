@@ -51,8 +51,8 @@ inline VkDescriptorBufferInfo get_vk_descriptor_buffer_info(const BufferInfo& bu
 
     return {
         bufferInfo.handle,
-        bufferInfo.descriptor.stride * view.elementOffset,
-        bufferInfo.descriptor.stride * view.elementCount,
+        bufferInfo.descriptor.stride * view.element_offset,
+        bufferInfo.descriptor.stride * view.element_count,
     };
 }
 } // namespace Reaper

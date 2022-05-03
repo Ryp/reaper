@@ -11,7 +11,7 @@ namespace Reaper
 {
 struct GPUBufferView
 {
-    u32 elementOffset;
-    u32 elementCount;
+    u32 element_offset;
+    u32 element_count;
 };
 } // namespace Reaper

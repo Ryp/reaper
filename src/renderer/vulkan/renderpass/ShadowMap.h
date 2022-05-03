@@ -35,8 +35,8 @@ struct ShadowMapResources
 {
     ShadowMapPipelineInfo pipe;
 
-    BufferInfo shadowMapPassConstantBuffer;
-    BufferInfo shadowMapInstanceConstantBuffer;
+    BufferInfo passConstantBuffer;
+    BufferInfo instanceConstantBuffer;
 
     std::vector<VkDescriptorSet> descriptor_sets;
 

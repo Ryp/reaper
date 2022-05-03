@@ -30,10 +30,10 @@ struct AudioResources
 {
     AudioPipelineInfo audioPipe;
 
-    BufferInfo audioPassConstantBuffer;
-    BufferInfo audioInstanceParamsBuffer;
-    BufferInfo audioOutputBuffer;
-    BufferInfo audioOutputBufferStaging;
+    BufferInfo passConstantBuffer;
+    BufferInfo instanceParamsBuffer;
+    BufferInfo outputBuffer;
+    BufferInfo outputBufferStaging;
 
     VkDescriptorSet descriptor_set;
 
