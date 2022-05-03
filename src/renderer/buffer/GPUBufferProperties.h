@@ -29,7 +29,7 @@ namespace GPUBufferUsage
 
 struct GPUBufferProperties
 {
-    u32 elementCount;
+    u64 elementCount;
     u32 elementSize;
     u32 stride; // FIXME the API around the stride parameter is somewhat funky. Maybe there's nicer ways to abstract the
                 // concept of discontinuous alignment.

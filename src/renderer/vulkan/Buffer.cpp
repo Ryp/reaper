@@ -10,7 +10,6 @@
 #include "common/Log.h"
 #include "common/ReaperRoot.h"
 
-#include "renderer/GPUBufferProperties.h"
 #include "renderer/vulkan/Debug.h"
 
 #include <algorithm>
@@ -107,7 +106,7 @@ void upload_buffer_data(VkDevice device, const VmaAllocator& allocator, const Bu
     VmaAllocationInfo allocation_info;
     vmaGetAllocationInfo(allocator, buffer.allocation, &allocation_info);
 
-    const u64 offset_bytes = buffer.descriptor.stride * offset_elements;
+    const u64 offset_bytes = buffer.properties.stride * offset_elements;
 
     Assert(vkMapMemory(device, allocation_info.deviceMemory, allocation_info.offset + offset_bytes, size, VK_FLAGS_NONE,
                        reinterpret_cast<void**>(&writePtr))
@@ -116,17 +115,17 @@ void upload_buffer_data(VkDevice device, const VmaAllocator& allocator, const Bu
     Assert(size <= allocation_info.size,
            fmt::format("copy src of size {} on dst of size {}", size, allocation_info.size));
 
-    if (buffer.descriptor.elementSize == buffer.descriptor.stride)
+    if (buffer.properties.elementSize == buffer.properties.stride)
     {
         memcpy(writePtr, data, size);
     }
     else
     {
-        for (u32 i = 0; i < buffer.descriptor.elementCount; i++)
+        for (u32 i = 0; i < buffer.properties.elementCount; i++)
         {
             const char* data_char = static_cast<const char*>(data);
-            memcpy(writePtr + i * buffer.descriptor.stride, data_char + i * buffer.descriptor.elementSize,
-                   buffer.descriptor.elementSize);
+            memcpy(writePtr + i * buffer.properties.stride, data_char + i * buffer.properties.elementSize,
+                   buffer.properties.elementSize);
         }
     }
 

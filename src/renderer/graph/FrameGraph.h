@@ -2,8 +2,8 @@
 
 #include "FrameGraphBasicTypes.h"
 
-#include "renderer/GPUBufferProperties.h"
-#include "renderer/GPUBufferView.h"
+#include "renderer/buffer/GPUBufferProperties.h"
+#include "renderer/buffer/GPUBufferView.h"
 #include "renderer/texture/GPUTextureProperties.h"
 #include "renderer/texture/GPUTextureView.h"
 #include "renderer/vulkan/Barrier.h"

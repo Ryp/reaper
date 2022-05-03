@@ -63,19 +63,20 @@ namespace
         VkDescriptorSet descriptor_set = cull_resources.passes[pass_index].cull_descriptor_set;
 
         const VkDescriptorBufferInfo passParams =
-            get_vk_descriptor_buffer_info(cull_resources.cullPassConstantBuffer, GPUBufferView{pass_index, 1});
+            get_vk_descriptor_buffer_info(cull_resources.cullPassConstantBuffer, BufferSubresource{pass_index, 1});
         const VkDescriptorBufferInfo indices = default_descriptor_buffer_info(staticIndexBuffer);
         const VkDescriptorBufferInfo vertexPositions = default_descriptor_buffer_info(vertexBufferPosition);
         const VkDescriptorBufferInfo instanceParams =
             default_descriptor_buffer_info(cull_resources.cullInstanceParamsBuffer);
-        const VkDescriptorBufferInfo indicesOut =
-            get_vk_descriptor_buffer_info(cull_resources.dynamicIndexBuffer,
-                                          GPUBufferView{pass_index * DynamicIndexBufferSize, DynamicIndexBufferSize});
-        const VkDescriptorBufferInfo drawCommandOut = get_vk_descriptor_buffer_info(
-            cull_resources.indirectDrawBuffer, GPUBufferView{pass_index * MaxIndirectDrawCount, MaxIndirectDrawCount});
-        const VkDescriptorBufferInfo drawCountOut =
-            get_vk_descriptor_buffer_info(cull_resources.indirectDrawCountBuffer,
-                                          GPUBufferView{pass_index * IndirectDrawCountCount, IndirectDrawCountCount});
+        const VkDescriptorBufferInfo indicesOut = get_vk_descriptor_buffer_info(
+            cull_resources.dynamicIndexBuffer,
+            BufferSubresource{pass_index * DynamicIndexBufferSize, DynamicIndexBufferSize});
+        const VkDescriptorBufferInfo drawCommandOut =
+            get_vk_descriptor_buffer_info(cull_resources.indirectDrawBuffer,
+                                          BufferSubresource{pass_index * MaxIndirectDrawCount, MaxIndirectDrawCount});
+        const VkDescriptorBufferInfo drawCountOut = get_vk_descriptor_buffer_info(
+            cull_resources.indirectDrawCountBuffer,
+            BufferSubresource{pass_index * IndirectDrawCountCount, IndirectDrawCountCount});
 
         std::vector<VkWriteDescriptorSet> writes = {
             create_buffer_descriptor_write(descriptor_set, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &passParams),
@@ -95,13 +96,13 @@ namespace
     {
         VkDescriptorSet descriptor_set = cull_resources.passes[pass_index].compact_prep_descriptor_set;
 
-        const VkDescriptorBufferInfo drawCommandCount =
-            get_vk_descriptor_buffer_info(cull_resources.indirectDrawCountBuffer,
-                                          GPUBufferView{pass_index * IndirectDrawCountCount, IndirectDrawCountCount});
+        const VkDescriptorBufferInfo drawCommandCount = get_vk_descriptor_buffer_info(
+            cull_resources.indirectDrawCountBuffer,
+            BufferSubresource{pass_index * IndirectDrawCountCount, IndirectDrawCountCount});
         const VkDescriptorBufferInfo dispatchCommandOut = get_vk_descriptor_buffer_info(
-            cull_resources.compactionIndirectDispatchBuffer, GPUBufferView{pass_index, 1});
-        const VkDescriptorBufferInfo drawCommandCountOut =
-            get_vk_descriptor_buffer_info(cull_resources.compactIndirectDrawCountBuffer, GPUBufferView{pass_index, 1});
+            cull_resources.compactionIndirectDispatchBuffer, BufferSubresource{pass_index, 1});
+        const VkDescriptorBufferInfo drawCommandCountOut = get_vk_descriptor_buffer_info(
+            cull_resources.compactIndirectDrawCountBuffer, BufferSubresource{pass_index, 1});
 
         std::vector<VkWriteDescriptorSet> writes = {
             create_buffer_descriptor_write(descriptor_set, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &drawCommandCount),
@@ -116,16 +117,17 @@ namespace
     {
         VkDescriptorSet descriptor_set = cull_resources.passes[pass_index].compact_descriptor_set;
 
-        const VkDescriptorBufferInfo commandIn = get_vk_descriptor_buffer_info(
-            cull_resources.indirectDrawBuffer, GPUBufferView{pass_index * MaxIndirectDrawCount, MaxIndirectDrawCount});
-        const VkDescriptorBufferInfo commandCount =
-            get_vk_descriptor_buffer_info(cull_resources.indirectDrawCountBuffer,
-                                          GPUBufferView{pass_index * IndirectDrawCountCount, IndirectDrawCountCount});
+        const VkDescriptorBufferInfo commandIn =
+            get_vk_descriptor_buffer_info(cull_resources.indirectDrawBuffer,
+                                          BufferSubresource{pass_index * MaxIndirectDrawCount, MaxIndirectDrawCount});
+        const VkDescriptorBufferInfo commandCount = get_vk_descriptor_buffer_info(
+            cull_resources.indirectDrawCountBuffer,
+            BufferSubresource{pass_index * IndirectDrawCountCount, IndirectDrawCountCount});
         const VkDescriptorBufferInfo commandOut =
             get_vk_descriptor_buffer_info(cull_resources.compactIndirectDrawBuffer,
-                                          GPUBufferView{pass_index * MaxIndirectDrawCount, MaxIndirectDrawCount});
-        const VkDescriptorBufferInfo commandCountOut =
-            get_vk_descriptor_buffer_info(cull_resources.compactIndirectDrawCountBuffer, GPUBufferView{pass_index, 1});
+                                          BufferSubresource{pass_index * MaxIndirectDrawCount, MaxIndirectDrawCount});
+        const VkDescriptorBufferInfo commandCountOut = get_vk_descriptor_buffer_info(
+            cull_resources.compactIndirectDrawCountBuffer, BufferSubresource{pass_index, 1});
 
         std::vector<VkWriteDescriptorSet> writes = {
             create_buffer_descriptor_write(descriptor_set, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &commandIn),

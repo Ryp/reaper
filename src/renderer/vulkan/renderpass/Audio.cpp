@@ -214,10 +214,10 @@ void record_audio_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& p
     {
         const GPUResourceAccess src = {VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_READ_BIT};
         const GPUResourceAccess dst = {VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT};
-        const GPUBufferView     default_view = {};
+        const GPUBufferView     view = default_buffer_view(resources.outputBuffer.properties);
 
         const VkBufferMemoryBarrier2 buffer_barrier =
-            get_vk_buffer_barrier(resources.outputBuffer.handle, default_view, src, dst);
+            get_vk_buffer_barrier(resources.outputBuffer.handle, view, src, dst);
 
         const VkDependencyInfo dependencies = get_vk_buffer_barrier_depency_info(1, &buffer_barrier);
 
@@ -240,18 +240,17 @@ void record_audio_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& p
         {
             const GPUResourceAccess src = {VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT};
             const GPUResourceAccess dst = {VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_READ_BIT};
-            const GPUBufferView     default_view = {};
+            const GPUBufferView     view = default_buffer_view(resources.outputBuffer.properties);
 
-            buffer_barriers.emplace_back(get_vk_buffer_barrier(resources.outputBuffer.handle, default_view, src, dst));
+            buffer_barriers.emplace_back(get_vk_buffer_barrier(resources.outputBuffer.handle, view, src, dst));
         }
 
         {
             const GPUResourceAccess src = {VK_PIPELINE_STAGE_2_HOST_BIT, VK_ACCESS_2_HOST_READ_BIT};
             const GPUResourceAccess dst = {VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT};
-            const GPUBufferView     default_view = {};
+            const GPUBufferView     view = default_buffer_view(resources.outputBufferStaging.properties);
 
-            buffer_barriers.emplace_back(
-                get_vk_buffer_barrier(resources.outputBufferStaging.handle, default_view, src, dst));
+            buffer_barriers.emplace_back(get_vk_buffer_barrier(resources.outputBufferStaging.handle, view, src, dst));
         }
 
         const VkDependencyInfo dependencies =
@@ -275,10 +274,10 @@ void record_audio_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& p
     {
         const GPUResourceAccess src = {VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT};
         const GPUResourceAccess dst = {VK_PIPELINE_STAGE_2_HOST_BIT, VK_ACCESS_2_HOST_READ_BIT};
-        const GPUBufferView     default_view = {};
+        const GPUBufferView     view = default_buffer_view(resources.outputBufferStaging.properties);
 
         const VkBufferMemoryBarrier2 buffer_barrier =
-            get_vk_buffer_barrier(resources.outputBufferStaging.handle, default_view, src, dst);
+            get_vk_buffer_barrier(resources.outputBufferStaging.handle, view, src, dst);
 
         const VkDependencyInfo dependencies = get_vk_buffer_barrier_depency_info(1, &buffer_barrier);
 

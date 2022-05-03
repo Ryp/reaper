@@ -105,7 +105,7 @@ namespace
                 // Keep track of offset
                 staging.offset_bytes += size_bytes;
 
-                Assert(staging.offset_bytes < staging.staging_buffer.descriptor.elementCount); // OOB!
+                Assert(staging.offset_bytes < staging.staging_buffer.properties.elementCount, "OOB");
             }
         }
 

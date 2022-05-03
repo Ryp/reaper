@@ -11,17 +11,18 @@
 
 #include "api/Vulkan.h"
 
-#include "renderer/GPUBufferProperties.h"
-#include "renderer/GPUBufferView.h"
+#include "renderer/buffer/GPUBufferProperties.h"
+#include "renderer/buffer/GPUBufferView.h"
 
 namespace Reaper
 {
 struct ReaperRoot;
+struct BufferSubresource;
 
 struct BufferInfo
 {
     VkBuffer            handle;
-    GPUBufferProperties descriptor;
+    GPUBufferProperties properties;
     VmaAllocation       allocation;
 };
 
@@ -45,14 +46,17 @@ VkWriteDescriptorSet create_buffer_descriptor_write(VkDescriptorSet descriptorSe
 
 VkDescriptorBufferInfo default_descriptor_buffer_info(const BufferInfo& bufferInfo);
 
-inline VkDescriptorBufferInfo get_vk_descriptor_buffer_info(const BufferInfo& bufferInfo, const GPUBufferView& view)
+inline VkDescriptorBufferInfo get_vk_descriptor_buffer_info(const BufferInfo&        bufferInfo,
+                                                            const BufferSubresource& subresource)
 {
-    Assert(bufferInfo.descriptor.stride > 0);
+    Assert(bufferInfo.properties.stride > 0);
+
+    const GPUBufferView view = get_buffer_view(bufferInfo.properties, subresource);
 
     return {
         bufferInfo.handle,
-        bufferInfo.descriptor.stride * view.element_offset,
-        bufferInfo.descriptor.stride * view.element_count,
+        view.offset_bytes,
+        view.size_bytes,
     };
 }
 } // namespace Reaper

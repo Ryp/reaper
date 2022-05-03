@@ -132,12 +132,14 @@ void destroy_histogram_pass_resources(VulkanBackend& backend, const HistogramPas
 }
 
 void update_histogram_pass_descriptor_set(VulkanBackend& backend, const HistogramPassResources& resources,
-                                          VkImageView scene_hdr_view, VkBuffer histogram_buffer)
+                                          VkImageView scene_hdr_view, VkBuffer histogram_buffer,
+                                          const GPUBufferView& histogram_buffer_view)
 {
     const VkDescriptorBufferInfo drawDescPassParams = default_descriptor_buffer_info(resources.passConstantBuffer);
     const VkDescriptorImageInfo  descTexture = {VK_NULL_HANDLE, scene_hdr_view,
                                                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
-    const VkDescriptorBufferInfo descOutput = {histogram_buffer, 0, VK_WHOLE_SIZE}; // FIXME
+    const VkDescriptorBufferInfo descOutput = {histogram_buffer, histogram_buffer_view.offset_bytes,
+                                               histogram_buffer_view.size_bytes};
 
     std::array<VkWriteDescriptorSet, 3> drawPassDescriptorSetWrites = {
         create_buffer_descriptor_write(resources.descriptor_set, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
@@ -161,12 +163,15 @@ void upload_histogram_frame_resources(VulkanBackend& backend, const HistogramPas
 }
 
 void record_histogram_command_buffer(CommandBuffer& cmdBuffer, const FrameData& frame_data,
-                                     const HistogramPassResources& pass_resources, VkBuffer histogram_buffer)
+                                     const HistogramPassResources& pass_resources, VkBuffer histogram_buffer,
+                                     const GPUBufferView& histogram_buffer_view)
 {
     REAPER_PROFILE_SCOPE_GPU(cmdBuffer.mlog, "Histogram Pass", MP_DARKGOLDENROD);
 
-    vkCmdFillBuffer(cmdBuffer.handle, histogram_buffer, 0, VK_WHOLE_SIZE, 0);
-    // FIXME Insert barrier?
+    const u32 clear_value = 0;
+    vkCmdFillBuffer(cmdBuffer.handle, histogram_buffer, histogram_buffer_view.offset_bytes,
+                    histogram_buffer_view.size_bytes, clear_value);
+    // FIXME Insert barrier or put in it's own renderpass
 
     vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE, pass_resources.histogramPipe.pipeline);
 

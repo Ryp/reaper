@@ -345,7 +345,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     GPUResourceUsage histogram_buffer_usage = {};
     histogram_buffer_usage.access =
         GPUResourceAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT};
-    histogram_buffer_usage.buffer_view = GPUBufferView{}; // FIXME
+    histogram_buffer_usage.buffer_view = default_buffer_view(histogram_buffer_properties);
 
     const ResourceUsageHandle histogram_buffer_usage_handle = builder.create_buffer(
         histogram_pass_handle, "Histogram Buffer", histogram_buffer_properties, histogram_buffer_usage);
@@ -372,7 +372,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     GPUResourceUsage swapchain_histogram_buffer_usage = {};
     swapchain_histogram_buffer_usage.access =
         GPUResourceAccess{VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT};
-    swapchain_histogram_buffer_usage.buffer_view = GPUBufferView{}; // FIXME
+    swapchain_histogram_buffer_usage.buffer_view = default_buffer_view(histogram_buffer_properties);
 
     const ResourceUsageHandle swapchain_histogram_buffer_usage_handle =
         builder.read_buffer(swapchain_pass_handle, histogram_buffer_usage_handle, swapchain_histogram_buffer_usage);
@@ -407,7 +407,8 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         get_frame_graph_texture_view(resources.framegraph_resources, histogram_hdr_usage_handle),
         get_frame_graph_buffer(resources.framegraph_resources,
                                GetResourceHandle(frame_graph, histogram_buffer_usage_handle))
-            .handle); // FIXME
+            .handle,
+        histogram_buffer_usage.buffer_view);
 
     update_swapchain_pass_descriptor_set(
         backend, resources.swapchain_pass_resources,
@@ -563,7 +564,8 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
             cmdBuffer, frame_data, resources.histogram_pass_resources,
             get_frame_graph_buffer(resources.framegraph_resources,
                                    GetResourceHandle(frame_graph, histogram_buffer_usage_handle))
-                .handle); // FIXME
+                .handle,
+            swapchain_histogram_buffer_usage.buffer_view);
         record_framegraph_barriers(cmdBuffer, schedule, frame_graph, resources.framegraph_resources, barriers, false);
     }
 

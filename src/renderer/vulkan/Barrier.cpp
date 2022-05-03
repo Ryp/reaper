@@ -31,26 +31,25 @@ VkImageMemoryBarrier2 get_vk_image_barrier(VkImage handle, const GPUTextureView&
                                  view_range};
 }
 
-VkBufferMemoryBarrier2 get_vk_buffer_barrier(VkBuffer handle, const GPUBufferView& /*view*/, GPUResourceAccess src,
+VkBufferMemoryBarrier2 get_vk_buffer_barrier(VkBuffer handle, const GPUBufferView& view, GPUResourceAccess src,
                                              GPUResourceAccess dst, u32 src_queue_family_index,
                                              u32 dst_queue_family_index)
 {
     Assert(src.image_layout == VK_IMAGE_LAYOUT_UNDEFINED, "Image layout should be left unused for buffers");
     Assert(dst.image_layout == VK_IMAGE_LAYOUT_UNDEFINED, "Image layout should be left unused for buffers");
+    Assert(view.size_bytes > 0, "Invalid view size");
 
-    return VkBufferMemoryBarrier2{
-        VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2,
-        nullptr,
-        src.stage_mask,
-        src.access_mask,
-        dst.stage_mask,
-        dst.access_mask,
-        src_queue_family_index,
-        dst_queue_family_index,
-        handle,
-        0,            // FIXME
-        VK_WHOLE_SIZE // FIXME
-    };
+    return VkBufferMemoryBarrier2{VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2,
+                                  nullptr,
+                                  src.stage_mask,
+                                  src.access_mask,
+                                  dst.stage_mask,
+                                  dst.access_mask,
+                                  src_queue_family_index,
+                                  dst_queue_family_index,
+                                  handle,
+                                  view.offset_bytes,
+                                  view.size_bytes};
 }
 
 VkMemoryBarrier2 get_vk_memory_barrier(GPUMemoryAccess src, GPUMemoryAccess dst)

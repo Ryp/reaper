@@ -256,9 +256,10 @@ namespace
         VkDescriptorSet descriptor_set = resources.descriptor_sets[shadow_pass.pass_index];
 
         const VkDescriptorBufferInfo descPassParams =
-            get_vk_descriptor_buffer_info(resources.passConstantBuffer, GPUBufferView{shadow_pass.pass_index, 1});
-        const VkDescriptorBufferInfo descInstanceParams = get_vk_descriptor_buffer_info(
-            resources.instanceConstantBuffer, GPUBufferView{shadow_pass.instance_offset, shadow_pass.instance_count});
+            get_vk_descriptor_buffer_info(resources.passConstantBuffer, BufferSubresource{shadow_pass.pass_index, 1});
+        const VkDescriptorBufferInfo descInstanceParams =
+            get_vk_descriptor_buffer_info(resources.instanceConstantBuffer,
+                                          BufferSubresource{shadow_pass.instance_offset, shadow_pass.instance_count});
 
         std::array<VkWriteDescriptorSet, 2> shadowMapPassDescriptorSetWrites = {
             create_buffer_descriptor_write(descriptor_set, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &descPassParams),
@@ -435,7 +436,7 @@ void record_shadow_map_command_buffer(CommandBuffer& cmdBuffer, VulkanBackend& b
             vkCmdDrawIndexedIndirectCount(cmdBuffer.handle, cull_resources.compactIndirectDrawBuffer.handle,
                                           draw_buffer_offset, cull_resources.compactIndirectDrawCountBuffer.handle,
                                           draw_buffer_count_offset, draw_buffer_max_count,
-                                          cull_resources.compactIndirectDrawBuffer.descriptor.elementSize);
+                                          cull_resources.compactIndirectDrawBuffer.properties.elementSize);
         }
         else
         {
@@ -443,7 +444,7 @@ void record_shadow_map_command_buffer(CommandBuffer& cmdBuffer, VulkanBackend& b
             vkCmdDrawIndexedIndirectCount(cmdBuffer.handle, cull_resources.indirectDrawBuffer.handle,
                                           draw_buffer_offset, cull_resources.indirectDrawCountBuffer.handle,
                                           draw_buffer_count_offset, draw_buffer_max_count,
-                                          cull_resources.indirectDrawBuffer.descriptor.elementSize);
+                                          cull_resources.indirectDrawBuffer.properties.elementSize);
         }
 
         vkCmdEndRendering(cmdBuffer.handle);

@@ -22,6 +22,10 @@ target_sources(${target} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/Scene.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Scene.h
 
+    ${CMAKE_CURRENT_SOURCE_DIR}/buffer/GPUBufferProperties.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/buffer/GPUBufferView.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/buffer/GPUBufferView.h
+
     ${CMAKE_CURRENT_SOURCE_DIR}/format/FloatTypes.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/format/FloatTypes.h
     ${CMAKE_CURRENT_SOURCE_DIR}/format/PixelFormat.cpp

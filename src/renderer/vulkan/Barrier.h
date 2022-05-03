@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include "renderer/GPUBufferView.h"
+#include "renderer/buffer/GPUBufferView.h"
 #include "renderer/texture/GPUTextureView.h"
 #include "renderer/vulkan/api/Vulkan.h"
 
