@@ -9,6 +9,8 @@
 
 #include <nonstd/span.hpp>
 
+#include "renderer/graph/FrameGraph.h"
+
 namespace Reaper
 {
 namespace FrameGraph
@@ -23,5 +25,5 @@ struct CommandBuffer;
 
 void record_framegraph_barriers(CommandBuffer& cmdBuffer, const FrameGraph::FrameGraphSchedule& schedule,
                                 const FrameGraph::FrameGraph& framegraph, FrameGraphResources& resources,
-                                nonstd::span<const FrameGraph::BarrierEvent> barriers, bool before);
+                                FrameGraph::RenderPassHandle render_pass_handle, bool before);
 } // namespace Reaper

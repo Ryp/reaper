@@ -55,10 +55,10 @@ namespace
         for (auto event : schedule.barrier_events)
         {
             const char* barrier_type_str =
-                event.type == BarrierType::SingleBefore
-                    ? "SingleBefore"
-                    : (event.type == BarrierType::SingleAfter
-                           ? "SingleAfter"
+                event.type == BarrierType::ImmediateBefore
+                    ? "ImmediateBefore"
+                    : (event.type == BarrierType::ImmediateAfter
+                           ? "ImmediateAfter"
                            : (event.type == BarrierType::SplitBegin ? "SplitBegin" : "SplitEnd"));
 
             const char* render_pass_name = framegraph.RenderPasses[event.render_pass_handle].debug_name;
@@ -69,13 +69,13 @@ namespace
             const Resource&      resource = GetResource(framegraph, src_usage);
 
             const char* resource_name = resource.debug_name;
-            log_warning(root, "framegraph: pass '{}', resource '{}', barrier type = '{}'", render_pass_name,
-                        resource_name, barrier_type_str);
+            log_debug(root, "framegraph: pass '{}', resource '{}', barrier type = '{}'", render_pass_name,
+                      resource_name, barrier_type_str);
             if (resource_handle.is_texture)
             {
-                log_warning(root, "    - src layout = '{}', dst layout = '{}'",
-                            GetImageLayoutToString(barrier.src.access.image_layout),
-                            GetImageLayoutToString(barrier.dst.access.image_layout));
+                log_debug(root, "    - src layout = '{}', dst layout = '{}'",
+                          GetImageLayoutToString(barrier.src.access.image_layout),
+                          GetImageLayoutToString(barrier.dst.access.image_layout));
             }
         }
     }
@@ -464,10 +464,8 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     }
 
     {
-        auto barriers = get_barriers_to_execute(schedule, main_pass_handle);
-        log_debug(root, "framegraph: pass '{}', scheduling {} barrier events", main_pass_handle, barriers.size());
-
-        record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources, barriers, true);
+        record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources, main_pass_handle,
+                                   true);
 
         record_main_pass_command_buffer(
             cmdBuffer, backend, prepared, resources.main_pass_resources, resources.cull_resources, resources.mesh_cache,
@@ -476,45 +474,43 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
             get_frame_graph_texture(resources.framegraph_resources, framegraph, main_depth_create_usage_handle)
                 .view_handle);
 
-        record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources, barriers, false);
+        record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources, main_pass_handle,
+                                   false);
     }
 
     {
-        auto barriers = get_barriers_to_execute(schedule, gui_pass_handle);
-        log_debug(root, "framegraph: pass '{}', scheduling {} barrier events", gui_pass_handle, barriers.size());
-
-        record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources, barriers, true);
+        record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources, gui_pass_handle,
+                                   true);
 
         record_gui_command_buffer(
             cmdBuffer, resources.gui_pass_resources, backbufferExtent,
             get_frame_graph_texture(resources.framegraph_resources, framegraph, gui_create_usage_handle).view_handle);
 
-        record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources, barriers, false);
+        record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources, gui_pass_handle,
+                                   false);
     }
 
     {
-        auto barriers = get_barriers_to_execute(schedule, histogram_pass_handle);
-        log_debug(root, "framegraph: pass '{}', scheduling {} barrier events", histogram_pass_handle, barriers.size());
-
-        record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources, barriers, true);
+        record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
+                                   histogram_pass_handle, true);
 
         record_histogram_command_buffer(
             cmdBuffer, frame_data, resources.histogram_pass_resources,
             get_frame_graph_buffer(resources.framegraph_resources, framegraph, histogram_buffer_usage_handle));
 
-        record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources, barriers, false);
+        record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
+                                   histogram_pass_handle, false);
     }
 
     {
-        auto barriers = get_barriers_to_execute(schedule, swapchain_pass_handle);
-        log_debug(root, "framegraph: pass '{}', scheduling {} barrier events", swapchain_pass_handle, barriers.size());
-
-        record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources, barriers, true);
+        record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
+                                   swapchain_pass_handle, true);
 
         record_swapchain_command_buffer(cmdBuffer, frame_data, resources.swapchain_pass_resources,
                                         backend.presentInfo.imageViews[current_swapchain_index]);
 
-        record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources, barriers, false);
+        record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
+                                   swapchain_pass_handle, false);
     }
 
     record_audio_command_buffer(cmdBuffer, prepared, resources.audio_resources);

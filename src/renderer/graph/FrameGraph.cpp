@@ -229,14 +229,14 @@ FrameGraphSchedule compute_schedule(const FrameGraph& framegraph)
 
         if (is_usage_immediate)
         {
-            schedule.barrier_events.emplace_back(BarrierEvent{BarrierType::SingleAfter, i, barrier.src.render_pass});
+            schedule.barrier_events.emplace_back(BarrierEvent{BarrierType::ImmediateAfter, i, barrier.src.render_pass});
         }
         else
         {
             if (barrier.src.render_pass == barrier.dst.render_pass)
             {
                 schedule.barrier_events.emplace_back(
-                    BarrierEvent{BarrierType::SingleBefore, i, barrier.dst.render_pass});
+                    BarrierEvent{BarrierType::ImmediateBefore, i, barrier.dst.render_pass});
             }
             else
             {
@@ -246,7 +246,16 @@ FrameGraphSchedule compute_schedule(const FrameGraph& framegraph)
         }
     }
 
+    // Sort first by renderpass and then by before/after marker
     auto comparison_less_lambda = [](BarrierEvent a, BarrierEvent b) -> bool {
+        if (a.render_pass_handle == b.render_pass_handle)
+        {
+            const bool a_execute_before = (a.type & BarrierType::ExecuteBeforePass) > 0;
+            const bool b_execute_after = (b.type & BarrierType::ExecuteAfterPass) > 0;
+
+            return a_execute_before && b_execute_after;
+        }
+
         return a.render_pass_handle < b.render_pass_handle;
     };
 
@@ -259,7 +268,7 @@ FrameGraphSchedule compute_schedule(const FrameGraph& framegraph)
 
 // This assumes the events are sorted by render pass
 nonstd::span<const BarrierEvent> get_barriers_to_execute(const FrameGraphSchedule& schedule,
-                                                         RenderPassHandle          render_pass_handle)
+                                                         RenderPassHandle render_pass_handle, bool execute_before_pass)
 {
     const BarrierEvent* begin = nullptr;
     const BarrierEvent* end = nullptr;
@@ -267,13 +276,14 @@ nonstd::span<const BarrierEvent> get_barriers_to_execute(const FrameGraphSchedul
     for (u32 i = 0; i < schedule.barrier_events.size(); i++)
     {
         const BarrierEvent& barrier_event = schedule.barrier_events[i];
+        const bool match_order = execute_before_pass == ((barrier_event.type & BarrierType::ExecuteBeforePass) > 0);
 
-        if (!begin && barrier_event.render_pass_handle == render_pass_handle)
+        if (!begin && barrier_event.render_pass_handle == render_pass_handle && match_order)
         {
             begin = schedule.barrier_events.data() + i;
         }
 
-        if (begin && barrier_event.render_pass_handle == render_pass_handle)
+        if (begin && barrier_event.render_pass_handle == render_pass_handle && match_order)
         {
             end = schedule.barrier_events.data() + i + 1;
         }

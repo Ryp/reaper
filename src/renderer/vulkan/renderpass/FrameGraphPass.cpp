@@ -18,15 +18,17 @@ namespace Reaper
 // FIXME We have no way of merging events for now (dependencies struct)
 void record_framegraph_barriers(CommandBuffer& cmdBuffer, const FrameGraph::FrameGraphSchedule& schedule,
                                 const FrameGraph::FrameGraph& framegraph, FrameGraphResources& resources,
-                                nonstd::span<const FrameGraph::BarrierEvent> barriers, bool before)
+                                FrameGraph::RenderPassHandle render_pass_handle, bool before)
 {
-    if (barriers.empty())
+    const auto barrier_events = get_barriers_to_execute(schedule, render_pass_handle, before);
+
+    if (barrier_events.empty())
         return;
 
     using namespace FrameGraph;
     REAPER_PROFILE_SCOPE_GPU(cmdBuffer.mlog, "FrameGraphBarrier", MP_RED);
 
-    for (const auto& barrier_event : barriers)
+    for (const auto& barrier_event : barrier_events)
     {
         const u32     barrier_handle = barrier_event.barrier_handle;
         const Barrier barrier = schedule.barriers[barrier_handle];
@@ -60,19 +62,15 @@ void record_framegraph_barriers(CommandBuffer& cmdBuffer, const FrameGraph::Fram
                                                                static_cast<u32>(imageBarriers.size()),
                                                                imageBarriers.data()};
 
-        if (barrier_event.type == BarrierType::SingleBefore && before)
+        if ((barrier_event.type & BarrierType::Immediate) != 0)
         {
             vkCmdPipelineBarrier2(cmdBuffer.handle, &dependencies);
         }
-        else if (barrier_event.type == BarrierType::SingleAfter && !before)
-        {
-            vkCmdPipelineBarrier2(cmdBuffer.handle, &dependencies);
-        }
-        else if (barrier_event.type == BarrierType::SplitBegin && !before)
+        else if (barrier_event.type == BarrierType::SplitBegin)
         {
             vkCmdSetEvent2(cmdBuffer.handle, resources.events[barrier_handle], &dependencies);
         }
-        else if (barrier_event.type == BarrierType::SplitEnd && before)
+        else if (barrier_event.type == BarrierType::SplitEnd)
         {
             vkCmdWaitEvents2(cmdBuffer.handle, 1, &resources.events[barrier_handle], &dependencies);
         }

@@ -128,17 +128,26 @@ struct Barrier
     ResourceUsageEvent dst;
 };
 
-enum class BarrierType
+namespace BarrierType
 {
-    SingleBefore, // Executed BEFORE the renderpass
-    SingleAfter,  // Executed AFTER the renderpass
-    SplitBegin,   // Executed AFTER the renderpass
-    SplitEnd,     // Executed BEFORE the renderpass
-};
+    // Barriers are tied to a render pass for now, so 'before' and 'after' relate to that concept
+    enum type : u8
+    {
+        Immediate = bit(0),
+        Split = bit(1),
+        ExecuteBeforePass = bit(2),
+        ExecuteAfterPass = bit(3),
+
+        ImmediateAfter = Immediate | ExecuteAfterPass,
+        ImmediateBefore = Immediate | ExecuteBeforePass,
+        SplitBegin = Split | ExecuteAfterPass,
+        SplitEnd = Split | ExecuteBeforePass,
+    };
+} // namespace BarrierType
 
 struct BarrierEvent
 {
-    BarrierType      type;
+    u32              type;
     u32              barrier_handle;
     RenderPassHandle render_pass_handle;
 };
@@ -153,5 +162,5 @@ struct FrameGraphSchedule
 FrameGraphSchedule compute_schedule(const FrameGraph& framegraph);
 
 nonstd::span<const BarrierEvent> get_barriers_to_execute(const FrameGraphSchedule& schedule,
-                                                         RenderPassHandle          render_pass_handle);
+                                                         RenderPassHandle render_pass_handle, bool execute_before_pass);
 } // namespace Reaper::FrameGraph
