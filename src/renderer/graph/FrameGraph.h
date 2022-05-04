@@ -47,7 +47,7 @@ struct RenderPass
     const char*                      debug_name;
     bool                             HasSideEffects;
     std::vector<ResourceUsageHandle> ResourceUsageHandles;
-    bool                             IsUsed;
+    bool                             is_used;
 };
 
 union GPUResourceProperties
@@ -60,8 +60,7 @@ struct Resource
 {
     const char*           debug_name;
     GPUResourceProperties properties;
-    bool                  IsUsed;
-    bool                  is_texture;
+    bool                  is_used;
 };
 
 struct GPUResourceUsage
@@ -77,18 +76,19 @@ struct GPUResourceUsage
 struct ResourceUsage
 {
     UsageType           Type;
-    ResourceHandle      Resource;
+    ResourceHandle      resource_handle;
     RenderPassHandle    RenderPass;
-    ResourceUsageHandle Parent;
+    ResourceUsageHandle parent_usage_handle;
     GPUResourceUsage    Usage;
-    bool                IsUsed;
+    bool                is_used;
 };
 
 struct REAPER_RENDERER_API FrameGraph
 {
-    std::vector<ResourceUsage> ResourceUsages;
-    std::vector<Resource>      Resources;
     std::vector<RenderPass>    RenderPasses;
+    std::vector<ResourceUsage> ResourceUsages;
+    std::vector<Resource>      BufferResources;
+    std::vector<Resource>      TextureResources;
 };
 
 struct DirectedAcyclicGraph

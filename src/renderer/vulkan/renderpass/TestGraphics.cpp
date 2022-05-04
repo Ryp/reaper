@@ -65,12 +65,13 @@ namespace
 
             const Barrier&       barrier = schedule.barriers[event.barrier_handle];
             const ResourceUsage& src_usage = framegraph.ResourceUsages[barrier.src.usage_handle];
+            const ResourceHandle resource_handle = src_usage.resource_handle;
             const Resource&      resource = GetResource(framegraph, src_usage);
 
             const char* resource_name = resource.debug_name;
             log_warning(root, "framegraph: pass '{}', resource '{}', barrier type = '{}'", render_pass_name,
                         resource_name, barrier_type_str);
-            if (resource.is_texture)
+            if (resource_handle.is_texture)
             {
                 log_warning(root, "    - src layout = '{}', dst layout = '{}'",
                             GetImageLayoutToString(barrier.src.access.image_layout),

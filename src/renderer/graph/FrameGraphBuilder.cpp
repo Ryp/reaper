@@ -13,13 +13,18 @@ Builder::Builder(FrameGraph& frameGraph)
 ResourceHandle Builder::create_resource(const char* debug_name, const GPUResourceProperties& properties,
                                         bool is_texture)
 {
+    auto& resource_array = is_texture ? m_Graph.TextureResources : m_Graph.BufferResources;
+
     // TODO test for name clashes
-    Resource& newResource = m_Graph.Resources.emplace_back();
+    Resource& newResource = resource_array.emplace_back();
     newResource.debug_name = debug_name;
     newResource.properties = properties;
-    newResource.is_texture = is_texture;
 
-    return ResourceHandle(m_Graph.Resources.size() - 1);
+    ResourceHandle new_handle;
+    new_handle.index = resource_array.size() - 1;
+    new_handle.is_texture = is_texture;
+
+    return new_handle;
 }
 
 ResourceUsageHandle Builder::create_resource_usage(UsageType           usageType,
@@ -30,11 +35,11 @@ ResourceUsageHandle Builder::create_resource_usage(UsageType           usageType
 {
     ResourceUsage& newResourceUsage = m_Graph.ResourceUsages.emplace_back();
 
-    Assert(resourceHandle != InvalidResourceHandle, "Invalid resource handle");
+    Assert(is_valid(resourceHandle), "Invalid resource handle");
     newResourceUsage.Type = usageType;
-    newResourceUsage.Resource = resourceHandle;
+    newResourceUsage.resource_handle = resourceHandle;
     newResourceUsage.RenderPass = renderPassHandle;
-    newResourceUsage.Parent = parentUsageHandle;
+    newResourceUsage.parent_usage_handle = parentUsageHandle;
     newResourceUsage.Usage = resourceUsage;
 
     return ResourceUsageHandle(m_Graph.ResourceUsages.size() - 1);
@@ -45,7 +50,7 @@ ResourceUsageHandle Builder::create_resource_generic(RenderPassHandle renderPass
                                                      GPUResourceUsage resource_usage, bool is_texture)
 {
     const ResourceHandle resourceHandle = create_resource(name, properties, is_texture);
-    Assert(resourceHandle != InvalidResourceHandle, "Invalid resource handle");
+    Assert(is_valid(resourceHandle), "Invalid resource handle");
 
     const ResourceUsageHandle resourceUsageHandle = create_resource_usage(
         UsageType::RenderPassOutput, renderPassHandle, resourceHandle, resource_usage, InvalidResourceUsageHandle);
@@ -60,8 +65,8 @@ ResourceUsageHandle Builder::read_resource_generic(RenderPassHandle    renderPas
                                                    ResourceUsageHandle inputUsageHandle,
                                                    GPUResourceUsage    resource_usage)
 {
-    const ResourceHandle resourceHandle = GetResourceUsage(m_Graph, inputUsageHandle).Resource;
-    Assert(resourceHandle != InvalidResourceHandle, "Invalid resource handle");
+    const ResourceHandle resourceHandle = GetResourceUsage(m_Graph, inputUsageHandle).resource_handle;
+    Assert(is_valid(resourceHandle), "Invalid resource handle");
 
     const ResourceUsageHandle resourceUsageHandle = create_resource_usage(
         UsageType::RenderPassInput, renderPassHandle, resourceHandle, resource_usage, inputUsageHandle);
@@ -80,8 +85,8 @@ ResourceUsageHandle Builder::write_resource_generic(RenderPassHandle    renderPa
     const GPUResourceUsage    read_usage = {};
     const ResourceUsageHandle readUsageHandle = read_texture(renderPassHandle, inputUsageHandle, read_usage);
 
-    const ResourceHandle resourceHandle = GetResourceUsage(m_Graph, inputUsageHandle).Resource;
-    Assert(resourceHandle != InvalidResourceHandle, "Invalid resource handle");
+    const ResourceHandle resourceHandle = GetResourceUsage(m_Graph, inputUsageHandle).resource_handle;
+    Assert(is_valid(resourceHandle), "Invalid resource handle");
 
     const ResourceUsageHandle resourceUsageHandle = create_resource_usage(
         UsageType::RenderPassOutput, renderPassHandle, resourceHandle, resource_usage, readUsageHandle);
@@ -202,8 +207,8 @@ namespace
                     outDAG.Nodes[renderPassIndexInDAG].Children.push_back(resourceUsageIndexInDAG);
 
                     // Add extra edge to link to the previously written/created resource
-                    Assert(resourceUsage.Parent != InvalidResourceUsageHandle);
-                    DirectedAcyclicGraph::index_type parentUsageIndexInDAG = resourceUsage.Parent;
+                    Assert(is_valid(resourceUsage.parent_usage_handle), "Invalid resource usage handle");
+                    DirectedAcyclicGraph::index_type parentUsageIndexInDAG = resourceUsage.parent_usage_handle;
 
                     outDAG.Nodes[resourceUsageIndexInDAG].Children.push_back(parentUsageIndexInDAG);
                 }
@@ -217,18 +222,21 @@ namespace
 
     // Thibault S. (08/02/2018)
     // This one is relatively simple, we recover infos from the DAG
-    // to fill IsUsed fields.
+    // to fill is_used fields.
     void FillFrameGraphUsedNodes(const nonstd::span<DirectedAcyclicGraph::index_type> usedNodes, FrameGraph& frameGraph)
     {
-        // Reset the IsUsed flag
+        // Reset the is_used flag
         for (auto& resourceUsage : frameGraph.ResourceUsages)
-            resourceUsage.IsUsed = false;
+            resourceUsage.is_used = false;
 
-        for (auto& resource : frameGraph.Resources)
-            resource.IsUsed = false;
+        for (auto& texture_resource : frameGraph.TextureResources)
+            texture_resource.is_used = false;
+
+        for (auto& buffer_resource : frameGraph.BufferResources)
+            buffer_resource.is_used = false;
 
         for (auto& renderPass : frameGraph.RenderPasses)
-            renderPass.IsUsed = false;
+            renderPass.is_used = false;
 
         // Be extra careful with terminalNodes indexes for the DAG representation,
         // again they are NOT the same as FrameGraph indexes.
@@ -241,18 +249,18 @@ namespace
             if (nodeIndexInDAG < resourceCount)
             {
                 ResourceUsage& resource = frameGraph.ResourceUsages[nodeIndexInDAG];
-                resource.IsUsed = true;
+                resource.is_used = true;
             }
             else
             {
                 RenderPass& renderPass = frameGraph.RenderPasses[nodeIndexInDAG - resourceCount];
-                renderPass.IsUsed = true;
+                renderPass.is_used = true;
             }
         }
 
         for (const auto& renderPass : frameGraph.RenderPasses)
         {
-            if (!renderPass.IsUsed)
+            if (!renderPass.is_used)
                 continue;
 
             for (auto resourceUsageHandle : renderPass.ResourceUsageHandles)
@@ -261,18 +269,18 @@ namespace
 
                 if (resourceUsage.Type == UsageType::RenderPassOutput)
                 {
-                    resourceUsage.IsUsed = true;
+                    resourceUsage.is_used = true;
                 }
             }
         }
 
         for (auto& resourceUsage : frameGraph.ResourceUsages)
         {
-            if (!resourceUsage.IsUsed)
+            if (!resourceUsage.is_used)
                 continue;
 
             Resource& resource = GetResource(frameGraph, resourceUsage);
-            resource.IsUsed = true;
+            resource.is_used = true;
         }
     }
 } // namespace

@@ -58,32 +58,38 @@ void allocate_framegraph_volatile_resources(ReaperRoot& root, VulkanBackend& bac
 
     using namespace FrameGraph;
 
-    resources.textures.resize(framegraph.Resources.size()); // FIXME
-    resources.buffers.resize(framegraph.Resources.size());  // FIXME
+    resources.textures.resize(framegraph.TextureResources.size());
+    resources.buffers.resize(framegraph.BufferResources.size());
 
-    for (u32 index = 0; index < framegraph.Resources.size(); index++)
+    // Create buffers
+    for (u32 index = 0; index < framegraph.BufferResources.size(); index++)
     {
-        const Resource& resource = framegraph.Resources[index];
+        const Resource& resource = framegraph.BufferResources[index];
 
-        if (resource.IsUsed)
+        if (resource.is_used)
         {
-            if (resource.is_texture)
-            {
-                resources.textures[index] = create_image(root, backend.device, resource.debug_name,
-                                                         resource.properties.texture, backend.vma_instance);
-                resources.buffers[index] = {};
-            }
-            else
-            {
-                resources.buffers[index] = create_buffer(root, backend.device, resource.debug_name,
-                                                         resource.properties.buffer, backend.vma_instance);
-                resources.textures[index] = {};
-            }
+            resources.buffers[index] = create_buffer(root, backend.device, resource.debug_name,
+                                                     resource.properties.buffer, backend.vma_instance);
+        }
+        else
+        {
+            resources.buffers[index] = {};
+        }
+    }
+
+    // Create textures
+    for (u32 index = 0; index < framegraph.TextureResources.size(); index++)
+    {
+        const Resource& resource = framegraph.TextureResources[index];
+
+        if (resource.is_used)
+        {
+            resources.textures[index] = create_image(root, backend.device, resource.debug_name,
+                                                     resource.properties.texture, backend.vma_instance);
         }
         else
         {
             resources.textures[index] = {};
-            resources.buffers[index] = {};
         }
     }
 
@@ -91,11 +97,11 @@ void allocate_framegraph_volatile_resources(ReaperRoot& root, VulkanBackend& bac
     for (u32 index = 0; index < framegraph.ResourceUsages.size(); index++)
     {
         const ResourceUsage& usage = framegraph.ResourceUsages[index];
-        const Resource&      resource = GetResource(framegraph, usage);
+        const ResourceHandle resource_handle = usage.resource_handle;
 
-        if (resource.is_texture && usage.IsUsed)
+        if (resource_handle.is_texture && usage.is_used)
         {
-            const ImageInfo&     image = resources.textures[usage.Resource];
+            const ImageInfo&     image = resources.textures[usage.resource_handle.index];
             const GPUTextureView view = usage.Usage.texture_view;
 
             resources.texture_views[index] = create_image_view(root, backend.device, image, view);
@@ -130,7 +136,8 @@ void destroy_framegraph_volatile_resources(VulkanBackend& backend, FrameGraphRes
 
 VkImage get_frame_graph_texture_handle(FrameGraphResources& resources, FrameGraph::ResourceHandle resource_handle)
 {
-    return resources.textures[resource_handle].handle;
+    Assert(resource_handle.is_texture, "Wrong handle");
+    return resources.textures[resource_handle.index].handle;
 }
 
 FrameGraphTexture get_frame_graph_texture(FrameGraphResources& resources, const FrameGraph::FrameGraph& framegraph,
@@ -139,15 +146,19 @@ FrameGraphTexture get_frame_graph_texture(FrameGraphResources& resources, const 
     using namespace FrameGraph;
 
     const ResourceUsage& usage = GetResourceUsage(framegraph, usage_handle);
-    const ImageInfo&     texture = resources.textures[usage.Resource];
-    const VkImageView&   view_handle = resources.texture_views[usage_handle];
+    const ResourceHandle resource_handle = usage.resource_handle;
+    Assert(resource_handle.is_texture, "Wrong handle");
+
+    const ImageInfo&   texture = resources.textures[resource_handle.index];
+    const VkImageView& view_handle = resources.texture_views[usage_handle];
 
     return FrameGraphTexture{texture.properties, usage.Usage.texture_view, texture.handle, view_handle};
 }
 
 VkBuffer get_frame_graph_buffer_handle(FrameGraphResources& resources, FrameGraph::ResourceHandle resource_handle)
 {
-    return resources.buffers[resource_handle].handle;
+    Assert(!resource_handle.is_texture, "Wrong handle");
+    return resources.buffers[resource_handle.index].handle;
 };
 
 FrameGraphBuffer get_frame_graph_buffer(FrameGraphResources& resources, const FrameGraph::FrameGraph& framegraph,
@@ -156,7 +167,10 @@ FrameGraphBuffer get_frame_graph_buffer(FrameGraphResources& resources, const Fr
     using namespace FrameGraph;
 
     const ResourceUsage& usage = GetResourceUsage(framegraph, usage_handle);
-    const BufferInfo&    buffer = resources.buffers[usage.Resource];
+    const ResourceHandle resource_handle = usage.resource_handle;
+    Assert(!resource_handle.is_texture, "Wrong handle");
+
+    const BufferInfo& buffer = resources.buffers[usage.resource_handle.index];
 
     return FrameGraphBuffer{buffer.properties, usage.Usage.buffer_view, buffer.handle};
 }

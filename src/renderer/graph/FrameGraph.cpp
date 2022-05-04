@@ -6,20 +6,30 @@ namespace Reaper::FrameGraph
 {
 const ResourceUsage& GetResourceUsage(const FrameGraph& framegraph, ResourceUsageHandle resourceUsageHandle)
 {
-    Assert(resourceUsageHandle != InvalidResourceUsageHandle, "Invalid resource usage handle");
+    Assert(is_valid(resourceUsageHandle), "Invalid resource usage handle");
     return framegraph.ResourceUsages[resourceUsageHandle];
 }
 
 const Resource& GetResource(const FrameGraph& framegraph, const ResourceUsage& resourceUsage)
 {
-    Assert(resourceUsage.Resource != InvalidResourceHandle, "Invalid resource handle");
-    return framegraph.Resources[resourceUsage.Resource];
+    const ResourceHandle resource_handle = resourceUsage.resource_handle;
+    Assert(is_valid(resource_handle), "Invalid resource handle");
+
+    if (resource_handle.is_texture)
+        return framegraph.TextureResources[resource_handle.index];
+    else
+        return framegraph.BufferResources[resource_handle.index];
 }
 
 Resource& GetResource(FrameGraph& framegraph, const ResourceUsage& resourceUsage)
 {
-    Assert(resourceUsage.Resource != InvalidResourceHandle, "Invalid resource handle");
-    return framegraph.Resources[resourceUsage.Resource];
+    const ResourceHandle resource_handle = resourceUsage.resource_handle;
+    Assert(is_valid(resource_handle), "Invalid resource handle");
+
+    if (resource_handle.is_texture)
+        return framegraph.TextureResources[resource_handle.index];
+    else
+        return framegraph.BufferResources[resource_handle.index];
 }
 
 namespace
@@ -96,6 +106,96 @@ void ComputeTransitiveClosure(const DirectedAcyclicGraph& graph,
     }
 }
 
+namespace
+{
+    void place_automatic_barriers(FrameGraphSchedule& schedule, const FrameGraph& framegraph)
+    {
+        // Indexed by resource handle
+        const u32 texture_count = framegraph.TextureResources.size();
+        const u32 buffer_count = framegraph.BufferResources.size();
+
+        // Small trickery to treat all resource types with the same array
+        std::vector<std::vector<ResourceUsageEvent>> per_resource_events(texture_count + buffer_count);
+
+        // Append resource usage by scheduled execution order
+        for (const auto& renderPassHandle : schedule.queue0)
+        {
+            const RenderPass& renderPass = framegraph.RenderPasses[renderPassHandle];
+
+            for (const auto& resourceUsageHandle : renderPass.ResourceUsageHandles)
+            {
+                const ResourceUsage& resourceUsage = GetResourceUsage(framegraph, resourceUsageHandle);
+                const ResourceHandle resourceHandle = resourceUsage.resource_handle;
+
+                Assert(resourceUsage.is_used, "Accessing unused resource");
+
+                std::vector<ResourceUsageEvent>& resource_events =
+                    per_resource_events[resourceHandle.is_texture ? resourceHandle.index
+                                                                  : resourceHandle.index + texture_count];
+
+                // Assume that the resource WILL be created every frame and we need to transition it out of UNDEFINED
+                // layout
+                // FIXME This path is taken for buffers too since I'm too lazy to fix the .back() call just afterwards
+                if (resource_events.empty())
+                {
+                    ResourceUsageEvent& initial_usage = resource_events.emplace_back();
+                    initial_usage.render_pass = schedule.queue0[0];
+                    initial_usage.usage_handle =
+                        resourceUsageHandle; // FIXME it's wrong but it doesn't break the framegraph (yet)
+                    initial_usage.access = {VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT, VK_ACCESS_2_NONE,
+                                            VK_IMAGE_LAYOUT_UNDEFINED};
+                }
+
+                ResourceUsageEvent&  previous_resource_event = resource_events.back();
+                const ResourceUsage& previous_resource_usage =
+                    GetResourceUsage(framegraph, previous_resource_event.usage_handle);
+
+                // If we are in a multiple-reader situation, merge both accesses at earliest time
+                if (previous_resource_usage.Type == UsageType::RenderPassInput
+                    && resourceUsage.Type == UsageType::RenderPassInput)
+                {
+                    const GPUResourceAccess old_access = previous_resource_usage.Usage.access;
+                    const GPUResourceAccess new_access = resourceUsage.Usage.access;
+
+                    Assert(!resourceHandle.is_texture || old_access.image_layout == new_access.image_layout,
+                           "Using the same image layout is not supported for now");
+
+                    // Patch access to accomodate both readers
+                    previous_resource_event.access = {old_access.stage_mask | new_access.stage_mask,
+                                                      old_access.access_mask | new_access.access_mask,
+                                                      old_access.image_layout};
+                }
+                else
+                {
+                    ResourceUsageEvent& resource_event = resource_events.emplace_back();
+                    resource_event.render_pass = renderPassHandle;
+                    resource_event.usage_handle = resourceUsageHandle;
+                    resource_event.access = resourceUsage.Usage.access;
+                }
+            }
+        }
+
+        // Build barriers now that we consolidated the successive accesses for each resource
+        for (const auto& resource_events : per_resource_events)
+        {
+            for (u32 i = 1; i < resource_events.size(); i++)
+            {
+                const ResourceUsageEvent& src_resource_event = resource_events[i - 1];
+                const ResourceUsageEvent& dst_resource_event = resource_events[i];
+
+                const ResourceUsage& usage = GetResourceUsage(framegraph, dst_resource_event.usage_handle);
+                Assert(!usage.resource_handle.is_texture
+                           || src_resource_event.access.image_layout != dst_resource_event.access.image_layout,
+                       "Mismatching image layout");
+
+                Barrier& barrier = schedule.barriers.emplace_back();
+                barrier.src = src_resource_event;
+                barrier.dst = dst_resource_event;
+            }
+        }
+    }
+} // namespace
+
 // NOTE: SUPER Trivial scheduling for now, matches user record order.
 // We rely on the fact that render passes are appended in compatible rendering order, which saves our asses.
 // NO fancy multiqueue stuff here. yet.
@@ -108,92 +208,13 @@ FrameGraphSchedule compute_schedule(const FrameGraph& framegraph)
     {
         const RenderPass& renderPass = framegraph.RenderPasses[renderPassIndex];
 
-        if (renderPass.IsUsed)
+        if (renderPass.is_used)
         {
             schedule.queue0.emplace_back(RenderPassHandle(renderPassIndex));
         }
     }
 
-    // Indexed by resource handle
-    std::vector<std::vector<ResourceUsageEvent>> per_resource_events(framegraph.Resources.size());
-
-    // Append resource usage by scheduled execution order
-    for (const auto& renderPassHandle : schedule.queue0)
-    {
-        const RenderPass& renderPass = framegraph.RenderPasses[renderPassHandle];
-
-        for (const auto& resourceUsageHandle : renderPass.ResourceUsageHandles)
-        {
-            const ResourceUsage& resourceUsage = GetResourceUsage(framegraph, resourceUsageHandle);
-            const ResourceHandle resourceHandle = resourceUsage.Resource;
-            const Resource&      resource = GetResource(framegraph, resourceUsage);
-            const bool           is_texture = resource.is_texture;
-
-            Assert(resourceUsage.IsUsed, "Accessing unused resource");
-
-            std::vector<ResourceUsageEvent>& resource_events = per_resource_events[resourceHandle];
-
-            // Assume that the resource WILL be created every frame and we need to transition it out of UNDEFINED layout
-            // FIXME This path is taken for buffers too since I'm too lazy to fix the .back() call just afterwards
-            if (resource_events.empty())
-            {
-                ResourceUsageEvent& initial_usage = resource_events.emplace_back();
-                initial_usage.render_pass = schedule.queue0[0];
-                initial_usage.usage_handle =
-                    resourceUsageHandle; // FIXME it's wrong but it doesn't break the framegraph (yet)
-                initial_usage.access = {VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT, VK_ACCESS_2_NONE,
-                                        VK_IMAGE_LAYOUT_UNDEFINED};
-            }
-
-            ResourceUsageEvent&  previous_resource_event = resource_events.back();
-            const ResourceUsage& previous_resource_usage =
-                GetResourceUsage(framegraph, previous_resource_event.usage_handle);
-
-            // If we are in a multiple-reader situation, merge both accesses at earliest time
-            if (previous_resource_usage.Type == UsageType::RenderPassInput
-                && resourceUsage.Type == UsageType::RenderPassInput)
-            {
-                const GPUResourceAccess old_access = previous_resource_usage.Usage.access;
-                const GPUResourceAccess new_access = resourceUsage.Usage.access;
-
-                Assert(!is_texture || old_access.image_layout == new_access.image_layout,
-                       "Using the same image layout is not supported for now");
-
-                // Patch access to accomodate both readers
-                previous_resource_event.access = {old_access.stage_mask | new_access.stage_mask,
-                                                  old_access.access_mask | new_access.access_mask,
-                                                  old_access.image_layout};
-            }
-            else
-            {
-                ResourceUsageEvent& resource_event = resource_events.emplace_back();
-                resource_event.render_pass = renderPassHandle;
-                resource_event.usage_handle = resourceUsageHandle;
-                resource_event.access = resourceUsage.Usage.access;
-            }
-        }
-    }
-
-    // Build barriers now that we consolidated the successive accesses for each resource
-    for (const auto& resource_events : per_resource_events)
-    {
-        for (u32 i = 1; i < resource_events.size(); i++)
-        {
-            const ResourceUsageEvent& src_resource_event = resource_events[i - 1];
-            const ResourceUsageEvent& dst_resource_event = resource_events[i];
-
-            // All that for asserting
-            const ResourceUsage& usage = GetResourceUsage(framegraph, dst_resource_event.usage_handle);
-            const bool           is_texture = GetResource(framegraph, usage).is_texture;
-
-            Assert(!is_texture || src_resource_event.access.image_layout != dst_resource_event.access.image_layout,
-                   "Mismatching image layout");
-
-            Barrier& barrier = schedule.barriers.emplace_back();
-            barrier.src = src_resource_event;
-            barrier.dst = dst_resource_event;
-        }
-    }
+    place_automatic_barriers(schedule, framegraph);
 
     // We have the complete list of barriers to execute, now
     // let's build the timeline of commands to execute for each pass

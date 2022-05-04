@@ -102,13 +102,13 @@ namespace FrameGraph
                 continue;
 
             const std::string label = fmt::format("{0} ({1})\\n{2}x{3}\\n{4}\\n{5} Cube={6} [{7}]", resource.debug_name,
-                                                  resourceUsage.Resource, desc.width, desc.height,
+                                                  resourceUsage.resource_handle.index, desc.width, desc.height,
                                                   GetFormatToString(PixelFormatToVulkan(desc.format)), desc.sampleCount,
                                                   desc.miscFlags & GPUMiscFlags::Cubemap, resourceUsageIndex);
 
             outResFile << "        res" << resourceUsageIndex << " [label=\"" << label << "\"";
 
-            if (!resourceUsage.IsUsed)
+            if (!resourceUsage.is_used)
                 outResFile << ",fillcolor=\"#BBBBBB\"";
 
             outResFile << "]" << std::endl;
@@ -123,7 +123,7 @@ namespace FrameGraph
 
             output << "        pass" << renderPassIndex << " [label=\"" << label << "\"";
 
-            if (!renderPass.IsUsed)
+            if (!renderPass.is_used)
                 output << ",fillcolor=\"#BBBBBB\"";
             output << "]" << std::endl;
 
@@ -131,7 +131,8 @@ namespace FrameGraph
             {
                 const ResourceUsage& resourceUsage = GetResourceUsage(frameGraph, resourceUsageHandle);
                 if (resourceUsage.Type == UsageType::RenderPassInput)
-                    outRPInput << "        res" << resourceUsage.Parent << " -> pass" << renderPassIndex << std::endl;
+                    outRPInput << "        res" << resourceUsage.parent_usage_handle << " -> pass" << renderPassIndex
+                               << std::endl;
                 else if (resourceUsage.Type == UsageType::RenderPassOutput)
                     outRPOutput << "        pass" << renderPassIndex << " -> res" << resourceUsageHandle << std::endl;
             }
