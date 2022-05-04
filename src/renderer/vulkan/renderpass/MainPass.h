@@ -53,9 +53,10 @@ MainPassResources create_main_pass_resources(ReaperRoot& root, VulkanBackend& ba
 void              destroy_main_pass_resources(VulkanBackend& backend, MainPassResources& resources);
 
 struct MaterialResources;
+struct MeshCache;
 
 void update_main_pass_descriptor_sets(VulkanBackend& backend, const MainPassResources& resources,
-                                      const MaterialResources&        material_resources,
+                                      const MaterialResources& material_resources, const MeshCache& mesh_cache,
                                       const nonstd::span<VkImageView> shadow_map_views);
 
 struct PreparedData;
@@ -65,10 +66,9 @@ void upload_main_pass_frame_resources(VulkanBackend& backend, const PreparedData
 
 struct CommandBuffer;
 struct CullResources;
-struct MeshCache;
 
 void record_main_pass_command_buffer(CommandBuffer& cmdBuffer, VulkanBackend& backend, const PreparedData& prepared,
                                      const MainPassResources& pass_resources, const CullResources& cull_resources,
-                                     const MeshCache& mesh_cache, VkExtent2D backbufferExtent,
-                                     VkImageView hdrBufferView, VkImageView depthBufferView);
+                                     VkExtent2D backbufferExtent, VkImageView hdrBufferView,
+                                     VkImageView depthBufferView);
 } // namespace Reaper

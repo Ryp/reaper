@@ -1,5 +1,6 @@
 #include "lib/base.hlsl"
 #include "lib/indirect_command.hlsl"
+#include "lib/vertex_pull.hlsl"
 
 #include "share/culling.hlsl"
 
@@ -21,7 +22,7 @@ VK_PUSH_CONSTANT() ConstantBuffer<CullPushConstants> consts;
 VK_BINDING(0, 0) ConstantBuffer<CullPassParams> pass_params;
 
 VK_BINDING(1, 0) ByteAddressBuffer Indices;
-VK_BINDING(2, 0) ByteAddressBuffer VertexPositions;
+VK_BINDING(2, 0) ByteAddressBuffer buffer_position_ms;
 VK_BINDING(3, 0) StructuredBuffer<CullMeshInstanceParams> cull_mesh_instance_params;
 
 //------------------------------------------------------------------------------
@@ -53,13 +54,12 @@ void main(/*uint3 gtid : SV_GroupThreadID,*/
     const uint input_triangle_index_offset = consts.firstIndex + dtid.x * 3;
 
     const uint3 indices = Indices.Load3(input_triangle_index_offset * 4);
-    const uint vertex_size_in_bytes = 3 * 4; // FIXME hardcode position vertex size
-    const uint3 indices_with_vertex_offset_bytes = (indices + consts.firstVertex.xxx) * vertex_size_in_bytes;
+    const uint3 indices_with_vertex_offset = (indices + consts.firstVertex.xxx);
 
     // NOTE: We will read out of bounds, this might be wasteful - or even illegal. OOB reads in DirectX11 are defined to return zero, what about Vulkan?
-    const float3 vpos0_ms = asfloat(VertexPositions.Load3(indices_with_vertex_offset_bytes.x));
-    const float3 vpos1_ms = asfloat(VertexPositions.Load3(indices_with_vertex_offset_bytes.y));
-    const float3 vpos2_ms = asfloat(VertexPositions.Load3(indices_with_vertex_offset_bytes.z));
+    const float3 vpos0_ms = pull_position_ms(buffer_position_ms, indices_with_vertex_offset.x);
+    const float3 vpos1_ms = pull_position_ms(buffer_position_ms, indices_with_vertex_offset.y);
+    const float3 vpos2_ms = pull_position_ms(buffer_position_ms, indices_with_vertex_offset.z);
 
     const uint cull_instance_id = consts.firstCullInstance + gid.y;
     const float4x4 ms_to_cs_matrix = cull_mesh_instance_params[cull_instance_id].ms_to_cs_matrix;

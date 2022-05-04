@@ -336,9 +336,10 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
                                                          VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL};
 
     update_culling_pass_descriptor_sets(backend, prepared, resources.cull_resources, resources.mesh_cache);
-    update_shadow_map_pass_descriptor_sets(backend, prepared, resources.shadow_map_resources);
+    update_shadow_map_pass_descriptor_sets(backend, prepared, resources.shadow_map_resources,
+                                           resources.mesh_cache.vertexBufferPosition);
     update_main_pass_descriptor_sets(backend, resources.main_pass_resources, resources.material_resources,
-                                     resources.shadow_map_resources.shadowMapView);
+                                     resources.mesh_cache, resources.shadow_map_resources.shadowMapView);
 
     update_histogram_pass_descriptor_set(
         backend, resources.histogram_pass_resources,
@@ -439,7 +440,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     }
 
     record_shadow_map_command_buffer(cmdBuffer, backend, prepared, resources.shadow_map_resources,
-                                     resources.cull_resources, resources.mesh_cache.vertexBufferPosition.handle);
+                                     resources.cull_resources);
 
     {
         REAPER_PROFILE_SCOPE_GPU(cmdBuffer.mlog, "Barrier", MP_RED);
@@ -464,8 +465,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
                                    true);
 
         record_main_pass_command_buffer(
-            cmdBuffer, backend, prepared, resources.main_pass_resources, resources.cull_resources, resources.mesh_cache,
-            backbufferExtent,
+            cmdBuffer, backend, prepared, resources.main_pass_resources, resources.cull_resources, backbufferExtent,
             get_frame_graph_texture(resources.framegraph_resources, framegraph, main_hdr_usage_handle).view_handle,
             get_frame_graph_texture(resources.framegraph_resources, framegraph, main_depth_create_usage_handle)
                 .view_handle);

@@ -55,12 +55,11 @@ void prepare_shadow_map_objects(ReaperRoot& root, VulkanBackend& backend, const 
 void upload_shadow_map_resources(VulkanBackend& backend, const PreparedData& prepared, ShadowMapResources& resources);
 
 void update_shadow_map_pass_descriptor_sets(VulkanBackend& backend, const PreparedData& prepared,
-                                            ShadowMapResources& pass_resources);
+                                            ShadowMapResources& pass_resources, BufferInfo& vertex_position_buffer);
 
 struct CommandBuffer;
 struct CullResources;
 
 void record_shadow_map_command_buffer(CommandBuffer& cmdBuffer, VulkanBackend& backend, const PreparedData& prepared,
-                                      ShadowMapResources& resources, const CullResources& cull_resources,
-                                      VkBuffer vertex_position_buffer);
+                                      ShadowMapResources& resources, const CullResources& cull_resources);
 } // namespace Reaper

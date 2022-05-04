@@ -37,16 +37,24 @@ namespace
 {
     VkDescriptorSetLayout create_descriptor_set_layout_0(VulkanBackend& backend)
     {
-        std::array<VkDescriptorSetLayoutBinding, 4> descriptorSetLayoutBinding = {
+        std::array<VkDescriptorSetLayoutBinding, 7> descriptorSetLayoutBinding = {
             VkDescriptorSetLayoutBinding{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1,
                                          VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
             VkDescriptorSetLayoutBinding{1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
-            VkDescriptorSetLayoutBinding{2, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
-            VkDescriptorSetLayoutBinding{3, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, ShadowMapMaxCount,
+            VkDescriptorSetLayoutBinding{2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
+            VkDescriptorSetLayoutBinding{3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
+            VkDescriptorSetLayoutBinding{4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
+            VkDescriptorSetLayoutBinding{5, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+            VkDescriptorSetLayoutBinding{6, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, ShadowMapMaxCount,
                                          VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
         };
 
-        std::array<VkDescriptorBindingFlags, 4> bindingFlags = {VK_FLAGS_NONE, VK_FLAGS_NONE, VK_FLAGS_NONE,
+        std::array<VkDescriptorBindingFlags, 7> bindingFlags = {VK_FLAGS_NONE,
+                                                                VK_FLAGS_NONE,
+                                                                VK_FLAGS_NONE,
+                                                                VK_FLAGS_NONE,
+                                                                VK_FLAGS_NONE,
+                                                                VK_FLAGS_NONE,
                                                                 VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT};
 
         const VkDescriptorSetLayoutBindingFlagsCreateInfo descriptorSetLayoutBindingFlags = {
@@ -64,11 +72,17 @@ namespace
     }
 
     void update_descriptor_set_0(VulkanBackend& backend, const MainPassResources& resources,
-                                 const nonstd::span<VkImageView> shadow_map_views)
+                                 const MeshCache& mesh_cache, const nonstd::span<VkImageView> shadow_map_views)
     {
         const VkDescriptorBufferInfo passParams = default_descriptor_buffer_info(resources.drawPassConstantBuffer);
         const VkDescriptorBufferInfo instanceParams =
             default_descriptor_buffer_info(resources.drawInstanceConstantBuffer);
+
+        const VkDescriptorBufferInfo vertexPositionParams =
+            default_descriptor_buffer_info(mesh_cache.vertexBufferPosition);
+        const VkDescriptorBufferInfo vertexNormalParams = default_descriptor_buffer_info(mesh_cache.vertexBufferNormal);
+        const VkDescriptorBufferInfo vertexUVParams = default_descriptor_buffer_info(mesh_cache.vertexBufferUV);
+
         const VkDescriptorImageInfo shadowMapSampler = {resources.shadowMapSampler, VK_NULL_HANDLE,
                                                         VK_IMAGE_LAYOUT_UNDEFINED};
 
@@ -84,7 +98,7 @@ namespace
             VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
             nullptr,
             resources.descriptor_set,
-            3,
+            6,
             0,
             static_cast<u32>(drawDescShadowMaps.size()),
             VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
@@ -97,7 +111,13 @@ namespace
             create_buffer_descriptor_write(resources.descriptor_set, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &passParams),
             create_buffer_descriptor_write(resources.descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                                            &instanceParams),
-            create_image_descriptor_write(resources.descriptor_set, 2, VK_DESCRIPTOR_TYPE_SAMPLER, &shadowMapSampler),
+            create_buffer_descriptor_write(resources.descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                                           &vertexPositionParams),
+            create_buffer_descriptor_write(resources.descriptor_set, 3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                                           &vertexNormalParams),
+            create_buffer_descriptor_write(resources.descriptor_set, 4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                                           &vertexUVParams),
+            create_image_descriptor_write(resources.descriptor_set, 5, VK_DESCRIPTOR_TYPE_SAMPLER, &shadowMapSampler),
             shadowMapBindlessImageWrite};
 
         vkUpdateDescriptorSets(backend.device, static_cast<u32>(writes.size()), writes.data(), 0, nullptr);
@@ -177,61 +197,16 @@ namespace
         vulkan_create_shader_module(blitShaderFS, backend.device, fileNameFS);
         vulkan_create_shader_module(blitShaderVS, backend.device, fileNameVS);
 
-        std::vector<VkVertexInputBindingDescription> vertexInfoShaderBinding = {
-            {
-                0,                          // binding
-                sizeof(hlsl_float3),        // stride
-                VK_VERTEX_INPUT_RATE_VERTEX // input rate
-            },
-            {
-                1,                          // binding
-                sizeof(hlsl_float3),        // stride
-                VK_VERTEX_INPUT_RATE_VERTEX // input rate
-            },
-            {
-                2,                          // binding
-                sizeof(hlsl_float2),        // stride
-                VK_VERTEX_INPUT_RATE_VERTEX // input rate
-            },
-        };
-
-        std::vector<VkVertexInputAttributeDescription> vertexAttributes = {
-            {
-                0,                          // location
-                0,                          // binding
-                VK_FORMAT_R32G32B32_SFLOAT, // format
-                0                           // offset
-            },
-            {
-                1,                          // location
-                1,                          // binding
-                VK_FORMAT_R32G32B32_SFLOAT, // format
-                0                           // offset
-            },
-            {
-                2,                       // location
-                2,                       // binding
-                VK_FORMAT_R32G32_SFLOAT, // format
-                0                        // offset
-            },
-        };
-
         std::vector<VkPipelineShaderStageCreateInfo> blitShaderStages = {
             {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_VERTEX_BIT, blitShaderVS,
              entryPoint, specialization},
             {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_FRAGMENT_BIT,
              blitShaderFS, entryPoint, specialization}};
 
-        VkPipelineVertexInputStateCreateInfo blitVertexInputStateInfo = {
-            VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
-            nullptr,
-            VK_FLAGS_NONE,
-            static_cast<u32>(vertexInfoShaderBinding.size()),
-            vertexInfoShaderBinding.data(),
-            static_cast<u32>(vertexAttributes.size()),
-            vertexAttributes.data()};
+        VkPipelineVertexInputStateCreateInfo vertexInputStateInfo = {
+            VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO, nullptr, VK_FLAGS_NONE, 0, nullptr, 0, nullptr};
 
-        VkPipelineInputAssemblyStateCreateInfo blitInputAssemblyInfo = {
+        VkPipelineInputAssemblyStateCreateInfo inputAssemblyInfo = {
             VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO, nullptr, VK_FLAGS_NONE,
             VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, VK_FALSE};
 
@@ -363,8 +338,8 @@ namespace
                                                                VK_FLAGS_NONE,
                                                                static_cast<u32>(blitShaderStages.size()),
                                                                blitShaderStages.data(),
-                                                               &blitVertexInputStateInfo,
-                                                               &blitInputAssemblyInfo,
+                                                               &vertexInputStateInfo,
+                                                               &inputAssemblyInfo,
                                                                nullptr,
                                                                &blitViewportStateInfo,
                                                                &blitRasterStateInfo,
@@ -512,10 +487,10 @@ void destroy_main_pass_resources(VulkanBackend& backend, MainPassResources& reso
 }
 
 void update_main_pass_descriptor_sets(VulkanBackend& backend, const MainPassResources& resources,
-                                      const MaterialResources&        material_resources,
+                                      const MaterialResources& material_resources, const MeshCache& mesh_cache,
                                       const nonstd::span<VkImageView> shadow_map_views)
 {
-    update_descriptor_set_0(backend, resources, shadow_map_views);
+    update_descriptor_set_0(backend, resources, mesh_cache, shadow_map_views);
     update_descriptor_set_1(backend, resources, material_resources);
 }
 
@@ -531,8 +506,8 @@ void upload_main_pass_frame_resources(VulkanBackend& backend, const PreparedData
 
 void record_main_pass_command_buffer(CommandBuffer& cmdBuffer, VulkanBackend& backend, const PreparedData& prepared,
                                      const MainPassResources& pass_resources, const CullResources& cull_resources,
-                                     const MeshCache& mesh_cache, VkExtent2D backbufferExtent,
-                                     VkImageView hdrBufferView, VkImageView depthBufferView)
+                                     VkExtent2D backbufferExtent, VkImageView hdrBufferView,
+                                     VkImageView depthBufferView)
 {
     REAPER_PROFILE_SCOPE_GPU(cmdBuffer.mlog, "Main Pass", MP_DARKGOLDENROD);
 
@@ -588,20 +563,7 @@ void record_main_pass_command_buffer(CommandBuffer& cmdBuffer, VulkanBackend& ba
     vkCmdSetViewport(cmdBuffer.handle, 0, 1, &blitViewport);
     vkCmdSetScissor(cmdBuffer.handle, 0, 1, &blitPassRect);
 
-    std::vector<VkBuffer> vertexBuffers = {
-        mesh_cache.vertexBufferPosition.handle,
-        mesh_cache.vertexBufferNormal.handle,
-        mesh_cache.vertexBufferUV.handle,
-    };
-    std::vector<VkDeviceSize> vertexBufferOffsets = {
-        0,
-        0,
-        0,
-    };
-    Assert(vertexBuffers.size() == vertexBufferOffsets.size());
     vkCmdBindIndexBuffer(cmdBuffer.handle, cull_resources.dynamicIndexBuffer.handle, 0, get_vk_culling_index_type());
-    vkCmdBindVertexBuffers(cmdBuffer.handle, 0, static_cast<u32>(vertexBuffers.size()), vertexBuffers.data(),
-                           vertexBufferOffsets.data());
 
     std::array<VkDescriptorSet, 2> main_pass_descriptors = {
         pass_resources.descriptor_set,

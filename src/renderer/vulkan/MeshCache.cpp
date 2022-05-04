@@ -30,14 +30,16 @@ MeshCache create_mesh_cache(ReaperRoot& root, VulkanBackend& backend)
                       DefaultGPUBufferProperties(MeshCache::MAX_VERTEX_COUNT, 3 * sizeof(float),
                                                  GPUBufferUsage::VertexBuffer | GPUBufferUsage::StorageBuffer),
                       backend.vma_instance);
-    cache.vertexBufferNormal = create_buffer(
-        root, backend.device, "Normal buffer",
-        DefaultGPUBufferProperties(MeshCache::MAX_VERTEX_COUNT, 3 * sizeof(float), GPUBufferUsage::VertexBuffer),
-        backend.vma_instance);
-    cache.vertexBufferUV = create_buffer(
-        root, backend.device, "UV buffer",
-        DefaultGPUBufferProperties(MeshCache::MAX_VERTEX_COUNT, 2 * sizeof(float), GPUBufferUsage::VertexBuffer),
-        backend.vma_instance);
+    cache.vertexBufferNormal =
+        create_buffer(root, backend.device, "Normal buffer",
+                      DefaultGPUBufferProperties(MeshCache::MAX_VERTEX_COUNT, 3 * sizeof(float),
+                                                 GPUBufferUsage::VertexBuffer | GPUBufferUsage::StorageBuffer),
+                      backend.vma_instance);
+    cache.vertexBufferUV =
+        create_buffer(root, backend.device, "UV buffer",
+                      DefaultGPUBufferProperties(MeshCache::MAX_VERTEX_COUNT, 2 * sizeof(float),
+                                                 GPUBufferUsage::VertexBuffer | GPUBufferUsage::StorageBuffer),
+                      backend.vma_instance);
     cache.indexBuffer = create_buffer(
         root, backend.device, "Index buffer",
         DefaultGPUBufferProperties(MeshCache::MAX_INDEX_COUNT, sizeof(int), GPUBufferUsage::StorageBuffer),

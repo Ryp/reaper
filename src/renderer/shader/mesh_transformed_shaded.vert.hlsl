@@ -1,15 +1,19 @@
 #include "lib/base.hlsl"
+#include "lib/vertex_pull.hlsl"
 
 #include "share/draw.hlsl"
 
 VK_BINDING(0, 0) ConstantBuffer<DrawPassParams> pass_params;
 VK_BINDING(1, 0) StructuredBuffer<DrawInstanceParams> instance_params;
 
+VK_BINDING(2, 0) ByteAddressBuffer buffer_position_ms;
+VK_BINDING(3, 0) ByteAddressBuffer buffer_normal_ms;
+VK_BINDING(4, 0) ByteAddressBuffer buffer_uv;
+
 struct VS_INPUT
 {
-    float3 PositionMS   : TEXCOORD0;
-    float3 NormalMS     : TEXCOORD1;
-    float2 UV           : TEXCOORD2;
+    uint vertex_id : SV_VertexID;
+    uint instance_id : SV_InstanceID;
 };
 
 struct VS_OUTPUT
@@ -22,19 +26,22 @@ struct VS_OUTPUT
     nointerpolation uint texture_index : TEXCOORD4;
 };
 
-void main(in VS_INPUT input, uint instance_id : SV_InstanceID, out VS_OUTPUT output)
+void main(in VS_INPUT input, out VS_OUTPUT output)
 {
-    const DrawInstanceParams instance_data = instance_params[instance_id];
+    const float3 position_ms = pull_position_ms(buffer_position_ms, input.vertex_id);
+    const float3 normal_ms = pull_normal_ms(buffer_normal_ms, input.vertex_id);
+    const float2 uv = pull_uv(buffer_uv, input.vertex_id);
 
-    const float3 positionMS = input.PositionMS;
-    const float3 positionWS = mul(instance_data.ms_to_ws_matrix, float4(positionMS, 1.0));
-    const float3 positionVS = mul(pass_params.ws_to_vs_matrix, float4(positionWS, 1.0));
-    const float4 positionCS = mul(pass_params.vs_to_cs_matrix, float4(positionVS, 1.0));
+    const DrawInstanceParams instance_data = instance_params[input.instance_id];
 
-    output.PositionCS = positionCS;
-    output.PositionVS = positionVS;
-    output.NormalVS = normalize(mul(instance_data.normal_ms_to_vs_matrix, input.NormalMS));
-    output.UV = input.UV;
-    output.PositionWS = positionWS;
+    const float3 position_ws = mul(instance_data.ms_to_ws_matrix, float4(position_ms, 1.0));
+    const float3 position_vs = mul(pass_params.ws_to_vs_matrix, float4(position_ws, 1.0));
+    const float4 position_cs = mul(pass_params.vs_to_cs_matrix, float4(position_vs, 1.0));
+
+    output.PositionCS = position_cs;
+    output.PositionVS = position_vs;
+    output.NormalVS = normalize(mul(instance_data.normal_ms_to_vs_matrix, normal_ms));
+    output.UV = uv;
+    output.PositionWS = position_ws;
     output.texture_index = instance_data.texture_index;
 }
