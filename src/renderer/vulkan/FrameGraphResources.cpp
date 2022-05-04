@@ -91,7 +91,7 @@ void allocate_framegraph_volatile_resources(ReaperRoot& root, VulkanBackend& bac
     for (u32 index = 0; index < framegraph.ResourceUsages.size(); index++)
     {
         const ResourceUsage& usage = framegraph.ResourceUsages[index];
-        const Resource&      resource = framegraph.Resources[usage.Resource];
+        const Resource&      resource = GetResource(framegraph, usage);
 
         if (resource.is_texture && usage.IsUsed)
         {

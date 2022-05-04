@@ -10,12 +10,6 @@ const ResourceUsage& GetResourceUsage(const FrameGraph& framegraph, ResourceUsag
     return framegraph.ResourceUsages[resourceUsageHandle];
 }
 
-ResourceHandle GetResourceHandle(const FrameGraph& framegraph, ResourceUsageHandle resourceUsageHandle)
-{
-    Assert(resourceUsageHandle != InvalidResourceUsageHandle, "Invalid resource usage handle");
-    return GetResourceUsage(framegraph, resourceUsageHandle).Resource;
-}
-
 const Resource& GetResource(const FrameGraph& framegraph, const ResourceUsage& resourceUsage)
 {
     Assert(resourceUsage.Resource != InvalidResourceHandle, "Invalid resource handle");
@@ -189,8 +183,8 @@ FrameGraphSchedule compute_schedule(const FrameGraph& framegraph)
             const ResourceUsageEvent& dst_resource_event = resource_events[i];
 
             // All that for asserting
-            const ResourceHandle resource_handle = GetResourceHandle(framegraph, dst_resource_event.usage_handle);
-            const bool           is_texture = framegraph.Resources[resource_handle].is_texture;
+            const ResourceUsage& usage = GetResourceUsage(framegraph, dst_resource_event.usage_handle);
+            const bool           is_texture = GetResource(framegraph, usage).is_texture;
 
             Assert(!is_texture || src_resource_event.access.image_layout != dst_resource_event.access.image_layout,
                    "Mismatching image layout");

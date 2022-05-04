@@ -65,7 +65,7 @@ namespace
 
             const Barrier&       barrier = schedule.barriers[event.barrier_handle];
             const ResourceUsage& src_usage = framegraph.ResourceUsages[barrier.src.usage_handle];
-            const Resource&      resource = framegraph.Resources[src_usage.Resource];
+            const Resource&      resource = GetResource(framegraph, src_usage);
 
             const char* resource_name = resource.debug_name;
             log_warning(root, "framegraph: pass '{}', resource '{}', barrier type = '{}'", render_pass_name,

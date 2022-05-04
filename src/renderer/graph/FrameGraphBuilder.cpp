@@ -271,7 +271,7 @@ namespace
             if (!resourceUsage.IsUsed)
                 continue;
 
-            Resource& resource = frameGraph.Resources[resourceUsage.Resource];
+            Resource& resource = GetResource(frameGraph, resourceUsage);
             resource.IsUsed = true;
         }
     }

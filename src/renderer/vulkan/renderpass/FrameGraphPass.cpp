@@ -35,7 +35,7 @@ void record_framegraph_barriers(CommandBuffer& cmdBuffer, const FrameGraph::Fram
         std::vector<VkBufferMemoryBarrier2> bufferBarriers;
 
         const ResourceUsage& dst_usage = GetResourceUsage(framegraph, barrier.dst.usage_handle);
-        const Resource&      resource = framegraph.Resources[dst_usage.Resource];
+        const Resource&      resource = GetResource(framegraph, dst_usage);
 
         if (resource.is_texture)
         {

@@ -94,7 +94,7 @@ namespace FrameGraph
         for (u32 resourceUsageIndex = 0; resourceUsageIndex < resourceUsageCount; resourceUsageIndex++)
         {
             const ResourceUsage&        resourceUsage = frameGraph.ResourceUsages[resourceUsageIndex];
-            const Resource&             resource = frameGraph.Resources[resourceUsage.Resource];
+            const Resource&             resource = GetResource(frameGraph, resourceUsage);
             const GPUTextureProperties& desc = resource.properties.texture;
 
             // Instead of skipping a node, add the hidden info to the corresponding edge
