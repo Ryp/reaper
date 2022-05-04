@@ -11,7 +11,7 @@
 int float_to_snorm(float v, uint bits)
 {
     float v_clamp = max(min(v, 1.0), -1.0);
-    uint max_value = (1 << (bits - 1)) - 1;
+    uint max_value = (1u << (bits - 1)) - 1;
 
     return (int)trunc(v_clamp * max_value + (v_clamp >= 0.f ? 0.5f : -0.5f));
 }

@@ -83,7 +83,7 @@ namespace
 
 bool vulkan_process_window_events(ReaperRoot& root, VulkanBackend& backend, IWindow* window)
 {
-    log_info(root, "window: pump events");
+    log_debug(root, "window: pump events");
 
     std::vector<Window::Event> events;
     window->pumpEvents(events);
