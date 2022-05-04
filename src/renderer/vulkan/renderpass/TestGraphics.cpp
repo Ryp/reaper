@@ -385,8 +385,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         const VkDependencyInfo dependencies =
             get_vk_image_barrier_depency_info(static_cast<u32>(imageBarriers.size()), imageBarriers.data());
 
-        vkCmdSetEvent2(cmdBuffer.handle, resources.event, &dependencies);
-        vkCmdWaitEvents2(cmdBuffer.handle, 1, &resources.event, &dependencies);
+        vkCmdPipelineBarrier2(cmdBuffer.handle, &dependencies);
     }
 
     if (backend.mustTransitionSwapchain)
@@ -414,8 +413,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         const VkDependencyInfo dependencies =
             get_vk_image_barrier_depency_info(static_cast<u32>(imageBarriers.size()), imageBarriers.data());
 
-        vkCmdSetEvent2(cmdBuffer.handle, resources.event, &dependencies);
-        vkCmdWaitEvents2(cmdBuffer.handle, 1, &resources.event, &dependencies);
+        vkCmdPipelineBarrier2(cmdBuffer.handle, &dependencies);
 
         backend.mustTransitionSwapchain = false;
     }
@@ -437,8 +435,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         const VkDependencyInfo dependencies =
             get_vk_image_barrier_depency_info(static_cast<u32>(imageBarriers.size()), imageBarriers.data());
 
-        vkCmdSetEvent2(cmdBuffer.handle, resources.event, &dependencies);
-        vkCmdWaitEvents2(cmdBuffer.handle, 1, &resources.event, &dependencies);
+        vkCmdPipelineBarrier2(cmdBuffer.handle, &dependencies);
     }
 
     record_shadow_map_command_buffer(cmdBuffer, backend, prepared, resources.shadow_map_resources,
@@ -459,8 +456,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         const VkDependencyInfo dependencies =
             get_vk_image_barrier_depency_info(static_cast<u32>(imageBarriers.size()), imageBarriers.data());
 
-        vkCmdSetEvent2(cmdBuffer.handle, resources.event, &dependencies);
-        vkCmdWaitEvents2(cmdBuffer.handle, 1, &resources.event, &dependencies);
+        vkCmdPipelineBarrier2(cmdBuffer.handle, &dependencies);
     }
 
     {
