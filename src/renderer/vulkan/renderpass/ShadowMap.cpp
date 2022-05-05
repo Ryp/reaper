@@ -279,12 +279,6 @@ ShadowMapResources create_shadow_map_resources(ReaperRoot& root, VulkanBackend& 
 
 void destroy_shadow_map_resources(VulkanBackend& backend, ShadowMapResources& resources)
 {
-    for (u32 i = 0; i < resources.shadowMap.size(); i++)
-    {
-        vmaDestroyImage(backend.vma_instance, resources.shadowMap[i].handle, resources.shadowMap[i].allocation);
-        vkDestroyImageView(backend.device, resources.shadowMapView[i], nullptr);
-    }
-
     vmaDestroyBuffer(backend.vma_instance, resources.passConstantBuffer.handle,
                      resources.passConstantBuffer.allocation);
     vmaDestroyBuffer(backend.vma_instance, resources.instanceConstantBuffer.handle,
@@ -295,34 +289,6 @@ void destroy_shadow_map_resources(VulkanBackend& backend, ShadowMapResources& re
     vkDestroyDescriptorSetLayout(backend.device, resources.pipe.descSetLayout, nullptr);
 }
 
-void prepare_shadow_map_objects(ReaperRoot& root, VulkanBackend& backend, const PreparedData& prepared,
-                                ShadowMapResources& pass_resources)
-{
-    for (u32 i = 0; i < pass_resources.shadowMap.size(); i++)
-    {
-        vmaDestroyImage(backend.vma_instance, pass_resources.shadowMap[i].handle,
-                        pass_resources.shadowMap[i].allocation);
-        vkDestroyImageView(backend.device, pass_resources.shadowMapView[i], nullptr);
-    }
-
-    pass_resources.shadowMap.clear();
-    pass_resources.shadowMapView.clear();
-    for (const ShadowPassData& shadow_pass : prepared.shadow_passes)
-    {
-        GPUTextureProperties texture_properties =
-            DefaultGPUTextureProperties(shadow_pass.shadow_map_size.x, shadow_pass.shadow_map_size.y, ShadowMapFormat);
-        texture_properties.usage_flags =
-            GPUTextureUsage::DepthStencilAttachment | GPUTextureUsage::InputAttachment | GPUTextureUsage::Sampled;
-
-        ImageInfo& shadow_map = pass_resources.shadowMap.emplace_back();
-
-        shadow_map = create_image(root, backend.device, "Shadow Map", texture_properties, backend.vma_instance);
-
-        const GPUTextureView default_view = DefaultGPUTextureView(texture_properties);
-        pass_resources.shadowMapView.push_back(create_image_view(root, backend.device, shadow_map, default_view));
-    }
-}
-
 void update_shadow_map_pass_descriptor_sets(VulkanBackend& backend, const PreparedData& prepared,
                                             ShadowMapResources& pass_resources, BufferInfo& vertex_position_buffer)
 {
@@ -330,6 +296,23 @@ void update_shadow_map_pass_descriptor_sets(VulkanBackend& backend, const Prepar
     {
         update_shadow_map_pass_descriptor_set(backend, pass_resources, shadow_pass, vertex_position_buffer);
     }
+}
+
+std::vector<GPUTextureProperties> fill_shadow_map_properties(const PreparedData& prepared)
+{
+    std::vector<GPUTextureProperties> shadow_map_properties;
+
+    for (const ShadowPassData& shadow_pass : prepared.shadow_passes)
+    {
+        GPUTextureProperties properties =
+            DefaultGPUTextureProperties(shadow_pass.shadow_map_size.x, shadow_pass.shadow_map_size.y, ShadowMapFormat);
+        properties.usage_flags =
+            GPUTextureUsage::DepthStencilAttachment | GPUTextureUsage::InputAttachment | GPUTextureUsage::Sampled;
+
+        shadow_map_properties.emplace_back(properties);
+    }
+
+    return shadow_map_properties;
 }
 
 void upload_shadow_map_resources(VulkanBackend& backend, const PreparedData& prepared, ShadowMapResources& resources)
@@ -344,13 +327,14 @@ void upload_shadow_map_resources(VulkanBackend& backend, const PreparedData& pre
 }
 
 void record_shadow_map_command_buffer(CommandBuffer& cmdBuffer, VulkanBackend& backend, const PreparedData& prepared,
-                                      ShadowMapResources& resources, const CullResources& cull_resources)
+                                      ShadowMapResources& resources, const nonstd::span<VkImageView> shadow_map_views,
+                                      const CullResources& cull_resources)
 {
     for (const ShadowPassData& shadow_pass : prepared.shadow_passes)
     {
         REAPER_PROFILE_SCOPE_GPU(cmdBuffer.mlog, "Shadow Pass", MP_DARKGOLDENROD);
 
-        const VkImageView  shadowMapView = resources.shadowMapView[shadow_pass.pass_index];
+        const VkImageView  shadowMapView = shadow_map_views[shadow_pass.pass_index];
         const VkExtent2D   output_extent = {shadow_pass.shadow_map_size.x, shadow_pass.shadow_map_size.y};
         const VkRect2D     pass_rect = default_vk_rect(output_extent);
         const VkClearValue shadowMapClearValue =

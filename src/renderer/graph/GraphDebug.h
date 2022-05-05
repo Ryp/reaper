@@ -8,10 +8,7 @@ const char* GetLoadOpString(ELoadOp loadOp);
 const char* GetStoreOpString(EStoreOp storeOp);
 const char* GetImageLayoutString(EImageLayout layout);
 const char* GetFormatString(PixelFormat format);
-} // namespace Reaper
 
-namespace Reaper
-{
 namespace FrameGraph
 {
     struct FrameGraph;

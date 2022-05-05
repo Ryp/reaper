@@ -28,6 +28,7 @@
 #include "renderer/window/Window.h"
 
 #include "renderer/graph/FrameGraphBuilder.h"
+#include "renderer/graph/GraphDebug.h"
 
 #include "common/Log.h"
 #include "common/ReaperRoot.h"
@@ -204,8 +205,6 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     // FIXME Recreate the swapchain pipeline every frame
     reload_swapchain_pipeline(root, backend, resources.swapchain_pass_resources);
 
-    prepare_shadow_map_objects(root, backend, prepared, resources.shadow_map_resources);
-
     upload_culling_resources(backend, prepared, resources.cull_resources);
     upload_shadow_map_resources(backend, prepared, resources.shadow_map_resources);
     upload_main_pass_frame_resources(backend, prepared, resources.main_pass_resources);
@@ -219,16 +218,34 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     Builder builder(framegraph);
 
+    // Shadow
+    const RenderPassHandle shadow_pass_handle = builder.create_render_pass("Shadow");
+
+    std::vector<GPUTextureProperties> shadow_map_properties = fill_shadow_map_properties(prepared);
+    std::vector<ResourceUsageHandle>  shadow_map_creation_usage_handles;
+    for (const GPUTextureProperties& properties : shadow_map_properties)
+    {
+        GPUResourceUsage shadow_map_usage = {};
+        shadow_map_usage.access = {VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT,
+                                   VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL};
+        shadow_map_usage.texture_view = DefaultGPUTextureView(properties);
+
+        const ResourceUsageHandle usage_handle =
+            builder.create_texture(shadow_pass_handle, "Shadow map", properties, shadow_map_usage);
+
+        shadow_map_creation_usage_handles.push_back(usage_handle);
+    }
+
     // Main
     const RenderPassHandle main_pass_handle = builder.create_render_pass("Forward");
 
     GPUTextureProperties scene_hdr_properties =
         DefaultGPUTextureProperties(backbufferExtent.width, backbufferExtent.height, MainHDRColorFormat);
-    scene_hdr_properties.usage_flags = GPUTextureUsage::ColorAttachment | GPUTextureUsage::Sampled; // FIXME deduced?
+    scene_hdr_properties.usage_flags = GPUTextureUsage::ColorAttachment | GPUTextureUsage::Sampled;
 
     GPUTextureProperties scene_depth_properties =
         DefaultGPUTextureProperties(backbufferExtent.width, backbufferExtent.height, MainDepthFormat);
-    scene_depth_properties.usage_flags = GPUTextureUsage::DepthStencilAttachment; // FIXME deduced?
+    scene_depth_properties.usage_flags = GPUTextureUsage::DepthStencilAttachment;
 
     const GPUResourceAccess scene_hdr_access_main_pass = {VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
                                                           VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
@@ -249,6 +266,19 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     const ResourceUsageHandle main_depth_create_usage_handle =
         builder.create_texture(main_pass_handle, "Scene Depth", scene_depth_properties, scene_depth_texture_usage);
+
+    std::vector<ResourceUsageHandle> shadow_map_main_usage_handles;
+    for (u32 shadow_map_index = 0; shadow_map_index < shadow_map_properties.size(); shadow_map_index++)
+    {
+        GPUResourceUsage shadow_map_usage = {};
+        shadow_map_usage.access = {VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
+                                   VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL};
+        shadow_map_usage.texture_view = DefaultGPUTextureView(shadow_map_properties[shadow_map_index]);
+
+        const ResourceUsageHandle usage_handle = builder.read_texture(
+            main_pass_handle, shadow_map_creation_usage_handles[shadow_map_index], shadow_map_usage);
+        shadow_map_main_usage_handles.push_back(usage_handle);
+    }
 
     // GUI
     const RenderPassHandle gui_pass_handle = builder.create_render_pass("GUI");
@@ -319,27 +349,28 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     builder.build();
 
+    FrameGraph::DumpFrameGraph(framegraph);
+
     const FrameGraphSchedule schedule = compute_schedule(framegraph);
 
     log_barriers(root, framegraph, schedule);
 
     allocate_framegraph_volatile_resources(root, backend, resources.framegraph_resources, framegraph);
 
-    const GPUResourceAccess src_undefined = {VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT, VK_ACCESS_2_NONE,
-                                             VK_IMAGE_LAYOUT_UNDEFINED};
-
-    const GPUResourceAccess shadow_access_main_pass = {VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
-                                                       VK_ACCESS_2_SHADER_READ_BIT, VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL};
-
-    const GPUResourceAccess shadow_access_shadow_pass = {VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT,
-                                                         VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
-                                                         VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL};
-
     update_culling_pass_descriptor_sets(backend, prepared, resources.cull_resources, resources.mesh_cache);
+
     update_shadow_map_pass_descriptor_sets(backend, prepared, resources.shadow_map_resources,
                                            resources.mesh_cache.vertexBufferPosition);
+
+    std::vector<VkImageView> shadow_map_views;
+    for (auto handle : shadow_map_creation_usage_handles)
+    {
+        shadow_map_views.emplace_back(
+            get_frame_graph_texture(resources.framegraph_resources, framegraph, handle).view_handle);
+    }
+
     update_main_pass_descriptor_sets(backend, resources.main_pass_resources, resources.material_resources,
-                                     resources.mesh_cache, resources.shadow_map_resources.shadowMapView);
+                                     resources.mesh_cache, shadow_map_views);
 
     update_histogram_pass_descriptor_set(
         backend, resources.histogram_pass_resources,
@@ -370,25 +401,6 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     record_material_upload_command_buffer(resources.material_resources.staging, cmdBuffer);
 
-    {
-        // FIXME Right now we recreate shadow maps every frame
-        REAPER_PROFILE_SCOPE_GPU(cmdBuffer.mlog, "Barrier", MP_RED);
-
-        std::vector<VkImageMemoryBarrier2> imageBarriers;
-
-        for (ImageInfo& shadow_map : resources.shadow_map_resources.shadowMap)
-        {
-            imageBarriers.emplace_back(get_vk_image_barrier(shadow_map.handle,
-                                                            DefaultGPUTextureView(shadow_map.properties), src_undefined,
-                                                            shadow_access_main_pass));
-        }
-
-        const VkDependencyInfo dependencies =
-            get_vk_image_barrier_depency_info(static_cast<u32>(imageBarriers.size()), imageBarriers.data());
-
-        vkCmdPipelineBarrier2(cmdBuffer.handle, &dependencies);
-    }
-
     if (backend.mustTransitionSwapchain)
     {
         REAPER_PROFILE_SCOPE_GPU(cmdBuffer.mlog, "Barrier", MP_RED);
@@ -398,8 +410,10 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         for (u32 swapchainImageIndex = 0; swapchainImageIndex < static_cast<u32>(backend.presentInfo.images.size());
              swapchainImageIndex++)
         {
-            const GPUResourceAccess dst = {VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT, VK_ACCESS_2_MEMORY_READ_BIT,
-                                           VK_IMAGE_LAYOUT_PRESENT_SRC_KHR};
+            const GPUResourceAccess src_undefined = {VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT, VK_ACCESS_2_NONE,
+                                                     VK_IMAGE_LAYOUT_UNDEFINED};
+            const GPUResourceAccess dst_access = {VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT, VK_ACCESS_2_MEMORY_READ_BIT,
+                                                  VK_IMAGE_LAYOUT_PRESENT_SRC_KHR};
 
             GPUTextureView view = {};
             // view.format;
@@ -408,7 +422,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
             view.layerCount = 1;
 
             imageBarriers.emplace_back(
-                get_vk_image_barrier(backend.presentInfo.images[swapchainImageIndex], view, src_undefined, dst));
+                get_vk_image_barrier(backend.presentInfo.images[swapchainImageIndex], view, src_undefined, dst_access));
         }
 
         const VkDependencyInfo dependencies =
@@ -422,42 +436,14 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     record_culling_command_buffer(backend.options.freeze_culling, cmdBuffer, prepared, resources.cull_resources);
 
     {
-        REAPER_PROFILE_SCOPE_GPU(cmdBuffer.mlog, "Barrier", MP_RED);
+        record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources, shadow_pass_handle,
+                                   true);
 
-        std::vector<VkImageMemoryBarrier2> imageBarriers;
+        record_shadow_map_command_buffer(cmdBuffer, backend, prepared, resources.shadow_map_resources, shadow_map_views,
+                                         resources.cull_resources);
 
-        for (ImageInfo& shadow_map : resources.shadow_map_resources.shadowMap)
-        {
-            imageBarriers.emplace_back(get_vk_image_barrier(shadow_map.handle,
-                                                            DefaultGPUTextureView(shadow_map.properties),
-                                                            shadow_access_main_pass, shadow_access_shadow_pass));
-        }
-
-        const VkDependencyInfo dependencies =
-            get_vk_image_barrier_depency_info(static_cast<u32>(imageBarriers.size()), imageBarriers.data());
-
-        vkCmdPipelineBarrier2(cmdBuffer.handle, &dependencies);
-    }
-
-    record_shadow_map_command_buffer(cmdBuffer, backend, prepared, resources.shadow_map_resources,
-                                     resources.cull_resources);
-
-    {
-        REAPER_PROFILE_SCOPE_GPU(cmdBuffer.mlog, "Barrier", MP_RED);
-
-        std::vector<VkImageMemoryBarrier2> imageBarriers;
-
-        for (ImageInfo& shadow_map : resources.shadow_map_resources.shadowMap)
-        {
-            imageBarriers.emplace_back(get_vk_image_barrier(shadow_map.handle,
-                                                            DefaultGPUTextureView(shadow_map.properties),
-                                                            shadow_access_shadow_pass, shadow_access_main_pass));
-        }
-
-        const VkDependencyInfo dependencies =
-            get_vk_image_barrier_depency_info(static_cast<u32>(imageBarriers.size()), imageBarriers.data());
-
-        vkCmdPipelineBarrier2(cmdBuffer.handle, &dependencies);
+        record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources, shadow_pass_handle,
+                                   false);
     }
 
     {
