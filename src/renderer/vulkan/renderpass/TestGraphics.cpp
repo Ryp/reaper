@@ -409,8 +409,6 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     MICROPROFILE_GPU_BEGIN(cmdBuffer.handle, cmdBuffer.mlog);
 #endif
 
-    record_material_upload_command_buffer(resources.material_resources.staging, cmdBuffer);
-
     if (backend.mustTransitionSwapchain)
     {
         REAPER_PROFILE_SCOPE_GPU(cmdBuffer.mlog, "Barrier", MP_RED);
@@ -443,9 +441,18 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         backend.mustTransitionSwapchain = false;
     }
 
-    record_culling_command_buffer(backend.options.freeze_culling, cmdBuffer, prepared, resources.cull_resources);
+    {
+        VulkanDebugLabelCmdBufferScope s(cmdBuffer.handle, "Material upload");
+        record_material_upload_command_buffer(resources.material_resources.staging, cmdBuffer);
+    }
 
     {
+        VulkanDebugLabelCmdBufferScope s(cmdBuffer.handle, "Culling");
+        record_culling_command_buffer(backend.options.freeze_culling, cmdBuffer, prepared, resources.cull_resources);
+    }
+
+    {
+        VulkanDebugLabelCmdBufferScope s(cmdBuffer.handle, "Shadow");
         record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources, shadow_pass_handle,
                                    true);
 
@@ -457,6 +464,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     }
 
     {
+        VulkanDebugLabelCmdBufferScope s(cmdBuffer.handle, "Forward");
         record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources, main_pass_handle,
                                    true);
 
@@ -471,6 +479,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     }
 
     {
+        VulkanDebugLabelCmdBufferScope s(cmdBuffer.handle, "GUI");
         record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources, gui_pass_handle,
                                    true);
 
@@ -483,6 +492,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     }
 
     {
+        VulkanDebugLabelCmdBufferScope s(cmdBuffer.handle, "Histogram Clear");
         record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
                                    histogram_clear_pass_handle, true);
 
@@ -498,6 +508,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     }
 
     {
+        VulkanDebugLabelCmdBufferScope s(cmdBuffer.handle, "Histogram");
         record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
                                    histogram_pass_handle, true);
 
@@ -508,6 +519,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     }
 
     {
+        VulkanDebugLabelCmdBufferScope s(cmdBuffer.handle, "Swapchain");
         record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
                                    swapchain_pass_handle, true);
 
@@ -518,7 +530,10 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
                                    swapchain_pass_handle, false);
     }
 
-    record_audio_command_buffer(cmdBuffer, prepared, resources.audio_resources);
+    {
+        VulkanDebugLabelCmdBufferScope s(cmdBuffer.handle, "Audio");
+        record_audio_command_buffer(cmdBuffer, prepared, resources.audio_resources);
+    }
 
 #if defined(REAPER_USE_MICROPROFILE)
     const u64 microprofile_data = MicroProfileGpuEnd(cmdBuffer.mlog);
