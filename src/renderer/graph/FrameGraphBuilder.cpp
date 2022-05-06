@@ -1,3 +1,10 @@
+////////////////////////////////////////////////////////////////////////////////
+/// Reaper
+///
+/// Copyright (c) 2015-2022 Thibault Schueller
+/// This file is distributed under the MIT License
+////////////////////////////////////////////////////////////////////////////////
+
 #include "FrameGraphBuilder.h"
 
 #include "GraphDebug.h"
@@ -27,7 +34,7 @@ ResourceHandle Builder::create_resource(const char* debug_name, const GPUResourc
     return new_handle;
 }
 
-ResourceUsageHandle Builder::create_resource_usage(UsageType           usageType,
+ResourceUsageHandle Builder::create_resource_usage(u32                 usageType,
                                                    RenderPassHandle    renderPassHandle,
                                                    ResourceHandle      resourceHandle,
                                                    GPUResourceUsage    resourceUsage,
@@ -53,7 +60,7 @@ ResourceUsageHandle Builder::create_resource_generic(RenderPassHandle renderPass
     Assert(is_valid(resourceHandle), "Invalid resource handle");
 
     const ResourceUsageHandle resourceUsageHandle = create_resource_usage(
-        UsageType::RenderPassOutput, renderPassHandle, resourceHandle, resource_usage, InvalidResourceUsageHandle);
+        UsageType::Output, renderPassHandle, resourceHandle, resource_usage, InvalidResourceUsageHandle);
 
     RenderPass& renderPass = m_Graph.RenderPasses[renderPassHandle];
     renderPass.ResourceUsageHandles.push_back(resourceUsageHandle);
@@ -68,8 +75,8 @@ ResourceUsageHandle Builder::read_resource_generic(RenderPassHandle    renderPas
     const ResourceHandle resourceHandle = GetResourceUsage(m_Graph, inputUsageHandle).resource_handle;
     Assert(is_valid(resourceHandle), "Invalid resource handle");
 
-    const ResourceUsageHandle resourceUsageHandle = create_resource_usage(
-        UsageType::RenderPassInput, renderPassHandle, resourceHandle, resource_usage, inputUsageHandle);
+    const ResourceUsageHandle resourceUsageHandle =
+        create_resource_usage(UsageType::Input, renderPassHandle, resourceHandle, resource_usage, inputUsageHandle);
 
     RenderPass& renderPass = m_Graph.RenderPasses[renderPassHandle];
     renderPass.ResourceUsageHandles.push_back(resourceUsageHandle);
@@ -81,15 +88,11 @@ ResourceUsageHandle Builder::write_resource_generic(RenderPassHandle    renderPa
                                                     ResourceUsageHandle inputUsageHandle,
                                                     GPUResourceUsage    resource_usage)
 {
-    // FIXME do something about the texture usage
-    const GPUResourceUsage    read_usage = {};
-    const ResourceUsageHandle readUsageHandle = read_texture(renderPassHandle, inputUsageHandle, read_usage);
-
     const ResourceHandle resourceHandle = GetResourceUsage(m_Graph, inputUsageHandle).resource_handle;
     Assert(is_valid(resourceHandle), "Invalid resource handle");
 
     const ResourceUsageHandle resourceUsageHandle = create_resource_usage(
-        UsageType::RenderPassOutput, renderPassHandle, resourceHandle, resource_usage, readUsageHandle);
+        UsageType::Input | UsageType::Output, renderPassHandle, resourceHandle, resource_usage, inputUsageHandle);
 
     RenderPass& renderPass = m_Graph.RenderPasses[renderPassHandle];
     renderPass.ResourceUsageHandles.push_back(resourceUsageHandle);
@@ -155,69 +158,77 @@ namespace
 {
     // Thibault S. (07/02/2018) That's where the real magic happens!
     // By that i mean, this code is opaque AF, have fun debugging it :)
-    void ConvertFrameGraphToDAG(const FrameGraph&                              frameGraph,
-                                DirectedAcyclicGraph&                          outDAG,
-                                std::vector<DirectedAcyclicGraph::index_type>& outRootNodes)
+    DirectedAcyclicGraph ConvertFrameGraphToDAG(const FrameGraph&                              frameGraph,
+                                                std::vector<DirectedAcyclicGraph::index_type>& outRootNodes)
     {
-        // Resource usage node indexes are the same for both graphs and
-        // can be used interchangeably.
-        for (const auto& resourceUsage : frameGraph.ResourceUsages)
-        {
-            (void)resourceUsage;
-            outDAG.Nodes.emplace_back();
-        }
-
         const u32 resourceUsageCount = frameGraph.ResourceUsages.size();
         const u32 renderPassCount = frameGraph.RenderPasses.size();
 
+        // Resource usage node indexes are the same for both graphs and
+        // can be used interchangeably.
         // Renderpass node indexes are NOT the same for both graphs but
         // can be retrieved with an offset.
-        for (const auto& renderPass : frameGraph.RenderPasses)
-        {
-            const DirectedAcyclicGraph::index_type nodeIndex = outDAG.Nodes.size();
-            DirectedAcyclicGraph::node_type&       node = outDAG.Nodes.emplace_back();
+        DirectedAcyclicGraph dag;
+        dag.Nodes.resize(resourceUsageCount + renderPassCount);
 
-            (void)node; // FIXME
+        // Convert edges
+        for (u32 renderPassIndex = 0; renderPassIndex < renderPassCount; renderPassIndex++)
+        {
+            const RenderPass&                      renderPass = frameGraph.RenderPasses[renderPassIndex];
+            const DirectedAcyclicGraph::index_type renderPassIndexInDAG = renderPassIndex + resourceUsageCount;
 
             // Renderpasses that have side effects cannot be pruned
             // We use them as terminal nodes in the DAG so that orphan nodes
             // can properly be pruned later.
             if (renderPass.HasSideEffects)
-                outRootNodes.push_back(nodeIndex);
-        }
+            {
+                outRootNodes.push_back(renderPassIndexInDAG);
+            }
 
-        // Check if the whole graph is likely to be pruned
-        Assert(!outRootNodes.empty(), "No render passes were marked with the HasSideEffects flag.");
-
-        // Convert edges
-        for (u32 renderPassIndex = 0; renderPassIndex < renderPassCount; renderPassIndex++)
-        {
-            const RenderPass& renderPass = frameGraph.RenderPasses[renderPassIndex];
             for (const auto& resourceUsageHandle : renderPass.ResourceUsageHandles)
             {
                 // Index conversion
-                const DirectedAcyclicGraph::index_type renderPassIndexInDAG = renderPassIndex + resourceUsageCount;
                 const DirectedAcyclicGraph::index_type resourceUsageIndexInDAG = resourceUsageHandle;
 
                 const ResourceUsage& resourceUsage = GetResourceUsage(frameGraph, resourceUsageHandle);
 
-                // Edges are directed in reversed compared to the rendering flow.
-                if (resourceUsage.Type == UsageType::RenderPassInput)
+                // Edges are directed in reverse compared to the rendering flow.
+                // This part is critical and not necessarily intuitive because of this. Draw a graph!
+                if (resourceUsage.Type == UsageType::Input)
                 {
-                    outDAG.Nodes[renderPassIndexInDAG].Children.push_back(resourceUsageIndexInDAG);
+                    dag.Nodes[renderPassIndexInDAG].Children.push_back(resourceUsageIndexInDAG);
 
                     // Add extra edge to link to the previously written/created resource
                     Assert(is_valid(resourceUsage.parent_usage_handle), "Invalid resource usage handle");
                     DirectedAcyclicGraph::index_type parentUsageIndexInDAG = resourceUsage.parent_usage_handle;
 
-                    outDAG.Nodes[resourceUsageIndexInDAG].Children.push_back(parentUsageIndexInDAG);
+                    dag.Nodes[resourceUsageIndexInDAG].Children.push_back(parentUsageIndexInDAG);
                 }
-                else if (resourceUsage.Type == UsageType::RenderPassOutput)
-                    outDAG.Nodes[resourceUsageIndexInDAG].Children.push_back(renderPassIndexInDAG);
+                else if (resourceUsage.Type == UsageType::Output)
+                {
+                    dag.Nodes[resourceUsageIndexInDAG].Children.push_back(renderPassIndexInDAG);
+                }
+                else if (resourceUsage.Type == (UsageType::Input | UsageType::Output))
+                {
+                    dag.Nodes[resourceUsageIndexInDAG].Children.push_back(renderPassIndexInDAG);
+
+                    // Add extra edge to link to the previously written/created resource
+                    Assert(is_valid(resourceUsage.parent_usage_handle), "Invalid resource usage handle");
+                    DirectedAcyclicGraph::index_type parentUsageIndexInDAG = resourceUsage.parent_usage_handle;
+
+                    dag.Nodes[resourceUsageIndexInDAG].Children.push_back(parentUsageIndexInDAG);
+                }
+                else
+                {
+                    AssertUnreachable();
+                }
             }
         }
 
-        Assert(!HasCycles(outDAG, outRootNodes), "The framegraph has cycles");
+        // Check if the whole graph is likely to be pruned
+        Assert(!outRootNodes.empty(), "No render passes were marked with the HasSideEffects flag.");
+
+        return dag;
     }
 
     // Thibault S. (08/02/2018)
@@ -267,7 +278,7 @@ namespace
             {
                 ResourceUsage& resourceUsage = frameGraph.ResourceUsages[resourceUsageHandle];
 
-                if (resourceUsage.Type == UsageType::RenderPassOutput)
+                if (has_mask(resourceUsage.Type, UsageType::Output))
                 {
                     resourceUsage.is_used = true;
                 }
@@ -289,9 +300,11 @@ void Builder::build()
 {
     // Use the current graph to build an alternate representation
     // for easier processing.
-    DirectedAcyclicGraph                          dag;
     std::vector<DirectedAcyclicGraph::index_type> rootNodes;
-    ConvertFrameGraphToDAG(m_Graph, dag, rootNodes);
+
+    DirectedAcyclicGraph dag = ConvertFrameGraphToDAG(m_Graph, rootNodes);
+
+    Assert(!HasCycles(dag, rootNodes), "The framegraph DAG has cycles");
 
     // Compute the set of useful nodes with a flood fill from root nodes
     std::vector<DirectedAcyclicGraph::index_type> closure;

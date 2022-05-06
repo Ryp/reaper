@@ -1,3 +1,10 @@
+////////////////////////////////////////////////////////////////////////////////
+/// Reaper
+///
+/// Copyright (c) 2015-2022 Thibault Schueller
+/// This file is distributed under the MIT License
+////////////////////////////////////////////////////////////////////////////////
+
 #pragma once
 
 #include "FrameGraph.h"
@@ -53,7 +60,7 @@ public:
 private:
     ResourceHandle create_resource(const char* debug_name, const GPUResourceProperties& properties, bool is_texture);
 
-    ResourceUsageHandle create_resource_usage(UsageType           usageType,
+    ResourceUsageHandle create_resource_usage(u32                 usageType,
                                               RenderPassHandle    renderPassHandle,
                                               ResourceHandle      resourceHandle,
                                               GPUResourceUsage    resourceUsage,

@@ -1,3 +1,10 @@
+////////////////////////////////////////////////////////////////////////////////
+/// Reaper
+///
+/// Copyright (c) 2015-2022 Thibault Schueller
+/// This file is distributed under the MIT License
+////////////////////////////////////////////////////////////////////////////////
+
 #pragma once
 
 #include "FrameGraphBasicTypes.h"
@@ -11,34 +18,6 @@
 #include <vector>
 
 #include <nonstd/span.hpp>
-
-namespace Reaper
-{
-enum class ELoadOp
-{
-    Load,
-    Clear,
-    DontCare
-};
-
-enum class EStoreOp
-{
-    Store,
-    DontCare
-};
-
-enum class EImageLayout
-{
-    General,
-    ColorAttachmentOptimal,
-    DepthStencilAttachmentOptimal,
-    DepthStencilReadOnlyOptimal,
-    ShaderReadOnlyOptimal,
-    TransferSrcOptimal,
-    TransferDstOptimal,
-    Preinitialized
-};
-} // namespace Reaper
 
 namespace Reaper::FrameGraph
 {
@@ -75,7 +54,7 @@ struct GPUResourceUsage
 
 struct ResourceUsage
 {
-    UsageType           Type;
+    u32                 Type; // UsageType
     ResourceHandle      resource_handle;
     RenderPassHandle    RenderPass;
     ResourceUsageHandle parent_usage_handle;

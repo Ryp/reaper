@@ -18,6 +18,11 @@ constexpr u32 bit(u32 n)
     return 1 << n;
 }
 
+constexpr bool has_mask(u32 value, u32 mask)
+{
+    return (value & mask) == mask;
+}
+
 // Note: 0 will return true
 template <typename T>
 constexpr bool isPowerOfTwo(T value)

@@ -163,15 +163,9 @@ void upload_histogram_frame_resources(VulkanBackend& backend, const HistogramPas
 }
 
 void record_histogram_command_buffer(CommandBuffer& cmdBuffer, const FrameData& frame_data,
-                                     const HistogramPassResources& pass_resources,
-                                     const FrameGraphBuffer&       histogram_buffer)
+                                     const HistogramPassResources& pass_resources)
 {
     REAPER_PROFILE_SCOPE_GPU(cmdBuffer.mlog, "Histogram Pass", MP_DARKGOLDENROD);
-
-    const u32 clear_value = 0;
-    vkCmdFillBuffer(cmdBuffer.handle, histogram_buffer.handle, histogram_buffer.view.offset_bytes,
-                    histogram_buffer.view.size_bytes, clear_value);
-    // FIXME Insert barrier or put in it's own renderpass
 
     vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE, pass_resources.histogramPipe.pipeline);
 

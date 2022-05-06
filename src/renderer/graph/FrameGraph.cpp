@@ -1,3 +1,10 @@
+////////////////////////////////////////////////////////////////////////////////
+/// Reaper
+///
+/// Copyright (c) 2015-2022 Thibault Schueller
+/// This file is distributed under the MIT License
+////////////////////////////////////////////////////////////////////////////////
+
 #include "FrameGraph.h"
 
 #include <algorithm>
@@ -151,8 +158,7 @@ namespace
                     GetResourceUsage(framegraph, previous_resource_event.usage_handle);
 
                 // If we are in a multiple-reader situation, merge both accesses at earliest time
-                if (previous_resource_usage.Type == UsageType::RenderPassInput
-                    && resourceUsage.Type == UsageType::RenderPassInput)
+                if (previous_resource_usage.Type == UsageType::Input && resourceUsage.Type == UsageType::Input)
                 {
                     const GPUResourceAccess old_access = previous_resource_usage.Usage.access;
                     const GPUResourceAccess new_access = resourceUsage.Usage.access;

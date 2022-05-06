@@ -99,11 +99,11 @@ namespace
             VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
             nullptr,
             0,
-            true, // depth test
-            true, // depth write
+            VK_TRUE, // depth test
+            VK_TRUE, // depth write
             ShadowUseReverseZ ? VK_COMPARE_OP_GREATER : VK_COMPARE_OP_LESS,
-            false,
-            false,
+            VK_FALSE,
+            VK_FALSE,
             VkStencilOpState{},
             VkStencilOpState{},
             0.f,

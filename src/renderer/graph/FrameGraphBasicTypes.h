@@ -1,12 +1,22 @@
+////////////////////////////////////////////////////////////////////////////////
+/// Reaper
+///
+/// Copyright (c) 2015-2022 Thibault Schueller
+/// This file is distributed under the MIT License
+////////////////////////////////////////////////////////////////////////////////
+
 #pragma once
 
 namespace Reaper::FrameGraph
 {
-enum class UsageType
+namespace UsageType
 {
-    RenderPassInput,
-    RenderPassOutput
-};
+    enum type : u32
+    {
+        Input = bit(0),
+        Output = bit(1)
+    };
+}
 
 // Kinda type-safe handle types used throughout
 // the framegraph code.

@@ -296,6 +296,19 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     const ResourceUsageHandle gui_create_usage_handle =
         builder.create_texture(gui_pass_handle, "GUI SDR", gui_properties, gui_texture_usage);
 
+    // Histogram Clear
+    const RenderPassHandle histogram_clear_pass_handle = builder.create_render_pass("Histogram Clear");
+
+    const GPUBufferProperties histogram_buffer_properties = DefaultGPUBufferProperties(
+        HISTOGRAM_RES, sizeof(u32), GPUBufferUsage::StorageBuffer | GPUBufferUsage::TransferDst);
+
+    GPUResourceUsage histogram_clear_usage = {};
+    histogram_clear_usage.access = GPUResourceAccess{VK_PIPELINE_STAGE_2_CLEAR_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT};
+    histogram_clear_usage.buffer_view = default_buffer_view(histogram_buffer_properties);
+
+    const ResourceUsageHandle histogram_clear_usage_handle = builder.create_buffer(
+        histogram_clear_pass_handle, "Histogram Buffer", histogram_buffer_properties, histogram_clear_usage);
+
     // Histogram
     const RenderPassHandle histogram_pass_handle = builder.create_render_pass("Histogram");
 
@@ -307,16 +320,13 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     const ResourceUsageHandle histogram_hdr_usage_handle =
         builder.read_texture(histogram_pass_handle, main_hdr_usage_handle, histogram_hdr_usage);
 
-    const GPUBufferProperties histogram_buffer_properties = DefaultGPUBufferProperties(
-        HISTOGRAM_RES, sizeof(u32), GPUBufferUsage::StorageBuffer | GPUBufferUsage::TransferDst);
-
-    GPUResourceUsage histogram_buffer_usage = {};
-    histogram_buffer_usage.access =
+    GPUResourceUsage histogram_write_usage = {};
+    histogram_write_usage.access =
         GPUResourceAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT};
-    histogram_buffer_usage.buffer_view = default_buffer_view(histogram_buffer_properties);
+    histogram_write_usage.buffer_view = default_buffer_view(histogram_buffer_properties);
 
-    const ResourceUsageHandle histogram_buffer_usage_handle = builder.create_buffer(
-        histogram_pass_handle, "Histogram Buffer", histogram_buffer_properties, histogram_buffer_usage);
+    const ResourceUsageHandle histogram_write_usage_handle =
+        builder.write_buffer(histogram_pass_handle, histogram_clear_usage_handle, histogram_write_usage);
 
     // Swapchain
     const RenderPassHandle swapchain_pass_handle = builder.create_render_pass("Swapchain", true);
@@ -343,7 +353,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     swapchain_histogram_buffer_usage.buffer_view = default_buffer_view(histogram_buffer_properties);
 
     const ResourceUsageHandle swapchain_histogram_buffer_usage_handle =
-        builder.read_buffer(swapchain_pass_handle, histogram_buffer_usage_handle, swapchain_histogram_buffer_usage);
+        builder.read_buffer(swapchain_pass_handle, histogram_write_usage_handle, swapchain_histogram_buffer_usage);
 
     static_cast<void>(swapchain_histogram_buffer_usage_handle); // FIXME unused for now
 
@@ -375,7 +385,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     update_histogram_pass_descriptor_set(
         backend, resources.histogram_pass_resources,
         get_frame_graph_texture(resources.framegraph_resources, framegraph, histogram_hdr_usage_handle).view_handle,
-        get_frame_graph_buffer(resources.framegraph_resources, framegraph, histogram_buffer_usage_handle));
+        get_frame_graph_buffer(resources.framegraph_resources, framegraph, histogram_write_usage_handle));
 
     update_swapchain_pass_descriptor_set(
         backend, resources.swapchain_pass_resources,
@@ -474,11 +484,24 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     {
         record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
+                                   histogram_clear_pass_handle, true);
+
+        const u32        clear_value = 0;
+        FrameGraphBuffer histogram_buffer =
+            get_frame_graph_buffer(resources.framegraph_resources, framegraph, histogram_clear_usage_handle);
+
+        vkCmdFillBuffer(cmdBuffer.handle, histogram_buffer.handle, histogram_buffer.view.offset_bytes,
+                        histogram_buffer.view.size_bytes, clear_value);
+
+        record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
+                                   histogram_clear_pass_handle, false);
+    }
+
+    {
+        record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
                                    histogram_pass_handle, true);
 
-        record_histogram_command_buffer(
-            cmdBuffer, frame_data, resources.histogram_pass_resources,
-            get_frame_graph_buffer(resources.framegraph_resources, framegraph, histogram_buffer_usage_handle));
+        record_histogram_command_buffer(cmdBuffer, frame_data, resources.histogram_pass_resources);
 
         record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
                                    histogram_pass_handle, false);

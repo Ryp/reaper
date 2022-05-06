@@ -52,6 +52,5 @@ struct CommandBuffer;
 struct FrameData;
 
 void record_histogram_command_buffer(CommandBuffer& cmdBuffer, const FrameData& frame_data,
-                                     const HistogramPassResources& pass_resources,
-                                     const FrameGraphBuffer&       histogram_buffer);
+                                     const HistogramPassResources& pass_resources);
 } // namespace Reaper
