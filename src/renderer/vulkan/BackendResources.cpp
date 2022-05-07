@@ -47,7 +47,7 @@ void create_backend_resources(ReaperRoot& root, VulkanBackend& backend)
     resources.frame_sync_resources = create_frame_sync_resources(root, backend);
     resources.gui_pass_resources = create_gui_pass_resources(root, backend);
     resources.histogram_pass_resources = create_histogram_pass_resources(root, backend);
-    resources.main_pass_resources = create_main_pass_resources(root, backend);
+    resources.forward_pass_resources = create_forward_pass_resources(root, backend);
     resources.material_resources = create_material_resources(root, backend);
     resources.mesh_cache = create_mesh_cache(root, backend);
     resources.shadow_map_resources = create_shadow_map_resources(root, backend);
@@ -63,7 +63,7 @@ void destroy_backend_resources(VulkanBackend& backend)
     destroy_frame_sync_resources(backend, resources.frame_sync_resources);
     destroy_gui_pass_resources(backend, resources.gui_pass_resources);
     destroy_histogram_pass_resources(backend, resources.histogram_pass_resources);
-    destroy_main_pass_resources(backend, resources.main_pass_resources);
+    destroy_forward_pass_resources(backend, resources.forward_pass_resources);
     destroy_material_resources(backend, resources.material_resources);
     destroy_mesh_cache(backend, resources.mesh_cache);
     destroy_shadow_map_resources(backend, resources.shadow_map_resources);

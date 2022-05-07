@@ -16,10 +16,10 @@
 #include "renderpass/Audio.h"
 #include "renderpass/Culling.h"
 #include "renderpass/CullingConstants.h"
+#include "renderpass/ForwardPass.h"
 #include "renderpass/Frame.h"
 #include "renderpass/GuiPass.h"
 #include "renderpass/HistogramPass.h"
-#include "renderpass/MainPass.h"
 #include "renderpass/ShadowMap.h"
 #include "renderpass/SwapchainPass.h"
 
@@ -35,7 +35,7 @@ struct BackendResources
     MaterialResources      material_resources;
     CullResources          cull_resources;
     ShadowMapResources     shadow_map_resources;
-    MainPassResources      main_pass_resources;
+    ForwardPassResources   forward_pass_resources;
     HistogramPassResources histogram_pass_resources;
     GuiPassResources       gui_pass_resources;
     SwapchainPassResources swapchain_pass_resources;

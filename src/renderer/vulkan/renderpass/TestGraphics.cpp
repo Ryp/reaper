@@ -207,7 +207,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     upload_culling_resources(backend, prepared, resources.cull_resources);
     upload_shadow_map_resources(backend, prepared, resources.shadow_map_resources);
-    upload_main_pass_frame_resources(backend, prepared, resources.main_pass_resources);
+    upload_forward_pass_frame_resources(backend, prepared, resources.forward_pass_resources);
     upload_histogram_frame_resources(backend, resources.histogram_pass_resources, backbufferExtent);
     upload_swapchain_frame_resources(backend, prepared, resources.swapchain_pass_resources);
     upload_audio_frame_resources(backend, prepared, resources.audio_resources);
@@ -236,27 +236,27 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         shadow_map_creation_usage_handles.push_back(usage_handle);
     }
 
-    // Main
-    const RenderPassHandle main_pass_handle = builder.create_render_pass("Forward");
+    // Forward
+    const RenderPassHandle forward_pass_handle = builder.create_render_pass("Forward");
 
     GPUTextureProperties scene_hdr_properties =
-        DefaultGPUTextureProperties(backbufferExtent.width, backbufferExtent.height, MainHDRColorFormat);
+        DefaultGPUTextureProperties(backbufferExtent.width, backbufferExtent.height, ForwardHDRColorFormat);
     scene_hdr_properties.usage_flags = GPUTextureUsage::ColorAttachment | GPUTextureUsage::Sampled;
 
     GPUTextureProperties scene_depth_properties =
-        DefaultGPUTextureProperties(backbufferExtent.width, backbufferExtent.height, MainDepthFormat);
+        DefaultGPUTextureProperties(backbufferExtent.width, backbufferExtent.height, ForwardDepthFormat);
     scene_depth_properties.usage_flags = GPUTextureUsage::DepthStencilAttachment;
 
-    const GPUResourceAccess scene_hdr_access_main_pass = {VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-                                                          VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-                                                          VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL};
+    const GPUResourceAccess scene_hdr_access_forward_pass = {VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                                                             VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+                                                             VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL};
 
     GPUResourceUsage scene_hdr_texture_usage = {};
-    scene_hdr_texture_usage.access = scene_hdr_access_main_pass;
+    scene_hdr_texture_usage.access = scene_hdr_access_forward_pass;
     scene_hdr_texture_usage.texture_view = DefaultGPUTextureView(scene_hdr_properties);
 
-    const ResourceUsageHandle main_hdr_usage_handle =
-        builder.create_texture(main_pass_handle, "Scene HDR", scene_hdr_properties, scene_hdr_texture_usage);
+    const ResourceUsageHandle forward_hdr_usage_handle =
+        builder.create_texture(forward_pass_handle, "Scene HDR", scene_hdr_properties, scene_hdr_texture_usage);
 
     GPUResourceUsage scene_depth_texture_usage = {};
     scene_depth_texture_usage.access =
@@ -264,10 +264,10 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
                           VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL};
     scene_depth_texture_usage.texture_view = DefaultGPUTextureView(scene_depth_properties);
 
-    const ResourceUsageHandle main_depth_create_usage_handle =
-        builder.create_texture(main_pass_handle, "Scene Depth", scene_depth_properties, scene_depth_texture_usage);
+    const ResourceUsageHandle forward_depth_create_usage_handle =
+        builder.create_texture(forward_pass_handle, "Scene Depth", scene_depth_properties, scene_depth_texture_usage);
 
-    std::vector<ResourceUsageHandle> shadow_map_main_usage_handles;
+    std::vector<ResourceUsageHandle> shadow_map_forward_usage_handles;
     for (u32 shadow_map_index = 0; shadow_map_index < shadow_map_properties.size(); shadow_map_index++)
     {
         GPUResourceUsage shadow_map_usage = {};
@@ -276,8 +276,8 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         shadow_map_usage.texture_view = DefaultGPUTextureView(shadow_map_properties[shadow_map_index]);
 
         const ResourceUsageHandle usage_handle = builder.read_texture(
-            main_pass_handle, shadow_map_creation_usage_handles[shadow_map_index], shadow_map_usage);
-        shadow_map_main_usage_handles.push_back(usage_handle);
+            forward_pass_handle, shadow_map_creation_usage_handles[shadow_map_index], shadow_map_usage);
+        shadow_map_forward_usage_handles.push_back(usage_handle);
     }
 
     // GUI
@@ -318,7 +318,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     histogram_hdr_usage.texture_view = DefaultGPUTextureView(scene_hdr_properties);
 
     const ResourceUsageHandle histogram_hdr_usage_handle =
-        builder.read_texture(histogram_pass_handle, main_hdr_usage_handle, histogram_hdr_usage);
+        builder.read_texture(histogram_pass_handle, forward_hdr_usage_handle, histogram_hdr_usage);
 
     GPUResourceUsage histogram_write_usage = {};
     histogram_write_usage.access =
@@ -337,7 +337,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     swapchain_hdr_usage.texture_view = DefaultGPUTextureView(scene_hdr_properties);
 
     const ResourceUsageHandle swapchain_hdr_usage_handle =
-        builder.read_texture(swapchain_pass_handle, main_hdr_usage_handle, swapchain_hdr_usage);
+        builder.read_texture(swapchain_pass_handle, forward_hdr_usage_handle, swapchain_hdr_usage);
 
     GPUResourceUsage swapchain_gui_usage = {};
     swapchain_gui_usage.access = GPUResourceAccess{VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
@@ -379,8 +379,8 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
             get_frame_graph_texture(resources.framegraph_resources, framegraph, handle).view_handle);
     }
 
-    update_main_pass_descriptor_sets(backend, resources.main_pass_resources, resources.material_resources,
-                                     resources.mesh_cache, shadow_map_views);
+    update_forward_pass_descriptor_sets(backend, resources.forward_pass_resources, resources.material_resources,
+                                        resources.mesh_cache, shadow_map_views);
 
     update_histogram_pass_descriptor_set(
         backend, resources.histogram_pass_resources,
@@ -465,16 +465,16 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     {
         VulkanDebugLabelCmdBufferScope s(cmdBuffer.handle, "Forward");
-        record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources, main_pass_handle,
+        record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources, forward_pass_handle,
                                    true);
 
-        record_main_pass_command_buffer(
-            cmdBuffer, backend, prepared, resources.main_pass_resources, resources.cull_resources, backbufferExtent,
-            get_frame_graph_texture(resources.framegraph_resources, framegraph, main_hdr_usage_handle).view_handle,
-            get_frame_graph_texture(resources.framegraph_resources, framegraph, main_depth_create_usage_handle)
+        record_forward_pass_command_buffer(
+            cmdBuffer, backend, prepared, resources.forward_pass_resources, resources.cull_resources, backbufferExtent,
+            get_frame_graph_texture(resources.framegraph_resources, framegraph, forward_hdr_usage_handle).view_handle,
+            get_frame_graph_texture(resources.framegraph_resources, framegraph, forward_depth_create_usage_handle)
                 .view_handle);
 
-        record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources, main_pass_handle,
+        record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources, forward_pass_handle,
                                    false);
     }
 

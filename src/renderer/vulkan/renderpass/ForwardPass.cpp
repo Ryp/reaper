@@ -5,7 +5,7 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "MainPass.h"
+#include "ForwardPass.h"
 
 #include "Culling.h"
 #include "ShadowConstants.h"
@@ -71,7 +71,7 @@ namespace
         return layout;
     }
 
-    void update_descriptor_set_0(VulkanBackend& backend, const MainPassResources& resources,
+    void update_descriptor_set_0(VulkanBackend& backend, const ForwardPassResources& resources,
                                  const MeshCache& mesh_cache, const nonstd::span<VkImageView> shadow_map_views)
     {
         const VkDescriptorBufferInfo passParams = default_descriptor_buffer_info(resources.drawPassConstantBuffer);
@@ -148,7 +148,7 @@ namespace
         return layout;
     }
 
-    void update_descriptor_set_1(VulkanBackend& backend, const MainPassResources& resources,
+    void update_descriptor_set_1(VulkanBackend& backend, const ForwardPassResources& resources,
                                  const MaterialResources& material_resources)
     {
         std::vector<VkDescriptorImageInfo> descriptor_maps;
@@ -185,7 +185,7 @@ namespace
         vkUpdateDescriptorSets(backend.device, static_cast<u32>(writes.size()), writes.data(), 0, nullptr);
     }
 
-    MainPipelineInfo create_main_pipeline(ReaperRoot& root, VulkanBackend& backend)
+    ForwardPipelineInfo create_forward_pipeline(ReaperRoot& root, VulkanBackend& backend)
     {
         VkShaderModule        blitShaderFS = VK_NULL_HANDLE;
         VkShaderModule        blitShaderVS = VK_NULL_HANDLE;
@@ -310,8 +310,8 @@ namespace
             dynamicStates.data(),
         };
 
-        const VkFormat color_format = PixelFormatToVulkan(MainHDRColorFormat);
-        const VkFormat depth_format = PixelFormatToVulkan(MainDepthFormat);
+        const VkFormat color_format = PixelFormatToVulkan(ForwardHDRColorFormat);
+        const VkFormat depth_format = PixelFormatToVulkan(ForwardDepthFormat);
 
         VkPipelineCreationFeedback              feedback = {};
         std::vector<VkPipelineCreationFeedback> feedback_stages(blitShaderStages.size());
@@ -364,11 +364,11 @@ namespace
         vkDestroyShaderModule(backend.device, blitShaderVS, nullptr);
         vkDestroyShaderModule(backend.device, blitShaderFS, nullptr);
 
-        return MainPipelineInfo{pipeline, pipelineLayout, descriptorSetLayoutCB, materialDescSetLayout};
+        return ForwardPipelineInfo{pipeline, pipelineLayout, descriptorSetLayoutCB, materialDescSetLayout};
     }
 
-    VkDescriptorSet create_main_pass_descriptor_set(ReaperRoot& root, VulkanBackend& backend,
-                                                    VkDescriptorSetLayout layout)
+    VkDescriptorSet create_forward_pass_descriptor_set(ReaperRoot& root, VulkanBackend& backend,
+                                                       VkDescriptorSetLayout layout)
     {
         VkDescriptorSetAllocateInfo descriptorSetAllocInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr,
                                                               backend.global_descriptor_pool, 1, &layout};
@@ -445,11 +445,11 @@ namespace
     }
 } // namespace
 
-MainPassResources create_main_pass_resources(ReaperRoot& root, VulkanBackend& backend)
+ForwardPassResources create_forward_pass_resources(ReaperRoot& root, VulkanBackend& backend)
 {
-    MainPassResources resources = {};
+    ForwardPassResources resources = {};
 
-    resources.mainPipe = create_main_pipeline(root, backend);
+    resources.pipe = create_forward_pipeline(root, backend);
 
     resources.drawPassConstantBuffer = create_buffer(
         root, backend.device, "Draw Pass Constant buffer",
@@ -460,9 +460,8 @@ MainPassResources create_main_pass_resources(ReaperRoot& root, VulkanBackend& ba
         DefaultGPUBufferProperties(DrawInstanceCountMax, sizeof(DrawInstanceParams), GPUBufferUsage::StorageBuffer),
         backend.vma_instance);
 
-    resources.descriptor_set = create_main_pass_descriptor_set(root, backend, resources.mainPipe.descSetLayout);
-    resources.material_descriptor_set =
-        create_material_descriptor_set(root, backend, resources.mainPipe.descSetLayout2);
+    resources.descriptor_set = create_forward_pass_descriptor_set(root, backend, resources.pipe.descSetLayout);
+    resources.material_descriptor_set = create_material_descriptor_set(root, backend, resources.pipe.descSetLayout2);
 
     resources.shadowMapSampler = create_shadow_map_sampler(backend);
     resources.diffuseMapSampler = create_diffuse_map_sampler(backend);
@@ -470,15 +469,15 @@ MainPassResources create_main_pass_resources(ReaperRoot& root, VulkanBackend& ba
     return resources;
 }
 
-void destroy_main_pass_resources(VulkanBackend& backend, MainPassResources& resources)
+void destroy_forward_pass_resources(VulkanBackend& backend, ForwardPassResources& resources)
 {
     vkDestroySampler(backend.device, resources.diffuseMapSampler, nullptr);
     vkDestroySampler(backend.device, resources.shadowMapSampler, nullptr);
 
-    vkDestroyPipeline(backend.device, resources.mainPipe.pipeline, nullptr);
-    vkDestroyPipelineLayout(backend.device, resources.mainPipe.pipelineLayout, nullptr);
-    vkDestroyDescriptorSetLayout(backend.device, resources.mainPipe.descSetLayout, nullptr);
-    vkDestroyDescriptorSetLayout(backend.device, resources.mainPipe.descSetLayout2, nullptr);
+    vkDestroyPipeline(backend.device, resources.pipe.pipeline, nullptr);
+    vkDestroyPipelineLayout(backend.device, resources.pipe.pipelineLayout, nullptr);
+    vkDestroyDescriptorSetLayout(backend.device, resources.pipe.descSetLayout, nullptr);
+    vkDestroyDescriptorSetLayout(backend.device, resources.pipe.descSetLayout2, nullptr);
 
     vmaDestroyBuffer(backend.vma_instance, resources.drawPassConstantBuffer.handle,
                      resources.drawPassConstantBuffer.allocation);
@@ -486,16 +485,16 @@ void destroy_main_pass_resources(VulkanBackend& backend, MainPassResources& reso
                      resources.drawInstanceConstantBuffer.allocation);
 }
 
-void update_main_pass_descriptor_sets(VulkanBackend& backend, const MainPassResources& resources,
-                                      const MaterialResources& material_resources, const MeshCache& mesh_cache,
-                                      const nonstd::span<VkImageView> shadow_map_views)
+void update_forward_pass_descriptor_sets(VulkanBackend& backend, const ForwardPassResources& resources,
+                                         const MaterialResources& material_resources, const MeshCache& mesh_cache,
+                                         const nonstd::span<VkImageView> shadow_map_views)
 {
     update_descriptor_set_0(backend, resources, mesh_cache, shadow_map_views);
     update_descriptor_set_1(backend, resources, material_resources);
 }
 
-void upload_main_pass_frame_resources(VulkanBackend& backend, const PreparedData& prepared,
-                                      MainPassResources& pass_resources)
+void upload_forward_pass_frame_resources(VulkanBackend& backend, const PreparedData& prepared,
+                                         ForwardPassResources& pass_resources)
 {
     upload_buffer_data(backend.device, backend.vma_instance, pass_resources.drawPassConstantBuffer,
                        &prepared.draw_pass_params, sizeof(DrawPassParams));
@@ -504,12 +503,12 @@ void upload_main_pass_frame_resources(VulkanBackend& backend, const PreparedData
                        prepared.draw_instance_params.size() * sizeof(DrawInstanceParams));
 }
 
-void record_main_pass_command_buffer(CommandBuffer& cmdBuffer, VulkanBackend& backend, const PreparedData& prepared,
-                                     const MainPassResources& pass_resources, const CullResources& cull_resources,
-                                     VkExtent2D backbufferExtent, VkImageView hdrBufferView,
-                                     VkImageView depthBufferView)
+void record_forward_pass_command_buffer(CommandBuffer& cmdBuffer, VulkanBackend& backend, const PreparedData& prepared,
+                                        const ForwardPassResources& pass_resources, const CullResources& cull_resources,
+                                        VkExtent2D backbufferExtent, VkImageView hdrBufferView,
+                                        VkImageView depthBufferView)
 {
-    REAPER_PROFILE_SCOPE_GPU(cmdBuffer.mlog, "Main Pass", MP_DARKGOLDENROD);
+    REAPER_PROFILE_SCOPE_GPU(cmdBuffer.mlog, "Forward Pass", MP_DARKGOLDENROD);
 
     const glm::fvec4 clearColor = {0.1f, 0.1f, 0.1f, 0.0f};
     const float      depthClearValue = UseReverseZ ? 0.f : 1.f;
@@ -556,7 +555,7 @@ void record_main_pass_command_buffer(CommandBuffer& cmdBuffer, VulkanBackend& ba
 
     vkCmdBeginRendering(cmdBuffer.handle, &renderingInfo);
 
-    vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, pass_resources.mainPipe.pipeline);
+    vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, pass_resources.pipe.pipeline);
 
     const VkViewport blitViewport = default_vk_viewport(blitPassRect);
 
@@ -570,9 +569,8 @@ void record_main_pass_command_buffer(CommandBuffer& cmdBuffer, VulkanBackend& ba
         pass_resources.material_descriptor_set,
     };
 
-    vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, pass_resources.mainPipe.pipelineLayout,
-                            0, static_cast<u32>(main_pass_descriptors.size()), main_pass_descriptors.data(), 0,
-                            nullptr);
+    vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, pass_resources.pipe.pipelineLayout, 0,
+                            static_cast<u32>(main_pass_descriptors.size()), main_pass_descriptors.data(), 0, nullptr);
 
     const u32 pass_index = prepared.draw_culling_pass_index;
 
