@@ -28,14 +28,11 @@ namespace
 {
     GuiPipelineInfo create_gui_pipeline(ReaperRoot& root, VulkanBackend& backend)
     {
-        VkShaderModule shaderFS = VK_NULL_HANDLE;
-        VkShaderModule shaderVS = VK_NULL_HANDLE;
-        const char*    fileNameVS = "./build/shader/fullscreen_triangle.vert.spv"; // FIXME
-        const char*    fileNameFS = "./build/shader/gui_write.frag.spv";           // FIXME
-        const char*    entryPoint = "main";
+        VkShaderModule shaderVS =
+            vulkan_create_shader_module(backend.device, "./build/shader/fullscreen_triangle.vert.spv");
+        VkShaderModule shaderFS = vulkan_create_shader_module(backend.device, "./build/shader/gui_write.frag.spv");
 
-        vulkan_create_shader_module(shaderFS, backend.device, fileNameFS);
-        vulkan_create_shader_module(shaderVS, backend.device, fileNameVS);
+        const char* entryPoint = "main";
 
         std::vector<VkPipelineShaderStageCreateInfo> blitShaderStages = {
             {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_VERTEX_BIT, shaderVS,

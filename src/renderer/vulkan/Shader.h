@@ -13,5 +13,5 @@
 
 namespace Reaper
 {
-void vulkan_create_shader_module(VkShaderModule& shaderModule, VkDevice device, const std::string& fileName);
+VkShaderModule vulkan_create_shader_module(VkDevice device, const std::string& fileName);
 } // namespace Reaper

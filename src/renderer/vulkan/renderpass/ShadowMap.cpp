@@ -37,15 +37,12 @@ namespace
 {
     ShadowMapPipelineInfo create_shadow_map_pipeline(ReaperRoot& root, VulkanBackend& backend)
     {
-        VkShaderModule        blitShaderFS = VK_NULL_HANDLE;
-        VkShaderModule        blitShaderVS = VK_NULL_HANDLE;
         const char*           fileNameVS = "./build/shader/render_shadow.vert.spv";
         const char*           fileNameFS = "./build/shader/render_shadow.frag.spv";
         const char*           entryPoint = "main";
         VkSpecializationInfo* specialization = nullptr;
-
-        vulkan_create_shader_module(blitShaderFS, backend.device, fileNameFS);
-        vulkan_create_shader_module(blitShaderVS, backend.device, fileNameVS);
+        VkShaderModule        blitShaderVS = vulkan_create_shader_module(backend.device, fileNameVS);
+        VkShaderModule        blitShaderFS = vulkan_create_shader_module(backend.device, fileNameFS);
 
         std::vector<VkPipelineShaderStageCreateInfo> blitShaderStages = {
             {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_VERTEX_BIT, blitShaderVS,

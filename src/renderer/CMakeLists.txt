@@ -138,12 +138,12 @@ set(REAPER_SHADER_SRCS
     ${REAPER_SHADER_DIR}/cull_meshlet.comp.hlsl
     ${REAPER_SHADER_DIR}/cull_triangle_batch.comp.hlsl
     ${REAPER_SHADER_DIR}/draw_command_compaction.comp.hlsl
+    ${REAPER_SHADER_DIR}/forward.frag.hlsl
+    ${REAPER_SHADER_DIR}/forward.vert.hlsl
     ${REAPER_SHADER_DIR}/fullscreen_triangle.vert.hlsl
     ${REAPER_SHADER_DIR}/gui_write.frag.hlsl
     ${REAPER_SHADER_DIR}/reduce_hdr_frame.comp.hlsl
     ${REAPER_SHADER_DIR}/matrix_row_major_codegen_bug.comp.hlsl
-    ${REAPER_SHADER_DIR}/mesh_transformed_shaded.frag.hlsl
-    ${REAPER_SHADER_DIR}/mesh_transformed_shaded.vert.hlsl
     ${REAPER_SHADER_DIR}/render_shadow.frag.hlsl
     ${REAPER_SHADER_DIR}/render_shadow.vert.hlsl
     ${REAPER_SHADER_DIR}/swapchain_write.frag.hlsl

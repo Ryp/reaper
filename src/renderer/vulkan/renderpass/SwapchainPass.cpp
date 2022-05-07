@@ -112,11 +112,11 @@ namespace
     VkPipeline create_swapchain_pipeline(ReaperRoot& root, VulkanBackend& backend, VkPipelineLayout pipelineLayout,
                                          VkFormat swapchain_format)
     {
-        VkShaderModule shaderFS = VK_NULL_HANDLE;
-        VkShaderModule shaderVS = VK_NULL_HANDLE;
         const char*    fileNameVS = "./build/shader/fullscreen_triangle.vert.spv";
         const char*    fileNameFS = "./build/shader/swapchain_write.frag.spv";
         const char*    entryPoint = "main";
+        VkShaderModule shaderVS = vulkan_create_shader_module(backend.device, fileNameVS);
+        VkShaderModule shaderFS = vulkan_create_shader_module(backend.device, fileNameFS);
 
         std::array<hlsl_uint, 3> constants = {
             get_transfer_function(backend.presentInfo.surfaceFormat, backend.presentInfo.view_format),
@@ -148,9 +148,6 @@ namespace
             constants.size() * sizeof(hlsl_uint),    // size_t                             dataSize;
             constants.data(),                        // const void*                        pData;
         };
-
-        vulkan_create_shader_module(shaderFS, backend.device, fileNameFS);
-        vulkan_create_shader_module(shaderVS, backend.device, fileNameVS);
 
         std::vector<VkPipelineShaderStageCreateInfo> blitShaderStages = {
             {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_VERTEX_BIT, shaderVS,

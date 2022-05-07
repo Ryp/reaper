@@ -15,7 +15,7 @@ namespace Reaper
 {
 using namespace vk;
 
-void vulkan_create_shader_module(VkShaderModule& shaderModule, VkDevice device, const std::string& fileName)
+VkShaderModule vulkan_create_shader_module(VkDevice device, const std::string& fileName)
 {
     std::vector<char> fileContents = readWholeFile(fileName);
 
@@ -23,8 +23,10 @@ void vulkan_create_shader_module(VkShaderModule& shaderModule, VkDevice device, 
                                                           fileContents.size(),
                                                           reinterpret_cast<const uint32_t*>(&fileContents[0])};
 
+    VkShaderModule shaderModule = VK_NULL_HANDLE;
     Assert(vkCreateShaderModule(device, &shader_module_create_info, nullptr, &shaderModule) == VK_SUCCESS);
 
     VulkanSetDebugName(device, shaderModule, fileName.c_str());
+    return shaderModule;
 }
 } // namespace Reaper

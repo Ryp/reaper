@@ -187,15 +187,11 @@ namespace
 
     ForwardPipelineInfo create_forward_pipeline(ReaperRoot& root, VulkanBackend& backend)
     {
-        VkShaderModule        blitShaderFS = VK_NULL_HANDLE;
-        VkShaderModule        blitShaderVS = VK_NULL_HANDLE;
-        const char*           fileNameVS = "./build/shader/mesh_transformed_shaded.vert.spv";
-        const char*           fileNameFS = "./build/shader/mesh_transformed_shaded.frag.spv";
+        VkShaderModule blitShaderVS = vulkan_create_shader_module(backend.device, "./build/shader/forward.vert.spv");
+        VkShaderModule blitShaderFS = vulkan_create_shader_module(backend.device, "./build/shader/forward.frag.spv");
+
         const char*           entryPoint = "main";
         VkSpecializationInfo* specialization = nullptr;
-
-        vulkan_create_shader_module(blitShaderFS, backend.device, fileNameFS);
-        vulkan_create_shader_module(blitShaderVS, backend.device, fileNameVS);
 
         std::vector<VkPipelineShaderStageCreateInfo> shaderStages = {
             {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_VERTEX_BIT, blitShaderVS,

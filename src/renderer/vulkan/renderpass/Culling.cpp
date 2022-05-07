@@ -177,12 +177,10 @@ namespace
 
         log_debug(root, "vulkan: created pipeline layout with handle: {}", static_cast<void*>(pipelineLayout));
 
-        VkShaderModule        computeShader = VK_NULL_HANDLE;
         const char*           fileName = "./build/shader/cull_triangle_batch.comp.spv";
         const char*           entryPoint = "main";
         VkSpecializationInfo* specialization = nullptr;
-
-        vulkan_create_shader_module(computeShader, backend.device, fileName);
+        VkShaderModule        computeShader = vulkan_create_shader_module(backend.device, fileName);
 
         VkPipelineShaderStageCreateInfo shaderStage = {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
                                                        nullptr,
@@ -240,12 +238,10 @@ namespace
 
         log_debug(root, "vulkan: created pipeline layout with handle: {}", static_cast<void*>(pipelineLayout));
 
-        VkShaderModule        computeShader = VK_NULL_HANDLE;
         const char*           fileName = "./build/shader/compaction_prepare_indirect_dispatch.comp.spv";
         const char*           entryPoint = "main";
         VkSpecializationInfo* specialization = nullptr;
-
-        vulkan_create_shader_module(computeShader, backend.device, fileName);
+        VkShaderModule        computeShader = vulkan_create_shader_module(backend.device, fileName);
 
         VkPipelineShaderStageCreateInfo shaderStage = {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
                                                        nullptr,
@@ -304,12 +300,10 @@ namespace
 
         log_debug(root, "vulkan: created pipeline layout with handle: {}", static_cast<void*>(pipelineLayout));
 
-        VkShaderModule        computeShader = VK_NULL_HANDLE;
         const char*           fileName = "./build/shader/draw_command_compaction.comp.spv";
         const char*           entryPoint = "main";
         VkSpecializationInfo* specialization = nullptr;
-
-        vulkan_create_shader_module(computeShader, backend.device, fileName);
+        VkShaderModule        computeShader = vulkan_create_shader_module(backend.device, fileName);
 
         VkPipelineShaderStageCreateInfo shaderStage = {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
                                                        nullptr,
