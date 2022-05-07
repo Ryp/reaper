@@ -197,7 +197,7 @@ namespace
         vulkan_create_shader_module(blitShaderFS, backend.device, fileNameFS);
         vulkan_create_shader_module(blitShaderVS, backend.device, fileNameVS);
 
-        std::vector<VkPipelineShaderStageCreateInfo> blitShaderStages = {
+        std::vector<VkPipelineShaderStageCreateInfo> shaderStages = {
             {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_VERTEX_BIT, blitShaderVS,
              entryPoint, specialization},
             {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_FRAGMENT_BIT,
@@ -282,7 +282,7 @@ namespace
         VkDescriptorSetLayout descriptorSetLayoutCB = create_descriptor_set_layout_0(backend);
         VkDescriptorSetLayout materialDescSetLayout = create_descriptor_set_layout_1(backend);
 
-        std::array<VkDescriptorSetLayout, 2> mainPassDescriptorSetLayouts = {
+        std::array<VkDescriptorSetLayout, 2> passDescriptorSetLayouts = {
             descriptorSetLayoutCB,
             materialDescSetLayout,
         };
@@ -290,8 +290,8 @@ namespace
         VkPipelineLayoutCreateInfo blitPipelineLayoutInfo = {VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
                                                              nullptr,
                                                              VK_FLAGS_NONE,
-                                                             static_cast<u32>(mainPassDescriptorSetLayouts.size()),
-                                                             mainPassDescriptorSetLayouts.data(),
+                                                             static_cast<u32>(passDescriptorSetLayouts.size()),
+                                                             passDescriptorSetLayouts.data(),
                                                              0,
                                                              nullptr};
 
@@ -314,12 +314,12 @@ namespace
         const VkFormat depth_format = PixelFormatToVulkan(ForwardDepthFormat);
 
         VkPipelineCreationFeedback              feedback = {};
-        std::vector<VkPipelineCreationFeedback> feedback_stages(blitShaderStages.size());
+        std::vector<VkPipelineCreationFeedback> feedback_stages(shaderStages.size());
         VkPipelineCreationFeedbackCreateInfo    feedback_info = {
             VK_STRUCTURE_TYPE_PIPELINE_CREATION_FEEDBACK_CREATE_INFO,
             nullptr,
             &feedback,
-            static_cast<u32>(blitShaderStages.size()),
+            static_cast<u32>(shaderStages.size()),
             feedback_stages.data(),
         };
 
@@ -336,8 +336,8 @@ namespace
         VkGraphicsPipelineCreateInfo blitPipelineCreateInfo = {VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
                                                                &pipelineRenderingCreateInfo,
                                                                VK_FLAGS_NONE,
-                                                               static_cast<u32>(blitShaderStages.size()),
-                                                               blitShaderStages.data(),
+                                                               static_cast<u32>(shaderStages.size()),
+                                                               shaderStages.data(),
                                                                &vertexInputStateInfo,
                                                                &inputAssemblyInfo,
                                                                nullptr,
@@ -564,13 +564,13 @@ void record_forward_pass_command_buffer(CommandBuffer& cmdBuffer, VulkanBackend&
 
     vkCmdBindIndexBuffer(cmdBuffer.handle, cull_resources.dynamicIndexBuffer.handle, 0, get_vk_culling_index_type());
 
-    std::array<VkDescriptorSet, 2> main_pass_descriptors = {
+    std::array<VkDescriptorSet, 2> pass_descriptors = {
         pass_resources.descriptor_set,
         pass_resources.material_descriptor_set,
     };
 
     vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, pass_resources.pipe.pipelineLayout, 0,
-                            static_cast<u32>(main_pass_descriptors.size()), main_pass_descriptors.data(), 0, nullptr);
+                            static_cast<u32>(pass_descriptors.size()), pass_descriptors.data(), 0, nullptr);
 
     const u32 pass_index = prepared.draw_culling_pass_index;
 
