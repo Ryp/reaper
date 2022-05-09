@@ -129,21 +129,16 @@ namespace
         Assert(index_count % 3 == 0);
 
         CullPushConstants consts;
-        consts.triangleCount = index_count / 3;
+        consts.meshlet_offset = mesh_alloc.meshlet_offset;
         consts.firstIndex = mesh_alloc.index_offset;
         consts.firstVertex = mesh_alloc.position_offset;
-        consts.outputIndexOffset = cull_pass.pass_index * (DynamicIndexBufferSize / IndexSizeBytes);
-        consts.firstCullInstance = cull_instance_index_start;
+        consts.indices_output_offset = cull_pass.pass_index * (DynamicIndexBufferSize / IndexSizeBytes);
+        consts.cull_instance_offset = cull_instance_index_start;
 
         CullCmd& command = cull_pass.cull_cmds.emplace_back();
-        command.instanceCount = cull_instance_count;
+        command.meshlet_count = mesh_alloc.meshlet_count;
+        command.instance_count = cull_instance_count;
         command.push_constants = consts;
-
-        CullMeshletCmd& meshlet_command = cull_pass.cull_meshlet_cmds.emplace_back();
-        meshlet_command.meshlet_offset = 0; // FIXME
-        meshlet_command.meshlet_count = 0;  // FIXME
-        meshlet_command.mesh_instance_count = cull_instance_count;
-        meshlet_command.push_constants = consts;
     }
 } // namespace
 

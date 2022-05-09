@@ -13,7 +13,7 @@ static const uint IndirectDrawCommandSize = 5;
 struct IndirectDrawCommand
 {
     uint indexCount;
-    uint instanceCount;
+    uint instance_count;
     uint firstIndex;
     int  vertexOffset;
     uint firstInstance;
@@ -22,7 +22,7 @@ struct IndirectDrawCommand
 void store_draw_command(RWByteAddressBuffer DrawCommandOut, uint offset, IndirectDrawCommand command)
 {
     const uint4 command_data = uint4(
-        command.instanceCount,
+        command.instance_count,
         command.firstIndex,
         asuint(command.vertexOffset),
         command.firstInstance);

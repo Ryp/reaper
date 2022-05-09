@@ -18,6 +18,7 @@
 #include <meshoptimizer.h>
 
 #include "renderer/shader/share/culling.hlsl"
+#include "renderer/shader/share/meshlet.hlsl"
 
 namespace Reaper
 {
@@ -45,16 +46,23 @@ MeshCache create_mesh_cache(ReaperRoot& root, VulkanBackend& backend)
         DefaultGPUBufferProperties(MeshCache::MAX_INDEX_COUNT, sizeof(int), GPUBufferUsage::StorageBuffer),
         backend.vma_instance);
 
+    cache.meshletBuffer = create_buffer(
+        root, backend.device, "Meshlet buffer",
+        DefaultGPUBufferProperties(MeshCache::MAX_MESHLET_COUNT, sizeof(Meshlet), GPUBufferUsage::StorageBuffer),
+        backend.vma_instance);
+
     cache.current_uv_offset = 0;
     cache.current_normal_offset = 0;
     cache.current_position_offset = 0;
     cache.current_index_offset = 0;
+    cache.current_meshlet_offset = 0;
 
     return cache;
 }
 
 void destroy_mesh_cache(VulkanBackend& backend, const MeshCache& mesh_cache)
 {
+    vmaDestroyBuffer(backend.vma_instance, mesh_cache.meshletBuffer.handle, mesh_cache.meshletBuffer.allocation);
     vmaDestroyBuffer(backend.vma_instance, mesh_cache.indexBuffer.handle, mesh_cache.indexBuffer.allocation);
     vmaDestroyBuffer(backend.vma_instance, mesh_cache.vertexBufferPosition.handle,
                      mesh_cache.vertexBufferPosition.allocation);
@@ -65,7 +73,7 @@ void destroy_mesh_cache(VulkanBackend& backend, const MeshCache& mesh_cache)
 
 namespace
 {
-    MeshAlloc mesh_cache_allocate_mesh(MeshCache& mesh_cache, const Mesh& mesh)
+    MeshAlloc mesh_cache_allocate_mesh(MeshCache& mesh_cache, const Mesh& mesh, nonstd::span<const Meshlet> meshlets)
     {
         MeshAlloc alloc = {};
 
@@ -73,33 +81,39 @@ namespace
         const u32 position_count = mesh.positions.size();
         const u32 normal_count = mesh.normals.size();
         const u32 uv_count = mesh.uvs.size();
+        const u32 meshlet_count = meshlets.size();
 
         Assert(index_count > 0);
         Assert(position_count > 0);
         Assert(normal_count == position_count);
         Assert(uv_count == position_count);
+        Assert(meshlet_count > 0);
 
         alloc.index_count = index_count;
         alloc.vertex_count = position_count;
+        alloc.meshlet_count = meshlet_count;
 
         alloc.index_offset = mesh_cache.current_index_offset;
         alloc.position_offset = mesh_cache.current_position_offset;
         alloc.normal_offset = mesh_cache.current_normal_offset;
         alloc.uv_offset = mesh_cache.current_uv_offset;
+        alloc.meshlet_offset = mesh_cache.current_meshlet_offset;
 
         mesh_cache.current_index_offset += index_count;
         mesh_cache.current_position_offset += position_count;
         mesh_cache.current_normal_offset += normal_count;
         mesh_cache.current_uv_offset += uv_count;
+        mesh_cache.current_meshlet_offset += meshlet_count;
 
         Assert(mesh_cache.current_index_offset < MeshCache::MAX_INDEX_COUNT);
         Assert(mesh_cache.current_position_offset < MeshCache::MAX_VERTEX_COUNT);
+        Assert(mesh_cache.current_meshlet_offset < MeshCache::MAX_MESHLET_COUNT);
 
         return alloc;
     }
 
     void upload_mesh_to_mesh_cache(MeshCache& mesh_cache, const Mesh& mesh, const MeshAlloc& mesh_alloc,
-                                   VulkanBackend& backend)
+                                   nonstd::span<const Meshlet> meshlets, VulkanBackend& backend)
     {
         upload_buffer_data(backend.device, backend.vma_instance, mesh_cache.indexBuffer, mesh.indexes.data(),
                            mesh.indexes.size() * sizeof(mesh.indexes[0]), mesh_alloc.index_offset);
@@ -109,6 +123,8 @@ namespace
                            mesh.normals.size() * sizeof(mesh.normals[0]), mesh_alloc.normal_offset);
         upload_buffer_data(backend.device, backend.vma_instance, mesh_cache.vertexBufferUV, mesh.uvs.data(),
                            mesh.uvs.size() * sizeof(mesh.uvs[0]), mesh_alloc.uv_offset);
+        upload_buffer_data(backend.device, backend.vma_instance, mesh_cache.meshletBuffer, meshlets.data(),
+                           meshlets.size() * sizeof(meshlets[0]), mesh_alloc.meshlet_offset);
     }
 } // namespace
 
@@ -130,8 +146,8 @@ void load_meshes(VulkanBackend& backend, MeshCache& mesh_cache, const nonstd::sp
         if (mesh.uvs.empty())
             mesh.uvs.resize(mesh.positions.size());
 
-        const size_t max_vertices = ComputeCullingGroupSize / 2;
-        const size_t max_triangles = ComputeCullingGroupSize;
+        const size_t max_vertices = MeshletMaxTriangleCount * 3;
+        const size_t max_triangles = MeshletMaxTriangleCount;
         const float  cone_weight = 0.0f;
 
         Assert(max_vertices < 256); // NOTE: u8 indices
@@ -140,27 +156,27 @@ void load_meshes(VulkanBackend& backend, MeshCache& mesh_cache, const nonstd::sp
 
         std::vector<meshopt_Meshlet> meshlets(max_meshlets);
         std::vector<u32>             meshlet_vertices(max_meshlets * max_vertices);
-        std::vector<u8>              meshlet_triangles(max_meshlets * max_triangles * 3);
+        std::vector<u8>              meshlet_indices(max_meshlets * max_triangles * 3);
 
         size_t meshlet_count = meshopt_buildMeshlets(
-            meshlets.data(), meshlet_vertices.data(), meshlet_triangles.data(), mesh.indexes.data(),
-            mesh.indexes.size(), reinterpret_cast<const float*>(mesh.positions.data()), mesh.positions.size(),
-            sizeof(mesh.positions[0]), max_vertices, max_triangles, cone_weight);
+            meshlets.data(), meshlet_vertices.data(), meshlet_indices.data(), mesh.indexes.data(), mesh.indexes.size(),
+            reinterpret_cast<const float*>(mesh.positions.data()), mesh.positions.size(), sizeof(mesh.positions[0]),
+            max_vertices, max_triangles, cone_weight);
 
         const meshopt_Meshlet& last = meshlets[meshlet_count - 1];
 
         meshlet_vertices.resize(last.vertex_offset + last.vertex_count);
-        meshlet_triangles.resize(last.triangle_offset + last.triangle_count * 3);
+        meshlet_indices.resize(last.triangle_offset + last.triangle_count * 3);
         meshlets.resize(meshlet_count);
 
         const u32 meshlet_vertex_count = meshlet_vertices.size();
-        const u32 total_mesh_index_count = meshlet_triangles.size();
+        const u32 total_mesh_index_count = meshlet_indices.size();
 
-        std::vector<u32>             optimized_index_buffer(total_mesh_index_count);
-        std::vector<glm::fvec3>      optimized_position_buffer(meshlet_vertex_count);
-        std::vector<glm::fvec3>      optimized_normal_buffer(meshlet_vertex_count);
-        std::vector<glm::fvec2>      optimized_uv_buffer(meshlet_vertex_count);
-        std::vector<MeshletInstance> optimized_meshlets(meshlet_count);
+        std::vector<u32>        optimized_index_buffer(total_mesh_index_count);
+        std::vector<glm::fvec3> optimized_position_buffer(meshlet_vertex_count);
+        std::vector<glm::fvec3> optimized_normal_buffer(meshlet_vertex_count);
+        std::vector<glm::fvec2> optimized_uv_buffer(meshlet_vertex_count);
+        std::vector<Meshlet>    optimized_meshlets(meshlet_count);
 
         for (u32 i = 0; i < meshlet_vertex_count; i++)
         {
@@ -174,24 +190,25 @@ void load_meshes(VulkanBackend& backend, MeshCache& mesh_cache, const nonstd::sp
         u32 index_output_offset = 0;
 
         // We also do index buffer compaction in the same pass
-        for (meshopt_Meshlet& meshlet : meshlets)
+        for (u32 meshlet_index = 0; meshlet_index < meshlets.size(); meshlet_index++)
         {
-            const u32 meshlet_index_count = meshlet.triangle_count * 3;
+            const meshopt_Meshlet& meshlet = meshlets[meshlet_index];
+            const u32              meshlet_index_count = meshlet.triangle_count * 3;
 
-            for (u32 meshlet_index = 0; meshlet_index < meshlet_index_count; meshlet_index++)
-            {
-                const u32 index_input_offset = meshlet.triangle_offset + meshlet_index;
-                const u32 local_index = static_cast<u32>(meshlet_triangles[index_input_offset]);
-
-                optimized_index_buffer[index_output_offset + meshlet_index] =
-                    meshlet.vertex_offset + local_index; // FIXME
-            }
-
-            MeshletInstance& meshlet_instance = optimized_meshlets.emplace_back();
+            Meshlet& meshlet_instance = optimized_meshlets[meshlet_index];
             meshlet_instance.vertex_offset = meshlet.vertex_offset;
             meshlet_instance.vertex_count = meshlet.vertex_count;
             meshlet_instance.index_offset = index_output_offset;
             meshlet_instance.index_count = meshlet_index_count;
+
+            // Copy index buffer
+            for (u32 index = 0; index < meshlet_index_count; index++)
+            {
+                const u32 index_input_offset = meshlet.triangle_offset + index;
+
+                optimized_index_buffer[index_output_offset + index] =
+                    static_cast<u32>(meshlet_indices[index_input_offset]);
+            }
 
             index_output_offset += meshlet_index_count;
         }
@@ -206,11 +223,9 @@ void load_meshes(VulkanBackend& backend, MeshCache& mesh_cache, const nonstd::sp
         const MeshHandle new_handle = static_cast<MeshHandle>(mesh_cache.mesh2_instances.size());
         Mesh2&           mesh2 = mesh_cache.mesh2_instances.emplace_back();
 
-        mesh2 = create_mesh2(mesh_cache_allocate_mesh(mesh_cache, mesh));
+        mesh2 = create_mesh2(mesh_cache_allocate_mesh(mesh_cache, mesh, optimized_meshlets));
 
-        std::swap(mesh2.meshlets, optimized_meshlets);
-
-        upload_mesh_to_mesh_cache(mesh_cache, mesh, mesh2.lods_allocs[0], backend);
+        upload_mesh_to_mesh_cache(mesh_cache, mesh, mesh2.lods_allocs[0], optimized_meshlets, backend);
 
         output_handles[mesh_index] = new_handle;
     }

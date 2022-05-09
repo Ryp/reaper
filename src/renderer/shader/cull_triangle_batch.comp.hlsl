@@ -2,6 +2,7 @@
 #include "lib/indirect_command.hlsl"
 #include "lib/vertex_pull.hlsl"
 
+#include "share/meshlet.hlsl"
 #include "share/culling.hlsl"
 
 //------------------------------------------------------------------------------
@@ -21,26 +22,28 @@ VK_PUSH_CONSTANT() ConstantBuffer<CullPushConstants> consts;
 
 VK_BINDING(0, 0) ConstantBuffer<CullPassParams> pass_params;
 
-VK_BINDING(1, 0) ByteAddressBuffer Indices;
-VK_BINDING(2, 0) ByteAddressBuffer buffer_position_ms;
-VK_BINDING(3, 0) StructuredBuffer<CullMeshInstanceParams> cull_mesh_instance_params;
+VK_BINDING(1, 0) StructuredBuffer<Meshlet> meshlets;
+VK_BINDING(2, 0) ByteAddressBuffer Indices;
+VK_BINDING(3, 0) ByteAddressBuffer buffer_position_ms;
+VK_BINDING(4, 0) StructuredBuffer<CullMeshInstanceParams> cull_mesh_instance_params;
 
 //------------------------------------------------------------------------------
 // Output
 
-VK_BINDING(4, 0) RWByteAddressBuffer IndicesOut;
-VK_BINDING(5, 0) RWByteAddressBuffer DrawCommandOut;
-VK_BINDING(6, 0) globallycoherent RWByteAddressBuffer DrawCountOut;
+VK_BINDING(5, 0) RWByteAddressBuffer IndicesOut;
+VK_BINDING(6, 0) RWByteAddressBuffer DrawCommandOut;
+VK_BINDING(7, 0) globallycoherent RWByteAddressBuffer DrawCountOut;
 
 //------------------------------------------------------------------------------
 
 groupshared uint lds_triangle_count;
 groupshared uint lds_triangle_offset;
 
-[numthreads(ComputeCullingGroupSize, 1, 1)]
-void main(/*uint3 gtid : SV_GroupThreadID,*/
+// FIXME non active threads read OOB
+[numthreads(MeshletMaxTriangleCount, 1, 1)]
+void main(uint3 gtid : SV_GroupThreadID,
           uint3 gid  : SV_GroupID,
-          uint3 dtid : SV_DispatchThreadID,
+          /*uint3 dtid : SV_DispatchThreadID,*/
           uint  gi   : SV_GroupIndex)
 {
     if (gi == 0)
@@ -51,17 +54,21 @@ void main(/*uint3 gtid : SV_GroupThreadID,*/
 
     GroupMemoryBarrierWithGroupSync();
 
-    const uint input_triangle_index_offset = consts.firstIndex + dtid.x * 3;
+    const Meshlet meshlet = meshlets[consts.meshlet_offset + gid.x];
 
+    const uint global_index_buffer_start = consts.firstIndex + meshlet.index_offset;
+    const uint input_triangle_index_offset = global_index_buffer_start + gtid.x * 3;
+
+    const uint global_vertex_buffer_start = consts.firstVertex + meshlet.vertex_offset;
     const uint3 indices = Indices.Load3(input_triangle_index_offset * 4);
-    const uint3 indices_with_vertex_offset = (indices + consts.firstVertex.xxx);
+    const uint3 indices_with_vertex_offset = indices + global_vertex_buffer_start;
 
     // NOTE: We will read out of bounds, this might be wasteful - or even illegal. OOB reads in DirectX11 are defined to return zero, what about Vulkan?
     const float3 vpos0_ms = pull_position_ms(buffer_position_ms, indices_with_vertex_offset.x);
     const float3 vpos1_ms = pull_position_ms(buffer_position_ms, indices_with_vertex_offset.y);
     const float3 vpos2_ms = pull_position_ms(buffer_position_ms, indices_with_vertex_offset.z);
 
-    const uint cull_instance_id = consts.firstCullInstance + gid.y;
+    const uint cull_instance_id = consts.cull_instance_offset + gid.y;
     const float4x4 ms_to_cs_matrix = cull_mesh_instance_params[cull_instance_id].ms_to_cs_matrix;
     const uint instance_id = cull_mesh_instance_params[cull_instance_id].instance_id;
 
@@ -73,8 +80,9 @@ void main(/*uint3 gtid : SV_GroupThreadID,*/
     const float3 vpos1_ndc = vpos1_cs.xyz / vpos1_cs.w;
     const float3 vpos2_ndc = vpos2_cs.xyz / vpos2_cs.w;
 
-    const bool is_lane_enabled = dtid.x < consts.triangleCount;
-    bool is_visible = is_lane_enabled;
+    const bool is_active = gtid.x < (meshlet.index_count / 3);
+
+    bool is_visible = is_active;
 
     if (spec_enable_backface_culling)
     {
@@ -158,9 +166,9 @@ void main(/*uint3 gtid : SV_GroupThreadID,*/
 
         IndirectDrawCommand command;
         command.indexCount = lds_triangle_count * 3;
-        command.instanceCount = 1;
-        command.firstIndex = consts.outputIndexOffset + lds_triangle_offset * 3;
-        command.vertexOffset = consts.firstVertex;
+        command.instance_count = 1;
+        command.firstIndex = consts.indices_output_offset + lds_triangle_offset * 3;
+        command.vertexOffset = global_vertex_buffer_start;
         command.firstInstance = instance_id;
 
         store_draw_command(DrawCommandOut, draw_command_index * IndirectDrawCommandSize * 4, command);

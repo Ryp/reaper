@@ -13,6 +13,7 @@
 #include "renderer/vulkan/Barrier.h"
 #include "renderer/vulkan/CommandBuffer.h"
 #include "renderer/vulkan/ComputeHelper.h"
+#include "renderer/vulkan/Debug.h"
 #include "renderer/vulkan/MeshCache.h"
 #include "renderer/vulkan/Shader.h"
 
@@ -26,6 +27,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "renderer/shader/share/culling.hlsl"
+#include "renderer/shader/share/meshlet.hlsl"
 
 namespace Reaper
 {
@@ -57,13 +59,14 @@ namespace
     }
 
     void update_culling_descriptor_sets(VulkanBackend& backend, CullResources& cull_resources,
-                                        const BufferInfo& staticIndexBuffer, const BufferInfo& vertexBufferPosition,
-                                        u32 pass_index)
+                                        const BufferInfo& meshletBuffer, const BufferInfo& staticIndexBuffer,
+                                        const BufferInfo& vertexBufferPosition, u32 pass_index)
     {
         VkDescriptorSet descriptor_set = cull_resources.passes[pass_index].cull_descriptor_set;
 
         const VkDescriptorBufferInfo passParams =
             get_vk_descriptor_buffer_info(cull_resources.cullPassConstantBuffer, BufferSubresource{pass_index, 1});
+        const VkDescriptorBufferInfo meshlets = default_descriptor_buffer_info(meshletBuffer);
         const VkDescriptorBufferInfo indices = default_descriptor_buffer_info(staticIndexBuffer);
         const VkDescriptorBufferInfo vertexPositions = default_descriptor_buffer_info(vertexBufferPosition);
         const VkDescriptorBufferInfo instanceParams =
@@ -80,12 +83,13 @@ namespace
 
         std::vector<VkWriteDescriptorSet> writes = {
             create_buffer_descriptor_write(descriptor_set, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &passParams),
-            create_buffer_descriptor_write(descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &indices),
-            create_buffer_descriptor_write(descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &vertexPositions),
-            create_buffer_descriptor_write(descriptor_set, 3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &instanceParams),
-            create_buffer_descriptor_write(descriptor_set, 4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &indicesOut),
-            create_buffer_descriptor_write(descriptor_set, 5, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &drawCommandOut),
-            create_buffer_descriptor_write(descriptor_set, 6, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &drawCountOut),
+            create_buffer_descriptor_write(descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &meshlets),
+            create_buffer_descriptor_write(descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &indices),
+            create_buffer_descriptor_write(descriptor_set, 3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &vertexPositions),
+            create_buffer_descriptor_write(descriptor_set, 4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &instanceParams),
+            create_buffer_descriptor_write(descriptor_set, 5, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &indicesOut),
+            create_buffer_descriptor_write(descriptor_set, 6, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &drawCommandOut),
+            create_buffer_descriptor_write(descriptor_set, 7, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &drawCountOut),
         };
 
         vkUpdateDescriptorSets(backend.device, static_cast<u32>(writes.size()), writes.data(), 0, nullptr);
@@ -141,7 +145,7 @@ namespace
 
     CullPipelineInfo create_cull_pipeline(ReaperRoot& root, VulkanBackend& backend)
     {
-        std::array<VkDescriptorSetLayoutBinding, 7> descriptorSetLayoutBinding = {
+        std::vector<VkDescriptorSetLayoutBinding> descriptorSetLayoutBinding = {
             VkDescriptorSetLayoutBinding{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
             VkDescriptorSetLayoutBinding{1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
             VkDescriptorSetLayoutBinding{2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
@@ -149,6 +153,7 @@ namespace
             VkDescriptorSetLayoutBinding{4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
             VkDescriptorSetLayoutBinding{5, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
             VkDescriptorSetLayoutBinding{6, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+            VkDescriptorSetLayoutBinding{7, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
         };
 
         VkDescriptorSetLayoutCreateInfo descriptorSetLayoutInfo = {
@@ -213,7 +218,7 @@ namespace
 
     CompactionPrepPipelineInfo create_compaction_prep_pipeline(ReaperRoot& root, VulkanBackend& backend)
     {
-        std::array<VkDescriptorSetLayoutBinding, 3> descriptorSetLayoutBinding = {
+        std::vector<VkDescriptorSetLayoutBinding> descriptorSetLayoutBinding = {
             VkDescriptorSetLayoutBinding{0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
             VkDescriptorSetLayoutBinding{1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
             VkDescriptorSetLayoutBinding{2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
@@ -274,7 +279,7 @@ namespace
 
     CompactionPipelineInfo create_compaction_pipeline(ReaperRoot& root, VulkanBackend& backend)
     {
-        std::array<VkDescriptorSetLayoutBinding, 4> descriptorSetLayoutBinding = {
+        std::vector<VkDescriptorSetLayoutBinding> descriptorSetLayoutBinding = {
             VkDescriptorSetLayoutBinding{0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
             VkDescriptorSetLayoutBinding{1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
             VkDescriptorSetLayoutBinding{2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
@@ -454,8 +459,8 @@ void update_culling_pass_descriptor_sets(VulkanBackend& backend, const PreparedD
     for (const CullPassData& cull_pass : prepared.cull_passes)
     {
         Assert(cull_pass.pass_index < MaxCullPassCount);
-        update_culling_descriptor_sets(backend, resources, mesh_cache.indexBuffer, mesh_cache.vertexBufferPosition,
-                                       cull_pass.pass_index);
+        update_culling_descriptor_sets(backend, resources, mesh_cache.meshletBuffer, mesh_cache.indexBuffer,
+                                       mesh_cache.vertexBufferPosition, cull_pass.pass_index);
         update_culling_compact_prep_descriptor_sets(backend, resources, cull_pass.pass_index);
         update_culling_compact_descriptor_sets(backend, resources, cull_pass.pass_index);
     }
@@ -468,6 +473,8 @@ void record_culling_command_buffer(bool freeze_culling, CommandBuffer& cmdBuffer
 
     if (!freeze_culling)
     {
+        VulkanDebugLabelCmdBufferScope s(cmdBuffer.handle, "Cull Meshes");
+
         vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE, resources.cullPipe.pipeline);
 
         for (const CullPassData& cull_pass : prepared.cull_passes)
@@ -482,9 +489,7 @@ void record_culling_command_buffer(bool freeze_culling, CommandBuffer& cmdBuffer
                 vkCmdPushConstants(cmdBuffer.handle, resources.cullPipe.pipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0,
                                    sizeof(command.push_constants), &command.push_constants);
 
-                vkCmdDispatch(cmdBuffer.handle,
-                              div_round_up(command.push_constants.triangleCount, ComputeCullingGroupSize),
-                              command.instanceCount, 1);
+                vkCmdDispatch(cmdBuffer.handle, command.meshlet_count, command.instance_count, 1);
             }
         }
     }

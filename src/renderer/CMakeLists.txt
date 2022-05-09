@@ -135,7 +135,6 @@ endif()
 set(REAPER_SHADER_DIR ${CMAKE_CURRENT_SOURCE_DIR}/shader)
 set(REAPER_SHADER_SRCS
     ${REAPER_SHADER_DIR}/compaction_prepare_indirect_dispatch.comp.hlsl
-    ${REAPER_SHADER_DIR}/cull_meshlet.comp.hlsl
     ${REAPER_SHADER_DIR}/cull_triangle_batch.comp.hlsl
     ${REAPER_SHADER_DIR}/draw_command_compaction.comp.hlsl
     ${REAPER_SHADER_DIR}/forward.frag.hlsl

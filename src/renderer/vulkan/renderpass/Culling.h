@@ -80,11 +80,6 @@ struct CullResources
 CullResources create_culling_resources(ReaperRoot& root, VulkanBackend& backend);
 void          destroy_culling_resources(VulkanBackend& backend, CullResources& resources);
 
-CullPassResources create_culling_pass_descriptor_sets(ReaperRoot& root, VulkanBackend& backend,
-                                                      CullResources& resources, u32 pass_index,
-                                                      const BufferInfo& indexBuffer,
-                                                      const BufferInfo& vertexBufferPosition);
-
 struct PreparedData;
 
 void upload_culling_resources(VulkanBackend& backend, const PreparedData& prepared, CullResources& resources);
