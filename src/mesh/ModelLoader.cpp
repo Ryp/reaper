@@ -40,10 +40,11 @@ Mesh ModelLoader::loadOBJTinyObjLoader(std::ifstream& src)
     tinyobj::attrib_t                attrib;
     std::vector<tinyobj::shape_t>    shapes;
     std::vector<tinyobj::material_t> materials;
+    std::string                      warn;
     std::string                      err;
     const bool                       triangulate = true;
 
-    const bool ret = tinyobj::LoadObj(&attrib, &shapes, &materials, &err, &src, nullptr, triangulate);
+    const bool ret = tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, &src, nullptr, triangulate);
 
     Assert(err.empty(), err);
     Assert(ret, "could not load obj");
