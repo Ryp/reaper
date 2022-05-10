@@ -67,12 +67,21 @@ bool DS4::connect()
     char deviceName[256];
 
     _fd = open(_device.c_str(), O_RDONLY | O_NONBLOCK);
+
     if (_fd == -1)
-        return false;
+    {
+        _connected = false;
+        return _connected;
+    }
+
     Assert(ioctl(_fd, JSIOCGNAME(256), deviceName) != -1, "could not retrieve device name");
 
     update();
     AbstractController::reset();
+
+    _connected = true;
+    return _connected;
+#else
+    return false;
 #endif
-    return true;
 }
