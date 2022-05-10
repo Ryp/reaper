@@ -11,6 +11,7 @@
 #include "Image.h"
 #include "renderer/graph/FrameGraph.h"
 
+#include <array>
 #include <vector>
 
 namespace Reaper

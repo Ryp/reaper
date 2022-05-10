@@ -115,8 +115,10 @@ ResourceUsageHandle Builder::create_texture(RenderPassHandle            renderPa
                                             const GPUTextureProperties& texture_properties,
                                             GPUResourceUsage            texture_usage)
 {
-    return create_resource_generic(renderPassHandle, name, GPUResourceProperties{.texture = texture_properties},
-                                   texture_usage, true);
+    GPUResourceProperties resource_properties;
+    resource_properties.texture = texture_properties;
+
+    return create_resource_generic(renderPassHandle, name, resource_properties, texture_usage, true);
 }
 
 ResourceUsageHandle Builder::create_buffer(RenderPassHandle           renderPassHandle,
@@ -124,8 +126,10 @@ ResourceUsageHandle Builder::create_buffer(RenderPassHandle           renderPass
                                            const GPUBufferProperties& buffer_properties,
                                            GPUResourceUsage           buffer_usage)
 {
-    return create_resource_generic(renderPassHandle, name, GPUResourceProperties{.buffer = buffer_properties},
-                                   buffer_usage, false);
+    GPUResourceProperties resource_properties;
+    resource_properties.buffer = buffer_properties;
+
+    return create_resource_generic(renderPassHandle, name, resource_properties, buffer_usage, false);
 }
 
 ResourceUsageHandle Builder::read_texture(RenderPassHandle    renderPassHandle,
