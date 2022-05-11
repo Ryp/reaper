@@ -7,12 +7,12 @@
 
 #include <glm/glm.hpp>
 
+#include "renderer/Mesh2.h" // FIXME
 #include "renderer/ResourceHandle.h"
 
 #include <nonstd/span.hpp>
 #include <vector>
 
-#include "renderer/shader/share/compaction.hlsl"
 #include "renderer/shader/share/culling.hlsl"
 #include "renderer/shader/share/draw.hlsl"
 #include "renderer/shader/share/shadow_map_pass.hlsl"
@@ -55,16 +55,16 @@ REAPER_RENDERER_API void build_scene_graph(SceneGraph& scene);
 
 struct CullCmd
 {
-    u32               meshlet_count;
-    u32               instance_count;
-    CullPushConstants push_constants;
+    MeshAlloc                mesh_alloc;
+    CullMeshletPushConstants push_constants;
+    u32                      instance_count;
 };
 
 struct CullPassData
 {
     u32 pass_index;
 
-    std::vector<CullCmd> cull_cmds;
+    std::vector<CullCmd> cull_commands;
 };
 
 struct ShadowPassData

@@ -27,55 +27,35 @@ constexpr VkIndexType get_vk_culling_index_type()
     }
 }
 
-struct ReaperRoot;
-struct VulkanBackend;
-
-struct CullPipelineInfo
+// FIXME
+struct SimplePipeline
 {
     VkPipeline            pipeline;
     VkPipelineLayout      pipelineLayout;
     VkDescriptorSetLayout descSetLayout;
-};
-
-struct CompactionPrepPipelineInfo
-{
-    VkPipeline            pipeline;
-    VkPipelineLayout      pipelineLayout;
-    VkDescriptorSetLayout descSetLayout;
-};
-
-struct CompactionPipelineInfo
-{
-    VkPipeline            pipeline;
-    VkPipelineLayout      pipelineLayout;
-    VkDescriptorSetLayout descSetLayout;
-};
-
-struct CullPassResources
-{
-    VkDescriptorSet cull_descriptor_set;
-    VkDescriptorSet compact_prep_descriptor_set;
-    VkDescriptorSet compact_descriptor_set;
 };
 
 struct CullResources
 {
-    CullPipelineInfo           cullPipe;
-    CompactionPrepPipelineInfo compactPrepPipe;
-    CompactionPipelineInfo     compactionPipe;
+    SimplePipeline cullMeshletPipe;
+    SimplePipeline cullMeshletPrepIndirect;
+    SimplePipeline cullTrianglesPipe;
 
-    // These are valid for ONE FRAME ONLY
-    std::vector<CullPassResources> passes;
+    std::vector<VkDescriptorSet> cull_meshlet_descriptor_sets;
+    std::vector<VkDescriptorSet> cull_triangles_descriptor_sets;
+    VkDescriptorSet              cull_prepare_descriptor_set;
 
     BufferInfo cullPassConstantBuffer;
     BufferInfo cullInstanceParamsBuffer;
-    BufferInfo indirectDrawCountBuffer;
+    BufferInfo countersBuffer;
+    BufferInfo dynamicMeshletBuffer;
+    BufferInfo indirectDispatchBuffer;
     BufferInfo dynamicIndexBuffer;
     BufferInfo indirectDrawBuffer;
-    BufferInfo compactIndirectDrawBuffer;
-    BufferInfo compactIndirectDrawCountBuffer;
-    BufferInfo compactionIndirectDispatchBuffer;
 };
+
+struct ReaperRoot;
+struct VulkanBackend;
 
 CullResources create_culling_resources(ReaperRoot& root, VulkanBackend& backend);
 void          destroy_culling_resources(VulkanBackend& backend, CullResources& resources);
@@ -91,6 +71,7 @@ void update_culling_pass_descriptor_sets(VulkanBackend& backend, const PreparedD
 
 struct CommandBuffer;
 
-void record_culling_command_buffer(bool freeze_culling, CommandBuffer& cmdBuffer, const PreparedData& prepared,
-                                   CullResources& resources);
+void record_culling_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& prepared, CullResources& resources);
+
+u32 get_indirect_draw_counter_offset(u32 pass_index);
 } // namespace Reaper

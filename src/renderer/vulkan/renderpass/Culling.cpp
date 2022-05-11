@@ -33,53 +33,67 @@ namespace Reaper
 {
 namespace
 {
-    CullPassResources create_descriptor_sets(VulkanBackend& backend, CullResources& resources)
+    std::vector<VkDescriptorSet> create_descriptor_sets(VulkanBackend& backend, VkDescriptorSetLayout set_layout,
+                                                        u32 count)
     {
-        constexpr u32 SetCount = 3;
+        std::vector<VkDescriptorSetLayout> layouts(count, set_layout);
+        std::vector<VkDescriptorSet>       sets(layouts.size());
 
-        std::array<VkDescriptorSet, SetCount>       sets;
-        std::array<VkDescriptorSetLayout, SetCount> layouts = {
-            resources.cullPipe.descSetLayout,
-            resources.compactPrepPipe.descSetLayout,
-            resources.compactionPipe.descSetLayout,
-        };
-
-        VkDescriptorSetAllocateInfo allocInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr,
-                                                 backend.global_descriptor_pool, static_cast<u32>(layouts.size()),
-                                                 layouts.data()};
+        const VkDescriptorSetAllocateInfo allocInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr,
+                                                       backend.global_descriptor_pool, static_cast<u32>(layouts.size()),
+                                                       layouts.data()};
 
         Assert(vkAllocateDescriptorSets(backend.device, &allocInfo, sets.data()) == VK_SUCCESS);
 
-        CullPassResources descriptor_sets = {};
-        descriptor_sets.cull_descriptor_set = sets[0];
-        descriptor_sets.compact_prep_descriptor_set = sets[1];
-        descriptor_sets.compact_descriptor_set = sets[2];
-
-        return descriptor_sets;
+        return sets;
     }
 
-    void update_culling_descriptor_sets(VulkanBackend& backend, CullResources& cull_resources,
-                                        const BufferInfo& meshletBuffer, const BufferInfo& staticIndexBuffer,
-                                        const BufferInfo& vertexBufferPosition, u32 pass_index)
+    void update_cull_meshlet_descriptor_sets(VulkanBackend& backend, CullResources& resources,
+                                             const BufferInfo& meshletBuffer, u32 pass_index)
     {
-        VkDescriptorSet descriptor_set = cull_resources.passes[pass_index].cull_descriptor_set;
+        VkDescriptorSet descriptor_set = resources.cull_meshlet_descriptor_sets[pass_index];
+
+        const VkDescriptorBufferInfo meshlets = default_descriptor_buffer_info(meshletBuffer);
+        const VkDescriptorBufferInfo instanceParams =
+            default_descriptor_buffer_info(resources.cullInstanceParamsBuffer);
+        const VkDescriptorBufferInfo counters = get_vk_descriptor_buffer_info(
+            resources.countersBuffer, BufferSubresource{pass_index * CountersCount, CountersCount});
+        const VkDescriptorBufferInfo meshlet_offsets = get_vk_descriptor_buffer_info(
+            resources.dynamicMeshletBuffer,
+            BufferSubresource{pass_index * DynamicMeshletBufferElements, DynamicMeshletBufferElements});
+
+        std::vector<VkWriteDescriptorSet> writes = {
+            create_buffer_descriptor_write(descriptor_set, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &meshlets),
+            create_buffer_descriptor_write(descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &instanceParams),
+            create_buffer_descriptor_write(descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &counters),
+            create_buffer_descriptor_write(descriptor_set, 3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &meshlet_offsets),
+        };
+
+        vkUpdateDescriptorSets(backend.device, static_cast<u32>(writes.size()), writes.data(), 0, nullptr);
+    }
+
+    void update_culling_descriptor_sets(VulkanBackend& backend, CullResources& resources,
+                                        const BufferInfo& staticIndexBuffer, const BufferInfo& vertexBufferPosition,
+                                        u32 pass_index)
+    {
+        VkDescriptorSet descriptor_set = resources.cull_triangles_descriptor_sets[pass_index];
 
         const VkDescriptorBufferInfo passParams =
-            get_vk_descriptor_buffer_info(cull_resources.cullPassConstantBuffer, BufferSubresource{pass_index, 1});
-        const VkDescriptorBufferInfo meshlets = default_descriptor_buffer_info(meshletBuffer);
+            get_vk_descriptor_buffer_info(resources.cullPassConstantBuffer, BufferSubresource{pass_index, 1});
+        const VkDescriptorBufferInfo meshlets = get_vk_descriptor_buffer_info(
+            resources.dynamicMeshletBuffer,
+            BufferSubresource{pass_index * DynamicMeshletBufferElements, DynamicMeshletBufferElements});
         const VkDescriptorBufferInfo indices = default_descriptor_buffer_info(staticIndexBuffer);
         const VkDescriptorBufferInfo vertexPositions = default_descriptor_buffer_info(vertexBufferPosition);
         const VkDescriptorBufferInfo instanceParams =
-            default_descriptor_buffer_info(cull_resources.cullInstanceParamsBuffer);
+            default_descriptor_buffer_info(resources.cullInstanceParamsBuffer);
         const VkDescriptorBufferInfo indicesOut = get_vk_descriptor_buffer_info(
-            cull_resources.dynamicIndexBuffer,
-            BufferSubresource{pass_index * DynamicIndexBufferSize, DynamicIndexBufferSize});
-        const VkDescriptorBufferInfo drawCommandOut =
-            get_vk_descriptor_buffer_info(cull_resources.indirectDrawBuffer,
-                                          BufferSubresource{pass_index * MaxIndirectDrawCount, MaxIndirectDrawCount});
-        const VkDescriptorBufferInfo drawCountOut = get_vk_descriptor_buffer_info(
-            cull_resources.indirectDrawCountBuffer,
-            BufferSubresource{pass_index * IndirectDrawCountCount, IndirectDrawCountCount});
+            resources.dynamicIndexBuffer,
+            BufferSubresource{pass_index * DynamicIndexBufferSizeBytes, DynamicIndexBufferSizeBytes});
+        const VkDescriptorBufferInfo drawCommandOut = get_vk_descriptor_buffer_info(
+            resources.indirectDrawBuffer, BufferSubresource{pass_index * MaxIndirectDrawCount, MaxIndirectDrawCount});
+        const VkDescriptorBufferInfo countersOut = get_vk_descriptor_buffer_info(
+            resources.countersBuffer, BufferSubresource{pass_index * CountersCount, CountersCount});
 
         std::vector<VkWriteDescriptorSet> writes = {
             create_buffer_descriptor_write(descriptor_set, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &passParams),
@@ -89,61 +103,166 @@ namespace
             create_buffer_descriptor_write(descriptor_set, 4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &instanceParams),
             create_buffer_descriptor_write(descriptor_set, 5, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &indicesOut),
             create_buffer_descriptor_write(descriptor_set, 6, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &drawCommandOut),
-            create_buffer_descriptor_write(descriptor_set, 7, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &drawCountOut),
+            create_buffer_descriptor_write(descriptor_set, 7, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &countersOut),
         };
 
         vkUpdateDescriptorSets(backend.device, static_cast<u32>(writes.size()), writes.data(), 0, nullptr);
     }
 
-    void update_culling_compact_prep_descriptor_sets(VulkanBackend& backend, CullResources& cull_resources,
-                                                     u32 pass_index)
+    void update_cull_prepare_indirect_descriptor_set(VulkanBackend& backend, CullResources& resources,
+                                                     VkDescriptorSet descriptor_set)
     {
-        VkDescriptorSet descriptor_set = cull_resources.passes[pass_index].compact_prep_descriptor_set;
-
-        const VkDescriptorBufferInfo drawCommandCount = get_vk_descriptor_buffer_info(
-            cull_resources.indirectDrawCountBuffer,
-            BufferSubresource{pass_index * IndirectDrawCountCount, IndirectDrawCountCount});
-        const VkDescriptorBufferInfo dispatchCommandOut = get_vk_descriptor_buffer_info(
-            cull_resources.compactionIndirectDispatchBuffer, BufferSubresource{pass_index, 1});
-        const VkDescriptorBufferInfo drawCommandCountOut = get_vk_descriptor_buffer_info(
-            cull_resources.compactIndirectDrawCountBuffer, BufferSubresource{pass_index, 1});
+        const VkDescriptorBufferInfo counters = default_descriptor_buffer_info(resources.countersBuffer);
+        const VkDescriptorBufferInfo indirectCommands =
+            default_descriptor_buffer_info(resources.indirectDispatchBuffer);
 
         std::vector<VkWriteDescriptorSet> writes = {
-            create_buffer_descriptor_write(descriptor_set, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &drawCommandCount),
-            create_buffer_descriptor_write(descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &dispatchCommandOut),
-            create_buffer_descriptor_write(descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &drawCommandCountOut),
+            create_buffer_descriptor_write(descriptor_set, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &counters),
+            create_buffer_descriptor_write(descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &indirectCommands),
         };
 
         vkUpdateDescriptorSets(backend.device, static_cast<u32>(writes.size()), writes.data(), 0, nullptr);
     }
 
-    void update_culling_compact_descriptor_sets(VulkanBackend& backend, CullResources& cull_resources, u32 pass_index)
+    SimplePipeline create_meshlet_prepare_indirect_pipeline(ReaperRoot& root, VulkanBackend& backend)
     {
-        VkDescriptorSet descriptor_set = cull_resources.passes[pass_index].compact_descriptor_set;
+        const char*           fileName = "./build/shader/prepare_fine_culling_indirect.comp.spv";
+        const char*           entryPoint = "main";
+        VkSpecializationInfo* specialization = nullptr;
+        VkShaderModule        computeShader = vulkan_create_shader_module(backend.device, fileName);
 
-        const VkDescriptorBufferInfo commandIn =
-            get_vk_descriptor_buffer_info(cull_resources.indirectDrawBuffer,
-                                          BufferSubresource{pass_index * MaxIndirectDrawCount, MaxIndirectDrawCount});
-        const VkDescriptorBufferInfo commandCount = get_vk_descriptor_buffer_info(
-            cull_resources.indirectDrawCountBuffer,
-            BufferSubresource{pass_index * IndirectDrawCountCount, IndirectDrawCountCount});
-        const VkDescriptorBufferInfo commandOut =
-            get_vk_descriptor_buffer_info(cull_resources.compactIndirectDrawBuffer,
-                                          BufferSubresource{pass_index * MaxIndirectDrawCount, MaxIndirectDrawCount});
-        const VkDescriptorBufferInfo commandCountOut = get_vk_descriptor_buffer_info(
-            cull_resources.compactIndirectDrawCountBuffer, BufferSubresource{pass_index, 1});
-
-        std::vector<VkWriteDescriptorSet> writes = {
-            create_buffer_descriptor_write(descriptor_set, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &commandIn),
-            create_buffer_descriptor_write(descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &commandCount),
-            create_buffer_descriptor_write(descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &commandOut),
-            create_buffer_descriptor_write(descriptor_set, 3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &commandCountOut),
+        std::vector<VkDescriptorSetLayoutBinding> descriptorSetLayoutBinding = {
+            VkDescriptorSetLayoutBinding{0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+            VkDescriptorSetLayoutBinding{1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
         };
 
-        vkUpdateDescriptorSets(backend.device, static_cast<u32>(writes.size()), writes.data(), 0, nullptr);
+        VkDescriptorSetLayoutCreateInfo descriptorSetLayoutInfo = {
+            VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, nullptr, 0,
+            static_cast<u32>(descriptorSetLayoutBinding.size()), descriptorSetLayoutBinding.data()};
+
+        VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
+        Assert(vkCreateDescriptorSetLayout(backend.device, &descriptorSetLayoutInfo, nullptr, &descriptorSetLayout)
+               == VK_SUCCESS);
+
+        log_debug(root, "vulkan: created descriptor set layout with handle: {}",
+                  static_cast<void*>(descriptorSetLayout));
+
+        const VkPushConstantRange cullPushConstantRange = {VK_SHADER_STAGE_COMPUTE_BIT, 0,
+                                                           sizeof(CullMeshletPushConstants)};
+
+        VkPipelineLayoutCreateInfo pipelineLayoutInfo = {VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+                                                         nullptr,
+                                                         VK_FLAGS_NONE,
+                                                         1,
+                                                         &descriptorSetLayout,
+                                                         1,
+                                                         &cullPushConstantRange};
+
+        VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
+        Assert(vkCreatePipelineLayout(backend.device, &pipelineLayoutInfo, nullptr, &pipelineLayout) == VK_SUCCESS);
+
+        log_debug(root, "vulkan: created pipeline layout with handle: {}", static_cast<void*>(pipelineLayout));
+
+        VkPipelineShaderStageCreateInfo shaderStage = {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+                                                       nullptr,
+                                                       0,
+                                                       VK_SHADER_STAGE_COMPUTE_BIT,
+                                                       computeShader,
+                                                       entryPoint,
+                                                       specialization};
+
+        VkComputePipelineCreateInfo pipelineCreateInfo = {VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
+                                                          nullptr,
+                                                          0,
+                                                          shaderStage,
+                                                          pipelineLayout,
+                                                          VK_NULL_HANDLE, // do not care about pipeline derivatives
+                                                          0};
+
+        VkPipeline      pipeline = VK_NULL_HANDLE;
+        VkPipelineCache cache = VK_NULL_HANDLE;
+
+        Assert(vkCreateComputePipelines(backend.device, cache, 1, &pipelineCreateInfo, nullptr, &pipeline)
+               == VK_SUCCESS);
+
+        vkDestroyShaderModule(backend.device, computeShader, nullptr);
+
+        log_debug(root, "vulkan: created compute pipeline with handle: {}", static_cast<void*>(pipeline));
+
+        return SimplePipeline{pipeline, pipelineLayout, descriptorSetLayout};
     }
 
-    CullPipelineInfo create_cull_pipeline(ReaperRoot& root, VulkanBackend& backend)
+    SimplePipeline create_cull_meshlet_pipeline(ReaperRoot& root, VulkanBackend& backend)
+    {
+        const char*           fileName = "./build/shader/cull_meshlet.comp.spv";
+        const char*           entryPoint = "main";
+        VkSpecializationInfo* specialization = nullptr;
+        VkShaderModule        computeShader = vulkan_create_shader_module(backend.device, fileName);
+
+        std::vector<VkDescriptorSetLayoutBinding> descriptorSetLayoutBinding = {
+            VkDescriptorSetLayoutBinding{0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+            VkDescriptorSetLayoutBinding{1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+            VkDescriptorSetLayoutBinding{2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+            VkDescriptorSetLayoutBinding{3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+        };
+
+        VkDescriptorSetLayoutCreateInfo descriptorSetLayoutInfo = {
+            VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, nullptr, 0,
+            static_cast<u32>(descriptorSetLayoutBinding.size()), descriptorSetLayoutBinding.data()};
+
+        VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
+        Assert(vkCreateDescriptorSetLayout(backend.device, &descriptorSetLayoutInfo, nullptr, &descriptorSetLayout)
+               == VK_SUCCESS);
+
+        log_debug(root, "vulkan: created descriptor set layout with handle: {}",
+                  static_cast<void*>(descriptorSetLayout));
+
+        const VkPushConstantRange cullPushConstantRange = {VK_SHADER_STAGE_COMPUTE_BIT, 0,
+                                                           sizeof(CullMeshletPushConstants)};
+
+        VkPipelineLayoutCreateInfo pipelineLayoutInfo = {VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+                                                         nullptr,
+                                                         VK_FLAGS_NONE,
+                                                         1,
+                                                         &descriptorSetLayout,
+                                                         1,
+                                                         &cullPushConstantRange};
+
+        VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
+        Assert(vkCreatePipelineLayout(backend.device, &pipelineLayoutInfo, nullptr, &pipelineLayout) == VK_SUCCESS);
+
+        log_debug(root, "vulkan: created pipeline layout with handle: {}", static_cast<void*>(pipelineLayout));
+
+        VkPipelineShaderStageCreateInfo shaderStage = {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+                                                       nullptr,
+                                                       0,
+                                                       VK_SHADER_STAGE_COMPUTE_BIT,
+                                                       computeShader,
+                                                       entryPoint,
+                                                       specialization};
+
+        VkComputePipelineCreateInfo pipelineCreateInfo = {VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
+                                                          nullptr,
+                                                          0,
+                                                          shaderStage,
+                                                          pipelineLayout,
+                                                          VK_NULL_HANDLE, // do not care about pipeline derivatives
+                                                          0};
+
+        VkPipeline      pipeline = VK_NULL_HANDLE;
+        VkPipelineCache cache = VK_NULL_HANDLE;
+
+        Assert(vkCreateComputePipelines(backend.device, cache, 1, &pipelineCreateInfo, nullptr, &pipeline)
+               == VK_SUCCESS);
+
+        vkDestroyShaderModule(backend.device, computeShader, nullptr);
+
+        log_debug(root, "vulkan: created compute pipeline with handle: {}", static_cast<void*>(pipeline));
+
+        return SimplePipeline{pipeline, pipelineLayout, descriptorSetLayout};
+    }
+
+    SimplePipeline create_cull_triangles_pipeline(ReaperRoot& root, VulkanBackend& backend)
     {
         std::vector<VkDescriptorSetLayoutBinding> descriptorSetLayoutBinding = {
             VkDescriptorSetLayoutBinding{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
@@ -213,130 +332,7 @@ namespace
 
         log_debug(root, "vulkan: created compute pipeline with handle: {}", static_cast<void*>(pipeline));
 
-        return CullPipelineInfo{pipeline, pipelineLayout, descriptorSetLayout};
-    }
-
-    CompactionPrepPipelineInfo create_compaction_prep_pipeline(ReaperRoot& root, VulkanBackend& backend)
-    {
-        std::vector<VkDescriptorSetLayoutBinding> descriptorSetLayoutBinding = {
-            VkDescriptorSetLayoutBinding{0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-            VkDescriptorSetLayoutBinding{1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-            VkDescriptorSetLayoutBinding{2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-        };
-
-        VkDescriptorSetLayoutCreateInfo descriptorSetLayoutInfo = {
-            VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, nullptr, 0,
-            static_cast<u32>(descriptorSetLayoutBinding.size()), descriptorSetLayoutBinding.data()};
-
-        VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
-        Assert(vkCreateDescriptorSetLayout(backend.device, &descriptorSetLayoutInfo, nullptr, &descriptorSetLayout)
-               == VK_SUCCESS);
-
-        log_debug(root, "vulkan: created descriptor set layout with handle: {}",
-                  static_cast<void*>(descriptorSetLayout));
-
-        VkPipelineLayoutCreateInfo pipelineLayoutInfo = {
-            VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO, nullptr, VK_FLAGS_NONE, 1, &descriptorSetLayout, 0, nullptr};
-
-        VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
-        Assert(vkCreatePipelineLayout(backend.device, &pipelineLayoutInfo, nullptr, &pipelineLayout) == VK_SUCCESS);
-
-        log_debug(root, "vulkan: created pipeline layout with handle: {}", static_cast<void*>(pipelineLayout));
-
-        const char*           fileName = "./build/shader/compaction_prepare_indirect_dispatch.comp.spv";
-        const char*           entryPoint = "main";
-        VkSpecializationInfo* specialization = nullptr;
-        VkShaderModule        computeShader = vulkan_create_shader_module(backend.device, fileName);
-
-        VkPipelineShaderStageCreateInfo shaderStage = {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-                                                       nullptr,
-                                                       0,
-                                                       VK_SHADER_STAGE_COMPUTE_BIT,
-                                                       computeShader,
-                                                       entryPoint,
-                                                       specialization};
-
-        VkComputePipelineCreateInfo pipelineCreateInfo = {VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
-                                                          nullptr,
-                                                          0,
-                                                          shaderStage,
-                                                          pipelineLayout,
-                                                          VK_NULL_HANDLE, // do not care about pipeline derivatives
-                                                          0};
-
-        VkPipeline      pipeline = VK_NULL_HANDLE;
-        VkPipelineCache cache = VK_NULL_HANDLE;
-
-        Assert(vkCreateComputePipelines(backend.device, cache, 1, &pipelineCreateInfo, nullptr, &pipeline)
-               == VK_SUCCESS);
-
-        vkDestroyShaderModule(backend.device, computeShader, nullptr);
-
-        log_debug(root, "vulkan: created compute pipeline with handle: {}", static_cast<void*>(pipeline));
-
-        return CompactionPrepPipelineInfo{pipeline, pipelineLayout, descriptorSetLayout};
-    }
-
-    CompactionPipelineInfo create_compaction_pipeline(ReaperRoot& root, VulkanBackend& backend)
-    {
-        std::vector<VkDescriptorSetLayoutBinding> descriptorSetLayoutBinding = {
-            VkDescriptorSetLayoutBinding{0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-            VkDescriptorSetLayoutBinding{1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-            VkDescriptorSetLayoutBinding{2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-            VkDescriptorSetLayoutBinding{3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-        };
-
-        VkDescriptorSetLayoutCreateInfo descriptorSetLayoutInfo = {
-            VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, nullptr, 0,
-            static_cast<u32>(descriptorSetLayoutBinding.size()), descriptorSetLayoutBinding.data()};
-
-        VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
-        Assert(vkCreateDescriptorSetLayout(backend.device, &descriptorSetLayoutInfo, nullptr, &descriptorSetLayout)
-               == VK_SUCCESS);
-
-        log_debug(root, "vulkan: created descriptor set layout with handle: {}",
-                  static_cast<void*>(descriptorSetLayout));
-
-        VkPipelineLayoutCreateInfo pipelineLayoutInfo = {
-            VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO, nullptr, VK_FLAGS_NONE, 1, &descriptorSetLayout, 0, nullptr};
-
-        VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
-        Assert(vkCreatePipelineLayout(backend.device, &pipelineLayoutInfo, nullptr, &pipelineLayout) == VK_SUCCESS);
-
-        log_debug(root, "vulkan: created pipeline layout with handle: {}", static_cast<void*>(pipelineLayout));
-
-        const char*           fileName = "./build/shader/draw_command_compaction.comp.spv";
-        const char*           entryPoint = "main";
-        VkSpecializationInfo* specialization = nullptr;
-        VkShaderModule        computeShader = vulkan_create_shader_module(backend.device, fileName);
-
-        VkPipelineShaderStageCreateInfo shaderStage = {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-                                                       nullptr,
-                                                       0,
-                                                       VK_SHADER_STAGE_COMPUTE_BIT,
-                                                       computeShader,
-                                                       entryPoint,
-                                                       specialization};
-
-        VkComputePipelineCreateInfo pipelineCreateInfo = {VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
-                                                          nullptr,
-                                                          0,
-                                                          shaderStage,
-                                                          pipelineLayout,
-                                                          VK_NULL_HANDLE, // do not care about pipeline derivatives
-                                                          0};
-
-        VkPipeline      pipeline = VK_NULL_HANDLE;
-        VkPipelineCache cache = VK_NULL_HANDLE;
-
-        Assert(vkCreateComputePipelines(backend.device, cache, 1, &pipelineCreateInfo, nullptr, &pipeline)
-               == VK_SUCCESS);
-
-        vkDestroyShaderModule(backend.device, computeShader, nullptr);
-
-        log_debug(root, "vulkan: created compute pipeline with handle: {}", static_cast<void*>(pipeline));
-
-        return CompactionPipelineInfo{pipeline, pipelineLayout, descriptorSetLayout};
+        return SimplePipeline{pipeline, pipelineLayout, descriptorSetLayout};
     }
 } // namespace
 
@@ -344,29 +340,42 @@ CullResources create_culling_resources(ReaperRoot& root, VulkanBackend& backend)
 {
     CullResources resources;
 
-    resources.cullPipe = create_cull_pipeline(root, backend);
-    resources.compactPrepPipe = create_compaction_prep_pipeline(root, backend);
-    resources.compactionPipe = create_compaction_pipeline(root, backend);
+    resources.cullMeshletPipe = create_cull_meshlet_pipeline(root, backend);
+    resources.cullMeshletPrepIndirect = create_meshlet_prepare_indirect_pipeline(root, backend);
+    resources.cullTrianglesPipe = create_cull_triangles_pipeline(root, backend);
 
     resources.cullPassConstantBuffer = create_buffer(
-        root, backend.device, "Cull Pass Constant buffer",
+        root, backend.device, "Cull Pass Constant",
         DefaultGPUBufferProperties(MaxCullPassCount, sizeof(CullPassParams), GPUBufferUsage::UniformBuffer),
         backend.vma_instance);
 
     resources.cullInstanceParamsBuffer = create_buffer(
-        root, backend.device, "Culling instance constant buffer",
+        root, backend.device, "Culling instance constants",
         DefaultGPUBufferProperties(CullInstanceCountMax, sizeof(CullMeshInstanceParams), GPUBufferUsage::StorageBuffer),
         backend.vma_instance);
 
-    resources.indirectDrawCountBuffer =
-        create_buffer(root, backend.device, "Indirect draw count buffer",
-                      DefaultGPUBufferProperties(IndirectDrawCountCount * MaxCullPassCount, sizeof(u32),
+    resources.countersBuffer =
+        create_buffer(root, backend.device, "Meshlet counters",
+                      DefaultGPUBufferProperties(CountersCount * MaxCullPassCount, sizeof(u32),
+                                                 GPUBufferUsage::IndirectBuffer | GPUBufferUsage::TransferDst
+                                                     | GPUBufferUsage::StorageBuffer),
+                      backend.vma_instance);
+
+    resources.dynamicMeshletBuffer =
+        create_buffer(root, backend.device, "Dynamic meshlet offsets",
+                      DefaultGPUBufferProperties(DynamicMeshletBufferElements * MaxCullPassCount,
+                                                 sizeof(MeshletOffsets), GPUBufferUsage::StorageBuffer),
+                      backend.vma_instance);
+
+    resources.indirectDispatchBuffer =
+        create_buffer(root, backend.device, "Indirect dispatch buffer",
+                      DefaultGPUBufferProperties(MaxCullPassCount, sizeof(VkDispatchIndirectCommand),
                                                  GPUBufferUsage::IndirectBuffer | GPUBufferUsage::StorageBuffer),
                       backend.vma_instance);
 
     resources.dynamicIndexBuffer =
-        create_buffer(root, backend.device, "Culling dynamic index buffer",
-                      DefaultGPUBufferProperties(DynamicIndexBufferSize * MaxCullPassCount, 1,
+        create_buffer(root, backend.device, "Dynamic indices",
+                      DefaultGPUBufferProperties(DynamicIndexBufferSizeBytes * MaxCullPassCount, 1,
                                                  GPUBufferUsage::IndexBuffer | GPUBufferUsage::StorageBuffer),
                       backend.vma_instance);
 
@@ -376,64 +385,48 @@ CullResources create_culling_resources(ReaperRoot& root, VulkanBackend& backend)
                                    GPUBufferUsage::IndirectBuffer | GPUBufferUsage::StorageBuffer),
         backend.vma_instance);
 
-    resources.compactIndirectDrawBuffer = create_buffer(
-        root, backend.device, "Compact indirect draw buffer",
-        DefaultGPUBufferProperties(MaxIndirectDrawCount * MaxCullPassCount, sizeof(VkDrawIndexedIndirectCommand),
-                                   GPUBufferUsage::IndirectBuffer | GPUBufferUsage::StorageBuffer),
-        backend.vma_instance);
-
-    resources.compactIndirectDrawCountBuffer =
-        create_buffer(root, backend.device, "Compact indirect draw count buffer",
-                      DefaultGPUBufferProperties(1 * MaxCullPassCount, sizeof(u32),
-                                                 GPUBufferUsage::IndirectBuffer | GPUBufferUsage::StorageBuffer),
-                      backend.vma_instance);
-
     Assert(MaxIndirectDrawCount < backend.physicalDeviceProperties.limits.maxDrawIndirectCount);
 
-    resources.compactionIndirectDispatchBuffer =
-        create_buffer(root, backend.device, "Compact indirect dispatch buffer",
-                      DefaultGPUBufferProperties(1 * MaxCullPassCount, sizeof(VkDispatchIndirectCommand),
-                                                 GPUBufferUsage::IndirectBuffer | GPUBufferUsage::StorageBuffer),
-                      backend.vma_instance);
-
-    resources.passes.push_back(create_descriptor_sets(backend, resources));
-    resources.passes.push_back(create_descriptor_sets(backend, resources));
-    resources.passes.push_back(create_descriptor_sets(backend, resources));
-    resources.passes.push_back(create_descriptor_sets(backend, resources));
+    // FIXME
+    resources.cull_meshlet_descriptor_sets =
+        create_descriptor_sets(backend, resources.cullMeshletPipe.descSetLayout, 4);
+    resources.cull_prepare_descriptor_set =
+        create_descriptor_sets(backend, resources.cullMeshletPrepIndirect.descSetLayout, 1).front();
+    resources.cull_triangles_descriptor_sets =
+        create_descriptor_sets(backend, resources.cullTrianglesPipe.descSetLayout, 4);
 
     return resources;
 }
+
+namespace
+{
+    void destroy_simple_pipeline(VkDevice device, SimplePipeline simple_pipeline)
+    {
+        vkDestroyPipeline(device, simple_pipeline.pipeline, nullptr);
+        vkDestroyPipelineLayout(device, simple_pipeline.pipelineLayout, nullptr);
+        vkDestroyDescriptorSetLayout(device, simple_pipeline.descSetLayout, nullptr);
+    }
+} // namespace
 
 void destroy_culling_resources(VulkanBackend& backend, CullResources& resources)
 {
     vmaDestroyBuffer(backend.vma_instance, resources.cullPassConstantBuffer.handle,
                      resources.cullPassConstantBuffer.allocation);
-    vmaDestroyBuffer(backend.vma_instance, resources.indirectDrawCountBuffer.handle,
-                     resources.indirectDrawCountBuffer.allocation);
+    vmaDestroyBuffer(backend.vma_instance, resources.countersBuffer.handle, resources.countersBuffer.allocation);
     vmaDestroyBuffer(backend.vma_instance, resources.cullInstanceParamsBuffer.handle,
                      resources.cullInstanceParamsBuffer.allocation);
     vmaDestroyBuffer(backend.vma_instance, resources.dynamicIndexBuffer.handle,
                      resources.dynamicIndexBuffer.allocation);
+    vmaDestroyBuffer(backend.vma_instance, resources.indirectDispatchBuffer.handle,
+                     resources.indirectDispatchBuffer.allocation);
+    vmaDestroyBuffer(backend.vma_instance, resources.dynamicMeshletBuffer.handle,
+                     resources.dynamicMeshletBuffer.allocation);
     vmaDestroyBuffer(backend.vma_instance, resources.indirectDrawBuffer.handle,
                      resources.indirectDrawBuffer.allocation);
-    vmaDestroyBuffer(backend.vma_instance, resources.compactIndirectDrawBuffer.handle,
-                     resources.compactIndirectDrawBuffer.allocation);
-    vmaDestroyBuffer(backend.vma_instance, resources.compactionIndirectDispatchBuffer.handle,
-                     resources.compactionIndirectDispatchBuffer.allocation);
-    vmaDestroyBuffer(backend.vma_instance, resources.compactIndirectDrawCountBuffer.handle,
-                     resources.compactIndirectDrawCountBuffer.allocation);
 
-    vkDestroyPipeline(backend.device, resources.cullPipe.pipeline, nullptr);
-    vkDestroyPipelineLayout(backend.device, resources.cullPipe.pipelineLayout, nullptr);
-    vkDestroyDescriptorSetLayout(backend.device, resources.cullPipe.descSetLayout, nullptr);
-
-    vkDestroyPipeline(backend.device, resources.compactPrepPipe.pipeline, nullptr);
-    vkDestroyPipelineLayout(backend.device, resources.compactPrepPipe.pipelineLayout, nullptr);
-    vkDestroyDescriptorSetLayout(backend.device, resources.compactPrepPipe.descSetLayout, nullptr);
-
-    vkDestroyPipeline(backend.device, resources.compactionPipe.pipeline, nullptr);
-    vkDestroyPipelineLayout(backend.device, resources.compactionPipe.pipelineLayout, nullptr);
-    vkDestroyDescriptorSetLayout(backend.device, resources.compactionPipe.descSetLayout, nullptr);
+    destroy_simple_pipeline(backend.device, resources.cullMeshletPipe);
+    destroy_simple_pipeline(backend.device, resources.cullMeshletPrepIndirect);
+    destroy_simple_pipeline(backend.device, resources.cullTrianglesPipe);
 }
 
 void upload_culling_resources(VulkanBackend& backend, const PreparedData& prepared, CullResources& resources)
@@ -444,13 +437,6 @@ void upload_culling_resources(VulkanBackend& backend, const PreparedData& prepar
     upload_buffer_data(backend.device, backend.vma_instance, resources.cullInstanceParamsBuffer,
                        prepared.cull_mesh_instance_params.data(),
                        prepared.cull_mesh_instance_params.size() * sizeof(CullMeshInstanceParams));
-
-    if (!backend.options.freeze_culling)
-    {
-        std::array<u32, IndirectDrawCountCount* MaxCullPassCount> zero = {};
-        upload_buffer_data(backend.device, backend.vma_instance, resources.indirectDrawCountBuffer, zero.data(),
-                           zero.size() * sizeof(u32));
-    }
 }
 
 void update_culling_pass_descriptor_sets(VulkanBackend& backend, const PreparedData& prepared, CullResources& resources,
@@ -459,37 +445,52 @@ void update_culling_pass_descriptor_sets(VulkanBackend& backend, const PreparedD
     for (const CullPassData& cull_pass : prepared.cull_passes)
     {
         Assert(cull_pass.pass_index < MaxCullPassCount);
-        update_culling_descriptor_sets(backend, resources, mesh_cache.meshletBuffer, mesh_cache.indexBuffer,
-                                       mesh_cache.vertexBufferPosition, cull_pass.pass_index);
-        update_culling_compact_prep_descriptor_sets(backend, resources, cull_pass.pass_index);
-        update_culling_compact_descriptor_sets(backend, resources, cull_pass.pass_index);
+        update_cull_meshlet_descriptor_sets(backend, resources, mesh_cache.meshletBuffer, cull_pass.pass_index);
+        update_culling_descriptor_sets(backend, resources, mesh_cache.indexBuffer, mesh_cache.vertexBufferPosition,
+                                       cull_pass.pass_index);
     }
+
+    update_cull_prepare_indirect_descriptor_set(backend, resources, resources.cull_prepare_descriptor_set);
 }
 
-void record_culling_command_buffer(bool freeze_culling, CommandBuffer& cmdBuffer, const PreparedData& prepared,
-                                   CullResources& resources)
+void record_culling_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& prepared, CullResources& resources)
 {
     REAPER_PROFILE_SCOPE_GPU(cmdBuffer.mlog, "Culling Pass", MP_DARKGOLDENROD);
 
-    if (!freeze_culling)
+    const u32 clear_value = 0;
+    vkCmdFillBuffer(cmdBuffer.handle, resources.countersBuffer.handle, 0, VK_WHOLE_SIZE, clear_value);
+
+    {
+        REAPER_PROFILE_SCOPE_GPU(cmdBuffer.mlog, "Barrier", MP_RED);
+
+        const GPUMemoryAccess  src = {VK_PIPELINE_STAGE_2_CLEAR_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT};
+        const GPUMemoryAccess  dst = {VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+                                     VK_ACCESS_2_SHADER_WRITE_BIT | VK_ACCESS_2_SHADER_READ_BIT};
+        const VkMemoryBarrier2 memoryBarrier = get_vk_memory_barrier(src, dst);
+        const VkDependencyInfo dependencies = get_vk_memory_barrier_depency_info(1, &memoryBarrier);
+
+        vkCmdPipelineBarrier2(cmdBuffer.handle, &dependencies);
+    }
+
     {
         VulkanDebugLabelCmdBufferScope s(cmdBuffer.handle, "Cull Meshes");
 
-        vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE, resources.cullPipe.pipeline);
+        vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE, resources.cullMeshletPipe.pipeline);
 
         for (const CullPassData& cull_pass : prepared.cull_passes)
         {
-            const CullPassResources& pass_resources = resources.passes[cull_pass.pass_index];
+            vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE,
+                                    resources.cullMeshletPipe.pipelineLayout, 0, 1,
+                                    &resources.cull_meshlet_descriptor_sets[cull_pass.pass_index], 0, nullptr);
 
-            vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE, resources.cullPipe.pipelineLayout,
-                                    0, 1, &pass_resources.cull_descriptor_set, 0, nullptr);
-
-            for (const CullCmd& command : cull_pass.cull_cmds)
+            for (const CullCmd& command : cull_pass.cull_commands)
             {
-                vkCmdPushConstants(cmdBuffer.handle, resources.cullPipe.pipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0,
-                                   sizeof(command.push_constants), &command.push_constants);
+                vkCmdPushConstants(cmdBuffer.handle, resources.cullMeshletPipe.pipelineLayout,
+                                   VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(command.push_constants),
+                                   &command.push_constants);
 
-                vkCmdDispatch(cmdBuffer.handle, command.meshlet_count, command.instance_count, 1);
+                const u32 group_count_x = div_round_up(command.push_constants.meshlet_count, MeshletCullThreadCount);
+                vkCmdDispatch(cmdBuffer.handle, group_count_x, command.instance_count, 1);
             }
         }
     }
@@ -505,22 +506,18 @@ void record_culling_command_buffer(bool freeze_culling, CommandBuffer& cmdBuffer
         vkCmdPipelineBarrier2(cmdBuffer.handle, &dependencies);
     }
 
-    // Compaction prepare pass
+    // FIXME build indirect buffer
     {
-        REAPER_PROFILE_SCOPE_GPU(cmdBuffer.mlog, "Cull Compaction Prepare", MP_DARKGOLDENROD);
+        VulkanDebugLabelCmdBufferScope s(cmdBuffer.handle, "Indirect Prepare");
 
-        vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE, resources.compactPrepPipe.pipeline);
+        vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE, resources.cullMeshletPrepIndirect.pipeline);
 
-        for (const CullPassData& cull_pass : prepared.cull_passes)
-        {
-            const CullPassResources& pass_resources = resources.passes[cull_pass.pass_index];
+        vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE,
+                                resources.cullMeshletPrepIndirect.pipelineLayout, 0, 1,
+                                &resources.cull_prepare_descriptor_set, 0, nullptr);
 
-            vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE,
-                                    resources.compactPrepPipe.pipelineLayout, 0, 1,
-                                    &pass_resources.compact_prep_descriptor_set, 0, nullptr);
-
-            vkCmdDispatch(cmdBuffer.handle, 1, 1, 1);
-        }
+        const u32 group_count_x = div_round_up(prepared.cull_passes.size(), PrepareIndirectDispatchThreadCount);
+        vkCmdDispatch(cmdBuffer.handle, group_count_x, 1, 1);
     }
 
     {
@@ -534,21 +531,25 @@ void record_culling_command_buffer(bool freeze_culling, CommandBuffer& cmdBuffer
         vkCmdPipelineBarrier2(cmdBuffer.handle, &dependencies);
     }
 
-    // Compaction pass
     {
-        REAPER_PROFILE_SCOPE_GPU(cmdBuffer.mlog, "Cull Compaction", MP_DARKGOLDENROD);
+        VulkanDebugLabelCmdBufferScope s(cmdBuffer.handle, "Cull Triangles");
 
-        vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE, resources.compactionPipe.pipeline);
+        vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE, resources.cullTrianglesPipe.pipeline);
 
         for (const CullPassData& cull_pass : prepared.cull_passes)
         {
-            const CullPassResources& pass_resources = resources.passes[cull_pass.pass_index];
-
             vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE,
-                                    resources.compactionPipe.pipelineLayout, 0, 1,
-                                    &pass_resources.compact_descriptor_set, 0, nullptr);
+                                    resources.cullTrianglesPipe.pipelineLayout, 0, 1,
+                                    &resources.cull_triangles_descriptor_sets[cull_pass.pass_index], 0, nullptr);
 
-            vkCmdDispatchIndirect(cmdBuffer.handle, resources.compactionIndirectDispatchBuffer.handle, 0);
+            CullPushConstants consts;
+            consts.indices_output_offset = cull_pass.pass_index * (DynamicIndexBufferSizeBytes / IndexSizeBytes);
+
+            vkCmdPushConstants(cmdBuffer.handle, resources.cullTrianglesPipe.pipelineLayout,
+                               VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(consts), &consts);
+
+            vkCmdDispatchIndirect(cmdBuffer.handle, resources.indirectDispatchBuffer.handle,
+                                  cull_pass.pass_index * sizeof(VkDispatchIndirectCommand));
         }
     }
 
@@ -563,5 +564,10 @@ void record_culling_command_buffer(bool freeze_culling, CommandBuffer& cmdBuffer
 
         vkCmdPipelineBarrier2(cmdBuffer.handle, &dependencies);
     }
+}
+
+u32 get_indirect_draw_counter_offset(u32 pass_index)
+{
+    return (pass_index * CountersCount + DrawCommandCounterOffset) * sizeof(u32);
 }
 } // namespace Reaper

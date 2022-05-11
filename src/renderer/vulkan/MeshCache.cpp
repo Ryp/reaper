@@ -158,10 +158,10 @@ void load_meshes(VulkanBackend& backend, MeshCache& mesh_cache, const nonstd::sp
         std::vector<u32>             meshlet_vertices(max_meshlets * max_vertices);
         std::vector<u8>              meshlet_indices(max_meshlets * max_triangles * 3);
 
-        size_t meshlet_count = meshopt_buildMeshlets(
-            meshlets.data(), meshlet_vertices.data(), meshlet_indices.data(), mesh.indexes.data(), mesh.indexes.size(),
-            reinterpret_cast<const float*>(mesh.positions.data()), mesh.positions.size(), sizeof(mesh.positions[0]),
-            max_vertices, max_triangles, cone_weight);
+        size_t meshlet_count =
+            meshopt_buildMeshlets(meshlets.data(), meshlet_vertices.data(), meshlet_indices.data(), mesh.indexes.data(),
+                                  mesh.indexes.size(), &mesh.positions[0].x, mesh.positions.size(),
+                                  sizeof(mesh.positions[0]), max_vertices, max_triangles, cone_weight);
 
         const meshopt_Meshlet& last = meshlets[meshlet_count - 1];
 
@@ -193,13 +193,23 @@ void load_meshes(VulkanBackend& backend, MeshCache& mesh_cache, const nonstd::sp
         for (u32 meshlet_index = 0; meshlet_index < meshlets.size(); meshlet_index++)
         {
             const meshopt_Meshlet& meshlet = meshlets[meshlet_index];
-            const u32              meshlet_index_count = meshlet.triangle_count * 3;
+            const meshopt_Bounds boundsMeshlet = meshopt_computeMeshletBounds(&meshlet_vertices[meshlet.vertex_offset],
+                                                                              &meshlet_indices[meshlet.triangle_offset],
+                                                                              meshlet.triangle_count,
+                                                                              &mesh.positions[0].x,
+                                                                              mesh.positions.size(),
+                                                                              sizeof(mesh.positions[0]));
+
+            const u32 meshlet_index_count = meshlet.triangle_count * 3;
 
             Meshlet& meshlet_instance = optimized_meshlets[meshlet_index];
             meshlet_instance.vertex_offset = meshlet.vertex_offset;
             meshlet_instance.vertex_count = meshlet.vertex_count;
             meshlet_instance.index_offset = index_output_offset;
             meshlet_instance.index_count = meshlet_index_count;
+            meshlet_instance.center =
+                glm::fvec3(boundsMeshlet.center[0], boundsMeshlet.center[1], boundsMeshlet.center[2]);
+            meshlet_instance.radius = boundsMeshlet.radius;
 
             // Copy index buffer
             for (u32 index = 0; index < meshlet_index_count; index++)

@@ -21,8 +21,7 @@ VK_PUSH_CONSTANT() ConstantBuffer<CullPushConstants> consts;
 #endif
 
 VK_BINDING(0, 0) ConstantBuffer<CullPassParams> pass_params;
-
-VK_BINDING(1, 0) StructuredBuffer<Meshlet> meshlets;
+VK_BINDING(1, 0) StructuredBuffer<MeshletOffsets> meshlets;
 VK_BINDING(2, 0) ByteAddressBuffer Indices;
 VK_BINDING(3, 0) ByteAddressBuffer buffer_position_ms;
 VK_BINDING(4, 0) StructuredBuffer<CullMeshInstanceParams> cull_mesh_instance_params;
@@ -31,8 +30,8 @@ VK_BINDING(4, 0) StructuredBuffer<CullMeshInstanceParams> cull_mesh_instance_par
 // Output
 
 VK_BINDING(5, 0) RWByteAddressBuffer IndicesOut;
-VK_BINDING(6, 0) RWByteAddressBuffer DrawCommandOut;
-VK_BINDING(7, 0) globallycoherent RWByteAddressBuffer DrawCountOut;
+VK_BINDING(6, 0) RWStructuredBuffer<IndirectDrawCommand> DrawCommandOut;
+VK_BINDING(7, 0) globallycoherent RWByteAddressBuffer Counters;
 
 //------------------------------------------------------------------------------
 
@@ -49,32 +48,28 @@ void main(uint3 gtid : SV_GroupThreadID,
     if (gi == 0)
     {
         lds_triangle_count = 0;
-        lds_triangle_offset = 0;
     }
 
     GroupMemoryBarrierWithGroupSync();
 
-    const Meshlet meshlet = meshlets[consts.meshlet_offset + gid.x];
+    const uint meshlet_index = gid.x;
+    const MeshletOffsets meshlet = meshlets[meshlet_index];
 
-    const uint global_index_buffer_start = consts.firstIndex + meshlet.index_offset;
-    const uint input_triangle_index_offset = global_index_buffer_start + gtid.x * 3;
+    const uint input_triangle_index_offset = meshlet.index_offset + gtid.x * 3;
 
-    const uint global_vertex_buffer_start = consts.firstVertex + meshlet.vertex_offset;
     const uint3 indices = Indices.Load3(input_triangle_index_offset * 4);
-    const uint3 indices_with_vertex_offset = indices + global_vertex_buffer_start;
+    const uint3 indices_with_vertex_offset = indices + meshlet.vertex_offset;
 
     // NOTE: We will read out of bounds, this might be wasteful - or even illegal. OOB reads in DirectX11 are defined to return zero, what about Vulkan?
     const float3 vpos0_ms = pull_position_ms(buffer_position_ms, indices_with_vertex_offset.x);
     const float3 vpos1_ms = pull_position_ms(buffer_position_ms, indices_with_vertex_offset.y);
     const float3 vpos2_ms = pull_position_ms(buffer_position_ms, indices_with_vertex_offset.z);
 
-    const uint cull_instance_id = consts.cull_instance_offset + gid.y;
-    const float4x4 ms_to_cs_matrix = cull_mesh_instance_params[cull_instance_id].ms_to_cs_matrix;
-    const uint instance_id = cull_mesh_instance_params[cull_instance_id].instance_id;
+    const CullMeshInstanceParams mesh_instance = cull_mesh_instance_params[meshlet.cull_instance_id];
 
-    const float4 vpos0_cs = mul(ms_to_cs_matrix, float4(vpos0_ms, 1.0));
-    const float4 vpos1_cs = mul(ms_to_cs_matrix, float4(vpos1_ms, 1.0));
-    const float4 vpos2_cs = mul(ms_to_cs_matrix, float4(vpos2_ms, 1.0));
+    const float4 vpos0_cs = mul(mesh_instance.ms_to_cs_matrix, float4(vpos0_ms, 1.0));
+    const float4 vpos1_cs = mul(mesh_instance.ms_to_cs_matrix, float4(vpos1_ms, 1.0));
+    const float4 vpos2_cs = mul(mesh_instance.ms_to_cs_matrix, float4(vpos2_ms, 1.0));
 
     const float3 vpos0_ndc = vpos0_cs.xyz / vpos0_cs.w;
     const float3 vpos1_ndc = vpos1_cs.xyz / vpos1_cs.w;
@@ -144,7 +139,7 @@ void main(uint3 gtid : SV_GroupThreadID,
 
     if (gi == 0)
     {
-        DrawCountOut.InterlockedAdd(4, lds_triangle_count, lds_triangle_offset);
+        Counters.InterlockedAdd(TriangleCounterOffset * 4, lds_triangle_count, lds_triangle_offset);
     }
 
     GroupMemoryBarrierWithGroupSync();
@@ -156,21 +151,21 @@ void main(uint3 gtid : SV_GroupThreadID,
         IndicesOut.Store3(output_triangle_index * 3 * 4, indices);
     }
 
-    if (gi == 0)
+    if (gi == 0 && lds_triangle_count > 0)
     {
         uint draw_command_index;
 
         // NOTE: casting to uint is needed for glslang
         // https://github.com/KhronosGroup/glslang/issues/2066
-        DrawCountOut.InterlockedAdd(0, uint(1), draw_command_index);
+        Counters.InterlockedAdd(DrawCommandCounterOffset * 4, uint(1), draw_command_index);
 
         IndirectDrawCommand command;
         command.indexCount = lds_triangle_count * 3;
         command.instance_count = 1;
         command.firstIndex = consts.indices_output_offset + lds_triangle_offset * 3;
-        command.vertexOffset = global_vertex_buffer_start;
-        command.firstInstance = instance_id;
+        command.vertexOffset = meshlet.vertex_offset;
+        command.firstInstance = mesh_instance.instance_id;
 
-        store_draw_command(DrawCommandOut, draw_command_index * IndirectDrawCommandSize * 4, command);
+        DrawCommandOut[draw_command_index] = command;
     }
 }

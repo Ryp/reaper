@@ -67,7 +67,7 @@ void upload_forward_pass_frame_resources(VulkanBackend& backend, const PreparedD
 struct CommandBuffer;
 struct CullResources;
 
-void record_forward_pass_command_buffer(CommandBuffer& cmdBuffer, VulkanBackend& backend, const PreparedData& prepared,
+void record_forward_pass_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& prepared,
                                         const ForwardPassResources& pass_resources, const CullResources& cull_resources,
                                         VkExtent2D backbufferExtent, VkImageView hdrBufferView,
                                         VkImageView depthBufferView);

@@ -448,7 +448,11 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     {
         VulkanDebugLabelCmdBufferScope s(cmdBuffer.handle, "Culling");
-        record_culling_command_buffer(backend.options.freeze_culling, cmdBuffer, prepared, resources.cull_resources);
+
+        if (!backend.options.freeze_culling)
+        {
+            record_culling_command_buffer(cmdBuffer, prepared, resources.cull_resources);
+        }
     }
 
     {
@@ -456,7 +460,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources, shadow_pass_handle,
                                    true);
 
-        record_shadow_map_command_buffer(cmdBuffer, backend, prepared, resources.shadow_map_resources, shadow_map_views,
+        record_shadow_map_command_buffer(cmdBuffer, prepared, resources.shadow_map_resources, shadow_map_views,
                                          resources.cull_resources);
 
         record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources, shadow_pass_handle,
@@ -469,7 +473,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
                                    true);
 
         record_forward_pass_command_buffer(
-            cmdBuffer, backend, prepared, resources.forward_pass_resources, resources.cull_resources, backbufferExtent,
+            cmdBuffer, prepared, resources.forward_pass_resources, resources.cull_resources, backbufferExtent,
             get_frame_graph_texture(resources.framegraph_resources, framegraph, forward_hdr_usage_handle).view_handle,
             get_frame_graph_texture(resources.framegraph_resources, framegraph, forward_depth_create_usage_handle)
                 .view_handle);

@@ -56,7 +56,7 @@ std::vector<GPUTextureProperties> fill_shadow_map_properties(const PreparedData&
 struct CommandBuffer;
 struct CullResources;
 
-void record_shadow_map_command_buffer(CommandBuffer& cmdBuffer, VulkanBackend& backend, const PreparedData& prepared,
+void record_shadow_map_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& prepared,
                                       ShadowMapResources& resources, const nonstd::span<VkImageView> shadow_map_views,
                                       const CullResources& cull_resources);
 } // namespace Reaper

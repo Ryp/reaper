@@ -8,7 +8,6 @@
 #include "PrepareBuckets.h"
 
 #include "renderer/vulkan/MeshCache.h"
-#include "renderer/vulkan/renderpass/CullingConstants.h"
 #include "renderer/vulkan/renderpass/ShadowConstants.h"
 
 #include <cmath>
@@ -122,21 +121,20 @@ void build_scene_graph(SceneGraph& scene)
 
 namespace
 {
-    void insert_cull_cmd(CullPassData& cull_pass, const MeshAlloc& mesh_alloc, u32 cull_instance_index_start,
-                         u32 cull_instance_count)
+    void insert_cull_command(CullPassData& cull_pass, const MeshAlloc& mesh_alloc, u32 cull_instance_index_start,
+                             u32 cull_instance_count)
     {
         const u32 index_count = static_cast<u32>(mesh_alloc.index_count);
         Assert(index_count % 3 == 0);
 
-        CullPushConstants consts;
+        CullMeshletPushConstants consts;
         consts.meshlet_offset = mesh_alloc.meshlet_offset;
+        consts.meshlet_count = mesh_alloc.meshlet_count;
         consts.firstIndex = mesh_alloc.index_offset;
         consts.firstVertex = mesh_alloc.position_offset;
-        consts.indices_output_offset = cull_pass.pass_index * (DynamicIndexBufferSize / IndexSizeBytes);
         consts.cull_instance_offset = cull_instance_index_start;
 
-        CullCmd& command = cull_pass.cull_cmds.emplace_back();
-        command.meshlet_count = mesh_alloc.meshlet_count;
+        CullCmd& command = cull_pass.cull_commands.emplace_back();
         command.instance_count = cull_instance_count;
         command.push_constants = consts;
     }
@@ -177,8 +175,8 @@ void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCa
             ShadowMapInstanceParams& shadow_instance = prepared.shadow_instance_params.emplace_back();
             shadow_instance.ms_to_cs_matrix = light_view_proj_matrix * glm::mat4(node.transform_matrix);
 
+            const u32               cull_instance_index = prepared.cull_mesh_instance_params.size();
             CullMeshInstanceParams& cull_instance = prepared.cull_mesh_instance_params.emplace_back();
-            const u32               cull_instance_index = prepared.cull_mesh_instance_params.size() - 1;
 
             cull_instance.ms_to_cs_matrix = shadow_instance.ms_to_cs_matrix;
             cull_instance.instance_id = node.instance_id;
@@ -186,7 +184,7 @@ void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCa
             const Mesh2&     mesh2 = mesh_cache.mesh2_instances[node.mesh_handle];
             const MeshAlloc& mesh_alloc = mesh2.lods_allocs[0];
 
-            insert_cull_cmd(cull_pass, mesh_alloc, cull_instance_index, 1);
+            insert_cull_command(cull_pass, mesh_alloc, cull_instance_index, 1);
         }
 
         // Count instances we just inserted
@@ -253,8 +251,8 @@ void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCa
             draw_instance.normal_ms_to_vs_matrix = glm::mat3(modelView);
             draw_instance.texture_index = node.texture_handle;
 
+            const u32               cull_instance_index = prepared.cull_mesh_instance_params.size();
             CullMeshInstanceParams& cull_instance = prepared.cull_mesh_instance_params.emplace_back();
-            const u32               cull_instance_index = prepared.cull_mesh_instance_params.size() - 1;
 
             cull_instance.ms_to_cs_matrix = main_camera_view_proj * glm::mat4(node.transform_matrix);
             cull_instance.instance_id = node.instance_id;
@@ -262,7 +260,7 @@ void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCa
             const Mesh2&     mesh2 = mesh_cache.mesh2_instances[node.mesh_handle];
             const MeshAlloc& mesh_alloc = mesh2.lods_allocs[0];
 
-            insert_cull_cmd(cull_pass, mesh_alloc, cull_instance_index, 1);
+            insert_cull_command(cull_pass, mesh_alloc, cull_instance_index, 1);
         }
     }
 

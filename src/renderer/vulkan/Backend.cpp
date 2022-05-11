@@ -105,7 +105,6 @@ VulkanBackend::VulkanBackend()
     , resources(nullptr)
 {
     options.freeze_culling = false;
-    options.use_compacted_draw = true;
 }
 
 void create_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& backend)

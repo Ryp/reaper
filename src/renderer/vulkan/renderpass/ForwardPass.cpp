@@ -499,7 +499,7 @@ void upload_forward_pass_frame_resources(VulkanBackend& backend, const PreparedD
                        prepared.draw_instance_params.size() * sizeof(DrawInstanceParams));
 }
 
-void record_forward_pass_command_buffer(CommandBuffer& cmdBuffer, VulkanBackend& backend, const PreparedData& prepared,
+void record_forward_pass_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& prepared,
                                         const ForwardPassResources& pass_resources, const CullResources& cull_resources,
                                         VkExtent2D backbufferExtent, VkImageView hdrBufferView,
                                         VkImageView depthBufferView)
@@ -573,22 +573,10 @@ void record_forward_pass_command_buffer(CommandBuffer& cmdBuffer, VulkanBackend&
     const u32 draw_buffer_offset = pass_index * MaxIndirectDrawCount * sizeof(VkDrawIndexedIndirectCommand);
     const u32 draw_buffer_max_count = MaxIndirectDrawCount;
 
-    if (backend.options.use_compacted_draw)
-    {
-        const u32 draw_buffer_count_offset = pass_index * 1 * sizeof(u32);
-        vkCmdDrawIndexedIndirectCount(cmdBuffer.handle, cull_resources.compactIndirectDrawBuffer.handle,
-                                      draw_buffer_offset, cull_resources.compactIndirectDrawCountBuffer.handle,
-                                      draw_buffer_count_offset, draw_buffer_max_count,
-                                      cull_resources.compactIndirectDrawBuffer.properties.element_size_bytes);
-    }
-    else
-    {
-        const u32 draw_buffer_count_offset = pass_index * IndirectDrawCountCount * sizeof(u32);
-        vkCmdDrawIndexedIndirectCount(cmdBuffer.handle, cull_resources.indirectDrawBuffer.handle, draw_buffer_offset,
-                                      cull_resources.indirectDrawCountBuffer.handle, draw_buffer_count_offset,
-                                      draw_buffer_max_count,
-                                      cull_resources.indirectDrawBuffer.properties.element_size_bytes);
-    }
+    const u32 draw_buffer_count_offset = get_indirect_draw_counter_offset(pass_index);
+    vkCmdDrawIndexedIndirectCount(cmdBuffer.handle, cull_resources.indirectDrawBuffer.handle, draw_buffer_offset,
+                                  cull_resources.countersBuffer.handle, draw_buffer_count_offset, draw_buffer_max_count,
+                                  cull_resources.indirectDrawBuffer.properties.element_size_bytes);
 
     vkCmdEndRendering(cmdBuffer.handle);
 }

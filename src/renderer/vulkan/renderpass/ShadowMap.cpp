@@ -323,7 +323,7 @@ void upload_shadow_map_resources(VulkanBackend& backend, const PreparedData& pre
                        prepared.shadow_instance_params.size() * sizeof(ShadowMapInstanceParams));
 }
 
-void record_shadow_map_command_buffer(CommandBuffer& cmdBuffer, VulkanBackend& backend, const PreparedData& prepared,
+void record_shadow_map_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& prepared,
                                       ShadowMapResources& resources, const nonstd::span<VkImageView> shadow_map_views,
                                       const CullResources& cull_resources)
 {
@@ -381,22 +381,11 @@ void record_shadow_map_command_buffer(CommandBuffer& cmdBuffer, VulkanBackend& b
             shadow_pass.culling_pass_index * MaxIndirectDrawCount * sizeof(VkDrawIndexedIndirectCommand);
         const u32 draw_buffer_max_count = MaxIndirectDrawCount;
 
-        if (backend.options.use_compacted_draw)
-        {
-            const u32 draw_buffer_count_offset = shadow_pass.culling_pass_index * 1 * sizeof(u32);
-            vkCmdDrawIndexedIndirectCount(cmdBuffer.handle, cull_resources.compactIndirectDrawBuffer.handle,
-                                          draw_buffer_offset, cull_resources.compactIndirectDrawCountBuffer.handle,
-                                          draw_buffer_count_offset, draw_buffer_max_count,
-                                          cull_resources.compactIndirectDrawBuffer.properties.element_size_bytes);
-        }
-        else
-        {
-            const u32 draw_buffer_count_offset = shadow_pass.culling_pass_index * IndirectDrawCountCount * sizeof(u32);
-            vkCmdDrawIndexedIndirectCount(cmdBuffer.handle, cull_resources.indirectDrawBuffer.handle,
-                                          draw_buffer_offset, cull_resources.indirectDrawCountBuffer.handle,
-                                          draw_buffer_count_offset, draw_buffer_max_count,
-                                          cull_resources.indirectDrawBuffer.properties.element_size_bytes);
-        }
+        const u32 draw_buffer_count_offset = get_indirect_draw_counter_offset(shadow_pass.culling_pass_index);
+        vkCmdDrawIndexedIndirectCount(cmdBuffer.handle, cull_resources.indirectDrawBuffer.handle, draw_buffer_offset,
+                                      cull_resources.countersBuffer.handle, draw_buffer_count_offset,
+                                      draw_buffer_max_count,
+                                      cull_resources.indirectDrawBuffer.properties.element_size_bytes);
 
         vkCmdEndRendering(cmdBuffer.handle);
     }
