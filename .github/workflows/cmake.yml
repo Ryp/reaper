@@ -36,7 +36,7 @@ jobs:
           submodules: recursive
 
       - name: Install dependencies
-        run: sudo apt-get install -y wget unzip build-essential cmake gcc libassimp-dev libvulkan-dev libunwind-dev libx11-xcb-dev spirv-tools glslang-tools
+        run: sudo apt-get install -y wget unzip build-essential cmake gcc libassimp-dev libvulkan-dev libunwind-dev libx11-xcb-dev libasound2-dev spirv-tools glslang-tools
 
       - name: Configure CMake
         run: |
@@ -69,7 +69,7 @@ jobs:
         config:
           - {
             name: "MSVC Static",
-            cmake_generator: "Visual Studio 16 2019",
+            cmake_generator: "Visual Studio 17 2022",
             cmake_build_shared_libs: OFF,
           }
         cmake_arch: [x64]
