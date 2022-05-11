@@ -237,7 +237,7 @@ target_sources(${target} PRIVATE
     ${REAPER_SPIRV_OUTPUT}
     ${REAPER_GCN_OUTPUT})
 
-find_package(Vulkan REQUIRED)
+find_package(Vulkan 1.3 REQUIRED)
 
 # Get the shared library name for each platform
 get_filename_component(REAPER_VK_LIB_NAME ${Vulkan_LIBRARY} NAME_WLE)
@@ -282,7 +282,7 @@ target_link_libraries(${target} PUBLIC
     reaper_core
     reaper_mesh
     reaper_common
-    Vulkan::Vulkan
+    Vulkan::Headers
     fmt
     gli
     glm
