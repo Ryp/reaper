@@ -7,12 +7,18 @@
 
 #pragma once
 
-#include <btBulletDynamicsCommon.h>
-
 #include <nonstd/span.hpp>
 
 #include <glm/matrix.hpp>
 #include <vector>
+
+class btBroadphaseInterface;
+class btDefaultCollisionConfiguration;
+class btCollisionDispatcher;
+class btSequentialImpulseConstraintSolver;
+class btDiscreteDynamicsWorld;
+class btRigidBody;
+class btStridingMeshInterface;
 
 struct Mesh;
 
@@ -25,6 +31,7 @@ struct PhysicsSim
     float pHandling;
     float pBrakesForce;
 
+#if defined(REAPER_USE_BULLET_PHYSICS)
     btBroadphaseInterface*               broadphase;
     btDefaultCollisionConfiguration*     collisionConfiguration;
     btCollisionDispatcher*               dispatcher;
@@ -34,6 +41,7 @@ struct PhysicsSim
     std::vector<btRigidBody*>             static_meshes;
     std::vector<btRigidBody*>             players;
     std::vector<btStridingMeshInterface*> vertexArrayInterfaces;
+#endif
 };
 
 SPLINESONIC_SIM_API PhysicsSim create_sim();

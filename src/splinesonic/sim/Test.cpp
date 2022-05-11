@@ -7,15 +7,19 @@
 
 #include "Test.h"
 
-#include <BulletCollision/CollisionShapes/btBvhTriangleMeshShape.h>
-#include <BulletCollision/CollisionShapes/btTriangleMesh.h>
-#include <BulletCollision/Gimpact/btGImpactCollisionAlgorithm.h>
+#if defined(REAPER_USE_BULLET_PHYSICS)
+#    include <BulletCollision/CollisionShapes/btBvhTriangleMeshShape.h>
+#    include <BulletCollision/CollisionShapes/btTriangleMesh.h>
+#    include <BulletCollision/Gimpact/btGImpactCollisionAlgorithm.h>
+#    include <btBulletDynamicsCommon.h>
+#endif
 
 #include "mesh/Mesh.h"
 
 #include <glm/gtc/quaternion.hpp>
 #include <glm/vec3.hpp>
 
+#if defined(REAPER_USE_BULLET_PHYSICS)
 inline glm::vec3 toGlm(btVector3 const& vec)
 {
     return glm::vec3(vec.getX(), vec.getY(), vec.getZ());
@@ -35,6 +39,7 @@ inline btQuaternion toBt(glm::quat const& quat)
 {
     return btQuaternion(quat.w, quat.x, quat.y, quat.z);
 }
+#endif
 
 namespace glm
 {
@@ -72,6 +77,7 @@ namespace
     }
     */
 
+#if defined(REAPER_USE_BULLET_PHYSICS)
     void pre_tick(PhysicsSim& sim, float dt)
     {
         static_cast<void>(sim);
@@ -126,6 +132,7 @@ namespace
         toGlm(playerRigidBody->getLinearVelocity());
         toGlm(playerRigidBody->getOrientation());
     }
+#endif
 } // namespace
 
 PhysicsSim create_sim()
@@ -138,6 +145,7 @@ PhysicsSim create_sim()
     sim.pHandling = 30.0f;
     sim.pBrakesForce = 30.0f;
 
+#if defined(REAPER_USE_BULLET_PHYSICS)
     // Boilerplate code for a standard rigidbody simulation
     sim.broadphase = new btDbvtBroadphase();
     sim.collisionConfiguration = new btDefaultCollisionConfiguration();
@@ -148,12 +156,14 @@ PhysicsSim create_sim()
     // Putting all of that together
     sim.dynamicsWorld =
         new btDiscreteDynamicsWorld(sim.dispatcher, sim.broadphase, sim.solver, sim.collisionConfiguration);
+#endif
 
     return sim;
 }
 
 void destroy_sim(PhysicsSim& sim)
 {
+#if defined(REAPER_USE_BULLET_PHYSICS)
     for (auto rb : sim.static_meshes)
     {
         sim.dynamicsWorld->removeRigidBody(rb);
@@ -179,10 +189,14 @@ void destroy_sim(PhysicsSim& sim)
     delete sim.dispatcher;
     delete sim.collisionConfiguration;
     delete sim.broadphase;
+#else
+    static_cast<void>(sim);
+#endif
 }
 
 namespace
 {
+#if defined(REAPER_USE_BULLET_PHYSICS)
     void pre_tick_callback(btDynamicsWorld* world, btScalar dt)
     {
         auto sim_ptr = static_cast<PhysicsSim*>(world->getWorldUserInfo());
@@ -196,24 +210,33 @@ namespace
         Assert(sim_ptr);
         post_tick(*sim_ptr, dt);
     }
+#endif
 } // namespace
 
 void sim_start(PhysicsSim* sim)
 {
     Assert(sim);
 
+#if defined(REAPER_USE_BULLET_PHYSICS)
     sim->dynamicsWorld->setInternalTickCallback(pre_tick_callback, sim, true);
     sim->dynamicsWorld->setInternalTickCallback(post_tick_callback, sim, false);
+#endif
 }
 
 void sim_update(PhysicsSim& sim, float dt)
 {
+#if defined(REAPER_USE_BULLET_PHYSICS)
     sim.dynamicsWorld->stepSimulation(dt, SimulationMaxSubStep);
+#else
+    static_cast<void>(sim);
+    static_cast<void>(dt);
+#endif
 }
 
 void sim_register_static_collision_meshes(PhysicsSim& sim, const nonstd::span<Mesh> meshes,
                                           const nonstd::span<glm::mat4> transforms)
 {
+#if defined(REAPER_USE_BULLET_PHYSICS)
     Assert(meshes.size() == transforms.size());
 
     for (u32 i = 0; i < meshes.size(); i++)
@@ -252,10 +275,16 @@ void sim_register_static_collision_meshes(PhysicsSim& sim, const nonstd::span<Me
         sim.static_meshes.push_back(staticRigidMesh);
         sim.vertexArrayInterfaces.push_back(meshInterface);
     }
+#else
+    static_cast<void>(sim);
+    static_cast<void>(meshes);
+    static_cast<void>(transforms);
+#endif
 }
 
 void sim_create_player_rigid_body(PhysicsSim& sim)
 {
+#if defined(REAPER_USE_BULLET_PHYSICS)
     btMotionState*    motionState = new btDefaultMotionState;
     btCollisionShape* collisionShape = new btCapsuleShapeX(2.0f, 3.0f);
     btScalar          mass = 10.f; // FIXME
@@ -270,5 +299,8 @@ void sim_create_player_rigid_body(PhysicsSim& sim)
 
     sim.dynamicsWorld->addRigidBody(playerInfo);
     sim.players.push_back(playerInfo);
+#else
+    static_cast<void>(sim);
+#endif
 }
 } // namespace SplineSonic

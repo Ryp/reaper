@@ -15,14 +15,16 @@ target_sources(${target} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/Test.h
 )
 
-include(bullet)
-
 target_link_libraries(${target} PUBLIC
     reaper_core
-    bullet
     glm
     span
 )
+
+if(REAPER_USE_BULLET_PHYSICS)
+    include(bullet)
+    target_link_libraries(${target} PRIVATE bullet)
+endif()
 
 set_target_properties(${target} PROPERTIES FOLDER SplineSonic)
 
