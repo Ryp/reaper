@@ -49,10 +49,9 @@ t_light_output shade_point_light(
     float3 object_position_vs, float3 object_normal_vs, float3 view_direction_vs)
 {
     const float3 object_to_light_vs = point_light.position_vs - object_position_vs;
-    const float3 light_direction_vs = normalize(object_to_light_vs);
-
     const float light_distance_sq = dot(object_to_light_vs, object_to_light_vs);
     const float light_distance_fade = rcp(1.0 + light_distance_sq);
+    const float3 light_direction_vs = object_to_light_vs * rsqrt(max(light_distance_sq, 0.0001));
 
     const float NdotL = saturate(dot(object_normal_vs, light_direction_vs));
 
