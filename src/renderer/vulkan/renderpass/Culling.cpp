@@ -7,6 +7,7 @@
 
 #include "Culling.h"
 
+#include "CullingConstants.h"
 #include "renderer/PrepareBuckets.h"
 
 #include "renderer/vulkan/Backend.h"
@@ -551,14 +552,30 @@ void record_culling_command_buffer(CommandBuffer& cmdBuffer, const PreparedData&
     }
 }
 
-u32 get_indirect_draw_counter_offset(u32 pass_index)
+namespace
 {
-    return (pass_index * CountersCount + DrawCommandCounterOffset) * sizeof(u32);
-}
+    constexpr VkIndexType get_vk_culling_index_type()
+    {
+        if constexpr (IndexSizeBytes == 2)
+            return VK_INDEX_TYPE_UINT16;
+        else
+        {
+            static_assert(IndexSizeBytes == 4, "Invalid index size");
+            return VK_INDEX_TYPE_UINT32;
+        }
+    }
+} // namespace
 
-u64 get_index_buffer_offset(u32 pass_index)
+CullingDrawParams get_culling_draw_params(u32 pass_index)
 {
-    return pass_index * DynamicIndexBufferSizeBytes;
+    CullingDrawParams params;
+    params.counter_buffer_offset = (pass_index * CountersCount + DrawCommandCounterOffset) * sizeof(u32);
+    params.index_buffer_offset = pass_index * DynamicIndexBufferSizeBytes;
+    params.index_type = get_vk_culling_index_type();
+    params.command_buffer_offset = pass_index * MaxIndirectDrawCount * sizeof(VkDrawIndexedIndirectCommand);
+    params.command_buffer_max_count = MaxIndirectDrawCount;
+
+    return params;
 }
 
 } // namespace Reaper

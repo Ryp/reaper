@@ -7,8 +7,6 @@
 
 #pragma once
 
-#include "CullingConstants.h"
-
 #include "renderer/vulkan/Buffer.h"
 #include "renderer/vulkan/api/Vulkan.h"
 
@@ -16,17 +14,6 @@
 
 namespace Reaper
 {
-constexpr VkIndexType get_vk_culling_index_type()
-{
-    if constexpr (IndexSizeBytes == 2)
-        return VK_INDEX_TYPE_UINT16;
-    else
-    {
-        static_assert(IndexSizeBytes == 4, "Invalid index size");
-        return VK_INDEX_TYPE_UINT32;
-    }
-}
-
 // FIXME
 struct SimplePipeline
 {
@@ -72,6 +59,14 @@ struct CommandBuffer;
 
 void record_culling_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& prepared, CullResources& resources);
 
-u32 get_indirect_draw_counter_offset(u32 pass_index);
-u64 get_index_buffer_offset(u32 pass_index);
+struct CullingDrawParams
+{
+    u64         counter_buffer_offset;
+    u64         index_buffer_offset;
+    VkIndexType index_type;
+    u64         command_buffer_offset;
+    u32         command_buffer_max_count;
+};
+
+CullingDrawParams get_culling_draw_params(u32 pass_index);
 } // namespace Reaper

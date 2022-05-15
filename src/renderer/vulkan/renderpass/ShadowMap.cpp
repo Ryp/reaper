@@ -372,19 +372,17 @@ void record_shadow_map_command_buffer(CommandBuffer& cmdBuffer, const PreparedDa
         vkCmdSetViewport(cmdBuffer.handle, 0, 1, &viewport);
         vkCmdSetScissor(cmdBuffer.handle, 0, 1, &pass_rect);
 
+        const CullingDrawParams draw_params = get_culling_draw_params(shadow_pass.pass_index);
+
         vkCmdBindIndexBuffer(cmdBuffer.handle, cull_resources.dynamicIndexBuffer.handle,
-                             get_index_buffer_offset(shadow_pass.pass_index), get_vk_culling_index_type());
+                             draw_params.index_buffer_offset, draw_params.index_type);
+
         vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, resources.pipe.pipelineLayout, 0, 1,
                                 &resources.descriptor_sets[shadow_pass.pass_index], 0, nullptr);
 
-        const u32 draw_buffer_offset =
-            shadow_pass.culling_pass_index * MaxIndirectDrawCount * sizeof(VkDrawIndexedIndirectCommand);
-        const u32 draw_buffer_max_count = MaxIndirectDrawCount;
-
-        const u32 draw_buffer_count_offset = get_indirect_draw_counter_offset(shadow_pass.culling_pass_index);
-        vkCmdDrawIndexedIndirectCount(cmdBuffer.handle, cull_resources.indirectDrawBuffer.handle, draw_buffer_offset,
-                                      cull_resources.countersBuffer.handle, draw_buffer_count_offset,
-                                      draw_buffer_max_count,
+        vkCmdDrawIndexedIndirectCount(cmdBuffer.handle, cull_resources.indirectDrawBuffer.handle,
+                                      draw_params.command_buffer_offset, cull_resources.countersBuffer.handle,
+                                      draw_params.counter_buffer_offset, draw_params.command_buffer_max_count,
                                       cull_resources.indirectDrawBuffer.properties.element_size_bytes);
 
         vkCmdEndRendering(cmdBuffer.handle);

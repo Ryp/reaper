@@ -558,10 +558,10 @@ void record_forward_pass_command_buffer(CommandBuffer& cmdBuffer, const Prepared
     vkCmdSetViewport(cmdBuffer.handle, 0, 1, &blitViewport);
     vkCmdSetScissor(cmdBuffer.handle, 0, 1, &blitPassRect);
 
-    const u32 pass_index = prepared.draw_culling_pass_index;
+    const CullingDrawParams draw_params = get_culling_draw_params(prepared.draw_culling_pass_index);
 
-    vkCmdBindIndexBuffer(cmdBuffer.handle, cull_resources.dynamicIndexBuffer.handle,
-                         get_index_buffer_offset(pass_index), get_vk_culling_index_type());
+    vkCmdBindIndexBuffer(cmdBuffer.handle, cull_resources.dynamicIndexBuffer.handle, draw_params.index_buffer_offset,
+                         draw_params.index_type);
 
     std::array<VkDescriptorSet, 2> pass_descriptors = {
         pass_resources.descriptor_set,
@@ -571,12 +571,9 @@ void record_forward_pass_command_buffer(CommandBuffer& cmdBuffer, const Prepared
     vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, pass_resources.pipe.pipelineLayout, 0,
                             static_cast<u32>(pass_descriptors.size()), pass_descriptors.data(), 0, nullptr);
 
-    const u32 draw_buffer_offset = pass_index * MaxIndirectDrawCount * sizeof(VkDrawIndexedIndirectCommand);
-    const u32 draw_buffer_max_count = MaxIndirectDrawCount;
-
-    const u32 draw_buffer_count_offset = get_indirect_draw_counter_offset(pass_index);
-    vkCmdDrawIndexedIndirectCount(cmdBuffer.handle, cull_resources.indirectDrawBuffer.handle, draw_buffer_offset,
-                                  cull_resources.countersBuffer.handle, draw_buffer_count_offset, draw_buffer_max_count,
+    vkCmdDrawIndexedIndirectCount(cmdBuffer.handle, cull_resources.indirectDrawBuffer.handle,
+                                  draw_params.command_buffer_offset, cull_resources.countersBuffer.handle,
+                                  draw_params.counter_buffer_offset, draw_params.command_buffer_max_count,
                                   cull_resources.indirectDrawBuffer.properties.element_size_bytes);
 
     vkCmdEndRendering(cmdBuffer.handle);
