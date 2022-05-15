@@ -13,6 +13,6 @@ constexpr u32 MaxIndirectDrawCount = 8000;
 constexpr u32 MaxCullPassCount = 4;
 constexpr u32 CullInstanceCountMax = 2000;
 constexpr u32 DynamicMeshletBufferElements = 8096;
-constexpr u32 DynamicIndexBufferSizeBytes = static_cast<u32>(32_MiB);
+constexpr u64 DynamicIndexBufferSizeBytes = 32_MiB;
 constexpr u32 IndexSizeBytes = 4;
 } // namespace Reaper

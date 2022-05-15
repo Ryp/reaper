@@ -45,7 +45,6 @@ struct CullResources
     std::vector<VkDescriptorSet> cull_triangles_descriptor_sets;
     VkDescriptorSet              cull_prepare_descriptor_set;
 
-    BufferInfo cullPassConstantBuffer;
     BufferInfo cullInstanceParamsBuffer;
     BufferInfo countersBuffer;
     BufferInfo dynamicMeshletBuffer;
@@ -74,4 +73,5 @@ struct CommandBuffer;
 void record_culling_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& prepared, CullResources& resources);
 
 u32 get_indirect_draw_counter_offset(u32 pass_index);
+u64 get_index_buffer_offset(u32 pass_index);
 } // namespace Reaper

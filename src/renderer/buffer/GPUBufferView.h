@@ -13,8 +13,8 @@ struct GPUBufferProperties;
 
 struct BufferSubresource
 {
-    u32 element_offset;
-    u32 element_count;
+    u64 element_offset;
+    u64 element_count;
 };
 
 struct GPUBufferView

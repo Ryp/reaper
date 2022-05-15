@@ -20,18 +20,17 @@ VK_PUSH_CONSTANT() CullPushConstants consts;
 VK_PUSH_CONSTANT() ConstantBuffer<CullPushConstants> consts;
 #endif
 
-VK_BINDING(0, 0) ConstantBuffer<CullPassParams> pass_params;
-VK_BINDING(1, 0) StructuredBuffer<MeshletOffsets> meshlets;
-VK_BINDING(2, 0) ByteAddressBuffer Indices;
-VK_BINDING(3, 0) ByteAddressBuffer buffer_position_ms;
-VK_BINDING(4, 0) StructuredBuffer<CullMeshInstanceParams> cull_mesh_instance_params;
+VK_BINDING(0, 0) StructuredBuffer<MeshletOffsets> meshlets;
+VK_BINDING(1, 0) ByteAddressBuffer Indices;
+VK_BINDING(2, 0) ByteAddressBuffer buffer_position_ms;
+VK_BINDING(3, 0) StructuredBuffer<CullMeshInstanceParams> cull_mesh_instance_params;
 
 //------------------------------------------------------------------------------
 // Output
 
-VK_BINDING(5, 0) RWByteAddressBuffer IndicesOut;
-VK_BINDING(6, 0) RWStructuredBuffer<IndirectDrawCommand> DrawCommandOut;
-VK_BINDING(7, 0) globallycoherent RWByteAddressBuffer Counters;
+VK_BINDING(4, 0) RWByteAddressBuffer IndicesOut;
+VK_BINDING(5, 0) RWStructuredBuffer<IndirectDrawCommand> DrawCommandOut;
+VK_BINDING(6, 0) globallycoherent RWByteAddressBuffer Counters;
 
 //------------------------------------------------------------------------------
 
@@ -115,8 +114,8 @@ void main(uint3 gtid : SV_GroupThreadID,
         const float2 vpos012_ndc_min = float2(min3(vpos012x_ndc), min3(vpos012y_ndc));
         const float2 vpos012_ndc_max = float2(max3(vpos012x_ndc), max3(vpos012y_ndc));
 
-        const float2 vpos012_ts_min = ndc_to_ts(vpos012_ndc_min, pass_params.output_size_ts);
-        const float2 vpos012_ts_max = ndc_to_ts(vpos012_ndc_max, pass_params.output_size_ts);
+        const float2 vpos012_ts_min = ndc_to_ts(vpos012_ndc_min, consts.output_size_ts);
+        const float2 vpos012_ts_max = ndc_to_ts(vpos012_ndc_max, consts.output_size_ts);
 
         const bool small_triangle_test = !any(round(vpos012_ts_min) == round(vpos012_ts_max));
 
@@ -162,7 +161,7 @@ void main(uint3 gtid : SV_GroupThreadID,
         IndirectDrawCommand command;
         command.indexCount = lds_triangle_count * 3;
         command.instance_count = 1;
-        command.firstIndex = consts.indices_output_offset + lds_triangle_offset * 3;
+        command.firstIndex = lds_triangle_offset * 3;
         command.vertexOffset = meshlet.vertex_offset;
         command.firstInstance = mesh_instance.instance_id;
 

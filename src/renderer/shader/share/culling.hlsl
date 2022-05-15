@@ -38,14 +38,8 @@ struct MeshletPassParams
 
 struct CullPushConstants
 {
-    hlsl_uint indices_output_offset;
-    // No need for manual padding for push constants
-};
-
-struct CullPassParams
-{
     hlsl_float2 output_size_ts;
-    hlsl_float2 _pad;
+    // No need for manual padding for push constants
 };
 
 struct CullMeshInstanceParams

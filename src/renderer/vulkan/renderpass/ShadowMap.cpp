@@ -372,8 +372,8 @@ void record_shadow_map_command_buffer(CommandBuffer& cmdBuffer, const PreparedDa
         vkCmdSetViewport(cmdBuffer.handle, 0, 1, &viewport);
         vkCmdSetScissor(cmdBuffer.handle, 0, 1, &pass_rect);
 
-        vkCmdBindIndexBuffer(cmdBuffer.handle, cull_resources.dynamicIndexBuffer.handle, 0,
-                             get_vk_culling_index_type());
+        vkCmdBindIndexBuffer(cmdBuffer.handle, cull_resources.dynamicIndexBuffer.handle,
+                             get_index_buffer_offset(shadow_pass.pass_index), get_vk_culling_index_type());
         vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, resources.pipe.pipelineLayout, 0, 1,
                                 &resources.descriptor_sets[shadow_pass.pass_index], 0, nullptr);
 

@@ -558,7 +558,10 @@ void record_forward_pass_command_buffer(CommandBuffer& cmdBuffer, const Prepared
     vkCmdSetViewport(cmdBuffer.handle, 0, 1, &blitViewport);
     vkCmdSetScissor(cmdBuffer.handle, 0, 1, &blitPassRect);
 
-    vkCmdBindIndexBuffer(cmdBuffer.handle, cull_resources.dynamicIndexBuffer.handle, 0, get_vk_culling_index_type());
+    const u32 pass_index = prepared.draw_culling_pass_index;
+
+    vkCmdBindIndexBuffer(cmdBuffer.handle, cull_resources.dynamicIndexBuffer.handle,
+                         get_index_buffer_offset(pass_index), get_vk_culling_index_type());
 
     std::array<VkDescriptorSet, 2> pass_descriptors = {
         pass_resources.descriptor_set,
@@ -567,8 +570,6 @@ void record_forward_pass_command_buffer(CommandBuffer& cmdBuffer, const Prepared
 
     vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, pass_resources.pipe.pipelineLayout, 0,
                             static_cast<u32>(pass_descriptors.size()), pass_descriptors.data(), 0, nullptr);
-
-    const u32 pass_index = prepared.draw_culling_pass_index;
 
     const u32 draw_buffer_offset = pass_index * MaxIndirectDrawCount * sizeof(VkDrawIndexedIndirectCommand);
     const u32 draw_buffer_max_count = MaxIndirectDrawCount;

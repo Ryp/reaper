@@ -78,8 +78,6 @@ namespace
     {
         VkDescriptorSet descriptor_set = resources.cull_triangles_descriptor_sets[pass_index];
 
-        const VkDescriptorBufferInfo passParams =
-            get_vk_descriptor_buffer_info(resources.cullPassConstantBuffer, BufferSubresource{pass_index, 1});
         const VkDescriptorBufferInfo meshlets = get_vk_descriptor_buffer_info(
             resources.dynamicMeshletBuffer,
             BufferSubresource{pass_index * DynamicMeshletBufferElements, DynamicMeshletBufferElements});
@@ -96,14 +94,13 @@ namespace
             resources.countersBuffer, BufferSubresource{pass_index * CountersCount, CountersCount});
 
         std::vector<VkWriteDescriptorSet> writes = {
-            create_buffer_descriptor_write(descriptor_set, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &passParams),
-            create_buffer_descriptor_write(descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &meshlets),
-            create_buffer_descriptor_write(descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &indices),
-            create_buffer_descriptor_write(descriptor_set, 3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &vertexPositions),
-            create_buffer_descriptor_write(descriptor_set, 4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &instanceParams),
-            create_buffer_descriptor_write(descriptor_set, 5, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &indicesOut),
-            create_buffer_descriptor_write(descriptor_set, 6, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &drawCommandOut),
-            create_buffer_descriptor_write(descriptor_set, 7, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &countersOut),
+            create_buffer_descriptor_write(descriptor_set, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &meshlets),
+            create_buffer_descriptor_write(descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &indices),
+            create_buffer_descriptor_write(descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &vertexPositions),
+            create_buffer_descriptor_write(descriptor_set, 3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &instanceParams),
+            create_buffer_descriptor_write(descriptor_set, 4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &indicesOut),
+            create_buffer_descriptor_write(descriptor_set, 5, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &drawCommandOut),
+            create_buffer_descriptor_write(descriptor_set, 6, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &countersOut),
         };
 
         vkUpdateDescriptorSets(backend.device, static_cast<u32>(writes.size()), writes.data(), 0, nullptr);
@@ -265,14 +262,13 @@ namespace
     SimplePipeline create_cull_triangles_pipeline(ReaperRoot& root, VulkanBackend& backend)
     {
         std::vector<VkDescriptorSetLayoutBinding> descriptorSetLayoutBinding = {
-            VkDescriptorSetLayoutBinding{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+            VkDescriptorSetLayoutBinding{0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
             VkDescriptorSetLayoutBinding{1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
             VkDescriptorSetLayoutBinding{2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
             VkDescriptorSetLayoutBinding{3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
             VkDescriptorSetLayoutBinding{4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
             VkDescriptorSetLayoutBinding{5, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
             VkDescriptorSetLayoutBinding{6, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-            VkDescriptorSetLayoutBinding{7, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
         };
 
         VkDescriptorSetLayoutCreateInfo descriptorSetLayoutInfo = {
@@ -344,11 +340,6 @@ CullResources create_culling_resources(ReaperRoot& root, VulkanBackend& backend)
     resources.cullMeshletPrepIndirect = create_meshlet_prepare_indirect_pipeline(root, backend);
     resources.cullTrianglesPipe = create_cull_triangles_pipeline(root, backend);
 
-    resources.cullPassConstantBuffer = create_buffer(
-        root, backend.device, "Cull Pass Constant",
-        DefaultGPUBufferProperties(MaxCullPassCount, sizeof(CullPassParams), GPUBufferUsage::UniformBuffer),
-        backend.vma_instance);
-
     resources.cullInstanceParamsBuffer = create_buffer(
         root, backend.device, "Culling instance constants",
         DefaultGPUBufferProperties(CullInstanceCountMax, sizeof(CullMeshInstanceParams), GPUBufferUsage::StorageBuffer),
@@ -410,8 +401,6 @@ namespace
 
 void destroy_culling_resources(VulkanBackend& backend, CullResources& resources)
 {
-    vmaDestroyBuffer(backend.vma_instance, resources.cullPassConstantBuffer.handle,
-                     resources.cullPassConstantBuffer.allocation);
     vmaDestroyBuffer(backend.vma_instance, resources.countersBuffer.handle, resources.countersBuffer.allocation);
     vmaDestroyBuffer(backend.vma_instance, resources.cullInstanceParamsBuffer.handle,
                      resources.cullInstanceParamsBuffer.allocation);
@@ -431,9 +420,6 @@ void destroy_culling_resources(VulkanBackend& backend, CullResources& resources)
 
 void upload_culling_resources(VulkanBackend& backend, const PreparedData& prepared, CullResources& resources)
 {
-    upload_buffer_data(backend.device, backend.vma_instance, resources.cullPassConstantBuffer,
-                       prepared.cull_pass_params.data(), prepared.cull_pass_params.size() * sizeof(CullPassParams));
-
     upload_buffer_data(backend.device, backend.vma_instance, resources.cullInstanceParamsBuffer,
                        prepared.cull_mesh_instance_params.data(),
                        prepared.cull_mesh_instance_params.size() * sizeof(CullMeshInstanceParams));
@@ -506,7 +492,6 @@ void record_culling_command_buffer(CommandBuffer& cmdBuffer, const PreparedData&
         vkCmdPipelineBarrier2(cmdBuffer.handle, &dependencies);
     }
 
-    // FIXME build indirect buffer
     {
         VulkanDebugLabelCmdBufferScope s(cmdBuffer.handle, "Indirect Prepare");
 
@@ -543,7 +528,7 @@ void record_culling_command_buffer(CommandBuffer& cmdBuffer, const PreparedData&
                                     &resources.cull_triangles_descriptor_sets[cull_pass.pass_index], 0, nullptr);
 
             CullPushConstants consts;
-            consts.indices_output_offset = cull_pass.pass_index * (DynamicIndexBufferSizeBytes / IndexSizeBytes);
+            consts.output_size_ts = cull_pass.output_size_ts;
 
             vkCmdPushConstants(cmdBuffer.handle, resources.cullTrianglesPipe.pipelineLayout,
                                VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(consts), &consts);
@@ -570,4 +555,10 @@ u32 get_indirect_draw_counter_offset(u32 pass_index)
 {
     return (pass_index * CountersCount + DrawCommandCounterOffset) * sizeof(u32);
 }
+
+u64 get_index_buffer_offset(u32 pass_index)
+{
+    return pass_index * DynamicIndexBufferSizeBytes;
+}
+
 } // namespace Reaper
