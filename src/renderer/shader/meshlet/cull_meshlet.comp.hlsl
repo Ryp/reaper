@@ -1,7 +1,7 @@
 #include "lib/base.hlsl"
 
 #include "share/meshlet.hlsl"
-#include "share/culling.hlsl"
+#include "share/meshlet_culling.hlsl"
 
 //------------------------------------------------------------------------------
 // Input

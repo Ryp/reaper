@@ -3,7 +3,7 @@
 #include "lib/vertex_pull.hlsl"
 
 #include "share/meshlet.hlsl"
-#include "share/culling.hlsl"
+#include "share/meshlet_culling.hlsl"
 
 //------------------------------------------------------------------------------
 // Input

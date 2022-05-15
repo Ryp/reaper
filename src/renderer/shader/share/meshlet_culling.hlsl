@@ -5,12 +5,19 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef SHARE_CULLING_INCLUDED
-#define SHARE_CULLING_INCLUDED
+#ifndef SHARE_MESHLET_CULLING_INCLUDED
+#define SHARE_MESHLET_CULLING_INCLUDED
 
 #include "types.hlsl"
 
-static const hlsl_uint MeshletMaxTriangleCount = 64;
+struct MeshletOffsets
+{
+    hlsl_uint index_offset; // Has the global index offset baked in
+    hlsl_uint index_count;
+    hlsl_uint vertex_offset; // Has the global vertex offset baked in
+    hlsl_uint cull_instance_id;
+};
+
 static const hlsl_uint PrepareIndirectDispatchThreadCount = 16;
 static const hlsl_uint MeshletCullThreadCount = 32;
 
@@ -29,11 +36,6 @@ struct CullMeshletPushConstants
     hlsl_uint first_vertex;
     hlsl_uint cull_instance_offset;
     // No need for manual padding for push constants
-};
-
-struct MeshletPassParams
-{
-    hlsl_float4x4 ws_to_cs_matrix;
 };
 
 struct CullPushConstants
