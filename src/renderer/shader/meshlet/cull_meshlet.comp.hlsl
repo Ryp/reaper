@@ -93,9 +93,9 @@ void main(/*uint3 gtid : SV_GroupThreadID,*/
     {
         // Bake in mesh offsets
         MeshletOffsets offsets;
-        offsets.index_offset = meshlet.index_offset + consts.firstIndex;
+        offsets.index_offset = meshlet.index_offset + consts.first_index;
         offsets.index_count = meshlet.index_count;
-        offsets.vertex_offset = meshlet.vertex_offset + consts.firstVertex;
+        offsets.vertex_offset = meshlet.vertex_offset + consts.first_vertex;
         offsets.cull_instance_id = cull_instance_id;
 
         meshlets_offsets_out[output_meshlet_index] = offsets;

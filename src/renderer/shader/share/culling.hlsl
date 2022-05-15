@@ -25,8 +25,8 @@ struct CullMeshletPushConstants
 {
     hlsl_uint meshlet_offset;
     hlsl_uint meshlet_count;
-    hlsl_uint firstIndex;
-    hlsl_uint firstVertex;
+    hlsl_uint first_index;
+    hlsl_uint first_vertex;
     hlsl_uint cull_instance_offset;
     // No need for manual padding for push constants
 };

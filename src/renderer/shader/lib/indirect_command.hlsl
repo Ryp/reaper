@@ -13,7 +13,7 @@ static const uint IndirectDrawCommandSize = 5;
 struct IndirectDrawCommand
 {
     uint indexCount;
-    uint instance_count;
+    uint instanceCount;
     uint firstIndex;
     int  vertexOffset;
     uint firstInstance;

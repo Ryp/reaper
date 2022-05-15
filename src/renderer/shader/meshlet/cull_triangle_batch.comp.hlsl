@@ -160,7 +160,7 @@ void main(uint3 gtid : SV_GroupThreadID,
 
         IndirectDrawCommand command;
         command.indexCount = lds_triangle_count * 3;
-        command.instance_count = 1;
+        command.instanceCount = 1;
         command.firstIndex = lds_triangle_offset * 3;
         command.vertexOffset = meshlet.vertex_offset;
         command.firstInstance = mesh_instance.instance_id;

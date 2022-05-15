@@ -130,8 +130,8 @@ namespace
         CullMeshletPushConstants consts;
         consts.meshlet_offset = mesh_alloc.meshlet_offset;
         consts.meshlet_count = mesh_alloc.meshlet_count;
-        consts.firstIndex = mesh_alloc.index_offset;
-        consts.firstVertex = mesh_alloc.position_offset;
+        consts.first_index = mesh_alloc.index_offset;
+        consts.first_vertex = mesh_alloc.position_offset;
         consts.cull_instance_offset = cull_instance_index_start;
 
         CullCmd& command = cull_pass.cull_commands.emplace_back();
