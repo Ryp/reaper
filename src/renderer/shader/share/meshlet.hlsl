@@ -14,12 +14,12 @@ static const hlsl_uint MeshletMaxTriangleCount = 64;
 
 struct Meshlet
 {
-    hlsl_uint index_offset;
-    hlsl_uint index_count;
-    hlsl_uint vertex_offset;
-    hlsl_uint vertex_count;
-    hlsl_float3 center;
-    hlsl_float radius;
+    hlsl_uint   index_offset;
+    hlsl_uint   index_count;
+    hlsl_uint   vertex_offset;
+    hlsl_uint   vertex_count;
+    hlsl_float3 center_ms;
+    hlsl_float  radius;
 };
 
 #endif

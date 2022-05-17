@@ -8,6 +8,8 @@
 #ifndef LIB_COMMON_INCLUDED
 #define LIB_COMMON_INCLUDED
 
+static const float FLT_MAX = asfloat(0x7f7fffff);
+
 float min3(float3 v) { return min(min(v.x, v.y), v.z); }
 float max3(float3 v) { return max(max(v.x, v.y), v.z); }
 

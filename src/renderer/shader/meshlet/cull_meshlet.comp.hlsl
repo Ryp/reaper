@@ -1,5 +1,5 @@
 #include "lib/base.hlsl"
-
+#include "lib/aabb.hlsl"
 #include "share/meshlet.hlsl"
 #include "share/meshlet_culling.hlsl"
 
@@ -53,17 +53,27 @@ void main(/*uint3 gtid : SV_GroupThreadID,*/
     {
         const CullMeshInstanceParams mesh_instance = cull_mesh_instance_params[consts.cull_instance_offset];
 
-        // FIXME Gigantic hack
-        const float3 meshlet_center_ms = meshlet.center;
-        const float4 meshlet_center_cs_h = mul(mesh_instance.ms_to_cs_matrix, float4(meshlet_center_ms, 1.0));
-        const float3 meshlet_center_cs = meshlet_center_cs_h.xyz / meshlet_center_cs_h.w;
+        float3 meshlet_aabb_min_ndc = FLT_MAX;
+        float3 meshlet_aabb_max_ndc = -FLT_MAX;
 
-        const bool x_cull_test = meshlet_center_cs.x < -1.0 || meshlet_center_cs.x > 1.0;
-        const bool y_cull_test = meshlet_center_cs.y < -1.0 || meshlet_center_cs.y > 1.0;
-        const bool z_cull_test = meshlet_center_cs.z <  0.0 || meshlet_center_cs.z > 1.0;
+        for (uint i = 0; i < 8; i++)
+        {
+            const uint3 unit_offset = uint3(i, i >> 1, i >> 2) & 1;
+            const float3 meshlet_vertex_ms = meshlet.center_ms + float3(unit_offset) * 2.0 * meshlet.radius - meshlet.radius;
+            const float4 meshlet_vertex_cs = mul(mesh_instance.ms_to_cs_matrix, float4(meshlet_vertex_ms, 1.0));
+            const float3 meshlet_vertex_ndc = meshlet_vertex_cs.xyz / meshlet_vertex_cs.w;
 
-        const bool frustum_test = !(x_cull_test || y_cull_test || z_cull_test);
-        is_visible = is_visible && frustum_test;
+            meshlet_aabb_min_ndc = min(meshlet_aabb_min_ndc, meshlet_vertex_ndc);
+            meshlet_aabb_max_ndc = max(meshlet_aabb_max_ndc, meshlet_vertex_ndc);
+        }
+
+        const AABB meshlet_aabb_ndc = build_aabb(meshlet_aabb_min_ndc, meshlet_aabb_max_ndc);
+
+        const float3 frustum_aabb_min_ndc = float3(-1.0, -1.0, 0);
+        const float3 frustum_aabb_max_ndc = float3(1.0, 1.0, 1.0);
+        const AABB frustum_aabb_ndc = build_aabb(frustum_aabb_min_ndc, frustum_aabb_max_ndc);
+
+        is_visible = is_visible && aabb_vs_aabb_test(frustum_aabb_ndc, meshlet_aabb_ndc);
     }
 
     const uint visible_count = WaveActiveCountBits(is_visible);

@@ -206,7 +206,7 @@ void load_meshes(VulkanBackend& backend, MeshCache& mesh_cache, const nonstd::sp
             meshlet_instance.vertex_count = meshlet.vertex_count;
             meshlet_instance.index_offset = index_output_offset;
             meshlet_instance.index_count = meshlet_index_count;
-            meshlet_instance.center =
+            meshlet_instance.center_ms =
                 glm::fvec3(boundsMeshlet.center[0], boundsMeshlet.center[1], boundsMeshlet.center[2]);
             meshlet_instance.radius = boundsMeshlet.radius;
 
