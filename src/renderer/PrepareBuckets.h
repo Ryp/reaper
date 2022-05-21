@@ -21,7 +21,24 @@
 
 namespace Reaper
 {
-struct Light
+struct Node
+{
+    glm::fmat4x3 transform_matrix;
+};
+
+struct SceneCamera
+{
+    u32 scene_node;
+};
+
+struct SceneMesh
+{
+    u32           node_index;
+    MeshHandle    mesh_handle;
+    TextureHandle texture_handle;
+};
+
+struct SceneLight
 {
     glm::mat4  projection_matrix;
     glm::vec3  color;
@@ -30,26 +47,18 @@ struct Light
     glm::uvec2 shadow_map_size;
 };
 
-struct Node
-{
-    glm::mat4x3   transform_matrix;
-    u32           instance_id;
-    MeshHandle    mesh_handle;
-    TextureHandle texture_handle;
-};
-
-struct SceneCamera
-{
-    u32 scene_node;
-};
-
 struct SceneGraph
 {
     std::vector<Node> nodes;
 
-    std::vector<Light> lights;
-    SceneCamera        camera;
+    SceneCamera             camera;
+    std::vector<SceneMesh>  meshes;
+    std::vector<SceneLight> lights;
 };
+
+REAPER_RENDERER_API u32 insert_scene_node(SceneGraph& scene, glm::mat4x3 transform_matrix);
+REAPER_RENDERER_API u32 insert_scene_mesh(SceneGraph& scene, SceneMesh scene_mesh);
+REAPER_RENDERER_API u32 insert_scene_light(SceneGraph& scene, SceneLight scene_light);
 
 REAPER_RENDERER_API void build_scene_graph(SceneGraph& scene);
 

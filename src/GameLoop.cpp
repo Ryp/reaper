@@ -103,22 +103,24 @@ void execute_game_loop(ReaperRoot& root)
         // Place static track
         for (u32 chunk_index = 0; chunk_index < genInfo.length; chunk_index++)
         {
-            Node& node = scene.nodes.emplace_back();
-            node.instance_id = chunk_index;
-            node.mesh_handle = mesh_handles[chunk_index]; // FIXME
-            node.texture_handle = backend.resources->material_resources.texture_handles[0];
-            node.transform_matrix = transforms[chunk_index];
+            SceneMesh scene_mesh;
+            scene_mesh.node_index = insert_scene_node(scene, transforms[chunk_index]);
+            scene_mesh.mesh_handle = mesh_handles[chunk_index]; // FIXME
+            scene_mesh.texture_handle = backend.resources->material_resources.texture_handles[0];
+
+            insert_scene_mesh(scene, scene_mesh);
         }
 
         // Ship scene node
         {
-            Node& node = scene.nodes.emplace_back();
-            node.instance_id = genInfo.length;      // FIXME
-            node.mesh_handle = mesh_handles.back(); // FIXME
-            node.texture_handle = backend.resources->material_resources.texture_handles[1];
-
             const glm::mat4 model = glm::scale(glm::mat4(1.0f), glm::vec3(0.1f)); // FIXME
-            node.transform_matrix = glm::mat4x3(model);
+
+            SceneMesh scene_mesh;
+            scene_mesh.node_index = insert_scene_node(scene, glm::fmat4x3(model));
+            scene_mesh.mesh_handle = mesh_handles.back(); // FIXME
+            scene_mesh.texture_handle = backend.resources->material_resources.texture_handles[1];
+
+            insert_scene_mesh(scene, scene_mesh);
         }
 
         build_scene_graph(scene);

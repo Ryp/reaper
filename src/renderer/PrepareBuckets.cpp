@@ -45,6 +45,31 @@ namespace
     float note(float semitone_offset, float base_freq = 440.f) { return base_freq * powf(2.f, semitone_offset / 12.f); }
 } // namespace
 
+u32 insert_scene_node(SceneGraph& scene, glm::mat4x3 transform_matrix)
+{
+    u32   node_index = scene.nodes.size();
+    Node& node = scene.nodes.emplace_back();
+    node.transform_matrix = transform_matrix;
+
+    return node_index;
+}
+
+u32 insert_scene_mesh(SceneGraph& scene, SceneMesh scene_mesh)
+{
+    u32 scene_mesh_index = scene.meshes.size();
+    scene.meshes.emplace_back(scene_mesh);
+
+    return scene_mesh_index;
+}
+
+u32 insert_scene_light(SceneGraph& scene, SceneLight scene_light)
+{
+    u32 scene_light_index = scene.lights.size();
+    scene.lights.emplace_back(scene_light);
+
+    return scene_light_index;
+}
+
 void build_scene_graph(SceneGraph& scene)
 {
     // Add lights
@@ -55,67 +80,53 @@ void build_scene_graph(SceneGraph& scene)
 
         // Add 1st light
         {
-            Node&     light_node = scene.nodes.emplace_back();
-            const u32 light_node_index = scene.nodes.size() - 1;
+            const glm::vec3    light_position_ws = glm::vec3(-2.f, 2.f, 2.f);
+            const glm::fmat4x3 light_transform = glm::lookAt(light_position_ws, light_target_ws, up_ws);
 
-            const glm::vec3 light_position_ws = glm::vec3(-2.f, 2.f, 2.f);
-
-            light_node.instance_id = InvalidMeshInstanceId;
-            light_node.transform_matrix = glm::lookAt(light_position_ws, light_target_ws, up_ws);
-
-            Light& light = scene.lights.emplace_back();
+            SceneLight light;
             light.color = glm::fvec3(0.03f, 0.21f, 0.61f);
             light.intensity = 6.f;
-            light.scene_node = light_node_index;
+            light.scene_node = insert_scene_node(scene, light_transform);
             light.projection_matrix = light_projection_matrix;
             light.shadow_map_size = glm::uvec2(1024, 1024);
+
+            insert_scene_light(scene, light);
         }
 
         // Add 2nd light
         {
-            Node&     light_node = scene.nodes.emplace_back();
-            const u32 light_node_index = scene.nodes.size() - 1;
+            const glm::fvec3   light_position_ws = glm::vec3(-2.f, -2.f, -2.f);
+            const glm::fmat4x3 light_transform = glm::lookAt(light_position_ws, light_target_ws, up_ws);
 
-            const glm::vec3 light_position_ws = glm::vec3(-2.f, -2.f, -2.f);
-
-            light_node.instance_id = InvalidMeshInstanceId;
-            light_node.transform_matrix = glm::lookAt(light_position_ws, light_target_ws, up_ws);
-
-            Light& light = scene.lights.emplace_back();
+            SceneLight light;
             light.color = glm::fvec3(0.61f, 0.21f, 0.03f);
             light.intensity = 6.f;
-            light.scene_node = light_node_index;
+            light.scene_node = insert_scene_node(scene, light_transform);
             light.projection_matrix = light_projection_matrix;
             light.shadow_map_size = glm::uvec2(512, 512);
+
+            insert_scene_light(scene, light);
         }
 
         // Add 3rd light
         {
-            Node&     light_node = scene.nodes.emplace_back();
-            const u32 light_node_index = scene.nodes.size() - 1;
+            const glm::vec3    light_position_ws = glm::vec3(0.f, -2.f, 2.f);
+            const glm::fmat4x3 light_transform = glm::lookAt(light_position_ws, light_target_ws, up_ws);
 
-            const glm::vec3 light_position_ws = glm::vec3(0.f, -2.f, 2.f);
-
-            light_node.instance_id = InvalidMeshInstanceId;
-            light_node.transform_matrix = glm::lookAt(light_position_ws, light_target_ws, up_ws);
-
-            Light& light = scene.lights.emplace_back();
+            SceneLight light;
             light.color = glm::fvec3(0.03f, 0.8f, 0.21f);
             light.intensity = 6.f;
-            light.scene_node = light_node_index;
+            light.scene_node = insert_scene_node(scene, light_transform);
             light.projection_matrix = light_projection_matrix;
             light.shadow_map_size = glm::uvec2(256, 256);
+
+            insert_scene_light(scene, light);
         }
     }
 
     // Add camera
     {
-        Node&     camera_node = scene.nodes.emplace_back();
-        const u32 camera_node_index = scene.nodes.size() - 1;
-
-        camera_node.instance_id = InvalidMeshInstanceId;
-
-        scene.camera.scene_node = camera_node_index;
+        scene.camera.scene_node = insert_scene_node(scene, glm::mat4x3(1.0f));
     }
 }
 
@@ -163,10 +174,10 @@ void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCa
 
         const Node& light_node = scene.nodes[light.scene_node];
 
-        for (const auto& node : scene.nodes)
+        for (u32 i = 0; i < scene.meshes.size(); i++)
         {
-            if (node.instance_id == InvalidMeshInstanceId)
-                continue;
+            const SceneMesh& scene_mesh = scene.meshes[i];
+            const Node&      node = scene.nodes[scene_mesh.node_index];
 
             const glm::mat4 light_view_proj_matrix = light.projection_matrix * glm::mat4(light_node.transform_matrix);
 
@@ -177,9 +188,9 @@ void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCa
             CullMeshInstanceParams& cull_instance = prepared.cull_mesh_instance_params.emplace_back();
 
             cull_instance.ms_to_cs_matrix = shadow_instance.ms_to_cs_matrix;
-            cull_instance.instance_id = node.instance_id;
+            cull_instance.instance_id = i;
 
-            const Mesh2&     mesh2 = mesh_cache.mesh2_instances[node.mesh_handle];
+            const Mesh2&     mesh2 = mesh_cache.mesh2_instances[scene_mesh.mesh_handle];
             const MeshAlloc& mesh_alloc = mesh2.lods_allocs[0];
 
             insert_cull_command(cull_pass, mesh_alloc, cull_instance_index, 1);
@@ -210,8 +221,8 @@ void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCa
     Assert(scene.lights.size() == PointLightCount);
     for (u32 i = 0; i < PointLightCount; i++)
     {
-        const Light& light = scene.lights[i];
-        const Node&  light_node = scene.nodes[light.scene_node];
+        const SceneLight& light = scene.lights[i];
+        const Node&       light_node = scene.nodes[light.scene_node];
 
         const glm::vec3 light_position_ws =
             glm::inverse(glm::mat4(light_node.transform_matrix)) * glm::vec4(0.f, 0.f, 0.f, 1.0f);
@@ -233,10 +244,10 @@ void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCa
 
         prepared.draw_culling_pass_index = cull_pass.pass_index;
 
-        for (const auto& node : scene.nodes)
+        for (u32 i = 0; i < scene.meshes.size(); i++)
         {
-            if (node.instance_id == InvalidMeshInstanceId)
-                continue;
+            const SceneMesh& scene_mesh = scene.meshes[i];
+            const Node&      node = scene.nodes[scene_mesh.node_index];
 
             // Assumption that our 3x3 submatrix is orthonormal (no skew/non-uniform scaling)
             // FIXME use 4x3 matrices directly
@@ -245,15 +256,15 @@ void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCa
             DrawInstanceParams& draw_instance = prepared.draw_instance_params.emplace_back();
             draw_instance.ms_to_ws_matrix = node.transform_matrix;
             draw_instance.normal_ms_to_vs_matrix = glm::mat3(modelView);
-            draw_instance.texture_index = node.texture_handle;
+            draw_instance.texture_index = scene_mesh.texture_handle;
 
             const u32               cull_instance_index = prepared.cull_mesh_instance_params.size();
             CullMeshInstanceParams& cull_instance = prepared.cull_mesh_instance_params.emplace_back();
 
             cull_instance.ms_to_cs_matrix = main_camera_view_proj * glm::mat4(node.transform_matrix);
-            cull_instance.instance_id = node.instance_id;
+            cull_instance.instance_id = i;
 
-            const Mesh2&     mesh2 = mesh_cache.mesh2_instances[node.mesh_handle];
+            const Mesh2&     mesh2 = mesh_cache.mesh2_instances[scene_mesh.mesh_handle];
             const MeshAlloc& mesh_alloc = mesh2.lods_allocs[0];
 
             insert_cull_command(cull_pass, mesh_alloc, cull_instance_index, 1);
