@@ -13,7 +13,8 @@
 #include <nonstd/span.hpp>
 #include <vector>
 
-#include "renderer/shader/share/draw.hlsl"
+#include "renderer/shader/share/forward.hlsl"
+#include "renderer/shader/share/lighting.hlsl"
 #include "renderer/shader/share/meshlet_culling.hlsl"
 #include "renderer/shader/share/shadow_map_pass.hlsl"
 #include "renderer/shader/share/sound.hlsl"
@@ -95,6 +96,8 @@ struct PreparedData
     u32                                forward_culling_pass_index;
     ForwardPassParams                  forward_pass_constants;
     std::vector<ForwardInstanceParams> forward_instances;
+
+    std::vector<PointLightProperties> point_lights;
 
     std::vector<ShadowPassData>          shadow_passes;
     std::vector<ShadowMapPassParams>     shadow_pass_params;

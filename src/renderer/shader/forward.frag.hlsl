@@ -1,7 +1,8 @@
 #include "lib/base.hlsl"
 
 #include "lib/brdf.hlsl"
-#include "share/draw.hlsl"
+#include "share/forward.hlsl"
+#include "share/lighting.hlsl"
 
 static const uint debug_mode_none = 0;
 static const uint debug_mode_normals = 1;
@@ -17,8 +18,9 @@ VK_CONSTANT(0) const uint spec_debug_mode = debug_mode_none;
 
 VK_BINDING(0, 0) ConstantBuffer<ForwardPassParams> pass_params;
 
-VK_BINDING(5, 0) SamplerComparisonState shadow_map_sampler;
-VK_BINDING(6, 0) Texture2D<float> t_shadow_map[];
+VK_BINDING(5, 0) StructuredBuffer<PointLightProperties> point_lights;
+VK_BINDING(6, 0) SamplerComparisonState shadow_map_sampler;
+VK_BINDING(7, 0) Texture2D<float> t_shadow_map[];
 
 VK_BINDING(0, 1) SamplerState diffuse_map_sampler;
 VK_BINDING(1, 1) Texture2D<float3> t_diffuse_map[];
@@ -89,9 +91,9 @@ void main(in PS_INPUT input, out PS_OUTPUT output)
 
     float3 shaded_color = 0.0;
 
-    for (uint i = 0; i < PointLightCount; i++)
+    for (uint i = 0; i < pass_params.point_light_count; i++)
     {
-        const PointLightProperties point_light = pass_params.point_light[i];
+        const PointLightProperties point_light = point_lights[i];
 
         const t_light_output lighting = shade_point_light(point_light, material, input.PositionVS, normal_vs, view_direction_vs);
         const float shadow_term = sample_shadow_map(point_light.light_ws_to_cs, input.PositionWS, point_light.shadow_map_index);

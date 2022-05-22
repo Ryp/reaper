@@ -156,11 +156,11 @@ void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCa
     prepared.forward_pass_constants.ws_to_vs_matrix = camera_node.transform_matrix;
     prepared.forward_pass_constants.vs_to_cs_matrix = camera_projection_matrix;
     prepared.forward_pass_constants.ws_to_cs_matrix = main_camera_view_proj;
+    prepared.forward_pass_constants.point_light_count = scene.lights.size();
 
-    Assert(scene.lights.size() == PointLightCount);
-    for (u32 i = 0; i < PointLightCount; i++)
+    for (u32 scene_light_index = 0; scene_light_index < scene.lights.size(); scene_light_index++)
     {
-        const SceneLight& light = scene.lights[i];
+        const SceneLight& light = scene.lights[scene_light_index];
         const Node&       light_node = scene.nodes[light.scene_node];
 
         const glm::vec3 light_position_ws =
@@ -169,11 +169,14 @@ void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCa
 
         const glm::mat4 light_view_proj_matrix = light.projection_matrix * glm::mat4(light_node.transform_matrix);
 
-        prepared.forward_pass_constants.point_light[i].light_ws_to_cs = light_view_proj_matrix;
-        prepared.forward_pass_constants.point_light[i].position_vs = light_position_vs;
-        prepared.forward_pass_constants.point_light[i].intensity = light.intensity;
-        prepared.forward_pass_constants.point_light[i].color = light.color;
-        prepared.forward_pass_constants.point_light[i].shadow_map_index = i; // FIXME
+        PointLightProperties point_light;
+        point_light.light_ws_to_cs = light_view_proj_matrix;
+        point_light.position_vs = light_position_vs;
+        point_light.intensity = light.intensity;
+        point_light.color = light.color;
+        point_light.shadow_map_index = scene_light_index; // FIXME
+
+        prepared.point_lights.emplace_back(point_light);
     }
 
     {

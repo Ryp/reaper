@@ -19,6 +19,7 @@
 #include "renderpass/Frame.h"
 #include "renderpass/GuiPass.h"
 #include "renderpass/HistogramPass.h"
+#include "renderpass/LightingPass.h"
 #include "renderpass/ShadowMap.h"
 #include "renderpass/SwapchainPass.h"
 
@@ -34,6 +35,7 @@ struct BackendResources
     MaterialResources      material_resources;
     CullResources          cull_resources;
     ShadowMapResources     shadow_map_resources;
+    LightingPassResources  lighting_resources;
     ForwardPassResources   forward_pass_resources;
     HistogramPassResources histogram_pass_resources;
     GuiPassResources       gui_pass_resources;

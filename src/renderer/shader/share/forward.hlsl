@@ -5,28 +5,18 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef SHARE_DRAW_INCLUDED
-#define SHARE_DRAW_INCLUDED
+#ifndef SHARE_FORWARD_INCLUDED
+#define SHARE_FORWARD_INCLUDED
 
 #include "types.hlsl"
 
-struct PointLightProperties
-{
-    hlsl_float4x4 light_ws_to_cs; // FIXME xy could be in uv-space already
-    hlsl_float3 position_vs;
-    hlsl_float  intensity;
-    hlsl_float3 color;
-    hlsl_float  shadow_map_index;
-};
-
-static const hlsl_uint PointLightCount = 3;
-
 struct ForwardPassParams
 {
-    PointLightProperties point_light[PointLightCount];
     hlsl_float3x4 ws_to_vs_matrix;
     hlsl_float4x4 vs_to_cs_matrix;
     hlsl_float4x4 ws_to_cs_matrix;
+    hlsl_uint3    _pad;
+    hlsl_uint     point_light_count;
 };
 
 struct ForwardInstanceParams

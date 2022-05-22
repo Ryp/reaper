@@ -19,13 +19,14 @@
 #include "renderer/vulkan/MeshCache.h"
 #include "renderer/vulkan/RenderPassHelpers.h"
 #include "renderer/vulkan/Shader.h"
+#include "renderer/vulkan/renderpass/LightingPass.h"
 
 #include "common/Log.h"
 #include "common/ReaperRoot.h"
 
 #include "core/Profile.h"
 
-#include "renderer/shader/share/draw.hlsl"
+#include "renderer/shader/share/forward.hlsl"
 
 namespace Reaper
 {
@@ -37,25 +38,25 @@ namespace
 {
     VkDescriptorSetLayout create_descriptor_set_layout_0(VulkanBackend& backend)
     {
-        std::array<VkDescriptorSetLayoutBinding, 7> descriptorSetLayoutBinding = {
+        std::vector<VkDescriptorSetLayoutBinding> descriptorSetLayoutBinding = {
             VkDescriptorSetLayoutBinding{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1,
                                          VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
             VkDescriptorSetLayoutBinding{1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
             VkDescriptorSetLayoutBinding{2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
             VkDescriptorSetLayoutBinding{3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
             VkDescriptorSetLayoutBinding{4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
-            VkDescriptorSetLayoutBinding{5, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
-            VkDescriptorSetLayoutBinding{6, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, ShadowMapMaxCount,
+            VkDescriptorSetLayoutBinding{5, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT,
+                                         nullptr},
+            VkDescriptorSetLayoutBinding{6, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+            VkDescriptorSetLayoutBinding{7, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, ShadowMapMaxCount,
                                          VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
         };
 
-        std::array<VkDescriptorBindingFlags, 7> bindingFlags = {VK_FLAGS_NONE,
-                                                                VK_FLAGS_NONE,
-                                                                VK_FLAGS_NONE,
-                                                                VK_FLAGS_NONE,
-                                                                VK_FLAGS_NONE,
-                                                                VK_FLAGS_NONE,
-                                                                VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT};
+        std::vector<VkDescriptorBindingFlags> bindingFlags = {
+            VK_FLAGS_NONE, VK_FLAGS_NONE, VK_FLAGS_NONE, VK_FLAGS_NONE,
+            VK_FLAGS_NONE, VK_FLAGS_NONE, VK_FLAGS_NONE, VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT};
+
+        Assert(bindingFlags.size() == descriptorSetLayoutBinding.size());
 
         const VkDescriptorSetLayoutBindingFlagsCreateInfo descriptorSetLayoutBindingFlags = {
             VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO, nullptr,
@@ -72,7 +73,8 @@ namespace
     }
 
     void update_descriptor_set_0(VulkanBackend& backend, const ForwardPassResources& resources,
-                                 const MeshCache& mesh_cache, const nonstd::span<VkImageView> shadow_map_views)
+                                 const MeshCache& mesh_cache, const LightingPassResources& lighting_resources,
+                                 const nonstd::span<VkImageView> shadow_map_views)
     {
         const VkDescriptorBufferInfo passParams = default_descriptor_buffer_info(resources.passConstantBuffer);
         const VkDescriptorBufferInfo instanceParams = default_descriptor_buffer_info(resources.instancesConstantBuffer);
@@ -81,9 +83,25 @@ namespace
             default_descriptor_buffer_info(mesh_cache.vertexBufferPosition);
         const VkDescriptorBufferInfo vertexNormalParams = default_descriptor_buffer_info(mesh_cache.vertexBufferNormal);
         const VkDescriptorBufferInfo vertexUVParams = default_descriptor_buffer_info(mesh_cache.vertexBufferUV);
+        const VkDescriptorBufferInfo pointLightParams =
+            default_descriptor_buffer_info(lighting_resources.pointLightBuffer);
 
         const VkDescriptorImageInfo shadowMapSampler = {resources.shadowMapSampler, VK_NULL_HANDLE,
                                                         VK_IMAGE_LAYOUT_UNDEFINED};
+
+        std::vector<VkWriteDescriptorSet> writes = {
+            create_buffer_descriptor_write(resources.descriptor_set, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &passParams),
+            create_buffer_descriptor_write(resources.descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                                           &instanceParams),
+            create_buffer_descriptor_write(resources.descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                                           &vertexPositionParams),
+            create_buffer_descriptor_write(resources.descriptor_set, 3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                                           &vertexNormalParams),
+            create_buffer_descriptor_write(resources.descriptor_set, 4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                                           &vertexUVParams),
+            create_buffer_descriptor_write(resources.descriptor_set, 5, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                                           &pointLightParams),
+            create_image_descriptor_write(resources.descriptor_set, 6, VK_DESCRIPTOR_TYPE_SAMPLER, &shadowMapSampler)};
 
         std::vector<VkDescriptorImageInfo> drawDescShadowMaps;
 
@@ -97,7 +115,7 @@ namespace
             VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
             nullptr,
             resources.descriptor_set,
-            6,
+            7,
             0,
             static_cast<u32>(drawDescShadowMaps.size()),
             VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
@@ -106,18 +124,11 @@ namespace
             nullptr,
         };
 
-        std::vector<VkWriteDescriptorSet> writes = {
-            create_buffer_descriptor_write(resources.descriptor_set, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &passParams),
-            create_buffer_descriptor_write(resources.descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                                           &instanceParams),
-            create_buffer_descriptor_write(resources.descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                                           &vertexPositionParams),
-            create_buffer_descriptor_write(resources.descriptor_set, 3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                                           &vertexNormalParams),
-            create_buffer_descriptor_write(resources.descriptor_set, 4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                                           &vertexUVParams),
-            create_image_descriptor_write(resources.descriptor_set, 5, VK_DESCRIPTOR_TYPE_SAMPLER, &shadowMapSampler),
-            shadowMapBindlessImageWrite};
+        // Only stage descriptor write if we actually have shadow maps to bind
+        if (!drawDescShadowMaps.empty())
+        {
+            writes.push_back(shadowMapBindlessImageWrite);
+        }
 
         vkUpdateDescriptorSets(backend.device, static_cast<u32>(writes.size()), writes.data(), 0, nullptr);
     }
@@ -450,11 +461,11 @@ ForwardPassResources create_forward_pass_resources(ReaperRoot& root, VulkanBacke
     resources.pipe = create_forward_pipeline(root, backend);
 
     resources.passConstantBuffer = create_buffer(
-        root, backend.device, "Draw Pass Constant buffer",
+        root, backend.device, "Forward Pass Constant buffer",
         DefaultGPUBufferProperties(1, sizeof(ForwardPassParams), GPUBufferUsage::UniformBuffer), backend.vma_instance);
 
     resources.instancesConstantBuffer = create_buffer(
-        root, backend.device, "Draw Instance Constant buffer",
+        root, backend.device, "Forward Instance buffer",
         DefaultGPUBufferProperties(DrawInstanceCountMax, sizeof(ForwardInstanceParams), GPUBufferUsage::StorageBuffer),
         backend.vma_instance);
 
@@ -485,9 +496,10 @@ void destroy_forward_pass_resources(VulkanBackend& backend, ForwardPassResources
 
 void update_forward_pass_descriptor_sets(VulkanBackend& backend, const ForwardPassResources& resources,
                                          const MaterialResources& material_resources, const MeshCache& mesh_cache,
+                                         const LightingPassResources&    lighting_resources,
                                          const nonstd::span<VkImageView> shadow_map_views)
 {
-    update_descriptor_set_0(backend, resources, mesh_cache, shadow_map_views);
+    update_descriptor_set_0(backend, resources, mesh_cache, lighting_resources, shadow_map_views);
     update_descriptor_set_1(backend, resources, material_resources);
 }
 

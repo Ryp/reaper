@@ -207,6 +207,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     upload_culling_resources(backend, prepared, resources.cull_resources);
     upload_shadow_map_resources(backend, prepared, resources.shadow_map_resources);
+    upload_lighting_pass_frame_resources(backend, prepared, resources.lighting_resources);
     upload_forward_pass_frame_resources(backend, prepared, resources.forward_pass_resources);
     upload_histogram_frame_resources(backend, resources.histogram_pass_resources, backbufferExtent);
     upload_swapchain_frame_resources(backend, prepared, resources.swapchain_pass_resources);
@@ -380,7 +381,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     }
 
     update_forward_pass_descriptor_sets(backend, resources.forward_pass_resources, resources.material_resources,
-                                        resources.mesh_cache, shadow_map_views);
+                                        resources.mesh_cache, resources.lighting_resources, shadow_map_views);
 
     update_histogram_pass_descriptor_set(
         backend, resources.histogram_pass_resources,
