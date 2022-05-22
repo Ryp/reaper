@@ -8,6 +8,7 @@
 #include "PrepareBuckets.h"
 
 #include "renderer/vulkan/MeshCache.h"
+#include "renderer/vulkan/renderpass/ForwardPassConstants.h"
 #include "renderer/vulkan/renderpass/ShadowConstants.h"
 
 #include <cmath>
@@ -17,12 +18,26 @@
 
 namespace Reaper
 {
-constexpr bool UseReverseZ = true;
-constexpr u32  InvalidMeshInstanceId = -1;
-
 namespace
 {
     float note(float semitone_offset, float base_freq = 440.f) { return base_freq * powf(2.f, semitone_offset / 12.f); }
+
+    glm::fmat4 apply_reverse_z_fixup(glm::fmat4 projection_matrix, bool reverse_z)
+    {
+        if (reverse_z)
+        {
+            // NOTE: we might want to do it by hand to limit precision loss
+            glm::mat4 reverse_z_transform(1.f);
+            reverse_z_transform[3][2] = 1.f;
+            reverse_z_transform[2][2] = -1.f;
+
+            return reverse_z_transform * projection_matrix;
+        }
+        else
+        {
+            return projection_matrix;
+        }
+    }
 } // namespace
 
 glm::fmat4 build_perspective_matrix(float near_plane, float far_plane, float aspect_ratio, float fov_radian)
@@ -31,16 +46,6 @@ glm::fmat4 build_perspective_matrix(float near_plane, float far_plane, float asp
 
     // Flip viewport Y
     projection[1] = -projection[1];
-
-    if (UseReverseZ)
-    {
-        // NOTE: we might want to do it by hand to limit precision loss
-        glm::mat4 reverse_z_transform(1.f);
-        reverse_z_transform[3][2] = 1.f;
-        reverse_z_transform[2][2] = -1.f;
-
-        projection = reverse_z_transform * projection;
-    }
 
     return projection;
 }
@@ -113,7 +118,8 @@ void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCa
         shadow_pass_params.dummy = glm::mat4(1.f);
 
         const Node&      light_node = scene.nodes[light.scene_node];
-        const glm::fmat4 light_view_proj_matrix = light.projection_matrix * glm::mat4(light_node.transform_matrix);
+        const glm::fmat4 light_view_proj_matrix =
+            apply_reverse_z_fixup(light.projection_matrix, ShadowUseReverseZ) * glm::mat4(light_node.transform_matrix);
 
         for (u32 i = 0; i < scene.meshes.size(); i++)
         {
@@ -145,8 +151,9 @@ void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCa
     const float fov_radian = glm::pi<float>() * 0.25f;
     const float aspect_ratio = static_cast<float>(viewport_extent.x) / static_cast<float>(viewport_extent.y);
 
-    glm::mat4 camera_projection_matrix =
-        build_perspective_matrix(near_plane_distance, far_plane_distance, aspect_ratio, fov_radian);
+    glm::mat4 camera_projection_matrix = apply_reverse_z_fixup(
+        build_perspective_matrix(near_plane_distance, far_plane_distance, aspect_ratio, fov_radian),
+        ForwardUseReverseZ);
 
     const Node& camera_node = scene.nodes[scene.camera.scene_node];
 
@@ -167,7 +174,8 @@ void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCa
             glm::inverse(glm::mat4(light_node.transform_matrix)) * glm::vec4(0.f, 0.f, 0.f, 1.0f);
         const glm::vec3 light_position_vs = camera_node.transform_matrix * glm::fvec4(light_position_ws, 1.f);
 
-        const glm::mat4 light_view_proj_matrix = light.projection_matrix * glm::mat4(light_node.transform_matrix);
+        const glm::mat4 light_view_proj_matrix =
+            apply_reverse_z_fixup(light.projection_matrix, ShadowUseReverseZ) * glm::mat4(light_node.transform_matrix);
 
         PointLightProperties point_light;
         point_light.light_ws_to_cs = light_view_proj_matrix;

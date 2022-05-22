@@ -19,6 +19,7 @@
 #include "renderer/vulkan/MeshCache.h"
 #include "renderer/vulkan/RenderPassHelpers.h"
 #include "renderer/vulkan/Shader.h"
+#include "renderer/vulkan/renderpass/ForwardPassConstants.h"
 #include "renderer/vulkan/renderpass/LightingPass.h"
 
 #include "common/Log.h"
@@ -30,9 +31,8 @@
 
 namespace Reaper
 {
-constexpr u32  DiffuseMapMaxCount = 8;
-constexpr u32  DrawInstanceCountMax = 512;
-constexpr bool UseReverseZ = true;
+constexpr u32 DiffuseMapMaxCount = 8;
+constexpr u32 DrawInstanceCountMax = 512;
 
 namespace
 {
@@ -260,7 +260,7 @@ namespace
             0,
             true, // depth test
             true, // depth write
-            UseReverseZ ? VK_COMPARE_OP_GREATER : VK_COMPARE_OP_LESS,
+            ForwardUseReverseZ ? VK_COMPARE_OP_GREATER : VK_COMPARE_OP_LESS,
             false,
             false,
             VkStencilOpState{},
@@ -414,10 +414,10 @@ namespace
         shadowMapSamplerCreateInfo.anisotropyEnable = VK_FALSE;
         shadowMapSamplerCreateInfo.maxAnisotropy = 16;
         shadowMapSamplerCreateInfo.borderColor =
-            UseReverseZ ? VK_BORDER_COLOR_INT_OPAQUE_BLACK : VK_BORDER_COLOR_INT_OPAQUE_WHITE;
+            ShadowUseReverseZ ? VK_BORDER_COLOR_INT_OPAQUE_BLACK : VK_BORDER_COLOR_INT_OPAQUE_WHITE;
         shadowMapSamplerCreateInfo.unnormalizedCoordinates = VK_FALSE;
         shadowMapSamplerCreateInfo.compareEnable = VK_TRUE;
-        shadowMapSamplerCreateInfo.compareOp = UseReverseZ ? VK_COMPARE_OP_GREATER : VK_COMPARE_OP_LESS;
+        shadowMapSamplerCreateInfo.compareOp = ShadowUseReverseZ ? VK_COMPARE_OP_GREATER : VK_COMPARE_OP_LESS;
         shadowMapSamplerCreateInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
         shadowMapSamplerCreateInfo.mipLodBias = 0.f;
         shadowMapSamplerCreateInfo.minLod = 0.f;
@@ -525,7 +525,7 @@ void record_forward_pass_command_buffer(CommandBuffer& cmdBuffer, const Prepared
     REAPER_PROFILE_SCOPE_GPU(cmdBuffer.mlog, "Forward Pass", MP_DARKGOLDENROD);
 
     const glm::fvec4 clearColor = {0.1f, 0.1f, 0.1f, 0.0f};
-    const float      depthClearValue = UseReverseZ ? 0.f : 1.f;
+    const float      depthClearValue = ForwardUseReverseZ ? 0.f : 1.f;
     const VkRect2D   blitPassRect = default_vk_rect(backbufferExtent);
 
     const VkRenderingAttachmentInfo color_attachment = {

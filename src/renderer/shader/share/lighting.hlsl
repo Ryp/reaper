@@ -16,7 +16,7 @@ struct PointLightProperties
     hlsl_float3 position_vs;
     hlsl_float  intensity;
     hlsl_float3 color;
-    hlsl_float  shadow_map_index;
+    hlsl_uint   shadow_map_index;
 };
 
 #endif
