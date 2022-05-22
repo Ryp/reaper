@@ -60,7 +60,8 @@ REAPER_RENDERER_API u32 insert_scene_node(SceneGraph& scene, glm::mat4x3 transfo
 REAPER_RENDERER_API u32 insert_scene_mesh(SceneGraph& scene, SceneMesh scene_mesh);
 REAPER_RENDERER_API u32 insert_scene_light(SceneGraph& scene, SceneLight scene_light);
 
-REAPER_RENDERER_API void build_scene_graph(SceneGraph& scene);
+REAPER_RENDERER_API glm::fmat4 build_perspective_matrix(float near_plane, float far_plane, float aspect_ratio,
+                                                        float fov_radian);
 
 struct CullCmd
 {

@@ -22,28 +22,28 @@ constexpr u32  InvalidMeshInstanceId = -1;
 
 namespace
 {
-    glm::mat4 build_perspective_matrix(float near_plane, float far_plane, float aspect_ratio, float fov_radian)
-    {
-        glm::mat4 projection = glm::perspective(fov_radian, aspect_ratio, near_plane, far_plane);
-
-        // Flip viewport Y
-        projection[1] = -projection[1];
-
-        if (UseReverseZ)
-        {
-            // NOTE: we might want to do it by hand to limit precision loss
-            glm::mat4 reverse_z_transform(1.f);
-            reverse_z_transform[3][2] = 1.f;
-            reverse_z_transform[2][2] = -1.f;
-
-            projection = reverse_z_transform * projection;
-        }
-
-        return projection;
-    }
-
     float note(float semitone_offset, float base_freq = 440.f) { return base_freq * powf(2.f, semitone_offset / 12.f); }
 } // namespace
+
+glm::fmat4 build_perspective_matrix(float near_plane, float far_plane, float aspect_ratio, float fov_radian)
+{
+    glm::fmat4 projection = glm::perspective(fov_radian, aspect_ratio, near_plane, far_plane);
+
+    // Flip viewport Y
+    projection[1] = -projection[1];
+
+    if (UseReverseZ)
+    {
+        // NOTE: we might want to do it by hand to limit precision loss
+        glm::mat4 reverse_z_transform(1.f);
+        reverse_z_transform[3][2] = 1.f;
+        reverse_z_transform[2][2] = -1.f;
+
+        projection = reverse_z_transform * projection;
+    }
+
+    return projection;
+}
 
 u32 insert_scene_node(SceneGraph& scene, glm::mat4x3 transform_matrix)
 {
@@ -68,66 +68,6 @@ u32 insert_scene_light(SceneGraph& scene, SceneLight scene_light)
     scene.lights.emplace_back(scene_light);
 
     return scene_light_index;
-}
-
-void build_scene_graph(SceneGraph& scene)
-{
-    // Add lights
-    {
-        const glm::mat4 light_projection_matrix = build_perspective_matrix(0.1f, 100.f, 1.f, glm::pi<float>() * 0.25f);
-        const glm::vec3 light_target_ws = glm::vec3(0.f, 0.f, 0.f);
-        const glm::vec3 up_ws = glm::vec3(0.f, 1.f, 0.f);
-
-        // Add 1st light
-        {
-            const glm::vec3    light_position_ws = glm::vec3(-2.f, 2.f, 2.f);
-            const glm::fmat4x3 light_transform = glm::lookAt(light_position_ws, light_target_ws, up_ws);
-
-            SceneLight light;
-            light.color = glm::fvec3(0.03f, 0.21f, 0.61f);
-            light.intensity = 6.f;
-            light.scene_node = insert_scene_node(scene, light_transform);
-            light.projection_matrix = light_projection_matrix;
-            light.shadow_map_size = glm::uvec2(1024, 1024);
-
-            insert_scene_light(scene, light);
-        }
-
-        // Add 2nd light
-        {
-            const glm::fvec3   light_position_ws = glm::vec3(-2.f, -2.f, -2.f);
-            const glm::fmat4x3 light_transform = glm::lookAt(light_position_ws, light_target_ws, up_ws);
-
-            SceneLight light;
-            light.color = glm::fvec3(0.61f, 0.21f, 0.03f);
-            light.intensity = 6.f;
-            light.scene_node = insert_scene_node(scene, light_transform);
-            light.projection_matrix = light_projection_matrix;
-            light.shadow_map_size = glm::uvec2(512, 512);
-
-            insert_scene_light(scene, light);
-        }
-
-        // Add 3rd light
-        {
-            const glm::vec3    light_position_ws = glm::vec3(0.f, -2.f, 2.f);
-            const glm::fmat4x3 light_transform = glm::lookAt(light_position_ws, light_target_ws, up_ws);
-
-            SceneLight light;
-            light.color = glm::fvec3(0.03f, 0.8f, 0.21f);
-            light.intensity = 6.f;
-            light.scene_node = insert_scene_node(scene, light_transform);
-            light.projection_matrix = light_projection_matrix;
-            light.shadow_map_size = glm::uvec2(256, 256);
-
-            insert_scene_light(scene, light);
-        }
-    }
-
-    // Add camera
-    {
-        scene.camera.scene_node = insert_scene_node(scene, glm::mat4x3(1.0f));
-    }
 }
 
 namespace
