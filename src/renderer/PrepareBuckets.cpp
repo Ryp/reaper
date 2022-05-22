@@ -112,14 +112,13 @@ void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCa
         ShadowMapPassParams& shadow_pass_params = prepared.shadow_pass_params.emplace_back();
         shadow_pass_params.dummy = glm::mat4(1.f);
 
-        const Node& light_node = scene.nodes[light.scene_node];
+        const Node&      light_node = scene.nodes[light.scene_node];
+        const glm::fmat4 light_view_proj_matrix = light.projection_matrix * glm::mat4(light_node.transform_matrix);
 
         for (u32 i = 0; i < scene.meshes.size(); i++)
         {
             const SceneMesh& scene_mesh = scene.meshes[i];
             const Node&      node = scene.nodes[scene_mesh.node_index];
-
-            const glm::mat4 light_view_proj_matrix = light.projection_matrix * glm::mat4(light_node.transform_matrix);
 
             ShadowMapInstanceParams& shadow_instance = prepared.shadow_instance_params.emplace_back();
             shadow_instance.ms_to_cs_matrix = light_view_proj_matrix * glm::mat4(node.transform_matrix);
@@ -154,9 +153,9 @@ void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCa
     // Main + culling pass
     const glm::mat4 main_camera_view_proj = camera_projection_matrix * glm::mat4(camera_node.transform_matrix);
 
-    prepared.draw_pass_params.ws_to_vs_matrix = camera_node.transform_matrix;
-    prepared.draw_pass_params.vs_to_cs_matrix = camera_projection_matrix;
-    prepared.draw_pass_params.ws_to_cs_matrix = main_camera_view_proj;
+    prepared.forward_pass_constants.ws_to_vs_matrix = camera_node.transform_matrix;
+    prepared.forward_pass_constants.vs_to_cs_matrix = camera_projection_matrix;
+    prepared.forward_pass_constants.ws_to_cs_matrix = main_camera_view_proj;
 
     Assert(scene.lights.size() == PointLightCount);
     for (u32 i = 0; i < PointLightCount; i++)
@@ -170,11 +169,11 @@ void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCa
 
         const glm::mat4 light_view_proj_matrix = light.projection_matrix * glm::mat4(light_node.transform_matrix);
 
-        prepared.draw_pass_params.point_light[i].light_ws_to_cs = light_view_proj_matrix;
-        prepared.draw_pass_params.point_light[i].position_vs = light_position_vs;
-        prepared.draw_pass_params.point_light[i].intensity = light.intensity;
-        prepared.draw_pass_params.point_light[i].color = light.color;
-        prepared.draw_pass_params.point_light[i].shadow_map_index = i; // FIXME
+        prepared.forward_pass_constants.point_light[i].light_ws_to_cs = light_view_proj_matrix;
+        prepared.forward_pass_constants.point_light[i].position_vs = light_position_vs;
+        prepared.forward_pass_constants.point_light[i].intensity = light.intensity;
+        prepared.forward_pass_constants.point_light[i].color = light.color;
+        prepared.forward_pass_constants.point_light[i].shadow_map_index = i; // FIXME
     }
 
     {
@@ -182,7 +181,7 @@ void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCa
         cull_pass.pass_index = prepared.cull_passes.size() - 1;
         cull_pass.output_size_ts = glm::fvec2(viewport_extent);
 
-        prepared.draw_culling_pass_index = cull_pass.pass_index;
+        prepared.forward_culling_pass_index = cull_pass.pass_index;
 
         for (u32 i = 0; i < scene.meshes.size(); i++)
         {
@@ -193,10 +192,10 @@ void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCa
             // FIXME use 4x3 matrices directly
             const glm::mat4x3 modelView = glm::mat4(camera_node.transform_matrix) * glm::mat4(node.transform_matrix);
 
-            DrawInstanceParams& draw_instance = prepared.draw_instance_params.emplace_back();
-            draw_instance.ms_to_ws_matrix = node.transform_matrix;
-            draw_instance.normal_ms_to_vs_matrix = glm::mat3(modelView);
-            draw_instance.texture_index = scene_mesh.texture_handle;
+            ForwardInstanceParams& forward_instance = prepared.forward_instances.emplace_back();
+            forward_instance.ms_to_ws_matrix = node.transform_matrix;
+            forward_instance.normal_ms_to_vs_matrix = glm::mat3(modelView);
+            forward_instance.texture_index = scene_mesh.texture_handle;
 
             const u32               cull_instance_index = prepared.cull_mesh_instance_params.size();
             CullMeshInstanceParams& cull_instance = prepared.cull_mesh_instance_params.emplace_back();

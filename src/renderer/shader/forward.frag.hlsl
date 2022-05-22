@@ -15,7 +15,7 @@ VK_CONSTANT(0) const uint spec_debug_mode = 0;
 VK_CONSTANT(0) const uint spec_debug_mode = debug_mode_none;
 #endif
 
-VK_BINDING(0, 0) ConstantBuffer<DrawPassParams> pass_params;
+VK_BINDING(0, 0) ConstantBuffer<ForwardPassParams> pass_params;
 
 VK_BINDING(5, 0) SamplerComparisonState shadow_map_sampler;
 VK_BINDING(6, 0) Texture2D<float> t_shadow_map[];

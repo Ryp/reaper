@@ -37,8 +37,8 @@ struct GPUTextureProperties;
 
 struct ForwardPassResources
 {
-    BufferInfo drawPassConstantBuffer;
-    BufferInfo drawInstanceConstantBuffer;
+    BufferInfo passConstantBuffer;
+    BufferInfo instancesConstantBuffer;
 
     ForwardPipelineInfo pipe;
 

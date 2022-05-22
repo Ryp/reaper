@@ -421,6 +421,9 @@ void destroy_culling_resources(VulkanBackend& backend, CullResources& resources)
 
 void upload_culling_resources(VulkanBackend& backend, const PreparedData& prepared, CullResources& resources)
 {
+    if (prepared.cull_mesh_instance_params.empty())
+        return;
+
     upload_buffer_data(backend.device, backend.vma_instance, resources.cullInstanceParamsBuffer,
                        prepared.cull_mesh_instance_params.data(),
                        prepared.cull_mesh_instance_params.size() * sizeof(CullMeshInstanceParams));

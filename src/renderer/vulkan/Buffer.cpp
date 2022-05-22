@@ -103,6 +103,8 @@ void upload_buffer_data(VkDevice device, const VmaAllocator& allocator, const Bu
 {
     u8* writePtr = nullptr;
 
+    Assert(size > 0, "Don't call this function with zero size");
+
     VmaAllocationInfo allocation_info;
     vmaGetAllocationInfo(allocator, buffer.allocation, &allocation_info);
 

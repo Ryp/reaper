@@ -74,9 +74,8 @@ namespace
     void update_descriptor_set_0(VulkanBackend& backend, const ForwardPassResources& resources,
                                  const MeshCache& mesh_cache, const nonstd::span<VkImageView> shadow_map_views)
     {
-        const VkDescriptorBufferInfo passParams = default_descriptor_buffer_info(resources.drawPassConstantBuffer);
-        const VkDescriptorBufferInfo instanceParams =
-            default_descriptor_buffer_info(resources.drawInstanceConstantBuffer);
+        const VkDescriptorBufferInfo passParams = default_descriptor_buffer_info(resources.passConstantBuffer);
+        const VkDescriptorBufferInfo instanceParams = default_descriptor_buffer_info(resources.instancesConstantBuffer);
 
         const VkDescriptorBufferInfo vertexPositionParams =
             default_descriptor_buffer_info(mesh_cache.vertexBufferPosition);
@@ -151,6 +150,9 @@ namespace
     void update_descriptor_set_1(VulkanBackend& backend, const ForwardPassResources& resources,
                                  const MaterialResources& material_resources)
     {
+        if (material_resources.texture_handles.empty())
+            return;
+
         std::vector<VkDescriptorImageInfo> descriptor_maps;
 
         for (auto handle : material_resources.texture_handles)
@@ -447,13 +449,13 @@ ForwardPassResources create_forward_pass_resources(ReaperRoot& root, VulkanBacke
 
     resources.pipe = create_forward_pipeline(root, backend);
 
-    resources.drawPassConstantBuffer = create_buffer(
+    resources.passConstantBuffer = create_buffer(
         root, backend.device, "Draw Pass Constant buffer",
-        DefaultGPUBufferProperties(1, sizeof(DrawPassParams), GPUBufferUsage::UniformBuffer), backend.vma_instance);
+        DefaultGPUBufferProperties(1, sizeof(ForwardPassParams), GPUBufferUsage::UniformBuffer), backend.vma_instance);
 
-    resources.drawInstanceConstantBuffer = create_buffer(
+    resources.instancesConstantBuffer = create_buffer(
         root, backend.device, "Draw Instance Constant buffer",
-        DefaultGPUBufferProperties(DrawInstanceCountMax, sizeof(DrawInstanceParams), GPUBufferUsage::StorageBuffer),
+        DefaultGPUBufferProperties(DrawInstanceCountMax, sizeof(ForwardInstanceParams), GPUBufferUsage::StorageBuffer),
         backend.vma_instance);
 
     resources.descriptor_set = create_forward_pass_descriptor_set(root, backend, resources.pipe.descSetLayout);
@@ -475,10 +477,10 @@ void destroy_forward_pass_resources(VulkanBackend& backend, ForwardPassResources
     vkDestroyDescriptorSetLayout(backend.device, resources.pipe.descSetLayout, nullptr);
     vkDestroyDescriptorSetLayout(backend.device, resources.pipe.descSetLayout2, nullptr);
 
-    vmaDestroyBuffer(backend.vma_instance, resources.drawPassConstantBuffer.handle,
-                     resources.drawPassConstantBuffer.allocation);
-    vmaDestroyBuffer(backend.vma_instance, resources.drawInstanceConstantBuffer.handle,
-                     resources.drawInstanceConstantBuffer.allocation);
+    vmaDestroyBuffer(backend.vma_instance, resources.passConstantBuffer.handle,
+                     resources.passConstantBuffer.allocation);
+    vmaDestroyBuffer(backend.vma_instance, resources.instancesConstantBuffer.handle,
+                     resources.instancesConstantBuffer.allocation);
 }
 
 void update_forward_pass_descriptor_sets(VulkanBackend& backend, const ForwardPassResources& resources,
@@ -492,11 +494,15 @@ void update_forward_pass_descriptor_sets(VulkanBackend& backend, const ForwardPa
 void upload_forward_pass_frame_resources(VulkanBackend& backend, const PreparedData& prepared,
                                          ForwardPassResources& pass_resources)
 {
-    upload_buffer_data(backend.device, backend.vma_instance, pass_resources.drawPassConstantBuffer,
-                       &prepared.draw_pass_params, sizeof(DrawPassParams));
-    upload_buffer_data(backend.device, backend.vma_instance, pass_resources.drawInstanceConstantBuffer,
-                       prepared.draw_instance_params.data(),
-                       prepared.draw_instance_params.size() * sizeof(DrawInstanceParams));
+    if (prepared.forward_instances.empty())
+        return;
+
+    upload_buffer_data(backend.device, backend.vma_instance, pass_resources.passConstantBuffer,
+                       &prepared.forward_pass_constants, sizeof(ForwardPassParams));
+
+    upload_buffer_data(backend.device, backend.vma_instance, pass_resources.instancesConstantBuffer,
+                       prepared.forward_instances.data(),
+                       prepared.forward_instances.size() * sizeof(ForwardInstanceParams));
 }
 
 void record_forward_pass_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& prepared,
@@ -551,30 +557,33 @@ void record_forward_pass_command_buffer(CommandBuffer& cmdBuffer, const Prepared
 
     vkCmdBeginRendering(cmdBuffer.handle, &renderingInfo);
 
-    vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, pass_resources.pipe.pipeline);
+    if (!prepared.forward_instances.empty())
+    {
+        vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, pass_resources.pipe.pipeline);
 
-    const VkViewport blitViewport = default_vk_viewport(blitPassRect);
+        const VkViewport blitViewport = default_vk_viewport(blitPassRect);
 
-    vkCmdSetViewport(cmdBuffer.handle, 0, 1, &blitViewport);
-    vkCmdSetScissor(cmdBuffer.handle, 0, 1, &blitPassRect);
+        vkCmdSetViewport(cmdBuffer.handle, 0, 1, &blitViewport);
+        vkCmdSetScissor(cmdBuffer.handle, 0, 1, &blitPassRect);
 
-    const CullingDrawParams draw_params = get_culling_draw_params(prepared.draw_culling_pass_index);
+        const CullingDrawParams draw_params = get_culling_draw_params(prepared.forward_culling_pass_index);
 
-    vkCmdBindIndexBuffer(cmdBuffer.handle, cull_resources.dynamicIndexBuffer.handle, draw_params.index_buffer_offset,
-                         draw_params.index_type);
+        vkCmdBindIndexBuffer(cmdBuffer.handle, cull_resources.dynamicIndexBuffer.handle,
+                             draw_params.index_buffer_offset, draw_params.index_type);
 
-    std::array<VkDescriptorSet, 2> pass_descriptors = {
-        pass_resources.descriptor_set,
-        pass_resources.material_descriptor_set,
-    };
+        std::array<VkDescriptorSet, 2> pass_descriptors = {
+            pass_resources.descriptor_set,
+            pass_resources.material_descriptor_set,
+        };
 
-    vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, pass_resources.pipe.pipelineLayout, 0,
-                            static_cast<u32>(pass_descriptors.size()), pass_descriptors.data(), 0, nullptr);
+        vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, pass_resources.pipe.pipelineLayout,
+                                0, static_cast<u32>(pass_descriptors.size()), pass_descriptors.data(), 0, nullptr);
 
-    vkCmdDrawIndexedIndirectCount(cmdBuffer.handle, cull_resources.indirectDrawBuffer.handle,
-                                  draw_params.command_buffer_offset, cull_resources.countersBuffer.handle,
-                                  draw_params.counter_buffer_offset, draw_params.command_buffer_max_count,
-                                  cull_resources.indirectDrawBuffer.properties.element_size_bytes);
+        vkCmdDrawIndexedIndirectCount(cmdBuffer.handle, cull_resources.indirectDrawBuffer.handle,
+                                      draw_params.command_buffer_offset, cull_resources.countersBuffer.handle,
+                                      draw_params.counter_buffer_offset, draw_params.command_buffer_max_count,
+                                      cull_resources.indirectDrawBuffer.properties.element_size_bytes);
+    }
 
     vkCmdEndRendering(cmdBuffer.handle);
 }

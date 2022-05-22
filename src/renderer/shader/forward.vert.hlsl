@@ -3,8 +3,8 @@
 
 #include "share/draw.hlsl"
 
-VK_BINDING(0, 0) ConstantBuffer<DrawPassParams> pass_params;
-VK_BINDING(1, 0) StructuredBuffer<DrawInstanceParams> instance_params;
+VK_BINDING(0, 0) ConstantBuffer<ForwardPassParams> pass_params;
+VK_BINDING(1, 0) StructuredBuffer<ForwardInstanceParams> instance_params;
 
 VK_BINDING(2, 0) ByteAddressBuffer buffer_position_ms;
 VK_BINDING(3, 0) ByteAddressBuffer buffer_normal_ms;
@@ -32,7 +32,7 @@ void main(in VS_INPUT input, out VS_OUTPUT output)
     const float3 normal_ms = pull_normal_ms(buffer_normal_ms, input.vertex_id);
     const float2 uv = pull_uv(buffer_uv, input.vertex_id);
 
-    const DrawInstanceParams instance_data = instance_params[input.instance_id];
+    const ForwardInstanceParams instance_data = instance_params[input.instance_id];
 
     const float3 position_ws = mul(instance_data.ms_to_ws_matrix, float4(position_ms, 1.0));
     const float3 position_vs = mul(pass_params.ws_to_vs_matrix, float4(position_ws, 1.0));

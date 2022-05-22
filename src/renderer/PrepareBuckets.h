@@ -92,9 +92,9 @@ struct PreparedData
     std::vector<CullPassData>           cull_passes;
     std::vector<CullMeshInstanceParams> cull_mesh_instance_params;
 
-    u32                             draw_culling_pass_index;
-    DrawPassParams                  draw_pass_params;
-    std::vector<DrawInstanceParams> draw_instance_params;
+    u32                                forward_culling_pass_index;
+    ForwardPassParams                  forward_pass_constants;
+    std::vector<ForwardInstanceParams> forward_instances;
 
     std::vector<ShadowPassData>          shadow_passes;
     std::vector<ShadowMapPassParams>     shadow_pass_params;

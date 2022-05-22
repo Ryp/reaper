@@ -291,7 +291,10 @@ void update_shadow_map_pass_descriptor_sets(VulkanBackend& backend, const Prepar
 {
     for (const ShadowPassData& shadow_pass : prepared.shadow_passes)
     {
-        update_shadow_map_pass_descriptor_set(backend, pass_resources, shadow_pass, vertex_position_buffer);
+        if (shadow_pass.instance_count > 0)
+        {
+            update_shadow_map_pass_descriptor_set(backend, pass_resources, shadow_pass, vertex_position_buffer);
+        }
     }
 }
 
@@ -314,6 +317,9 @@ std::vector<GPUTextureProperties> fill_shadow_map_properties(const PreparedData&
 
 void upload_shadow_map_resources(VulkanBackend& backend, const PreparedData& prepared, ShadowMapResources& resources)
 {
+    if (prepared.shadow_instance_params.empty())
+        return;
+
     upload_buffer_data(backend.device, backend.vma_instance, resources.passConstantBuffer,
                        prepared.shadow_pass_params.data(),
                        prepared.shadow_pass_params.size() * sizeof(ShadowMapPassParams));
@@ -365,25 +371,28 @@ void record_shadow_map_command_buffer(CommandBuffer& cmdBuffer, const PreparedDa
 
         vkCmdBeginRendering(cmdBuffer.handle, &renderingInfo);
 
-        vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, resources.pipe.pipeline);
+        if (shadow_pass.instance_count > 0)
+        {
+            vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, resources.pipe.pipeline);
 
-        const VkViewport viewport = default_vk_viewport(pass_rect);
+            const VkViewport viewport = default_vk_viewport(pass_rect);
 
-        vkCmdSetViewport(cmdBuffer.handle, 0, 1, &viewport);
-        vkCmdSetScissor(cmdBuffer.handle, 0, 1, &pass_rect);
+            vkCmdSetViewport(cmdBuffer.handle, 0, 1, &viewport);
+            vkCmdSetScissor(cmdBuffer.handle, 0, 1, &pass_rect);
 
-        const CullingDrawParams draw_params = get_culling_draw_params(shadow_pass.pass_index);
+            const CullingDrawParams draw_params = get_culling_draw_params(shadow_pass.pass_index);
 
-        vkCmdBindIndexBuffer(cmdBuffer.handle, cull_resources.dynamicIndexBuffer.handle,
-                             draw_params.index_buffer_offset, draw_params.index_type);
+            vkCmdBindIndexBuffer(cmdBuffer.handle, cull_resources.dynamicIndexBuffer.handle,
+                                 draw_params.index_buffer_offset, draw_params.index_type);
 
-        vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, resources.pipe.pipelineLayout, 0, 1,
-                                &resources.descriptor_sets[shadow_pass.pass_index], 0, nullptr);
+            vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, resources.pipe.pipelineLayout, 0,
+                                    1, &resources.descriptor_sets[shadow_pass.pass_index], 0, nullptr);
 
-        vkCmdDrawIndexedIndirectCount(cmdBuffer.handle, cull_resources.indirectDrawBuffer.handle,
-                                      draw_params.command_buffer_offset, cull_resources.countersBuffer.handle,
-                                      draw_params.counter_buffer_offset, draw_params.command_buffer_max_count,
-                                      cull_resources.indirectDrawBuffer.properties.element_size_bytes);
+            vkCmdDrawIndexedIndirectCount(cmdBuffer.handle, cull_resources.indirectDrawBuffer.handle,
+                                          draw_params.command_buffer_offset, cull_resources.countersBuffer.handle,
+                                          draw_params.counter_buffer_offset, draw_params.command_buffer_max_count,
+                                          cull_resources.indirectDrawBuffer.properties.element_size_bytes);
+        }
 
         vkCmdEndRendering(cmdBuffer.handle);
     }

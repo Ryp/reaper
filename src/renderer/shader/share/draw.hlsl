@@ -21,7 +21,7 @@ struct PointLightProperties
 
 static const hlsl_uint PointLightCount = 3;
 
-struct DrawPassParams
+struct ForwardPassParams
 {
     PointLightProperties point_light[PointLightCount];
     hlsl_float3x4 ws_to_vs_matrix;
@@ -29,7 +29,7 @@ struct DrawPassParams
     hlsl_float4x4 ws_to_cs_matrix;
 };
 
-struct DrawInstanceParams
+struct ForwardInstanceParams
 {
     hlsl_float3x4 ms_to_ws_matrix;
     hlsl_float3x3 normal_ms_to_vs_matrix;
