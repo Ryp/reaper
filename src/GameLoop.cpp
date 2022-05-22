@@ -127,7 +127,6 @@ void execute_game_loop(ReaperRoot& root)
         }
 
         // Add lights
-        const glm::mat4 light_projection_matrix = build_perspective_matrix(0.1f, 100.f, 1.f, glm::pi<float>() * 0.25f);
         const glm::vec3 light_target_ws = glm::vec3(0.f, 0.f, 0.f);
         const glm::vec3 up_ws = glm::vec3(0.f, 1.f, 0.f);
 
@@ -139,7 +138,6 @@ void execute_game_loop(ReaperRoot& root)
             light.color = glm::fvec3(0.03f, 0.21f, 0.61f);
             light.intensity = 6.f;
             light.scene_node = insert_scene_node(scene, light_transform);
-            light.projection_matrix = light_projection_matrix;
             light.shadow_map_size = glm::uvec2(1024, 1024);
 
             insert_scene_light(scene, light);
@@ -153,7 +151,6 @@ void execute_game_loop(ReaperRoot& root)
             light.color = glm::fvec3(0.61f, 0.21f, 0.03f);
             light.intensity = 6.f;
             light.scene_node = insert_scene_node(scene, light_transform);
-            light.projection_matrix = light_projection_matrix;
             light.shadow_map_size = glm::uvec2(512, 512);
 
             insert_scene_light(scene, light);
@@ -167,7 +164,6 @@ void execute_game_loop(ReaperRoot& root)
             light.color = glm::fvec3(0.03f, 0.8f, 0.21f);
             light.intensity = 6.f;
             light.scene_node = insert_scene_node(scene, light_transform);
-            light.projection_matrix = light_projection_matrix;
             light.shadow_map_size = glm::uvec2(256, 256);
 
             insert_scene_light(scene, light);

@@ -38,17 +38,23 @@ namespace
             return projection_matrix;
         }
     }
+
+    glm::fmat4 build_perspective_matrix(float near_plane, float far_plane, float aspect_ratio, float fov_radian)
+    {
+        glm::fmat4 projection = glm::perspective(fov_radian, aspect_ratio, near_plane, far_plane);
+
+        // Flip viewport Y
+        projection[1] = -projection[1];
+
+        return projection;
+    }
+
+    glm::fmat4 default_light_projection_matrix()
+    {
+        return apply_reverse_z_fixup(build_perspective_matrix(0.1f, 100.f, 1.f, glm::pi<float>() * 0.25f),
+                                     ShadowUseReverseZ);
+    }
 } // namespace
-
-glm::fmat4 build_perspective_matrix(float near_plane, float far_plane, float aspect_ratio, float fov_radian)
-{
-    glm::fmat4 projection = glm::perspective(fov_radian, aspect_ratio, near_plane, far_plane);
-
-    // Flip viewport Y
-    projection[1] = -projection[1];
-
-    return projection;
-}
 
 u32 insert_scene_node(SceneGraph& scene, glm::mat4x3 transform_matrix)
 {
@@ -118,8 +124,8 @@ void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCa
         shadow_pass_params.dummy = glm::mat4(1.f);
 
         const Node&      light_node = scene.nodes[light.scene_node];
-        const glm::fmat4 light_view_proj_matrix =
-            apply_reverse_z_fixup(light.projection_matrix, ShadowUseReverseZ) * glm::mat4(light_node.transform_matrix);
+        const glm::fmat4 light_projection_matrix = default_light_projection_matrix();
+        const glm::fmat4 light_view_proj_matrix = light_projection_matrix * glm::mat4(light_node.transform_matrix);
 
         for (u32 i = 0; i < scene.meshes.size(); i++)
         {
@@ -174,8 +180,8 @@ void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCa
             glm::inverse(glm::mat4(light_node.transform_matrix)) * glm::vec4(0.f, 0.f, 0.f, 1.0f);
         const glm::vec3 light_position_vs = camera_node.transform_matrix * glm::fvec4(light_position_ws, 1.f);
 
-        const glm::mat4 light_view_proj_matrix =
-            apply_reverse_z_fixup(light.projection_matrix, ShadowUseReverseZ) * glm::mat4(light_node.transform_matrix);
+        const glm::fmat4 light_projection_matrix = default_light_projection_matrix();
+        const glm::fmat4 light_view_proj_matrix = light_projection_matrix * glm::mat4(light_node.transform_matrix);
 
         PointLightProperties point_light;
         point_light.light_ws_to_cs = light_view_proj_matrix;
