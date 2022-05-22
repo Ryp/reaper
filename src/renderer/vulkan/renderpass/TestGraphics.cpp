@@ -177,19 +177,20 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     {
         VkFence drawFence = resources.frame_sync_resources.drawFence;
 
-        log_debug(root, "vulkan: wait for fence");
         VkResult waitResult;
+        log_debug(root, "vulkan: wait for fence");
+
+        do
         {
             REAPER_PROFILE_SCOPE("Wait", MP_BLUE);
-            const u64 waitTimeoutUs = 300000000;
-            waitResult = vkWaitForFences(backend.device, 1, &drawFence, VK_TRUE, waitTimeoutUs);
-        }
+            const u64 waitTimeoutNs = 1 * 1000 * 1000 * 1000;
+            waitResult = vkWaitForFences(backend.device, 1, &drawFence, VK_TRUE, waitTimeoutNs);
 
-        if (waitResult != VK_SUCCESS)
-            log_debug(root, "- return result {}", GetResultToString(waitResult));
-
-        // TODO Handle timeout correctly
-        Assert(waitResult == VK_SUCCESS);
+            if (waitResult != VK_SUCCESS)
+            {
+                log_debug(root, "- return result {}", GetResultToString(waitResult));
+            }
+        } while (waitResult != VK_SUCCESS);
 
         Assert(vkGetFenceStatus(backend.device, drawFence) == VK_SUCCESS);
 
