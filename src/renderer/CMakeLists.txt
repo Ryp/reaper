@@ -143,7 +143,7 @@ set(REAPER_SHADER_SRCS
     ${REAPER_SHADER_DIR}/forward.vert.hlsl
     ${REAPER_SHADER_DIR}/fullscreen_triangle.vert.hlsl
     ${REAPER_SHADER_DIR}/gui_write.frag.hlsl
-    ${REAPER_SHADER_DIR}/reduce_hdr_frame.comp.hlsl
+    ${REAPER_SHADER_DIR}/histogram.comp.hlsl
     ${REAPER_SHADER_DIR}/matrix_row_major_codegen_bug.comp.hlsl
     ${REAPER_SHADER_DIR}/render_shadow.frag.hlsl
     ${REAPER_SHADER_DIR}/render_shadow.vert.hlsl

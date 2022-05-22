@@ -43,10 +43,11 @@ namespace
 
     HistogramPipelineInfo create_histogram_pipeline(ReaperRoot& root, VulkanBackend& backend)
     {
-        std::array<VkDescriptorSetLayoutBinding, 3> descriptorSetLayoutBinding = {
+        std::vector<VkDescriptorSetLayoutBinding> descriptorSetLayoutBinding = {
             VkDescriptorSetLayoutBinding{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-            VkDescriptorSetLayoutBinding{1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-            VkDescriptorSetLayoutBinding{2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+            VkDescriptorSetLayoutBinding{1, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+            VkDescriptorSetLayoutBinding{2, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+            VkDescriptorSetLayoutBinding{3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
         };
 
         VkDescriptorSetLayoutCreateInfo descriptorSetLayoutInfo = {
@@ -68,7 +69,7 @@ namespace
 
         log_debug(root, "vulkan: created pipeline layout with handle: {}", static_cast<void*>(pipelineLayout));
 
-        const char*           fileName = "./build/shader/reduce_hdr_frame.comp.spv";
+        const char*           fileName = "./build/shader/histogram.comp.spv";
         const char*           entryPoint = "main";
         VkSpecializationInfo* specialization = nullptr;
         VkShaderModule        computeShader = vulkan_create_shader_module(backend.device, fileName);
@@ -112,6 +113,26 @@ HistogramPassResources create_histogram_pass_resources(ReaperRoot& root, VulkanB
                       DefaultGPUBufferProperties(1, sizeof(ReduceHDRPassParams), GPUBufferUsage::UniformBuffer),
                       backend.vma_instance);
 
+    VkSamplerCreateInfo samplerCreateInfo = {};
+    samplerCreateInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+    samplerCreateInfo.magFilter = VK_FILTER_LINEAR;
+    samplerCreateInfo.minFilter = VK_FILTER_LINEAR;
+    samplerCreateInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    samplerCreateInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    samplerCreateInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    samplerCreateInfo.anisotropyEnable = VK_FALSE;
+    samplerCreateInfo.maxAnisotropy = 16;
+    samplerCreateInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+    samplerCreateInfo.unnormalizedCoordinates = VK_FALSE;
+    samplerCreateInfo.compareEnable = VK_FALSE;
+    samplerCreateInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+    samplerCreateInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+    samplerCreateInfo.mipLodBias = 0.f;
+    samplerCreateInfo.minLod = 0.f;
+    samplerCreateInfo.maxLod = FLT_MAX;
+
+    Assert(vkCreateSampler(backend.device, &samplerCreateInfo, nullptr, &resources.sampler) == VK_SUCCESS);
+
     resources.histogramPipe = create_histogram_pipeline(root, backend);
 
     resources.descriptor_set =
@@ -126,6 +147,7 @@ void destroy_histogram_pass_resources(VulkanBackend& backend, const HistogramPas
     vkDestroyPipelineLayout(backend.device, resources.histogramPipe.pipelineLayout, nullptr);
     vkDestroyDescriptorSetLayout(backend.device, resources.histogramPipe.descSetLayout, nullptr);
 
+    vkDestroySampler(backend.device, resources.sampler, nullptr);
     vmaDestroyBuffer(backend.vma_instance, resources.passConstantBuffer.handle,
                      resources.passConstantBuffer.allocation);
 }
@@ -134,16 +156,18 @@ void update_histogram_pass_descriptor_set(VulkanBackend& backend, const Histogra
                                           VkImageView scene_hdr_view, const FrameGraphBuffer& histogram_buffer)
 {
     const VkDescriptorBufferInfo drawDescPassParams = default_descriptor_buffer_info(resources.passConstantBuffer);
+    const VkDescriptorImageInfo  descSampler = {resources.sampler, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_UNDEFINED};
     const VkDescriptorImageInfo  descTexture = {VK_NULL_HANDLE, scene_hdr_view,
                                                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
     const VkDescriptorBufferInfo descOutput = {histogram_buffer.handle, histogram_buffer.view.offset_bytes,
                                                histogram_buffer.view.size_bytes};
 
-    std::array<VkWriteDescriptorSet, 3> drawPassDescriptorSetWrites = {
+    std::vector<VkWriteDescriptorSet> drawPassDescriptorSetWrites = {
         create_buffer_descriptor_write(resources.descriptor_set, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
                                        &drawDescPassParams),
-        create_image_descriptor_write(resources.descriptor_set, 1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, &descTexture),
-        create_buffer_descriptor_write(resources.descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &descOutput),
+        create_image_descriptor_write(resources.descriptor_set, 1, VK_DESCRIPTOR_TYPE_SAMPLER, &descSampler),
+        create_image_descriptor_write(resources.descriptor_set, 2, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, &descTexture),
+        create_buffer_descriptor_write(resources.descriptor_set, 3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &descOutput),
     };
 
     vkUpdateDescriptorSets(backend.device, static_cast<u32>(drawPassDescriptorSetWrites.size()),
@@ -154,7 +178,9 @@ void upload_histogram_frame_resources(VulkanBackend& backend, const HistogramPas
                                       VkExtent2D backbufferExtent)
 {
     ReduceHDRPassParams params = {};
-    params.input_size_ts = glm::uvec2(backbufferExtent.width, backbufferExtent.height);
+    params.extent_ts = glm::uvec2(backbufferExtent.width, backbufferExtent.height);
+    params.extent_ts_inv =
+        glm::fvec2(1.f / static_cast<float>(backbufferExtent.width), 1.f / static_cast<float>(backbufferExtent.height));
 
     upload_buffer_data(backend.device, backend.vma_instance, pass_resources.passConstantBuffer, &params,
                        sizeof(ReduceHDRPassParams));
@@ -172,8 +198,8 @@ void record_histogram_command_buffer(CommandBuffer& cmdBuffer, const FrameData& 
                             nullptr);
 
     vkCmdDispatch(cmdBuffer.handle,
-                  div_round_up(frame_data.backbufferExtent.width, ReduceHDRGroupSizeX),
-                  div_round_up(frame_data.backbufferExtent.height, ReduceHDRGroupSizeY),
+                  div_round_up(frame_data.backbufferExtent.width, HistogramThreadCountX * 2),
+                  div_round_up(frame_data.backbufferExtent.height, HistogramThreadCountY * 2),
                   1);
 }
 } // namespace Reaper

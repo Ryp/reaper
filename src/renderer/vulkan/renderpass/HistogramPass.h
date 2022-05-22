@@ -29,6 +29,7 @@ struct HistogramPipelineInfo
 struct HistogramPassResources
 {
     BufferInfo passConstantBuffer;
+    VkSampler  sampler;
 
     HistogramPipelineInfo histogramPipe;
 

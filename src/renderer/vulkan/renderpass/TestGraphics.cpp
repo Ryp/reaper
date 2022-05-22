@@ -301,7 +301,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     const RenderPassHandle histogram_clear_pass_handle = builder.create_render_pass("Histogram Clear");
 
     const GPUBufferProperties histogram_buffer_properties = DefaultGPUBufferProperties(
-        HISTOGRAM_RES, sizeof(u32), GPUBufferUsage::StorageBuffer | GPUBufferUsage::TransferDst);
+        HistogramRes, sizeof(u32), GPUBufferUsage::StorageBuffer | GPUBufferUsage::TransferDst);
 
     GPUResourceUsage histogram_clear_usage = {};
     histogram_clear_usage.access = GPUResourceAccess{VK_PIPELINE_STAGE_2_CLEAR_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT};
