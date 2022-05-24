@@ -197,6 +197,7 @@ void record_histogram_command_buffer(CommandBuffer& cmdBuffer, const FrameData& 
                             pass_resources.histogramPipe.pipelineLayout, 0, 1, &pass_resources.descriptor_set, 0,
                             nullptr);
 
+    Assert(HistogramRes % (HistogramThreadCountX * HistogramThreadCountY) == 0);
     vkCmdDispatch(cmdBuffer.handle,
                   div_round_up(frame_data.backbufferExtent.width, HistogramThreadCountX * 2),
                   div_round_up(frame_data.backbufferExtent.height, HistogramThreadCountY * 2),

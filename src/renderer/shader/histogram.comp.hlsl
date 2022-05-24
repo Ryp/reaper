@@ -35,12 +35,11 @@ void main(uint3 gtid : SV_GroupThreadID,
 {
     const uint2 position_ts = dtid.xy * 2 + 1;
 
-    // FIXME Assert CPU-side of %
-    const uint clear_count = HistogramRes / ThreadCountTotal;
-    const uint clear_start = gi * clear_count;
-    const uint clear_stop = clear_start + clear_count;
+    const uint histogram_slots_per_thread = HistogramRes / ThreadCountTotal;
+    const uint histogram_thread_start = gi * histogram_slots_per_thread;
+    const uint histogram_thread_stop = histogram_thread_start + histogram_slots_per_thread;
 
-    for (uint i = clear_start; i < clear_stop; i++)
+    for (uint i = histogram_thread_start; i < histogram_thread_stop; i++)
     {
         lds_histogram[i] = 0;
     }
@@ -75,7 +74,7 @@ void main(uint3 gtid : SV_GroupThreadID,
 
     GroupMemoryBarrierWithGroupSync();
 
-    for (uint i = clear_start; i < clear_stop; i++)
+    for (uint i = histogram_thread_start; i < histogram_thread_stop; i++)
     {
         const uint histogram_element_size_in_bytes = 4;
         HistogramOut.InterlockedAdd(i * histogram_element_size_in_bytes, lds_histogram[i]);
