@@ -15,6 +15,8 @@ VK_CONSTANT(0) const uint spec_debug_mode = 0;
 #else
 VK_CONSTANT(0) const uint spec_debug_mode = debug_mode_none;
 #endif
+VK_CONSTANT(1) const bool spec_debug_enable_shadows = true;
+VK_CONSTANT(2) const bool spec_debug_enable_lighting = true;
 
 VK_BINDING(0, 0) ConstantBuffer<ForwardPassParams> pass_params;
 
@@ -40,13 +42,13 @@ struct PS_OUTPUT
     float3 color : SV_Target0;
 };
 
-struct t_light_output
+struct LightOutput
 {
     float3 diffuse;
     float3 specular;
 };
 
-t_light_output shade_point_light(
+LightOutput shade_point_light(
     PointLightProperties point_light, StandardMaterial material,
     float3 object_position_vs, float3 object_normal_vs, float3 view_direction_vs)
 {
@@ -59,7 +61,7 @@ t_light_output shade_point_light(
 
     const float3 light_incoming_radiance = point_light.color * point_light.intensity * light_distance_fade;
 
-    t_light_output output;
+    LightOutput output;
     output.diffuse = light_incoming_radiance * NdotL;
     output.specular = light_incoming_radiance * specular_brdf(material, object_normal_vs, view_direction_vs, light_direction_vs);
 
@@ -89,16 +91,25 @@ void main(in PS_INPUT input, out PS_OUTPUT output)
     material.roughness = 0.5;
     material.f0 = 0.1;
 
-    float3 shaded_color = 0.0;
+    LightOutput lighting_accum = (LightOutput)0;
 
     for (uint i = 0; i < pass_params.point_light_count; i++)
     {
         const PointLightProperties point_light = point_lights[i];
 
-        const t_light_output lighting = shade_point_light(point_light, material, input.PositionVS, normal_vs, view_direction_vs);
-        const float shadow_term = sample_shadow_map(point_light.light_ws_to_cs, input.PositionWS, point_light.shadow_map_index);
+        const LightOutput lighting = shade_point_light(point_light, material, input.PositionVS, normal_vs, view_direction_vs);
 
-        shaded_color += material.albedo * (lighting.diffuse + lighting.specular) * shadow_term;
+        const float shadow_term = spec_debug_enable_shadows ? sample_shadow_map(point_light.light_ws_to_cs, input.PositionWS, point_light.shadow_map_index) : 1.0;
+
+        lighting_accum.diffuse += lighting.diffuse * shadow_term;
+        lighting_accum.specular += lighting.specular * shadow_term;
+    }
+
+    float3 shaded_color = material.albedo;
+
+    if (spec_debug_enable_lighting)
+    {
+        shaded_color *= (lighting_accum.diffuse + lighting_accum.specular);
     }
 
     if (spec_debug_mode == debug_mode_none)
