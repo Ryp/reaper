@@ -7,7 +7,6 @@
 
 #include "Culling.h"
 
-#include "CullingConstants.h"
 #include "renderer/PrepareBuckets.h"
 
 #include "renderer/vulkan/Backend.h"
@@ -32,6 +31,17 @@
 
 namespace Reaper
 {
+constexpr u32 IndexSizeBytes = 4;
+constexpr u32 MaxCullPassCount = 4;
+constexpr u32 MaxCullInstanceCount = 512 * MaxCullPassCount;
+constexpr u32 MaxSurvivingMeshletsPerPass = 75000;
+
+// Worst case if all meshlets of all passes aren't culled.
+// This shouldn't happen, we can probably cut this by half and raise a warning when we cross the limit.
+constexpr u64 DynamicIndexBufferSizeBytes =
+    MaxSurvivingMeshletsPerPass * MaxCullPassCount * MeshletMaxTriangleCount * 3 * IndexSizeBytes;
+constexpr u32 MaxIndirectDrawCountPerPass = MaxSurvivingMeshletsPerPass;
+
 namespace
 {
     std::vector<VkDescriptorSet> create_descriptor_sets(VulkanBackend& backend, VkDescriptorSetLayout set_layout,
@@ -61,7 +71,7 @@ namespace
             resources.countersBuffer, BufferSubresource{pass_index * CountersCount, CountersCount});
         const VkDescriptorBufferInfo meshlet_offsets = get_vk_descriptor_buffer_info(
             resources.dynamicMeshletBuffer,
-            BufferSubresource{pass_index * DynamicMeshletBufferElements, DynamicMeshletBufferElements});
+            BufferSubresource{pass_index * MaxSurvivingMeshletsPerPass, MaxSurvivingMeshletsPerPass});
 
         std::vector<VkWriteDescriptorSet> writes = {
             create_buffer_descriptor_write(descriptor_set, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &meshlets),
@@ -81,7 +91,7 @@ namespace
 
         const VkDescriptorBufferInfo meshlets = get_vk_descriptor_buffer_info(
             resources.dynamicMeshletBuffer,
-            BufferSubresource{pass_index * DynamicMeshletBufferElements, DynamicMeshletBufferElements});
+            BufferSubresource{pass_index * MaxSurvivingMeshletsPerPass, MaxSurvivingMeshletsPerPass});
         const VkDescriptorBufferInfo indices = default_descriptor_buffer_info(staticIndexBuffer);
         const VkDescriptorBufferInfo vertexPositions = default_descriptor_buffer_info(vertexBufferPosition);
         const VkDescriptorBufferInfo instanceParams =
@@ -90,7 +100,8 @@ namespace
             resources.dynamicIndexBuffer,
             BufferSubresource{pass_index * DynamicIndexBufferSizeBytes, DynamicIndexBufferSizeBytes});
         const VkDescriptorBufferInfo drawCommandOut = get_vk_descriptor_buffer_info(
-            resources.indirectDrawBuffer, BufferSubresource{pass_index * MaxIndirectDrawCount, MaxIndirectDrawCount});
+            resources.indirectDrawBuffer,
+            BufferSubresource{pass_index * MaxIndirectDrawCountPerPass, MaxIndirectDrawCountPerPass});
         const VkDescriptorBufferInfo countersOut = get_vk_descriptor_buffer_info(
             resources.countersBuffer, BufferSubresource{pass_index * CountersCount, CountersCount});
 
@@ -343,7 +354,7 @@ CullResources create_culling_resources(ReaperRoot& root, VulkanBackend& backend)
 
     resources.cullInstanceParamsBuffer = create_buffer(
         root, backend.device, "Culling instance constants",
-        DefaultGPUBufferProperties(CullInstanceCountMax, sizeof(CullMeshInstanceParams), GPUBufferUsage::StorageBuffer),
+        DefaultGPUBufferProperties(MaxCullInstanceCount, sizeof(CullMeshInstanceParams), GPUBufferUsage::StorageBuffer),
         backend.vma_instance);
 
     resources.countersBuffer =
@@ -355,8 +366,8 @@ CullResources create_culling_resources(ReaperRoot& root, VulkanBackend& backend)
 
     resources.dynamicMeshletBuffer =
         create_buffer(root, backend.device, "Dynamic meshlet offsets",
-                      DefaultGPUBufferProperties(DynamicMeshletBufferElements * MaxCullPassCount,
-                                                 sizeof(MeshletOffsets), GPUBufferUsage::StorageBuffer),
+                      DefaultGPUBufferProperties(MaxSurvivingMeshletsPerPass * MaxCullPassCount, sizeof(MeshletOffsets),
+                                                 GPUBufferUsage::StorageBuffer),
                       backend.vma_instance);
 
     resources.indirectDispatchBuffer =
@@ -373,11 +384,11 @@ CullResources create_culling_resources(ReaperRoot& root, VulkanBackend& backend)
 
     resources.indirectDrawBuffer = create_buffer(
         root, backend.device, "Indirect draw buffer",
-        DefaultGPUBufferProperties(MaxIndirectDrawCount * MaxCullPassCount, sizeof(VkDrawIndexedIndirectCommand),
+        DefaultGPUBufferProperties(MaxIndirectDrawCountPerPass * MaxCullPassCount, sizeof(VkDrawIndexedIndirectCommand),
                                    GPUBufferUsage::IndirectBuffer | GPUBufferUsage::StorageBuffer),
         backend.vma_instance);
 
-    Assert(MaxIndirectDrawCount < backend.physicalDeviceProperties.limits.maxDrawIndirectCount);
+    Assert(MaxIndirectDrawCountPerPass < backend.physicalDeviceProperties.limits.maxDrawIndirectCount);
 
     // FIXME
     resources.cull_meshlet_descriptor_sets =
@@ -575,8 +586,8 @@ CullingDrawParams get_culling_draw_params(u32 pass_index)
     params.counter_buffer_offset = (pass_index * CountersCount + DrawCommandCounterOffset) * sizeof(u32);
     params.index_buffer_offset = pass_index * DynamicIndexBufferSizeBytes;
     params.index_type = get_vk_culling_index_type();
-    params.command_buffer_offset = pass_index * MaxIndirectDrawCount * sizeof(VkDrawIndexedIndirectCommand);
-    params.command_buffer_max_count = MaxIndirectDrawCount;
+    params.command_buffer_offset = pass_index * MaxIndirectDrawCountPerPass * sizeof(VkDrawIndexedIndirectCommand);
+    params.command_buffer_max_count = MaxIndirectDrawCountPerPass;
 
     return params;
 }
