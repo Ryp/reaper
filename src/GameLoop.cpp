@@ -33,8 +33,57 @@
 #include <chrono>
 #include <thread>
 
+#define GAME
+
 namespace Reaper
 {
+namespace
+{
+    SceneGraph create_static_test_scene_graph(MeshHandle mesh_handle, TextureHandle texture_handle)
+    {
+        SceneGraph scene;
+        scene.camera.scene_node = insert_scene_node(scene, glm::translate(glm::mat4(1.0f), glm::vec3(-10.f, 3.f, 3.f)));
+
+        constexpr i32 asteroid_count = 4;
+
+        // Place static track
+        for (i32 i = 0; i < asteroid_count; i++)
+        {
+            for (i32 j = 0; j < asteroid_count; j++)
+            {
+                for (i32 k = 0; k < asteroid_count; k++)
+                {
+                    glm::fvec3   position_ws(static_cast<float>(i * 2), static_cast<float>(j * 2),
+                                             static_cast<float>(k * 2));
+                    glm::fmat4x3 transform = glm::translate(glm::mat4(1.0f), position_ws);
+
+                    SceneMesh scene_mesh;
+                    scene_mesh.node_index = insert_scene_node(scene, transform);
+                    scene_mesh.mesh_handle = mesh_handle;
+                    scene_mesh.texture_handle = texture_handle;
+
+                    insert_scene_mesh(scene, scene_mesh);
+                }
+            }
+        }
+
+        const glm::vec3    light_target_ws = glm::vec3(0.f, 0.f, 0.f);
+        const glm::vec3    up_ws = glm::vec3(0.f, 1.f, 0.f);
+        const glm::vec3    light_position_ws = glm::vec3(-4.f, -4.f, -4.f);
+        const glm::fmat4x3 light_transform = glm::lookAt(light_position_ws, light_target_ws, up_ws);
+
+        SceneLight light;
+        light.color = glm::fvec3(1.f, 1.f, 1.f);
+        light.intensity = 60.f;
+        light.scene_node = insert_scene_node(scene, light_transform);
+        light.shadow_map_size = glm::uvec2(1024, 1024);
+
+        insert_scene_light(scene, light);
+
+        return scene;
+    }
+} // namespace
+
 void execute_game_loop(ReaperRoot& root)
 {
     IWindow*       window = root.renderer->window;
@@ -46,127 +95,149 @@ void execute_game_loop(ReaperRoot& root)
     SplineSonic::PhysicsSim sim = SplineSonic::create_sim();
     SplineSonic::sim_start(&sim);
 
-    SplineSonic::Track game_track;
-
-    SplineSonic::GenerationInfo genInfo = {};
-    genInfo.length = 5;
-    genInfo.width = 10.0f;
-    genInfo.chaos = 1.0f;
-
-    game_track.genInfo = genInfo;
-
-    SplineSonic::generate_track_skeleton(genInfo, game_track.skeletonNodes);
-    SplineSonic::generate_track_splines(game_track.skeletonNodes, game_track.splinesMS);
-    SplineSonic::generate_track_skinning(game_track.skeletonNodes, game_track.splinesMS, game_track.skinning);
-
-    const std::string      assetFile("res/model/track/chunk_simple.obj");
-    std::vector<Mesh>      meshes(genInfo.length);
-    std::vector<glm::mat4> transforms(genInfo.length);
-
-    for (u32 i = 0; i < genInfo.length; i++)
-    {
-        std::ifstream file(assetFile);
-        meshes[i] = ModelLoader::loadOBJ(file);
-
-        const SplineSonic::TrackSkeletonNode& track_node = game_track.skeletonNodes[i];
-
-        transforms[i] = glm::translate(glm::mat4(1.0f), track_node.positionWS);
-
-        SplineSonic::skin_track_chunk_mesh(track_node, game_track.skinning[i], meshes[i], 10.0f);
-    }
-
-    // NOTE: bullet will hold pointers to the original mesh data without copy
-    SplineSonic::sim_register_static_collision_meshes(sim, meshes, transforms);
-
-    std::ifstream ship_obj_file("res/model/fighter.obj");
-    meshes.push_back(ModelLoader::loadOBJ(ship_obj_file));
-
-    SplineSonic::sim_create_player_rigid_body(sim);
-
-    std::vector<MeshHandle> mesh_handles(meshes.size());
-    load_meshes(backend, backend.resources->mesh_cache, meshes, mesh_handles);
-
-    std::vector<const char*> texture_filenames = {
-        "res/texture/default.dds",
-        "res/texture/bricks_diffuse.dds",
-        "res/texture/bricks_specular.dds",
-    };
-
-    backend.resources->material_resources.texture_handles.resize(texture_filenames.size());
-    load_textures(root, backend, backend.resources->material_resources, texture_filenames,
-                  backend.resources->material_resources.texture_handles);
-
-    // Build scene
     SceneGraph scene;
+
+    const bool enable_test_scene = false;
+
+    if (enable_test_scene)
     {
-        // Add camera
+        std::vector<Mesh> meshes;
+        std::ifstream     obj_file("res/model/asteroid.obj");
+        meshes.push_back(ModelLoader::loadOBJ(obj_file));
+
+        std::vector<MeshHandle> mesh_handles(meshes.size());
+        load_meshes(backend, backend.resources->mesh_cache, meshes, mesh_handles);
+
+        std::vector<const char*> texture_filenames = {"res/texture/default.dds"};
+
+        backend.resources->material_resources.texture_handles.resize(texture_filenames.size());
+        load_textures(root, backend, backend.resources->material_resources, texture_filenames,
+                      backend.resources->material_resources.texture_handles);
+
+        scene = create_static_test_scene_graph(mesh_handles.front(),
+                                               backend.resources->material_resources.texture_handles[0]);
+    }
+    else
+    {
+        SplineSonic::Track game_track;
+
+        SplineSonic::GenerationInfo genInfo = {};
+        genInfo.length = 5;
+        genInfo.width = 10.0f;
+        genInfo.chaos = 1.0f;
+
+        game_track.genInfo = genInfo;
+
+        SplineSonic::generate_track_skeleton(genInfo, game_track.skeletonNodes);
+        SplineSonic::generate_track_splines(game_track.skeletonNodes, game_track.splinesMS);
+        SplineSonic::generate_track_skinning(game_track.skeletonNodes, game_track.splinesMS, game_track.skinning);
+
+        const std::string      assetFile("res/model/track/chunk_simple.obj");
+        std::vector<Mesh>      meshes(genInfo.length);
+        std::vector<glm::mat4> transforms(genInfo.length);
+
+        for (u32 i = 0; i < genInfo.length; i++)
         {
-            scene.camera.scene_node = insert_scene_node(scene, glm::mat4x3(1.0f));
-        }
-        // Place static track
-        for (u32 chunk_index = 0; chunk_index < genInfo.length; chunk_index++)
-        {
-            SceneMesh scene_mesh;
-            scene_mesh.node_index = insert_scene_node(scene, transforms[chunk_index]);
-            scene_mesh.mesh_handle = mesh_handles[chunk_index]; // FIXME
-            scene_mesh.texture_handle = backend.resources->material_resources.texture_handles[0];
+            std::ifstream file(assetFile);
+            meshes[i] = ModelLoader::loadOBJ(file);
 
-            insert_scene_mesh(scene, scene_mesh);
-        }
+            const SplineSonic::TrackSkeletonNode& track_node = game_track.skeletonNodes[i];
 
-        // Ship scene node
-        {
-            const glm::mat4 model = glm::scale(glm::mat4(1.0f), glm::vec3(0.1f)); // FIXME
+            transforms[i] = glm::translate(glm::mat4(1.0f), track_node.positionWS);
 
-            SceneMesh scene_mesh;
-            scene_mesh.node_index = insert_scene_node(scene, glm::fmat4x3(model));
-            scene_mesh.mesh_handle = mesh_handles.back(); // FIXME
-            scene_mesh.texture_handle = backend.resources->material_resources.texture_handles[1];
-
-            insert_scene_mesh(scene, scene_mesh);
-        }
-
-        // Add lights
-        const glm::vec3 light_target_ws = glm::vec3(0.f, 0.f, 0.f);
-        const glm::vec3 up_ws = glm::vec3(0.f, 1.f, 0.f);
-
-        {
-            const glm::vec3    light_position_ws = glm::vec3(-2.f, 2.f, 2.f);
-            const glm::fmat4x3 light_transform = glm::lookAt(light_position_ws, light_target_ws, up_ws);
-
-            SceneLight light;
-            light.color = glm::fvec3(0.03f, 0.21f, 0.61f);
-            light.intensity = 6.f;
-            light.scene_node = insert_scene_node(scene, light_transform);
-            light.shadow_map_size = glm::uvec2(1024, 1024);
-
-            insert_scene_light(scene, light);
-        }
-
-        {
-            const glm::fvec3   light_position_ws = glm::vec3(-2.f, -2.f, -2.f);
-            const glm::fmat4x3 light_transform = glm::lookAt(light_position_ws, light_target_ws, up_ws);
-
-            SceneLight light;
-            light.color = glm::fvec3(0.61f, 0.21f, 0.03f);
-            light.intensity = 6.f;
-            light.scene_node = insert_scene_node(scene, light_transform);
-            light.shadow_map_size = glm::uvec2(512, 512);
-
-            insert_scene_light(scene, light);
+            SplineSonic::skin_track_chunk_mesh(track_node, game_track.skinning[i], meshes[i], 10.0f);
         }
 
+        // NOTE: bullet will hold pointers to the original mesh data without copy
+        SplineSonic::sim_register_static_collision_meshes(sim, meshes, transforms);
+        SplineSonic::sim_create_player_rigid_body(sim);
+
+        std::ifstream ship_obj_file("res/model/fighter.obj");
+        meshes.push_back(ModelLoader::loadOBJ(ship_obj_file));
+
+        std::vector<MeshHandle> mesh_handles(meshes.size());
+        load_meshes(backend, backend.resources->mesh_cache, meshes, mesh_handles);
+
+        std::vector<const char*> texture_filenames = {
+            "res/texture/default.dds",
+            "res/texture/bricks_diffuse.dds",
+            "res/texture/bricks_specular.dds",
+        };
+
+        backend.resources->material_resources.texture_handles.resize(texture_filenames.size());
+        load_textures(root, backend, backend.resources->material_resources, texture_filenames,
+                      backend.resources->material_resources.texture_handles);
+
+        // Build scene
         {
-            const glm::vec3    light_position_ws = glm::vec3(0.f, -2.f, 2.f);
-            const glm::fmat4x3 light_transform = glm::lookAt(light_position_ws, light_target_ws, up_ws);
+            scene.camera.scene_node =
+                insert_scene_node(scene, glm::translate(glm::mat4(1.0f), glm::vec3(-5.f, 0.f, 0.f)));
 
-            SceneLight light;
-            light.color = glm::fvec3(0.03f, 0.8f, 0.21f);
-            light.intensity = 6.f;
-            light.scene_node = insert_scene_node(scene, light_transform);
-            light.shadow_map_size = glm::uvec2(256, 256);
+            // Place static track
+            for (u32 chunk_index = 0; chunk_index < genInfo.length; chunk_index++)
+            {
+                SceneMesh scene_mesh;
+                scene_mesh.node_index = insert_scene_node(scene, transforms[chunk_index]);
+                scene_mesh.mesh_handle = mesh_handles[chunk_index]; // FIXME
+                scene_mesh.texture_handle = backend.resources->material_resources.texture_handles[0];
 
-            insert_scene_light(scene, light);
+                insert_scene_mesh(scene, scene_mesh);
+            }
+
+            // Ship scene node
+            {
+                const glm::mat4 model = glm::scale(glm::mat4(1.0f), glm::vec3(0.1f)); // FIXME
+
+                SceneMesh scene_mesh;
+                scene_mesh.node_index = insert_scene_node(scene, glm::fmat4x3(model));
+                scene_mesh.mesh_handle = mesh_handles.back(); // FIXME
+                scene_mesh.texture_handle = backend.resources->material_resources.texture_handles[1];
+
+                insert_scene_mesh(scene, scene_mesh);
+            }
+
+            // Add lights
+            const glm::vec3 light_target_ws = glm::vec3(0.f, 0.f, 0.f);
+            const glm::vec3 up_ws = glm::vec3(0.f, 1.f, 0.f);
+
+            {
+                const glm::vec3    light_position_ws = glm::vec3(-2.f, 2.f, 2.f);
+                const glm::fmat4x3 light_transform = glm::lookAt(light_position_ws, light_target_ws, up_ws);
+
+                SceneLight light;
+                light.color = glm::fvec3(0.03f, 0.21f, 0.61f);
+                light.intensity = 6.f;
+                light.scene_node = insert_scene_node(scene, light_transform);
+                light.shadow_map_size = glm::uvec2(1024, 1024);
+
+                insert_scene_light(scene, light);
+            }
+
+            {
+                const glm::fvec3   light_position_ws = glm::vec3(-2.f, -2.f, -2.f);
+                const glm::fmat4x3 light_transform = glm::lookAt(light_position_ws, light_target_ws, up_ws);
+
+                SceneLight light;
+                light.color = glm::fvec3(0.61f, 0.21f, 0.03f);
+                light.intensity = 6.f;
+                light.scene_node = insert_scene_node(scene, light_transform);
+                light.shadow_map_size = glm::uvec2(512, 512);
+
+                insert_scene_light(scene, light);
+            }
+
+            {
+                const glm::vec3    light_position_ws = glm::vec3(0.f, -2.f, 2.f);
+                const glm::fmat4x3 light_transform = glm::lookAt(light_position_ws, light_target_ws, up_ws);
+
+                SceneLight light;
+                light.color = glm::fvec3(0.03f, 0.8f, 0.21f);
+                light.intensity = 6.f;
+                light.scene_node = insert_scene_node(scene, light_transform);
+                light.shadow_map_size = glm::uvec2(256, 256);
+
+                insert_scene_light(scene, light);
+            }
         }
     }
 
@@ -180,8 +251,11 @@ void execute_game_loop(ReaperRoot& root)
     DS4 ds4("/dev/input/js0");
     ds4.connect();
 
+    Node& camera_node = scene.nodes[scene.camera.scene_node];
+
+    // Try to match the camera state with the initial transform of the scene node
     CameraState camera_state = {};
-    camera_state.position = glm::vec3(-5.f, 0.f, 0.f);
+    camera_state.position = camera_node.transform_matrix[3];
 
     const auto startTime = std::chrono::system_clock::now();
     auto       lastFrameStart = startTime;
@@ -211,7 +285,6 @@ void execute_game_loop(ReaperRoot& root)
 
         update_camera_state(camera_state, yaw_pitch_delta, forward_side_delta);
 
-        Node& camera_node = scene.nodes[scene.camera.scene_node];
         camera_node.transform_matrix = compute_camera_view_matrix(camera_state);
 
         log_debug(root, "renderer: begin frame {}", frameIndex);
