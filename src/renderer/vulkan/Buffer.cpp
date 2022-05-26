@@ -72,15 +72,17 @@ BufferInfo create_buffer(ReaperRoot& root, VkDevice device, const char* debug_st
 
     switch (mem_usage)
     {
-    case MemUsage::Default:
+    case MemUsage::GPU_Only:
+        allocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+        break;
+    case MemUsage::CPU_To_GPU:
         allocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
         break;
-    case MemUsage::CPU_Only:
-        allocInfo.usage =
-            VMA_MEMORY_USAGE_CPU_ONLY; // FIXME use CPU_TO_GPU or something. Check the docs for something more fitting
-        break;
-    case MemUsage::GPU_to_CPU:
+    case MemUsage::GPU_To_CPU:
         allocInfo.usage = VMA_MEMORY_USAGE_GPU_TO_CPU;
+        break;
+    case MemUsage::CPU_Only:
+        allocInfo.usage = VMA_MEMORY_USAGE_CPU_ONLY;
         break;
     default:
         AssertUnreachable();

@@ -325,7 +325,7 @@ SwapchainPassResources create_swapchain_pass_resources(ReaperRoot& root, VulkanB
     resources.passConstantBuffer =
         create_buffer(root, backend.device, "Swapchain Pass Constant buffer",
                       DefaultGPUBufferProperties(1, sizeof(SwapchainPassParams), GPUBufferUsage::UniformBuffer),
-                      backend.vma_instance);
+                      backend.vma_instance, MemUsage::CPU_To_GPU);
 
     resources.descriptor_set = create_swapchain_pass_descriptor_set(root, backend, resources.descriptorSetLayout);
 

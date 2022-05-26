@@ -256,13 +256,13 @@ ShadowMapResources create_shadow_map_resources(ReaperRoot& root, VulkanBackend& 
     resources.passConstantBuffer = create_buffer(
         root, backend.device, "Shadow Map Pass Constant buffer",
         DefaultGPUBufferProperties(MaxShadowPassCount, sizeof(ShadowMapPassParams), GPUBufferUsage::UniformBuffer),
-        backend.vma_instance);
+        backend.vma_instance, MemUsage::CPU_To_GPU);
 
     resources.instanceConstantBuffer =
         create_buffer(root, backend.device, "Shadow Map Instance Constant buffer",
                       DefaultGPUBufferProperties(ShadowInstanceCountMax, sizeof(ShadowMapInstanceParams),
                                                  GPUBufferUsage::StorageBuffer),
-                      backend.vma_instance);
+                      backend.vma_instance, MemUsage::CPU_To_GPU);
 
     resources.descriptor_sets.push_back(
         create_shadow_map_pass_descriptor_set(root, backend, resources.pipe.descSetLayout));

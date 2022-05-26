@@ -116,14 +116,15 @@ AudioResources create_audio_resources(ReaperRoot& root, VulkanBackend& backend)
 
     resources.audioPipe = create_audio_pipeline(root, backend);
 
-    resources.passConstantBuffer = create_buffer(
-        root, backend.device, "Audio Constant buffer",
-        DefaultGPUBufferProperties(1, sizeof(AudioPassParams), GPUBufferUsage::UniformBuffer), backend.vma_instance);
+    resources.passConstantBuffer =
+        create_buffer(root, backend.device, "Audio Constant buffer",
+                      DefaultGPUBufferProperties(1, sizeof(AudioPassParams), GPUBufferUsage::UniformBuffer),
+                      backend.vma_instance, MemUsage::CPU_To_GPU);
 
     resources.instanceParamsBuffer = create_buffer(
         root, backend.device, "Audio instance constant buffer",
         DefaultGPUBufferProperties(OscillatorCount, sizeof(OscillatorInstance), GPUBufferUsage::StorageBuffer),
-        backend.vma_instance);
+        backend.vma_instance, MemUsage::CPU_To_GPU);
 
     Assert(SampleSizeInBytes == sizeof(RawSample));
 
@@ -137,7 +138,7 @@ AudioResources create_audio_resources(ReaperRoot& root, VulkanBackend& backend)
         create_buffer(root, backend.device, "Output sample buffer staging",
                       DefaultGPUBufferProperties(FrameCountPerGroup * FrameCountPerDispatch, sizeof(RawSample),
                                                  GPUBufferUsage::TransferDst),
-                      backend.vma_instance, MemUsage::GPU_to_CPU);
+                      backend.vma_instance, MemUsage::GPU_To_CPU);
 
     VkSemaphoreTypeCreateInfo timelineCreateInfo;
     timelineCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO;

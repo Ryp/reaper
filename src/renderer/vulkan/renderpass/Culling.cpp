@@ -355,7 +355,7 @@ CullResources create_culling_resources(ReaperRoot& root, VulkanBackend& backend)
     resources.cullInstanceParamsBuffer = create_buffer(
         root, backend.device, "Culling instance constants",
         DefaultGPUBufferProperties(MaxCullInstanceCount, sizeof(CullMeshInstanceParams), GPUBufferUsage::StorageBuffer),
-        backend.vma_instance);
+        backend.vma_instance, MemUsage::CPU_To_GPU);
 
     resources.countersBuffer =
         create_buffer(root, backend.device, "Meshlet counters",

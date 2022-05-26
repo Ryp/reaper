@@ -111,7 +111,7 @@ HistogramPassResources create_histogram_pass_resources(ReaperRoot& root, VulkanB
     resources.passConstantBuffer =
         create_buffer(root, backend.device, "Histogram Pass Constant buffer",
                       DefaultGPUBufferProperties(1, sizeof(ReduceHDRPassParams), GPUBufferUsage::UniformBuffer),
-                      backend.vma_instance);
+                      backend.vma_instance, MemUsage::CPU_To_GPU);
 
     VkSamplerCreateInfo samplerCreateInfo = {};
     samplerCreateInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;

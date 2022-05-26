@@ -460,14 +460,15 @@ ForwardPassResources create_forward_pass_resources(ReaperRoot& root, VulkanBacke
 
     resources.pipe = create_forward_pipeline(root, backend);
 
-    resources.passConstantBuffer = create_buffer(
-        root, backend.device, "Forward Pass Constant buffer",
-        DefaultGPUBufferProperties(1, sizeof(ForwardPassParams), GPUBufferUsage::UniformBuffer), backend.vma_instance);
+    resources.passConstantBuffer =
+        create_buffer(root, backend.device, "Forward Pass Constant buffer",
+                      DefaultGPUBufferProperties(1, sizeof(ForwardPassParams), GPUBufferUsage::UniformBuffer),
+                      backend.vma_instance, MemUsage::CPU_To_GPU);
 
     resources.instancesConstantBuffer = create_buffer(
         root, backend.device, "Forward Instance buffer",
         DefaultGPUBufferProperties(DrawInstanceCountMax, sizeof(ForwardInstanceParams), GPUBufferUsage::StorageBuffer),
-        backend.vma_instance);
+        backend.vma_instance, MemUsage::CPU_To_GPU);
 
     resources.descriptor_set = create_forward_pass_descriptor_set(root, backend, resources.pipe.descSetLayout);
     resources.material_descriptor_set = create_material_descriptor_set(root, backend, resources.pipe.descSetLayout2);

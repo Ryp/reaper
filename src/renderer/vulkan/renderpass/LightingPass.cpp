@@ -26,7 +26,7 @@ LightingPassResources create_lighting_pass_resources(ReaperRoot& root, VulkanBac
     resources.pointLightBuffer = create_buffer(
         root, backend.device, "Point light buffer",
         DefaultGPUBufferProperties(PointLightMax, sizeof(PointLightProperties), GPUBufferUsage::StorageBuffer),
-        backend.vma_instance);
+        backend.vma_instance, MemUsage::CPU_To_GPU);
 
     return resources;
 }
