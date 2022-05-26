@@ -29,7 +29,7 @@ namespace
         MicroProfileStartContextSwitchTrace();
 #endif
 
-        root.log = new DebugLog();
+        root.log = new DebugLog(LogLevel::Info);
 
         log_info(root, "engine: start");
 

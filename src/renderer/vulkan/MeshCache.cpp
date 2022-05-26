@@ -147,7 +147,7 @@ void load_meshes(VulkanBackend& backend, MeshCache& mesh_cache, const nonstd::sp
 
         const size_t max_vertices = MeshletMaxTriangleCount * 3;
         const size_t max_triangles = MeshletMaxTriangleCount;
-        const float  cone_weight = 0.0f;
+        const float  cone_weight = 0.5f; // FIXME fold in a constant
 
         Assert(max_vertices < 256); // NOTE: u8 indices
 
@@ -209,6 +209,11 @@ void load_meshes(VulkanBackend& backend, MeshCache& mesh_cache, const nonstd::sp
             meshlet_instance.center_ms =
                 glm::fvec3(boundsMeshlet.center[0], boundsMeshlet.center[1], boundsMeshlet.center[2]);
             meshlet_instance.radius = boundsMeshlet.radius;
+            meshlet_instance.cone_axis_ms =
+                glm::fvec3(boundsMeshlet.cone_axis[0], boundsMeshlet.cone_axis[1], boundsMeshlet.cone_axis[2]);
+            meshlet_instance.cone_cutoff = boundsMeshlet.cone_cutoff;
+            meshlet_instance.cone_apex_ms =
+                glm::fvec3(boundsMeshlet.cone_apex[0], boundsMeshlet.cone_apex[1], boundsMeshlet.cone_apex[2]);
 
             // Copy index buffer
             for (u32 index = 0; index < meshlet_index_count; index++)

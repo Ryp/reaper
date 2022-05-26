@@ -42,7 +42,12 @@ namespace
     SceneGraph create_static_test_scene_graph(MeshHandle mesh_handle, TextureHandle texture_handle)
     {
         SceneGraph scene;
+#if 1
         scene.camera.scene_node = insert_scene_node(scene, glm::translate(glm::mat4(1.0f), glm::vec3(-10.f, 3.f, 3.f)));
+#else
+        scene.camera.scene_node =
+            insert_scene_node(scene, glm::translate(glm::mat4(1.0f), glm::vec3(300.f, 300.f, 300.f)));
+#endif
 
         constexpr i32 asteroid_count = 4;
 
@@ -76,7 +81,12 @@ namespace
         light.color = glm::fvec3(1.f, 1.f, 1.f);
         light.intensity = 60.f;
         light.scene_node = insert_scene_node(scene, light_transform);
+
+#if 0
         light.shadow_map_size = glm::uvec2(1024, 1024);
+#else
+        light.shadow_map_size = glm::uvec2(0, 0);
+#endif
 
         insert_scene_light(scene, light);
 
@@ -97,7 +107,7 @@ void execute_game_loop(ReaperRoot& root)
 
     SceneGraph scene;
 
-    const bool enable_test_scene = false;
+    const bool enable_test_scene = true;
 
     if (enable_test_scene)
     {

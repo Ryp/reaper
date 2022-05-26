@@ -454,9 +454,13 @@ void update_culling_pass_descriptor_sets(VulkanBackend& backend, const PreparedD
     update_cull_prepare_indirect_descriptor_set(backend, resources, resources.cull_prepare_descriptor_set);
 }
 
-void record_culling_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& prepared, CullResources& resources)
+void record_culling_command_buffer(ReaperRoot& root, CommandBuffer& cmdBuffer, const PreparedData& prepared,
+                                   CullResources& resources)
 {
     REAPER_PROFILE_SCOPE_GPU(cmdBuffer.mlog, "Culling Pass", MP_DARKGOLDENROD);
+
+    u64              total_meshlet_count = 0;
+    std::vector<u64> meshlet_count_per_pass;
 
     const u32 clear_value = 0;
     vkCmdFillBuffer(cmdBuffer.handle, resources.countersBuffer.handle, 0, VK_WHOLE_SIZE, clear_value);
@@ -480,6 +484,9 @@ void record_culling_command_buffer(CommandBuffer& cmdBuffer, const PreparedData&
 
         for (const CullPassData& cull_pass : prepared.cull_passes)
         {
+            u64& pass_meshlet_count = meshlet_count_per_pass.emplace_back();
+            pass_meshlet_count = 0;
+
             vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE,
                                     resources.cullMeshletPipe.pipelineLayout, 0, 1,
                                     &resources.cull_meshlet_descriptor_sets[cull_pass.pass_index], 0, nullptr);
@@ -492,7 +499,11 @@ void record_culling_command_buffer(CommandBuffer& cmdBuffer, const PreparedData&
 
                 const u32 group_count_x = div_round_up(command.push_constants.meshlet_count, MeshletCullThreadCount);
                 vkCmdDispatch(cmdBuffer.handle, group_count_x, command.instance_count, 1);
+
+                pass_meshlet_count += command.push_constants.meshlet_count;
             }
+
+            total_meshlet_count += pass_meshlet_count;
         }
     }
 
@@ -563,6 +574,15 @@ void record_culling_command_buffer(CommandBuffer& cmdBuffer, const PreparedData&
         const VkDependencyInfo dependencies = get_vk_memory_barrier_depency_info(1, &memoryBarrier);
 
         vkCmdPipelineBarrier2(cmdBuffer.handle, &dependencies);
+    }
+
+    log_info(root, "Mesh stats:");
+    log_info(root, "- total submitted meshlets = {}, approx. triangles = {}", total_meshlet_count,
+             total_meshlet_count * MeshletMaxTriangleCount);
+    for (auto meshlet_count : meshlet_count_per_pass)
+    {
+        log_info(root, "    - pass total submitted meshlets = {}, approx. triangles = {}", meshlet_count,
+                 meshlet_count * MeshletMaxTriangleCount);
     }
 }
 

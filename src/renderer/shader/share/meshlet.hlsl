@@ -20,6 +20,10 @@ struct Meshlet
     hlsl_uint   vertex_count;
     hlsl_float3 center_ms;
     hlsl_float  radius;
+    hlsl_float3 cone_axis_ms;
+    hlsl_float  cone_cutoff; /* = cos(angle/2) */
+    hlsl_float3 cone_apex_ms;
+    hlsl_float  _pad;
 };
 
 #endif

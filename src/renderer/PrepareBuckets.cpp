@@ -108,6 +108,10 @@ void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCa
     // Shadow pass
     for (const auto& light : scene.lights)
     {
+        // FIXME Light is not shadow casting
+        if (light.shadow_map_size == glm::uvec2(0, 0))
+            continue;
+
         ShadowPassData& shadow_pass = prepared.shadow_passes.emplace_back();
         shadow_pass.pass_index = prepared.shadow_passes.size() - 1;
 
@@ -139,6 +143,11 @@ void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCa
             CullMeshInstanceParams& cull_instance = prepared.cull_mesh_instance_params.emplace_back();
 
             cull_instance.ms_to_cs_matrix = shadow_instance.ms_to_cs_matrix;
+
+            const glm::mat4x3 modelView = glm::mat4(light_node.transform_matrix) * glm::mat4(node.transform_matrix);
+            const glm::mat4x3 vs_to_ms_matrix = glm::inverse(glm::mat4(modelView));
+
+            cull_instance.vs_to_ms_matrix_translate = vs_to_ms_matrix * glm::vec4(0.f, 0.f, 0.f, 1.f);
             cull_instance.instance_id = i;
 
             const Mesh2&     mesh2 = mesh_cache.mesh2_instances[scene_mesh.mesh_handle];
@@ -218,6 +227,9 @@ void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCa
             CullMeshInstanceParams& cull_instance = prepared.cull_mesh_instance_params.emplace_back();
 
             cull_instance.ms_to_cs_matrix = main_camera_view_proj * glm::mat4(node.transform_matrix);
+
+            const glm::mat4x3 vs_to_ms_matrix = glm::inverse(glm::mat4(modelView));
+            cull_instance.vs_to_ms_matrix_translate = vs_to_ms_matrix * glm::vec4(0.f, 0.f, 0.f, 1.f);
             cull_instance.instance_id = i;
 
             const Mesh2&     mesh2 = mesh_cache.mesh2_instances[scene_mesh.mesh_handle];

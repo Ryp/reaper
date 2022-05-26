@@ -453,7 +453,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
         if (!backend.options.freeze_culling)
         {
-            record_culling_command_buffer(cmdBuffer, prepared, resources.cull_resources);
+            record_culling_command_buffer(root, cmdBuffer, prepared, resources.cull_resources);
         }
     }
 

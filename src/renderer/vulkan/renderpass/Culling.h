@@ -57,7 +57,8 @@ void update_culling_pass_descriptor_sets(VulkanBackend& backend, const PreparedD
 
 struct CommandBuffer;
 
-void record_culling_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& prepared, CullResources& resources);
+void record_culling_command_buffer(ReaperRoot& root, CommandBuffer& cmdBuffer, const PreparedData& prepared,
+                                   CullResources& resources);
 
 struct CullingDrawParams
 {

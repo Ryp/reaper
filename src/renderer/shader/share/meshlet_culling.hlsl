@@ -47,10 +47,8 @@ struct CullPushConstants
 struct CullMeshInstanceParams
 {
     hlsl_float4x4 ms_to_cs_matrix;
+    hlsl_float3 vs_to_ms_matrix_translate; // FIXME Put this in somewhere else
     hlsl_uint instance_id;
-    hlsl_float _pad0;
-    hlsl_float _pad1;
-    hlsl_float _pad2;
 };
 
 #endif

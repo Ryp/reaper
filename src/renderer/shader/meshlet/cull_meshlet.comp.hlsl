@@ -7,6 +7,7 @@
 // Input
 
 VK_CONSTANT(0) const bool spec_enable_frustum_culling = true;
+VK_CONSTANT(1) const bool spec_enable_cone_culling = true;
 
 // https://github.com/KhronosGroup/glslang/issues/1629
 #if defined(_DXC)
@@ -74,6 +75,32 @@ void main(/*uint3 gtid : SV_GroupThreadID,*/
         const AABB frustum_aabb_ndc = build_aabb(frustum_aabb_min_ndc, frustum_aabb_max_ndc);
 
         is_visible = is_visible && aabb_vs_aabb_test(frustum_aabb_ndc, meshlet_aabb_ndc);
+    }
+
+    // For backface culling with orthographic projection, use the following formula to reject backfacing clusters:
+    // dot(view, cone_axis) >= cone_cutoff
+    //
+    // For perspective projection, you can the formula that needs cone apex in addition to axis & cutoff:
+    //   dot(normalize(cone_apex - camera_position), cone_axis) >= cone_cutoff
+    //
+    // Alternatively, you can use the formula that doesn't need cone apex and uses bounding sphere instead:
+    //   dot(normalize(center - camera_position), cone_axis) >= cone_cutoff + radius / length(center - camera_position)
+    // or an equivalent formula that doesn't have a singularity at center = camera_position:
+    //   dot(center - camera_position, cone_axis) >= cone_cutoff * length(center - camera_position) + radius
+    //
+    // The formula that uses the apex is slightly more accurate but needs the apex; if you are already using bounding sphere
+    // to do frustum/occlusion culling, the formula that doesn't use the apex may be preferable.
+    if (spec_enable_cone_culling)
+    {
+        const CullMeshInstanceParams mesh_instance = cull_mesh_instance_params[consts.cull_instance_offset];
+
+        // FIXME only for perspective
+        const float3 camera_position_ms = mesh_instance.vs_to_ms_matrix_translate;
+        //const bool cone_test = dot(normalize(meshlet.cone_apex_ms - camera_position_ms), meshlet.cone_axis_ms) <= meshlet.cone_cutoff;
+        //is_visible = is_visible && cone_test;
+
+        const bool cone_test2 = dot(normalize(meshlet.center_ms - camera_position_ms), meshlet.cone_axis_ms) <= meshlet.cone_cutoff + meshlet.radius / length(meshlet.center_ms - camera_position_ms);
+        is_visible = is_visible && cone_test2;
     }
 
     const uint visible_count = WaveActiveCountBits(is_visible);
