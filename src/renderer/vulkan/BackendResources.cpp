@@ -39,7 +39,7 @@ void create_backend_resources(ReaperRoot& root, VulkanBackend& backend)
         nullptr,
         VK_EVENT_CREATE_DEVICE_ONLY_BIT,
     };
-    vkCreateEvent(backend.device, &event_info, nullptr, &resources.event);
+    Assert(vkCreateEvent(backend.device, &event_info, nullptr, &resources.event) == VK_SUCCESS);
 
     resources.framegraph_resources = create_framegraph_resources(root, backend);
     resources.audio_resources = create_audio_resources(root, backend);

@@ -33,7 +33,7 @@ FrameGraphResources create_framegraph_resources(ReaperRoot& /*root*/, VulkanBack
 
     for (auto& event : resources.events)
     {
-        vkCreateEvent(backend.device, &event_info, nullptr, &event);
+        Assert(vkCreateEvent(backend.device, &event_info, nullptr, &event) == VK_SUCCESS);
     }
 
     // Volatile stuff is created later
