@@ -108,7 +108,6 @@ void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCa
     // Shadow pass
     for (const auto& light : scene.lights)
     {
-        // FIXME Light is not shadow casting
         if (light.shadow_map_size == glm::uvec2(0, 0))
             continue;
 

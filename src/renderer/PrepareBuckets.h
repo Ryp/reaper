@@ -45,7 +45,7 @@ struct SceneLight
     glm::vec3  color;
     float      intensity;
     u32        scene_node;
-    glm::uvec2 shadow_map_size;
+    glm::uvec2 shadow_map_size; // Set to zero to disable shadow
 };
 
 struct SceneGraph
