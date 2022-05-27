@@ -19,7 +19,7 @@ namespace Reaper
 #ifdef REAPER_VK_USE_DISPLAY_EXTENSIONS
 void create_vulkan_display_swapchain(ReaperRoot& root, const VulkanBackend& backend)
 {
-    REAPER_PROFILE_SCOPE("Vulkan", MP_RED);
+    REAPER_PROFILE_SCOPE_FUNC();
     log_debug(root, "vulkan: creating display swapchain");
 
     uint32_t displayCount = 0;
@@ -65,7 +65,7 @@ void create_vulkan_display_swapchain(ReaperRoot& root, const VulkanBackend& back
 
 void destroy_vulkan_display_swapchain(ReaperRoot& root, const VulkanBackend& backend)
 {
-    REAPER_PROFILE_SCOPE("Vulkan", MP_RED);
+    REAPER_PROFILE_SCOPE_FUNC();
     log_debug(root, "vulkan: destroying display swapchain");
 
     // TODO

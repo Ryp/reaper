@@ -14,13 +14,12 @@
 #include "renderer/vulkan/CommandBuffer.h"
 #include "renderer/vulkan/ComputeHelper.h"
 #include "renderer/vulkan/Debug.h"
+#include "renderer/vulkan/GpuProfile.h"
 #include "renderer/vulkan/MeshCache.h"
 #include "renderer/vulkan/Shader.h"
 
 #include "common/Log.h"
 #include "common/ReaperRoot.h"
-
-#include "core/Profile.h"
 
 #include <array>
 
@@ -448,6 +447,8 @@ void destroy_culling_resources(VulkanBackend& backend, CullResources& resources)
 
 void upload_culling_resources(VulkanBackend& backend, const PreparedData& prepared, CullResources& resources)
 {
+    REAPER_PROFILE_SCOPE_FUNC();
+
     if (prepared.cull_mesh_instance_params.empty())
         return;
 
@@ -473,8 +474,6 @@ void update_culling_pass_descriptor_sets(VulkanBackend& backend, const PreparedD
 void record_culling_command_buffer(ReaperRoot& root, CommandBuffer& cmdBuffer, const PreparedData& prepared,
                                    CullResources& resources)
 {
-    REAPER_PROFILE_SCOPE_GPU(cmdBuffer.mlog, "Culling Pass", MP_DARKGOLDENROD);
-
     u64              total_meshlet_count = 0;
     std::vector<u64> meshlet_count_per_pass;
 
@@ -482,7 +481,7 @@ void record_culling_command_buffer(ReaperRoot& root, CommandBuffer& cmdBuffer, c
     vkCmdFillBuffer(cmdBuffer.handle, resources.countersBuffer.handle, 0, VK_WHOLE_SIZE, clear_value);
 
     {
-        REAPER_PROFILE_SCOPE_GPU(cmdBuffer.mlog, "Barrier", MP_RED);
+        REAPER_GPU_SCOPE_COLOR(cmdBuffer, "Barrier", MP_RED);
 
         const GPUMemoryAccess  src = {VK_PIPELINE_STAGE_2_CLEAR_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT};
         const GPUMemoryAccess  dst = {VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
@@ -524,7 +523,7 @@ void record_culling_command_buffer(ReaperRoot& root, CommandBuffer& cmdBuffer, c
     }
 
     {
-        REAPER_PROFILE_SCOPE_GPU(cmdBuffer.mlog, "Barrier", MP_RED);
+        REAPER_GPU_SCOPE_COLOR(cmdBuffer, "Barrier", MP_RED);
 
         const GPUMemoryAccess  src = {VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT};
         const GPUMemoryAccess  dst = {VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT};
@@ -548,7 +547,7 @@ void record_culling_command_buffer(ReaperRoot& root, CommandBuffer& cmdBuffer, c
     }
 
     {
-        REAPER_PROFILE_SCOPE_GPU(cmdBuffer.mlog, "Barrier", MP_RED);
+        REAPER_GPU_SCOPE_COLOR(cmdBuffer, "Barrier", MP_RED);
 
         const GPUMemoryAccess  src = {VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT};
         const GPUMemoryAccess  dst = {VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT};
@@ -581,7 +580,7 @@ void record_culling_command_buffer(ReaperRoot& root, CommandBuffer& cmdBuffer, c
     }
 
     {
-        REAPER_PROFILE_SCOPE_GPU(cmdBuffer.mlog, "Barrier", MP_RED);
+        REAPER_GPU_SCOPE_COLOR(cmdBuffer, "Barrier", MP_RED);
 
         const GPUMemoryAccess  src = {VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT};
         const GPUMemoryAccess  dst = {VK_PIPELINE_STAGE_2_VERTEX_INPUT_BIT | VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT,
@@ -593,7 +592,7 @@ void record_culling_command_buffer(ReaperRoot& root, CommandBuffer& cmdBuffer, c
     }
 
     {
-        REAPER_PROFILE_SCOPE_GPU(cmdBuffer.mlog, "Copy counters", MP_DARKGOLDENROD);
+        REAPER_GPU_SCOPE(cmdBuffer, "Copy counters");
 
         VkBufferCopy2 region = {};
         region.sType = VK_STRUCTURE_TYPE_BUFFER_COPY_2;

@@ -17,7 +17,7 @@ namespace Reaper
 {
 AudioBackend create_audio_backend(ReaperRoot& root, const AudioConfig& config)
 {
-    REAPER_PROFILE_SCOPE("Audio", MP_BLUE);
+    REAPER_PROFILE_SCOPE_FUNC();
     log_info(root, "audio: creating backend");
 
     AudioBackend backend = {};
@@ -76,7 +76,7 @@ AudioBackend create_audio_backend(ReaperRoot& root, const AudioConfig& config)
 
 void destroy_audio_backend(ReaperRoot& root, AudioBackend& backend)
 {
-    REAPER_PROFILE_SCOPE("Audio", MP_BLUE);
+    REAPER_PROFILE_SCOPE_FUNC();
     log_info(root, "audio: destroying backend");
 
 #if defined(REAPER_USE_ALSA)
@@ -181,7 +181,7 @@ void audio_execute_frame(ReaperRoot& root, AudioBackend& backend)
         return;
 
 #if defined(REAPER_USE_ALSA)
-    REAPER_PROFILE_SCOPE("Audio", MP_BLUE);
+    REAPER_PROFILE_SCOPE_FUNC();
 
     // if (backend.frame_index > 0)
     // {

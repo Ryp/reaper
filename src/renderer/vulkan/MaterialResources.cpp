@@ -11,12 +11,11 @@
 #include "renderer/vulkan/Barrier.h"
 #include "renderer/vulkan/Buffer.h"
 #include "renderer/vulkan/CommandBuffer.h"
+#include "renderer/vulkan/GpuProfile.h"
 #include "renderer/vulkan/Image.h"
 
 #include "common/Log.h"
 #include "common/ReaperRoot.h"
-
-#include "core/Profile.h"
 
 #define TINYDDSLOADER_IMPLEMENTATION
 #include <tinyddsloader.h>
@@ -237,17 +236,13 @@ void record_material_upload_command_buffer(ResourceStagingArea& staging, Command
     if (staging.staging_queue.empty())
         return;
 
+    for (const auto& entry : staging.staging_queue)
     {
-        REAPER_PROFILE_SCOPE_GPU(cmdBuffer.mlog, "Upload", MP_DARKGOLDENROD);
-
-        for (const auto& entry : staging.staging_queue)
-        {
-            flush_pending_staging_commands(cmdBuffer, staging, entry);
-        }
+        flush_pending_staging_commands(cmdBuffer, staging, entry);
     }
 
     {
-        REAPER_PROFILE_SCOPE_GPU(cmdBuffer.mlog, "Image Barriers", MP_RED);
+        REAPER_GPU_SCOPE_COLOR(cmdBuffer, "Image Barriers", MP_RED);
 
         std::vector<VkImageMemoryBarrier2> prerender_barriers;
 

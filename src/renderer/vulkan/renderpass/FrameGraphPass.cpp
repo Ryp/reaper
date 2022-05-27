@@ -10,8 +10,7 @@
 #include "renderer/graph/FrameGraph.h"
 #include "renderer/vulkan/CommandBuffer.h"
 #include "renderer/vulkan/FrameGraphResources.h"
-
-#include "core/Profile.h"
+#include "renderer/vulkan/GpuProfile.h"
 
 namespace Reaper
 {
@@ -26,7 +25,7 @@ void record_framegraph_barriers(CommandBuffer& cmdBuffer, const FrameGraph::Fram
         return;
 
     using namespace FrameGraph;
-    REAPER_PROFILE_SCOPE_GPU(cmdBuffer.mlog, "FrameGraphBarrier", MP_RED);
+    REAPER_GPU_SCOPE_COLOR(cmdBuffer, "FrameGraph Barrier", MP_RED);
 
     for (const auto& barrier_event : barrier_events)
     {

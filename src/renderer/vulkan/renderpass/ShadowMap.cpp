@@ -14,6 +14,7 @@
 #include "renderer/texture/GPUTextureProperties.h"
 #include "renderer/vulkan/Backend.h"
 #include "renderer/vulkan/CommandBuffer.h"
+#include "renderer/vulkan/GpuProfile.h"
 #include "renderer/vulkan/Image.h"
 #include "renderer/vulkan/RenderPassHelpers.h"
 #include "renderer/vulkan/Shader.h"
@@ -21,8 +22,6 @@
 
 #include "common/Log.h"
 #include "common/ReaperRoot.h"
-
-#include "core/Profile.h"
 
 #include <array>
 
@@ -317,6 +316,8 @@ std::vector<GPUTextureProperties> fill_shadow_map_properties(const PreparedData&
 
 void upload_shadow_map_resources(VulkanBackend& backend, const PreparedData& prepared, ShadowMapResources& resources)
 {
+    REAPER_PROFILE_SCOPE_FUNC();
+
     if (prepared.shadow_instance_params.empty())
         return;
 
@@ -335,7 +336,7 @@ void record_shadow_map_command_buffer(CommandBuffer& cmdBuffer, const PreparedDa
 {
     for (const ShadowPassData& shadow_pass : prepared.shadow_passes)
     {
-        REAPER_PROFILE_SCOPE_GPU(cmdBuffer.mlog, "Shadow Pass", MP_DARKGOLDENROD);
+        REAPER_GPU_SCOPE(cmdBuffer, fmt::format("Shadow Pass {}", shadow_pass.pass_index).c_str());
 
         const VkImageView  shadowMapView = shadow_map_views[shadow_pass.pass_index];
         const VkExtent2D   output_extent = {shadow_pass.shadow_map_size.x, shadow_pass.shadow_map_size.y};

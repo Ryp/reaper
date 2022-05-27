@@ -20,8 +20,6 @@
 #include "common/Log.h"
 #include "common/ReaperRoot.h"
 
-#include "core/Profile.h"
-
 namespace Reaper
 {
 namespace
@@ -238,8 +236,6 @@ void destroy_gui_pass_resources(VulkanBackend& backend, GuiPassResources& resour
 void record_gui_command_buffer(CommandBuffer& cmdBuffer, const GuiPassResources& pass_resources,
                                VkExtent2D backbufferExtent, VkImageView guiBufferView)
 {
-    REAPER_PROFILE_SCOPE_GPU(cmdBuffer.mlog, "Gui Pass", MP_DARKGOLDENROD);
-
     const glm::fvec4 clearColor = {0.f, 0.f, 0.f, 0.f};
     const VkRect2D   blitPassRect = default_vk_rect(backbufferExtent);
 

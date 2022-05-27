@@ -12,6 +12,7 @@
 #include "renderer/vulkan/Backend.h"
 
 #include "common/ReaperRoot.h"
+#include "core/Profile.h"
 
 #include "renderer/shader/share/lighting.hlsl"
 
@@ -39,6 +40,8 @@ void destroy_lighting_pass_resources(VulkanBackend& backend, LightingPassResourc
 void upload_lighting_pass_frame_resources(VulkanBackend& backend, const PreparedData& prepared,
                                           LightingPassResources& resources)
 {
+    REAPER_PROFILE_SCOPE_FUNC();
+
     if (prepared.point_lights.empty())
         return;
 

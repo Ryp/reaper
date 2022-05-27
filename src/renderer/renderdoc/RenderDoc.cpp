@@ -30,7 +30,7 @@ namespace
 
 void start_integration(ReaperRoot& root)
 {
-    REAPER_PROFILE_SCOPE("RenderDoc", MP_GREEN1);
+    REAPER_PROFILE_SCOPE_FUNC_COLOR(MP_GREEN);
 
     log_info(root, "renderdoc: starting integration");
 
@@ -51,7 +51,7 @@ void start_integration(ReaperRoot& root)
 
 void stop_integration(ReaperRoot& root)
 {
-    REAPER_PROFILE_SCOPE("RenderDoc", MP_GREEN1);
+    REAPER_PROFILE_SCOPE_FUNC_COLOR(MP_GREEN);
 
     log_info(root, "renderdoc: stopping integration");
 
@@ -66,7 +66,7 @@ void stop_integration(ReaperRoot& root)
 
 void start_capture(ReaperRoot& root, DevicePointer vulkan_instance)
 {
-    REAPER_PROFILE_SCOPE("RenderDoc", MP_GREEN1);
+    REAPER_PROFILE_SCOPE_FUNC_COLOR(MP_GREEN);
 
     log_info(root, "renderdoc: starting capture");
 
@@ -79,7 +79,7 @@ void start_capture(ReaperRoot& root, DevicePointer vulkan_instance)
 
 void stop_capture(ReaperRoot& root, DevicePointer vulkan_instance)
 {
-    REAPER_PROFILE_SCOPE("RenderDoc", MP_GREEN1);
+    REAPER_PROFILE_SCOPE_FUNC_COLOR(MP_GREEN);
 
     log_info(root, "renderdoc: stopping capture");
 

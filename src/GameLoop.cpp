@@ -272,7 +272,7 @@ void execute_game_loop(ReaperRoot& root)
 
     while (!shouldExit)
     {
-        REAPER_PROFILE_SCOPE("Frame", MP_YELLOW);
+        REAPER_PROFILE_SCOPE("Frame");
 
         const auto currentTime = std::chrono::system_clock::now();
 
@@ -305,7 +305,7 @@ void execute_game_loop(ReaperRoot& root)
 
         if (saveMyLaptop)
         {
-            REAPER_PROFILE_SCOPE("Battery saver wait", MP_GREEN);
+            REAPER_PROFILE_SCOPE("Battery saver wait");
             std::this_thread::sleep_for(std::chrono::milliseconds(60));
         }
 

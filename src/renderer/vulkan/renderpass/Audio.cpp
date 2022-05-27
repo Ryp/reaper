@@ -179,6 +179,8 @@ void destroy_audio_resources(VulkanBackend& backend, AudioResources& resources)
 
 void upload_audio_frame_resources(VulkanBackend& backend, const PreparedData& prepared, AudioResources& resources)
 {
+    REAPER_PROFILE_SCOPE_FUNC();
+
     // FIXME
     // upload_buffer_data(backend.device, backend.vma_instance, resources.passConstantBuffer,
     //                    prepared.audio_pass_params.data(),
@@ -208,8 +210,6 @@ void update_audio_pass_descriptor_set(VulkanBackend& backend, AudioResources& re
 
 void record_audio_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& prepared, AudioResources& resources)
 {
-    REAPER_PROFILE_SCOPE_GPU(cmdBuffer.mlog, "Audio Pass", MP_GREEN);
-
     {
         const GPUResourceAccess src = {VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_READ_BIT};
         const GPUResourceAccess dst = {VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT};

@@ -372,6 +372,8 @@ void destroy_swapchain_pass_resources(VulkanBackend& backend, const SwapchainPas
 
 void reload_swapchain_pipeline(ReaperRoot& root, VulkanBackend& backend, SwapchainPassResources& resources)
 {
+    REAPER_PROFILE_SCOPE_FUNC();
+
     vkDestroyPipeline(backend.device, resources.pipeline, nullptr);
 
     resources.pipeline =
@@ -403,6 +405,8 @@ void update_swapchain_pass_descriptor_set(VulkanBackend& backend, const Swapchai
 void upload_swapchain_frame_resources(VulkanBackend& backend, const PreparedData& prepared,
                                       const SwapchainPassResources& pass_resources)
 {
+    REAPER_PROFILE_SCOPE_FUNC();
+
     upload_buffer_data(backend.device, backend.vma_instance, pass_resources.passConstantBuffer,
                        &prepared.swapchain_pass_params, sizeof(SwapchainPassParams));
 }
@@ -410,8 +414,6 @@ void upload_swapchain_frame_resources(VulkanBackend& backend, const PreparedData
 void record_swapchain_command_buffer(CommandBuffer& cmdBuffer, const FrameData& frame_data,
                                      const SwapchainPassResources& pass_resources, VkImageView swapchain_buffer_view)
 {
-    REAPER_PROFILE_SCOPE_GPU(cmdBuffer.mlog, "Swapchain Pass", MP_DARKGOLDENROD);
-
     const VkRect2D blitPassRect = default_vk_rect(frame_data.backbufferExtent);
 
     const VkRenderingAttachmentInfo color_attachment = {

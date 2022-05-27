@@ -14,6 +14,7 @@
 
 #include "renderer/vulkan/Backend.h"
 #include "renderer/vulkan/CommandBuffer.h"
+#include "renderer/vulkan/GpuProfile.h"
 #include "renderer/vulkan/Image.h"
 #include "renderer/vulkan/MaterialResources.h"
 #include "renderer/vulkan/MeshCache.h"
@@ -24,8 +25,6 @@
 
 #include "common/Log.h"
 #include "common/ReaperRoot.h"
-
-#include "core/Profile.h"
 
 #include "renderer/shader/share/forward.hlsl"
 
@@ -507,6 +506,8 @@ void update_forward_pass_descriptor_sets(VulkanBackend& backend, const ForwardPa
 void upload_forward_pass_frame_resources(VulkanBackend& backend, const PreparedData& prepared,
                                          ForwardPassResources& pass_resources)
 {
+    REAPER_PROFILE_SCOPE_FUNC();
+
     if (prepared.forward_instances.empty())
         return;
 
@@ -523,8 +524,6 @@ void record_forward_pass_command_buffer(CommandBuffer& cmdBuffer, const Prepared
                                         VkExtent2D backbufferExtent, VkImageView hdrBufferView,
                                         VkImageView depthBufferView)
 {
-    REAPER_PROFILE_SCOPE_GPU(cmdBuffer.mlog, "Forward Pass", MP_DARKGOLDENROD);
-
     const glm::fvec4 clearColor = {0.1f, 0.1f, 0.1f, 0.0f};
     const float      depthClearValue = ForwardUseReverseZ ? 0.f : 1.f;
     const VkRect2D   blitPassRect = default_vk_rect(backbufferExtent);

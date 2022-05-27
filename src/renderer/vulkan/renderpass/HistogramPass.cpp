@@ -177,6 +177,8 @@ void update_histogram_pass_descriptor_set(VulkanBackend& backend, const Histogra
 void upload_histogram_frame_resources(VulkanBackend& backend, const HistogramPassResources& pass_resources,
                                       VkExtent2D backbufferExtent)
 {
+    REAPER_PROFILE_SCOPE_FUNC();
+
     ReduceHDRPassParams params = {};
     params.extent_ts = glm::uvec2(backbufferExtent.width, backbufferExtent.height);
     params.extent_ts_inv =
@@ -189,8 +191,6 @@ void upload_histogram_frame_resources(VulkanBackend& backend, const HistogramPas
 void record_histogram_command_buffer(CommandBuffer& cmdBuffer, const FrameData& frame_data,
                                      const HistogramPassResources& pass_resources)
 {
-    REAPER_PROFILE_SCOPE_GPU(cmdBuffer.mlog, "Histogram Pass", MP_DARKGOLDENROD);
-
     vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE, pass_resources.histogramPipe.pipeline);
 
     vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE,

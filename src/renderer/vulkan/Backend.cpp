@@ -109,7 +109,7 @@ VulkanBackend::VulkanBackend()
 
 void create_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& backend)
 {
-    REAPER_PROFILE_SCOPE("Vulkan", MP_RED1);
+    REAPER_PROFILE_SCOPE_FUNC();
     log_info(root, "vulkan: creating backend");
 
     log_debug(root, "vulkan: loading {}", REAPER_VK_LIB_NAME);
@@ -239,7 +239,7 @@ void create_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& backend)
 
 void destroy_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& backend)
 {
-    REAPER_PROFILE_SCOPE("Vulkan", MP_RED1);
+    REAPER_PROFILE_SCOPE_FUNC();
     log_info(root, "vulkan: destroying backend");
 
     log_debug(root, "vulkan: waiting for current work to finish");

@@ -238,7 +238,7 @@ void configure_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backen
 
 void create_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backend, PresentationInfo& presentInfo)
 {
-    REAPER_PROFILE_SCOPE("Vulkan", MP_RED);
+    REAPER_PROFILE_SCOPE_FUNC();
     log_debug(root, "vulkan: creating wm swapchain");
 
     const std::vector<VkFormat> view_formats = {
@@ -308,7 +308,7 @@ void create_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backend, 
 
 void destroy_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backend, PresentationInfo& presentInfo)
 {
-    REAPER_PROFILE_SCOPE("Vulkan", MP_RED);
+    REAPER_PROFILE_SCOPE_FUNC();
     log_debug(root, "vulkan: destroying wm swapchain");
 
     vkDestroySemaphore(backend.device, presentInfo.imageAvailableSemaphore, nullptr);
@@ -323,7 +323,7 @@ void destroy_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backend,
 void resize_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backend, PresentationInfo& presentInfo,
                                 VkExtent2D extent)
 {
-    REAPER_PROFILE_SCOPE("Vulkan", MP_RED);
+    REAPER_PROFILE_SCOPE_FUNC();
     log_debug(root, "vulkan: resizing wm swapchain");
 
     // Destroy what needs to be
