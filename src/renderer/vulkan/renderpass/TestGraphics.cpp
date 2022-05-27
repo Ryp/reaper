@@ -585,6 +585,28 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     // NOTE: window can change state between event handling and presenting, so it's normal to get OOD events.
     Assert(presentResult == VK_SUCCESS || presentResult == VK_ERROR_OUT_OF_DATE_KHR);
 
+    {
+        const VkResult event_status = vkGetEventStatus(backend.device, resources.cull_resources.countersReadyEvent);
+        Assert(event_status == VK_EVENT_SET || event_status == VK_EVENT_RESET);
+
+        CullingStats                    total = {};
+        const std::vector<CullingStats> culling_stats =
+            get_gpu_culling_stats(backend, prepared, resources.cull_resources);
+
+        log_debug(root, "{}GPU mesh culling stats:", event_status == VK_EVENT_SET ? "" : "[OUT OF DATE] ");
+        for (auto stats : culling_stats)
+        {
+            log_debug(root, "- pass {} surviving meshlets = {}, triangles = {}, draw commands = {}", stats.pass_index,
+                      stats.surviving_meshlet_count, stats.surviving_triangle_count, stats.indirect_draw_command_count);
+
+            total.surviving_meshlet_count += stats.surviving_meshlet_count;
+            total.surviving_triangle_count += stats.surviving_triangle_count;
+            total.indirect_draw_command_count += stats.indirect_draw_command_count;
+        }
+        log_debug(root, "- total surviving meshlets = {}, triangles = {}, draw commands = {}",
+                  total.surviving_meshlet_count, total.surviving_triangle_count, total.indirect_draw_command_count);
+    }
+
     read_gpu_audio_data(backend, resources.audio_resources);
 }
 } // namespace Reaper

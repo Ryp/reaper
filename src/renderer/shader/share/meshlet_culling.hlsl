@@ -21,7 +21,7 @@ struct MeshletOffsets
 static const hlsl_uint PrepareIndirectDispatchThreadCount = 16;
 static const hlsl_uint MeshletCullThreadCount = 32;
 
-static const hlsl_uint CountersCount = 3;
+static const hlsl_uint CountersCount = 4; // Align on 16 byte boundary
 
 // Counter buffer layout
 static const hlsl_uint MeshletCounterOffset = 0;

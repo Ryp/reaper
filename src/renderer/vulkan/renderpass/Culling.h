@@ -34,10 +34,13 @@ struct CullResources
 
     BufferInfo cullInstanceParamsBuffer;
     BufferInfo countersBuffer;
+    BufferInfo countersBufferCPU;
     BufferInfo dynamicMeshletBuffer;
     BufferInfo indirectDispatchBuffer;
     BufferInfo dynamicIndexBuffer;
     BufferInfo indirectDrawBuffer;
+
+    VkEvent countersReadyEvent;
 };
 
 struct ReaperRoot;
@@ -59,6 +62,17 @@ struct CommandBuffer;
 
 void record_culling_command_buffer(ReaperRoot& root, CommandBuffer& cmdBuffer, const PreparedData& prepared,
                                    CullResources& resources);
+
+struct CullingStats
+{
+    u32 pass_index;
+    u32 surviving_meshlet_count;
+    u32 surviving_triangle_count;
+    u32 indirect_draw_command_count;
+};
+
+std::vector<CullingStats> get_gpu_culling_stats(VulkanBackend& backend, const PreparedData& prepared,
+                                                CullResources& resources);
 
 struct CullingDrawParams
 {

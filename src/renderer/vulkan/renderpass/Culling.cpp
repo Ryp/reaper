@@ -360,9 +360,14 @@ CullResources create_culling_resources(ReaperRoot& root, VulkanBackend& backend)
     resources.countersBuffer =
         create_buffer(root, backend.device, "Meshlet counters",
                       DefaultGPUBufferProperties(CountersCount * MaxCullPassCount, sizeof(u32),
-                                                 GPUBufferUsage::IndirectBuffer | GPUBufferUsage::TransferDst
-                                                     | GPUBufferUsage::StorageBuffer),
+                                                 GPUBufferUsage::IndirectBuffer | GPUBufferUsage::TransferSrc
+                                                     | GPUBufferUsage::TransferDst | GPUBufferUsage::StorageBuffer),
                       backend.vma_instance);
+
+    resources.countersBufferCPU = create_buffer(
+        root, backend.device, "Meshlet counters CPU",
+        DefaultGPUBufferProperties(CountersCount * MaxCullPassCount, sizeof(u32), GPUBufferUsage::TransferDst),
+        backend.vma_instance, MemUsage::CPU_Only);
 
     resources.dynamicMeshletBuffer =
         create_buffer(root, backend.device, "Dynamic meshlet offsets",
@@ -398,6 +403,14 @@ CullResources create_culling_resources(ReaperRoot& root, VulkanBackend& backend)
     resources.cull_triangles_descriptor_sets =
         create_descriptor_sets(backend, resources.cullTrianglesPipe.descSetLayout, 4);
 
+    const VkEventCreateInfo event_info = {
+        VK_STRUCTURE_TYPE_EVENT_CREATE_INFO,
+        nullptr,
+        VK_FLAGS_NONE,
+    };
+    Assert(vkCreateEvent(backend.device, &event_info, nullptr, &resources.countersReadyEvent) == VK_SUCCESS);
+    VulkanSetDebugName(backend.device, resources.countersReadyEvent, "Counters ready event");
+
     return resources;
 }
 
@@ -414,6 +427,7 @@ namespace
 void destroy_culling_resources(VulkanBackend& backend, CullResources& resources)
 {
     vmaDestroyBuffer(backend.vma_instance, resources.countersBuffer.handle, resources.countersBuffer.allocation);
+    vmaDestroyBuffer(backend.vma_instance, resources.countersBufferCPU.handle, resources.countersBufferCPU.allocation);
     vmaDestroyBuffer(backend.vma_instance, resources.cullInstanceParamsBuffer.handle,
                      resources.cullInstanceParamsBuffer.allocation);
     vmaDestroyBuffer(backend.vma_instance, resources.dynamicIndexBuffer.handle,
@@ -428,6 +442,8 @@ void destroy_culling_resources(VulkanBackend& backend, CullResources& resources)
     destroy_simple_pipeline(backend.device, resources.cullMeshletPipe);
     destroy_simple_pipeline(backend.device, resources.cullMeshletPrepIndirect);
     destroy_simple_pipeline(backend.device, resources.cullTrianglesPipe);
+
+    vkDestroyEvent(backend.device, resources.countersReadyEvent, nullptr);
 }
 
 void upload_culling_resources(VulkanBackend& backend, const PreparedData& prepared, CullResources& resources)
@@ -576,14 +592,83 @@ void record_culling_command_buffer(ReaperRoot& root, CommandBuffer& cmdBuffer, c
         vkCmdPipelineBarrier2(cmdBuffer.handle, &dependencies);
     }
 
-    log_info(root, "Mesh stats:");
-    log_info(root, "- total submitted meshlets = {}, approx. triangles = {}", total_meshlet_count,
-             total_meshlet_count * MeshletMaxTriangleCount);
+    {
+        REAPER_PROFILE_SCOPE_GPU(cmdBuffer.mlog, "Copy counters", MP_DARKGOLDENROD);
+
+        VkBufferCopy2 region = {};
+        region.sType = VK_STRUCTURE_TYPE_BUFFER_COPY_2;
+        region.pNext = nullptr;
+        region.srcOffset = 0;
+        region.dstOffset = 0;
+        region.size =
+            resources.countersBuffer.properties.element_count * resources.countersBuffer.properties.element_size_bytes;
+
+        const VkCopyBufferInfo2 copy = {VK_STRUCTURE_TYPE_COPY_BUFFER_INFO_2, nullptr, resources.countersBuffer.handle,
+                                        resources.countersBufferCPU.handle,   1,       &region};
+
+        vkCmdCopyBuffer2(cmdBuffer.handle, &copy);
+
+        vkCmdResetEvent2(cmdBuffer.handle, resources.countersReadyEvent, VK_PIPELINE_STAGE_2_TRANSFER_BIT);
+
+        const GPUResourceAccess src = {VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT};
+        const GPUResourceAccess dst = {VK_PIPELINE_STAGE_2_HOST_BIT, VK_ACCESS_2_HOST_READ_BIT};
+        const GPUBufferView     view = default_buffer_view(resources.countersBufferCPU.properties);
+
+        VkBufferMemoryBarrier2 bufferBarrier =
+            get_vk_buffer_barrier(resources.countersBufferCPU.handle, view, src, dst);
+
+        const VkDependencyInfo dependencies = VkDependencyInfo{
+            VK_STRUCTURE_TYPE_DEPENDENCY_INFO, nullptr, VK_FLAGS_NONE, 0, nullptr, 1, &bufferBarrier, 0, nullptr};
+
+        vkCmdSetEvent2(cmdBuffer.handle, resources.countersReadyEvent, &dependencies);
+    }
+
+    log_debug(root, "CPU mesh stats:");
     for (auto meshlet_count : meshlet_count_per_pass)
     {
-        log_info(root, "    - pass total submitted meshlets = {}, approx. triangles = {}", meshlet_count,
-                 meshlet_count * MeshletMaxTriangleCount);
+        log_debug(root, "- pass total submitted meshlets = {}, approx. triangles = {}", meshlet_count,
+                  meshlet_count * MeshletMaxTriangleCount);
     }
+    log_debug(root, "- total submitted meshlets = {}, approx. triangles = {}", total_meshlet_count,
+              total_meshlet_count * MeshletMaxTriangleCount);
+}
+
+std::vector<CullingStats> get_gpu_culling_stats(VulkanBackend& backend, const PreparedData& prepared,
+                                                CullResources& resources)
+{
+    VmaAllocationInfo allocation_info;
+    vmaGetAllocationInfo(backend.vma_instance, resources.countersBufferCPU.allocation, &allocation_info);
+
+    void* mapped_data_ptr = nullptr;
+
+    Assert(vkMapMemory(backend.device, allocation_info.deviceMemory, allocation_info.offset, allocation_info.size, 0,
+                       &mapped_data_ptr)
+           == VK_SUCCESS);
+
+    VkMappedMemoryRange staging_range = {};
+    staging_range.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
+    staging_range.memory = allocation_info.deviceMemory;
+    staging_range.offset = allocation_info.offset;
+    staging_range.size = VK_WHOLE_SIZE;
+    vkInvalidateMappedMemoryRanges(backend.device, 1, &staging_range);
+
+    Assert(mapped_data_ptr);
+
+    std::vector<CullingStats> stats;
+
+    for (u32 i = 0; i < prepared.cull_passes.size(); i++)
+    {
+        CullingStats& s = stats.emplace_back();
+        s.pass_index = i;
+        s.surviving_meshlet_count = static_cast<u32*>(mapped_data_ptr)[i * CountersCount + MeshletCounterOffset];
+        s.surviving_triangle_count = static_cast<u32*>(mapped_data_ptr)[i * CountersCount + TriangleCounterOffset];
+        s.indirect_draw_command_count =
+            static_cast<u32*>(mapped_data_ptr)[i * CountersCount + DrawCommandCounterOffset];
+    }
+
+    vkUnmapMemory(backend.device, allocation_info.deviceMemory);
+
+    return stats;
 }
 
 namespace
