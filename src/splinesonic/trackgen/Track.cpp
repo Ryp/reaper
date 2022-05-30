@@ -101,7 +101,7 @@ namespace
 
         if (skeletonNodes.empty())
         {
-            node.orientationWS = glm::quat();
+            node.orientation_ms_to_ws = glm::quat();
             node.inWidth = widthDistribution(rng);
             node.positionWS = glm::vec3(0.f);
         }
@@ -109,16 +109,16 @@ namespace
         {
             const TrackSkeletonNode& previousNode = skeletonNodes.back();
 
-            node.orientationWS = previousNode.orientationWS * previousNode.rotationLS;
+            node.orientation_ms_to_ws = previousNode.orientation_ms_to_ws * previousNode.end_orientation_ms;
             node.inWidth = previousNode.outWidth;
 
             const glm::vec3 offsetMS = UnitXAxis * (previousNode.radius + node.radius);
-            const glm::vec3 offsetWS = node.orientationWS * offsetMS;
+            const glm::vec3 offsetWS = node.orientation_ms_to_ws * offsetMS;
 
             node.positionWS = previousNode.positionWS + offsetWS;
         }
 
-        node.rotationLS = GenerateChunkEndLocalSpace(genInfo, rng);
+        node.end_orientation_ms = GenerateChunkEndLocalSpace(genInfo, rng);
         node.outWidth = widthDistribution(rng);
 
         return node;
@@ -173,7 +173,7 @@ void generate_track_splines(const std::vector<TrackSkeletonNode>& skeletonNodes,
         controlPoints[0] = glm::vec4(UnitXAxis * -node.radius, 1.0f);
         controlPoints[1] = glm::vec4(glm::vec3(0.0f), SplineInnerWeight);
         controlPoints[2] = glm::vec4(glm::vec3(0.0f), SplineInnerWeight);
-        controlPoints[3] = glm::vec4(node.rotationLS * UnitXAxis * node.radius, 1.0f);
+        controlPoints[3] = glm::vec4(node.end_orientation_ms * UnitXAxis * node.radius, 1.0f);
 
         splines[i] = Math::ConstructSpline(SplineOrder, controlPoints);
     }
@@ -222,7 +222,7 @@ namespace
         for (u32 i = 0; i < BoneCountPerChunk; i++)
         {
             const float      t = static_cast<float>(i) / static_cast<float>(BoneCountPerChunk);
-            const glm::fquat interpolatedOrientation = glm::slerp(glm::quat(), node.rotationLS, t);
+            const glm::fquat interpolatedOrientation = glm::slerp(glm::quat(), node.end_orientation_ms, t);
 
             const Bone&      bone = skinningInfo.bones[i];
             const glm::fvec3 plusX = glm::normalize(bone.end - bone.root);
@@ -301,7 +301,7 @@ void skin_track_chunk_mesh(const TrackSkeletonNode& node, const TrackSkinning& t
         if (glm::abs(skinnedVertex.w) > 0.0f)
             skinnedVertices[i] = glm::fvec3(skinnedVertex) / skinnedVertex.w;
 
-        skinnedVertices[i] = node.orientationWS * skinnedVertices[i];
+        skinnedVertices[i] = node.orientation_ms_to_ws * skinnedVertices[i];
     }
     mesh.positions = skinnedVertices;
 }
