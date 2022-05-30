@@ -7,6 +7,8 @@
 
 #include "FrameGraph.h"
 
+#include <core/Profile.h>
+
 #include <algorithm>
 
 namespace Reaper::FrameGraph
@@ -80,6 +82,8 @@ void ComputeTransitiveClosure(const DirectedAcyclicGraph& graph,
                                                                              rootNodes,
                               std::vector<DirectedAcyclicGraph::index_type>& outClosure)
 {
+    REAPER_PROFILE_SCOPE_FUNC();
+
     const u32 nodeCount = graph.Nodes.size();
 
     Assert(nodeCount != 0, "Empty graph");
@@ -207,6 +211,8 @@ namespace
 // NO fancy multiqueue stuff here. yet.
 FrameGraphSchedule compute_schedule(const FrameGraph& framegraph)
 {
+    REAPER_PROFILE_SCOPE_FUNC();
+
     FrameGraphSchedule schedule;
     const u32          renderPassCount = framegraph.RenderPasses.size();
 

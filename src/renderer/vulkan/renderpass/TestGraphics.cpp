@@ -422,134 +422,140 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     MICROPROFILE_GPU_BEGIN(cmdBuffer.handle, cmdBuffer.mlog);
 #endif
 
-    if (backend.mustTransitionSwapchain)
     {
-        REAPER_GPU_SCOPE(cmdBuffer, "Barrier");
+        REAPER_GPU_SCOPE(cmdBuffer, "GPU Frame");
 
-        std::vector<VkImageMemoryBarrier2> imageBarriers;
-
-        for (u32 swapchainImageIndex = 0; swapchainImageIndex < static_cast<u32>(backend.presentInfo.images.size());
-             swapchainImageIndex++)
+        if (backend.mustTransitionSwapchain)
         {
-            const GPUResourceAccess src_undefined = {VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT, VK_ACCESS_2_NONE,
-                                                     VK_IMAGE_LAYOUT_UNDEFINED};
-            const GPUResourceAccess dst_access = {VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT, VK_ACCESS_2_MEMORY_READ_BIT,
-                                                  VK_IMAGE_LAYOUT_PRESENT_SRC_KHR};
+            REAPER_GPU_SCOPE(cmdBuffer, "Barrier");
 
-            GPUTextureView view = {};
-            // view.format;
-            view.aspect = ViewAspect::Color;
-            view.mipCount = 1;
-            view.layerCount = 1;
+            std::vector<VkImageMemoryBarrier2> imageBarriers;
 
-            imageBarriers.emplace_back(
-                get_vk_image_barrier(backend.presentInfo.images[swapchainImageIndex], view, src_undefined, dst_access));
+            for (u32 swapchainImageIndex = 0; swapchainImageIndex < static_cast<u32>(backend.presentInfo.images.size());
+                 swapchainImageIndex++)
+            {
+                const GPUResourceAccess src_undefined = {VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT, VK_ACCESS_2_NONE,
+                                                         VK_IMAGE_LAYOUT_UNDEFINED};
+                const GPUResourceAccess dst_access = {VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT,
+                                                      VK_ACCESS_2_MEMORY_READ_BIT, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR};
+
+                GPUTextureView view = {};
+                // view.format;
+                view.aspect = ViewAspect::Color;
+                view.mipCount = 1;
+                view.layerCount = 1;
+
+                imageBarriers.emplace_back(get_vk_image_barrier(backend.presentInfo.images[swapchainImageIndex], view,
+                                                                src_undefined, dst_access));
+            }
+
+            const VkDependencyInfo dependencies =
+                get_vk_image_barrier_depency_info(static_cast<u32>(imageBarriers.size()), imageBarriers.data());
+
+            vkCmdPipelineBarrier2(cmdBuffer.handle, &dependencies);
+
+            backend.mustTransitionSwapchain = false;
         }
 
-        const VkDependencyInfo dependencies =
-            get_vk_image_barrier_depency_info(static_cast<u32>(imageBarriers.size()), imageBarriers.data());
-
-        vkCmdPipelineBarrier2(cmdBuffer.handle, &dependencies);
-
-        backend.mustTransitionSwapchain = false;
-    }
-
-    {
-        REAPER_GPU_SCOPE(cmdBuffer, "Material Upload");
-        record_material_upload_command_buffer(resources.material_resources.staging, cmdBuffer);
-    }
-
-    {
-        REAPER_GPU_SCOPE(cmdBuffer, "Culling");
-
-        if (!backend.options.freeze_culling)
         {
-            record_culling_command_buffer(root, cmdBuffer, prepared, resources.cull_resources);
+            REAPER_GPU_SCOPE(cmdBuffer, "Material Upload");
+            record_material_upload_command_buffer(resources.material_resources.staging, cmdBuffer);
         }
-    }
 
-    {
-        REAPER_GPU_SCOPE(cmdBuffer, "Shadow");
-        record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources, shadow_pass_handle,
-                                   true);
+        {
+            REAPER_GPU_SCOPE(cmdBuffer, "Culling");
 
-        record_shadow_map_command_buffer(cmdBuffer, prepared, resources.shadow_map_resources, shadow_map_views,
-                                         resources.cull_resources);
+            if (!backend.options.freeze_culling)
+            {
+                record_culling_command_buffer(root, cmdBuffer, prepared, resources.cull_resources);
+            }
+        }
 
-        record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources, shadow_pass_handle,
-                                   false);
-    }
+        {
+            REAPER_GPU_SCOPE(cmdBuffer, "Shadow");
+            record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
+                                       shadow_pass_handle, true);
 
-    {
-        REAPER_GPU_SCOPE(cmdBuffer, "Forward");
-        record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources, forward_pass_handle,
-                                   true);
+            record_shadow_map_command_buffer(cmdBuffer, prepared, resources.shadow_map_resources, shadow_map_views,
+                                             resources.cull_resources);
 
-        record_forward_pass_command_buffer(
-            cmdBuffer, prepared, resources.forward_pass_resources, resources.cull_resources, backbufferExtent,
-            get_frame_graph_texture(resources.framegraph_resources, framegraph, forward_hdr_usage_handle).view_handle,
-            get_frame_graph_texture(resources.framegraph_resources, framegraph, forward_depth_create_usage_handle)
-                .view_handle);
+            record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
+                                       shadow_pass_handle, false);
+        }
 
-        record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources, forward_pass_handle,
-                                   false);
-    }
+        {
+            REAPER_GPU_SCOPE(cmdBuffer, "Forward");
+            record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
+                                       forward_pass_handle, true);
 
-    {
-        REAPER_GPU_SCOPE(cmdBuffer, "GUI");
-        record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources, gui_pass_handle,
-                                   true);
+            record_forward_pass_command_buffer(
+                cmdBuffer, prepared, resources.forward_pass_resources, resources.cull_resources, backbufferExtent,
+                get_frame_graph_texture(resources.framegraph_resources, framegraph, forward_hdr_usage_handle)
+                    .view_handle,
+                get_frame_graph_texture(resources.framegraph_resources, framegraph, forward_depth_create_usage_handle)
+                    .view_handle);
 
-        record_gui_command_buffer(
-            cmdBuffer, resources.gui_pass_resources, backbufferExtent,
-            get_frame_graph_texture(resources.framegraph_resources, framegraph, gui_create_usage_handle).view_handle);
+            record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
+                                       forward_pass_handle, false);
+        }
 
-        record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources, gui_pass_handle,
-                                   false);
-    }
+        {
+            REAPER_GPU_SCOPE(cmdBuffer, "GUI");
+            record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources, gui_pass_handle,
+                                       true);
 
-    {
-        REAPER_GPU_SCOPE(cmdBuffer, "Histogram Clear");
-        record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
-                                   histogram_clear_pass_handle, true);
+            record_gui_command_buffer(
+                cmdBuffer, resources.gui_pass_resources, backbufferExtent,
+                get_frame_graph_texture(resources.framegraph_resources, framegraph, gui_create_usage_handle)
+                    .view_handle);
 
-        const u32        clear_value = 0;
-        FrameGraphBuffer histogram_buffer =
-            get_frame_graph_buffer(resources.framegraph_resources, framegraph, histogram_clear_usage_handle);
+            record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources, gui_pass_handle,
+                                       false);
+        }
 
-        vkCmdFillBuffer(cmdBuffer.handle, histogram_buffer.handle, histogram_buffer.view.offset_bytes,
-                        histogram_buffer.view.size_bytes, clear_value);
+        {
+            REAPER_GPU_SCOPE(cmdBuffer, "Histogram Clear");
+            record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
+                                       histogram_clear_pass_handle, true);
 
-        record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
-                                   histogram_clear_pass_handle, false);
-    }
+            const u32        clear_value = 0;
+            FrameGraphBuffer histogram_buffer =
+                get_frame_graph_buffer(resources.framegraph_resources, framegraph, histogram_clear_usage_handle);
 
-    {
-        REAPER_GPU_SCOPE(cmdBuffer, "Histogram");
-        record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
-                                   histogram_pass_handle, true);
+            vkCmdFillBuffer(cmdBuffer.handle, histogram_buffer.handle, histogram_buffer.view.offset_bytes,
+                            histogram_buffer.view.size_bytes, clear_value);
 
-        record_histogram_command_buffer(cmdBuffer, frame_data, resources.histogram_pass_resources);
+            record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
+                                       histogram_clear_pass_handle, false);
+        }
 
-        record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
-                                   histogram_pass_handle, false);
-    }
+        {
+            REAPER_GPU_SCOPE(cmdBuffer, "Histogram");
+            record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
+                                       histogram_pass_handle, true);
 
-    {
-        REAPER_GPU_SCOPE(cmdBuffer, "Swapchain");
-        record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
-                                   swapchain_pass_handle, true);
+            record_histogram_command_buffer(cmdBuffer, frame_data, resources.histogram_pass_resources);
 
-        record_swapchain_command_buffer(cmdBuffer, frame_data, resources.swapchain_pass_resources,
-                                        backend.presentInfo.imageViews[current_swapchain_index]);
+            record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
+                                       histogram_pass_handle, false);
+        }
 
-        record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
-                                   swapchain_pass_handle, false);
-    }
+        {
+            REAPER_GPU_SCOPE(cmdBuffer, "Swapchain");
+            record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
+                                       swapchain_pass_handle, true);
 
-    {
-        REAPER_GPU_SCOPE(cmdBuffer, "Audio");
-        record_audio_command_buffer(cmdBuffer, prepared, resources.audio_resources);
+            record_swapchain_command_buffer(cmdBuffer, frame_data, resources.swapchain_pass_resources,
+                                            backend.presentInfo.imageViews[current_swapchain_index]);
+
+            record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
+                                       swapchain_pass_handle, false);
+        }
+
+        {
+            REAPER_GPU_SCOPE(cmdBuffer, "Audio");
+            record_audio_command_buffer(cmdBuffer, prepared, resources.audio_resources);
+        }
     }
 
 #if defined(REAPER_USE_MICROPROFILE)

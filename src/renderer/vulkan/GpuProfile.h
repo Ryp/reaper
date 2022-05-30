@@ -13,10 +13,13 @@
 
 namespace Reaper
 {
+#define REAPER_TOKEN_MERGE0(a, b) a##b
+#define REAPER_TOKEN_MERGE(a, b) REAPER_TOKEN_MERGE0(a, b)
+
 // Inserts a CPU and GPU profile scope, as well as a region marker
-#define REAPER_GPU_SCOPE_COLOR(command_buffer, name, color)                                \
-    VulkanDebugLabelCmdBufferScope vk_scope_region##__LINE__(command_buffer.handle, name); \
-    REAPER_PROFILE_SCOPE_GPU(command_buffer.mlog, name, color);                            \
+#define REAPER_GPU_SCOPE_COLOR(command_buffer, name, color)                                               \
+    VulkanDebugLabelCmdBufferScope REAPER_TOKEN_MERGE(gpu_scope_, __LINE__)(command_buffer.handle, name); \
+    REAPER_PROFILE_SCOPE_GPU(command_buffer.mlog, name, color);                                           \
     REAPER_PROFILE_SCOPE_COLOR(name, color);
 
 #define REAPER_GPU_SCOPE(command_buffer, name) REAPER_GPU_SCOPE_COLOR(command_buffer, name, MP_GOLD)

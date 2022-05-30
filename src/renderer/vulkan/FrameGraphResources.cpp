@@ -9,6 +9,7 @@
 
 #include "Backend.h"
 #include "common/ReaperRoot.h"
+#include "core/Profile.h"
 
 namespace Reaper
 {
@@ -53,6 +54,8 @@ void destroy_framegraph_resources(VulkanBackend& backend, FrameGraphResources& r
 void allocate_framegraph_volatile_resources(ReaperRoot& root, VulkanBackend& backend, FrameGraphResources& resources,
                                             const FrameGraph::FrameGraph& framegraph)
 {
+    REAPER_PROFILE_SCOPE_FUNC();
+
     destroy_framegraph_volatile_resources(backend, resources); // FIXME Reuse previous resources here instead
     swap_resources(resources);
 

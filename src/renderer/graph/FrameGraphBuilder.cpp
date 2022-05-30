@@ -9,6 +9,8 @@
 
 #include "GraphDebug.h"
 
+#include <core/Profile.h>
+
 #include <cstring>
 
 namespace Reaper::FrameGraph
@@ -302,6 +304,8 @@ namespace
 
 void Builder::build()
 {
+    REAPER_PROFILE_SCOPE_FUNC();
+
     // Use the current graph to build an alternate representation
     // for easier processing.
     std::vector<DirectedAcyclicGraph::index_type> rootNodes;
