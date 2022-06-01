@@ -33,6 +33,8 @@ find_package(Vulkan REQUIRED)
 
 target_link_libraries(${MICROPROFILE_BIN} PRIVATE Vulkan::Vulkan)
 
+target_link_libraries(${MICROPROFILE_BIN} PUBLIC Vulkan::Headers)
+
 # NOTE: microprofile links its own libvulkan, because there's no easy way to provide our own symbols
 if(UNIX)
     target_link_libraries(${MICROPROFILE_BIN} PRIVATE pthread)

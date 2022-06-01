@@ -26,6 +26,10 @@ set(IMGUI_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/external/imgui)
 
 configure_file(${CMAKE_SOURCE_DIR}/external/imgui_config.h.in ${IMGUI_INCLUDE_DIR}/${REAPER_IMGUI_CONFIG} NEWLINE_STYLE UNIX)
 
+find_package(Vulkan REQUIRED)
+
+target_link_libraries(${IMGUI_BIN} PRIVATE Vulkan::Vulkan)
+
 target_include_directories(${IMGUI_BIN} PRIVATE ${IMGUI_INCLUDE_DIR})
 
 target_include_directories(${IMGUI_BIN} SYSTEM INTERFACE ${IMGUI_INCLUDE_DIR})
