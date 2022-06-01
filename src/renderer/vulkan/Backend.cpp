@@ -469,7 +469,8 @@ bool vulkan_check_physical_device(IWindow*                        window,
 
     vkGetPhysicalDeviceFeatures2(physical_device, &device_features2);
 
-    Assert(device_properties.apiVersion >= REAPER_VK_API_VERSION);
+    Assert(device_properties.apiVersion >= REAPER_VK_API_VERSION,
+           "Unsupported Vulkan version. Is your GPU driver too old?");
     Assert(device_properties.limits.maxImageDimension2D >= 4096);
     Assert(device_features2.features.shaderClipDistance == VK_TRUE); // This is just checked, not enabled
     Assert(device_features2.features.shaderClipDistance == VK_TRUE); // This is just checked, not enabled
