@@ -22,9 +22,11 @@
 
 namespace Reaper
 {
+static constexpr u32 InvalidNodeIndex = u32(-1);
 struct Node
 {
     glm::fmat4x3 transform_matrix;
+    u32          parent_scene_node = InvalidNodeIndex;
 };
 
 struct SceneCamera
@@ -57,9 +59,13 @@ struct SceneGraph
     std::vector<SceneLight> lights;
 };
 
-REAPER_RENDERER_API u32 insert_scene_node(SceneGraph& scene, glm::mat4x3 transform_matrix);
+REAPER_RENDERER_API u32 insert_scene_node(SceneGraph& scene, glm::mat4x3 transform_matrix,
+                                          u32 parent_node_index = InvalidNodeIndex);
 REAPER_RENDERER_API u32 insert_scene_mesh(SceneGraph& scene, SceneMesh scene_mesh);
 REAPER_RENDERER_API u32 insert_scene_light(SceneGraph& scene, SceneLight scene_light);
+
+// FIXME Support proper parenting with caching and disallow cycles!
+REAPER_RENDERER_API glm::fmat4x3 get_scene_node_transform_slow(const SceneGraph& scene, u32 node_index);
 
 struct CullCmd
 {

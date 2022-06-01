@@ -187,15 +187,16 @@ void execute_game_loop(ReaperRoot& root)
 
         // Ship scene node
         {
-            const glm::fmat4x3 player_mesh_transform =
-                glm::scale(glm::fmat4(player_initial_transform), glm::vec3(0.1f));
+            // NOTE: one node is for the physics object, and the mesh is a child node
+            player_scene_node_index = insert_scene_node(scene, player_initial_transform);
+
+            const glm::fmat4x3 mesh_transform = glm::scale(glm::fmat4(1.f), glm::vec3(0.05f));
 
             SceneMesh scene_mesh;
-            scene_mesh.node_index = insert_scene_node(scene, player_mesh_transform);
+            scene_mesh.node_index = insert_scene_node(scene, mesh_transform, player_scene_node_index);
             scene_mesh.mesh_handle = mesh_handles.back(); // FIXME
             scene_mesh.texture_handle = backend.resources->material_resources.texture_handles[1];
 
-            player_scene_node_index = scene_mesh.node_index;
             insert_scene_mesh(scene, scene_mesh);
         }
 
