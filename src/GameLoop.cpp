@@ -224,13 +224,14 @@ void execute_game_loop(ReaperRoot& root)
         const glm::vec3 light_target_ws = glm::vec3(0.f, 0.f, 0.f);
 
         {
-            const glm::vec3    light_position_ws = glm::vec3(-2.f, 2.f, 2.f);
-            const glm::fmat4x3 light_transform = glm::inverse(glm::lookAt(light_position_ws, light_target_ws, up_ws));
+            const glm::vec3    light_position_ws = glm::vec3(-1.f, 0.f, 0.f);
+            const glm::fmat4x3 light_transform = glm::translate(glm::mat4(1.0f), glm::vec3(2.f, 0.f, 0.f))
+                                                 * glm::inverse(glm::lookAt(light_position_ws, light_target_ws, up_ws));
 
             SceneLight light;
             light.color = glm::fvec3(0.03f, 0.21f, 0.61f);
             light.intensity = 6.f;
-            light.scene_node = insert_scene_node(scene, light_transform);
+            light.scene_node = insert_scene_node(scene, light_transform, player_scene_node_index);
             light.shadow_map_size = glm::uvec2(1024, 1024);
 
             insert_scene_light(scene, light);
