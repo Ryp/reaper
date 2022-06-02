@@ -60,8 +60,8 @@ namespace
 
 u32 insert_scene_node(SceneGraph& scene, glm::mat4x3 transform_matrix, u32 parent_node_index)
 {
-    u32   node_index = scene.nodes.size();
-    Node& node = scene.nodes.emplace_back();
+    u32        node_index = scene.nodes.size();
+    SceneNode& node = scene.nodes.emplace_back();
     node.transform_matrix = transform_matrix;
     node.parent_scene_node = parent_node_index;
 
@@ -91,9 +91,9 @@ glm::fmat4x3 get_scene_node_transform_slow(const SceneGraph& scene, u32 node_ind
 
     do
     {
-        const Node& node = scene.nodes[current_parent];
+        const SceneNode& node = scene.nodes[current_parent];
 
-        accum = accum * glm::fmat4(node.transform_matrix);
+        accum = glm::fmat4(node.transform_matrix) * accum;
         current_parent = node.parent_scene_node;
     } while (current_parent != InvalidNodeIndex);
 
@@ -147,9 +147,10 @@ void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCa
         ShadowMapPassParams& shadow_pass_params = prepared.shadow_pass_params.emplace_back();
         shadow_pass_params.dummy = glm::mat4(1.f);
 
-        const glm::fmat4 light_transform = glm::fmat4(get_scene_node_transform_slow(scene, light.scene_node));
-        const glm::fmat4 light_projection_matrix = default_light_projection_matrix();
-        const glm::fmat4 light_view_proj_matrix = light_projection_matrix * light_transform;
+        const glm::fmat4x3 light_transform = get_scene_node_transform_slow(scene, light.scene_node);
+        const glm::fmat4x3 light_transform_inv = glm::inverse(glm::fmat4(light_transform));
+        const glm::fmat4   light_projection_matrix = default_light_projection_matrix();
+        const glm::fmat4   light_view_proj_matrix = light_projection_matrix * glm::mat4(light_transform_inv);
 
         for (u32 i = 0; i < scene.meshes.size(); i++)
         {
@@ -164,7 +165,7 @@ void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCa
 
             cull_instance.ms_to_cs_matrix = shadow_instance.ms_to_cs_matrix;
 
-            const glm::mat4x3 modelView = light_transform * glm::mat4(mesh_transform);
+            const glm::mat4x3 modelView = glm::mat4(light_transform_inv) * glm::mat4(mesh_transform);
             const glm::mat4x3 vs_to_ms_matrix = glm::inverse(glm::mat4(modelView));
 
             cull_instance.vs_to_ms_matrix_translate = vs_to_ms_matrix * glm::vec4(0.f, 0.f, 0.f, 1.f);
@@ -190,26 +191,29 @@ void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCa
         build_perspective_matrix(near_plane_distance, far_plane_distance, aspect_ratio, fov_radian),
         ForwardUseReverseZ);
 
-    const glm::fmat4x3 main_camera_transform = get_scene_node_transform_slow(scene, scene.camera.scene_node);
+    const glm::fmat4 main_camera_transform = get_scene_node_transform_slow(scene, scene.camera.scene_node);
+    const glm::fmat4 main_camera_transform_inv = glm::inverse(main_camera_transform);
 
     // Main + culling pass
-    const glm::mat4 main_camera_view_proj = camera_projection_matrix * glm::mat4(main_camera_transform);
+    const glm::mat4 main_camera_view_proj = camera_projection_matrix * main_camera_transform_inv;
 
-    prepared.forward_pass_constants.ws_to_vs_matrix = main_camera_transform;
+    prepared.forward_pass_constants.ws_to_vs_matrix = glm::fmat4x3(main_camera_transform_inv);
     prepared.forward_pass_constants.vs_to_cs_matrix = camera_projection_matrix;
     prepared.forward_pass_constants.ws_to_cs_matrix = main_camera_view_proj;
     prepared.forward_pass_constants.point_light_count = scene.lights.size();
 
     for (u32 scene_light_index = 0; scene_light_index < scene.lights.size(); scene_light_index++)
     {
-        const SceneLight& light = scene.lights[scene_light_index];
-        const glm::fmat4  light_transform = glm::fmat4(get_scene_node_transform_slow(scene, light.scene_node));
+        const SceneLight&  light = scene.lights[scene_light_index];
+        const glm::fmat4x3 light_transform = get_scene_node_transform_slow(scene, light.scene_node);
+        const glm::fmat4x3 light_transform_inv = glm::inverse(glm::fmat4(light_transform));
 
-        const glm::vec3 light_position_ws = glm::inverse(light_transform) * glm::vec4(0.f, 0.f, 0.f, 1.0f);
-        const glm::vec3 light_position_vs = main_camera_transform * glm::fvec4(light_position_ws, 1.f);
+        const glm::vec3 light_position_ws = light_transform * glm::vec4(0.f, 0.f, 0.f, 1.0f);
+        const glm::vec3 light_position_vs =
+            glm::fmat4x3(main_camera_transform_inv) * glm::fvec4(light_position_ws, 1.f);
 
         const glm::fmat4 light_projection_matrix = default_light_projection_matrix();
-        const glm::fmat4 light_view_proj_matrix = light_projection_matrix * light_transform;
+        const glm::fmat4 light_view_proj_matrix = light_projection_matrix * glm::fmat4(light_transform_inv);
 
         PointLightProperties point_light;
         point_light.light_ws_to_cs = light_view_proj_matrix;
@@ -235,7 +239,7 @@ void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCa
 
             // Assumption that our 3x3 submatrix is orthonormal (no skew/non-uniform scaling)
             // FIXME use 4x3 matrices directly
-            const glm::mat4x3 modelView = glm::mat4(main_camera_transform) * glm::mat4(mesh_transform);
+            const glm::mat4x3 modelView = main_camera_transform_inv * glm::mat4(mesh_transform);
 
             ForwardInstanceParams& forward_instance = prepared.forward_instances.emplace_back();
             forward_instance.ms_to_ws_matrix = mesh_transform;

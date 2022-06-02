@@ -35,6 +35,7 @@
 
 #define ENABLE_TEST_SCENE 0
 #define ENABLE_GAME_SCENE 1
+#define ENABLE_FREE_CAM 0
 
 namespace Reaper
 {
@@ -44,12 +45,7 @@ namespace
     SceneGraph create_static_test_scene_graph(MeshHandle mesh_handle, TextureHandle texture_handle)
     {
         SceneGraph scene;
-#    if 1
         scene.camera.scene_node = insert_scene_node(scene, glm::translate(glm::mat4(1.0f), glm::vec3(-10.f, 3.f, 3.f)));
-#    else
-        scene.camera.scene_node =
-            insert_scene_node(scene, glm::translate(glm::mat4(1.0f), glm::vec3(300.f, 300.f, 300.f)));
-#    endif
 
         constexpr i32 asteroid_count = 4;
 
@@ -77,7 +73,7 @@ namespace
         const glm::vec3    light_target_ws = glm::vec3(0.f, 0.f, 0.f);
         const glm::vec3    up_ws = glm::vec3(0.f, 1.f, 0.f);
         const glm::vec3    light_position_ws = glm::vec3(-4.f, -4.f, -4.f);
-        const glm::fmat4x3 light_transform = glm::lookAt(light_position_ws, light_target_ws, up_ws);
+        const glm::fmat4x3 light_transform = glm::inverse(glm::lookAt(light_position_ws, light_target_ws, up_ws));
 
         SceneLight light;
         light.color = glm::fvec3(1.f, 1.f, 1.f);
@@ -183,17 +179,30 @@ void execute_game_loop(ReaperRoot& root)
     // Build scene
     u32 player_scene_node_index;
     {
-        scene.camera.scene_node = insert_scene_node(scene, glm::translate(glm::mat4(1.0f), glm::vec3(-5.f, 0.f, 0.f)));
+        const glm::vec3 up_ws = glm::vec3(0.f, 1.f, 0.f);
 
         // Ship scene node
         {
             // NOTE: one node is for the physics object, and the mesh is a child node
             player_scene_node_index = insert_scene_node(scene, player_initial_transform);
 
-            const glm::fmat4x3 mesh_transform = glm::scale(glm::fmat4(1.f), glm::vec3(0.05f));
+#    if ENABLE_FREE_CAM
+            const glm::fvec3 camera_position = glm::vec3(-5.f, 0.f, 0.f);
+            const u32        camera_parent_index = InvalidNodeIndex;
+#    else
+            const glm::fvec3 camera_position = glm::vec3(-5.f, 2.f, 0.f);
+            const u32        camera_parent_index = player_scene_node_index;
+#    endif
+
+            const glm::fvec3   camera_local_target = glm::vec3(0.f, 0.f, 0.f);
+            const glm::fmat4x3 camera_local_transform =
+                glm::inverse(glm::lookAt(camera_position, camera_local_target, up_ws));
+            scene.camera.scene_node = insert_scene_node(scene, camera_local_transform, camera_parent_index);
+
+            const glm::fmat4x3 mesh_local_transform = glm::scale(glm::fmat4(1.f), glm::vec3(0.05f));
 
             SceneMesh scene_mesh;
-            scene_mesh.node_index = insert_scene_node(scene, mesh_transform, player_scene_node_index);
+            scene_mesh.node_index = insert_scene_node(scene, mesh_local_transform, player_scene_node_index);
             scene_mesh.mesh_handle = mesh_handles.back(); // FIXME
             scene_mesh.texture_handle = backend.resources->material_resources.texture_handles[1];
 
@@ -213,11 +222,10 @@ void execute_game_loop(ReaperRoot& root)
 
         // Add lights
         const glm::vec3 light_target_ws = glm::vec3(0.f, 0.f, 0.f);
-        const glm::vec3 up_ws = glm::vec3(0.f, 1.f, 0.f);
 
         {
             const glm::vec3    light_position_ws = glm::vec3(-2.f, 2.f, 2.f);
-            const glm::fmat4x3 light_transform = glm::lookAt(light_position_ws, light_target_ws, up_ws);
+            const glm::fmat4x3 light_transform = glm::inverse(glm::lookAt(light_position_ws, light_target_ws, up_ws));
 
             SceneLight light;
             light.color = glm::fvec3(0.03f, 0.21f, 0.61f);
@@ -230,7 +238,7 @@ void execute_game_loop(ReaperRoot& root)
 
         {
             const glm::fvec3   light_position_ws = glm::vec3(-2.f, -2.f, -2.f);
-            const glm::fmat4x3 light_transform = glm::lookAt(light_position_ws, light_target_ws, up_ws);
+            const glm::fmat4x3 light_transform = glm::inverse(glm::lookAt(light_position_ws, light_target_ws, up_ws));
 
             SceneLight light;
             light.color = glm::fvec3(0.61f, 0.21f, 0.03f);
@@ -243,7 +251,7 @@ void execute_game_loop(ReaperRoot& root)
 
         {
             const glm::vec3    light_position_ws = glm::vec3(0.f, -2.f, 2.f);
-            const glm::fmat4x3 light_transform = glm::lookAt(light_position_ws, light_target_ws, up_ws);
+            const glm::fmat4x3 light_transform = glm::inverse(glm::lookAt(light_position_ws, light_target_ws, up_ws));
 
             SceneLight light;
             light.color = glm::fvec3(0.03f, 0.8f, 0.21f);
@@ -259,18 +267,20 @@ void execute_game_loop(ReaperRoot& root)
     backend.mustTransitionSwapchain = true;
 
     const u64 MaxFrameCount = 0;
-    bool      saveMyLaptop = true;
+    bool      saveMyLaptop = false;
     bool      shouldExit = false;
     u64       frameIndex = 0;
 
     DS4 ds4("/dev/input/js0");
     ds4.connect();
 
-    Node& camera_node = scene.nodes[scene.camera.scene_node];
+#if ENABLE_FREE_CAM
+    SceneNode& camera_node = scene.nodes[scene.camera.scene_node];
 
     // Try to match the camera state with the initial transform of the scene node
     CameraState camera_state = {};
     camera_state.position = camera_node.transform_matrix[3];
+#endif
 
     const auto startTime = std::chrono::system_clock::now();
     auto       lastFrameStart = startTime;
@@ -291,11 +301,6 @@ void execute_game_loop(ReaperRoot& root)
         if (ds4.isPressed(DS4::Square))
             toggle(backend.options.freeze_culling);
 
-        const glm::vec2 yaw_pitch_delta =
-            glm::vec2(ds4.getAxis(DS4::RightAnalogY), -ds4.getAxis(DS4::RightAnalogX)) * timeDtSecs;
-        const glm::vec2 forward_side_delta =
-            glm::vec2(ds4.getAxis(DS4::LeftAnalogY), ds4.getAxis(DS4::LeftAnalogX)) * timeDtSecs;
-
 #if ENABLE_GAME_SCENE
         SplineSonic::sim_update(sim, timeDtSecs);
 
@@ -304,13 +309,21 @@ void execute_game_loop(ReaperRoot& root)
 
         log_info(root, "sim: player pos = ({}, {}, {})", player_translation[0], player_translation[1],
                  player_translation[2]);
-        Node& player_scene_node = scene.nodes[player_scene_node_index];
+
+        SceneNode& player_scene_node = scene.nodes[player_scene_node_index];
         player_scene_node.transform_matrix = player_transform;
 #endif
 
+#if ENABLE_FREE_CAM
+        const glm::vec2 yaw_pitch_delta =
+            glm::vec2(ds4.getAxis(DS4::RightAnalogY), -ds4.getAxis(DS4::RightAnalogX)) * timeDtSecs;
+        const glm::vec2 forward_side_delta =
+            glm::vec2(ds4.getAxis(DS4::LeftAnalogY), ds4.getAxis(DS4::LeftAnalogX)) * timeDtSecs;
+
         update_camera_state(camera_state, yaw_pitch_delta, forward_side_delta);
 
-        camera_node.transform_matrix = compute_camera_view_matrix(camera_state);
+        camera_node.transform_matrix = glm::inverse(compute_camera_view_matrix(camera_state));
+#endif
 
         log_debug(root, "renderer: begin frame {}", frameIndex);
 

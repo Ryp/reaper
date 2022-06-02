@@ -167,7 +167,7 @@ namespace
         // Integrate forces
         glm::vec3 forces = {};
         // forces += - shipUp * 98.331f; // 10x earth gravity
-        forces += -shipUp * 450.0f; // lot of times earth gravity
+        forces += -shipUp * 200.0f; // lot of times earth gravity
         // forces += shipFwd * factors.getThrustFactor() * player->getAcceleration(); // Engine thrust
         //      forces += shipFwd * player.getAcceleration(); // Engine thrust
         // forces += -glm::proj(movement.speed, shipFwd) * factors.getBrakeFactor() * sim.pBrakesForce; // Brakes force

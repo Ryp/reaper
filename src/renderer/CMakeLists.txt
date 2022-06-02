@@ -19,8 +19,6 @@ target_sources(${target} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/Renderer.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Renderer.h
     ${CMAKE_CURRENT_SOURCE_DIR}/RendererExport.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/Scene.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/Scene.h
 
     ${CMAKE_CURRENT_SOURCE_DIR}/buffer/GPUBufferProperties.h
     ${CMAKE_CURRENT_SOURCE_DIR}/buffer/GPUBufferView.cpp

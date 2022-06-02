@@ -23,10 +23,10 @@
 namespace Reaper
 {
 static constexpr u32 InvalidNodeIndex = u32(-1);
-struct Node
+struct SceneNode
 {
-    glm::fmat4x3 transform_matrix;
-    u32          parent_scene_node = InvalidNodeIndex;
+    glm::fmat4x3 transform_matrix;                     // Local space to parent space
+    u32          parent_scene_node = InvalidNodeIndex; // If no parent, parent space is world space
 };
 
 struct SceneCamera
@@ -52,7 +52,7 @@ struct SceneLight
 
 struct SceneGraph
 {
-    std::vector<Node> nodes;
+    std::vector<SceneNode> nodes;
 
     SceneCamera             camera;
     std::vector<SceneMesh>  meshes;
