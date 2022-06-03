@@ -140,7 +140,7 @@ void execute_game_loop(ReaperRoot& root)
 
     const std::string         assetFile("res/model/track/chunk_simple.obj");
     std::vector<Mesh>         meshes(genInfo.length);
-    std::vector<glm::fmat4x3> transforms(genInfo.length);
+    std::vector<glm::fmat4x3> chunk_transforms(genInfo.length);
 
     for (u32 i = 0; i < genInfo.length; i++)
     {
@@ -149,16 +149,17 @@ void execute_game_loop(ReaperRoot& root)
 
         const SplineSonic::TrackSkeletonNode& track_node = game_track.skeletonNodes[i];
 
-        transforms[i] = glm::translate(glm::mat4(1.0f), track_node.positionWS);
+        chunk_transforms[i] = glm::translate(glm::mat4(1.0f), track_node.positionWS);
 
         SplineSonic::skin_track_chunk_mesh(track_node, game_track.skinning[i], meshes[i], 10.0f);
     }
 
     // NOTE: bullet will hold pointers to the original mesh data without copy
-    SplineSonic::sim_register_static_collision_meshes(sim, meshes, transforms);
+    SplineSonic::sim_register_static_collision_meshes(sim, meshes, chunk_transforms);
 
-    const glm::fmat4x3 player_initial_transform = glm::translate(glm::mat4(1.0f), glm::vec3(0.f, 2.f, 0.f));
-    SplineSonic::sim_create_player_rigid_body(sim, player_initial_transform);
+    const glm::fmat4x3 player_initial_transform = glm::translate(glm::mat4(1.0f), glm::vec3(0.2f, 0.6f, 0.f));
+    const glm::fvec3   player_shape_extent(0.2f, 0.1f, 0.1f);
+    SplineSonic::sim_create_player_rigid_body(sim, player_initial_transform, player_shape_extent);
 
     std::ifstream ship_obj_file("res/model/fighter.obj");
     meshes.push_back(ModelLoader::loadOBJ(ship_obj_file));
@@ -188,13 +189,14 @@ void execute_game_loop(ReaperRoot& root)
 
 #    if ENABLE_FREE_CAM
             const glm::fvec3 camera_position = glm::vec3(-5.f, 0.f, 0.f);
+            const glm::fvec3 camera_local_target = glm::vec3(0.f, 0.f, 0.f);
             const u32        camera_parent_index = InvalidNodeIndex;
 #    else
-            const glm::fvec3 camera_position = glm::vec3(-5.f, 2.f, 0.f);
+            const glm::fvec3 camera_position = glm::vec3(-2.f, 1.f, 0.f);
+            const glm::fvec3 camera_local_target = glm::vec3(1.f, 0.f, 0.f);
             const u32        camera_parent_index = player_scene_node_index;
 #    endif
 
-            const glm::fvec3   camera_local_target = glm::vec3(0.f, 0.f, 0.f);
             const glm::fmat4x3 camera_local_transform =
                 glm::inverse(glm::lookAt(camera_position, camera_local_target, up_ws));
             scene.camera.scene_node = insert_scene_node(scene, camera_local_transform, camera_parent_index);
@@ -213,7 +215,7 @@ void execute_game_loop(ReaperRoot& root)
         for (u32 chunk_index = 0; chunk_index < genInfo.length; chunk_index++)
         {
             SceneMesh scene_mesh;
-            scene_mesh.node_index = insert_scene_node(scene, transforms[chunk_index]);
+            scene_mesh.node_index = insert_scene_node(scene, chunk_transforms[chunk_index]);
             scene_mesh.mesh_handle = mesh_handles[chunk_index]; // FIXME
             scene_mesh.texture_handle = backend.resources->material_resources.texture_handles[0];
 
@@ -238,7 +240,7 @@ void execute_game_loop(ReaperRoot& root)
         }
 
         {
-            const glm::fvec3   light_position_ws = glm::vec3(-2.f, -2.f, -2.f);
+            const glm::fvec3   light_position_ws = glm::vec3(3.f, 3.f, 3.f);
             const glm::fmat4x3 light_transform = glm::inverse(glm::lookAt(light_position_ws, light_target_ws, up_ws));
 
             SceneLight light;
@@ -251,7 +253,7 @@ void execute_game_loop(ReaperRoot& root)
         }
 
         {
-            const glm::vec3    light_position_ws = glm::vec3(0.f, -2.f, 2.f);
+            const glm::vec3    light_position_ws = glm::vec3(0.f, 3.f, -3.f);
             const glm::fmat4x3 light_transform = glm::inverse(glm::lookAt(light_position_ws, light_target_ws, up_ws));
 
             SceneLight light;

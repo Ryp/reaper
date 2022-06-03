@@ -8,6 +8,7 @@
 #include "Test.h"
 
 #if defined(REAPER_USE_BULLET_PHYSICS)
+#    include <BulletCollision/CollisionShapes/btBoxShape.h>
 #    include <BulletCollision/CollisionShapes/btBvhTriangleMeshShape.h>
 #    include <BulletCollision/CollisionShapes/btTriangleMesh.h>
 #    include <BulletCollision/Gimpact/btGImpactCollisionAlgorithm.h>
@@ -76,27 +77,14 @@ inline btTransform toBt(const glm::fmat4x3& transform)
 }
 #endif
 
-namespace glm
-{
-inline glm::vec3 forward()
-{
-    return glm::vec3(1.0f, 0.0f, 0.0f);
-}
-inline glm::vec3 up()
-{
-    return glm::vec3(0.0f, 1.0f, 0.0f);
-}
-inline glm::vec3 side()
-{
-    return glm::vec3(0.0f, 0.0f, 1.0f);
-}
-} // namespace glm
-
 namespace SplineSonic
 {
 namespace
 {
     static const int SimulationMaxSubStep = 3; // FIXME
+
+    glm::fvec3 forward() { return glm::vec3(1.0f, 0.0f, 0.0f); }
+    glm::fvec3 up() { return glm::vec3(0.0f, 1.0f, 0.0f); }
 
     /*
     void steer(float dtSecs, Movement& movement, float amount)
@@ -108,7 +96,7 @@ namespace
 
         movement.inclination =
             glm::clamp(movement.inclination + (inclForce + inclinationRepel) * dtSecs, -inclinationMax, inclinationMax);
-        movement.orientation *= glm::angleAxis(-amount * steerMultiplier, glm::up());
+        movement.orientation *= glm::angleAxis(-amount * steerMultiplier, up());
     }
     */
 
@@ -154,8 +142,8 @@ namespace
         glm::vec3       shipUp;
         glm::vec3       shipFwd;
 
-        shipUp = projected_orientation * glm::up();
-        shipFwd = player_orientation * glm::forward();
+        shipUp = projected_orientation * up();
+        shipFwd = player_orientation * forward();
         // FIXME shipFwd = glm::normalize(shipFwd - glm::proj(shipFwd, shipUp)); // Ship Fwd in on slice plane
 
         // Re-eval ship orientation
@@ -166,8 +154,7 @@ namespace
 
         // Integrate forces
         glm::vec3 forces = {};
-        // forces += - shipUp * 98.331f; // 10x earth gravity
-        forces += -shipUp * 200.0f; // lot of times earth gravity
+        forces += -shipUp * 98.331f; // 10x earth gravity
         // forces += shipFwd * factors.getThrustFactor() * player->getAcceleration(); // Engine thrust
         //      forces += shipFwd * player.getAcceleration(); // Engine thrust
         // forces += -glm::proj(movement.speed, shipFwd) * factors.getBrakeFactor() * sim.pBrakesForce; // Brakes force
@@ -185,6 +172,38 @@ namespace
         playerRigidBody->clearForces();
         playerRigidBody->applyCentralForce(toBt(forces));
     }
+
+    /*
+    {
+        shipUp = projection.orientation * glm::up();
+        shipFwd = movement.orientation * glm::forward();
+        shipFwd = glm::normalize(shipFwd - glm::proj(shipFwd, shipUp)); // Ship Fwd in on slice plane
+
+        // Re-eval ship orientation
+        movement.orientation = glm::quat(glm::mat3(shipFwd, shipUp, glm::cross(shipFwd, shipUp)));
+
+        // change steer angle
+        steer(dt, movement, factors.getTurnFactor());
+
+        // sum all forces
+        // forces += - shipUp * 98.331f; // 10x earth gravity
+        forces += -shipUp * 450.0f;                                                // lot of times earth gravity
+        forces += shipFwd * factors.getThrustFactor() * player->getAcceleration(); // Engine thrust
+        forces += -glm::proj(movement.speed, shipFwd) * factors.getBrakeFactor() * _pBrakesForce; // Brakes force
+        forces += -glm::proj(movement.speed, glm::cross(shipFwd, shipUp)) * _pHandling;           // Handling term
+        forces += -movement.speed * _pLinearFriction;                                             // Linear friction
+    term forces += -movement.speed * glm::length(movement.speed) * _pQuadFriction;                 // Quadratic friction
+    term
+
+        // Progressive repelling force that pushes the ship downwards
+        float upSpeed = glm::length(movement.speed - glm::proj(movement.speed, shipUp));
+        if (projection.relativePosition.y > 2.0f && upSpeed > 0.0f)
+            forces += movement.orientation * (glm::vec3(0.0f, 2.0f - upSpeed, 0.0f) * 10.0f);
+
+        playerRigidBody->clearForces();
+        playerRigidBody->applyCentralForce(toBt(forces));
+    }
+    */
 
     void post_tick(PhysicsSim& sim, float /*dt*/)
     {
@@ -237,12 +256,12 @@ void destroy_sim(PhysicsSim& sim)
     for (auto vb : sim.vertexArrayInterfaces)
         delete vb;
 
-    for (auto playerInfo : sim.players)
+    for (auto player_rigid_body : sim.players)
     {
-        sim.dynamicsWorld->removeRigidBody(playerInfo);
-        delete playerInfo->getMotionState();
-        delete playerInfo->getCollisionShape();
-        delete playerInfo;
+        sim.dynamicsWorld->removeRigidBody(player_rigid_body);
+        delete player_rigid_body->getMotionState();
+        delete player_rigid_body->getCollisionShape();
+        delete player_rigid_body;
     }
 
     // Delete the rest of the bullet context
@@ -364,23 +383,28 @@ void sim_register_static_collision_meshes(PhysicsSim& sim, const nonstd::span<Me
 #endif
 }
 
-void sim_create_player_rigid_body(PhysicsSim& sim, const glm::fmat4x3& player_transform)
+void sim_create_player_rigid_body(PhysicsSim& sim, const glm::fmat4x3& player_transform, const glm::fvec3& shape_extent)
 {
 #if defined(REAPER_USE_BULLET_PHYSICS)
     btMotionState*    motionState = new btDefaultMotionState(toBt(player_transform));
-    btCollisionShape* collisionShape = new btCapsuleShapeX(2.0f, 3.0f);
-    btScalar          mass = 10.f; // FIXME
-    btVector3         inertia(0.f, 0.f, 0.f);
+    btCollisionShape* collisionShape = new btBoxShape(toBt(shape_extent));
+
+    btScalar  mass = 10.f; // FIXME
+    btVector3 inertia(0.f, 0.f, 0.f);
 
     collisionShape->calculateLocalInertia(mass, inertia);
     btRigidBody::btRigidBodyConstructionInfo constructInfo(mass, motionState, collisionShape, inertia);
 
-    btRigidBody* playerInfo = new btRigidBody(constructInfo);
-    playerInfo->setFriction(0.1f);
-    playerInfo->setRollingFriction(0.8f);
+    btRigidBody* player_rigid_body = new btRigidBody(constructInfo);
+    player_rigid_body->setFriction(0.1f);
+    player_rigid_body->setRollingFriction(0.8f);
 
-    sim.dynamicsWorld->addRigidBody(playerInfo);
-    sim.players.push_back(playerInfo);
+    // FIXME doesn't do anything? Wrong collision mesh?
+    player_rigid_body->setCcdMotionThreshold(0.0005f);
+    player_rigid_body->setCcdSweptSphereRadius(shape_extent.x);
+
+    sim.dynamicsWorld->addRigidBody(player_rigid_body);
+    sim.players.push_back(player_rigid_body);
 #else
     static_cast<void>(sim);
 #endif
