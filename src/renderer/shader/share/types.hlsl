@@ -81,6 +81,7 @@
     #define hlsl_float4x4 column_major float4x4
     #endif
 #else
+    #include <core/Types.h>
     #include "renderer/hlsl/Types.inl"
 
     using hlsl_int = i32;

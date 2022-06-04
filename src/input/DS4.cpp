@@ -7,6 +7,7 @@
 
 #include "DS4.h"
 
+#include "core/Assert.h"
 #include "core/Platform.h"
 
 #include <cmath>

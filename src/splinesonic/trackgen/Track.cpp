@@ -7,11 +7,13 @@
 
 #include "Track.h"
 
-#include "math/Constants.h"
-#include "math/FloatComparison.h"
-#include "math/Spline.h"
+#include <core/Assert.h>
 
-#include "mesh/Mesh.h"
+#include <math/Constants.h>
+#include <math/FloatComparison.h>
+#include <math/Spline.h>
+
+#include <mesh/Mesh.h>
 
 #include "splinesonic/Constants.h"
 

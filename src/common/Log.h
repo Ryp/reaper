@@ -7,9 +7,10 @@
 
 #pragma once
 
+#include "CommonExport.h"
 #include "ReaperRoot.h"
 
-#include "fmt/format.h"
+#include <fmt/format.h>
 
 namespace Reaper
 {

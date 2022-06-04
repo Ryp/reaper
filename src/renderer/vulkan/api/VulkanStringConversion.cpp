@@ -7,6 +7,8 @@
 
 #include "VulkanStringConversion.h"
 
+#include <core/Assert.h>
+
 namespace vk
 {
 const char* GetResultToString(VkResult result)

@@ -7,9 +7,10 @@
 
 #include "DebugLog.h"
 
-#include <iostream>
+#include <core/Assert.h>
+#include <core/EnumHelper.h>
 
-#include "core/EnumHelper.h"
+#include <iostream>
 
 namespace Reaper
 {

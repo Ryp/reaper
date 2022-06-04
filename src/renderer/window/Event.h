@@ -7,6 +7,8 @@
 
 #pragma once
 
+#include <core/Types.h>
+
 namespace Reaper::Window
 {
 enum class EventType

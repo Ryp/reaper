@@ -11,6 +11,8 @@
 #define VK_NO_PROTOTYPES
 #include <vulkan/vulkan.h>
 
+#include <core/Types.h>
+
 // You can use this instead of 0 when passing empty flags to vulkan structs
 constexpr u32 VK_FLAGS_NONE = 0;
 

@@ -7,6 +7,11 @@
 
 #pragma once
 
+#include "TrackGenExport.h"
+
+#include <core/Profile.h>
+#include <core/Types.h>
+
 #include <vector>
 
 #include <glm/glm.hpp>

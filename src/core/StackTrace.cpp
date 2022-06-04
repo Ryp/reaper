@@ -7,6 +7,8 @@
 
 #include "StackTrace.h"
 
+#include <core/Platform.h>
+
 #if defined(REAPER_PLATFORM_LINUX)
 
 #    define UNW_LOCAL_ONLY

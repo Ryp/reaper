@@ -9,6 +9,7 @@
 
 #include "Debug.h"
 
+#include "core/Assert.h"
 #include "core/fs/FileLoading.h"
 
 namespace Reaper

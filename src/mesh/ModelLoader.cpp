@@ -7,6 +7,8 @@
 
 #include "ModelLoader.h"
 
+#include <core/Assert.h>
+
 #include <algorithm>
 #include <cctype>
 #include <fstream>

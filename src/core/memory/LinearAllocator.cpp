@@ -7,6 +7,7 @@
 
 #include "LinearAllocator.h"
 
+#include <core/Assert.h>
 #include <stdexcept>
 
 LinearAllocator::LinearAllocator(std::size_t sizeBytes)

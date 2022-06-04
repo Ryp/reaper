@@ -7,6 +7,11 @@
 
 #pragma once
 
+#include "renderer/RendererExport.h"
+
+#include <core/Assert.h>
+#include <core/Types.h>
+
 #include <vector>
 
 namespace Reaper

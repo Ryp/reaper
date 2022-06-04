@@ -7,6 +7,8 @@
 
 #pragma once
 
+#include "core/CoreExport.h"
+
 #include <string>
 #include <vector>
 

@@ -9,6 +9,8 @@
 
 #include "common/Log.h"
 
+#include <core/Assert.h>
+
 namespace vk
 {
 #define REAPER_VK_EXPORTED_FUNCTION(func) PFN_##func func;

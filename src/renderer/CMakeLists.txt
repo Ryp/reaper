@@ -295,9 +295,6 @@ target_link_libraries(${target} PUBLIC
 
 reaper_configure_library(${target} "Renderer")
 
-set_target_properties(${target} PROPERTIES COTIRE_CXX_PREFIX_HEADER_INIT ${REAPER_PCH})
-cotire(${target})
-
 reaper_add_tests(${target}
     #${CMAKE_CURRENT_SOURCE_DIR}/test/culling.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test/graph.cpp

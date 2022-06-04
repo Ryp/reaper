@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include <core/Types.h>
 #include <vector>
 
 #include <glm/glm.hpp>

@@ -7,6 +7,8 @@
 
 #pragma once
 
+#include "RendererExport.h"
+
 #include "common/ReaperRoot.h"
 
 namespace Reaper

@@ -13,6 +13,7 @@
 #include <vector>
 
 #include "renderer/Mesh2.h"
+#include "renderer/RendererExport.h"
 #include "renderer/ResourceHandle.h"
 
 struct Mesh;

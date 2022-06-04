@@ -7,6 +7,8 @@
 
 #include "Log.h"
 
+#include <core/Assert.h>
+
 namespace Reaper
 {
 void log_message(ILog* log, LogLevel level, const std::string& message)

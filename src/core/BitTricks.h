@@ -7,6 +7,9 @@
 
 #pragma once
 
+#include "core/Types.h"
+#include <type_traits>
+
 inline void toggle(bool& value)
 {
     value = !value;

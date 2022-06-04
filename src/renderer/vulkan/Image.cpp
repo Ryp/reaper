@@ -2,12 +2,15 @@
 
 #include "common/Log.h"
 #include "common/ReaperRoot.h"
+#include <core/BitTricks.h>
 
 #include "Backend.h"
 
 #include "renderer/texture/GPUTextureProperties.h"
 #include "renderer/vulkan/Debug.h"
 #include "renderer/vulkan/api/VulkanStringConversion.h"
+
+#include <core/Assert.h>
 
 namespace Reaper
 {

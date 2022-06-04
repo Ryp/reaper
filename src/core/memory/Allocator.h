@@ -10,6 +10,7 @@
 #include <cstdint>
 
 #include "core/BitTricks.h"
+#include "core/CoreExport.h"
 
 // Remove harmless gcc warning
 // warning: redundant redeclaration of 'void* operator new(std::size_t)' in same scope [-Wredundant-decls]
@@ -46,25 +47,4 @@ T* placementNew(AbstractAllocator& allocator, Args&&... args)
     return new (ptr) T(args...);
 }
 
-inline std::size_t alignOffset(std::size_t offset, std::size_t alignment)
-{
-    Assert(isPowerOfTwo(alignment), "npot alignment");
-    return ((offset - 1) & ~(alignment - 1)) + alignment;
-}
-
-// User-defined literals
-// 1 kiB = 1024 bytes
-constexpr std::size_t operator"" _kiB(unsigned long long int sizeInkiB)
-{
-    return sizeInkiB << 10;
-}
-
-constexpr std::size_t operator"" _MiB(unsigned long long int sizeInMiB)
-{
-    return sizeInMiB << 20;
-}
-
-constexpr std::size_t operator"" _GiB(unsigned long long int sizeInGiB)
-{
-    return sizeInGiB << 30;
-}
+REAPER_CORE_API std::size_t alignOffset(std::size_t offset, std::size_t alignment);

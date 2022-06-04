@@ -7,6 +7,9 @@
 
 #include "RenderDoc.h"
 
+#include <core/Assert.h>
+#include <core/Profile.h>
+
 #if defined(REAPER_USE_RENDERDOC)
 
 #    include "common/DebugLog.h"

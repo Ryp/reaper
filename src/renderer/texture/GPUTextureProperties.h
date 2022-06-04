@@ -7,9 +7,11 @@
 
 #pragma once
 
+#include "renderer/RendererExport.h"
 #include "renderer/format/PixelFormat.h"
 
 #include "core/BitTricks.h"
+#include <core/Types.h>
 
 namespace Reaper
 {

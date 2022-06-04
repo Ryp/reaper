@@ -7,9 +7,10 @@
 
 #include "Renderer.h"
 
-#include "renderer/vulkan/Backend.h"
+#include <core/Assert.h>
 
 #include "renderer/renderdoc/RenderDoc.h"
+#include "renderer/vulkan/Backend.h"
 
 namespace Reaper
 {

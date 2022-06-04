@@ -7,6 +7,8 @@
 
 #pragma once
 
+#include "SimExport.h"
+
 #include <nonstd/span.hpp>
 
 #include <glm/matrix.hpp>

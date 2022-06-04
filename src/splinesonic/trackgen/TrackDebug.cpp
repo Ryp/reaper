@@ -9,6 +9,8 @@
 
 #include "Track.h"
 
+#include <core/Assert.h>
+
 #include "math/Spline.h"
 
 namespace SplineSonic

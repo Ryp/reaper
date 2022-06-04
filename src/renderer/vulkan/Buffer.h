@@ -14,6 +14,8 @@
 #include "renderer/buffer/GPUBufferProperties.h"
 #include "renderer/buffer/GPUBufferView.h"
 
+#include <core/Assert.h>
+
 namespace Reaper
 {
 struct ReaperRoot;

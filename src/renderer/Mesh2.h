@@ -9,6 +9,8 @@
 
 #include <vector>
 
+#include <core/Types.h>
+
 namespace Reaper
 {
 struct MeshAlloc

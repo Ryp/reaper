@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include "CoreExport.h"
 #include <string>
 
 REAPER_CORE_API void AssertImpl(const char* file, const char* func, int line, bool condition,

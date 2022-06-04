@@ -17,6 +17,8 @@
 #    error "Unsupported WSI!"
 #endif
 
+#include <core/Assert.h>
+
 namespace Reaper
 {
 using namespace vk;

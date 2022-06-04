@@ -7,6 +7,8 @@
 
 #include "Allocator.h"
 
+#include <core/Assert.h>
+#include <core/BitTricks.h>
 #include <cstdlib>
 // #include <iostream>
 
@@ -47,3 +49,9 @@ void operator delete[](void* mem, std::size_t) noexcept
     free(mem);
 }
 */
+
+std::size_t alignOffset(std::size_t offset, std::size_t alignment)
+{
+    Assert(isPowerOfTwo(alignment), "npot alignment");
+    return ((offset - 1) & ~(alignment - 1)) + alignment;
+}

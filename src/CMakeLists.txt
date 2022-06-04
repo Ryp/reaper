@@ -5,9 +5,6 @@
 #// This file is distributed under the MIT License
 #///////////////////////////////////////////////////////////////////////////////
 
-# Set precompiled header
-set(REAPER_PCH ${CMAKE_CURRENT_SOURCE_DIR}/stdafx.h)
-
 # Generate version header
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/core/Version.h.in ${CMAKE_CURRENT_SOURCE_DIR}/core/Version.h NEWLINE_STYLE UNIX)
 
@@ -16,7 +13,6 @@ add_subdirectory(math)
 add_subdirectory(mesh)
 add_subdirectory(input)
 add_subdirectory(common)
-add_subdirectory(gamelogic)
 add_subdirectory(audio)
 add_subdirectory(renderer)
 
@@ -40,7 +36,6 @@ target_sources(${REAPER_BIN} PRIVATE
 target_link_libraries(${REAPER_BIN} PRIVATE
     reaper_core
     reaper_common
-    reaper_gamelogic
     reaper_math
     reaper_renderer
     reaper_mesh
@@ -55,6 +50,3 @@ set_target_properties(${REAPER_BIN} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY ${C
 set_property(DIRECTORY ${CMAKE_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${REAPER_BIN})
 
 reaper_configure_executable(${REAPER_BIN} "Reaper")
-
-set_target_properties(${REAPER_BIN} PROPERTIES COTIRE_CXX_PREFIX_HEADER_INIT ${REAPER_PCH})
-cotire(${REAPER_BIN})

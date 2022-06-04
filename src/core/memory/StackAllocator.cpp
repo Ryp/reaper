@@ -7,6 +7,7 @@
 
 #include "StackAllocator.h"
 
+#include <core/Assert.h>
 #include <stdexcept>
 
 StackAllocator::StackAllocator(std::size_t sizeBytes)

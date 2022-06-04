@@ -7,6 +7,9 @@
 
 #pragma once
 
+#include <core/Types.h>
+#include <math/MathExport.h>
+
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
 

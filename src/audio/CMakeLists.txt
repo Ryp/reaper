@@ -36,9 +36,6 @@ endif()
 
 reaper_configure_library(${target} "Audio")
 
-set_target_properties(${target} PROPERTIES COTIRE_CXX_PREFIX_HEADER_INIT ${REAPER_PCH})
-cotire(${target})
-
 if(UNIX)
     reaper_add_tests(${target}
         ${CMAKE_CURRENT_SOURCE_DIR}/test/alsa.cpp

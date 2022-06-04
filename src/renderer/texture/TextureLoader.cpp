@@ -9,6 +9,8 @@
 
 #include <algorithm>
 
+#include <core/Assert.h>
+
 #if defined(REAPER_COMPILER_MSVC)
 #    pragma warning(push)
 #    pragma warning(disable : 4100) // 'identifier' : unreferenced formal parameter

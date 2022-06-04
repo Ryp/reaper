@@ -7,6 +7,8 @@
 
 #include "Audio.h"
 
+#include "AudioConstants.h"
+
 #include "renderer/PrepareBuckets.h"
 #include "renderer/vulkan/Backend.h"
 #include "renderer/vulkan/Barrier.h"

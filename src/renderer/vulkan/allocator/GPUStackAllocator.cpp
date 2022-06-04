@@ -7,6 +7,9 @@
 
 #include "GPUStackAllocator.h"
 
+#include <core/Assert.h>
+#include <core/memory/Allocator.h>
+
 namespace Reaper
 {
 VirtualStackAllocator::VirtualStackAllocator(std::size_t size)

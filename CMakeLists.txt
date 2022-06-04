@@ -107,7 +107,6 @@ endif()
 # Provide custom cmake scripts
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 include(Reaper)
-include(cotire)
 
 # Let CMake configure git hooks
 reaper_setup_git_hooks()

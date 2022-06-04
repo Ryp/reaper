@@ -7,6 +7,8 @@
 
 #include "DynamicLibrary.h"
 
+#include <core/Assert.h>
+
 #if defined(REAPER_PLATFORM_LINUX) || defined(REAPER_PLATFORM_MACOSX)
 
 #    include <dlfcn.h>
@@ -96,4 +98,6 @@ void close(LibHandle handle)
 }
 } // namespace dynlib
 
+#else
+#    error
 #endif

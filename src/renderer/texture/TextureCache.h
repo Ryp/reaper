@@ -7,13 +7,14 @@
 
 #pragma once
 
+#include "Resource.h"
+#include "Texture.h"
+#include "renderer/RendererExport.h"
+
+#include <core/memory/StackAllocator.h>
+
 #include <map>
 #include <string>
-
-#include "Resource.h"
-#include "core/memory/StackAllocator.h"
-
-#include "Texture.h"
 
 class REAPER_RENDERER_API TextureCache
 {

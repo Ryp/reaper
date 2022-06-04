@@ -7,6 +7,10 @@
 
 #pragma once
 
+#include "TrackGenExport.h"
+
+#include <core/Types.h>
+
 #include <ostream>
 #include <vector>
 

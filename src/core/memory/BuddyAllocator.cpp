@@ -8,9 +8,9 @@
 #include "BuddyAllocator.h"
 
 #include <algorithm>
+#include <core/Assert.h>
+#include <core/BitTricks.h>
 #include <memory>
-
-#include "core/BitTricks.h"
 
 static_assert(isPowerOfTwo(BuddyAllocator::DefaultMemoryAlignment), "npot alignment requirement");
 

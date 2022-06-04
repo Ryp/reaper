@@ -8,6 +8,7 @@
 #include "AudioBackend.h"
 
 #include "common/Log.h"
+#include "core/Assert.h"
 #include "core/Profile.h"
 
 #include <cmath>

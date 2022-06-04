@@ -5,11 +5,14 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "stdafx.h"
 #include <doctest/doctest.h>
 
 #include "renderer/texture/TextureLoader.h"
 
+#include <core/Literals.h>
+
+namespace Reaper
+{
 TEST_CASE("Texture Loading")
 {
     TextureLoader loader;
@@ -22,3 +25,4 @@ TEST_CASE("Texture Loading")
         loader.load("res/texture/ship.dds", cache);
     }
 }
+} // namespace Reaper

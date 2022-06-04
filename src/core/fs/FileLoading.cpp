@@ -7,6 +7,8 @@
 
 #include "FileLoading.h"
 
+#include "core/Assert.h"
+
 #include <fstream>
 
 std::vector<char> readWholeFile(const std::string& fileName)

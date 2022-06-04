@@ -21,8 +21,6 @@ target_sources(${target} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/DynamicLibrary.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/DynamicLibrary.h
     ${CMAKE_CURRENT_SOURCE_DIR}/EnumHelper.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/IntrusiveList.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/IntrusiveList.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Platform.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Profile.h
     ${CMAKE_CURRENT_SOURCE_DIR}/StackTrace.cpp
@@ -64,12 +62,8 @@ endif()
 
 reaper_configure_library(${target} "Core")
 
-set_target_properties(${target} PROPERTIES COTIRE_CXX_PREFIX_HEADER_INIT ${REAPER_PCH})
-cotire(${target})
-
 reaper_add_tests(${target}
     ${CMAKE_CURRENT_SOURCE_DIR}/test/alignment.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test/buddy_allocator.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test/stack_allocator.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/test/intrusive_list.cpp
 )

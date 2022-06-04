@@ -7,6 +7,8 @@
 
 #include "TextureCache.h"
 
+#include <core/Assert.h>
+
 #include <cstring>
 
 TextureCache::TextureCache(const std::size_t cacheSize)

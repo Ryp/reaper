@@ -9,6 +9,8 @@
 
 #include "Image.h"
 
+#include <core/Assert.h>
+
 namespace Reaper
 {
 VkImageMemoryBarrier2 get_vk_image_barrier(VkImage handle, const GPUTextureView& view, GPUResourceAccess src,

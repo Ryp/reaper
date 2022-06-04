@@ -7,6 +7,8 @@
 
 #pragma once
 
+#include "MeshExport.h"
+
 #include <fstream>
 #include <map>
 #include <string>

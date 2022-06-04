@@ -17,6 +17,7 @@
 
 #include "mesh/Mesh.h"
 
+#include "core/Assert.h"
 #include "core/Profile.h"
 
 #include <glm/gtc/matrix_access.hpp>
@@ -25,62 +26,52 @@
 
 #include <bit>
 
-#if defined(REAPER_USE_BULLET_PHYSICS)
-inline glm::vec3 toGlm(btVector3 const& vec)
-{
-    return glm::vec3(vec.getX(), vec.getY(), vec.getZ());
-}
-
-inline glm::quat toGlm(btQuaternion const& quat)
-{
-    return glm::quat(quat.getW(), quat.getX(), quat.getY(), quat.getZ());
-}
-
-inline bool is_nan(f32 v)
-{
-    static constexpr u32 NanMask = 0x7fc00000;
-
-    u32* v_u = reinterpret_cast<u32*>(&v);
-    return (*v_u & NanMask) == NanMask;
-}
-
-inline glm::fmat4x3 toGlm(const btTransform& transform)
-{
-    const btMatrix3x3 basis = transform.getBasis();
-
-    const glm::fvec3 translation = toGlm(transform.getOrigin());
-
-    return glm::fmat4x3(toGlm(basis[0]), toGlm(basis[1]), toGlm(basis[2]), translation);
-}
-
-inline btVector3 toBt(glm::vec3 const& vec)
-{
-    return btVector3(vec.x, vec.y, vec.z);
-}
-
-inline btMatrix3x3 m33toBt(const glm::fmat3x3& m)
-{
-    return btMatrix3x3(m[0].x, m[1].x, m[2].x, m[0].y, m[1].y, m[2].y, m[0].z, m[1].z, m[2].z);
-}
-
-inline btQuaternion toBt(glm::quat const& quat)
-{
-    return btQuaternion(quat.w, quat.x, quat.y, quat.z);
-}
-
-inline btTransform toBt(const glm::fmat4x3& transform)
-{
-    btMatrix3x3 mat = m33toBt(glm::fmat3x3(transform));
-    btTransform ret = btTransform(mat, toBt(glm::column(transform, 3)));
-
-    return ret;
-}
-#endif
-
 namespace SplineSonic
 {
 namespace
 {
+#if defined(REAPER_USE_BULLET_PHYSICS)
+    inline glm::vec3 toGlm(btVector3 const& vec) { return glm::vec3(vec.getX(), vec.getY(), vec.getZ()); }
+
+    inline glm::quat toGlm(btQuaternion const& quat)
+    {
+        return glm::quat(quat.getW(), quat.getX(), quat.getY(), quat.getZ());
+    }
+
+    inline bool is_nan(f32 v)
+    {
+        static constexpr u32 NanMask = 0x7fc00000;
+
+        u32* v_u = reinterpret_cast<u32*>(&v);
+        return (*v_u & NanMask) == NanMask;
+    }
+
+    inline glm::fmat4x3 toGlm(const btTransform& transform)
+    {
+        const btMatrix3x3 basis = transform.getBasis();
+
+        const glm::fvec3 translation = toGlm(transform.getOrigin());
+
+        return glm::fmat4x3(toGlm(basis[0]), toGlm(basis[1]), toGlm(basis[2]), translation);
+    }
+
+    inline btVector3 toBt(glm::vec3 const& vec) { return btVector3(vec.x, vec.y, vec.z); }
+
+    inline btMatrix3x3 m33toBt(const glm::fmat3x3& m)
+    {
+        return btMatrix3x3(m[0].x, m[1].x, m[2].x, m[0].y, m[1].y, m[2].y, m[0].z, m[1].z, m[2].z);
+    }
+
+    inline btQuaternion toBt(glm::quat const& quat) { return btQuaternion(quat.w, quat.x, quat.y, quat.z); }
+
+    inline btTransform toBt(const glm::fmat4x3& transform)
+    {
+        btMatrix3x3 mat = m33toBt(glm::fmat3x3(transform));
+        btTransform ret = btTransform(mat, toBt(glm::column(transform, 3)));
+
+        return ret;
+    }
+
     static const int SimulationMaxSubStep = 3; // FIXME
 
     glm::fvec3 forward() { return glm::vec3(1.0f, 0.0f, 0.0f); }
@@ -99,8 +90,6 @@ namespace
         movement.orientation *= glm::angleAxis(-amount * steerMultiplier, up());
     }
     */
-
-#if defined(REAPER_USE_BULLET_PHYSICS)
 
     struct ShipInput
     {
@@ -329,6 +318,7 @@ glm::fmat4x3 get_player_transform(PhysicsSim& sim)
 
     return toGlm(output);
 #else
+    static_cast<void>(sim);
     AssertUnreachable();
     return glm::fmat4x3(1.f); // FIXME
 #endif
@@ -407,6 +397,8 @@ void sim_create_player_rigid_body(PhysicsSim& sim, const glm::fmat4x3& player_tr
     sim.players.push_back(player_rigid_body);
 #else
     static_cast<void>(sim);
+    static_cast<void>(player_transform);
+    static_cast<void>(shape_extent);
 #endif
 }
 } // namespace SplineSonic

@@ -16,12 +16,15 @@
 
 #include "common/Log.h"
 #include "common/ReaperRoot.h"
+#include <core/Assert.h>
+#include <core/Literals.h>
 
 #define TINYDDSLOADER_IMPLEMENTATION
 #include <tinyddsloader.h>
 
-#include <cfloat> // FIXME
 #include <nonstd/span.hpp>
+
+#include <cfloat> // FIXME
 
 namespace Reaper
 {

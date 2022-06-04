@@ -62,10 +62,8 @@ function(reaper_configure_warnings target enabled)
                 list(APPEND REAPER_DEBUG_FLAGS "/WX")
             endif()
         elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-            # NOTE: cotire pch generation outputs false positives for this warning
-            # "-Wmissing-include-dirs"
             list(APPEND REAPER_DEBUG_FLAGS
-                "-Wall" "-Wextra" "-Wundef" "-Wunused" "-Wshadow" "-funsigned-char"
+                "-Wmissing-include-dirs" "-Wall" "-Wextra" "-Wundef" "-Wunused" "-Wshadow" "-funsigned-char"
                 "-Wchar-subscripts" "-Wcast-align" "-Wwrite-strings" "-Wuninitialized"
                 "-Wpointer-arith" "-Wredundant-decls" "-Winline" "-Wformat"
                 "-Wformat-security" "-Winit-self"

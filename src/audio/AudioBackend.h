@@ -7,6 +7,10 @@
 
 #pragma once
 
+#include "AudioExport.h"
+
+#include <core/Types.h>
+
 #include <vector>
 
 #if defined(REAPER_USE_ALSA)

@@ -8,6 +8,7 @@
 #include <glm/glm.hpp>
 
 #include "renderer/Mesh2.h" // FIXME
+#include "renderer/RendererExport.h"
 #include "renderer/ResourceHandle.h"
 
 #include <nonstd/span.hpp>
@@ -19,6 +20,8 @@
 #include "renderer/shader/share/shadow_map_pass.hlsl"
 #include "renderer/shader/share/sound.hlsl"
 #include "renderer/shader/share/swapchain.hlsl"
+
+#include <core/Types.h>
 
 namespace Reaper
 {

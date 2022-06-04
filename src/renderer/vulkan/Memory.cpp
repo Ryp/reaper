@@ -7,6 +7,8 @@
 
 #include "Memory.h"
 
+#include <core/Assert.h>
+
 using namespace vk;
 
 std::vector<MemoryTypeInfo> enumerateHeaps(VkPhysicalDevice device)

@@ -9,6 +9,9 @@
 
 #include "renderer/format/PixelFormat.h"
 
+#include <core/Types.h>
+#include <cstdlib>
+
 struct Texture
 {
     u32         width;

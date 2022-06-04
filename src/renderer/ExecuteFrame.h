@@ -9,6 +9,10 @@
 
 #include <vector>
 
+#include "RendererExport.h"
+
+#include <core/Types.h>
+
 namespace Reaper
 {
 struct ReaperRoot;

@@ -9,14 +9,12 @@
 
 namespace Reaper
 {
-class GameLogic;
-class ILog;
 struct Renderer;
+class ILog;
 struct AudioBackend;
 
 struct ReaperRoot
 {
-    GameLogic*    game;
     Renderer*     renderer;
     ILog*         log;
     AudioBackend* audio;

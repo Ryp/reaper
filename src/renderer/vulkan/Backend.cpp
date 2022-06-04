@@ -11,6 +11,9 @@
 #include "common/Log.h"
 
 #include "core/Profile.h"
+#include <core/Assert.h>
+#include <core/Platform.h>
+#include <core/Version.h>
 
 #include "Display.h"
 #include "Swapchain.h"

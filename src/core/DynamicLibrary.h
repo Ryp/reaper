@@ -7,6 +7,9 @@
 
 #pragma once
 
+#include "CoreExport.h"
+#include <core/Platform.h>
+
 #include <string>
 
 #if defined(REAPER_PLATFORM_LINUX) || defined(REAPER_PLATFORM_MACOSX)
@@ -15,6 +18,8 @@ using LibSym = void*;
 #elif defined(REAPER_PLATFORM_WINDOWS)
 using LibHandle = HMODULE;
 using LibSym = FARPROC;
+#else
+#    error
 #endif
 
 namespace dynlib

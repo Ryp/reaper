@@ -7,6 +7,9 @@
 
 #pragma once
 
+#include <core/BitTricks.h>
+#include <core/Types.h>
+
 namespace Reaper::FrameGraph
 {
 namespace UsageType

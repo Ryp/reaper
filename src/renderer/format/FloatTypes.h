@@ -7,6 +7,8 @@
 
 #pragma once
 
+#include <core/Types.h>
+
 namespace f32_type
 {
 constexpr u32 MantissaBits = 23;
