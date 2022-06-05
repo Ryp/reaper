@@ -10,7 +10,7 @@
 // TODO use Pimpl to prevent name clashes between Xlib and fmt and move this include forward
 #include "common/Log.h"
 
-#include "core/Profile.h"
+#include "profiling/Scope.h"
 #include <core/Assert.h>
 #include <core/Platform.h>
 #include <core/Version.h>

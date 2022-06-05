@@ -7,9 +7,9 @@
 
 #include "AudioBackend.h"
 
-#include "common/Log.h"
-#include "core/Assert.h"
-#include "core/Profile.h"
+#include <common/Log.h>
+#include <core/Assert.h>
+#include <profiling/Scope.h>
 
 #include <cmath>
 #include <fmt/format.h>

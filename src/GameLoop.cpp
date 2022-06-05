@@ -18,10 +18,10 @@
 #include "audio/AudioBackend.h"
 #include "audio/WaveFormat.h"
 #include "common/Log.h"
-#include "core/Profile.h"
 #include "input/DS4.h"
 #include "math/Spline.h"
 #include "mesh/ModelLoader.h"
+#include "profiling/Scope.h"
 #include "splinesonic/sim/Test.h"
 #include "splinesonic/trackgen/Track.h"
 

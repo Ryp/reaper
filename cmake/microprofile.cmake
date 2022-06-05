@@ -29,7 +29,7 @@ reaper_configure_external_target(${MICROPROFILE_BIN} "Microprofile")
 
 set_target_properties(${MICROPROFILE_BIN} PROPERTIES FOLDER External)
 
-target_link_libraries(${MICROPROFILE_BIN} PRIVATE reaper_vulkan_loader)
+target_link_libraries(${MICROPROFILE_BIN} PUBLIC reaper_vulkan_loader)
 
 if(UNIX)
     target_link_libraries(${MICROPROFILE_BIN} PRIVATE pthread)

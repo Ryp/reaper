@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include "core/Profile.h"
+#include "profiling/Scope.h"
 
 #include "Debug.h"
 

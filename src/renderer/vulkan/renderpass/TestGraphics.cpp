@@ -34,8 +34,8 @@
 #include "common/ReaperRoot.h"
 
 #include "core/BitTricks.h"
-#include "core/Profile.h"
 #include "core/memory/Allocator.h"
+#include "profiling/Scope.h"
 
 #include "renderer/shader/share/hdr.hlsl"
 

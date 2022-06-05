@@ -8,7 +8,7 @@
 #include "FrameGraph.h"
 
 #include <core/Assert.h>
-#include <core/Profile.h>
+#include <profiling/Scope.h>
 
 #include <algorithm>
 

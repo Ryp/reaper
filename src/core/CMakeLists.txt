@@ -22,7 +22,6 @@ target_sources(${target} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/DynamicLibrary.h
     ${CMAKE_CURRENT_SOURCE_DIR}/EnumHelper.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Platform.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/Profile.h
     ${CMAKE_CURRENT_SOURCE_DIR}/StackTrace.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/StackTrace.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Types.h
@@ -44,20 +43,13 @@ target_sources(${target} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/memory/StackAllocator.h
 )
 
-# Setup microprofile
-if(REAPER_USE_MICROPROFILE)
-    include(microprofile)
-    target_link_libraries(${target} PUBLIC microprofile)
-    target_compile_definitions(${target} PUBLIC REAPER_USE_MICROPROFILE)
-endif()
-
 if(UNIX)
     # Setup libunwind
     find_package(Libunwind REQUIRED)
     target_link_libraries(${target} PRIVATE Libunwind::Libunwind)
 
     # Link with libdl
-    target_link_libraries(${target} PRIVATE -ldl)
+    target_link_libraries(${target} PRIVATE ${CMAKE_DL_LIBS})
 endif()
 
 reaper_configure_library(${target} "Core")

@@ -12,7 +12,7 @@
 
 #include "audio/AudioBackend.h"
 
-#include "core/Profile.h"
+#include <profiling/Scope.h>
 
 #include "GameLoop.h"
 

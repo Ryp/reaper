@@ -10,12 +10,13 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/core/Version.h.in ${CMAKE_CURRENT_SOU
 
 add_subdirectory(core)
 add_subdirectory(math)
+add_subdirectory(vulkan_loader)
+add_subdirectory(profiling)
 add_subdirectory(mesh)
 add_subdirectory(input)
 add_subdirectory(common)
 add_subdirectory(audio)
 add_subdirectory(renderer)
-add_subdirectory(vulkan_loader)
 
 add_subdirectory(splinesonic)
 

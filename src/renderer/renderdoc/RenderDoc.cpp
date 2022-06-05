@@ -8,7 +8,7 @@
 #include "RenderDoc.h"
 
 #include <core/Assert.h>
-#include <core/Profile.h>
+#include <profiling/Scope.h>
 
 #if defined(REAPER_USE_RENDERDOC)
 
@@ -16,7 +16,6 @@
 #    include "common/ReaperRoot.h"
 
 #    include "core/DynamicLibrary.h"
-#    include "core/Profile.h"
 
 #    include <renderdoc_app.h>
 

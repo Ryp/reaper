@@ -9,7 +9,7 @@
 
 #include "Backend.h"
 #include "common/ReaperRoot.h"
-#include "core/Profile.h"
+#include <profiling/Scope.h>
 
 namespace Reaper
 {

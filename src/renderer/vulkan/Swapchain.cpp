@@ -15,7 +15,7 @@
 #include "common/Log.h"
 
 #include "core/Assert.h"
-#include "core/Profile.h"
+#include "profiling/Scope.h"
 
 namespace
 {

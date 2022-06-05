@@ -19,7 +19,7 @@
 #include "common/Log.h"
 #include "common/ReaperRoot.h"
 
-#include "core/Profile.h"
+#include "profiling/Scope.h"
 
 #include "renderer/shader/share/color_space.hlsl"
 #include "renderer/shader/share/hdr.hlsl"

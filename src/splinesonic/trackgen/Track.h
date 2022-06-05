@@ -9,8 +9,8 @@
 
 #include "TrackGenExport.h"
 
-#include <core/Profile.h>
 #include <core/Types.h>
+#include <profiling/Scope.h>
 
 #include <vector>
 

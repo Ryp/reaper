@@ -14,7 +14,7 @@
 #include <cmath>
 #include <glm/gtc/matrix_transform.hpp>
 
-#include "core/Profile.h"
+#include "profiling/Scope.h"
 
 #include "math/Constants.h"
 

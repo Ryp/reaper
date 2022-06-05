@@ -37,8 +37,8 @@ get_filename_component(REAPER_VK_LIB_NAME ${Vulkan_LIBRARY} NAME_WLE)
 target_compile_definitions(${target} PUBLIC REAPER_VK_LIB_NAME="${REAPER_VK_LIB_NAME}${CMAKE_SHARED_LIBRARY_SUFFIX}")
 
 target_link_libraries(${target} PUBLIC
-    #reaper_core
     Vulkan::Headers
+    reaper_core
     fmt
 )
 
