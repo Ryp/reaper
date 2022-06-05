@@ -88,12 +88,8 @@ target_sources(${target} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/allocator/GPUStackAllocator.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/allocator/GPUStackAllocator.h
 
-    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/api/Vulkan.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/api/VulkanFunctions.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/api/VulkanFunctions.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/api/VulkanStringConversion.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/api/VulkanStringConversion.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/api/VulkanSymbolHelper.inl
 
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/Audio.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/Audio.h
@@ -237,15 +233,8 @@ target_sources(${target} PRIVATE
     ${REAPER_SPIRV_OUTPUT}
     ${REAPER_GCN_OUTPUT})
 
-find_package(Vulkan 1.3 REQUIRED)
-
-# Get the shared library name for each platform
-get_filename_component(REAPER_VK_LIB_NAME ${Vulkan_LIBRARY} NAME_WLE)
-target_compile_definitions(${target} PRIVATE REAPER_VK_LIB_NAME="${REAPER_VK_LIB_NAME}${CMAKE_SHARED_LIBRARY_SUFFIX}")
-
 # Choose windowing system
 if(WIN32)
-    target_compile_definitions(${target} PUBLIC VK_USE_PLATFORM_WIN32_KHR)
     target_sources(${target} PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/window/Win32Window.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/window/Win32Window.h)
@@ -254,7 +243,6 @@ elseif(APPLE OR UNIX)
         find_package(XCB REQUIRED)
         target_link_libraries(${target} PUBLIC ${LIBXCB_LIBRARIES})
         target_include_directories(${target} SYSTEM PUBLIC ${LIBXCB_INCLUDE_DIR})
-        target_compile_definitions(${target} PUBLIC VK_USE_PLATFORM_XCB_KHR)
         target_sources(${target} PRIVATE
             ${CMAKE_CURRENT_SOURCE_DIR}/window/XCBWindow.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/window/XCBWindow.h)
@@ -262,7 +250,6 @@ elseif(APPLE OR UNIX)
         find_package(X11 REQUIRED)
         target_link_libraries(${target} PUBLIC ${X11_LIBRARIES})
         target_include_directories(${target} SYSTEM PUBLIC ${X11_INCLUDE_DIR})
-        target_compile_definitions(${target} PUBLIC VK_USE_PLATFORM_XLIB_KHR)
         target_sources(${target} PRIVATE
             ${CMAKE_CURRENT_SOURCE_DIR}/window/XLibWindow.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/window/XLibWindow.h)
@@ -282,7 +269,7 @@ target_link_libraries(${target} PUBLIC
     reaper_core
     reaper_mesh
     reaper_common
-    Vulkan::Headers
+    reaper_vulkan_loader
     fmt
     gli
     glm

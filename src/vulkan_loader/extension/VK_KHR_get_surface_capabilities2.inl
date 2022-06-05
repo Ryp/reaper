@@ -1,13 +1,9 @@
 ////////////////////////////////////////////////////////////////////////////////
 /// Reaper
 ///
-/// Copyright (c) 2015-2022 Thibault Schueller
+/// Copyright (c) 2015-2020 Thibault Schueller
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#pragma once
-
-#include <vulkan_loader/Vulkan.h>
-
-// NOTE: do NOT include this yourself
-#include <vk_mem_alloc.h>
+REAPER_VK_INSTANCE_LEVEL_FUNCTION(vkGetPhysicalDeviceSurfaceCapabilities2KHR)
+REAPER_VK_INSTANCE_LEVEL_FUNCTION(vkGetPhysicalDeviceSurfaceFormats2KHR)

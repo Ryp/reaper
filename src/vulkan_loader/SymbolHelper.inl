@@ -28,7 +28,8 @@ REAPER_VK_GLOBAL_LEVEL_FUNCTION(vkEnumerateInstanceLayerProperties)
 
 REAPER_VK_INSTANCE_LEVEL_FUNCTION(vkDestroyInstance)
 REAPER_VK_INSTANCE_LEVEL_FUNCTION(vkEnumeratePhysicalDevices)
-// REAPER_VK_INSTANCE_LEVEL_FUNCTION(vkGetPhysicalDeviceProperties) NOTE: deprecated by vkGetPhysicalDeviceProperties2
+REAPER_VK_INSTANCE_LEVEL_FUNCTION(
+    vkGetPhysicalDeviceProperties) // NOTE: deprecated by vkGetPhysicalDeviceProperties2 but kept for microprofile
 REAPER_VK_INSTANCE_LEVEL_FUNCTION(vkGetPhysicalDeviceProperties2)
 // REAPER_VK_INSTANCE_LEVEL_FUNCTION(vkGetPhysicalDeviceFeatures) NOTE: deprecated by vkGetPhysicalDeviceFeatures2
 REAPER_VK_INSTANCE_LEVEL_FUNCTION(vkGetPhysicalDeviceFeatures2)
@@ -146,17 +147,22 @@ REAPER_VK_DEVICE_LEVEL_FUNCTION(vkCmdWaitEvents2)
 REAPER_VK_DEVICE_LEVEL_FUNCTION(vkCmdWriteTimestamp2)
 REAPER_VK_DEVICE_LEVEL_FUNCTION(vkQueueSubmit2)
 REAPER_VK_DEVICE_LEVEL_FUNCTION(vkGetEventStatus)
+REAPER_VK_DEVICE_LEVEL_FUNCTION(vkGetQueryPoolResults)
+REAPER_VK_DEVICE_LEVEL_FUNCTION(vkCreateQueryPool)
+REAPER_VK_DEVICE_LEVEL_FUNCTION(vkDestroyQueryPool)
+REAPER_VK_DEVICE_LEVEL_FUNCTION(vkCmdResetQueryPool)
+REAPER_VK_DEVICE_LEVEL_FUNCTION(vkCmdWriteTimestamp)
 
 #if defined(REAPER_VK_USE_SWAPCHAIN_EXTENSIONS)
-#    include "VK_KHR_swapchain.inl"
+#    include "extension/VK_KHR_swapchain.inl"
 #endif
 
 #if defined(REAPER_VK_USE_DISPLAY_EXTENSIONS)
-#    include "VK_KHR_display.inl"
+#    include "extension/VK_KHR_display.inl"
 #endif
 
 #if REAPER_DEBUG
-#    include "VK_EXT_debug_utils.inl"
+#    include "extension/VK_EXT_debug_utils.inl"
 #endif
 
 #undef REAPER_VK_EXPORTED_FUNCTION

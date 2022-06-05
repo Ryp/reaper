@@ -9,7 +9,7 @@
 
 #include <string>
 
-#include "api/Vulkan.h"
+#include <vulkan_loader/Vulkan.h>
 
 namespace Reaper
 {

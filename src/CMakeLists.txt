@@ -15,6 +15,7 @@ add_subdirectory(input)
 add_subdirectory(common)
 add_subdirectory(audio)
 add_subdirectory(renderer)
+add_subdirectory(vulkan_loader)
 
 add_subdirectory(splinesonic)
 

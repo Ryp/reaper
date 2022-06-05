@@ -9,7 +9,8 @@
 
 #include "renderer/vulkan/Buffer.h"
 #include "renderer/vulkan/Image.h"
-#include "renderer/vulkan/api/Vulkan.h"
+
+#include <vulkan_loader/Vulkan.h>
 
 #include "ShadowConstants.h"
 

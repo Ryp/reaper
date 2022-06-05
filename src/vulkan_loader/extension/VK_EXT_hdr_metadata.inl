@@ -5,9 +5,4 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#pragma once
-
-#include <vulkan_loader/Vulkan.h>
-
-// NOTE: do NOT include this yourself
-#include <vk_mem_alloc.h>
+REAPER_VK_DEVICE_LEVEL_FUNCTION(vkSetHdrMetadataEXT)

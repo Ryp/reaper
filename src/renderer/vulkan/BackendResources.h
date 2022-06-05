@@ -23,7 +23,7 @@
 #include "renderpass/ShadowMap.h"
 #include "renderpass/SwapchainPass.h"
 
-#include "api/Vulkan.h"
+#include <vulkan_loader/Vulkan.h>
 
 namespace Reaper
 {

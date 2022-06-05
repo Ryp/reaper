@@ -9,7 +9,7 @@
 
 #include <vector>
 
-#include "api/Vulkan.h"
+#include <vulkan_loader/Vulkan.h>
 
 struct MemoryTypeInfo
 {

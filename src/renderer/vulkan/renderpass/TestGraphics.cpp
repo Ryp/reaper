@@ -18,7 +18,6 @@
 #include "renderer/vulkan/Memory.h"
 #include "renderer/vulkan/MeshCache.h"
 #include "renderer/vulkan/Swapchain.h"
-#include "renderer/vulkan/api/Vulkan.h"
 #include "renderer/vulkan/api/VulkanStringConversion.h"
 #include "renderer/vulkan/renderpass/FrameGraphPass.h"
 
@@ -39,6 +38,8 @@
 #include "core/memory/Allocator.h"
 
 #include "renderer/shader/share/hdr.hlsl"
+
+#include <vulkan_loader/Vulkan.h>
 
 #include <array>
 

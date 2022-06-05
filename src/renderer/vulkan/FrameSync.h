@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include "renderer/vulkan/api/Vulkan.h"
+#include <vulkan_loader/Vulkan.h>
 
 namespace Reaper
 {

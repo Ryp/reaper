@@ -9,8 +9,8 @@
 
 #include "Backend.h"
 
-#include "api/Vulkan.h"
 #include "api/VulkanStringConversion.h"
+#include <vulkan_loader/Vulkan.h>
 
 #include "common/Log.h"
 

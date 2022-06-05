@@ -29,13 +29,8 @@ reaper_configure_external_target(${MICROPROFILE_BIN} "Microprofile")
 
 set_target_properties(${MICROPROFILE_BIN} PROPERTIES FOLDER External)
 
-find_package(Vulkan REQUIRED)
+target_link_libraries(${MICROPROFILE_BIN} PRIVATE reaper_vulkan_loader)
 
-target_link_libraries(${MICROPROFILE_BIN} PRIVATE Vulkan::Vulkan)
-
-target_link_libraries(${MICROPROFILE_BIN} PUBLIC Vulkan::Headers)
-
-# NOTE: microprofile links its own libvulkan, because there's no easy way to provide our own symbols
 if(UNIX)
     target_link_libraries(${MICROPROFILE_BIN} PRIVATE pthread)
 elseif(WIN32)

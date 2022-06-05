@@ -7,8 +7,9 @@
 
 #include "MeshCache.h"
 
+#include <vulkan_loader/Vulkan.h>
+
 #include "renderer/vulkan/Backend.h"
-#include "renderer/vulkan/api/Vulkan.h"
 
 #include "mesh/Mesh.h"
 

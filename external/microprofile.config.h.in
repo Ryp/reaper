@@ -25,3 +25,7 @@
 #define MICROPROFILE_GPU_TIMERS 1
 #define MICROPROFILE_GPU_TIMERS_VULKAN 1
 #define MICROPROFILE_GPU_FRAME_DELAY 5
+
+#if MICROPROFILE_GPU_TIMERS
+#   include <vulkan_loader/Vulkan.h>
+#endif

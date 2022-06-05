@@ -18,7 +18,6 @@
 #include "renderer/vulkan/Image.h"
 #include "renderer/vulkan/RenderPassHelpers.h"
 #include "renderer/vulkan/Shader.h"
-#include "renderer/vulkan/api/Vulkan.h"
 
 #include "common/Log.h"
 #include "common/ReaperRoot.h"

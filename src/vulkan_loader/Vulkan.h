@@ -17,7 +17,7 @@
 constexpr u32 VK_FLAGS_NONE = 0;
 
 #define REAPER_VK_USE_SWAPCHAIN_EXTENSIONS
-#include "VulkanFunctions.h"
+#include "Functions.h"
 
 // Global using for vulkan functions
 using namespace vk;

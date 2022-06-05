@@ -8,7 +8,7 @@
 #pragma once
 
 #include "renderer/vulkan/Buffer.h"
-#include "renderer/vulkan/api/Vulkan.h"
+#include <vulkan_loader/Vulkan.h>
 
 #include <vector>
 

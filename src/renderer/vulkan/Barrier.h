@@ -9,7 +9,7 @@
 
 #include "renderer/buffer/GPUBufferView.h"
 #include "renderer/texture/GPUTextureView.h"
-#include "renderer/vulkan/api/Vulkan.h"
+#include <vulkan_loader/Vulkan.h>
 
 namespace Reaper
 {

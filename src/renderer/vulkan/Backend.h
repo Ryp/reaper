@@ -11,7 +11,8 @@
 
 #include "allocator/AMDVulkanMemoryAllocator.h"
 
-#include "api/Vulkan.h"
+#include <vulkan_loader/Vulkan.h>
+
 #include "core/DynamicLibrary.h"
 #include "renderer/Renderer.h"
 #include "renderer/texture/GPUTextureProperties.h"

@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include "Vulkan.h"
+#include <vulkan_loader/Vulkan.h>
 
 namespace vk
 {

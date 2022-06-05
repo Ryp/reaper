@@ -9,7 +9,7 @@
 
 #include "allocator/AMDVulkanMemoryAllocator.h"
 
-#include "api/Vulkan.h"
+#include <vulkan_loader/Vulkan.h>
 
 #include "renderer/format/PixelFormat.h"
 #include "renderer/texture/GPUTextureProperties.h"
