@@ -18,7 +18,7 @@
 #    include <iomanip>
 #    include <iostream>
 
-void printStacktrace()
+void print_stacktrace_safe()
 {
     unw_cursor_t  cursor;
     unw_context_t context;
@@ -57,11 +57,11 @@ void printStacktrace()
 
 #elif defined(REAPER_PLATFORM_WINDOWS) || defined(REAPER_PLATFORM_MACOSX)
 
-void printStacktrace()
+void print_stacktrace_safe()
 {
-    AssertUnreachable();
+    // FIXME
 }
 
 #else
-#    error "printStacktrace() not available!"
+#    error "print_stacktrace_safe() not available!"
 #endif

@@ -7,7 +7,7 @@
 
 #pragma once
 
-void printStacktrace();
+void print_stacktrace_safe();
 
 #include <string>
 #include <vector>

@@ -38,7 +38,7 @@ void AssertImpl(const char* file, const char* func, int line, bool condition, co
     if (isInDebugger())
         breakpoint();
     else
-        printStacktrace();
+        print_stacktrace_safe();
 
     if (!message.empty())
         std::cerr << "ASSERT MESSAGE " << message << std::endl;
