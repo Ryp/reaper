@@ -334,12 +334,6 @@ namespace
         ReaperRoot* root = static_cast<ReaperRoot*>(pUserData);
         Assert(root != nullptr);
 
-        log_debug(*root,
-                  "vulkan debug message: {} ({}): {}",
-                  pCallbackData->pMessageIdName ? pCallbackData->pMessageIdName : "unnamed",
-                  pCallbackData->messageIdNumber,
-                  pCallbackData->pMessage);
-
         u32 queueCount = pCallbackData->queueLabelCount;
         if (queueCount > 0)
         {
@@ -386,7 +380,8 @@ namespace
                 ignore_assert = true;
         }
 
-        Assert(messageSeverity < VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT || ignore_assert);
+        Assert(messageSeverity < VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT || ignore_assert,
+               pCallbackData->pMessage);
 
         return VK_FALSE;
     }
