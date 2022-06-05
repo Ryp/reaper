@@ -277,6 +277,7 @@ target_link_libraries(${target} PUBLIC
     amd-vma
     meshoptimizer
     tinyddsloader
+    imgui
 )
 
 reaper_configure_library(${target} "Renderer")
