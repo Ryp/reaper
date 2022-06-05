@@ -24,7 +24,7 @@ target_sources(${IMGUI_BIN} PRIVATE
 
 set(IMGUI_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/external/imgui)
 
-configure_file(${CMAKE_SOURCE_DIR}/external/imgui_config.h.in ${IMGUI_INCLUDE_DIR}/${REAPER_IMGUI_CONFIG} NEWLINE_STYLE UNIX)
+configure_file(${CMAKE_SOURCE_DIR}/external/imgui_config.h.in ${IMGUI_INCLUDE_DIR}/${REAPER_IMGUI_CONFIG})
 
 target_link_libraries(${IMGUI_BIN} PRIVATE reaper_vulkan_loader)
 

@@ -44,7 +44,7 @@ function(reaper_generate_export_header target project_label)
     # Generate the file from the template.
     set(REAPER_EXPORT_TEMPLATE_PATH ${CMAKE_SOURCE_DIR}/src/LibraryExport.h.in)
     set(LIBRARY_GENERATED_EXPORT_HEADER_PATH ${CMAKE_CURRENT_SOURCE_DIR}/${project_label}Export.h)
-    configure_file(${REAPER_EXPORT_TEMPLATE_PATH} ${LIBRARY_GENERATED_EXPORT_HEADER_PATH} NEWLINE_STYLE UNIX @ONLY)
+    configure_file(${REAPER_EXPORT_TEMPLATE_PATH} ${LIBRARY_GENERATED_EXPORT_HEADER_PATH} @ONLY)
 endfunction()
 
 # Helper function that add default compilation flags for reaper targets

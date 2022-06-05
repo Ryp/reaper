@@ -6,7 +6,7 @@
 #///////////////////////////////////////////////////////////////////////////////
 
 # Generate version header
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/core/Version.h.in ${CMAKE_CURRENT_SOURCE_DIR}/core/Version.h NEWLINE_STYLE UNIX)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/core/Version.h.in ${CMAKE_CURRENT_SOURCE_DIR}/core/Version.h)
 
 add_subdirectory(core)
 add_subdirectory(math)

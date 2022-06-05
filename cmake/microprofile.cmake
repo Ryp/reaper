@@ -18,7 +18,7 @@ target_sources(${MICROPROFILE_BIN} PRIVATE
 
 set(MICROPROFILE_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/external/microprofile)
 
-configure_file(${CMAKE_SOURCE_DIR}/external/microprofile.config.h.in ${MICROPROFILE_INCLUDE_DIR}/microprofile.config.h NEWLINE_STYLE UNIX)
+configure_file(${CMAKE_SOURCE_DIR}/external/microprofile.config.h.in ${MICROPROFILE_INCLUDE_DIR}/microprofile.config.h)
 
 target_include_directories(${MICROPROFILE_BIN} SYSTEM INTERFACE ${MICROPROFILE_INCLUDE_DIR})
 
