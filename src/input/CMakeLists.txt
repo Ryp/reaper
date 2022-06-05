@@ -12,13 +12,8 @@ add_library(${target} ${REAPER_BUILD_TYPE})
 target_sources(${target} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/AbstractController.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/AbstractController.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/DS3.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/DS3.h
     ${CMAKE_CURRENT_SOURCE_DIR}/DS4.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/DS4.h
-)
-
-target_link_libraries(${target} PUBLIC
 )
 
 reaper_configure_library(${target} "Input")
