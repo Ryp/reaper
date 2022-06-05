@@ -59,7 +59,7 @@ option(REAPER_BUILD_SHARED_LIBS         "Build shared libraries"        ${BUILD_
 option(REAPER_USE_MICROPROFILE          "Use microprofile"              ON)
 
 # See .clang-tidy for the list of useful checks.
-option(REAPER_RUN_CLANG_TIDY            "Run clang-tidy when compiling" ON)
+option(REAPER_RUN_CLANG_TIDY            "Run clang-tidy when compiling" OFF)
 
 # Building with coverage info will slow down build and execution times.
 option(REAPER_BUILD_COVERAGE_INFO       "Build with coverage info"      OFF)
