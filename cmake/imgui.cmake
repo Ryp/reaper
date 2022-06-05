@@ -7,7 +7,7 @@
 
 set(IMGUI_BIN imgui)
 
-add_library(${IMGUI_BIN} STATIC)
+add_library(${IMGUI_BIN} ${REAPER_BUILD_TYPE})
 
 set(REAPER_IMGUI_CONFIG imgui_config.reaper.h)
 target_compile_definitions(${IMGUI_BIN} PUBLIC IMGUI_USER_CONFIG="${REAPER_IMGUI_CONFIG}")
@@ -34,5 +34,4 @@ target_include_directories(${IMGUI_BIN} SYSTEM INTERFACE ${IMGUI_INCLUDE_DIR})
 
 reaper_configure_external_target(${IMGUI_BIN} "ImGUI")
 
-set_target_properties(${IMGUI_BIN} PROPERTIES POSITION_INDEPENDENT_CODE ON)
 set_target_properties(${IMGUI_BIN} PROPERTIES FOLDER External)
