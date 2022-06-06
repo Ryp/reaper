@@ -201,7 +201,8 @@ void execute_game_loop(ReaperRoot& root)
                 glm::inverse(glm::lookAt(camera_position, camera_local_target, up_ws));
             scene.camera.scene_node = insert_scene_node(scene, camera_local_transform, camera_parent_index);
 
-            const glm::fmat4x3 mesh_local_transform = glm::scale(glm::fmat4(1.f), glm::vec3(0.05f));
+            const glm::fmat4x3 mesh_local_transform =
+                glm::rotate(glm::scale(glm::fmat4(1.f), glm::vec3(0.05f)), glm::pi<float>() * -0.5f, up_ws);
 
             SceneMesh scene_mesh;
             scene_mesh.node_index = insert_scene_node(scene, mesh_local_transform, player_scene_node_index);
