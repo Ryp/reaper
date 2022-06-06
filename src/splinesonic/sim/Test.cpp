@@ -336,13 +336,14 @@ void sim_register_static_collision_meshes(PhysicsSim& sim, const nonstd::span<Me
 
         // Describe how the mesh is laid out in memory
         btIndexedMesh indexedMesh;
-        indexedMesh.m_vertexType = PHY_FLOAT;
-        indexedMesh.m_triangleIndexStride = sizeof(mesh.indexes[0]);
-        indexedMesh.m_vertexStride = sizeof(mesh.positions[0]);
         indexedMesh.m_numTriangles = mesh.indexes.size() / 3;
-        indexedMesh.m_numVertices = mesh.positions.size();
         indexedMesh.m_triangleIndexBase = reinterpret_cast<const u8*>(mesh.indexes.data());
+        indexedMesh.m_triangleIndexStride = 3 * sizeof(mesh.indexes[0]);
+        indexedMesh.m_numVertices = mesh.positions.size();
         indexedMesh.m_vertexBase = reinterpret_cast<const u8*>(mesh.positions.data());
+        indexedMesh.m_vertexStride = sizeof(mesh.positions[0]);
+        indexedMesh.m_indexType = PHY_INTEGER;
+        indexedMesh.m_vertexType = PHY_FLOAT;
 
         // Create bullet collision shape based on the mesh described
         btTriangleIndexVertexArray* meshInterface = new btTriangleIndexVertexArray();
