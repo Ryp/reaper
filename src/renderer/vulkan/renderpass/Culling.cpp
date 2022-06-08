@@ -33,7 +33,7 @@ namespace Reaper
 constexpr u32 IndexSizeBytes = 4;
 constexpr u32 MaxCullPassCount = 4;
 constexpr u32 MaxCullInstanceCount = 512 * MaxCullPassCount;
-constexpr u32 MaxSurvivingMeshletsPerPass = 75000;
+constexpr u32 MaxSurvivingMeshletsPerPass = 200;
 
 // Worst case if all meshlets of all passes aren't culled.
 // This shouldn't happen, we can probably cut this by half and raise a warning when we cross the limit.

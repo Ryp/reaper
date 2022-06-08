@@ -80,7 +80,7 @@ namespace
         light.intensity = 60.f;
         light.scene_node = insert_scene_node(scene, light_transform);
 
-#    if 0
+#    if 1
         light.shadow_map_size = glm::uvec2(1024, 1024);
 #    else
         light.shadow_map_size = glm::uvec2(0, 0);
@@ -347,7 +347,7 @@ void execute_game_loop(ReaperRoot& root)
         lastFrameStart = currentTime;
     }
 
-    const bool write_audio_to_file = true;
+    const bool write_audio_to_file = false;
     if (write_audio_to_file)
     {
         // Write recorded audio to filesystem

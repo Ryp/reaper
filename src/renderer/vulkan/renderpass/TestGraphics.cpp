@@ -371,7 +371,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     builder.build();
 
-    DumpFrameGraph(framegraph);
+    // DumpFrameGraph(framegraph);
 
     const FrameGraphSchedule schedule = compute_schedule(framegraph);
 

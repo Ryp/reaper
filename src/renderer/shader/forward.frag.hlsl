@@ -15,7 +15,7 @@ VK_CONSTANT(0) const uint spec_debug_mode = 0;
 #else
 VK_CONSTANT(0) const uint spec_debug_mode = debug_mode_none;
 #endif
-VK_CONSTANT(1) const bool spec_debug_enable_shadows = false;
+VK_CONSTANT(1) const bool spec_debug_enable_shadows = true;
 VK_CONSTANT(2) const bool spec_debug_enable_lighting = true;
 
 VK_BINDING(0, 0) ConstantBuffer<ForwardPassParams> pass_params;
