@@ -26,12 +26,24 @@ struct Mesh;
 
 namespace SplineSonic
 {
+struct ShipStats
+{
+    float thrust;
+    float braking;
+};
+
+struct ShipInput
+{
+    float brake;    // 0.0 not braking - 1.0 max
+    float throttle; // 0.0 no trottle - 1.0 max
+    float steer;    // 0.0 no steering - -1.0 max left - 1.0 max right
+};
+
 struct PhysicsSim
 {
-    float pLinearFriction;
-    float pQuadFriction;
-    float pHandling;
-    float pBrakesForce;
+    float     linear_friction;
+    float     quadratic_friction;
+    ShipInput last_input;
 
 #if defined(REAPER_USE_BULLET_PHYSICS)
     btBroadphaseInterface*               broadphase;
@@ -51,7 +63,7 @@ SPLINESONIC_SIM_API void       destroy_sim(PhysicsSim& sim);
 
 SPLINESONIC_SIM_API void sim_start(PhysicsSim* sim);
 
-SPLINESONIC_SIM_API void sim_update(PhysicsSim& sim, float dt);
+SPLINESONIC_SIM_API void sim_update(PhysicsSim& sim, const ShipInput& input, float dt);
 SPLINESONIC_SIM_API glm::fmat4x3 get_player_transform(PhysicsSim& sim);
 
 SPLINESONIC_SIM_API void sim_register_static_collision_meshes(PhysicsSim& sim, const nonstd::span<Mesh> meshes,

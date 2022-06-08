@@ -305,7 +305,14 @@ void execute_game_loop(ReaperRoot& root)
             toggle(backend.options.freeze_culling);
 
 #if ENABLE_GAME_SCENE
-        SplineSonic::sim_update(sim, timeDtSecs);
+        SplineSonic::ShipInput input;
+        input.throttle = controller_state.axes[GenericAxis::RT] * 0.5 + 0.5;
+        input.brake = controller_state.axes[GenericAxis::LT] * 0.5 + 0.5;
+        input.steer = controller_state.axes[GenericAxis::LSX];
+
+        log_debug(root, "sim: throttle = {}, braking = {}, steer = {}", input.throttle, input.brake, input.steer);
+
+        SplineSonic::sim_update(sim, input, timeDtSecs);
 
         const glm::fmat4x3 player_transform = SplineSonic::get_player_transform(sim);
         const glm::fvec3   player_translation = player_transform[3];

@@ -22,6 +22,7 @@
 
 #include <glm/gtc/matrix_access.hpp>
 #include <glm/gtc/quaternion.hpp>
+#include <glm/gtx/projection.hpp>
 #include <glm/vec3.hpp>
 
 #include <bit>
@@ -36,14 +37,6 @@ namespace
     inline glm::quat toGlm(btQuaternion const& quat)
     {
         return glm::quat(quat.getW(), quat.getX(), quat.getY(), quat.getZ());
-    }
-
-    inline bool is_nan(f32 v)
-    {
-        static constexpr u32 NanMask = 0x7fc00000;
-
-        u32* v_u = reinterpret_cast<u32*>(&v);
-        return (*v_u & NanMask) == NanMask;
     }
 
     inline glm::fmat4x3 toGlm(const btTransform& transform)
@@ -62,7 +55,7 @@ namespace
         return btMatrix3x3(m[0].x, m[1].x, m[2].x, m[0].y, m[1].y, m[2].y, m[0].z, m[1].z, m[2].z);
     }
 
-    inline btQuaternion toBt(glm::quat const& quat) { return btQuaternion(quat.w, quat.x, quat.y, quat.z); }
+    // inline btQuaternion toBt(glm::quat const& quat) { return btQuaternion(quat.w, quat.x, quat.y, quat.z); }
 
     inline btTransform toBt(const glm::fmat4x3& transform)
     {
@@ -77,33 +70,9 @@ namespace
     glm::fvec3 forward() { return glm::vec3(1.0f, 0.0f, 0.0f); }
     glm::fvec3 up() { return glm::vec3(0.0f, 1.0f, 0.0f); }
 
-    /*
-    void steer(float dtSecs, Movement& movement, float amount)
-    {
-        float steerMultiplier = 0.035f;
-        float inclinationMax = 2.6f;
-        float inclForce = (log(glm::length(movement.speed * 0.5f) + 1.0f) + 0.2f) * amount;
-        float inclinationRepel = -movement.inclination * 5.0f;
-
-        movement.inclination =
-            glm::clamp(movement.inclination + (inclForce + inclinationRepel) * dtSecs, -inclinationMax, inclinationMax);
-        movement.orientation *= glm::angleAxis(-amount * steerMultiplier, up());
-    }
-    */
-
-    struct ShipInput
-    {
-        float brake;    // 0.0 not braking - 1.0 max
-        float throttle; // 0.0 no trottle - 1.0 max
-        float steer;    // 0.0 no steering - -1.0 max left - 1.0 max right
-    };
-
-    void pre_tick(PhysicsSim& sim, float dt)
+    void pre_tick(PhysicsSim& sim, const ShipInput& input, float /*dt*/)
     {
         REAPER_PROFILE_SCOPE_FUNC();
-
-        (void)dt;
-        // ShipInput ship_input = {};
 
         btRigidBody*       playerRigidBody = sim.players[0];
         const glm::fmat4x3 player_transform = toGlm(playerRigidBody->getWorldTransform());
@@ -133,24 +102,39 @@ namespace
 
         shipUp = projected_orientation * up();
         shipFwd = player_orientation * forward();
-        // FIXME shipFwd = glm::normalize(shipFwd - glm::proj(shipFwd, shipUp)); // Ship Fwd in on slice plane
+        // shipFwd = glm::normalize(shipFwd - glm::proj(shipFwd, shipUp)); // Ship Fwd in on slice plane
 
         // Re-eval ship orientation
         // FIXME player_orientation = glm::quat(glm::mat3(shipFwd, shipUp, glm::cross(shipFwd, shipUp)));
 
+        const glm::fvec3 linear_speed = toGlm(playerRigidBody->getLinearVelocity());
+
         // change steer angle
-        // steer(dt, movement, factors.getTurnFactor());
+        {
+            float steerMultiplier = 0.035f;
+            float inclinationMax = 2.6f;
+            float inclForce = (log(glm::length(linear_speed * 0.5f) + 1.0f) + 0.2f) * input.steer;
+            // float inclinationRepel = -movement.inclination * 5.0f;
+
+            // movement.inclination =
+            //     glm::clamp(movement.inclination + (inclForce + inclinationRepel) * dtSecs, -inclinationMax,
+            //     inclinationMax);
+            //  movement.orientation *= glm::angleAxis(-input.steer * steerMultiplier, up());
+        }
+
+        ShipStats ship_stats;
+        ship_stats.thrust = 100.f;
+        ship_stats.braking = 10.f;
 
         // Integrate forces
         glm::vec3 forces = {};
-        forces += -shipUp * 98.331f; // 10x earth gravity
-        // forces += shipFwd * factors.getThrustFactor() * player->getAcceleration(); // Engine thrust
+        forces += -shipUp * 98.331f;                            // 10x earth gravity
+        forces += shipFwd * input.throttle * ship_stats.thrust; // Engine thrust
         //      forces += shipFwd * player.getAcceleration(); // Engine thrust
-        // forces += -glm::proj(movement.speed, shipFwd) * factors.getBrakeFactor() * sim.pBrakesForce; // Brakes force
+        forces += -glm::proj(linear_speed, shipFwd) * input.brake * ship_stats.braking; // Brakes force
         // forces += -glm::proj(movement.speed, glm::cross(shipFwd, shipUp)) * sim.pHandling;           // Handling term
-        const glm::fvec3 linear_speed = toGlm(playerRigidBody->getLinearVelocity());
-        forces += -linear_speed * sim.pLinearFriction;                           // Linear friction term
-        forces += -linear_speed * glm::length(linear_speed) * sim.pQuadFriction; // Quadratic friction term
+        forces += -linear_speed * sim.linear_friction;
+        forces += -linear_speed * glm::length(linear_speed) * sim.quadratic_friction;
 
         // Progressive repelling force that pushes the ship downwards
         // FIXME
@@ -180,7 +164,7 @@ namespace
         forces += shipFwd * factors.getThrustFactor() * player->getAcceleration(); // Engine thrust
         forces += -glm::proj(movement.speed, shipFwd) * factors.getBrakeFactor() * _pBrakesForce; // Brakes force
         forces += -glm::proj(movement.speed, glm::cross(shipFwd, shipUp)) * _pHandling;           // Handling term
-        forces += -movement.speed * _pLinearFriction;                                             // Linear friction
+        forces += -movement.speed * linear_friction;                                             // Linear friction
     term forces += -movement.speed * glm::length(movement.speed) * _pQuadFriction;                 // Quadratic friction
     term
 
@@ -210,10 +194,8 @@ PhysicsSim create_sim()
     PhysicsSim sim = {};
 
     // Physics tweakables
-    sim.pLinearFriction = 4.0f;
-    sim.pQuadFriction = 0.01f;
-    sim.pHandling = 30.0f;
-    sim.pBrakesForce = 30.0f;
+    sim.linear_friction = 4.0f;
+    sim.quadratic_friction = 0.01f;
 
 #if defined(REAPER_USE_BULLET_PHYSICS)
     // Boilerplate code for a standard rigidbody simulation
@@ -269,15 +251,19 @@ namespace
 #if defined(REAPER_USE_BULLET_PHYSICS)
     void pre_tick_callback(btDynamicsWorld* world, btScalar dt)
     {
-        auto sim_ptr = static_cast<PhysicsSim*>(world->getWorldUserInfo());
+        PhysicsSim* sim_ptr = static_cast<PhysicsSim*>(world->getWorldUserInfo());
         Assert(sim_ptr);
-        pre_tick(*sim_ptr, dt);
+
+        PhysicsSim& sim = *sim_ptr;
+
+        pre_tick(sim, sim.last_input, dt);
     }
 
     void post_tick_callback(btDynamicsWorld* world, btScalar dt)
     {
-        auto sim_ptr = static_cast<PhysicsSim*>(world->getWorldUserInfo());
+        PhysicsSim* sim_ptr = static_cast<PhysicsSim*>(world->getWorldUserInfo());
         Assert(sim_ptr);
+
         post_tick(*sim_ptr, dt);
     }
 #endif
@@ -295,9 +281,11 @@ void sim_start(PhysicsSim* sim)
 #endif
 }
 
-void sim_update(PhysicsSim& sim, float dt)
+void sim_update(PhysicsSim& sim, const ShipInput& input, float dt)
 {
     REAPER_PROFILE_SCOPE_FUNC();
+
+    sim.last_input = input; // FIXME
 
 #if defined(REAPER_USE_BULLET_PHYSICS)
     sim.dynamicsWorld->stepSimulation(dt, SimulationMaxSubStep);
@@ -391,7 +379,7 @@ void sim_create_player_rigid_body(PhysicsSim& sim, const glm::fmat4x3& player_tr
     player_rigid_body->setRollingFriction(0.8f);
 
     // FIXME doesn't do anything? Wrong collision mesh?
-    player_rigid_body->setCcdMotionThreshold(0.0005f);
+    player_rigid_body->setCcdMotionThreshold(0.05f);
     player_rigid_body->setCcdSweptSphereRadius(shape_extent.x);
 
     sim.dynamicsWorld->addRigidBody(player_rigid_body);
