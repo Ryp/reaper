@@ -18,7 +18,7 @@
 #include "audio/AudioBackend.h"
 #include "audio/WaveFormat.h"
 #include "common/Log.h"
-#include "input/DS4.h"
+#include "input/LinuxController.h"
 #include "math/Spline.h"
 #include "mesh/ModelLoader.h"
 #include "profiling/Scope.h"
@@ -275,8 +275,7 @@ void execute_game_loop(ReaperRoot& root)
     bool      shouldExit = false;
     u64       frameIndex = 0;
 
-    DS4 ds4("/dev/input/js0");
-    ds4.connect();
+    LinuxController controller = create_controller("/dev/input/js0");
 
 #if ENABLE_FREE_CAM
     SceneNode& camera_node = scene.nodes[scene.camera.scene_node];
@@ -300,9 +299,9 @@ void execute_game_loop(ReaperRoot& root)
 
         shouldExit = vulkan_process_window_events(root, backend, window);
 
-        ds4.update();
+        const GenericControllerState controller_state = update_controller_state(controller);
 
-        if (ds4.isPressed(DS4::Square))
+        if (controller_state.buttons[GenericButton::X].pressed)
             toggle(backend.options.freeze_culling);
 
 #if ENABLE_GAME_SCENE
@@ -311,8 +310,8 @@ void execute_game_loop(ReaperRoot& root)
         const glm::fmat4x3 player_transform = SplineSonic::get_player_transform(sim);
         const glm::fvec3   player_translation = player_transform[3];
 
-        log_info(root, "sim: player pos = ({}, {}, {})", player_translation[0], player_translation[1],
-                 player_translation[2]);
+        log_debug(root, "sim: player pos = ({}, {}, {})", player_translation[0], player_translation[1],
+                  player_translation[2]);
 
         SceneNode& player_scene_node = scene.nodes[player_scene_node_index];
         player_scene_node.transform_matrix = player_transform;
@@ -320,9 +319,9 @@ void execute_game_loop(ReaperRoot& root)
 
 #if ENABLE_FREE_CAM
         const glm::vec2 yaw_pitch_delta =
-            glm::vec2(ds4.getAxis(DS4::RightAnalogY), -ds4.getAxis(DS4::RightAnalogX)) * timeDtSecs;
+            glm::vec2(controller_state.axes[GenericAxis::RSY], -controller_state.axes[GenericAxis::RSX]) * timeDtSecs;
         const glm::vec2 forward_side_delta =
-            glm::vec2(ds4.getAxis(DS4::LeftAnalogY), ds4.getAxis(DS4::LeftAnalogX)) * timeDtSecs;
+            glm::vec2(controller_state.axes[GenericAxis::LSY], controller_state.axes[GenericAxis::LSX]) * timeDtSecs;
 
         update_camera_state(camera_state, yaw_pitch_delta, forward_side_delta);
 
@@ -360,6 +359,8 @@ void execute_game_loop(ReaperRoot& root)
 
         output_file.close();
     }
+
+    destroy_controller(controller);
 
     SplineSonic::destroy_sim(sim);
 

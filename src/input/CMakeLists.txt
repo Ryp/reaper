@@ -10,10 +10,15 @@ set(target reaper_input)
 add_library(${target} ${REAPER_BUILD_TYPE})
 
 target_sources(${target} PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/AbstractController.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/AbstractController.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/DS4.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/DS4.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/GenericController.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/GenericController.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/LinuxController.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/LinuxController.h
+)
+
+target_link_libraries(${target}
+    reaper_core
+    fmt
 )
 
 reaper_configure_library(${target} "Input")
