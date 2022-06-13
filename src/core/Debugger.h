@@ -9,4 +9,4 @@
 
 #include "Platform.h"
 
-bool isInDebugger();
+bool is_in_debugger_safe();

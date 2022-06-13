@@ -10,7 +10,7 @@
 #if defined(REAPER_PLATFORM_WINDOWS)
 
 // Does not check for remote debugger
-bool isInDebugger()
+bool is_in_debugger_safe()
 {
     return IsDebuggerPresent() == TRUE;
 }
@@ -23,7 +23,7 @@ bool isInDebugger()
 #    include <sys/stat.h>
 #    include <unistd.h>
 
-bool isInDebugger()
+bool is_in_debugger_safe()
 {
     static bool isSet = false;
     static bool gdbPresent;
@@ -37,7 +37,7 @@ bool isInDebugger()
     if (status_fd == -1)
         return 0;
 
-    ssize_t num_read = read(status_fd, buf, sizeof(buf));
+    ssize_t num_read = read(status_fd, buf, sizeof(buf) - 1);
 
     if (num_read > 0)
     {
@@ -66,12 +66,10 @@ bool isInDebugger()
  * Returns true if the current process is being debugged (either
  * running under the debugger or has a debugger attached post facto).
  */
-bool isInDebugger()
+bool is_in_debugger_safe()
 {
-    int               junk;
     int               mib[4];
     struct kinfo_proc info;
-    size_t            size;
 
     // Initialize the flags so that, if sysctl fails for some bizarre
     // reason, we get a predictable result.
@@ -85,9 +83,9 @@ bool isInDebugger()
     mib[3] = getpid();
 
     // Call sysctl.
-    size = sizeof(info);
-    junk = sysctl(mib, sizeof(mib) / sizeof(*mib), &info, &size, NULL, 0);
-    assert(junk == 0);
+    size_t    size = sizeof(info);
+    const int err = sysctl(mib, sizeof(mib) / sizeof(*mib), &info, &size, NULL, 0);
+    assert(err == 0);
 
     // We're being debugged if the P_TRACED flag is set.
     return ((info.kp_proc.p_flag & P_TRACED) != 0);

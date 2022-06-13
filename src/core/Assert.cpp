@@ -35,7 +35,7 @@ void AssertImpl(const char* file, const char* func, int line, bool condition, co
     if (condition)
         return;
     std::cerr << std::dec << "ASSERT FAILED " << file << ':' << line << ": in '" << func << "'" << std::endl;
-    if (isInDebugger())
+    if (is_in_debugger_safe())
         breakpoint();
     else
         print_stacktrace_safe();
