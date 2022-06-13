@@ -21,6 +21,7 @@ class btSequentialImpulseConstraintSolver;
 class btDiscreteDynamicsWorld;
 class btRigidBody;
 class btStridingMeshInterface;
+class btCollisionShape;
 
 struct Mesh;
 
@@ -52,9 +53,10 @@ struct PhysicsSim
     btSequentialImpulseConstraintSolver* solver;
     btDiscreteDynamicsWorld*             dynamicsWorld;
 
-    std::vector<btRigidBody*>             static_meshes;
+    std::vector<btRigidBody*>             static_rigid_bodies;
     std::vector<btRigidBody*>             players;
     std::vector<btStridingMeshInterface*> vertexArrayInterfaces;
+    std::vector<btCollisionShape*>        collision_shapes;
 #endif
 };
 
@@ -66,8 +68,11 @@ SPLINESONIC_SIM_API void sim_start(PhysicsSim* sim);
 SPLINESONIC_SIM_API void sim_update(PhysicsSim& sim, const ShipInput& input, float dt);
 SPLINESONIC_SIM_API glm::fmat4x3 get_player_transform(PhysicsSim& sim);
 
-SPLINESONIC_SIM_API void sim_register_static_collision_meshes(PhysicsSim& sim, const nonstd::span<Mesh> meshes,
-                                                              const nonstd::span<glm::fmat4x3> transforms);
+SPLINESONIC_SIM_API void
+sim_register_static_collision_meshes(PhysicsSim& sim, const nonstd::span<Mesh> meshes,
+                                     nonstd::span<const glm::fmat4x3> transforms_no_scale,
+                                     nonstd::span<const glm::fvec3>   scales = nonstd::span<const glm::fvec3>());
+
 SPLINESONIC_SIM_API void sim_create_player_rigid_body(PhysicsSim& sim, const glm::fmat4x3& player_transform,
                                                       const glm::fvec3& shape_extent);
 } // namespace SplineSonic

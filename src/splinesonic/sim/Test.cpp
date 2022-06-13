@@ -9,7 +9,7 @@
 
 #if defined(REAPER_USE_BULLET_PHYSICS)
 #    include <BulletCollision/CollisionShapes/btBoxShape.h>
-#    include <BulletCollision/CollisionShapes/btBvhTriangleMeshShape.h>
+#    include <BulletCollision/CollisionShapes/btScaledBvhTriangleMeshShape.h>
 #    include <BulletCollision/CollisionShapes/btTriangleMesh.h>
 #    include <BulletCollision/Gimpact/btGImpactCollisionAlgorithm.h>
 #    include <btBulletDynamicsCommon.h>
@@ -68,7 +68,7 @@ namespace
     static const int SimulationMaxSubStep = 3; // FIXME
 
     glm::fvec3 forward() { return glm::vec3(1.0f, 0.0f, 0.0f); }
-    glm::fvec3 up() { return glm::vec3(0.0f, 1.0f, 0.0f); }
+    glm::fvec3 up() { return glm::vec3(0.0f, 0.0f, 1.0f); }
 
     void pre_tick(PhysicsSim& sim, const ShipInput& input, float /*dt*/)
     {
@@ -81,7 +81,7 @@ namespace
 
         float              min_dist_sq = 10000000.f;
         const btRigidBody* closest_track_chunk = nullptr;
-        for (auto track_chunk : sim.static_meshes)
+        for (auto track_chunk : sim.static_rigid_bodies)
         {
             glm::fvec3 delta = player_position_ws - toGlm(track_chunk->getWorldTransform().getOrigin());
             float      dist_sq = glm::dot(delta, delta);
@@ -111,10 +111,10 @@ namespace
 
         // change steer angle
         {
-            float steerMultiplier = 0.035f;
-            float inclinationMax = 2.6f;
-            float inclForce = (log(glm::length(linear_speed * 0.5f) + 1.0f) + 0.2f) * input.steer;
-            // float inclinationRepel = -movement.inclination * 5.0f;
+            // float steerMultiplier = 0.035f;
+            // float inclinationMax = 2.6f;
+            // float inclForce = (log(glm::length(linear_speed * 0.5f) + 1.0f) + 0.2f) * input.steer;
+            //  float inclinationRepel = -movement.inclination * 5.0f;
 
             // movement.inclination =
             //     glm::clamp(movement.inclination + (inclForce + inclinationRepel) * dtSecs, -inclinationMax,
@@ -216,24 +216,27 @@ PhysicsSim create_sim()
 void destroy_sim(PhysicsSim& sim)
 {
 #if defined(REAPER_USE_BULLET_PHYSICS)
-    for (auto rb : sim.static_meshes)
-    {
-        sim.dynamicsWorld->removeRigidBody(rb);
-        delete rb->getMotionState();
-        delete rb->getCollisionShape();
-        delete rb;
-    }
-
-    for (auto vb : sim.vertexArrayInterfaces)
-        delete vb;
-
     for (auto player_rigid_body : sim.players)
     {
         sim.dynamicsWorld->removeRigidBody(player_rigid_body);
         delete player_rigid_body->getMotionState();
-        delete player_rigid_body->getCollisionShape();
         delete player_rigid_body;
     }
+
+    for (auto rb : sim.static_rigid_bodies)
+    {
+        sim.dynamicsWorld->removeRigidBody(rb);
+        delete rb->getMotionState();
+        delete rb;
+    }
+
+    for (auto collision_shape : sim.collision_shapes)
+    {
+        delete collision_shape;
+    }
+
+    for (auto vb : sim.vertexArrayInterfaces)
+        delete vb;
 
     // Delete the rest of the bullet context
     delete sim.dynamicsWorld;
@@ -313,10 +316,13 @@ glm::fmat4x3 get_player_transform(PhysicsSim& sim)
 }
 
 void sim_register_static_collision_meshes(PhysicsSim& sim, const nonstd::span<Mesh> meshes,
-                                          const nonstd::span<glm::fmat4x3> transforms)
+                                          nonstd::span<const glm::fmat4x3> transforms_no_scale,
+                                          nonstd::span<const glm::fvec3>   scales)
 {
+    // FIXME Assert scale values
 #if defined(REAPER_USE_BULLET_PHYSICS)
-    Assert(meshes.size() == transforms.size());
+    Assert(meshes.size() == transforms_no_scale.size());
+    Assert(scales.empty() || scales.size() == transforms_no_scale.size());
 
     for (u32 i = 0; i < meshes.size(); i++)
     {
@@ -335,30 +341,32 @@ void sim_register_static_collision_meshes(PhysicsSim& sim, const nonstd::span<Me
 
         // Create bullet collision shape based on the mesh described
         btTriangleIndexVertexArray* meshInterface = new btTriangleIndexVertexArray();
+        sim.vertexArrayInterfaces.push_back(meshInterface);
+
         meshInterface->addIndexedMesh(indexedMesh);
         btBvhTriangleMeshShape* meshShape = new btBvhTriangleMeshShape(meshInterface, true);
+        sim.collision_shapes.push_back(meshShape);
 
-        // Create bullet default motionstate (the object is static here)
-        // to set the correct position of the collision shape
+        const btVector3               scale = scales.empty() ? btVector3(1.f, 1.f, 1.f) : toBt(scales[i]);
+        btScaledBvhTriangleMeshShape* scaled_mesh_shape = new btScaledBvhTriangleMeshShape(meshShape, scale);
+        sim.collision_shapes.push_back(scaled_mesh_shape);
 
-        // toBt(chunk->getInfo().sphere.position)); FIXME
-        btDefaultMotionState* chunkMotionState = new btDefaultMotionState(btTransform(toBt(transforms[i])));
+        btDefaultMotionState* chunkMotionState = new btDefaultMotionState(btTransform(toBt(transforms_no_scale[i])));
 
         // Create the rigidbody with the collision shape
-        btRigidBody::btRigidBodyConstructionInfo staticMeshRigidBodyInfo(0, chunkMotionState, meshShape);
+        btRigidBody::btRigidBodyConstructionInfo staticMeshRigidBodyInfo(0, chunkMotionState, scaled_mesh_shape);
         btRigidBody*                             staticRigidMesh = new btRigidBody(staticMeshRigidBodyInfo);
+
+        sim.static_rigid_bodies.push_back(staticRigidMesh);
 
         // Add it to our scene
         sim.dynamicsWorld->addRigidBody(staticRigidMesh);
-
-        // Keep track of bullet data
-        sim.static_meshes.push_back(staticRigidMesh);
-        sim.vertexArrayInterfaces.push_back(meshInterface);
     }
 #else
     static_cast<void>(sim);
     static_cast<void>(meshes);
-    static_cast<void>(transforms);
+    static_cast<void>(transforms_no_scale);
+    static_cast<void>(scales);
 #endif
 }
 
@@ -367,6 +375,7 @@ void sim_create_player_rigid_body(PhysicsSim& sim, const glm::fmat4x3& player_tr
 #if defined(REAPER_USE_BULLET_PHYSICS)
     btMotionState*    motionState = new btDefaultMotionState(toBt(player_transform));
     btCollisionShape* collisionShape = new btBoxShape(toBt(shape_extent));
+    sim.collision_shapes.push_back(collisionShape);
 
     btScalar  mass = 10.f; // FIXME
     btVector3 inertia(0.f, 0.f, 0.f);
