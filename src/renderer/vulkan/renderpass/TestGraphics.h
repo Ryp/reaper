@@ -9,6 +9,8 @@
 
 #include "renderer/RendererExport.h"
 
+struct ImDrawData;
+
 namespace Reaper
 {
 struct ReaperRoot;
@@ -16,12 +18,11 @@ struct VulkanBackend;
 struct BackendResources;
 class IWindow;
 
-REAPER_RENDERER_API bool vulkan_process_window_events(ReaperRoot& root, VulkanBackend& backend, IWindow* window);
-void                     resize_swapchain(ReaperRoot& root, VulkanBackend& backend);
+void resize_swapchain(ReaperRoot& root, VulkanBackend& backend);
 
 struct CommandBuffer;
 struct PreparedData;
 
 void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuffer& cmdBuffer,
-                           const PreparedData& prepared, BackendResources& resources);
+                           const PreparedData& prepared, BackendResources& resources, ImDrawData* imgui_draw_data);
 } // namespace Reaper

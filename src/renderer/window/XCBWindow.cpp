@@ -21,6 +21,30 @@ namespace Window
 {
     namespace
     {
+        MouseButton::type convert_xcb_mouse_button(xcb_button_t button)
+        {
+            switch (button)
+            {
+            case XCB_BUTTON_INDEX_1:
+                return MouseButton::Left;
+            case XCB_BUTTON_INDEX_2:
+                return MouseButton::Middle;
+            case XCB_BUTTON_INDEX_3:
+                return MouseButton::Right;
+            case XCB_BUTTON_INDEX_4:
+                return MouseButton::WheelUp;
+            case XCB_BUTTON_INDEX_5:
+                return MouseButton::WheelDown;
+            case 6:
+                return MouseButton::WheelLeft; // NOTE: this is not documented
+            case 7:
+                return MouseButton::WheelRight; // NOTE: this is not documented
+            default:
+                AssertUnreachable();
+                return MouseButton::Invalid;
+            }
+        }
+
         KeyCode::type convert_xcb_keycode(xcb_keycode_t key_code)
         {
             switch (key_code)
@@ -65,7 +89,8 @@ XCBWindow::XCBWindow(const WindowCreationDescriptor& creationInfo)
     m_handle = xcb_generate_id(m_connection);
 
     uint32_t mask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
-    uint32_t value_list[] = {m_screen->white_pixel, XCB_EVENT_MASK_EXPOSURE | XCB_EVENT_MASK_KEY_PRESS
+    uint32_t value_list[] = {m_screen->black_pixel, XCB_EVENT_MASK_EXPOSURE | XCB_EVENT_MASK_BUTTON_PRESS
+                                                        | XCB_EVENT_MASK_BUTTON_RELEASE | XCB_EVENT_MASK_KEY_PRESS
                                                         | XCB_EVENT_MASK_KEY_RELEASE | XCB_EVENT_MASK_STRUCTURE_NOTIFY};
 
     xcb_create_window(m_connection,
@@ -140,7 +165,7 @@ void XCBWindow::unmap()
 
 namespace
 {
-    Window::Event convertXcbEvent(xcb_generic_event_t* event)
+    Window::Event convert_xcb_event(xcb_generic_event_t* event)
     {
         constexpr u32 xcbMagicMask = 0x7f;
         switch (event->response_type & xcbMagicMask)
@@ -171,12 +196,23 @@ namespace
             // AssertUnreachable();
             break;
         }
-        // case XCB_KEY_RELEASE:
+        case XCB_BUTTON_PRESS: {
+            xcb_button_press_event_t* button_event = (xcb_button_press_event_t*)event;
+            return Window::createButtonEvent(Window::convert_xcb_mouse_button(button_event->detail), true);
+        }
+        case XCB_BUTTON_RELEASE: {
+            const xcb_button_release_event_t* button_event = (xcb_button_release_event_t*)event;
+            return Window::createButtonEvent(Window::convert_xcb_mouse_button(button_event->detail), false);
+        }
         case XCB_KEY_PRESS: {
-            xcb_key_release_event_t* key_event = (xcb_key_release_event_t*)event;
-            xcb_keycode_t            key_code = key_event->detail;
-
+            xcb_key_press_event_t* key_event = (xcb_key_press_event_t*)event;
+            xcb_keycode_t          key_code = key_event->detail;
             return Window::createKeyPressEvent(Window::convert_xcb_keycode(key_code));
+        }
+        case XCB_KEY_RELEASE: {
+            xcb_key_release_event_t* key_event = (xcb_key_release_event_t*)event;
+            (void)key_event;
+            break;
         }
         default:
             // AssertUnreachable();
@@ -200,9 +236,23 @@ void XCBWindow::pumpEvents(std::vector<Window::Event>& eventOutput)
 
         if (event != nullptr)
         {
-            eventOutput.emplace_back(convertXcbEvent(event));
+            eventOutput.emplace_back(convert_xcb_event(event));
             free(event);
         }
     } while (event);
+}
+
+MouseState XCBWindow::get_mouse_state()
+{
+    MouseState mouse_state;
+
+    xcb_query_pointer_cookie_t c = xcb_query_pointer(m_connection, m_handle);
+
+    xcb_generic_error_t*       error = nullptr;
+    xcb_query_pointer_reply_t* t = xcb_query_pointer_reply(m_connection, c, &error);
+    mouse_state.pos_x = t->win_x;
+    mouse_state.pos_y = t->win_y;
+
+    return mouse_state;
 }
 } // namespace Reaper

@@ -24,6 +24,10 @@
 #include "PresentationSurface.h"
 #include "renderer/window/Window.h"
 
+#include "BackendResources.h"
+
+#include <backends/imgui_impl_vulkan.h>
+
 #ifndef REAPER_VK_LIB_NAME
 #    error
 #endif
@@ -237,6 +241,30 @@ void create_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& backend)
                               &backend.physicalDeviceInfo.graphicsQueueFamilyIndex, node_count);
 #endif
 
+    {
+        // this initializes the core structures of imgui
+        ImGui::CreateContext();
+
+        // this initializes imgui for SDL
+        // ImGui_ImplSDL2_InitForVulkan(_window);
+
+        // this initializes imgui for Vulkan
+        ImGui_ImplVulkan_InitInfo init_info = {};
+        init_info.Instance = backend.instance;
+        init_info.PhysicalDevice = backend.physicalDevice;
+        init_info.Device = backend.device;
+        init_info.Queue = backend.deviceInfo.graphicsQueue;
+        init_info.DescriptorPool = backend.global_descriptor_pool;
+        init_info.MinImageCount = 3;
+        init_info.ImageCount = 3;
+        init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
+
+        // constexpr PixelFormat GUIFormat = PixelFormat::R8G8B8A8_SRGB;// FIXME
+        // const VkFormat gui_format = PixelFormatToVulkan(GUIFormat);
+        ImGui_ImplVulkan_LoadFunctions(nullptr, nullptr);
+        ImGui_ImplVulkan_Init(&init_info, VK_FORMAT_R8G8B8A8_SRGB);
+    }
+
     log_info(root, "vulkan: ready");
 }
 
@@ -247,6 +275,8 @@ void destroy_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& backend)
 
     log_debug(root, "vulkan: waiting for current work to finish");
     Assert(vkDeviceWaitIdle(backend.device) == VK_SUCCESS);
+
+    ImGui_ImplVulkan_Shutdown();
 
 #if defined(REAPER_USE_MICROPROFILE)
     MicroProfileGpuShutdown();

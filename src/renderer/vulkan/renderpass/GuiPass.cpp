@@ -20,6 +20,8 @@
 #include "common/Log.h"
 #include "common/ReaperRoot.h"
 
+#include <backends/imgui_impl_vulkan.h>
+
 namespace Reaper
 {
 namespace
@@ -234,7 +236,7 @@ void destroy_gui_pass_resources(VulkanBackend& backend, GuiPassResources& resour
 }
 
 void record_gui_command_buffer(CommandBuffer& cmdBuffer, const GuiPassResources& pass_resources,
-                               VkExtent2D backbufferExtent, VkImageView guiBufferView)
+                               VkExtent2D backbufferExtent, VkImageView guiBufferView, ImDrawData* imgui_draw_data)
 {
     const glm::fvec4 clearColor = {0.f, 0.f, 0.f, 0.f};
     const VkRect2D   blitPassRect = default_vk_rect(backbufferExtent);
@@ -278,6 +280,8 @@ void record_gui_command_buffer(CommandBuffer& cmdBuffer, const GuiPassResources&
                             1, &pass_resources.descriptor_set, 0, nullptr);
 
     vkCmdDraw(cmdBuffer.handle, 3, 1, 0, 0);
+
+    ImGui_ImplVulkan_RenderDrawData(imgui_draw_data, cmdBuffer.handle);
 
     vkCmdEndRendering(cmdBuffer.handle);
 }

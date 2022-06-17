@@ -21,13 +21,20 @@ namespace Window
     struct Event;
 }
 
+struct MouseState
+{
+    u32 pos_x;
+    u32 pos_y;
+};
+
 class REAPER_RENDERER_API IWindow
 {
 public:
     virtual ~IWindow() {}
-    virtual void map() = 0;
-    virtual void unmap() = 0;
-    virtual void pumpEvents(std::vector<Window::Event>& eventOutput) = 0;
+    virtual void       map() = 0;
+    virtual void       unmap() = 0;
+    virtual void       pumpEvents(std::vector<Window::Event>& eventOutput) = 0;
+    virtual MouseState get_mouse_state() = 0;
 };
 
 struct WindowCreationDescriptor

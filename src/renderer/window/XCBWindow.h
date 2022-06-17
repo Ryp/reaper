@@ -19,9 +19,10 @@ public:
     XCBWindow(const WindowCreationDescriptor& creationInfo);
     ~XCBWindow();
 
-    void map() override final;
-    void unmap() override final;
-    void pumpEvents(std::vector<Window::Event>& eventOutput) override final;
+    void       map() override final;
+    void       unmap() override final;
+    void       pumpEvents(std::vector<Window::Event>& eventOutput) override final;
+    MouseState get_mouse_state() override final;
 
 public:
     xcb_connection_t* m_connection;

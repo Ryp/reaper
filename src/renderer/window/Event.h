@@ -7,6 +7,8 @@
 
 #pragma once
 
+#include "renderer/RendererExport.h"
+
 #include <core/Types.h>
 
 namespace Reaper::Window
@@ -15,9 +17,26 @@ enum class EventType
 {
     Invalid,
     Resize,
+    ButtonPress,
     KeyPress,
     Close
 };
+
+namespace MouseButton
+{
+    enum type : u32
+    {
+        Invalid,
+        Left,
+        Middle,
+        Right,
+        // NOTE: XCB produces wheel events in pairs of pressed/released
+        WheelUp,
+        WheelDown,
+        WheelLeft,
+        WheelRight,
+    };
+}
 
 namespace KeyCode
 {
@@ -36,7 +55,7 @@ namespace KeyCode
         S,
         D,
     };
-};
+}
 
 struct Event
 {
@@ -48,13 +67,21 @@ struct Event
             u32 width;
             u32 height;
         } resize;
+        struct ButtonPress
+        {
+            Window::MouseButton::type button;
+            bool                      press;
+        } buttonpress;
         struct KeyPress
         {
-            u32 keyID; // UNUSED
+            Window::KeyCode::type key;
         } keypress;
     } message;
 };
 
 Event createResizeEvent(u32 width, u32 height);
-Event createKeyPressEvent(u32 id);
+Event createButtonEvent(Window::MouseButton::type button, bool press);
+Event createKeyPressEvent(Window::KeyCode::type id);
+
+REAPER_RENDERER_API const char* get_mouse_button_string(MouseButton::type button);
 } // namespace Reaper::Window

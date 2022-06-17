@@ -30,7 +30,7 @@ function(reaper_fill_vs_source_tree target root)
 endfunction()
 
 # Automatically generate the header used for exporting/importing symbols
-function(reaper_generate_export_header target project_label)
+function(reaper_generate_export_header target project_label path)
     # Construct export macro name
     string(TOUPPER ${target} TARGET_UPPERCASE)
 
@@ -43,7 +43,7 @@ function(reaper_generate_export_header target project_label)
 
     # Generate the file from the template.
     set(REAPER_EXPORT_TEMPLATE_PATH ${CMAKE_SOURCE_DIR}/src/LibraryExport.h.in)
-    set(LIBRARY_GENERATED_EXPORT_HEADER_PATH ${CMAKE_CURRENT_SOURCE_DIR}/${project_label}Export.h)
+    set(LIBRARY_GENERATED_EXPORT_HEADER_PATH ${path}/${project_label}Export.h)
     configure_file(${REAPER_EXPORT_TEMPLATE_PATH} ${LIBRARY_GENERATED_EXPORT_HEADER_PATH} @ONLY)
 endfunction()
 
@@ -143,7 +143,7 @@ function(reaper_configure_library target project_label)
     reaper_configure_target_common(${target} ${project_label})
     reaper_configure_warnings(${target} ON)
     reaper_configure_coverage(${target})
-    reaper_generate_export_header(${target} ${project_label})
+    reaper_generate_export_header(${target} ${project_label} ${CMAKE_CURRENT_SOURCE_DIR})
 endfunction()
 
 # Use this function for executables
@@ -154,9 +154,10 @@ function(reaper_configure_executable target project_label)
 endfunction()
 
 # Use this function for external dependencies
-function(reaper_configure_external_target target project_label)
+function(reaper_configure_external_target target project_label path)
     reaper_configure_target_common(${target} ${project_label})
     reaper_configure_warnings(${target} OFF)
+    reaper_generate_export_header(${target} ${project_label} ${path})
 endfunction()
 
 # Reaper standard test helper

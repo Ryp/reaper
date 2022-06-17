@@ -18,6 +18,8 @@
 
 #include <vector>
 
+struct ImDrawData;
+
 namespace Reaper
 {
 constexpr PixelFormat GUIFormat = PixelFormat::R8G8B8A8_SRGB;
@@ -47,5 +49,5 @@ struct CommandBuffer;
 struct FrameData;
 
 void record_gui_command_buffer(CommandBuffer& cmdBuffer, const GuiPassResources& pass_resources,
-                               VkExtent2D backbufferExtent, VkImageView guiBufferView);
+                               VkExtent2D backbufferExtent, VkImageView guiBufferView, ImDrawData* imgui_draw_data);
 } // namespace Reaper

@@ -27,6 +27,8 @@ fi
 
 # Check for C++ source files using clang-format
 files_to_check=$(git diff --cached --name-only | grep ".*\.\(cpp\|h\|inl\)$")
+files_to_repair=()
+format_diff=$(mktemp format_diff.XXXXXX)
 
 for file in $files_to_check
 do
@@ -45,27 +47,31 @@ do
     # Test if the diff contained changes
     if test $(cat $temp_diff | wc -c) != 0
     then
-        echo "Error: $file is not formatted correctly."
-        echo
-        cat $temp_diff
-        echo
-        echo "To fix these issues:"
-        echo
-        echo "    clang-format -style=file -i $file"
-        echo "    git add $file"
-        echo
-        echo "Or:"
-        echo
-        echo "    git clang-format $file"
-        echo "    git add $file"
-        echo
-        rm $temp_file $temp_diff
-        exit 1
+        files_to_repair+=($file)
+        cat $temp_diff >> $format_diff
     fi
 
     # Remove temporary file
     rm $temp_file $temp_diff
 done
+
+if test ${#files_to_repair[@]} != 0
+then
+    cat $format_diff
+    echo
+    echo "Error: some files are not formatted correctly. To fix these issues:"
+    echo
+    echo "    clang-format -style=file -i ${files_to_repair[@]}"
+    echo
+    echo "Or:"
+    echo
+    echo "    git clang-format ${files_to_repair[@]}"
+    echo
+    rm $format_diff
+    exit 1
+fi
+
+rm $format_diff
 
 # Currently the 'git clang-format' command does not ignore unstaged changes
 # making our job more difficult than it is. The following is kept for future

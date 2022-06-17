@@ -33,6 +33,11 @@
 #include <chrono>
 #include <thread>
 
+#include <backends/imgui_impl_vulkan.h>
+
+#include "renderer/window/Event.h"
+#include "renderer/window/Window.h"
+
 #define ENABLE_TEST_SCENE 0
 #define ENABLE_GAME_SCENE 1
 #define ENABLE_FREE_CAM 0
@@ -297,12 +302,97 @@ void execute_game_loop(ReaperRoot& root)
         const auto  timeDeltaMs = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - lastFrameStart);
         const float timeDtSecs = static_cast<float>(timeDeltaMs.count()) * 0.001f;
 
-        shouldExit = vulkan_process_window_events(root, backend, window);
+        const MouseState mouse_state = window->get_mouse_state();
+        ImGuiIO&         io = ImGui::GetIO();
+        io.DisplaySize =
+            ImVec2((float)backend.presentInfo.surfaceExtent.width, (float)backend.presentInfo.surfaceExtent.height);
+        io.AddMousePosEvent((float)mouse_state.pos_x, (float)mouse_state.pos_y);
+
+        {
+            REAPER_PROFILE_SCOPE("Window Events");
+
+            std::vector<Window::Event> events;
+            window->pumpEvents(events);
+
+            for (const auto& event : events)
+            {
+                if (event.type == Window::EventType::Resize)
+                {
+                    const u32 width = event.message.resize.width;
+                    const u32 height = event.message.resize.height;
+                    log_debug(root, "window: resize event, width = {}, height = {}", width, height);
+
+                    Assert(width > 0);
+                    Assert(height > 0);
+
+                    // FIXME Do not set for duplicate events
+                    backend.new_swapchain_extent = {width, height};
+                    backend.mustTransitionSwapchain = true;
+                }
+                else if (event.type == Window::EventType::ButtonPress)
+                {
+                    Window::MouseButton::type button = event.message.buttonpress.button;
+                    constexpr float           ImGuiScrollMultiplier = 0.5f;
+                    bool                      press = event.message.buttonpress.press;
+
+                    log_debug(root, "window: button index = {}, press = {}", Window::get_mouse_button_string(button),
+                              press);
+
+                    switch (button)
+                    {
+                    case Window::MouseButton::Left:
+                        io.AddMouseButtonEvent(0, press);
+                        break;
+                    case Window::MouseButton::Right:
+                        io.AddMouseButtonEvent(1, press);
+                        break;
+                    case Window::MouseButton::Middle:
+                        io.AddMouseButtonEvent(2, press);
+                        break;
+                    case Window::MouseButton::WheelUp:
+                        io.AddMouseWheelEvent(0.f, press ? ImGuiScrollMultiplier : 0.f);
+                        break;
+                    case Window::MouseButton::WheelDown:
+                        io.AddMouseWheelEvent(0.f, press ? -ImGuiScrollMultiplier : 0.f);
+                        break;
+                    case Window::MouseButton::WheelLeft:
+                        io.AddMouseWheelEvent(press ? ImGuiScrollMultiplier : 0.f, 0.f);
+                        break;
+                    case Window::MouseButton::WheelRight:
+                        io.AddMouseWheelEvent(press ? -ImGuiScrollMultiplier : 0.f, 0.f);
+                        break;
+                    case Window::MouseButton::Invalid:
+                        break;
+                    }
+                }
+                else if (event.type == Window::EventType::KeyPress)
+                {
+                    log_warning(root, "window: key press detected: now exiting...");
+                    shouldExit = true;
+                    break;
+                }
+                else
+                {
+                    log_warning(root, "window: an unknown event has been caught and will not be handled");
+                }
+            }
+        }
 
         const GenericControllerState controller_state = update_controller_state(controller);
 
         if (controller_state.buttons[GenericButton::X].pressed)
             toggle(backend.options.freeze_culling);
+
+        ImGui_ImplVulkan_NewFrame();
+        ImGui::NewFrame();
+
+        static bool show_demo_window = true;
+        if (show_demo_window)
+        {
+            ImGui::ShowDemoWindow(&show_demo_window);
+        }
+
+        ImGui::Render();
 
 #if ENABLE_GAME_SCENE
         SplineSonic::ShipInput input;

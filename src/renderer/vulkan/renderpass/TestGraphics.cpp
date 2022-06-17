@@ -24,8 +24,6 @@
 #include "renderer/Mesh2.h"
 #include "renderer/texture/GPUTextureProperties.h"
 #include "renderer/texture/GPUTextureView.h"
-#include "renderer/window/Event.h"
-#include "renderer/window/Window.h"
 
 #include "renderer/graph/FrameGraphBuilder.h"
 #include "renderer/graph/GraphDebug.h"
@@ -84,44 +82,6 @@ namespace
     }
 } // namespace
 
-bool vulkan_process_window_events(ReaperRoot& root, VulkanBackend& backend, IWindow* window)
-{
-    REAPER_PROFILE_SCOPE_FUNC();
-
-    log_debug(root, "window: pump events");
-
-    std::vector<Window::Event> events;
-    window->pumpEvents(events);
-
-    for (const auto& event : events)
-    {
-        if (event.type == Window::EventType::Resize)
-        {
-            const u32 width = event.message.resize.width;
-            const u32 height = event.message.resize.height;
-            log_debug(root, "window: resize event, width = {}, height = {}", width, height);
-
-            Assert(width > 0);
-            Assert(height > 0);
-
-            // FIXME Do not set for duplicate events
-            backend.new_swapchain_extent = {width, height};
-            backend.mustTransitionSwapchain = true;
-        }
-        else if (event.type == Window::EventType::KeyPress)
-        {
-            log_warning(root, "window: key press detected: now exiting...");
-            return true;
-        }
-        else
-        {
-            log_warning(root, "window: an unknown event has been caught and will not be handled");
-        }
-    }
-
-    return false;
-}
-
 void resize_swapchain(ReaperRoot& root, VulkanBackend& backend)
 {
     REAPER_PROFILE_SCOPE_FUNC();
@@ -143,7 +103,7 @@ void resize_swapchain(ReaperRoot& root, VulkanBackend& backend)
 }
 
 void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuffer& cmdBuffer,
-                           const PreparedData& prepared, BackendResources& resources)
+                           const PreparedData& prepared, BackendResources& resources, ImDrawData* imgui_draw_data)
 {
     VkResult acquireResult;
     u64      acquireTimeoutUs = 1000000000;
@@ -508,7 +468,8 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
             record_gui_command_buffer(
                 cmdBuffer, resources.gui_pass_resources, backbufferExtent,
                 get_frame_graph_texture(resources.framegraph_resources, framegraph, gui_create_usage_handle)
-                    .view_handle);
+                    .view_handle,
+                imgui_draw_data);
 
             record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources, gui_pass_handle,
                                        false);
