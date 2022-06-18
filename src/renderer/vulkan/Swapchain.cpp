@@ -122,7 +122,7 @@ VkFormat vulkan_swapchain_view_format_override(VkSurfaceFormatKHR surface_format
 using namespace vk;
 
 #if 0
-#include "renderer/window/Win32Window.h"
+#    include "renderer/window/Win32Window.h"
 #endif
 
 namespace Reaper
@@ -197,23 +197,27 @@ void configure_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backen
     }
 
     // Image count
-    uint32_t imageCount = 0;
+    uint32_t imageCount = swapchainDesc.preferredImageCount;
     {
         log_debug(root, "vulkan: swapchain image count support: min = {}, max = {}", surfaceCaps.minImageCount,
                   surfaceCaps.maxImageCount);
 
-        imageCount = 3;
         if (imageCount < surfaceCaps.minImageCount)
             imageCount = surfaceCaps.minImageCount;
-        else if (surfaceCaps.maxImageCount > 0 && imageCount > surfaceCaps.maxImageCount)
+
+        // Max count might be zero when uncapped
+        if (imageCount > surfaceCaps.maxImageCount && surfaceCaps.maxImageCount > 0)
             imageCount = surfaceCaps.maxImageCount;
 
         if (imageCount != swapchainDesc.preferredImageCount)
+        {
             log_warning(root, "vulkan: swapchain image count {} is unsupported. falling back to {}",
                         swapchainDesc.preferredImageCount, imageCount);
+        }
 
-        Assert(imageCount > 0);
-        Assert(imageCount <= 5); // Seems like a reasonable limit
+        Assert(imageCount >= 2, "Swapchain should support at least double-buffering");
+        Assert(imageCount <= 5, "Swapchain image count too large");
+
         presentInfo.imageCount = imageCount;
     }
 
@@ -313,14 +317,25 @@ void create_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backend, 
     Assert(vkCreateSwapchainKHR(backend.device, &swap_chain_create_info, nullptr, &presentInfo.swapchain)
            == VK_SUCCESS);
 
-    Assert(vkGetSwapchainImagesKHR(backend.device, presentInfo.swapchain, &presentInfo.imageCount, nullptr)
-           == VK_SUCCESS);
-    Assert(presentInfo.imageCount > 0);
+    u32 actualImageCount = 0;
+    Assert(vkGetSwapchainImagesKHR(backend.device, presentInfo.swapchain, &actualImageCount, nullptr) == VK_SUCCESS);
 
-    presentInfo.images.resize(presentInfo.imageCount);
-    Assert(
-        vkGetSwapchainImagesKHR(backend.device, presentInfo.swapchain, &presentInfo.imageCount, &presentInfo.images[0])
-        == VK_SUCCESS);
+    Assert(actualImageCount > 0);
+    Assert(actualImageCount >= presentInfo.imageCount, "Invalid swapchain image count returned");
+
+    presentInfo.images.resize(actualImageCount);
+    Assert(vkGetSwapchainImagesKHR(backend.device, presentInfo.swapchain, &actualImageCount, &presentInfo.images[0])
+           == VK_SUCCESS);
+
+    if (actualImageCount != presentInfo.imageCount)
+    {
+        log_warning(root, "vulkan: {} swapchain images were asked but we got {}", presentInfo.imageCount,
+                    actualImageCount);
+    }
+
+    // Since we don't control which swapchain image index we'll get when acquiring one,
+    // we have to use the full amount of swapchain we get back.
+    presentInfo.imageCount = actualImageCount;
 
     VkSemaphoreCreateInfo semaphore_create_info = {
         VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO, // VkStructureType          sType
