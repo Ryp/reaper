@@ -34,8 +34,7 @@ namespace
     {
         switch (surface_format.colorSpace)
         {
-        case VK_COLOR_SPACE_SRGB_NONLINEAR_KHR:
-        {
+        case VK_COLOR_SPACE_SRGB_NONLINEAR_KHR: {
             switch (view_format)
             {
             case VK_FORMAT_B8G8R8A8_SRGB:
@@ -420,6 +419,8 @@ void upload_swapchain_frame_resources(VulkanBackend& backend, const PreparedData
 void record_swapchain_command_buffer(CommandBuffer& cmdBuffer, const FrameData& frame_data,
                                      const SwapchainPassResources& pass_resources, VkImageView swapchain_buffer_view)
 {
+    vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, pass_resources.pipeline);
+
     const VkRect2D blitPassRect = default_vk_rect(frame_data.backbufferExtent);
 
     const VkRenderingAttachmentInfo color_attachment = {
@@ -449,8 +450,6 @@ void record_swapchain_command_buffer(CommandBuffer& cmdBuffer, const FrameData& 
     };
 
     vkCmdBeginRendering(cmdBuffer.handle, &renderingInfo);
-
-    vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, pass_resources.pipeline);
 
     const VkViewport blitViewport = default_vk_viewport(blitPassRect);
 

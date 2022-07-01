@@ -333,8 +333,13 @@ void record_shadow_map_command_buffer(CommandBuffer& cmdBuffer, const PreparedDa
                                       ShadowMapResources& resources, const nonstd::span<VkImageView> shadow_map_views,
                                       const CullResources& cull_resources)
 {
+    vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, resources.pipe.pipeline);
+
     for (const ShadowPassData& shadow_pass : prepared.shadow_passes)
     {
+        if (shadow_pass.instance_count == 0)
+            continue;
+
         REAPER_GPU_SCOPE(cmdBuffer, fmt::format("Shadow Pass {}", shadow_pass.pass_index).c_str());
 
         const VkImageView  shadowMapView = shadow_map_views[shadow_pass.pass_index];
@@ -371,28 +376,23 @@ void record_shadow_map_command_buffer(CommandBuffer& cmdBuffer, const PreparedDa
 
         vkCmdBeginRendering(cmdBuffer.handle, &renderingInfo);
 
-        if (shadow_pass.instance_count > 0)
-        {
-            vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, resources.pipe.pipeline);
+        const VkViewport viewport = default_vk_viewport(pass_rect);
 
-            const VkViewport viewport = default_vk_viewport(pass_rect);
+        vkCmdSetViewport(cmdBuffer.handle, 0, 1, &viewport);
+        vkCmdSetScissor(cmdBuffer.handle, 0, 1, &pass_rect);
 
-            vkCmdSetViewport(cmdBuffer.handle, 0, 1, &viewport);
-            vkCmdSetScissor(cmdBuffer.handle, 0, 1, &pass_rect);
+        const CullingDrawParams draw_params = get_culling_draw_params(shadow_pass.pass_index);
 
-            const CullingDrawParams draw_params = get_culling_draw_params(shadow_pass.pass_index);
+        vkCmdBindIndexBuffer(cmdBuffer.handle, cull_resources.dynamicIndexBuffer.handle,
+                             draw_params.index_buffer_offset, draw_params.index_type);
 
-            vkCmdBindIndexBuffer(cmdBuffer.handle, cull_resources.dynamicIndexBuffer.handle,
-                                 draw_params.index_buffer_offset, draw_params.index_type);
+        vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, resources.pipe.pipelineLayout, 0, 1,
+                                &resources.descriptor_sets[shadow_pass.pass_index], 0, nullptr);
 
-            vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, resources.pipe.pipelineLayout, 0,
-                                    1, &resources.descriptor_sets[shadow_pass.pass_index], 0, nullptr);
-
-            vkCmdDrawIndexedIndirectCount(cmdBuffer.handle, cull_resources.indirectDrawBuffer.handle,
-                                          draw_params.command_buffer_offset, cull_resources.countersBuffer.handle,
-                                          draw_params.counter_buffer_offset, draw_params.command_buffer_max_count,
-                                          cull_resources.indirectDrawBuffer.properties.element_size_bytes);
-        }
+        vkCmdDrawIndexedIndirectCount(cmdBuffer.handle, cull_resources.indirectDrawBuffer.handle,
+                                      draw_params.command_buffer_offset, cull_resources.countersBuffer.handle,
+                                      draw_params.counter_buffer_offset, draw_params.command_buffer_max_count,
+                                      cull_resources.indirectDrawBuffer.properties.element_size_bytes);
 
         vkCmdEndRendering(cmdBuffer.handle);
     }

@@ -238,6 +238,8 @@ void destroy_gui_pass_resources(VulkanBackend& backend, GuiPassResources& resour
 void record_gui_command_buffer(CommandBuffer& cmdBuffer, const GuiPassResources& pass_resources,
                                VkExtent2D backbufferExtent, VkImageView guiBufferView, ImDrawData* imgui_draw_data)
 {
+    vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, pass_resources.guiPipe.pipeline);
+
     const glm::fvec4 clearColor = {0.f, 0.f, 0.f, 0.f};
     const VkRect2D   blitPassRect = default_vk_rect(backbufferExtent);
 
@@ -268,8 +270,6 @@ void record_gui_command_buffer(CommandBuffer& cmdBuffer, const GuiPassResources&
     };
 
     vkCmdBeginRendering(cmdBuffer.handle, &renderingInfo);
-
-    vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, pass_resources.guiPipe.pipeline);
 
     const VkViewport blitViewport = default_vk_viewport(blitPassRect);
 

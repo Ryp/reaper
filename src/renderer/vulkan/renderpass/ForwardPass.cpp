@@ -524,6 +524,11 @@ void record_forward_pass_command_buffer(CommandBuffer& cmdBuffer, const Prepared
                                         VkExtent2D backbufferExtent, VkImageView hdrBufferView,
                                         VkImageView depthBufferView)
 {
+    if (prepared.forward_instances.empty())
+        return;
+
+    vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, pass_resources.pipe.pipeline);
+
     const glm::fvec4 clearColor = {0.1f, 0.1f, 0.1f, 0.0f};
     const float      depthClearValue = ForwardUseReverseZ ? 0.f : 1.f;
     const VkRect2D   blitPassRect = default_vk_rect(backbufferExtent);
@@ -569,34 +574,28 @@ void record_forward_pass_command_buffer(CommandBuffer& cmdBuffer, const Prepared
 
     vkCmdBeginRendering(cmdBuffer.handle, &renderingInfo);
 
-    if (!prepared.forward_instances.empty())
-    {
-        vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, pass_resources.pipe.pipeline);
+    const VkViewport blitViewport = default_vk_viewport(blitPassRect);
 
-        const VkViewport blitViewport = default_vk_viewport(blitPassRect);
+    vkCmdSetViewport(cmdBuffer.handle, 0, 1, &blitViewport);
+    vkCmdSetScissor(cmdBuffer.handle, 0, 1, &blitPassRect);
 
-        vkCmdSetViewport(cmdBuffer.handle, 0, 1, &blitViewport);
-        vkCmdSetScissor(cmdBuffer.handle, 0, 1, &blitPassRect);
+    const CullingDrawParams draw_params = get_culling_draw_params(prepared.forward_culling_pass_index);
 
-        const CullingDrawParams draw_params = get_culling_draw_params(prepared.forward_culling_pass_index);
+    vkCmdBindIndexBuffer(cmdBuffer.handle, cull_resources.dynamicIndexBuffer.handle, draw_params.index_buffer_offset,
+                         draw_params.index_type);
 
-        vkCmdBindIndexBuffer(cmdBuffer.handle, cull_resources.dynamicIndexBuffer.handle,
-                             draw_params.index_buffer_offset, draw_params.index_type);
+    std::array<VkDescriptorSet, 2> pass_descriptors = {
+        pass_resources.descriptor_set,
+        pass_resources.material_descriptor_set,
+    };
 
-        std::array<VkDescriptorSet, 2> pass_descriptors = {
-            pass_resources.descriptor_set,
-            pass_resources.material_descriptor_set,
-        };
+    vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, pass_resources.pipe.pipelineLayout, 0,
+                            static_cast<u32>(pass_descriptors.size()), pass_descriptors.data(), 0, nullptr);
 
-        vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, pass_resources.pipe.pipelineLayout,
-                                0, static_cast<u32>(pass_descriptors.size()), pass_descriptors.data(), 0, nullptr);
-
-        vkCmdDrawIndexedIndirectCount(cmdBuffer.handle, cull_resources.indirectDrawBuffer.handle,
-                                      draw_params.command_buffer_offset, cull_resources.countersBuffer.handle,
-                                      draw_params.counter_buffer_offset, draw_params.command_buffer_max_count,
-                                      cull_resources.indirectDrawBuffer.properties.element_size_bytes);
-    }
-
+    vkCmdDrawIndexedIndirectCount(cmdBuffer.handle, cull_resources.indirectDrawBuffer.handle,
+                                  draw_params.command_buffer_offset, cull_resources.countersBuffer.handle,
+                                  draw_params.counter_buffer_offset, draw_params.command_buffer_max_count,
+                                  cull_resources.indirectDrawBuffer.properties.element_size_bytes);
     vkCmdEndRendering(cmdBuffer.handle);
 }
 } // namespace Reaper
