@@ -55,13 +55,6 @@ namespace
         log_debug(root, "framegraph: schedule has {} barriers", schedule.barriers.size());
         for (auto event : schedule.barrier_events)
         {
-            const char* barrier_type_str =
-                event.type == BarrierType::ImmediateBefore
-                    ? "ImmediateBefore"
-                    : (event.type == BarrierType::ImmediateAfter
-                           ? "ImmediateAfter"
-                           : (event.type == BarrierType::SplitBegin ? "SplitBegin" : "SplitEnd"));
-
             const char* render_pass_name = framegraph.RenderPasses[event.render_pass_handle].debug_name;
 
             const Barrier&       barrier = schedule.barriers[event.barrier_handle];
@@ -71,7 +64,7 @@ namespace
 
             const char* resource_name = resource.debug_name;
             log_debug(root, "framegraph: pass '{}', resource '{}', barrier type = '{}'", render_pass_name,
-                      resource_name, barrier_type_str);
+                      resource_name, BarrierType::to_string(event.barrier_type));
             if (resource_handle.is_texture)
             {
                 log_debug(root, "    - src layout = '{}', dst layout = '{}'",

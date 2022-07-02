@@ -109,8 +109,7 @@ struct Barrier
 
 namespace BarrierType
 {
-    // Barriers are tied to a render pass for now, so 'before' and 'after' relate to that concept
-    enum type : u8
+    enum Type
     {
         Immediate = bit(0),
         Split = bit(1),
@@ -122,13 +121,15 @@ namespace BarrierType
         SplitBegin = Split | ExecuteAfterPass,
         SplitEnd = Split | ExecuteBeforePass,
     };
+
+    const char* to_string(Type barrier_type);
 } // namespace BarrierType
 
 struct BarrierEvent
 {
-    u32              type;
-    u32              barrier_handle;
-    RenderPassHandle render_pass_handle;
+    BarrierType::Type barrier_type;
+    u32               barrier_handle;
+    RenderPassHandle  render_pass_handle;
 };
 
 struct FrameGraphSchedule

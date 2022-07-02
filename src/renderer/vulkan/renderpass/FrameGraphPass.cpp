@@ -61,15 +61,15 @@ void record_framegraph_barriers(CommandBuffer& cmdBuffer, const FrameGraph::Fram
                                                                static_cast<u32>(imageBarriers.size()),
                                                                imageBarriers.data()};
 
-        if ((barrier_event.type & BarrierType::Immediate) != 0)
+        if ((barrier_event.barrier_type & BarrierType::Immediate) != 0)
         {
             vkCmdPipelineBarrier2(cmdBuffer.handle, &dependencies);
         }
-        else if (barrier_event.type == BarrierType::SplitBegin)
+        else if (barrier_event.barrier_type == BarrierType::SplitBegin)
         {
             vkCmdSetEvent2(cmdBuffer.handle, resources.events[barrier_handle], &dependencies);
         }
-        else if (barrier_event.type == BarrierType::SplitEnd)
+        else if (barrier_event.barrier_type == BarrierType::SplitEnd)
         {
             vkCmdWaitEvents2(cmdBuffer.handle, 1, &resources.events[barrier_handle], &dependencies);
             vkCmdResetEvent2(cmdBuffer.handle, resources.events[barrier_handle], barrier.dst.access.stage_mask);

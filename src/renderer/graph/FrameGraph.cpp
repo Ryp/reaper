@@ -14,6 +14,27 @@
 
 namespace Reaper::FrameGraph
 {
+namespace BarrierType
+{
+    const char* to_string(Type barrier_type)
+    {
+        switch (barrier_type)
+        {
+        case BarrierType::ImmediateBefore:
+            return "ImmediateBefore";
+        case BarrierType::ImmediateAfter:
+            return "ImmediateAfter";
+        case BarrierType::SplitBegin:
+            return "SplitBegin";
+        case BarrierType::SplitEnd:
+            return "SplitEnd";
+        default:
+            AssertUnreachable();
+            return "Invalid";
+        }
+    }
+} // namespace BarrierType
+
 const ResourceUsage& GetResourceUsage(const FrameGraph& framegraph, ResourceUsageHandle resourceUsageHandle)
 {
     Assert(is_valid(resourceUsageHandle), "Invalid resource usage handle");
@@ -263,8 +284,8 @@ FrameGraphSchedule compute_schedule(const FrameGraph& framegraph)
     auto comparison_less_lambda = [](BarrierEvent a, BarrierEvent b) -> bool {
         if (a.render_pass_handle == b.render_pass_handle)
         {
-            const bool a_execute_before = (a.type & BarrierType::ExecuteBeforePass) > 0;
-            const bool b_execute_after = (b.type & BarrierType::ExecuteAfterPass) > 0;
+            const bool a_execute_before = (a.barrier_type & BarrierType::ExecuteBeforePass) > 0;
+            const bool b_execute_after = (b.barrier_type & BarrierType::ExecuteAfterPass) > 0;
 
             return a_execute_before && b_execute_after;
         }
@@ -289,7 +310,8 @@ nonstd::span<const BarrierEvent> get_barriers_to_execute(const FrameGraphSchedul
     for (u32 i = 0; i < schedule.barrier_events.size(); i++)
     {
         const BarrierEvent& barrier_event = schedule.barrier_events[i];
-        const bool match_order = execute_before_pass == ((barrier_event.type & BarrierType::ExecuteBeforePass) > 0);
+        const bool          match_order =
+            execute_before_pass == ((barrier_event.barrier_type & BarrierType::ExecuteBeforePass) > 0);
 
         if (!begin && barrier_event.render_pass_handle == render_pass_handle && match_order)
         {
