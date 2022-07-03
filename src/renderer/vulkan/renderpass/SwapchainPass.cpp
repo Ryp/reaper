@@ -15,6 +15,7 @@
 #include "renderer/vulkan/CommandBuffer.h"
 #include "renderer/vulkan/Debug.h"
 #include "renderer/vulkan/Image.h"
+#include "renderer/vulkan/Pipeline.h"
 #include "renderer/vulkan/RenderPassHelpers.h"
 #include "renderer/vulkan/Shader.h"
 
@@ -90,30 +91,6 @@ namespace
         return 0;
     }
 
-    VkDescriptorSetLayout create_swapchain_descriptor_set_layout(ReaperRoot& root, VulkanBackend& backend)
-    {
-        std::array<VkDescriptorSetLayoutBinding, 4> descriptorSetLayoutBinding = {
-            VkDescriptorSetLayoutBinding{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT,
-                                         nullptr},
-            VkDescriptorSetLayoutBinding{1, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
-            VkDescriptorSetLayoutBinding{2, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
-            VkDescriptorSetLayoutBinding{3, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
-        };
-
-        const VkDescriptorSetLayoutCreateInfo descriptorSetLayoutInfo = {
-            VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, nullptr, 0,
-            static_cast<u32>(descriptorSetLayoutBinding.size()), descriptorSetLayoutBinding.data()};
-
-        VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
-        Assert(vkCreateDescriptorSetLayout(backend.device, &descriptorSetLayoutInfo, nullptr, &descriptorSetLayout)
-               == VK_SUCCESS);
-
-        log_debug(root, "vulkan: created descriptor set layout with handle: {}",
-                  static_cast<void*>(descriptorSetLayout));
-
-        return descriptorSetLayout;
-    }
-
     VkPipeline create_swapchain_pipeline(ReaperRoot& root, VulkanBackend& backend, VkPipelineLayout pipelineLayout,
                                          VkFormat swapchain_format)
     {
@@ -123,35 +100,42 @@ namespace
         VkShaderModule shaderVS = vulkan_create_shader_module(backend.device, fileNameVS);
         VkShaderModule shaderFS = vulkan_create_shader_module(backend.device, fileNameFS);
 
-        std::array<hlsl_uint, 3> constants = {
-            get_transfer_function(backend.presentInfo.surfaceFormat, backend.presentInfo.view_format),
-            get_color_space(backend.presentInfo.surfaceFormat.colorSpace),
-            TONEMAP_FUNC_NONE,
+        struct SpecConstants
+        {
+            hlsl_uint transfer_function_index;
+            hlsl_uint color_space_index;
+            hlsl_uint tonemap_function_index;
         };
 
-        std::array<VkSpecializationMapEntry, 3> specialization_constants_entries = {
+        SpecConstants spec_constants;
+        spec_constants.transfer_function_index =
+            get_transfer_function(backend.presentInfo.surfaceFormat, backend.presentInfo.view_format);
+        spec_constants.color_space_index = get_color_space(backend.presentInfo.surfaceFormat.colorSpace);
+        spec_constants.tonemap_function_index = TONEMAP_FUNC_NONE;
+
+        std::vector<VkSpecializationMapEntry> specialization_constants_entries = {
             VkSpecializationMapEntry{
                 0,
-                0 * sizeof(hlsl_uint),
-                sizeof(hlsl_uint),
+                offsetof(SpecConstants, transfer_function_index),
+                sizeof(SpecConstants::transfer_function_index),
             },
             VkSpecializationMapEntry{
                 1,
-                1 * sizeof(hlsl_uint),
-                sizeof(hlsl_uint),
+                offsetof(SpecConstants, color_space_index),
+                sizeof(SpecConstants::color_space_index),
             },
             VkSpecializationMapEntry{
                 2,
-                2 * sizeof(hlsl_uint),
-                sizeof(hlsl_uint),
+                offsetof(SpecConstants, tonemap_function_index),
+                sizeof(SpecConstants::tonemap_function_index),
             },
         };
 
         VkSpecializationInfo specialization = {
-            specialization_constants_entries.size(), // uint32_t                           mapEntryCount;
+            static_cast<u32>(specialization_constants_entries.size()), // uint32_t mapEntryCount;
             specialization_constants_entries.data(), // const VkSpecializationMapEntry*    pMapEntries;
-            constants.size() * sizeof(hlsl_uint),    // size_t                             dataSize;
-            constants.data(),                        // const void*                        pData;
+            sizeof(SpecConstants),                   // size_t                             dataSize;
+            &spec_constants,                         // const void*                        pData;
         };
 
         std::vector<VkPipelineShaderStageCreateInfo> blitShaderStages = {
@@ -303,27 +287,22 @@ namespace
 
         return descriptor_set;
     }
-
-    VkPipelineLayout create_swapchain_pipeline_layout(ReaperRoot& root, VulkanBackend& backend,
-                                                      VkDescriptorSetLayout descriptorSetLayout)
-    {
-        VkPipelineLayoutCreateInfo blitPipelineLayoutInfo = {
-            VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO, nullptr, VK_FLAGS_NONE, 1, &descriptorSetLayout, 0, nullptr};
-
-        VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
-        Assert(vkCreatePipelineLayout(backend.device, &blitPipelineLayoutInfo, nullptr, &pipelineLayout) == VK_SUCCESS);
-        log_debug(root, "vulkan: created blit pipeline layout with handle: {}", static_cast<void*>(pipelineLayout));
-
-        return pipelineLayout;
-    }
 } // namespace
 
 SwapchainPassResources create_swapchain_pass_resources(ReaperRoot& root, VulkanBackend& backend)
 {
     SwapchainPassResources resources = {};
 
-    resources.descriptorSetLayout = create_swapchain_descriptor_set_layout(root, backend);
-    resources.pipelineLayout = create_swapchain_pipeline_layout(root, backend, resources.descriptorSetLayout);
+    std::vector<VkDescriptorSetLayoutBinding> descriptorSetLayoutBinding = {
+        VkDescriptorSetLayoutBinding{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+        VkDescriptorSetLayoutBinding{1, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+        VkDescriptorSetLayoutBinding{2, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+        VkDescriptorSetLayoutBinding{3, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+    };
+
+    resources.descriptorSetLayout = create_descriptor_set_layout(backend.device, descriptorSetLayoutBinding);
+
+    resources.pipelineLayout = create_pipeline_layout(backend.device, nonstd::span(&resources.descriptorSetLayout, 1));
     resources.pipeline =
         create_swapchain_pipeline(root, backend, resources.pipelineLayout, backend.presentInfo.surfaceFormat.format);
 

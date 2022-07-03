@@ -21,9 +21,8 @@ namespace Reaper
 {
 struct HistogramPipelineInfo
 {
-    VkPipeline            pipeline;
-    VkPipelineLayout      pipelineLayout;
-    VkDescriptorSetLayout descSetLayout;
+    VkPipeline       pipeline;
+    VkPipelineLayout pipelineLayout;
 };
 
 struct HistogramPassResources
@@ -31,6 +30,7 @@ struct HistogramPassResources
     BufferInfo passConstantBuffer;
     VkSampler  sampler;
 
+    VkDescriptorSetLayout descSetLayout;
     HistogramPipelineInfo histogramPipe;
 
     VkDescriptorSet descriptor_set;

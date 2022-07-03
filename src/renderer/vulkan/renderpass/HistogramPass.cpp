@@ -14,6 +14,7 @@
 #include "renderer/vulkan/ComputeHelper.h"
 #include "renderer/vulkan/FrameGraphResources.h"
 #include "renderer/vulkan/Image.h"
+#include "renderer/vulkan/Pipeline.h"
 #include "renderer/vulkan/Shader.h"
 
 #include "common/Log.h"
@@ -39,68 +40,6 @@ namespace
         log_debug(root, "vulkan: created descriptor set with handle: {}", static_cast<void*>(descriptor_set));
 
         return descriptor_set;
-    }
-
-    HistogramPipelineInfo create_histogram_pipeline(ReaperRoot& root, VulkanBackend& backend)
-    {
-        std::vector<VkDescriptorSetLayoutBinding> descriptorSetLayoutBinding = {
-            VkDescriptorSetLayoutBinding{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-            VkDescriptorSetLayoutBinding{1, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-            VkDescriptorSetLayoutBinding{2, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-            VkDescriptorSetLayoutBinding{3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-        };
-
-        VkDescriptorSetLayoutCreateInfo descriptorSetLayoutInfo = {
-            VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, nullptr, 0,
-            static_cast<u32>(descriptorSetLayoutBinding.size()), descriptorSetLayoutBinding.data()};
-
-        VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
-        Assert(vkCreateDescriptorSetLayout(backend.device, &descriptorSetLayoutInfo, nullptr, &descriptorSetLayout)
-               == VK_SUCCESS);
-
-        log_debug(root, "vulkan: created descriptor set layout with handle: {}",
-                  static_cast<void*>(descriptorSetLayout));
-
-        VkPipelineLayoutCreateInfo pipelineLayoutInfo = {
-            VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO, nullptr, VK_FLAGS_NONE, 1, &descriptorSetLayout, 0, nullptr};
-
-        VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
-        Assert(vkCreatePipelineLayout(backend.device, &pipelineLayoutInfo, nullptr, &pipelineLayout) == VK_SUCCESS);
-
-        log_debug(root, "vulkan: created pipeline layout with handle: {}", static_cast<void*>(pipelineLayout));
-
-        const char*           fileName = "./build/shader/histogram.comp.spv";
-        const char*           entryPoint = "main";
-        VkSpecializationInfo* specialization = nullptr;
-        VkShaderModule        computeShader = vulkan_create_shader_module(backend.device, fileName);
-
-        VkPipelineShaderStageCreateInfo shaderStage = {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-                                                       nullptr,
-                                                       0,
-                                                       VK_SHADER_STAGE_COMPUTE_BIT,
-                                                       computeShader,
-                                                       entryPoint,
-                                                       specialization};
-
-        VkComputePipelineCreateInfo pipelineCreateInfo = {VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
-                                                          nullptr,
-                                                          0,
-                                                          shaderStage,
-                                                          pipelineLayout,
-                                                          VK_NULL_HANDLE, // do not care about pipeline derivatives
-                                                          0};
-
-        VkPipeline      pipeline = VK_NULL_HANDLE;
-        VkPipelineCache cache = VK_NULL_HANDLE;
-
-        Assert(vkCreateComputePipelines(backend.device, cache, 1, &pipelineCreateInfo, nullptr, &pipeline)
-               == VK_SUCCESS);
-
-        vkDestroyShaderModule(backend.device, computeShader, nullptr);
-
-        log_debug(root, "vulkan: created compute pipeline with handle: {}", static_cast<void*>(pipeline));
-
-        return HistogramPipelineInfo{pipeline, pipelineLayout, descriptorSetLayout};
     }
 } // namespace
 
@@ -133,10 +72,29 @@ HistogramPassResources create_histogram_pass_resources(ReaperRoot& root, VulkanB
 
     Assert(vkCreateSampler(backend.device, &samplerCreateInfo, nullptr, &resources.sampler) == VK_SUCCESS);
 
-    resources.histogramPipe = create_histogram_pipeline(root, backend);
+    std::vector<VkDescriptorSetLayoutBinding> descriptorSetLayoutBinding = {
+        VkDescriptorSetLayoutBinding{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+        VkDescriptorSetLayoutBinding{1, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+        VkDescriptorSetLayoutBinding{2, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+        VkDescriptorSetLayoutBinding{3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+    };
 
-    resources.descriptor_set =
-        create_histogram_pass_descriptor_set(root, backend, resources.histogramPipe.descSetLayout);
+    resources.descSetLayout = create_descriptor_set_layout(backend.device, descriptorSetLayoutBinding);
+
+    {
+        const char*    fileName = "./build/shader/histogram.comp.spv";
+        VkShaderModule computeShader = vulkan_create_shader_module(backend.device, fileName);
+
+        VkPipelineLayout pipelineLayout =
+            create_pipeline_layout(backend.device, nonstd::span(&resources.descSetLayout, 1));
+
+        resources.histogramPipe.pipeline = create_compute_pipeline(backend.device, pipelineLayout, computeShader);
+        resources.histogramPipe.pipelineLayout = pipelineLayout;
+
+        vkDestroyShaderModule(backend.device, computeShader, nullptr);
+    }
+
+    resources.descriptor_set = create_histogram_pass_descriptor_set(root, backend, resources.descSetLayout);
 
     return resources;
 }
@@ -145,7 +103,7 @@ void destroy_histogram_pass_resources(VulkanBackend& backend, const HistogramPas
 {
     vkDestroyPipeline(backend.device, resources.histogramPipe.pipeline, nullptr);
     vkDestroyPipelineLayout(backend.device, resources.histogramPipe.pipelineLayout, nullptr);
-    vkDestroyDescriptorSetLayout(backend.device, resources.histogramPipe.descSetLayout, nullptr);
+    vkDestroyDescriptorSetLayout(backend.device, resources.descSetLayout, nullptr);
 
     vkDestroySampler(backend.device, resources.sampler, nullptr);
     vmaDestroyBuffer(backend.vma_instance, resources.passConstantBuffer.handle,

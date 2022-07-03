@@ -16,6 +16,7 @@
 #include "renderer/vulkan/Debug.h"
 #include "renderer/vulkan/GpuProfile.h"
 #include "renderer/vulkan/MeshCache.h"
+#include "renderer/vulkan/Pipeline.h"
 #include "renderer/vulkan/Shader.h"
 
 #include "common/Log.h"
@@ -132,80 +133,36 @@ namespace
         vkUpdateDescriptorSets(backend.device, static_cast<u32>(writes.size()), writes.data(), 0, nullptr);
     }
 
-    SimplePipeline create_meshlet_prepare_indirect_pipeline(ReaperRoot& root, VulkanBackend& backend)
+    SimplePipeline create_meshlet_prepare_indirect_pipeline(VulkanBackend& backend)
     {
-        const char*           fileName = "./build/shader/prepare_fine_culling_indirect.comp.spv";
-        const char*           entryPoint = "main";
-        VkSpecializationInfo* specialization = nullptr;
-        VkShaderModule        computeShader = vulkan_create_shader_module(backend.device, fileName);
+        VkShaderModule computeShader =
+            vulkan_create_shader_module(backend.device, "build/shader/prepare_fine_culling_indirect.comp.spv");
 
         std::vector<VkDescriptorSetLayoutBinding> descriptorSetLayoutBinding = {
             VkDescriptorSetLayoutBinding{0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
             VkDescriptorSetLayoutBinding{1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
         };
 
-        VkDescriptorSetLayoutCreateInfo descriptorSetLayoutInfo = {
-            VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, nullptr, 0,
-            static_cast<u32>(descriptorSetLayoutBinding.size()), descriptorSetLayoutBinding.data()};
-
-        VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
-        Assert(vkCreateDescriptorSetLayout(backend.device, &descriptorSetLayoutInfo, nullptr, &descriptorSetLayout)
-               == VK_SUCCESS);
-
-        log_debug(root, "vulkan: created descriptor set layout with handle: {}",
-                  static_cast<void*>(descriptorSetLayout));
+        VkDescriptorSetLayout descriptorSetLayout =
+            create_descriptor_set_layout(backend.device, descriptorSetLayoutBinding);
 
         const VkPushConstantRange cullPushConstantRange = {VK_SHADER_STAGE_COMPUTE_BIT, 0,
                                                            sizeof(CullMeshletPushConstants)};
 
-        VkPipelineLayoutCreateInfo pipelineLayoutInfo = {VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-                                                         nullptr,
-                                                         VK_FLAGS_NONE,
-                                                         1,
-                                                         &descriptorSetLayout,
-                                                         1,
-                                                         &cullPushConstantRange};
+        VkPipelineLayout pipelineLayout = create_pipeline_layout(backend.device, nonstd::span(&descriptorSetLayout, 1),
+                                                                 nonstd::span(&cullPushConstantRange, 1));
 
-        VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
-        Assert(vkCreatePipelineLayout(backend.device, &pipelineLayoutInfo, nullptr, &pipelineLayout) == VK_SUCCESS);
-
-        log_debug(root, "vulkan: created pipeline layout with handle: {}", static_cast<void*>(pipelineLayout));
-
-        VkPipelineShaderStageCreateInfo shaderStage = {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-                                                       nullptr,
-                                                       0,
-                                                       VK_SHADER_STAGE_COMPUTE_BIT,
-                                                       computeShader,
-                                                       entryPoint,
-                                                       specialization};
-
-        VkComputePipelineCreateInfo pipelineCreateInfo = {VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
-                                                          nullptr,
-                                                          0,
-                                                          shaderStage,
-                                                          pipelineLayout,
-                                                          VK_NULL_HANDLE, // do not care about pipeline derivatives
-                                                          0};
-
-        VkPipeline      pipeline = VK_NULL_HANDLE;
-        VkPipelineCache cache = VK_NULL_HANDLE;
-
-        Assert(vkCreateComputePipelines(backend.device, cache, 1, &pipelineCreateInfo, nullptr, &pipeline)
-               == VK_SUCCESS);
+        VkPipeline pipeline = create_compute_pipeline(backend.device, pipelineLayout, computeShader);
 
         vkDestroyShaderModule(backend.device, computeShader, nullptr);
-
-        log_debug(root, "vulkan: created compute pipeline with handle: {}", static_cast<void*>(pipeline));
 
         return SimplePipeline{pipeline, pipelineLayout, descriptorSetLayout};
     }
 
-    SimplePipeline create_cull_meshlet_pipeline(ReaperRoot& root, VulkanBackend& backend)
+    SimplePipeline create_cull_meshlet_pipeline(VulkanBackend& backend)
     {
-        const char*           fileName = "./build/shader/cull_meshlet.comp.spv";
-        const char*           entryPoint = "main";
-        VkSpecializationInfo* specialization = nullptr;
-        VkShaderModule        computeShader = vulkan_create_shader_module(backend.device, fileName);
+        VkShaderModule computeShader =
+            vulkan_create_shader_module(backend.device, "build/shader/cull_meshlet.comp.spv");
 
         std::vector<VkDescriptorSetLayoutBinding> descriptorSetLayoutBinding = {
             VkDescriptorSetLayoutBinding{0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
@@ -214,64 +171,27 @@ namespace
             VkDescriptorSetLayoutBinding{3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
         };
 
-        VkDescriptorSetLayoutCreateInfo descriptorSetLayoutInfo = {
-            VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, nullptr, 0,
-            static_cast<u32>(descriptorSetLayoutBinding.size()), descriptorSetLayoutBinding.data()};
-
-        VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
-        Assert(vkCreateDescriptorSetLayout(backend.device, &descriptorSetLayoutInfo, nullptr, &descriptorSetLayout)
-               == VK_SUCCESS);
-
-        log_debug(root, "vulkan: created descriptor set layout with handle: {}",
-                  static_cast<void*>(descriptorSetLayout));
+        VkDescriptorSetLayout descriptorSetLayout =
+            create_descriptor_set_layout(backend.device, descriptorSetLayoutBinding);
 
         const VkPushConstantRange cullPushConstantRange = {VK_SHADER_STAGE_COMPUTE_BIT, 0,
                                                            sizeof(CullMeshletPushConstants)};
 
-        VkPipelineLayoutCreateInfo pipelineLayoutInfo = {VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-                                                         nullptr,
-                                                         VK_FLAGS_NONE,
-                                                         1,
-                                                         &descriptorSetLayout,
-                                                         1,
-                                                         &cullPushConstantRange};
+        VkPipelineLayout pipelineLayout = create_pipeline_layout(backend.device, nonstd::span(&descriptorSetLayout, 1),
+                                                                 nonstd::span(&cullPushConstantRange, 1));
 
-        VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
-        Assert(vkCreatePipelineLayout(backend.device, &pipelineLayoutInfo, nullptr, &pipelineLayout) == VK_SUCCESS);
-
-        log_debug(root, "vulkan: created pipeline layout with handle: {}", static_cast<void*>(pipelineLayout));
-
-        VkPipelineShaderStageCreateInfo shaderStage = {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-                                                       nullptr,
-                                                       0,
-                                                       VK_SHADER_STAGE_COMPUTE_BIT,
-                                                       computeShader,
-                                                       entryPoint,
-                                                       specialization};
-
-        VkComputePipelineCreateInfo pipelineCreateInfo = {VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
-                                                          nullptr,
-                                                          0,
-                                                          shaderStage,
-                                                          pipelineLayout,
-                                                          VK_NULL_HANDLE, // do not care about pipeline derivatives
-                                                          0};
-
-        VkPipeline      pipeline = VK_NULL_HANDLE;
-        VkPipelineCache cache = VK_NULL_HANDLE;
-
-        Assert(vkCreateComputePipelines(backend.device, cache, 1, &pipelineCreateInfo, nullptr, &pipeline)
-               == VK_SUCCESS);
+        VkPipeline pipeline = create_compute_pipeline(backend.device, pipelineLayout, computeShader);
 
         vkDestroyShaderModule(backend.device, computeShader, nullptr);
-
-        log_debug(root, "vulkan: created compute pipeline with handle: {}", static_cast<void*>(pipeline));
 
         return SimplePipeline{pipeline, pipelineLayout, descriptorSetLayout};
     }
 
-    SimplePipeline create_cull_triangles_pipeline(ReaperRoot& root, VulkanBackend& backend)
+    SimplePipeline create_cull_triangles_pipeline(VulkanBackend& backend)
     {
+        VkShaderModule computeShader =
+            vulkan_create_shader_module(backend.device, "build/shader/cull_triangle_batch.comp.spv");
+
         std::vector<VkDescriptorSetLayoutBinding> descriptorSetLayoutBinding = {
             VkDescriptorSetLayoutBinding{0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
             VkDescriptorSetLayoutBinding{1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
@@ -282,62 +202,17 @@ namespace
             VkDescriptorSetLayoutBinding{6, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
         };
 
-        VkDescriptorSetLayoutCreateInfo descriptorSetLayoutInfo = {
-            VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, nullptr, 0,
-            static_cast<u32>(descriptorSetLayoutBinding.size()), descriptorSetLayoutBinding.data()};
-
-        VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
-        Assert(vkCreateDescriptorSetLayout(backend.device, &descriptorSetLayoutInfo, nullptr, &descriptorSetLayout)
-               == VK_SUCCESS);
-
-        log_debug(root, "vulkan: created descriptor set layout with handle: {}",
-                  static_cast<void*>(descriptorSetLayout));
+        VkDescriptorSetLayout descriptorSetLayout =
+            create_descriptor_set_layout(backend.device, descriptorSetLayoutBinding);
 
         const VkPushConstantRange cullPushConstantRange = {VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(CullPushConstants)};
 
-        VkPipelineLayoutCreateInfo pipelineLayoutInfo = {VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-                                                         nullptr,
-                                                         VK_FLAGS_NONE,
-                                                         1,
-                                                         &descriptorSetLayout,
-                                                         1,
-                                                         &cullPushConstantRange};
+        VkPipelineLayout pipelineLayout = create_pipeline_layout(backend.device, nonstd::span(&descriptorSetLayout, 1),
+                                                                 nonstd::span(&cullPushConstantRange, 1));
 
-        VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
-        Assert(vkCreatePipelineLayout(backend.device, &pipelineLayoutInfo, nullptr, &pipelineLayout) == VK_SUCCESS);
-
-        log_debug(root, "vulkan: created pipeline layout with handle: {}", static_cast<void*>(pipelineLayout));
-
-        const char*           fileName = "./build/shader/cull_triangle_batch.comp.spv";
-        const char*           entryPoint = "main";
-        VkSpecializationInfo* specialization = nullptr;
-        VkShaderModule        computeShader = vulkan_create_shader_module(backend.device, fileName);
-
-        VkPipelineShaderStageCreateInfo shaderStage = {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-                                                       nullptr,
-                                                       0,
-                                                       VK_SHADER_STAGE_COMPUTE_BIT,
-                                                       computeShader,
-                                                       entryPoint,
-                                                       specialization};
-
-        VkComputePipelineCreateInfo pipelineCreateInfo = {VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
-                                                          nullptr,
-                                                          0,
-                                                          shaderStage,
-                                                          pipelineLayout,
-                                                          VK_NULL_HANDLE, // do not care about pipeline derivatives
-                                                          0};
-
-        VkPipeline      pipeline = VK_NULL_HANDLE;
-        VkPipelineCache cache = VK_NULL_HANDLE;
-
-        Assert(vkCreateComputePipelines(backend.device, cache, 1, &pipelineCreateInfo, nullptr, &pipeline)
-               == VK_SUCCESS);
+        VkPipeline pipeline = create_compute_pipeline(backend.device, pipelineLayout, computeShader);
 
         vkDestroyShaderModule(backend.device, computeShader, nullptr);
-
-        log_debug(root, "vulkan: created compute pipeline with handle: {}", static_cast<void*>(pipeline));
 
         return SimplePipeline{pipeline, pipelineLayout, descriptorSetLayout};
     }
@@ -347,9 +222,9 @@ CullResources create_culling_resources(ReaperRoot& root, VulkanBackend& backend)
 {
     CullResources resources;
 
-    resources.cullMeshletPipe = create_cull_meshlet_pipeline(root, backend);
-    resources.cullMeshletPrepIndirect = create_meshlet_prepare_indirect_pipeline(root, backend);
-    resources.cullTrianglesPipe = create_cull_triangles_pipeline(root, backend);
+    resources.cullMeshletPipe = create_cull_meshlet_pipeline(backend);
+    resources.cullMeshletPrepIndirect = create_meshlet_prepare_indirect_pipeline(backend);
+    resources.cullTrianglesPipe = create_cull_triangles_pipeline(backend);
 
     resources.cullInstanceParamsBuffer = create_buffer(
         root, backend.device, "Culling instance constants",

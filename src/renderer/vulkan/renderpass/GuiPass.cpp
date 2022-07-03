@@ -14,6 +14,7 @@
 #include "renderer/vulkan/Backend.h"
 #include "renderer/vulkan/CommandBuffer.h"
 #include "renderer/vulkan/Image.h"
+#include "renderer/vulkan/Pipeline.h"
 #include "renderer/vulkan/RenderPassHelpers.h"
 #include "renderer/vulkan/Shader.h"
 
@@ -116,35 +117,18 @@ namespace
             &blitBlendAttachmentState,
             {0.0f, 0.0f, 0.0f, 0.0f}};
 
-        std::array<VkDescriptorSetLayoutBinding, 3> descriptorSetLayoutBinding = {
+        std::vector<VkDescriptorSetLayoutBinding> descriptorSetLayoutBinding = {
             VkDescriptorSetLayoutBinding{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT,
                                          nullptr},
             VkDescriptorSetLayoutBinding{1, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
             VkDescriptorSetLayoutBinding{2, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
         };
 
-        const VkDescriptorSetLayoutCreateInfo descriptorSetLayoutInfo = {
-            VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, nullptr, 0,
-            static_cast<u32>(descriptorSetLayoutBinding.size()), descriptorSetLayoutBinding.data()};
+        VkDescriptorSetLayout descriptorSetLayoutCB =
+            create_descriptor_set_layout(backend.device, descriptorSetLayoutBinding);
 
-        VkDescriptorSetLayout descriptorSetLayoutCB = VK_NULL_HANDLE;
-        Assert(vkCreateDescriptorSetLayout(backend.device, &descriptorSetLayoutInfo, nullptr, &descriptorSetLayoutCB)
-               == VK_SUCCESS);
-
-        log_debug(root, "vulkan: created descriptor set layout with handle: {}",
-                  static_cast<void*>(descriptorSetLayoutCB));
-
-        VkPipelineLayoutCreateInfo blitPipelineLayoutInfo = {VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-                                                             nullptr,
-                                                             VK_FLAGS_NONE,
-                                                             1,
-                                                             &descriptorSetLayoutCB,
-                                                             0,
-                                                             nullptr};
-
-        VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
-        Assert(vkCreatePipelineLayout(backend.device, &blitPipelineLayoutInfo, nullptr, &pipelineLayout) == VK_SUCCESS);
-        log_debug(root, "vulkan: created blit pipeline layout with handle: {}", static_cast<void*>(pipelineLayout));
+        VkPipelineLayout pipelineLayout =
+            create_pipeline_layout(backend.device, nonstd::span(&descriptorSetLayoutCB, 1));
 
         VkPipelineCache cache = VK_NULL_HANDLE;
 

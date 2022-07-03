@@ -75,6 +75,8 @@ target_sources(${target} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Memory.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/MeshCache.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/MeshCache.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Pipeline.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Pipeline.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/PresentationSurface.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/PresentationSurface.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/RenderPassHelpers.h

@@ -18,6 +18,7 @@
 #include "renderer/vulkan/Image.h"
 #include "renderer/vulkan/MaterialResources.h"
 #include "renderer/vulkan/MeshCache.h"
+#include "renderer/vulkan/Pipeline.h"
 #include "renderer/vulkan/RenderPassHelpers.h"
 #include "renderer/vulkan/Shader.h"
 #include "renderer/vulkan/renderpass/ForwardPassConstants.h"
@@ -57,13 +58,12 @@ namespace
 
         Assert(bindingFlags.size() == descriptorSetLayoutBinding.size());
 
-        const VkDescriptorSetLayoutBindingFlagsCreateInfo descriptorSetLayoutBindingFlags = {
-            VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO, nullptr,
-            static_cast<u32>(bindingFlags.size()), bindingFlags.data()};
+        const VkDescriptorSetLayoutBindingFlagsCreateInfo descriptorSetLayoutBindingFlags =
+            descriptor_set_layout_binding_flags_create_info(bindingFlags);
 
-        const VkDescriptorSetLayoutCreateInfo descriptorSetLayoutInfo = {
-            VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, &descriptorSetLayoutBindingFlags, 0,
-            static_cast<u32>(descriptorSetLayoutBinding.size()), descriptorSetLayoutBinding.data()};
+        VkDescriptorSetLayoutCreateInfo descriptorSetLayoutInfo =
+            descriptor_set_layout_create_info(descriptorSetLayoutBinding);
+        descriptorSetLayoutInfo.pNext = &descriptorSetLayoutBindingFlags;
 
         VkDescriptorSetLayout layout = VK_NULL_HANDLE;
         Assert(vkCreateDescriptorSetLayout(backend.device, &descriptorSetLayoutInfo, nullptr, &layout) == VK_SUCCESS);
@@ -134,22 +134,22 @@ namespace
 
     VkDescriptorSetLayout create_descriptor_set_layout_1(VulkanBackend& backend)
     {
-        std::array<VkDescriptorSetLayoutBinding, 2> descriptorSetLayoutBinding = {
+        std::vector<VkDescriptorSetLayoutBinding> descriptorSetLayoutBinding = {
             VkDescriptorSetLayoutBinding{0, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
             VkDescriptorSetLayoutBinding{1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, DiffuseMapMaxCount,
                                          VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
         };
 
-        std::array<VkDescriptorBindingFlags, 2> bindingFlags = {VK_FLAGS_NONE,
-                                                                VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT};
+        std::vector<VkDescriptorBindingFlags> bindingFlags = {VK_FLAGS_NONE, VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT};
 
-        const VkDescriptorSetLayoutBindingFlagsCreateInfo descriptorSetLayoutBindingFlags = {
-            VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO, nullptr,
-            static_cast<u32>(bindingFlags.size()), bindingFlags.data()};
+        Assert(bindingFlags.size() == descriptorSetLayoutBinding.size());
 
-        const VkDescriptorSetLayoutCreateInfo descriptorSetLayoutInfo = {
-            VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, &descriptorSetLayoutBindingFlags, 0,
-            static_cast<u32>(descriptorSetLayoutBinding.size()), descriptorSetLayoutBinding.data()};
+        const VkDescriptorSetLayoutBindingFlagsCreateInfo descriptorSetLayoutBindingFlags =
+            descriptor_set_layout_binding_flags_create_info(bindingFlags);
+
+        VkDescriptorSetLayoutCreateInfo descriptorSetLayoutInfo =
+            descriptor_set_layout_create_info(descriptorSetLayoutBinding);
+        descriptorSetLayoutInfo.pNext = &descriptorSetLayoutBindingFlags;
 
         VkDescriptorSetLayout layout = VK_NULL_HANDLE;
         Assert(vkCreateDescriptorSetLayout(backend.device, &descriptorSetLayoutInfo, nullptr, &layout) == VK_SUCCESS);
@@ -295,17 +295,7 @@ namespace
             materialDescSetLayout,
         };
 
-        VkPipelineLayoutCreateInfo blitPipelineLayoutInfo = {VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-                                                             nullptr,
-                                                             VK_FLAGS_NONE,
-                                                             static_cast<u32>(passDescriptorSetLayouts.size()),
-                                                             passDescriptorSetLayouts.data(),
-                                                             0,
-                                                             nullptr};
-
-        VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
-        Assert(vkCreatePipelineLayout(backend.device, &blitPipelineLayoutInfo, nullptr, &pipelineLayout) == VK_SUCCESS);
-        log_debug(root, "vulkan: created blit pipeline layout with handle: {}", static_cast<void*>(pipelineLayout));
+        VkPipelineLayout pipelineLayout = create_pipeline_layout(backend.device, passDescriptorSetLayouts);
 
         VkPipelineCache cache = VK_NULL_HANDLE;
 
