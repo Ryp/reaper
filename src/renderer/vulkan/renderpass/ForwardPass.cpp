@@ -199,14 +199,13 @@ namespace
         VkShaderModule blitShaderVS = vulkan_create_shader_module(backend.device, "build/shader/forward.vert.spv");
         VkShaderModule blitShaderFS = vulkan_create_shader_module(backend.device, "build/shader/forward.frag.spv");
 
-        const char*           entryPoint = "main";
-        VkSpecializationInfo* specialization = nullptr;
+        const char* entryPoint = "main";
 
         std::vector<VkPipelineShaderStageCreateInfo> shaderStages = {
             {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_VERTEX_BIT, blitShaderVS,
-             entryPoint, specialization},
+             entryPoint, nullptr},
             {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_FRAGMENT_BIT,
-             blitShaderFS, entryPoint, specialization}};
+             blitShaderFS, entryPoint, nullptr}};
 
         VkPipelineVertexInputStateCreateInfo vertexInputStateInfo = {
             VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO, nullptr, VK_FLAGS_NONE, 0, nullptr, 0, nullptr};

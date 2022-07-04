@@ -36,14 +36,13 @@ namespace
 {
     VkPipeline create_shadow_map_pipeline(ReaperRoot& root, VulkanBackend& backend, VkPipelineLayout pipeline_layout)
     {
-        const char*           entryPoint = "main";
-        VkSpecializationInfo* specialization = nullptr;
-        VkShaderModule        blitShaderVS =
+        const char*    entryPoint = "main";
+        VkShaderModule blitShaderVS =
             vulkan_create_shader_module(backend.device, "build/shader/render_shadow.vert.spv");
 
         std::vector<VkPipelineShaderStageCreateInfo> blitShaderStages = {
             {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_VERTEX_BIT, blitShaderVS,
-             entryPoint, specialization}};
+             entryPoint, nullptr}};
 
         VkPipelineVertexInputStateCreateInfo vertexInputStateInfo = {
             VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO, nullptr, VK_FLAGS_NONE, 0, nullptr, 0, nullptr};

@@ -106,12 +106,6 @@ namespace
             hlsl_uint tonemap_function_index;
         };
 
-        SpecConstants spec_constants;
-        spec_constants.transfer_function_index =
-            get_transfer_function(backend.presentInfo.surfaceFormat, backend.presentInfo.view_format);
-        spec_constants.color_space_index = get_color_space(backend.presentInfo.surfaceFormat.colorSpace);
-        spec_constants.tonemap_function_index = TONEMAP_FUNC_NONE;
-
         std::vector<VkSpecializationMapEntry> specialization_constants_entries = {
             VkSpecializationMapEntry{
                 0,
@@ -129,6 +123,12 @@ namespace
                 sizeof(SpecConstants::tonemap_function_index),
             },
         };
+
+        SpecConstants spec_constants;
+        spec_constants.transfer_function_index =
+            get_transfer_function(backend.presentInfo.surfaceFormat, backend.presentInfo.view_format);
+        spec_constants.color_space_index = get_color_space(backend.presentInfo.surfaceFormat.colorSpace);
+        spec_constants.tonemap_function_index = TONEMAP_FUNC_NONE;
 
         VkSpecializationInfo specialization = {
             static_cast<u32>(specialization_constants_entries.size()), // uint32_t mapEntryCount;
