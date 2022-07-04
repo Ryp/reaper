@@ -43,9 +43,6 @@ struct ForwardPassResources
 
     ForwardPipelineInfo pipe;
 
-    VkSampler shadowMapSampler;
-    VkSampler diffuseMapSampler;
-
     VkDescriptorSet descriptor_set;
     VkDescriptorSet material_descriptor_set;
 };
@@ -56,8 +53,10 @@ void                 destroy_forward_pass_resources(VulkanBackend& backend, Forw
 struct MaterialResources;
 struct MeshCache;
 struct LightingPassResources;
+struct SamplerResources;
 
 void update_forward_pass_descriptor_sets(VulkanBackend& backend, const ForwardPassResources& resources,
+                                         const SamplerResources&  sampler_resources,
                                          const MaterialResources& material_resources, const MeshCache& mesh_cache,
                                          const LightingPassResources&    lighting_resources,
                                          const nonstd::span<VkImageView> shadow_map_views);

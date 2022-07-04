@@ -41,6 +41,7 @@ void create_backend_resources(ReaperRoot& root, VulkanBackend& backend)
     };
     Assert(vkCreateEvent(backend.device, &event_info, nullptr, &resources.event) == VK_SUCCESS);
 
+    resources.samplers_resources = create_sampler_resources(root, backend);
     resources.framegraph_resources = create_framegraph_resources(root, backend);
     resources.audio_resources = create_audio_resources(root, backend);
     resources.cull_resources = create_culling_resources(root, backend);
@@ -71,6 +72,7 @@ void destroy_backend_resources(VulkanBackend& backend)
     destroy_shadow_map_resources(backend, resources.shadow_map_resources);
     destroy_swapchain_pass_resources(backend, resources.swapchain_pass_resources);
     destroy_framegraph_resources(backend, resources.framegraph_resources);
+    destroy_sampler_resources(backend, resources.samplers_resources);
 
     vkDestroyEvent(backend.device, resources.event, nullptr);
     vkFreeCommandBuffers(backend.device, resources.gfxCommandPool, 1, &resources.gfxCmdBuffer.handle);

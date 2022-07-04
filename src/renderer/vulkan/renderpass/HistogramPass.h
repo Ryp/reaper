@@ -28,7 +28,6 @@ struct HistogramPipelineInfo
 struct HistogramPassResources
 {
     BufferInfo passConstantBuffer;
-    VkSampler  sampler;
 
     VkDescriptorSetLayout descSetLayout;
     HistogramPipelineInfo histogramPipe;
@@ -43,8 +42,11 @@ struct FrameGraphBuffer;
 HistogramPassResources create_histogram_pass_resources(ReaperRoot& root, VulkanBackend& backend);
 void destroy_histogram_pass_resources(VulkanBackend& backend, const HistogramPassResources& resources);
 
+struct SamplerResources;
+
 void update_histogram_pass_descriptor_set(VulkanBackend& backend, const HistogramPassResources& resources,
-                                          VkImageView scene_hdr_view, const FrameGraphBuffer& histogram_buffer);
+                                          const SamplerResources& sampler_resources, VkImageView scene_hdr_view,
+                                          const FrameGraphBuffer& histogram_buffer);
 
 void upload_histogram_frame_resources(VulkanBackend& backend, const HistogramPassResources& pass_resources,
                                       VkExtent2D backbufferExtent);

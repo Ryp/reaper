@@ -27,8 +27,6 @@ struct SwapchainPassResources
 
     BufferInfo passConstantBuffer;
 
-    VkSampler linearBlackBorderSampler;
-
     VkDescriptorSet descriptor_set;
 };
 
@@ -40,8 +38,11 @@ void destroy_swapchain_pass_resources(VulkanBackend& backend, const SwapchainPas
 
 void reload_swapchain_pipeline(ReaperRoot& root, VulkanBackend& backend, SwapchainPassResources& resources);
 
+struct SamplerResources;
+
 void update_swapchain_pass_descriptor_set(VulkanBackend& backend, const SwapchainPassResources& resources,
-                                          VkImageView hdr_scene_texture_view, VkImageView gui_texture_view);
+                                          const SamplerResources& sampler_resources, VkImageView hdr_scene_texture_view,
+                                          VkImageView gui_texture_view);
 
 struct PreparedData;
 

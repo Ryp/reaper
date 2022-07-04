@@ -80,6 +80,8 @@ target_sources(${target} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/PresentationSurface.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/PresentationSurface.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/RenderPassHelpers.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/SamplerResources.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/SamplerResources.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Shader.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Shader.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Swapchain.cpp
@@ -145,6 +147,7 @@ set(REAPER_SHADER_SRCS
     ${REAPER_SHADER_DIR}/render_shadow.vert.hlsl
     ${REAPER_SHADER_DIR}/swapchain_write.frag.hlsl
     ${REAPER_SHADER_DIR}/sound/oscillator.comp.hlsl
+    ${REAPER_SHADER_DIR}/tile_depth_downsample.comp.hlsl
 )
 
 # Shader compilation

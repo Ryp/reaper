@@ -13,10 +13,10 @@
 #include "renderer/PrepareBuckets.h"
 #include "renderer/vulkan/Backend.h"
 #include "renderer/vulkan/CommandBuffer.h"
-#include "renderer/vulkan/Debug.h"
 #include "renderer/vulkan/Image.h"
 #include "renderer/vulkan/Pipeline.h"
 #include "renderer/vulkan/RenderPassHelpers.h"
+#include "renderer/vulkan/SamplerResources.h"
 #include "renderer/vulkan/Shader.h"
 
 #include "common/Log.h"
@@ -312,39 +312,11 @@ SwapchainPassResources create_swapchain_pass_resources(ReaperRoot& root, VulkanB
 
     resources.descriptor_set = create_swapchain_pass_descriptor_set(root, backend, resources.descriptorSetLayout);
 
-    VkSamplerCreateInfo linearBlackBorderSamplerCreateInfo = {};
-    linearBlackBorderSamplerCreateInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-    linearBlackBorderSamplerCreateInfo.magFilter = VK_FILTER_LINEAR;
-    linearBlackBorderSamplerCreateInfo.minFilter = VK_FILTER_LINEAR;
-    linearBlackBorderSamplerCreateInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-    linearBlackBorderSamplerCreateInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-    linearBlackBorderSamplerCreateInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-    linearBlackBorderSamplerCreateInfo.anisotropyEnable = VK_FALSE;
-    linearBlackBorderSamplerCreateInfo.maxAnisotropy = 16;
-    linearBlackBorderSamplerCreateInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
-    linearBlackBorderSamplerCreateInfo.unnormalizedCoordinates = VK_FALSE;
-    linearBlackBorderSamplerCreateInfo.compareEnable = VK_FALSE;
-    linearBlackBorderSamplerCreateInfo.compareOp = VK_COMPARE_OP_ALWAYS;
-    linearBlackBorderSamplerCreateInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
-    linearBlackBorderSamplerCreateInfo.mipLodBias = 0.f;
-    linearBlackBorderSamplerCreateInfo.minLod = 0.f;
-    linearBlackBorderSamplerCreateInfo.maxLod = FLT_MAX;
-
-    Assert(vkCreateSampler(backend.device, &linearBlackBorderSamplerCreateInfo, nullptr,
-                           &resources.linearBlackBorderSampler)
-           == VK_SUCCESS);
-
-    log_debug(root, "vulkan: created sampler with handle: {}", static_cast<void*>(resources.linearBlackBorderSampler));
-
-    VulkanSetDebugName(backend.device, resources.linearBlackBorderSampler, "LinearBlackBorderSampler");
-
     return resources;
 }
 
 void destroy_swapchain_pass_resources(VulkanBackend& backend, const SwapchainPassResources& resources)
 {
-    vkDestroySampler(backend.device, resources.linearBlackBorderSampler, nullptr);
-
     vmaDestroyBuffer(backend.vma_instance, resources.passConstantBuffer.handle,
                      resources.passConstantBuffer.allocation);
 
@@ -364,11 +336,12 @@ void reload_swapchain_pipeline(ReaperRoot& root, VulkanBackend& backend, Swapcha
 }
 
 void update_swapchain_pass_descriptor_set(VulkanBackend& backend, const SwapchainPassResources& resources,
-                                          VkImageView hdr_scene_texture_view, VkImageView gui_texture_view)
+                                          const SamplerResources& sampler_resources, VkImageView hdr_scene_texture_view,
+                                          VkImageView gui_texture_view)
 {
     const VkDescriptorBufferInfo passParams = default_descriptor_buffer_info(resources.passConstantBuffer);
-    const VkDescriptorImageInfo  linearBlackBorderSampler = {resources.linearBlackBorderSampler, VK_NULL_HANDLE,
-                                                            VK_IMAGE_LAYOUT_UNDEFINED};
+    const VkDescriptorImageInfo  sampler = {sampler_resources.linearBlackBorderSampler, VK_NULL_HANDLE,
+                                           VK_IMAGE_LAYOUT_UNDEFINED};
     const VkDescriptorImageInfo  sceneTexture = {VK_NULL_HANDLE, hdr_scene_texture_view,
                                                 VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
     const VkDescriptorImageInfo  guiTextureInfo = {VK_NULL_HANDLE, gui_texture_view,
@@ -376,8 +349,7 @@ void update_swapchain_pass_descriptor_set(VulkanBackend& backend, const Swapchai
 
     std::vector<VkWriteDescriptorSet> writes = {
         create_buffer_descriptor_write(resources.descriptor_set, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &passParams),
-        create_image_descriptor_write(resources.descriptor_set, 1, VK_DESCRIPTOR_TYPE_SAMPLER,
-                                      &linearBlackBorderSampler),
+        create_image_descriptor_write(resources.descriptor_set, 1, VK_DESCRIPTOR_TYPE_SAMPLER, &sampler),
         create_image_descriptor_write(resources.descriptor_set, 2, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, &sceneTexture),
         create_image_descriptor_write(resources.descriptor_set, 3, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, &guiTextureInfo),
     };

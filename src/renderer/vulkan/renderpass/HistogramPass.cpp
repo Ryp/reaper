@@ -15,6 +15,7 @@
 #include "renderer/vulkan/FrameGraphResources.h"
 #include "renderer/vulkan/Image.h"
 #include "renderer/vulkan/Pipeline.h"
+#include "renderer/vulkan/SamplerResources.h"
 #include "renderer/vulkan/Shader.h"
 
 #include "common/Log.h"
@@ -52,26 +53,6 @@ HistogramPassResources create_histogram_pass_resources(ReaperRoot& root, VulkanB
                       DefaultGPUBufferProperties(1, sizeof(ReduceHDRPassParams), GPUBufferUsage::UniformBuffer),
                       backend.vma_instance, MemUsage::CPU_To_GPU);
 
-    VkSamplerCreateInfo samplerCreateInfo = {};
-    samplerCreateInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-    samplerCreateInfo.magFilter = VK_FILTER_LINEAR;
-    samplerCreateInfo.minFilter = VK_FILTER_LINEAR;
-    samplerCreateInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-    samplerCreateInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-    samplerCreateInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-    samplerCreateInfo.anisotropyEnable = VK_FALSE;
-    samplerCreateInfo.maxAnisotropy = 16;
-    samplerCreateInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
-    samplerCreateInfo.unnormalizedCoordinates = VK_FALSE;
-    samplerCreateInfo.compareEnable = VK_FALSE;
-    samplerCreateInfo.compareOp = VK_COMPARE_OP_ALWAYS;
-    samplerCreateInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
-    samplerCreateInfo.mipLodBias = 0.f;
-    samplerCreateInfo.minLod = 0.f;
-    samplerCreateInfo.maxLod = FLT_MAX;
-
-    Assert(vkCreateSampler(backend.device, &samplerCreateInfo, nullptr, &resources.sampler) == VK_SUCCESS);
-
     std::vector<VkDescriptorSetLayoutBinding> descriptorSetLayoutBinding = {
         {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
         {1, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
@@ -104,16 +85,17 @@ void destroy_histogram_pass_resources(VulkanBackend& backend, const HistogramPas
     vkDestroyPipelineLayout(backend.device, resources.histogramPipe.pipelineLayout, nullptr);
     vkDestroyDescriptorSetLayout(backend.device, resources.descSetLayout, nullptr);
 
-    vkDestroySampler(backend.device, resources.sampler, nullptr);
     vmaDestroyBuffer(backend.vma_instance, resources.passConstantBuffer.handle,
                      resources.passConstantBuffer.allocation);
 }
 
 void update_histogram_pass_descriptor_set(VulkanBackend& backend, const HistogramPassResources& resources,
-                                          VkImageView scene_hdr_view, const FrameGraphBuffer& histogram_buffer)
+                                          const SamplerResources& sampler_resources, VkImageView scene_hdr_view,
+                                          const FrameGraphBuffer& histogram_buffer)
 {
     const VkDescriptorBufferInfo drawDescPassParams = default_descriptor_buffer_info(resources.passConstantBuffer);
-    const VkDescriptorImageInfo  descSampler = {resources.sampler, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_UNDEFINED};
+    const VkDescriptorImageInfo  descSampler = {sampler_resources.linearClampSampler, VK_NULL_HANDLE,
+                                               VK_IMAGE_LAYOUT_UNDEFINED};
     const VkDescriptorImageInfo  descTexture = {VK_NULL_HANDLE, scene_hdr_view,
                                                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
     const VkDescriptorBufferInfo descOutput = {histogram_buffer.handle, histogram_buffer.view.offset_bytes,

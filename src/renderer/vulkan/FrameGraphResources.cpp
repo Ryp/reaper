@@ -155,13 +155,20 @@ FrameGraphTexture get_frame_graph_texture(FrameGraphResources& resources, const 
     const ImageInfo&   texture = resources.textures[resource_handle.index];
     const VkImageView& view_handle = resources.texture_views[usage_handle];
 
+    Assert(texture.handle != VK_NULL_HANDLE);
+    Assert(view_handle != VK_NULL_HANDLE);
+
     return FrameGraphTexture{texture.properties, usage.Usage.texture_view, texture.handle, view_handle};
 }
 
 VkBuffer get_frame_graph_buffer_handle(FrameGraphResources& resources, FrameGraph::ResourceHandle resource_handle)
 {
     Assert(!resource_handle.is_texture, "Wrong handle");
-    return resources.buffers[resource_handle.index].handle;
+
+    BufferInfo buffer = resources.buffers[resource_handle.index];
+    Assert(buffer.handle != VK_NULL_HANDLE);
+
+    return buffer.handle;
 };
 
 FrameGraphBuffer get_frame_graph_buffer(FrameGraphResources& resources, const FrameGraph::FrameGraph& framegraph,
