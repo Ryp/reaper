@@ -46,10 +46,10 @@ namespace
 
     AudioPipelineInfo create_audio_pipeline(VulkanBackend& backend)
     {
-        std::array<VkDescriptorSetLayoutBinding, 3> descriptorSetLayoutBinding = {
-            VkDescriptorSetLayoutBinding{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-            VkDescriptorSetLayoutBinding{1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-            VkDescriptorSetLayoutBinding{2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+        std::vector<VkDescriptorSetLayoutBinding> descriptorSetLayoutBinding = {
+            {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+            {1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+            {2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
         };
 
         VkDescriptorSetLayout descriptorSetLayout =
@@ -57,15 +57,15 @@ namespace
 
         const VkPushConstantRange audioPushConstantRange = {VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(SoundPushConstants)};
 
-        const char*    fileName = "./build/shader/oscillator.comp.spv"; // FIXME preserve hierarchy
-        VkShaderModule computeShader = vulkan_create_shader_module(backend.device, fileName);
+        VkShaderModule shader = vulkan_create_shader_module(
+            backend.device, "./build/shader/oscillator.comp.spv"); // FIXME preserve hierarchy
 
         VkPipelineLayout pipelineLayout = create_pipeline_layout(backend.device, nonstd::span(&descriptorSetLayout, 1),
                                                                  nonstd::span(&audioPushConstantRange, 1));
 
-        VkPipeline pipeline = create_compute_pipeline(backend.device, pipelineLayout, computeShader);
+        VkPipeline pipeline = create_compute_pipeline(backend.device, pipelineLayout, shader);
 
-        vkDestroyShaderModule(backend.device, computeShader, nullptr);
+        vkDestroyShaderModule(backend.device, shader, nullptr);
 
         return AudioPipelineInfo{pipeline, pipelineLayout, descriptorSetLayout};
     }

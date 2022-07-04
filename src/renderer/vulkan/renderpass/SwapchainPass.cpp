@@ -94,11 +94,10 @@ namespace
     VkPipeline create_swapchain_pipeline(ReaperRoot& root, VulkanBackend& backend, VkPipelineLayout pipelineLayout,
                                          VkFormat swapchain_format)
     {
-        const char*    fileNameVS = "./build/shader/fullscreen_triangle.vert.spv";
-        const char*    fileNameFS = "./build/shader/swapchain_write.frag.spv";
         const char*    entryPoint = "main";
-        VkShaderModule shaderVS = vulkan_create_shader_module(backend.device, fileNameVS);
-        VkShaderModule shaderFS = vulkan_create_shader_module(backend.device, fileNameFS);
+        VkShaderModule shaderVS =
+            vulkan_create_shader_module(backend.device, "build/shader/fullscreen_triangle.vert.spv");
+        VkShaderModule shaderFS = vulkan_create_shader_module(backend.device, "build/shader/swapchain_write.frag.spv");
 
         struct SpecConstants
         {
@@ -294,10 +293,10 @@ SwapchainPassResources create_swapchain_pass_resources(ReaperRoot& root, VulkanB
     SwapchainPassResources resources = {};
 
     std::vector<VkDescriptorSetLayoutBinding> descriptorSetLayoutBinding = {
-        VkDescriptorSetLayoutBinding{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
-        VkDescriptorSetLayoutBinding{1, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
-        VkDescriptorSetLayoutBinding{2, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
-        VkDescriptorSetLayoutBinding{3, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+        {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+        {1, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+        {2, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+        {3, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
     };
 
     resources.descriptorSetLayout = create_descriptor_set_layout(backend.device, descriptorSetLayoutBinding);

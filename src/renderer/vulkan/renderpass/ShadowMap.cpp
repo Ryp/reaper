@@ -34,12 +34,12 @@ constexpr u32 MaxShadowPassCount = 4;
 
 namespace
 {
-    ShadowMapPipelineInfo create_shadow_map_pipeline(ReaperRoot& root, VulkanBackend& backend)
+    VkPipeline create_shadow_map_pipeline(ReaperRoot& root, VulkanBackend& backend, VkPipelineLayout pipeline_layout)
     {
-        const char*           fileNameVS = "./build/shader/render_shadow.vert.spv";
         const char*           entryPoint = "main";
         VkSpecializationInfo* specialization = nullptr;
-        VkShaderModule        blitShaderVS = vulkan_create_shader_module(backend.device, fileNameVS);
+        VkShaderModule        blitShaderVS =
+            vulkan_create_shader_module(backend.device, "build/shader/render_shadow.vert.spv");
 
         std::vector<VkPipelineShaderStageCreateInfo> blitShaderStages = {
             {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_VERTEX_BIT, blitShaderVS,
@@ -121,18 +121,6 @@ namespace
             &blitBlendAttachmentState,
             {0.0f, 0.0f, 0.0f, 0.0f}};
 
-        std::vector<VkDescriptorSetLayoutBinding> descriptorSetLayoutBinding = {
-            VkDescriptorSetLayoutBinding{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
-            VkDescriptorSetLayoutBinding{1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
-            VkDescriptorSetLayoutBinding{2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
-        };
-
-        VkDescriptorSetLayout descriptorSetLayoutCB =
-            create_descriptor_set_layout(backend.device, descriptorSetLayoutBinding);
-
-        VkPipelineLayout pipelineLayout =
-            create_pipeline_layout(backend.device, nonstd::span(&descriptorSetLayoutCB, 1));
-
         VkPipelineCache cache = VK_NULL_HANDLE;
 
         const std::array<VkDynamicState, 2> dynamicStates = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
@@ -170,7 +158,7 @@ namespace
                                                                &blitDepthStencilInfo,
                                                                &blitBlendStateInfo,
                                                                &blitDynamicState,
-                                                               pipelineLayout,
+                                                               pipeline_layout,
                                                                VK_NULL_HANDLE,
                                                                0,
                                                                VK_NULL_HANDLE,
@@ -183,7 +171,7 @@ namespace
 
         vkDestroyShaderModule(backend.device, blitShaderVS, nullptr);
 
-        return ShadowMapPipelineInfo{pipeline, pipelineLayout, descriptorSetLayoutCB};
+        return pipeline;
     }
 
     VkDescriptorSet create_shadow_map_pass_descriptor_set(ReaperRoot& root, VulkanBackend& backend,
@@ -228,7 +216,17 @@ ShadowMapResources create_shadow_map_resources(ReaperRoot& root, VulkanBackend& 
 {
     ShadowMapResources resources = {};
 
-    resources.pipe = create_shadow_map_pipeline(root, backend);
+    std::vector<VkDescriptorSetLayoutBinding> descriptorSetLayoutBinding = {
+        {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
+        {1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
+        {2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
+    };
+
+    resources.pipe.descSetLayout = create_descriptor_set_layout(backend.device, descriptorSetLayoutBinding);
+    resources.pipe.pipelineLayout =
+        create_pipeline_layout(backend.device, nonstd::span(&resources.pipe.descSetLayout, 1));
+
+    resources.pipe.pipeline = create_shadow_map_pipeline(root, backend, resources.pipe.pipelineLayout);
 
     resources.passConstantBuffer = create_buffer(
         root, backend.device, "Shadow Map Pass Constant buffer",

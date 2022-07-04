@@ -39,17 +39,15 @@ namespace
     VkDescriptorSetLayout create_descriptor_set_layout_0(VulkanBackend& backend)
     {
         std::vector<VkDescriptorSetLayoutBinding> descriptorSetLayoutBinding = {
-            VkDescriptorSetLayoutBinding{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1,
-                                         VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
-            VkDescriptorSetLayoutBinding{1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
-            VkDescriptorSetLayoutBinding{2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
-            VkDescriptorSetLayoutBinding{3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
-            VkDescriptorSetLayoutBinding{4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
-            VkDescriptorSetLayoutBinding{5, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT,
-                                         nullptr},
-            VkDescriptorSetLayoutBinding{6, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
-            VkDescriptorSetLayoutBinding{7, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, ShadowMapMaxCount,
-                                         VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+            {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+             nullptr},
+            {1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
+            {2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
+            {3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
+            {4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
+            {5, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+            {6, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+            {7, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, ShadowMapMaxCount, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
         };
 
         std::vector<VkDescriptorBindingFlags> bindingFlags = {
@@ -135,9 +133,8 @@ namespace
     VkDescriptorSetLayout create_descriptor_set_layout_1(VulkanBackend& backend)
     {
         std::vector<VkDescriptorSetLayoutBinding> descriptorSetLayoutBinding = {
-            VkDescriptorSetLayoutBinding{0, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
-            VkDescriptorSetLayoutBinding{1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, DiffuseMapMaxCount,
-                                         VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+            {0, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+            {1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, DiffuseMapMaxCount, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
         };
 
         std::vector<VkDescriptorBindingFlags> bindingFlags = {VK_FLAGS_NONE, VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT};
@@ -197,10 +194,10 @@ namespace
         vkUpdateDescriptorSets(backend.device, static_cast<u32>(writes.size()), writes.data(), 0, nullptr);
     }
 
-    ForwardPipelineInfo create_forward_pipeline(ReaperRoot& root, VulkanBackend& backend)
+    VkPipeline create_forward_pipeline(ReaperRoot& root, VulkanBackend& backend, VkPipelineLayout pipeline_layout)
     {
-        VkShaderModule blitShaderVS = vulkan_create_shader_module(backend.device, "./build/shader/forward.vert.spv");
-        VkShaderModule blitShaderFS = vulkan_create_shader_module(backend.device, "./build/shader/forward.frag.spv");
+        VkShaderModule blitShaderVS = vulkan_create_shader_module(backend.device, "build/shader/forward.vert.spv");
+        VkShaderModule blitShaderFS = vulkan_create_shader_module(backend.device, "build/shader/forward.frag.spv");
 
         const char*           entryPoint = "main";
         VkSpecializationInfo* specialization = nullptr;
@@ -287,16 +284,6 @@ namespace
             &blitBlendAttachmentState,
             {0.0f, 0.0f, 0.0f, 0.0f}};
 
-        VkDescriptorSetLayout descriptorSetLayoutCB = create_descriptor_set_layout_0(backend);
-        VkDescriptorSetLayout materialDescSetLayout = create_descriptor_set_layout_1(backend);
-
-        std::array<VkDescriptorSetLayout, 2> passDescriptorSetLayouts = {
-            descriptorSetLayoutCB,
-            materialDescSetLayout,
-        };
-
-        VkPipelineLayout pipelineLayout = create_pipeline_layout(backend.device, passDescriptorSetLayouts);
-
         VkPipelineCache cache = VK_NULL_HANDLE;
 
         const std::array<VkDynamicState, 2> dynamicStates = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
@@ -345,7 +332,7 @@ namespace
                                                                &blitDepthStencilInfo,
                                                                &blitBlendStateInfo,
                                                                &blitDynamicState,
-                                                               pipelineLayout,
+                                                               pipeline_layout,
                                                                VK_NULL_HANDLE,
                                                                0,
                                                                VK_NULL_HANDLE,
@@ -362,7 +349,7 @@ namespace
         vkDestroyShaderModule(backend.device, blitShaderVS, nullptr);
         vkDestroyShaderModule(backend.device, blitShaderFS, nullptr);
 
-        return ForwardPipelineInfo{pipeline, pipelineLayout, descriptorSetLayoutCB, materialDescSetLayout};
+        return pipeline;
     }
 
     VkDescriptorSet create_forward_pass_descriptor_set(ReaperRoot& root, VulkanBackend& backend,
@@ -447,7 +434,17 @@ ForwardPassResources create_forward_pass_resources(ReaperRoot& root, VulkanBacke
 {
     ForwardPassResources resources = {};
 
-    resources.pipe = create_forward_pipeline(root, backend);
+    resources.pipe.descSetLayout = create_descriptor_set_layout_0(backend);
+    resources.pipe.descSetLayout2 = create_descriptor_set_layout_1(backend);
+
+    std::vector<VkDescriptorSetLayout> passDescriptorSetLayouts = {
+        resources.pipe.descSetLayout,
+        resources.pipe.descSetLayout2,
+    };
+
+    resources.pipe.pipelineLayout = create_pipeline_layout(backend.device, passDescriptorSetLayouts);
+
+    resources.pipe.pipeline = create_forward_pipeline(root, backend, resources.pipe.pipelineLayout);
 
     resources.passConstantBuffer =
         create_buffer(root, backend.device, "Forward Pass Constant buffer",

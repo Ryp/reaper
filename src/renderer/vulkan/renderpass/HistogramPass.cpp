@@ -73,25 +73,24 @@ HistogramPassResources create_histogram_pass_resources(ReaperRoot& root, VulkanB
     Assert(vkCreateSampler(backend.device, &samplerCreateInfo, nullptr, &resources.sampler) == VK_SUCCESS);
 
     std::vector<VkDescriptorSetLayoutBinding> descriptorSetLayoutBinding = {
-        VkDescriptorSetLayoutBinding{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-        VkDescriptorSetLayoutBinding{1, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-        VkDescriptorSetLayoutBinding{2, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-        VkDescriptorSetLayoutBinding{3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+        {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+        {1, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+        {2, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+        {3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
     };
 
     resources.descSetLayout = create_descriptor_set_layout(backend.device, descriptorSetLayoutBinding);
 
     {
-        const char*    fileName = "./build/shader/histogram.comp.spv";
-        VkShaderModule computeShader = vulkan_create_shader_module(backend.device, fileName);
+        VkShaderModule shader = vulkan_create_shader_module(backend.device, "build/shader/histogram.comp.spv");
 
         VkPipelineLayout pipelineLayout =
             create_pipeline_layout(backend.device, nonstd::span(&resources.descSetLayout, 1));
 
-        resources.histogramPipe.pipeline = create_compute_pipeline(backend.device, pipelineLayout, computeShader);
+        resources.histogramPipe.pipeline = create_compute_pipeline(backend.device, pipelineLayout, shader);
         resources.histogramPipe.pipelineLayout = pipelineLayout;
 
-        vkDestroyShaderModule(backend.device, computeShader, nullptr);
+        vkDestroyShaderModule(backend.device, shader, nullptr);
     }
 
     resources.descriptor_set = create_histogram_pass_descriptor_set(root, backend, resources.descSetLayout);

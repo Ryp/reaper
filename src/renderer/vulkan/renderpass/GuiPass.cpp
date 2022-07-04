@@ -30,8 +30,8 @@ namespace
     GuiPipelineInfo create_gui_pipeline(ReaperRoot& root, VulkanBackend& backend)
     {
         VkShaderModule shaderVS =
-            vulkan_create_shader_module(backend.device, "./build/shader/fullscreen_triangle.vert.spv");
-        VkShaderModule shaderFS = vulkan_create_shader_module(backend.device, "./build/shader/gui_write.frag.spv");
+            vulkan_create_shader_module(backend.device, "build/shader/fullscreen_triangle.vert.spv");
+        VkShaderModule shaderFS = vulkan_create_shader_module(backend.device, "build/shader/gui_write.frag.spv");
 
         const char* entryPoint = "main";
 
@@ -118,10 +118,9 @@ namespace
             {0.0f, 0.0f, 0.0f, 0.0f}};
 
         std::vector<VkDescriptorSetLayoutBinding> descriptorSetLayoutBinding = {
-            VkDescriptorSetLayoutBinding{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT,
-                                         nullptr},
-            VkDescriptorSetLayoutBinding{1, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
-            VkDescriptorSetLayoutBinding{2, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+            {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+            {1, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+            {2, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
         };
 
         VkDescriptorSetLayout descriptorSetLayoutCB =
