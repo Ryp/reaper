@@ -277,20 +277,48 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     const ResourceUsageHandle tile_depth_read_usage_handle =
         builder.read_texture(tile_ds_pass_handle, forward_depth_create_usage_handle, tile_depth_read_usage);
 
-    GPUTextureProperties tile_depth_properties = DefaultGPUTextureProperties(
+    GPUTextureProperties tile_depth_storage_properties = DefaultGPUTextureProperties(
         div_round_up(backbufferExtent.width, 16), div_round_up(backbufferExtent.height, 16), PixelFormat::R16_UNORM);
-    tile_depth_properties.usage_flags = GPUTextureUsage::Storage | GPUTextureUsage::Sampled;
+    tile_depth_storage_properties.usage_flags = GPUTextureUsage::Storage | GPUTextureUsage::Sampled;
 
-    GPUResourceUsage tile_depth_usage = {};
-    tile_depth_usage.access = GPUResourceAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT,
-                                                VK_IMAGE_LAYOUT_GENERAL};
-    tile_depth_usage.texture_view = DefaultGPUTextureView(tile_depth_properties);
+    GPUResourceUsage tile_depth_storage_usage = {};
+    tile_depth_storage_usage.access = GPUResourceAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+                                                        VK_ACCESS_2_SHADER_WRITE_BIT, VK_IMAGE_LAYOUT_GENERAL};
+    tile_depth_storage_usage.texture_view = DefaultGPUTextureView(tile_depth_storage_properties);
 
-    const ResourceUsageHandle tile_depth_min_create_usage_handle =
-        builder.create_texture(tile_ds_pass_handle, "Tile Depth Min", tile_depth_properties, tile_depth_usage);
+    const ResourceUsageHandle tile_depth_min_create_usage_handle = builder.create_texture(
+        tile_ds_pass_handle, "Tile Depth Min Storage", tile_depth_storage_properties, tile_depth_storage_usage);
 
-    const ResourceUsageHandle tile_depth_max_create_usage_handle =
-        builder.create_texture(tile_ds_pass_handle, "Tile Depth Max", tile_depth_properties, tile_depth_usage);
+    const ResourceUsageHandle tile_depth_max_create_usage_handle = builder.create_texture(
+        tile_ds_pass_handle, "Tile Depth Max Storage", tile_depth_storage_properties, tile_depth_storage_usage);
+
+    // Tile copy depth
+    const RenderPassHandle tile_ds_copy_pass_handle = builder.create_render_pass("Depth Copy");
+
+    GPUResourceUsage tile_depth_copy_src_usage = {};
+    tile_depth_copy_src_usage.access = GPUResourceAccess{
+        VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT, VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL};
+    tile_depth_copy_src_usage.texture_view = DefaultGPUTextureView(tile_depth_storage_properties);
+
+    GPUTextureProperties tile_depth_copy_properties = tile_depth_storage_properties;
+    tile_depth_copy_properties.usage_flags = GPUTextureUsage::DepthStencilAttachment | GPUTextureUsage::Sampled;
+    tile_depth_copy_properties.format = ForwardDepthFormat;
+
+    GPUResourceUsage tile_depth_copy_dst_usage = {};
+    tile_depth_copy_dst_usage.access =
+        GPUResourceAccess{VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
+                          VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL};
+    tile_depth_copy_dst_usage.texture_view = DefaultGPUTextureView(tile_depth_copy_properties);
+
+    const ResourceUsageHandle tile_depth_min_copy_src_usage_handle =
+        builder.read_texture(tile_ds_copy_pass_handle, tile_depth_min_create_usage_handle, tile_depth_copy_src_usage);
+    const ResourceUsageHandle tile_depth_max_copy_src_usage_handle =
+        builder.read_texture(tile_ds_copy_pass_handle, tile_depth_max_create_usage_handle, tile_depth_copy_src_usage);
+
+    const ResourceUsageHandle tile_depth_min_copy_create_usage_handle = builder.create_texture(
+        tile_ds_copy_pass_handle, "Tile Depth Min", tile_depth_copy_properties, tile_depth_copy_dst_usage);
+    const ResourceUsageHandle tile_depth_max_copy_create_usage_handle = builder.create_texture(
+        tile_ds_copy_pass_handle, "Tile Depth Max", tile_depth_copy_properties, tile_depth_copy_dst_usage);
 
     // GUI
     const RenderPassHandle gui_pass_handle = builder.create_render_pass("GUI");
@@ -344,11 +372,12 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     const RenderPassHandle swapchain_pass_handle = builder.create_render_pass("Swapchain", true);
 
     {
-        GPUResourceUsage dummy_tile_usage = {};
-        dummy_tile_usage.access = GPUResourceAccess{VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
-                                                    VK_ACCESS_2_SHADER_READ_BIT, VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL};
-        dummy_tile_usage.texture_view = DefaultGPUTextureView(tile_depth_properties);
-        builder.read_texture(swapchain_pass_handle, tile_depth_max_create_usage_handle, dummy_tile_usage);
+        GPUResourceUsage dummy_usage = {};
+        dummy_usage.access = GPUResourceAccess{VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
+                                               VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL};
+        dummy_usage.texture_view = DefaultGPUTextureView(tile_depth_copy_properties);
+        builder.read_texture(swapchain_pass_handle, tile_depth_min_copy_create_usage_handle, dummy_usage);
+        builder.read_texture(swapchain_pass_handle, tile_depth_max_copy_create_usage_handle, dummy_usage);
     }
 
     GPUResourceUsage swapchain_hdr_usage = {};
@@ -403,12 +432,19 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
                                         resources.material_resources, resources.mesh_cache,
                                         resources.lighting_resources, shadow_map_views);
 
-    update_lighting_pass_pass_descriptor_set(
+    update_lighting_pass_descriptor_set(
         backend, resources.lighting_resources, resources.samplers_resources,
         get_frame_graph_texture(resources.framegraph_resources, framegraph, tile_depth_read_usage_handle).view_handle,
         get_frame_graph_texture(resources.framegraph_resources, framegraph, tile_depth_min_create_usage_handle)
             .view_handle,
         get_frame_graph_texture(resources.framegraph_resources, framegraph, tile_depth_max_create_usage_handle)
+            .view_handle);
+
+    update_depth_copy_pass_descriptor_set(
+        backend, resources.lighting_resources,
+        get_frame_graph_texture(resources.framegraph_resources, framegraph, tile_depth_min_copy_src_usage_handle)
+            .view_handle,
+        get_frame_graph_texture(resources.framegraph_resources, framegraph, tile_depth_max_copy_src_usage_handle)
             .view_handle);
 
     update_histogram_pass_descriptor_set(
@@ -527,6 +563,24 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
             record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
                                        tile_ds_pass_handle, false);
+        }
+
+        {
+            REAPER_GPU_SCOPE(cmdBuffer, "Tile Depth Copy");
+            record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
+                                       tile_ds_copy_pass_handle, true);
+
+            record_depth_copy(cmdBuffer, resources.lighting_resources,
+                              get_frame_graph_texture(resources.framegraph_resources, framegraph,
+                                                      tile_depth_min_copy_create_usage_handle)
+                                  .view_handle,
+                              get_frame_graph_texture(resources.framegraph_resources, framegraph,
+                                                      tile_depth_max_copy_create_usage_handle)
+                                  .view_handle,
+                              VkExtent2D{tile_depth_copy_properties.width, tile_depth_copy_properties.height});
+
+            record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
+                                       tile_ds_copy_pass_handle, false);
         }
 
         {

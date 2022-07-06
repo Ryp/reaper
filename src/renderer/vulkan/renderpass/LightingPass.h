@@ -9,6 +9,8 @@
 
 #include "renderer/vulkan/Buffer.h"
 
+#include <array>
+
 namespace Reaper
 {
 struct LightingPassResources
@@ -18,6 +20,12 @@ struct LightingPassResources
     VkPipeline            tile_depth_pipeline;
 
     VkDescriptorSet tile_depth_descriptor_set;
+
+    VkDescriptorSetLayout depth_copy_descriptor_set_layout;
+    VkPipelineLayout      depth_copy_pipeline_layout;
+    VkPipeline            depth_copy_pipeline;
+
+    std::array<VkDescriptorSet, 2> depth_copy_descriptor_sets;
 
     BufferInfo pointLightBuffer;
 };
@@ -30,9 +38,12 @@ void                  destroy_lighting_pass_resources(VulkanBackend& backend, Li
 
 struct SamplerResources;
 
-void update_lighting_pass_pass_descriptor_set(VulkanBackend& backend, const LightingPassResources& resources,
-                                              const SamplerResources& sampler_resources, VkImageView scene_depth_view,
-                                              VkImageView tile_depth_min_view, VkImageView tile_depth_max_view);
+void update_lighting_pass_descriptor_set(VulkanBackend& backend, const LightingPassResources& resources,
+                                         const SamplerResources& sampler_resources, VkImageView scene_depth_view,
+                                         VkImageView tile_depth_min_view, VkImageView tile_depth_max_view);
+
+void update_depth_copy_pass_descriptor_set(VulkanBackend& backend, const LightingPassResources& resources,
+                                           VkImageView depth_min_src, VkImageView depth_max_src);
 
 struct PreparedData;
 
@@ -43,4 +54,7 @@ struct CommandBuffer;
 
 void record_tile_depth_pass_command_buffer(CommandBuffer& cmdBuffer, const LightingPassResources& pass_resources,
                                            VkExtent2D backbufferExtent);
+
+void record_depth_copy(CommandBuffer& cmdBuffer, const LightingPassResources& pass_resources, VkImageView depth_min_dst,
+                       VkImageView depth_max_dst, VkExtent2D backbufferExtent);
 } // namespace Reaper

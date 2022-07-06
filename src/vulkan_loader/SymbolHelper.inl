@@ -130,6 +130,7 @@ REAPER_VK_DEVICE_LEVEL_FUNCTION(vkCmdEndRendering)
 REAPER_VK_DEVICE_LEVEL_FUNCTION(vkGetDeviceBufferMemoryRequirements)
 REAPER_VK_DEVICE_LEVEL_FUNCTION(vkGetDeviceImageMemoryRequirements)
 REAPER_VK_DEVICE_LEVEL_FUNCTION(vkGetDeviceImageSparseMemoryRequirements)
+// REAPER_VK_DEVICE_LEVEL_FUNCTION(vkCmdBlitImage) NOTE: deprecated by vkCmdBlitImage2
 REAPER_VK_DEVICE_LEVEL_FUNCTION(vkCmdBlitImage2)
 // REAPER_VK_DEVICE_LEVEL_FUNCTION(vkCmdCopyBuffer) NOTE: deprecated by vkCmdCopyBuffer2
 REAPER_VK_DEVICE_LEVEL_FUNCTION(vkCmdCopyBuffer2)

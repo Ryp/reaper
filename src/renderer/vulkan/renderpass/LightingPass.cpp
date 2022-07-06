@@ -14,6 +14,7 @@
 #include "renderer/vulkan/ComputeHelper.h"
 #include "renderer/vulkan/Image.h"
 #include "renderer/vulkan/Pipeline.h"
+#include "renderer/vulkan/RenderPassHelpers.h"
 #include "renderer/vulkan/SamplerResources.h"
 #include "renderer/vulkan/Shader.h"
 
@@ -25,6 +26,116 @@
 namespace Reaper
 {
 constexpr u32 PointLightMax = 128;
+
+namespace
+{
+    VkPipeline create_depth_copy_pipeline(VkDevice device, VkPipelineLayout pipeline_layout,
+                                          nonstd::span<const VkPipelineShaderStageCreateInfo> shader_stages,
+                                          VkFormat                                            depth_format)
+    {
+        VkPipelineVertexInputStateCreateInfo vertexInputStateInfo = {
+            VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO, nullptr, VK_FLAGS_NONE, 0, nullptr, 0, nullptr};
+
+        VkPipelineInputAssemblyStateCreateInfo inputAssemblyInfo = {
+            VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO, nullptr, VK_FLAGS_NONE,
+            VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, VK_FALSE};
+
+        VkPipelineViewportStateCreateInfo blitViewportStateInfo = {
+            VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
+            nullptr,
+            VK_FLAGS_NONE,
+            1,
+            nullptr, // dynamic viewport
+            1,
+            nullptr}; // dynamic scissors
+
+        VkPipelineRasterizationStateCreateInfo blitRasterStateInfo = {
+            VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
+            nullptr,
+            VK_FLAGS_NONE,
+            VK_FALSE,
+            VK_FALSE,
+            VK_POLYGON_MODE_FILL,
+            VK_CULL_MODE_BACK_BIT,
+            VK_FRONT_FACE_COUNTER_CLOCKWISE,
+            VK_FALSE,
+            0.0f,
+            0.0f,
+            0.0f,
+            1.0f};
+
+        VkPipelineMultisampleStateCreateInfo blitMSStateInfo = {
+            VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
+            nullptr,
+            VK_FLAGS_NONE,
+            VK_SAMPLE_COUNT_1_BIT,
+            VK_FALSE,
+            1.0f,
+            nullptr,
+            VK_FALSE,
+            VK_FALSE};
+
+        const VkPipelineDepthStencilStateCreateInfo blitDepthStencilInfo = {
+            VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
+            nullptr,
+            0,
+            VK_TRUE,
+            VK_TRUE,
+            VK_COMPARE_OP_ALWAYS,
+            VK_FALSE,
+            VK_FALSE,
+            VkStencilOpState{},
+            VkStencilOpState{},
+            0.f,
+            0.f};
+
+        const std::array<VkDynamicState, 2> dynamicStates = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
+        VkPipelineDynamicStateCreateInfo    blitDynamicState = {
+            VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
+            nullptr,
+            0,
+            dynamicStates.size(),
+            dynamicStates.data(),
+        };
+
+        const VkPipelineRenderingCreateInfo pipelineRenderingCreateInfo = {
+            VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
+            nullptr,
+            0, // viewMask
+            0,
+            nullptr,
+            depth_format,
+            VK_FORMAT_UNDEFINED,
+        };
+
+        VkGraphicsPipelineCreateInfo blitPipelineCreateInfo = {VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
+                                                               &pipelineRenderingCreateInfo,
+                                                               VK_FLAGS_NONE,
+                                                               static_cast<u32>(shader_stages.size()),
+                                                               shader_stages.data(),
+                                                               &vertexInputStateInfo,
+                                                               &inputAssemblyInfo,
+                                                               nullptr,
+                                                               &blitViewportStateInfo,
+                                                               &blitRasterStateInfo,
+                                                               &blitMSStateInfo,
+                                                               &blitDepthStencilInfo,
+                                                               nullptr,
+                                                               &blitDynamicState,
+                                                               pipeline_layout,
+                                                               VK_NULL_HANDLE,
+                                                               0,
+                                                               VK_NULL_HANDLE,
+                                                               -1};
+
+        VkPipeline      pipeline = VK_NULL_HANDLE;
+        VkPipelineCache cache = VK_NULL_HANDLE;
+
+        Assert(vkCreateGraphicsPipelines(device, cache, 1, &blitPipelineCreateInfo, nullptr, &pipeline) == VK_SUCCESS);
+
+        return pipeline;
+    }
+} // namespace
 
 LightingPassResources create_lighting_pass_resources(ReaperRoot& root, VulkanBackend& backend)
 {
@@ -65,6 +176,52 @@ LightingPassResources create_lighting_pass_resources(ReaperRoot& root, VulkanBac
                == VK_SUCCESS);
     }
 
+    {
+        std::vector<VkDescriptorSetLayoutBinding> descriptorSetLayoutBinding = {
+            {0, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+        };
+
+        VkDescriptorSetLayout descriptor_set_layout =
+            create_descriptor_set_layout(backend.device, descriptorSetLayoutBinding);
+
+        VkPipelineLayout pipeline_layout =
+            create_pipeline_layout(backend.device, nonstd::span(&descriptor_set_layout, 1));
+
+        const char*    entry_point = "main";
+        VkShaderModule shaderVS =
+            vulkan_create_shader_module(backend.device, "build/shader/fullscreen_triangle.vert.spv");
+        VkShaderModule shaderFS = vulkan_create_shader_module(backend.device, "build/shader/copy_to_depth.frag.spv");
+
+        std::vector<VkPipelineShaderStageCreateInfo> shader_stages = {
+            {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_VERTEX_BIT, shaderVS,
+             entry_point, nullptr},
+            {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_FRAGMENT_BIT, shaderFS,
+             entry_point, nullptr}};
+
+        const VkFormat depth_format = PixelFormatToVulkan(PixelFormat::D16_UNORM);
+        VkPipeline pipeline = create_depth_copy_pipeline(backend.device, pipeline_layout, shader_stages, depth_format);
+
+        vkDestroyShaderModule(backend.device, shaderVS, nullptr);
+        vkDestroyShaderModule(backend.device, shaderFS, nullptr);
+
+        resources.depth_copy_descriptor_set_layout = descriptor_set_layout;
+        resources.depth_copy_pipeline_layout = pipeline_layout;
+        resources.depth_copy_pipeline = pipeline;
+
+        std::vector<VkDescriptorSetLayout> dset_layouts = {
+            descriptor_set_layout,
+            descriptor_set_layout,
+        };
+
+        VkDescriptorSetAllocateInfo descriptorSetAllocInfo = {
+            VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr, backend.global_descriptor_pool,
+            static_cast<u32>(dset_layouts.size()), dset_layouts.data()};
+
+        Assert(vkAllocateDescriptorSets(backend.device, &descriptorSetAllocInfo,
+                                        resources.depth_copy_descriptor_sets.data())
+               == VK_SUCCESS);
+    }
+
     resources.pointLightBuffer = create_buffer(
         root, backend.device, "Point light buffer",
         DefaultGPUBufferProperties(PointLightMax, sizeof(PointLightProperties), GPUBufferUsage::StorageBuffer),
@@ -77,14 +234,18 @@ void destroy_lighting_pass_resources(VulkanBackend& backend, LightingPassResourc
 {
     vmaDestroyBuffer(backend.vma_instance, resources.pointLightBuffer.handle, resources.pointLightBuffer.allocation);
 
+    vkDestroyPipeline(backend.device, resources.depth_copy_pipeline, nullptr);
+    vkDestroyPipelineLayout(backend.device, resources.depth_copy_pipeline_layout, nullptr);
+    vkDestroyDescriptorSetLayout(backend.device, resources.depth_copy_descriptor_set_layout, nullptr);
+
     vkDestroyPipeline(backend.device, resources.tile_depth_pipeline, nullptr);
     vkDestroyPipelineLayout(backend.device, resources.tile_depth_pipeline_layout, nullptr);
     vkDestroyDescriptorSetLayout(backend.device, resources.tile_depth_descriptor_set_layout, nullptr);
 }
 
-void update_lighting_pass_pass_descriptor_set(VulkanBackend& backend, const LightingPassResources& resources,
-                                              const SamplerResources& sampler_resources, VkImageView scene_depth_view,
-                                              VkImageView tile_depth_min_view, VkImageView tile_depth_max_view)
+void update_lighting_pass_descriptor_set(VulkanBackend& backend, const LightingPassResources& resources,
+                                         const SamplerResources& sampler_resources, VkImageView scene_depth_view,
+                                         VkImageView tile_depth_min_view, VkImageView tile_depth_max_view)
 {
     const VkDescriptorImageInfo descSampler = {sampler_resources.linearClampSampler, VK_NULL_HANDLE,
                                                VK_IMAGE_LAYOUT_UNDEFINED};
@@ -105,6 +266,22 @@ void update_lighting_pass_pass_descriptor_set(VulkanBackend& backend, const Ligh
 
     vkUpdateDescriptorSets(backend.device, static_cast<u32>(descriptorSetWrites.size()), descriptorSetWrites.data(), 0,
                            nullptr);
+}
+
+void update_depth_copy_pass_descriptor_set(VulkanBackend& backend, const LightingPassResources& resources,
+                                           VkImageView depth_min_src, VkImageView depth_max_src)
+{
+    const VkDescriptorImageInfo descTileMin = {VK_NULL_HANDLE, depth_min_src, VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL};
+    const VkDescriptorImageInfo descTileMax = {VK_NULL_HANDLE, depth_max_src, VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL};
+
+    std::vector<VkWriteDescriptorSet> writes = {
+        create_image_descriptor_write(resources.depth_copy_descriptor_sets[0], 0, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+                                      &descTileMin),
+        create_image_descriptor_write(resources.depth_copy_descriptor_sets[1], 0, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+                                      &descTileMax),
+    };
+
+    vkUpdateDescriptorSets(backend.device, static_cast<u32>(writes.size()), writes.data(), 0, nullptr);
 }
 
 void upload_lighting_pass_frame_resources(VulkanBackend& backend, const PreparedData& prepared,
@@ -139,5 +316,56 @@ void record_tile_depth_pass_command_buffer(CommandBuffer& cmdBuffer, const Light
                   div_round_up(backbufferExtent.width, TileDepthThreadCountX * 2),
                   div_round_up(backbufferExtent.height, TileDepthThreadCountY * 2),
                   1);
+}
+
+void record_depth_copy(CommandBuffer& cmdBuffer, const LightingPassResources& resources, VkImageView depth_min_dst,
+                       VkImageView depth_max_dst, VkExtent2D depth_extent)
+{
+    std::vector<VkImageView> depth_dsts = {depth_min_dst, depth_max_dst};
+    const VkRect2D           pass_rect = default_vk_rect(depth_extent);
+    const VkViewport         viewport = default_vk_viewport(pass_rect);
+
+    vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, resources.depth_copy_pipeline);
+
+    vkCmdSetViewport(cmdBuffer.handle, 0, 1, &viewport);
+    vkCmdSetScissor(cmdBuffer.handle, 0, 1, &pass_rect);
+
+    for (u32 depth_index = 0; depth_index < 2; depth_index++)
+    {
+        const VkRenderingAttachmentInfo depth_attachment = {
+            VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+            nullptr,
+            depth_dsts[depth_index],
+            VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
+            VK_RESOLVE_MODE_NONE,
+            VK_NULL_HANDLE,
+            VK_IMAGE_LAYOUT_UNDEFINED,
+            VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+            VK_ATTACHMENT_STORE_OP_STORE,
+            VkClearValue{},
+        };
+
+        const VkRenderingInfo rendering_info = {
+            VK_STRUCTURE_TYPE_RENDERING_INFO,
+            nullptr,
+            VK_FLAGS_NONE,
+            pass_rect,
+            1, // layerCount
+            0, // viewMask
+            0,
+            nullptr,
+            &depth_attachment,
+            nullptr,
+        };
+
+        vkCmdBeginRendering(cmdBuffer.handle, &rendering_info);
+
+        vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, resources.depth_copy_pipeline_layout,
+                                0, 1, &resources.depth_copy_descriptor_sets[depth_index], 0, nullptr);
+
+        vkCmdDraw(cmdBuffer.handle, 3, 1, 0, 0);
+
+        vkCmdEndRendering(cmdBuffer.handle);
+    }
 }
 } // namespace Reaper

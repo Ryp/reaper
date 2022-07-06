@@ -100,28 +100,6 @@ namespace
             0.f,
             0.f};
 
-        VkPipelineColorBlendAttachmentState blitBlendAttachmentState = {
-            VK_FALSE,
-            VK_BLEND_FACTOR_ONE,
-            VK_BLEND_FACTOR_ZERO,
-            VK_BLEND_OP_ADD,
-            VK_BLEND_FACTOR_ONE,
-            VK_BLEND_FACTOR_ZERO,
-            VK_BLEND_OP_ADD,
-            VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT};
-
-        VkPipelineColorBlendStateCreateInfo blitBlendStateInfo = {
-            VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
-            nullptr,
-            VK_FLAGS_NONE,
-            VK_FALSE,
-            VK_LOGIC_OP_COPY,
-            1,
-            &blitBlendAttachmentState,
-            {0.0f, 0.0f, 0.0f, 0.0f}};
-
-        VkPipelineCache cache = VK_NULL_HANDLE;
-
         const std::array<VkDynamicState, 2> dynamicStates = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
         VkPipelineDynamicStateCreateInfo    blitDynamicState = {
             VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
@@ -155,7 +133,7 @@ namespace
                                                                &blitRasterStateInfo,
                                                                &blitMSStateInfo,
                                                                &blitDepthStencilInfo,
-                                                               &blitBlendStateInfo,
+                                                               nullptr,
                                                                &blitDynamicState,
                                                                pipeline_layout,
                                                                VK_NULL_HANDLE,
@@ -163,7 +141,9 @@ namespace
                                                                VK_NULL_HANDLE,
                                                                -1};
 
-        VkPipeline pipeline = VK_NULL_HANDLE;
+        VkPipeline      pipeline = VK_NULL_HANDLE;
+        VkPipelineCache cache = VK_NULL_HANDLE;
+
         Assert(vkCreateGraphicsPipelines(backend.device, cache, 1, &blitPipelineCreateInfo, nullptr, &pipeline)
                == VK_SUCCESS);
         log_debug(root, "vulkan: created blit pipeline with handle: {}", static_cast<void*>(pipeline));
