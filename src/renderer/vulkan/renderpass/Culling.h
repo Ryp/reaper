@@ -45,8 +45,9 @@ struct CullResources
 
 struct ReaperRoot;
 struct VulkanBackend;
+struct ShaderModules;
 
-CullResources create_culling_resources(ReaperRoot& root, VulkanBackend& backend);
+CullResources create_culling_resources(ReaperRoot& root, VulkanBackend& backend, const ShaderModules& shader_modules);
 void          destroy_culling_resources(VulkanBackend& backend, CullResources& resources);
 
 struct PreparedData;

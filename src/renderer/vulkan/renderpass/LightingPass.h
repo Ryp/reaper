@@ -32,8 +32,10 @@ struct LightingPassResources
 
 struct ReaperRoot;
 struct VulkanBackend;
+struct ShaderModules;
 
-LightingPassResources create_lighting_pass_resources(ReaperRoot& root, VulkanBackend& backend);
+LightingPassResources create_lighting_pass_resources(ReaperRoot& root, VulkanBackend& backend,
+                                                     const ShaderModules& shader_modules);
 void                  destroy_lighting_pass_resources(VulkanBackend& backend, LightingPassResources& resources);
 
 struct SamplerResources;

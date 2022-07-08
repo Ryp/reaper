@@ -14,7 +14,7 @@
 #include "renderer/vulkan/Barrier.h"
 #include "renderer/vulkan/CommandBuffer.h"
 #include "renderer/vulkan/Pipeline.h"
-#include "renderer/vulkan/Shader.h"
+#include "renderer/vulkan/ShaderModules.h"
 
 #include "common/Log.h"
 #include "common/ReaperRoot.h"
@@ -43,8 +43,12 @@ namespace
 
         return audioPassDescriptorSet;
     }
+} // namespace
 
-    AudioPipelineInfo create_audio_pipeline(VulkanBackend& backend)
+AudioResources create_audio_resources(ReaperRoot& root, VulkanBackend& backend, const ShaderModules& shader_modules)
+{
+    AudioResources resources = {};
+
     {
         std::vector<VkDescriptorSetLayoutBinding> descriptorSetLayoutBinding = {
             {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
@@ -57,25 +61,13 @@ namespace
 
         const VkPushConstantRange audioPushConstantRange = {VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(SoundPushConstants)};
 
-        VkShaderModule shader = vulkan_create_shader_module(
-            backend.device, "./build/shader/oscillator.comp.spv"); // FIXME preserve hierarchy
-
         VkPipelineLayout pipelineLayout = create_pipeline_layout(backend.device, nonstd::span(&descriptorSetLayout, 1),
                                                                  nonstd::span(&audioPushConstantRange, 1));
 
-        VkPipeline pipeline = create_compute_pipeline(backend.device, pipelineLayout, shader);
+        VkPipeline pipeline = create_compute_pipeline(backend.device, pipelineLayout, shader_modules.oscillator_cs);
 
-        vkDestroyShaderModule(backend.device, shader, nullptr);
-
-        return AudioPipelineInfo{pipeline, pipelineLayout, descriptorSetLayout};
+        resources.audioPipe = AudioPipelineInfo{pipeline, pipelineLayout, descriptorSetLayout};
     }
-} // namespace
-
-AudioResources create_audio_resources(ReaperRoot& root, VulkanBackend& backend)
-{
-    AudioResources resources = {};
-
-    resources.audioPipe = create_audio_pipeline(backend);
 
     resources.passConstantBuffer =
         create_buffer(root, backend.device, "Audio Constant buffer",

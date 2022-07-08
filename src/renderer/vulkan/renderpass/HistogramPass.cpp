@@ -16,7 +16,7 @@
 #include "renderer/vulkan/Image.h"
 #include "renderer/vulkan/Pipeline.h"
 #include "renderer/vulkan/SamplerResources.h"
-#include "renderer/vulkan/Shader.h"
+#include "renderer/vulkan/ShaderModules.h"
 
 #include "common/Log.h"
 #include "common/ReaperRoot.h"
@@ -44,7 +44,8 @@ namespace
     }
 } // namespace
 
-HistogramPassResources create_histogram_pass_resources(ReaperRoot& root, VulkanBackend& backend)
+HistogramPassResources create_histogram_pass_resources(ReaperRoot& root, VulkanBackend& backend,
+                                                       const ShaderModules& shader_modules)
 {
     HistogramPassResources resources = {};
 
@@ -63,15 +64,12 @@ HistogramPassResources create_histogram_pass_resources(ReaperRoot& root, VulkanB
     resources.descSetLayout = create_descriptor_set_layout(backend.device, descriptorSetLayoutBinding);
 
     {
-        VkShaderModule shader = vulkan_create_shader_module(backend.device, "build/shader/histogram.comp.spv");
-
         VkPipelineLayout pipelineLayout =
             create_pipeline_layout(backend.device, nonstd::span(&resources.descSetLayout, 1));
 
-        resources.histogramPipe.pipeline = create_compute_pipeline(backend.device, pipelineLayout, shader);
+        resources.histogramPipe.pipeline =
+            create_compute_pipeline(backend.device, pipelineLayout, shader_modules.histogram_cs);
         resources.histogramPipe.pipelineLayout = pipelineLayout;
-
-        vkDestroyShaderModule(backend.device, shader, nullptr);
     }
 
     resources.descriptor_set = create_histogram_pass_descriptor_set(root, backend, resources.descSetLayout);

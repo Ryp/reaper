@@ -16,6 +16,7 @@ namespace Reaper
 {
 struct ReaperRoot;
 struct VulkanBackend;
+struct ShaderModules;
 
 struct AudioPipelineInfo
 {
@@ -55,7 +56,7 @@ struct RawSample
 };
 #endif
 
-AudioResources create_audio_resources(ReaperRoot& root, VulkanBackend& backend);
+AudioResources create_audio_resources(ReaperRoot& root, VulkanBackend& backend, const ShaderModules& shader_modules);
 void           destroy_audio_resources(VulkanBackend& backend, AudioResources& resources);
 
 struct PreparedData;

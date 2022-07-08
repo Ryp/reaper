@@ -16,7 +16,7 @@
 #include "renderer/vulkan/Image.h"
 #include "renderer/vulkan/Pipeline.h"
 #include "renderer/vulkan/RenderPassHelpers.h"
-#include "renderer/vulkan/Shader.h"
+#include "renderer/vulkan/ShaderModules.h"
 
 #include "common/Log.h"
 #include "common/ReaperRoot.h"
@@ -41,19 +41,18 @@ namespace
     }
 } // namespace
 
-GuiPassResources create_gui_pass_resources(ReaperRoot& root, VulkanBackend& backend)
+GuiPassResources create_gui_pass_resources(ReaperRoot& root, VulkanBackend& backend,
+                                           const ShaderModules& shader_modules)
 {
     GuiPassResources resources = {};
 
-    const char*    entryPoint = "main";
-    VkShaderModule shaderVS = vulkan_create_shader_module(backend.device, "build/shader/fullscreen_triangle.vert.spv");
-    VkShaderModule shaderFS = vulkan_create_shader_module(backend.device, "build/shader/gui_write.frag.spv");
+    const char* entryPoint = "main";
 
     std::vector<VkPipelineShaderStageCreateInfo> shader_stages = {
-        {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_VERTEX_BIT, shaderVS,
-         entryPoint, nullptr},
-        {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_FRAGMENT_BIT, shaderFS,
-         entryPoint, nullptr}};
+        {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_VERTEX_BIT,
+         shader_modules.fullscreen_triangle_vs, entryPoint, nullptr},
+        {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_FRAGMENT_BIT,
+         shader_modules.gui_write_fs, entryPoint, nullptr}};
 
     std::vector<VkDescriptorSetLayoutBinding> descriptorSetLayoutBinding = {
         {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
@@ -80,9 +79,6 @@ GuiPassResources create_gui_pass_resources(ReaperRoot& root, VulkanBackend& back
     VkPipeline pipeline = create_graphics_pipeline(backend.device, shader_stages, pipeline_properties);
 
     Assert(backend.physicalDeviceInfo.graphicsQueueFamilyIndex == backend.physicalDeviceInfo.presentQueueFamilyIndex);
-
-    vkDestroyShaderModule(backend.device, shaderVS, nullptr);
-    vkDestroyShaderModule(backend.device, shaderFS, nullptr);
 
     resources.guiPipe = GuiPipelineInfo{pipeline, pipelineLayout, descriptor_set_layout};
 

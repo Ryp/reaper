@@ -16,7 +16,7 @@
 #include "renderer/vulkan/Pipeline.h"
 #include "renderer/vulkan/RenderPassHelpers.h"
 #include "renderer/vulkan/SamplerResources.h"
-#include "renderer/vulkan/Shader.h"
+#include "renderer/vulkan/ShaderModules.h"
 
 #include "common/ReaperRoot.h"
 #include "profiling/Scope.h"
@@ -27,7 +27,8 @@ namespace Reaper
 {
 constexpr u32 PointLightMax = 128;
 
-LightingPassResources create_lighting_pass_resources(ReaperRoot& root, VulkanBackend& backend)
+LightingPassResources create_lighting_pass_resources(ReaperRoot& root, VulkanBackend& backend,
+                                                     const ShaderModules& shader_modules)
 {
     LightingPassResources resources = {};
 
@@ -44,15 +45,11 @@ LightingPassResources create_lighting_pass_resources(ReaperRoot& root, VulkanBac
 
         const VkPushConstantRange pushConstantRange = {VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(TileDepthConstants)};
 
-        VkShaderModule shader =
-            vulkan_create_shader_module(backend.device, "build/shader/tile_depth_downsample.comp.spv");
-
         VkPipelineLayout pipeline_layout = create_pipeline_layout(
             backend.device, nonstd::span(&descriptor_set_layout, 1), nonstd::span(&pushConstantRange, 1));
 
-        VkPipeline pipeline = create_compute_pipeline(backend.device, pipeline_layout, shader);
-
-        vkDestroyShaderModule(backend.device, shader, nullptr);
+        VkPipeline pipeline =
+            create_compute_pipeline(backend.device, pipeline_layout, shader_modules.tile_depth_downsample_cs);
 
         resources.tile_depth_descriptor_set_layout = descriptor_set_layout;
         resources.tile_depth_pipeline_layout = pipeline_layout;
@@ -67,16 +64,13 @@ LightingPassResources create_lighting_pass_resources(ReaperRoot& root, VulkanBac
     }
 
     {
-        const char*    entry_point = "main";
-        VkShaderModule shaderVS =
-            vulkan_create_shader_module(backend.device, "build/shader/fullscreen_triangle.vert.spv");
-        VkShaderModule shaderFS = vulkan_create_shader_module(backend.device, "build/shader/copy_to_depth.frag.spv");
+        const char* entry_point = "main";
 
         std::vector<VkPipelineShaderStageCreateInfo> shader_stages = {
-            {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_VERTEX_BIT, shaderVS,
-             entry_point, nullptr},
-            {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_FRAGMENT_BIT, shaderFS,
-             entry_point, nullptr}};
+            {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_VERTEX_BIT,
+             shader_modules.fullscreen_triangle_vs, entry_point, nullptr},
+            {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_FRAGMENT_BIT,
+             shader_modules.copy_to_depth_fs, entry_point, nullptr}};
         std::vector<VkDescriptorSetLayoutBinding> descriptorSetLayoutBinding = {
             {0, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
         };
@@ -95,9 +89,6 @@ LightingPassResources create_lighting_pass_resources(ReaperRoot& root, VulkanBac
         pipeline_properties.pipeline_rendering.depthAttachmentFormat = PixelFormatToVulkan(PixelFormat::D16_UNORM);
 
         VkPipeline pipeline = create_graphics_pipeline(backend.device, shader_stages, pipeline_properties);
-
-        vkDestroyShaderModule(backend.device, shaderVS, nullptr);
-        vkDestroyShaderModule(backend.device, shaderFS, nullptr);
 
         resources.depth_copy_descriptor_set_layout = descriptor_set_layout;
         resources.depth_copy_pipeline_layout = pipeline_layout;

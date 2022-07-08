@@ -24,6 +24,7 @@ namespace Reaper
 struct ReaperRoot;
 struct VulkanBackend;
 struct GPUTextureProperties;
+struct ShaderModules;
 
 struct ShadowMapPipelineInfo
 {
@@ -42,7 +43,8 @@ struct ShadowMapResources
     std::vector<VkDescriptorSet> descriptor_sets;
 };
 
-ShadowMapResources create_shadow_map_resources(ReaperRoot& root, VulkanBackend& backend);
+ShadowMapResources create_shadow_map_resources(ReaperRoot& root, VulkanBackend& backend,
+                                               const ShaderModules& shader_modules);
 void               destroy_shadow_map_resources(VulkanBackend& backend, ShadowMapResources& resources);
 
 struct PreparedData;

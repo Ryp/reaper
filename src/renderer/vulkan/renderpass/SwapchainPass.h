@@ -32,11 +32,14 @@ struct SwapchainPassResources
 
 struct ReaperRoot;
 struct VulkanBackend;
+struct ShaderModules;
 
-SwapchainPassResources create_swapchain_pass_resources(ReaperRoot& root, VulkanBackend& backend);
+SwapchainPassResources create_swapchain_pass_resources(ReaperRoot& root, VulkanBackend& backend,
+                                                       const ShaderModules& shader_modules);
 void destroy_swapchain_pass_resources(VulkanBackend& backend, const SwapchainPassResources& resources);
 
-void reload_swapchain_pipeline(VulkanBackend& backend, SwapchainPassResources& resources);
+void reload_swapchain_pipeline(VulkanBackend& backend, const ShaderModules& shader_modules,
+                               SwapchainPassResources& resources);
 
 struct SamplerResources;
 

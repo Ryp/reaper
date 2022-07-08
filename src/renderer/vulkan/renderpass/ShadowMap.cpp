@@ -18,7 +18,7 @@
 #include "renderer/vulkan/Image.h"
 #include "renderer/vulkan/Pipeline.h"
 #include "renderer/vulkan/RenderPassHelpers.h"
-#include "renderer/vulkan/Shader.h"
+#include "renderer/vulkan/ShaderModules.h"
 
 #include "common/Log.h"
 #include "common/ReaperRoot.h"
@@ -72,16 +72,16 @@ namespace
     }
 } // namespace
 
-ShadowMapResources create_shadow_map_resources(ReaperRoot& root, VulkanBackend& backend)
+ShadowMapResources create_shadow_map_resources(ReaperRoot& root, VulkanBackend& backend,
+                                               const ShaderModules& shader_modules)
 {
     ShadowMapResources resources = {};
 
-    const char*    entryPoint = "main";
-    VkShaderModule shader = vulkan_create_shader_module(backend.device, "build/shader/render_shadow.vert.spv");
+    const char* entryPoint = "main";
 
-    std::vector<VkPipelineShaderStageCreateInfo> shader_stages = {{VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-                                                                   nullptr, 0, VK_SHADER_STAGE_VERTEX_BIT, shader,
-                                                                   entryPoint, nullptr}};
+    std::vector<VkPipelineShaderStageCreateInfo> shader_stages = {
+        {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_VERTEX_BIT,
+         shader_modules.render_shadow_vs, entryPoint, nullptr}};
 
     std::vector<VkDescriptorSetLayoutBinding> descriptorSetLayoutBinding = {
         {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
@@ -101,8 +101,6 @@ ShadowMapResources create_shadow_map_resources(ReaperRoot& root, VulkanBackend& 
     pipeline_properties.pipeline_rendering.depthAttachmentFormat = PixelFormatToVulkan(ShadowMapFormat);
 
     resources.pipe.pipeline = create_graphics_pipeline(backend.device, shader_stages, pipeline_properties);
-
-    vkDestroyShaderModule(backend.device, shader, nullptr);
 
     resources.passConstantBuffer = create_buffer(
         root, backend.device, "Shadow Map Pass Constant buffer",

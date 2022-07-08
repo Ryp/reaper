@@ -38,8 +38,10 @@ struct HistogramPassResources
 struct ReaperRoot;
 struct VulkanBackend;
 struct FrameGraphBuffer;
+struct ShaderModules;
 
-HistogramPassResources create_histogram_pass_resources(ReaperRoot& root, VulkanBackend& backend);
+HistogramPassResources create_histogram_pass_resources(ReaperRoot& root, VulkanBackend& backend,
+                                                       const ShaderModules& shader_modules);
 void destroy_histogram_pass_resources(VulkanBackend& backend, const HistogramPassResources& resources);
 
 struct SamplerResources;

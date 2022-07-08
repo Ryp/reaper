@@ -21,7 +21,7 @@
 #include "renderer/vulkan/Pipeline.h"
 #include "renderer/vulkan/RenderPassHelpers.h"
 #include "renderer/vulkan/SamplerResources.h"
-#include "renderer/vulkan/Shader.h"
+#include "renderer/vulkan/ShaderModules.h"
 #include "renderer/vulkan/renderpass/ForwardPassConstants.h"
 #include "renderer/vulkan/renderpass/LightingPass.h"
 
@@ -196,17 +196,16 @@ namespace
         vkUpdateDescriptorSets(backend.device, static_cast<u32>(writes.size()), writes.data(), 0, nullptr);
     }
 
-    VkPipeline create_forward_pipeline(ReaperRoot& root, VulkanBackend& backend, VkPipelineLayout pipeline_layout)
+    VkPipeline create_forward_pipeline(ReaperRoot& root, VulkanBackend& backend, VkPipelineLayout pipeline_layout,
+                                       const ShaderModules& shader_modules)
     {
-        const char*    entryPoint = "main";
-        VkShaderModule shader_vs = vulkan_create_shader_module(backend.device, "build/shader/forward.vert.spv");
-        VkShaderModule shader_fs = vulkan_create_shader_module(backend.device, "build/shader/forward.frag.spv");
+        const char* entryPoint = "main";
 
         std::vector<VkPipelineShaderStageCreateInfo> shader_stages = {
-            {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_VERTEX_BIT, shader_vs,
-             entryPoint, nullptr},
-            {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_FRAGMENT_BIT, shader_fs,
-             entryPoint, nullptr}};
+            {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_VERTEX_BIT,
+             shader_modules.forward_vs, entryPoint, nullptr},
+            {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_FRAGMENT_BIT,
+             shader_modules.forward_fs, entryPoint, nullptr}};
 
         const VkPipelineColorBlendAttachmentState blend_attachment_state =
             default_pipeline_color_blend_attachment_state();
@@ -245,9 +244,6 @@ namespace
         log_debug(root, "- total time = {}ms, vs = {}ms, fs = {}ms", feedback.duration / 1000,
                   feedback_stages[0].duration / 1000, feedback_stages[1].duration / 1000);
 
-        vkDestroyShaderModule(backend.device, shader_vs, nullptr);
-        vkDestroyShaderModule(backend.device, shader_fs, nullptr);
-
         return pipeline;
     }
 
@@ -278,7 +274,8 @@ namespace
     }
 } // namespace
 
-ForwardPassResources create_forward_pass_resources(ReaperRoot& root, VulkanBackend& backend)
+ForwardPassResources create_forward_pass_resources(ReaperRoot& root, VulkanBackend& backend,
+                                                   const ShaderModules& shader_modules)
 {
     ForwardPassResources resources = {};
 
@@ -292,7 +289,7 @@ ForwardPassResources create_forward_pass_resources(ReaperRoot& root, VulkanBacke
 
     resources.pipe.pipelineLayout = create_pipeline_layout(backend.device, passDescriptorSetLayouts);
 
-    resources.pipe.pipeline = create_forward_pipeline(root, backend, resources.pipe.pipelineLayout);
+    resources.pipe.pipeline = create_forward_pipeline(root, backend, resources.pipe.pipelineLayout, shader_modules);
 
     resources.passConstantBuffer =
         create_buffer(root, backend.device, "Forward Pass Constant buffer",

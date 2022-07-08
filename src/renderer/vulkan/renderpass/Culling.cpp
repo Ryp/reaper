@@ -17,7 +17,7 @@
 #include "renderer/vulkan/GpuProfile.h"
 #include "renderer/vulkan/MeshCache.h"
 #include "renderer/vulkan/Pipeline.h"
-#include "renderer/vulkan/Shader.h"
+#include "renderer/vulkan/ShaderModules.h"
 
 #include "common/Log.h"
 #include "common/ReaperRoot.h"
@@ -132,38 +132,13 @@ namespace
 
         vkUpdateDescriptorSets(backend.device, static_cast<u32>(writes.size()), writes.data(), 0, nullptr);
     }
+} // namespace
 
-    SimplePipeline create_meshlet_prepare_indirect_pipeline(VulkanBackend& backend)
+CullResources create_culling_resources(ReaperRoot& root, VulkanBackend& backend, const ShaderModules& shader_modules)
+{
+    CullResources resources;
+
     {
-        VkShaderModule computeShader =
-            vulkan_create_shader_module(backend.device, "build/shader/prepare_fine_culling_indirect.comp.spv");
-
-        std::vector<VkDescriptorSetLayoutBinding> descriptorSetLayoutBinding = {
-            {0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-            {1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-        };
-
-        VkDescriptorSetLayout descriptorSetLayout =
-            create_descriptor_set_layout(backend.device, descriptorSetLayoutBinding);
-
-        const VkPushConstantRange cullPushConstantRange = {VK_SHADER_STAGE_COMPUTE_BIT, 0,
-                                                           sizeof(CullMeshletPushConstants)};
-
-        VkPipelineLayout pipelineLayout = create_pipeline_layout(backend.device, nonstd::span(&descriptorSetLayout, 1),
-                                                                 nonstd::span(&cullPushConstantRange, 1));
-
-        VkPipeline pipeline = create_compute_pipeline(backend.device, pipelineLayout, computeShader);
-
-        vkDestroyShaderModule(backend.device, computeShader, nullptr);
-
-        return SimplePipeline{pipeline, pipelineLayout, descriptorSetLayout};
-    }
-
-    SimplePipeline create_cull_meshlet_pipeline(VulkanBackend& backend)
-    {
-        VkShaderModule computeShader =
-            vulkan_create_shader_module(backend.device, "build/shader/cull_meshlet.comp.spv");
-
         std::vector<VkDescriptorSetLayoutBinding> descriptorSetLayoutBinding = {
             {0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
             {1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
@@ -180,18 +155,33 @@ namespace
         VkPipelineLayout pipelineLayout = create_pipeline_layout(backend.device, nonstd::span(&descriptorSetLayout, 1),
                                                                  nonstd::span(&cullPushConstantRange, 1));
 
-        VkPipeline pipeline = create_compute_pipeline(backend.device, pipelineLayout, computeShader);
+        VkPipeline pipeline = create_compute_pipeline(backend.device, pipelineLayout, shader_modules.cull_meshlet_cs);
 
-        vkDestroyShaderModule(backend.device, computeShader, nullptr);
-
-        return SimplePipeline{pipeline, pipelineLayout, descriptorSetLayout};
+        resources.cullMeshletPipe = SimplePipeline{pipeline, pipelineLayout, descriptorSetLayout};
     }
 
-    SimplePipeline create_cull_triangles_pipeline(VulkanBackend& backend)
     {
-        VkShaderModule computeShader =
-            vulkan_create_shader_module(backend.device, "build/shader/cull_triangle_batch.comp.spv");
+        std::vector<VkDescriptorSetLayoutBinding> descriptorSetLayoutBinding = {
+            {0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+            {1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+        };
 
+        VkDescriptorSetLayout descriptorSetLayout =
+            create_descriptor_set_layout(backend.device, descriptorSetLayoutBinding);
+
+        const VkPushConstantRange cullPushConstantRange = {VK_SHADER_STAGE_COMPUTE_BIT, 0,
+                                                           sizeof(CullMeshletPushConstants)};
+
+        VkPipelineLayout pipelineLayout = create_pipeline_layout(backend.device, nonstd::span(&descriptorSetLayout, 1),
+                                                                 nonstd::span(&cullPushConstantRange, 1));
+
+        VkPipeline pipeline =
+            create_compute_pipeline(backend.device, pipelineLayout, shader_modules.prepare_fine_culling_indirect_cs);
+
+        resources.cullMeshletPrepIndirect = SimplePipeline{pipeline, pipelineLayout, descriptorSetLayout};
+    }
+
+    {
         std::vector<VkDescriptorSetLayoutBinding> descriptorSetLayoutBinding = {
             {0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
             {1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
@@ -210,21 +200,11 @@ namespace
         VkPipelineLayout pipelineLayout = create_pipeline_layout(backend.device, nonstd::span(&descriptorSetLayout, 1),
                                                                  nonstd::span(&cullPushConstantRange, 1));
 
-        VkPipeline pipeline = create_compute_pipeline(backend.device, pipelineLayout, computeShader);
+        VkPipeline pipeline =
+            create_compute_pipeline(backend.device, pipelineLayout, shader_modules.cull_triangle_batch_cs);
 
-        vkDestroyShaderModule(backend.device, computeShader, nullptr);
-
-        return SimplePipeline{pipeline, pipelineLayout, descriptorSetLayout};
+        resources.cullTrianglesPipe = SimplePipeline{pipeline, pipelineLayout, descriptorSetLayout};
     }
-} // namespace
-
-CullResources create_culling_resources(ReaperRoot& root, VulkanBackend& backend)
-{
-    CullResources resources;
-
-    resources.cullMeshletPipe = create_cull_meshlet_pipeline(backend);
-    resources.cullMeshletPrepIndirect = create_meshlet_prepare_indirect_pipeline(backend);
-    resources.cullTrianglesPipe = create_cull_triangles_pipeline(backend);
 
     resources.cullInstanceParamsBuffer = create_buffer(
         root, backend.device, "Culling instance constants",

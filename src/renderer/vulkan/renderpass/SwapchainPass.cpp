@@ -17,7 +17,7 @@
 #include "renderer/vulkan/Pipeline.h"
 #include "renderer/vulkan/RenderPassHelpers.h"
 #include "renderer/vulkan/SamplerResources.h"
-#include "renderer/vulkan/Shader.h"
+#include "renderer/vulkan/ShaderModules.h"
 
 #include "common/Log.h"
 #include "common/ReaperRoot.h"
@@ -91,14 +91,9 @@ namespace
         return 0;
     }
 
-    VkPipeline create_swapchain_pipeline(VulkanBackend& backend, VkPipelineLayout pipelineLayout,
-                                         VkFormat swapchain_format)
+    VkPipeline create_swapchain_pipeline(VulkanBackend& backend, const ShaderModules& shader_modules,
+                                         VkPipelineLayout pipelineLayout, VkFormat swapchain_format)
     {
-        const char*    entryPoint = "main";
-        VkShaderModule shaderVS =
-            vulkan_create_shader_module(backend.device, "build/shader/fullscreen_triangle.vert.spv");
-        VkShaderModule shaderFS = vulkan_create_shader_module(backend.device, "build/shader/swapchain_write.frag.spv");
-
         struct SpecConstants
         {
             hlsl_uint transfer_function_index;
@@ -137,11 +132,12 @@ namespace
             &spec_constants,                         // const void*                        pData;
         };
 
+        const char*                                  entryPoint = "main";
         std::vector<VkPipelineShaderStageCreateInfo> shader_stages = {
-            {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_VERTEX_BIT, shaderVS,
-             entryPoint, nullptr},
-            {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_FRAGMENT_BIT, shaderFS,
-             entryPoint, &specialization}};
+            {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_VERTEX_BIT,
+             shader_modules.fullscreen_triangle_vs, entryPoint, nullptr},
+            {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_FRAGMENT_BIT,
+             shader_modules.swapchain_write_fs, entryPoint, &specialization}};
 
         VkPipelineColorBlendAttachmentState blend_attachment_state = default_pipeline_color_blend_attachment_state();
 
@@ -156,9 +152,6 @@ namespace
 
         Assert(backend.physicalDeviceInfo.graphicsQueueFamilyIndex
                == backend.physicalDeviceInfo.presentQueueFamilyIndex);
-
-        vkDestroyShaderModule(backend.device, shaderVS, nullptr);
-        vkDestroyShaderModule(backend.device, shaderFS, nullptr);
 
         return pipeline;
     }
@@ -177,7 +170,8 @@ namespace
     }
 } // namespace
 
-SwapchainPassResources create_swapchain_pass_resources(ReaperRoot& root, VulkanBackend& backend)
+SwapchainPassResources create_swapchain_pass_resources(ReaperRoot& root, VulkanBackend& backend,
+                                                       const ShaderModules& shader_modules)
 {
     SwapchainPassResources resources = {};
 
@@ -191,8 +185,8 @@ SwapchainPassResources create_swapchain_pass_resources(ReaperRoot& root, VulkanB
     resources.descriptorSetLayout = create_descriptor_set_layout(backend.device, descriptorSetLayoutBinding);
 
     resources.pipelineLayout = create_pipeline_layout(backend.device, nonstd::span(&resources.descriptorSetLayout, 1));
-    resources.pipeline =
-        create_swapchain_pipeline(backend, resources.pipelineLayout, backend.presentInfo.surfaceFormat.format);
+    resources.pipeline = create_swapchain_pipeline(backend, shader_modules, resources.pipelineLayout,
+                                                   backend.presentInfo.surfaceFormat.format);
 
     resources.passConstantBuffer =
         create_buffer(root, backend.device, "Swapchain Pass Constant buffer",
@@ -214,14 +208,15 @@ void destroy_swapchain_pass_resources(VulkanBackend& backend, const SwapchainPas
     vkDestroyDescriptorSetLayout(backend.device, resources.descriptorSetLayout, nullptr);
 }
 
-void reload_swapchain_pipeline(VulkanBackend& backend, SwapchainPassResources& resources)
+void reload_swapchain_pipeline(VulkanBackend& backend, const ShaderModules& shader_modules,
+                               SwapchainPassResources& resources)
 {
     REAPER_PROFILE_SCOPE_FUNC();
 
     vkDestroyPipeline(backend.device, resources.pipeline, nullptr);
 
-    resources.pipeline =
-        create_swapchain_pipeline(backend, resources.pipelineLayout, backend.presentInfo.surfaceFormat.format);
+    resources.pipeline = create_swapchain_pipeline(backend, shader_modules, resources.pipelineLayout,
+                                                   backend.presentInfo.surfaceFormat.format);
 }
 
 void update_swapchain_pass_descriptor_set(VulkanBackend& backend, const SwapchainPassResources& resources,

@@ -13,6 +13,7 @@
 #include "MaterialResources.h"
 #include "MeshCache.h"
 #include "SamplerResources.h"
+#include "ShaderModules.h"
 
 #include "renderpass/Audio.h"
 #include "renderpass/Culling.h"
@@ -31,6 +32,7 @@ namespace Reaper
 struct BackendResources
 {
     // TODO remove *_resources suffix
+    ShaderModules          shader_modules;
     SamplerResources       samplers_resources;
     FrameGraphResources    framegraph_resources;
     MeshCache              mesh_cache;

@@ -35,6 +35,7 @@ struct ForwardPipelineInfo
 struct ReaperRoot;
 struct VulkanBackend;
 struct GPUTextureProperties;
+struct ShaderModules;
 
 struct ForwardPassResources
 {
@@ -47,7 +48,8 @@ struct ForwardPassResources
     VkDescriptorSet material_descriptor_set;
 };
 
-ForwardPassResources create_forward_pass_resources(ReaperRoot& root, VulkanBackend& backend);
+ForwardPassResources create_forward_pass_resources(ReaperRoot& root, VulkanBackend& backend,
+                                                   const ShaderModules& shader_modules);
 void                 destroy_forward_pass_resources(VulkanBackend& backend, ForwardPassResources& resources);
 
 struct MaterialResources;

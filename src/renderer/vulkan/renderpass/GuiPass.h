@@ -34,6 +34,7 @@ struct GuiPipelineInfo
 struct ReaperRoot;
 struct VulkanBackend;
 struct GPUTextureProperties;
+struct ShaderModules;
 
 struct GuiPassResources
 {
@@ -42,7 +43,8 @@ struct GuiPassResources
     VkDescriptorSet descriptor_set;
 };
 
-GuiPassResources create_gui_pass_resources(ReaperRoot& root, VulkanBackend& backend);
+GuiPassResources create_gui_pass_resources(ReaperRoot& root, VulkanBackend& backend,
+                                           const ShaderModules& shader_modules);
 void             destroy_gui_pass_resources(VulkanBackend& backend, GuiPassResources& resources);
 
 struct CommandBuffer;
