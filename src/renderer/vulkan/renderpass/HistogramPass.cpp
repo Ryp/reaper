@@ -28,32 +28,28 @@
 
 namespace Reaper
 {
-HistogramPassResources create_histogram_pass_resources(ReaperRoot& root, VulkanBackend& backend,
+HistogramPassResources create_histogram_pass_resources(ReaperRoot& /*root*/, VulkanBackend& backend,
                                                        const ShaderModules& shader_modules)
 {
     HistogramPassResources resources = {};
 
-    resources.passConstantBuffer =
-        create_buffer(root, backend.device, "Histogram Pass Constant buffer",
-                      DefaultGPUBufferProperties(1, sizeof(ReduceHDRPassParams), GPUBufferUsage::UniformBuffer),
-                      backend.vma_instance, MemUsage::CPU_To_GPU);
-
     std::vector<VkDescriptorSetLayoutBinding> descriptorSetLayoutBinding = {
-        {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-        {1, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-        {2, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-        {3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+        {0, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+        {1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+        {2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
     };
 
     resources.descSetLayout = create_descriptor_set_layout(backend.device, descriptorSetLayoutBinding);
 
     {
-        VkPipelineLayout pipelineLayout =
-            create_pipeline_layout(backend.device, nonstd::span(&resources.descSetLayout, 1));
+        const VkPushConstantRange push_constant_range = {VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(ReduceHDRPassParams)};
+
+        VkPipelineLayout pipeline_layout = create_pipeline_layout(
+            backend.device, nonstd::span(&resources.descSetLayout, 1), nonstd::span(&push_constant_range, 1));
 
         resources.histogramPipe.pipeline =
-            create_compute_pipeline(backend.device, pipelineLayout, shader_modules.histogram_cs);
-        resources.histogramPipe.pipelineLayout = pipelineLayout;
+            create_compute_pipeline(backend.device, pipeline_layout, shader_modules.histogram_cs);
+        resources.histogramPipe.pipelineLayout = pipeline_layout;
     }
 
     allocate_descriptor_sets(backend.device, backend.global_descriptor_pool, nonstd::span(&resources.descSetLayout, 1),
@@ -67,16 +63,12 @@ void destroy_histogram_pass_resources(VulkanBackend& backend, const HistogramPas
     vkDestroyPipeline(backend.device, resources.histogramPipe.pipeline, nullptr);
     vkDestroyPipelineLayout(backend.device, resources.histogramPipe.pipelineLayout, nullptr);
     vkDestroyDescriptorSetLayout(backend.device, resources.descSetLayout, nullptr);
-
-    vmaDestroyBuffer(backend.vma_instance, resources.passConstantBuffer.handle,
-                     resources.passConstantBuffer.allocation);
 }
 
 void update_histogram_pass_descriptor_set(VulkanBackend& backend, const HistogramPassResources& resources,
                                           const SamplerResources& sampler_resources, VkImageView scene_hdr_view,
                                           const FrameGraphBuffer& histogram_buffer)
 {
-    const VkDescriptorBufferInfo drawDescPassParams = default_descriptor_buffer_info(resources.passConstantBuffer);
     const VkDescriptorImageInfo  descSampler = {sampler_resources.linearClampSampler, VK_NULL_HANDLE,
                                                VK_IMAGE_LAYOUT_UNDEFINED};
     const VkDescriptorImageInfo  descTexture = {VK_NULL_HANDLE, scene_hdr_view,
@@ -85,35 +77,27 @@ void update_histogram_pass_descriptor_set(VulkanBackend& backend, const Histogra
                                                histogram_buffer.view.size_bytes};
 
     std::vector<VkWriteDescriptorSet> drawPassDescriptorSetWrites = {
-        create_buffer_descriptor_write(resources.descriptor_set, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                                       &drawDescPassParams),
-        create_image_descriptor_write(resources.descriptor_set, 1, VK_DESCRIPTOR_TYPE_SAMPLER, &descSampler),
-        create_image_descriptor_write(resources.descriptor_set, 2, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, &descTexture),
-        create_buffer_descriptor_write(resources.descriptor_set, 3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &descOutput),
+        create_image_descriptor_write(resources.descriptor_set, 0, VK_DESCRIPTOR_TYPE_SAMPLER, &descSampler),
+        create_image_descriptor_write(resources.descriptor_set, 1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, &descTexture),
+        create_buffer_descriptor_write(resources.descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &descOutput),
     };
 
     vkUpdateDescriptorSets(backend.device, static_cast<u32>(drawPassDescriptorSetWrites.size()),
                            drawPassDescriptorSetWrites.data(), 0, nullptr);
 }
 
-void upload_histogram_frame_resources(VulkanBackend& backend, const HistogramPassResources& pass_resources,
-                                      VkExtent2D backbufferExtent)
-{
-    REAPER_PROFILE_SCOPE_FUNC();
-
-    ReduceHDRPassParams params = {};
-    params.extent_ts = glm::uvec2(backbufferExtent.width, backbufferExtent.height);
-    params.extent_ts_inv =
-        glm::fvec2(1.f / static_cast<float>(backbufferExtent.width), 1.f / static_cast<float>(backbufferExtent.height));
-
-    upload_buffer_data(backend.device, backend.vma_instance, pass_resources.passConstantBuffer, &params,
-                       sizeof(ReduceHDRPassParams));
-}
-
 void record_histogram_command_buffer(CommandBuffer& cmdBuffer, const FrameData& frame_data,
-                                     const HistogramPassResources& pass_resources)
+                                     const HistogramPassResources& pass_resources, VkExtent2D backbufferExtent)
 {
     vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE, pass_resources.histogramPipe.pipeline);
+
+    ReduceHDRPassParams push_constants;
+    push_constants.extent_ts = glm::uvec2(backbufferExtent.width, backbufferExtent.height);
+    push_constants.extent_ts_inv =
+        glm::fvec2(1.f / static_cast<float>(backbufferExtent.width), 1.f / static_cast<float>(backbufferExtent.height));
+
+    vkCmdPushConstants(cmdBuffer.handle, pass_resources.histogramPipe.pipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0,
+                       sizeof(push_constants), &push_constants);
 
     vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE,
                             pass_resources.histogramPipe.pipelineLayout, 0, 1, &pass_resources.descriptor_set, 0,

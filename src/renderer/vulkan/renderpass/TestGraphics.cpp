@@ -173,7 +173,6 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         upload_shadow_map_resources(backend, prepared, resources.shadow_map_resources);
         upload_lighting_pass_frame_resources(backend, prepared, resources.lighting_resources);
         upload_forward_pass_frame_resources(backend, prepared, resources.forward_pass_resources);
-        upload_histogram_frame_resources(backend, resources.histogram_pass_resources, backbufferExtent);
         upload_swapchain_frame_resources(backend, prepared, resources.swapchain_pass_resources);
         upload_audio_frame_resources(backend, prepared, resources.audio_resources);
     }
@@ -619,7 +618,8 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
             record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
                                        histogram_pass_handle, true);
 
-            record_histogram_command_buffer(cmdBuffer, frame_data, resources.histogram_pass_resources);
+            record_histogram_command_buffer(cmdBuffer, frame_data, resources.histogram_pass_resources,
+                                            backbufferExtent);
 
             record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
                                        histogram_pass_handle, false);

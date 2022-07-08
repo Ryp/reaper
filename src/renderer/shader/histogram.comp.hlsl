@@ -5,12 +5,18 @@
 #include "share/hdr.hlsl"
 
 // Input
-VK_BINDING(0, 0) ConstantBuffer<ReduceHDRPassParams> pass_params;
-VK_BINDING(1, 0) SamplerState Sampler;
-VK_BINDING(2, 0) Texture2D<float3> t_hdr_color;
+// https://github.com/KhronosGroup/glslang/issues/1629
+#if defined(_DXC)
+VK_PUSH_CONSTANT() ReduceHDRPassParams consts;
+#else
+VK_PUSH_CONSTANT() ConstantBuffer<ReduceHDRPassParams> consts;
+#endif
+
+VK_BINDING(0, 0) SamplerState Sampler;
+VK_BINDING(1, 0) Texture2D<float3> t_hdr_color;
 
 // Output
-VK_BINDING(3, 0) globallycoherent RWByteAddressBuffer HistogramOut;
+VK_BINDING(2, 0) globallycoherent RWByteAddressBuffer HistogramOut;
 
 uint compute_histogram_bucket_index(float luma)
 {
@@ -46,11 +52,11 @@ void main(uint3 gtid : SV_GroupThreadID,
 
     GroupMemoryBarrierWithGroupSync();
 
-    const bool is_active = all(position_ts < pass_params.extent_ts);
+    const bool is_active = all(position_ts < consts.extent_ts);
 
     if (is_active)
     {
-        const float2 position_uv = (float2)position_ts * pass_params.extent_ts_inv;
+        const float2 position_uv = (float2)position_ts * consts.extent_ts_inv;
 
         const float4 quad_r = t_hdr_color.GatherRed(Sampler, position_uv);
         const float4 quad_g = t_hdr_color.GatherGreen(Sampler, position_uv);
