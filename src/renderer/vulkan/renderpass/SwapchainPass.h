@@ -36,7 +36,7 @@ struct VulkanBackend;
 SwapchainPassResources create_swapchain_pass_resources(ReaperRoot& root, VulkanBackend& backend);
 void destroy_swapchain_pass_resources(VulkanBackend& backend, const SwapchainPassResources& resources);
 
-void reload_swapchain_pipeline(ReaperRoot& root, VulkanBackend& backend, SwapchainPassResources& resources);
+void reload_swapchain_pipeline(VulkanBackend& backend, SwapchainPassResources& resources);
 
 struct SamplerResources;
 

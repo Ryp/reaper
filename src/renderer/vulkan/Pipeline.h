@@ -28,4 +28,27 @@ VkPipelineLayout create_pipeline_layout(
 
 VkPipeline create_compute_pipeline(VkDevice device, VkPipelineLayout pipeline_layout, VkShaderModule compute_shader,
                                    VkSpecializationInfo* specialization_info = nullptr);
+
+VkPipelineColorBlendAttachmentState default_pipeline_color_blend_attachment_state();
+VkPipelineRenderingCreateInfo       default_pipeline_rendering_create_info();
+
+// Helper with the mandatory structures you need to have to create a graphics pipeline.
+struct GraphicsPipelineProperties
+{
+    VkPipelineVertexInputStateCreateInfo   vertex_input;
+    VkPipelineInputAssemblyStateCreateInfo input_assembly;
+    VkPipelineRasterizationStateCreateInfo raster;
+    VkPipelineMultisampleStateCreateInfo   multisample;
+    VkPipelineDepthStencilStateCreateInfo  depth_stencil;
+    VkPipelineColorBlendStateCreateInfo    blend_state;
+    VkPipelineLayout                       pipeline_layout;
+    VkPipelineRenderingCreateInfo          pipeline_rendering; // Technically an extension but let's make that mandatory
+};
+
+GraphicsPipelineProperties default_graphics_pipeline_properties(void* pNext = nullptr);
+
+VkPipeline create_graphics_pipeline(VkDevice device,
+                                    nonstd::span<const VkPipelineShaderStageCreateInfo>
+                                                                      shader_stages,
+                                    const GraphicsPipelineProperties& properties);
 } // namespace Reaper

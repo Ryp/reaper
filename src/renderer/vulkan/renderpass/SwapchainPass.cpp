@@ -91,7 +91,7 @@ namespace
         return 0;
     }
 
-    VkPipeline create_swapchain_pipeline(ReaperRoot& root, VulkanBackend& backend, VkPipelineLayout pipelineLayout,
+    VkPipeline create_swapchain_pipeline(VulkanBackend& backend, VkPipelineLayout pipelineLayout,
                                          VkFormat swapchain_format)
     {
         const char*    entryPoint = "main";
@@ -137,133 +137,22 @@ namespace
             &spec_constants,                         // const void*                        pData;
         };
 
-        std::vector<VkPipelineShaderStageCreateInfo> blitShaderStages = {
+        std::vector<VkPipelineShaderStageCreateInfo> shader_stages = {
             {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_VERTEX_BIT, shaderVS,
              entryPoint, nullptr},
             {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_FRAGMENT_BIT, shaderFS,
              entryPoint, &specialization}};
 
-        VkPipelineVertexInputStateCreateInfo blitVertexInputStateInfo = {
-            VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO, nullptr, VK_FLAGS_NONE, 0, nullptr, 0, nullptr};
+        VkPipelineColorBlendAttachmentState blend_attachment_state = default_pipeline_color_blend_attachment_state();
 
-        VkPipelineInputAssemblyStateCreateInfo blitInputAssemblyInfo = {
-            VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO, nullptr, VK_FLAGS_NONE,
-            VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, VK_FALSE};
+        GraphicsPipelineProperties pipeline_properties = default_graphics_pipeline_properties();
+        pipeline_properties.blend_state.attachmentCount = 1;
+        pipeline_properties.blend_state.pAttachments = &blend_attachment_state;
+        pipeline_properties.pipeline_layout = pipelineLayout;
+        pipeline_properties.pipeline_rendering.colorAttachmentCount = 1;
+        pipeline_properties.pipeline_rendering.pColorAttachmentFormats = &swapchain_format;
 
-        VkPipelineViewportStateCreateInfo blitViewportStateInfo = {
-            VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
-            nullptr,
-            VK_FLAGS_NONE,
-            1,
-            nullptr, // dynamic viewport
-            1,
-            nullptr}; // dynamic scissors
-
-        VkPipelineRasterizationStateCreateInfo blitRasterStateInfo = {
-            VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
-            nullptr,
-            VK_FLAGS_NONE,
-            VK_FALSE,
-            VK_FALSE,
-            VK_POLYGON_MODE_FILL,
-            VK_CULL_MODE_BACK_BIT,
-            VK_FRONT_FACE_COUNTER_CLOCKWISE,
-            VK_FALSE,
-            0.0f,
-            0.0f,
-            0.0f,
-            1.0f};
-
-        VkPipelineMultisampleStateCreateInfo blitMSStateInfo = {
-            VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
-            nullptr,
-            VK_FLAGS_NONE,
-            VK_SAMPLE_COUNT_1_BIT,
-            VK_FALSE,
-            1.0f,
-            nullptr,
-            VK_FALSE,
-            VK_FALSE};
-
-        const VkPipelineDepthStencilStateCreateInfo blitDepthStencilInfo = {
-            VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
-            nullptr,
-            0,
-            false,
-            false,
-            VK_COMPARE_OP_GREATER,
-            false,
-            false,
-            VkStencilOpState{},
-            VkStencilOpState{},
-            0.f,
-            0.f};
-
-        VkPipelineColorBlendAttachmentState blitBlendAttachmentState = {
-            VK_FALSE,
-            VK_BLEND_FACTOR_ONE,
-            VK_BLEND_FACTOR_ZERO,
-            VK_BLEND_OP_ADD,
-            VK_BLEND_FACTOR_ONE,
-            VK_BLEND_FACTOR_ZERO,
-            VK_BLEND_OP_ADD,
-            VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT};
-
-        VkPipelineColorBlendStateCreateInfo blitBlendStateInfo = {
-            VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
-            nullptr,
-            VK_FLAGS_NONE,
-            VK_FALSE,
-            VK_LOGIC_OP_COPY,
-            1,
-            &blitBlendAttachmentState,
-            {0.0f, 0.0f, 0.0f, 0.0f}};
-
-        VkPipelineCache cache = VK_NULL_HANDLE;
-
-        const std::array<VkDynamicState, 2> dynamicStates = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
-        VkPipelineDynamicStateCreateInfo    blitDynamicState = {
-            VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
-            nullptr,
-            0,
-            dynamicStates.size(),
-            dynamicStates.data(),
-        };
-
-        VkPipelineRenderingCreateInfo pipelineRenderingCreateInfo = {
-            VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
-            nullptr,
-            0, // viewMask;
-            1,
-            &swapchain_format,
-            VK_FORMAT_UNDEFINED,
-            VK_FORMAT_UNDEFINED,
-        };
-
-        VkGraphicsPipelineCreateInfo blitPipelineCreateInfo = {VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
-                                                               &pipelineRenderingCreateInfo,
-                                                               VK_FLAGS_NONE,
-                                                               static_cast<u32>(blitShaderStages.size()),
-                                                               blitShaderStages.data(),
-                                                               &blitVertexInputStateInfo,
-                                                               &blitInputAssemblyInfo,
-                                                               nullptr,
-                                                               &blitViewportStateInfo,
-                                                               &blitRasterStateInfo,
-                                                               &blitMSStateInfo,
-                                                               &blitDepthStencilInfo,
-                                                               &blitBlendStateInfo,
-                                                               &blitDynamicState,
-                                                               pipelineLayout,
-                                                               VK_NULL_HANDLE,
-                                                               0,
-                                                               VK_NULL_HANDLE,
-                                                               -1};
-
-        VkPipeline pipeline = VK_NULL_HANDLE;
-        Assert(vkCreateGraphicsPipelines(backend.device, cache, 1, &blitPipelineCreateInfo, nullptr, &pipeline)
-               == VK_SUCCESS);
-        log_debug(root, "vulkan: created blit pipeline with handle: {}", static_cast<void*>(pipeline));
+        VkPipeline pipeline = create_graphics_pipeline(backend.device, shader_stages, pipeline_properties);
 
         Assert(backend.physicalDeviceInfo.graphicsQueueFamilyIndex
                == backend.physicalDeviceInfo.presentQueueFamilyIndex);
@@ -303,7 +192,7 @@ SwapchainPassResources create_swapchain_pass_resources(ReaperRoot& root, VulkanB
 
     resources.pipelineLayout = create_pipeline_layout(backend.device, nonstd::span(&resources.descriptorSetLayout, 1));
     resources.pipeline =
-        create_swapchain_pipeline(root, backend, resources.pipelineLayout, backend.presentInfo.surfaceFormat.format);
+        create_swapchain_pipeline(backend, resources.pipelineLayout, backend.presentInfo.surfaceFormat.format);
 
     resources.passConstantBuffer =
         create_buffer(root, backend.device, "Swapchain Pass Constant buffer",
@@ -325,14 +214,14 @@ void destroy_swapchain_pass_resources(VulkanBackend& backend, const SwapchainPas
     vkDestroyDescriptorSetLayout(backend.device, resources.descriptorSetLayout, nullptr);
 }
 
-void reload_swapchain_pipeline(ReaperRoot& root, VulkanBackend& backend, SwapchainPassResources& resources)
+void reload_swapchain_pipeline(VulkanBackend& backend, SwapchainPassResources& resources)
 {
     REAPER_PROFILE_SCOPE_FUNC();
 
     vkDestroyPipeline(backend.device, resources.pipeline, nullptr);
 
     resources.pipeline =
-        create_swapchain_pipeline(root, backend, resources.pipelineLayout, backend.presentInfo.surfaceFormat.format);
+        create_swapchain_pipeline(backend, resources.pipelineLayout, backend.presentInfo.surfaceFormat.format);
 }
 
 void update_swapchain_pass_descriptor_set(VulkanBackend& backend, const SwapchainPassResources& resources,

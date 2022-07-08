@@ -87,4 +87,113 @@ VkPipeline create_compute_pipeline(VkDevice              device,
 
     return pipeline;
 }
+
+VkPipelineColorBlendAttachmentState default_pipeline_color_blend_attachment_state()
+{
+    return VkPipelineColorBlendAttachmentState{VK_FALSE,
+                                               VK_BLEND_FACTOR_ONE,
+                                               VK_BLEND_FACTOR_ZERO,
+                                               VK_BLEND_OP_ADD,
+                                               VK_BLEND_FACTOR_ONE,
+                                               VK_BLEND_FACTOR_ZERO,
+                                               VK_BLEND_OP_ADD,
+                                               VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT
+                                                   | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT};
+}
+
+VkPipelineRenderingCreateInfo default_pipeline_rendering_create_info()
+{
+    return VkPipelineRenderingCreateInfo{
+        VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
+        nullptr,
+        0, // viewMask
+        0,
+        nullptr,
+        VK_FORMAT_UNDEFINED,
+        VK_FORMAT_UNDEFINED,
+    };
+}
+
+GraphicsPipelineProperties default_graphics_pipeline_properties(void* pNext)
+{
+    VkPipelineRenderingCreateInfo pipeline_rendering = default_pipeline_rendering_create_info();
+    pipeline_rendering.pNext = pNext;
+
+    return GraphicsPipelineProperties{
+        VkPipelineVertexInputStateCreateInfo{VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO, nullptr,
+                                             VK_FLAGS_NONE, 0, nullptr, 0, nullptr},
+        VkPipelineInputAssemblyStateCreateInfo{VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO, nullptr,
+                                               VK_FLAGS_NONE, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, VK_FALSE},
+        VkPipelineRasterizationStateCreateInfo{VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO, nullptr,
+                                               VK_FLAGS_NONE, VK_FALSE, VK_FALSE, VK_POLYGON_MODE_FILL,
+                                               VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE, VK_FALSE, 0.0f,
+                                               0.0f, 0.0f, 1.0f},
+        VkPipelineMultisampleStateCreateInfo{VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO, nullptr,
+                                             VK_FLAGS_NONE, VK_SAMPLE_COUNT_1_BIT, VK_FALSE, 1.0f, nullptr, VK_FALSE,
+                                             VK_FALSE},
+        VkPipelineDepthStencilStateCreateInfo{VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO, nullptr, 0,
+                                              VK_FALSE, VK_FALSE, VK_COMPARE_OP_LESS, VK_FALSE, VK_FALSE,
+                                              VkStencilOpState{}, VkStencilOpState{}, 0.f, 0.f},
+        VkPipelineColorBlendStateCreateInfo{VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
+                                            nullptr,
+                                            VK_FLAGS_NONE,
+                                            VK_FALSE,
+                                            VK_LOGIC_OP_COPY,
+                                            0,
+                                            nullptr,
+                                            {0.0f, 0.0f, 0.0f, 0.0f}},
+        VK_NULL_HANDLE, // Pipeline layout
+        pipeline_rendering,
+    };
+}
+
+VkPipeline create_graphics_pipeline(VkDevice device,
+                                    nonstd::span<const VkPipelineShaderStageCreateInfo>
+                                                                      shader_stages,
+                                    const GraphicsPipelineProperties& properties)
+{
+    VkPipelineViewportStateCreateInfo viewport_state = {VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
+                                                        nullptr,
+                                                        VK_FLAGS_NONE,
+                                                        1,
+                                                        nullptr, // dynamic viewport
+                                                        1,
+                                                        nullptr}; // dynamic scissors
+
+    const std::array<VkDynamicState, 2> dynamic_states = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
+    VkPipelineDynamicStateCreateInfo    dynamic_state = {
+        VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
+        nullptr,
+        0,
+        static_cast<u32>(dynamic_states.size()),
+        dynamic_states.data(),
+    };
+
+    VkGraphicsPipelineCreateInfo create_info = {VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
+                                                &properties.pipeline_rendering,
+                                                VK_FLAGS_NONE,
+                                                static_cast<u32>(shader_stages.size()),
+                                                shader_stages.data(),
+                                                &properties.vertex_input,
+                                                &properties.input_assembly,
+                                                nullptr,
+                                                &viewport_state,
+                                                &properties.raster,
+                                                &properties.multisample,
+                                                &properties.depth_stencil,
+                                                &properties.blend_state,
+                                                &dynamic_state,
+                                                properties.pipeline_layout,
+                                                VK_NULL_HANDLE,
+                                                0,
+                                                VK_NULL_HANDLE,
+                                                -1};
+
+    VkPipeline      pipeline = VK_NULL_HANDLE;
+    VkPipelineCache cache = VK_NULL_HANDLE;
+
+    Assert(vkCreateGraphicsPipelines(device, cache, 1, &create_info, nullptr, &pipeline) == VK_SUCCESS);
+
+    return pipeline;
+}
 } // namespace Reaper

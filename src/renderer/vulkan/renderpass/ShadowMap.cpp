@@ -34,125 +34,6 @@ constexpr u32 MaxShadowPassCount = 4;
 
 namespace
 {
-    VkPipeline create_shadow_map_pipeline(ReaperRoot& root, VulkanBackend& backend, VkPipelineLayout pipeline_layout)
-    {
-        const char*    entryPoint = "main";
-        VkShaderModule blitShaderVS =
-            vulkan_create_shader_module(backend.device, "build/shader/render_shadow.vert.spv");
-
-        std::vector<VkPipelineShaderStageCreateInfo> blitShaderStages = {
-            {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_VERTEX_BIT, blitShaderVS,
-             entryPoint, nullptr}};
-
-        VkPipelineVertexInputStateCreateInfo vertexInputStateInfo = {
-            VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO, nullptr, VK_FLAGS_NONE, 0, nullptr, 0, nullptr};
-
-        VkPipelineInputAssemblyStateCreateInfo inputAssemblyInfo = {
-            VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO, nullptr, VK_FLAGS_NONE,
-            VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, VK_FALSE};
-
-        VkPipelineViewportStateCreateInfo blitViewportStateInfo = {
-            VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
-            nullptr,
-            VK_FLAGS_NONE,
-            1,
-            nullptr, // dynamic viewport
-            1,
-            nullptr}; // dynamic scissors
-
-        VkPipelineRasterizationStateCreateInfo blitRasterStateInfo = {
-            VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
-            nullptr,
-            VK_FLAGS_NONE,
-            VK_FALSE,
-            VK_FALSE,
-            VK_POLYGON_MODE_FILL,
-            VK_CULL_MODE_BACK_BIT,
-            VK_FRONT_FACE_COUNTER_CLOCKWISE,
-            VK_FALSE,
-            0.0f,
-            0.0f,
-            0.0f,
-            1.0f};
-
-        VkPipelineMultisampleStateCreateInfo blitMSStateInfo = {
-            VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
-            nullptr,
-            VK_FLAGS_NONE,
-            VK_SAMPLE_COUNT_1_BIT,
-            VK_FALSE,
-            1.0f,
-            nullptr,
-            VK_FALSE,
-            VK_FALSE};
-
-        const VkPipelineDepthStencilStateCreateInfo blitDepthStencilInfo = {
-            VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
-            nullptr,
-            0,
-            VK_TRUE, // depth test
-            VK_TRUE, // depth write
-            ShadowUseReverseZ ? VK_COMPARE_OP_GREATER : VK_COMPARE_OP_LESS,
-            VK_FALSE,
-            VK_FALSE,
-            VkStencilOpState{},
-            VkStencilOpState{},
-            0.f,
-            0.f};
-
-        const std::array<VkDynamicState, 2> dynamicStates = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
-        VkPipelineDynamicStateCreateInfo    blitDynamicState = {
-            VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
-            nullptr,
-            0,
-            dynamicStates.size(),
-            dynamicStates.data(),
-        };
-
-        const VkFormat shadowMapFormat = PixelFormatToVulkan(ShadowMapFormat);
-
-        const VkPipelineRenderingCreateInfo pipelineRenderingCreateInfo = {
-            VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
-            nullptr,
-            0, // viewMask
-            0,
-            nullptr,
-            shadowMapFormat,
-            VK_FORMAT_UNDEFINED,
-        };
-
-        VkGraphicsPipelineCreateInfo blitPipelineCreateInfo = {VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
-                                                               &pipelineRenderingCreateInfo,
-                                                               VK_FLAGS_NONE,
-                                                               static_cast<u32>(blitShaderStages.size()),
-                                                               blitShaderStages.data(),
-                                                               &vertexInputStateInfo,
-                                                               &inputAssemblyInfo,
-                                                               nullptr,
-                                                               &blitViewportStateInfo,
-                                                               &blitRasterStateInfo,
-                                                               &blitMSStateInfo,
-                                                               &blitDepthStencilInfo,
-                                                               nullptr,
-                                                               &blitDynamicState,
-                                                               pipeline_layout,
-                                                               VK_NULL_HANDLE,
-                                                               0,
-                                                               VK_NULL_HANDLE,
-                                                               -1};
-
-        VkPipeline      pipeline = VK_NULL_HANDLE;
-        VkPipelineCache cache = VK_NULL_HANDLE;
-
-        Assert(vkCreateGraphicsPipelines(backend.device, cache, 1, &blitPipelineCreateInfo, nullptr, &pipeline)
-               == VK_SUCCESS);
-        log_debug(root, "vulkan: created blit pipeline with handle: {}", static_cast<void*>(pipeline));
-
-        vkDestroyShaderModule(backend.device, blitShaderVS, nullptr);
-
-        return pipeline;
-    }
-
     VkDescriptorSet create_shadow_map_pass_descriptor_set(ReaperRoot& root, VulkanBackend& backend,
                                                           VkDescriptorSetLayout layout)
     {
@@ -195,6 +76,13 @@ ShadowMapResources create_shadow_map_resources(ReaperRoot& root, VulkanBackend& 
 {
     ShadowMapResources resources = {};
 
+    const char*    entryPoint = "main";
+    VkShaderModule shader = vulkan_create_shader_module(backend.device, "build/shader/render_shadow.vert.spv");
+
+    std::vector<VkPipelineShaderStageCreateInfo> shader_stages = {{VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+                                                                   nullptr, 0, VK_SHADER_STAGE_VERTEX_BIT, shader,
+                                                                   entryPoint, nullptr}};
+
     std::vector<VkDescriptorSetLayoutBinding> descriptorSetLayoutBinding = {
         {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
         {1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
@@ -205,7 +93,16 @@ ShadowMapResources create_shadow_map_resources(ReaperRoot& root, VulkanBackend& 
     resources.pipe.pipelineLayout =
         create_pipeline_layout(backend.device, nonstd::span(&resources.pipe.descSetLayout, 1));
 
-    resources.pipe.pipeline = create_shadow_map_pipeline(root, backend, resources.pipe.pipelineLayout);
+    GraphicsPipelineProperties pipeline_properties = default_graphics_pipeline_properties();
+    pipeline_properties.depth_stencil.depthTestEnable = VK_TRUE;
+    pipeline_properties.depth_stencil.depthWriteEnable = VK_TRUE;
+    pipeline_properties.depth_stencil.depthCompareOp = ShadowUseReverseZ ? VK_COMPARE_OP_GREATER : VK_COMPARE_OP_LESS;
+    pipeline_properties.pipeline_layout = resources.pipe.pipelineLayout;
+    pipeline_properties.pipeline_rendering.depthAttachmentFormat = PixelFormatToVulkan(ShadowMapFormat);
+
+    resources.pipe.pipeline = create_graphics_pipeline(backend.device, shader_stages, pipeline_properties);
+
+    vkDestroyShaderModule(backend.device, shader, nullptr);
 
     resources.passConstantBuffer = create_buffer(
         root, backend.device, "Shadow Map Pass Constant buffer",
