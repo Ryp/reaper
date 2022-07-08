@@ -8,9 +8,31 @@
 #include "Pipeline.h"
 
 #include <core/Assert.h>
+#include <vector>
 
 namespace Reaper
 {
+void allocate_descriptor_sets(VkDevice device, VkDescriptorPool descriptor_pool,
+                              nonstd::span<const VkDescriptorSetLayout> descriptor_set_layouts,
+                              nonstd::span<VkDescriptorSet>             output_descriptor_sets)
+{
+    Assert(descriptor_set_layouts.size() == output_descriptor_sets.size());
+
+    VkDescriptorSetAllocateInfo descriptorSetAllocInfo = {
+        VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr, descriptor_pool,
+        static_cast<u32>(descriptor_set_layouts.size()), descriptor_set_layouts.data()};
+
+    Assert(vkAllocateDescriptorSets(device, &descriptorSetAllocInfo, output_descriptor_sets.data()) == VK_SUCCESS);
+}
+
+void allocate_descriptor_sets(VkDevice device, VkDescriptorPool descriptor_pool, VkDescriptorSetLayout set_layout,
+                              nonstd::span<VkDescriptorSet> output_descriptor_sets)
+{
+    std::vector<VkDescriptorSetLayout> layouts(output_descriptor_sets.size(), set_layout);
+
+    allocate_descriptor_sets(device, descriptor_pool, layouts, output_descriptor_sets);
+}
+
 VkDescriptorSetLayoutBindingFlagsCreateInfo
 descriptor_set_layout_binding_flags_create_info(nonstd::span<const VkDescriptorBindingFlags> binding_flags)
 {
@@ -26,8 +48,8 @@ descriptor_set_layout_create_info(nonstd::span<const VkDescriptorSetLayoutBindin
                                            static_cast<u32>(layout_bindings.size()), layout_bindings.data()};
 }
 
-VkDescriptorSetLayout
-create_descriptor_set_layout(VkDevice device, nonstd::span<const VkDescriptorSetLayoutBinding> layout_bindings)
+VkDescriptorSetLayout create_descriptor_set_layout(VkDevice                                         device,
+                                                   nonstd::span<const VkDescriptorSetLayoutBinding> layout_bindings)
 {
     VkDescriptorSetLayoutCreateInfo descriptorSetLayoutInfo = descriptor_set_layout_create_info(layout_bindings);
 

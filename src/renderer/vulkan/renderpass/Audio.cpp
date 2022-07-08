@@ -27,24 +27,6 @@
 
 namespace Reaper
 {
-namespace
-{
-    VkDescriptorSet create_audio_descriptor_sets(ReaperRoot& root, VulkanBackend& backend, AudioResources& resources)
-    {
-        VkDescriptorSetAllocateInfo descriptorSetAllocInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr,
-                                                              backend.global_descriptor_pool, 1,
-                                                              &resources.audioPipe.descSetLayout};
-
-        VkDescriptorSet audioPassDescriptorSet = VK_NULL_HANDLE;
-
-        Assert(vkAllocateDescriptorSets(backend.device, &descriptorSetAllocInfo, &audioPassDescriptorSet)
-               == VK_SUCCESS);
-        log_debug(root, "vulkan: created descriptor set with handle: {}", static_cast<void*>(audioPassDescriptorSet));
-
-        return audioPassDescriptorSet;
-    }
-} // namespace
-
 AudioResources create_audio_resources(ReaperRoot& root, VulkanBackend& backend, const ShaderModules& shader_modules)
 {
     AudioResources resources = {};
@@ -106,7 +88,9 @@ AudioResources create_audio_resources(ReaperRoot& root, VulkanBackend& backend, 
 
     vkCreateSemaphore(backend.device, &createInfo, NULL, &resources.semaphore);
 
-    resources.descriptor_set = create_audio_descriptor_sets(root, backend, resources);
+    allocate_descriptor_sets(backend.device, backend.global_descriptor_pool,
+                             nonstd::span(&resources.audioPipe.descSetLayout, 1),
+                             nonstd::span(&resources.descriptor_set, 1));
 
     resources.current_frame = 0;
 

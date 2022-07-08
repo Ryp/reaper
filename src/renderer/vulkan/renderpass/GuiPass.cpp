@@ -25,23 +25,7 @@
 
 namespace Reaper
 {
-namespace
-{
-    VkDescriptorSet create_gui_pass_descriptor_set(ReaperRoot& root, VulkanBackend& backend,
-                                                   VkDescriptorSetLayout layout)
-    {
-        VkDescriptorSetAllocateInfo descriptorSetAllocInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr,
-                                                              backend.global_descriptor_pool, 1, &layout};
-
-        VkDescriptorSet descriptor_set = VK_NULL_HANDLE;
-        Assert(vkAllocateDescriptorSets(backend.device, &descriptorSetAllocInfo, &descriptor_set) == VK_SUCCESS);
-        log_debug(root, "vulkan: created descriptor set with handle: {}", static_cast<void*>(descriptor_set));
-
-        return descriptor_set;
-    }
-} // namespace
-
-GuiPassResources create_gui_pass_resources(ReaperRoot& root, VulkanBackend& backend,
+GuiPassResources create_gui_pass_resources(ReaperRoot& /*root*/, VulkanBackend& backend,
                                            const ShaderModules& shader_modules)
 {
     GuiPassResources resources = {};
@@ -82,7 +66,9 @@ GuiPassResources create_gui_pass_resources(ReaperRoot& root, VulkanBackend& back
 
     resources.guiPipe = GuiPipelineInfo{pipeline, pipelineLayout, descriptor_set_layout};
 
-    resources.descriptor_set = create_gui_pass_descriptor_set(root, backend, resources.guiPipe.descSetLayout);
+    allocate_descriptor_sets(backend.device, backend.global_descriptor_pool,
+                             nonstd::span(&resources.guiPipe.descSetLayout, 1),
+                             nonstd::span(&resources.descriptor_set, 1));
 
     return resources;
 }

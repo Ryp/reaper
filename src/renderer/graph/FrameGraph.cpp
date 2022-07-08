@@ -100,7 +100,7 @@ bool HasCycles(const DirectedAcyclicGraph& graph, const nonstd::span<DirectedAcy
 
 // Uses breadth-first traversal
 void ComputeTransitiveClosure(const DirectedAcyclicGraph& graph,
-                              const nonstd::span<DirectedAcyclicGraph::index_type>
+                              nonstd::span<const DirectedAcyclicGraph::index_type>
                                                                              rootNodes,
                               std::vector<DirectedAcyclicGraph::index_type>& outClosure)
 {

@@ -28,22 +28,6 @@
 
 namespace Reaper
 {
-namespace
-{
-    VkDescriptorSet create_histogram_pass_descriptor_set(ReaperRoot& root, VulkanBackend& backend,
-                                                         VkDescriptorSetLayout layout)
-    {
-        VkDescriptorSetAllocateInfo descriptorSetAllocInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr,
-                                                              backend.global_descriptor_pool, 1, &layout};
-
-        VkDescriptorSet descriptor_set = VK_NULL_HANDLE;
-        Assert(vkAllocateDescriptorSets(backend.device, &descriptorSetAllocInfo, &descriptor_set) == VK_SUCCESS);
-        log_debug(root, "vulkan: created descriptor set with handle: {}", static_cast<void*>(descriptor_set));
-
-        return descriptor_set;
-    }
-} // namespace
-
 HistogramPassResources create_histogram_pass_resources(ReaperRoot& root, VulkanBackend& backend,
                                                        const ShaderModules& shader_modules)
 {
@@ -72,7 +56,8 @@ HistogramPassResources create_histogram_pass_resources(ReaperRoot& root, VulkanB
         resources.histogramPipe.pipelineLayout = pipelineLayout;
     }
 
-    resources.descriptor_set = create_histogram_pass_descriptor_set(root, backend, resources.descSetLayout);
+    allocate_descriptor_sets(backend.device, backend.global_descriptor_pool, nonstd::span(&resources.descSetLayout, 1),
+                             nonstd::span(&resources.descriptor_set, 1));
 
     return resources;
 }

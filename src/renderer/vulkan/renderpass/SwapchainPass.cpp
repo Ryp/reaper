@@ -155,19 +155,6 @@ namespace
 
         return pipeline;
     }
-
-    VkDescriptorSet create_swapchain_pass_descriptor_set(ReaperRoot& root, VulkanBackend& backend,
-                                                         VkDescriptorSetLayout layout)
-    {
-        VkDescriptorSetAllocateInfo descriptorSetAllocInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr,
-                                                              backend.global_descriptor_pool, 1, &layout};
-
-        VkDescriptorSet descriptor_set = VK_NULL_HANDLE;
-        Assert(vkAllocateDescriptorSets(backend.device, &descriptorSetAllocInfo, &descriptor_set) == VK_SUCCESS);
-        log_debug(root, "vulkan: created descriptor set with handle: {}", static_cast<void*>(descriptor_set));
-
-        return descriptor_set;
-    }
 } // namespace
 
 SwapchainPassResources create_swapchain_pass_resources(ReaperRoot& root, VulkanBackend& backend,
@@ -193,7 +180,9 @@ SwapchainPassResources create_swapchain_pass_resources(ReaperRoot& root, VulkanB
                       DefaultGPUBufferProperties(1, sizeof(SwapchainPassParams), GPUBufferUsage::UniformBuffer),
                       backend.vma_instance, MemUsage::CPU_To_GPU);
 
-    resources.descriptor_set = create_swapchain_pass_descriptor_set(root, backend, resources.descriptorSetLayout);
+    allocate_descriptor_sets(backend.device, backend.global_descriptor_pool,
+                             nonstd::span(&resources.descriptorSetLayout, 1),
+                             nonstd::span(&resources.descriptor_set, 1));
 
     return resources;
 }

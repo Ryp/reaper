@@ -34,20 +34,6 @@ constexpr u32 MaxShadowPassCount = 4;
 
 namespace
 {
-    VkDescriptorSet create_shadow_map_pass_descriptor_set(ReaperRoot& root, VulkanBackend& backend,
-                                                          VkDescriptorSetLayout layout)
-    {
-        VkDescriptorSetAllocateInfo descriptorSetAllocInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr,
-                                                              backend.global_descriptor_pool, 1, &layout};
-
-        VkDescriptorSet descriptor_set = VK_NULL_HANDLE;
-
-        Assert(vkAllocateDescriptorSets(backend.device, &descriptorSetAllocInfo, &descriptor_set) == VK_SUCCESS);
-        log_debug(root, "vulkan: created descriptor set with handle: {}", static_cast<void*>(descriptor_set));
-
-        return descriptor_set;
-    }
-
     void update_shadow_map_pass_descriptor_set(VulkanBackend& backend, const ShadowMapResources& resources,
                                                const ShadowPassData& shadow_pass, BufferInfo& vertex_position_buffer)
     {
@@ -61,7 +47,7 @@ namespace
                                           BufferSubresource{shadow_pass.instance_offset, shadow_pass.instance_count});
         const VkDescriptorBufferInfo descVertexPosition = default_descriptor_buffer_info(vertex_position_buffer);
 
-        std::array<VkWriteDescriptorSet, 3> shadowMapPassDescriptorSetWrites = {
+        std::vector<VkWriteDescriptorSet> shadowMapPassDescriptorSetWrites = {
             create_buffer_descriptor_write(descriptor_set, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &descPassParams),
             create_buffer_descriptor_write(descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &descInstanceParams),
             create_buffer_descriptor_write(descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &descVertexPosition),
@@ -113,12 +99,10 @@ ShadowMapResources create_shadow_map_resources(ReaperRoot& root, VulkanBackend& 
                                                  GPUBufferUsage::StorageBuffer),
                       backend.vma_instance, MemUsage::CPU_To_GPU);
 
-    resources.descriptor_sets.push_back(
-        create_shadow_map_pass_descriptor_set(root, backend, resources.pipe.descSetLayout));
-    resources.descriptor_sets.push_back(
-        create_shadow_map_pass_descriptor_set(root, backend, resources.pipe.descSetLayout));
-    resources.descriptor_sets.push_back(
-        create_shadow_map_pass_descriptor_set(root, backend, resources.pipe.descSetLayout));
+    resources.descriptor_sets.resize(3); // FIXME
+
+    allocate_descriptor_sets(backend.device, backend.global_descriptor_pool, resources.pipe.descSetLayout,
+                             resources.descriptor_sets);
 
     return resources;
 }

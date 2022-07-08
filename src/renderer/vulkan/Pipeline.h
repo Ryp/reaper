@@ -13,6 +13,13 @@
 
 namespace Reaper
 {
+void allocate_descriptor_sets(VkDevice device, VkDescriptorPool descriptor_pool,
+                              nonstd::span<const VkDescriptorSetLayout> descriptor_set_layouts,
+                              nonstd::span<VkDescriptorSet>             output_descriptor_sets);
+
+void allocate_descriptor_sets(VkDevice device, VkDescriptorPool descriptor_pool, VkDescriptorSetLayout set_layout,
+                              nonstd::span<VkDescriptorSet> output_descriptor_sets);
+
 VkDescriptorSetLayoutBindingFlagsCreateInfo
 descriptor_set_layout_binding_flags_create_info(nonstd::span<const VkDescriptorBindingFlags> binding_flags);
 

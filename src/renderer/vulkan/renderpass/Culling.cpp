@@ -22,8 +22,6 @@
 #include "common/Log.h"
 #include "common/ReaperRoot.h"
 
-#include <array>
-
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "renderer/shader/share/meshlet.hlsl"
@@ -44,21 +42,6 @@ constexpr u32 MaxIndirectDrawCountPerPass = MaxSurvivingMeshletsPerPass;
 
 namespace
 {
-    std::vector<VkDescriptorSet> create_descriptor_sets(VulkanBackend& backend, VkDescriptorSetLayout set_layout,
-                                                        u32 count)
-    {
-        std::vector<VkDescriptorSetLayout> layouts(count, set_layout);
-        std::vector<VkDescriptorSet>       sets(layouts.size());
-
-        const VkDescriptorSetAllocateInfo allocInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr,
-                                                       backend.global_descriptor_pool, static_cast<u32>(layouts.size()),
-                                                       layouts.data()};
-
-        Assert(vkAllocateDescriptorSets(backend.device, &allocInfo, sets.data()) == VK_SUCCESS);
-
-        return sets;
-    }
-
     void update_cull_meshlet_descriptor_sets(VulkanBackend& backend, CullResources& resources,
                                              const BufferInfo& meshletBuffer, u32 pass_index)
     {
@@ -249,13 +232,16 @@ CullResources create_culling_resources(ReaperRoot& root, VulkanBackend& backend,
 
     Assert(MaxIndirectDrawCountPerPass < backend.physicalDeviceProperties.limits.maxDrawIndirectCount);
 
-    // FIXME
-    resources.cull_meshlet_descriptor_sets =
-        create_descriptor_sets(backend, resources.cullMeshletPipe.descSetLayout, 4);
-    resources.cull_prepare_descriptor_set =
-        create_descriptor_sets(backend, resources.cullMeshletPrepIndirect.descSetLayout, 1).front();
-    resources.cull_triangles_descriptor_sets =
-        create_descriptor_sets(backend, resources.cullTrianglesPipe.descSetLayout, 4);
+    resources.cull_meshlet_descriptor_sets.resize(4);
+    resources.cull_triangles_descriptor_sets.resize(4);
+
+    allocate_descriptor_sets(backend.device, backend.global_descriptor_pool, resources.cullMeshletPipe.descSetLayout,
+                             resources.cull_meshlet_descriptor_sets);
+    allocate_descriptor_sets(backend.device, backend.global_descriptor_pool,
+                             resources.cullMeshletPrepIndirect.descSetLayout,
+                             nonstd::span(&resources.cull_prepare_descriptor_set, 1));
+    allocate_descriptor_sets(backend.device, backend.global_descriptor_pool, resources.cullTrianglesPipe.descSetLayout,
+                             resources.cull_triangles_descriptor_sets);
 
     const VkEventCreateInfo event_info = {
         VK_STRUCTURE_TYPE_EVENT_CREATE_INFO,

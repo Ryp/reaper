@@ -54,13 +54,6 @@ LightingPassResources create_lighting_pass_resources(ReaperRoot& root, VulkanBac
         resources.tile_depth_descriptor_set_layout = descriptor_set_layout;
         resources.tile_depth_pipeline_layout = pipeline_layout;
         resources.tile_depth_pipeline = pipeline;
-
-        VkDescriptorSetAllocateInfo descriptorSetAllocInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr,
-                                                              backend.global_descriptor_pool, 1,
-                                                              &descriptor_set_layout};
-
-        Assert(vkAllocateDescriptorSets(backend.device, &descriptorSetAllocInfo, &resources.tile_depth_descriptor_set)
-               == VK_SUCCESS);
     }
 
     {
@@ -93,20 +86,18 @@ LightingPassResources create_lighting_pass_resources(ReaperRoot& root, VulkanBac
         resources.depth_copy_descriptor_set_layout = descriptor_set_layout;
         resources.depth_copy_pipeline_layout = pipeline_layout;
         resources.depth_copy_pipeline = pipeline;
-
-        std::vector<VkDescriptorSetLayout> dset_layouts = {
-            descriptor_set_layout,
-            descriptor_set_layout,
-        };
-
-        VkDescriptorSetAllocateInfo descriptorSetAllocInfo = {
-            VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr, backend.global_descriptor_pool,
-            static_cast<u32>(dset_layouts.size()), dset_layouts.data()};
-
-        Assert(vkAllocateDescriptorSets(backend.device, &descriptorSetAllocInfo,
-                                        resources.depth_copy_descriptor_sets.data())
-               == VK_SUCCESS);
     }
+
+    std::vector<VkDescriptorSetLayout> dset_layouts = {resources.tile_depth_descriptor_set_layout,
+                                                       resources.depth_copy_descriptor_set_layout,
+                                                       resources.depth_copy_descriptor_set_layout};
+    std::vector<VkDescriptorSet>       dsets(dset_layouts.size());
+
+    allocate_descriptor_sets(backend.device, backend.global_descriptor_pool, dset_layouts, dsets);
+
+    resources.tile_depth_descriptor_set = dsets[0];
+    resources.depth_copy_descriptor_sets[0] = dsets[1];
+    resources.depth_copy_descriptor_sets[1] = dsets[2];
 
     resources.pointLightBuffer = create_buffer(
         root, backend.device, "Point light buffer",

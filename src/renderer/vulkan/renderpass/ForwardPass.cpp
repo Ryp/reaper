@@ -246,32 +246,6 @@ namespace
 
         return pipeline;
     }
-
-    VkDescriptorSet create_forward_pass_descriptor_set(ReaperRoot& root, VulkanBackend& backend,
-                                                       VkDescriptorSetLayout layout)
-    {
-        VkDescriptorSetAllocateInfo descriptorSetAllocInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr,
-                                                              backend.global_descriptor_pool, 1, &layout};
-
-        VkDescriptorSet descriptor_set = VK_NULL_HANDLE;
-        Assert(vkAllocateDescriptorSets(backend.device, &descriptorSetAllocInfo, &descriptor_set) == VK_SUCCESS);
-        log_debug(root, "vulkan: created descriptor set with handle: {}", static_cast<void*>(descriptor_set));
-
-        return descriptor_set;
-    }
-
-    VkDescriptorSet create_material_descriptor_set(ReaperRoot& root, VulkanBackend& backend,
-                                                   VkDescriptorSetLayout layout)
-    {
-        VkDescriptorSetAllocateInfo descriptorSetAllocInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr,
-                                                              backend.global_descriptor_pool, 1, &layout};
-
-        VkDescriptorSet descriptor_set = VK_NULL_HANDLE;
-        Assert(vkAllocateDescriptorSets(backend.device, &descriptorSetAllocInfo, &descriptor_set) == VK_SUCCESS);
-        log_debug(root, "vulkan: created descriptor set with handle: {}", static_cast<void*>(descriptor_set));
-
-        return descriptor_set;
-    }
 } // namespace
 
 ForwardPassResources create_forward_pass_resources(ReaperRoot& root, VulkanBackend& backend,
@@ -301,8 +275,13 @@ ForwardPassResources create_forward_pass_resources(ReaperRoot& root, VulkanBacke
         DefaultGPUBufferProperties(DrawInstanceCountMax, sizeof(ForwardInstanceParams), GPUBufferUsage::StorageBuffer),
         backend.vma_instance, MemUsage::CPU_To_GPU);
 
-    resources.descriptor_set = create_forward_pass_descriptor_set(root, backend, resources.pipe.descSetLayout);
-    resources.material_descriptor_set = create_material_descriptor_set(root, backend, resources.pipe.descSetLayout2);
+    std::vector<VkDescriptorSetLayout> dset_layouts = {resources.pipe.descSetLayout, resources.pipe.descSetLayout2};
+    std::vector<VkDescriptorSet>       dsets(dset_layouts.size());
+
+    allocate_descriptor_sets(backend.device, backend.global_descriptor_pool, dset_layouts, dsets);
+
+    resources.descriptor_set = dsets[0];
+    resources.material_descriptor_set = dsets[1];
 
     return resources;
 }
