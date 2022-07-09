@@ -96,20 +96,9 @@ void record_gui_command_buffer(CommandBuffer& cmdBuffer, const GuiPassResources&
     color_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
     color_attachment.clearValue = VkClearColor({0.f, 0.f, 0.f, 0.f});
 
-    VkRenderingInfo renderingInfo = {
-        VK_STRUCTURE_TYPE_RENDERING_INFO,
-        nullptr,
-        VK_FLAGS_NONE,
-        pass_rect,
-        1, // layerCount
-        0, // viewMask
-        1,
-        &color_attachment,
-        nullptr,
-        nullptr,
-    };
+    const VkRenderingInfo rendering_info = default_rendering_info(pass_rect, &color_attachment);
 
-    vkCmdBeginRendering(cmdBuffer.handle, &renderingInfo);
+    vkCmdBeginRendering(cmdBuffer.handle, &rendering_info);
 
     vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, pass_resources.guiPipe.pipelineLayout, 0,
                             1, &pass_resources.descriptor_set, 0, nullptr);

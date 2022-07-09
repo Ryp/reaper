@@ -351,20 +351,9 @@ void record_forward_pass_command_buffer(CommandBuffer& cmdBuffer, const Prepared
     depth_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
     depth_attachment.clearValue = VkClearDepthStencil(ForwardUseReverseZ ? 0.f : 1.f, 0);
 
-    VkRenderingInfo renderingInfo = {
-        VK_STRUCTURE_TYPE_RENDERING_INFO,
-        nullptr,
-        VK_FLAGS_NONE,
-        pass_rect,
-        1, // layerCount
-        0, // viewMask
-        1,
-        &color_attachment,
-        &depth_attachment,
-        nullptr,
-    };
+    const VkRenderingInfo rendering_info = default_rendering_info(pass_rect, &color_attachment, &depth_attachment);
 
-    vkCmdBeginRendering(cmdBuffer.handle, &renderingInfo);
+    vkCmdBeginRendering(cmdBuffer.handle, &rendering_info);
 
     const CullingDrawParams draw_params = get_culling_draw_params(prepared.forward_culling_pass_index);
 

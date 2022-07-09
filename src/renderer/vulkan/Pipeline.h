@@ -60,4 +60,7 @@ VkPipeline create_graphics_pipeline(VkDevice device,
                                     const GraphicsPipelineProperties& properties);
 
 VkRenderingAttachmentInfo default_rendering_attachment_info(VkImageView image_view, VkImageLayout layout);
+
+VkRenderingInfo default_rendering_info(VkRect2D render_rect, const VkRenderingAttachmentInfo* color_attachment,
+                                       const VkRenderingAttachmentInfo* depth_attachment = nullptr);
 } // namespace Reaper

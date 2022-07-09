@@ -234,4 +234,21 @@ VkRenderingAttachmentInfo default_rendering_attachment_info(VkImageView image_vi
         VkClearValue{},
     };
 }
+
+VkRenderingInfo default_rendering_info(VkRect2D render_rect, const VkRenderingAttachmentInfo* color_attachment,
+                                       const VkRenderingAttachmentInfo* depth_attachment)
+{
+    return VkRenderingInfo{
+        VK_STRUCTURE_TYPE_RENDERING_INFO,
+        nullptr,
+        VK_FLAGS_NONE,
+        render_rect,
+        1, // layerCount
+        0, // viewMask
+        (color_attachment != nullptr) ? 1u : 0u,
+        color_attachment,
+        depth_attachment,
+        nullptr,
+    };
+}
 } // namespace Reaper

@@ -213,18 +213,7 @@ void record_depth_copy(CommandBuffer& cmdBuffer, const LightingPassResources& re
             default_rendering_attachment_info(depth_dsts[depth_index], VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
         depth_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 
-        const VkRenderingInfo rendering_info = {
-            VK_STRUCTURE_TYPE_RENDERING_INFO,
-            nullptr,
-            VK_FLAGS_NONE,
-            pass_rect,
-            1, // layerCount
-            0, // viewMask
-            0,
-            nullptr,
-            &depth_attachment,
-            nullptr,
-        };
+        const VkRenderingInfo rendering_info = default_rendering_info(pass_rect, nullptr, &depth_attachment);
 
         vkCmdBeginRendering(cmdBuffer.handle, &rendering_info);
 

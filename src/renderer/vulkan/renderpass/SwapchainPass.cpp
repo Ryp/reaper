@@ -254,20 +254,9 @@ void record_swapchain_command_buffer(CommandBuffer& cmdBuffer, const FrameData& 
         default_rendering_attachment_info(swapchain_buffer_view, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
     color_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 
-    VkRenderingInfo renderingInfo = {
-        VK_STRUCTURE_TYPE_RENDERING_INFO,
-        nullptr,
-        VK_FLAGS_NONE,
-        pass_rect,
-        1, // layerCount
-        0, // viewMask
-        1,
-        &color_attachment,
-        nullptr,
-        nullptr,
-    };
+    const VkRenderingInfo rendering_info = default_rendering_info(pass_rect, &color_attachment);
 
-    vkCmdBeginRendering(cmdBuffer.handle, &renderingInfo);
+    vkCmdBeginRendering(cmdBuffer.handle, &rendering_info);
 
     vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, pass_resources.pipelineLayout, 0, 1,
                             &pass_resources.descriptor_set, 0, nullptr);

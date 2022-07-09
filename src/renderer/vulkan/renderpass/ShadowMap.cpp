@@ -190,20 +190,9 @@ void record_shadow_map_command_buffer(CommandBuffer& cmdBuffer, const PreparedDa
         depth_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
         depth_attachment.clearValue = VkClearDepthStencil(ShadowUseReverseZ ? 0.f : 1.f, 0);
 
-        VkRenderingInfo renderingInfo = {
-            VK_STRUCTURE_TYPE_RENDERING_INFO,
-            nullptr,
-            VK_FLAGS_NONE,
-            pass_rect,
-            1, // layerCount
-            0, // viewMask
-            0,
-            nullptr,
-            &depth_attachment,
-            nullptr,
-        };
+        const VkRenderingInfo rendering_info = default_rendering_info(pass_rect, nullptr, &depth_attachment);
 
-        vkCmdBeginRendering(cmdBuffer.handle, &renderingInfo);
+        vkCmdBeginRendering(cmdBuffer.handle, &rendering_info);
 
         const CullingDrawParams draw_params = get_culling_draw_params(shadow_pass.pass_index);
 
