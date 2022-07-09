@@ -218,4 +218,20 @@ VkPipeline create_graphics_pipeline(VkDevice device,
 
     return pipeline;
 }
+
+VkRenderingAttachmentInfo default_rendering_attachment_info(VkImageView image_view, VkImageLayout layout)
+{
+    return VkRenderingAttachmentInfo{
+        VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+        nullptr,
+        image_view,
+        layout,
+        VK_RESOLVE_MODE_NONE,
+        VK_NULL_HANDLE,
+        VK_IMAGE_LAYOUT_UNDEFINED,
+        VK_ATTACHMENT_LOAD_OP_LOAD,
+        VK_ATTACHMENT_STORE_OP_STORE,
+        VkClearValue{},
+    };
+}
 } // namespace Reaper

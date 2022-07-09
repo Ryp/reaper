@@ -335,35 +335,17 @@ void record_forward_pass_command_buffer(CommandBuffer& cmdBuffer, const Prepared
 
     vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, pass_resources.pipe.pipeline);
 
-    const glm::fvec4 clearColor = {0.1f, 0.1f, 0.1f, 0.0f};
-    const float      depthClearValue = ForwardUseReverseZ ? 0.f : 1.f;
-    const VkRect2D   blitPassRect = default_vk_rect(backbufferExtent);
+    const VkRect2D blitPassRect = default_vk_rect(backbufferExtent);
 
-    const VkRenderingAttachmentInfo color_attachment = {
-        VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-        nullptr,
-        hdrBufferView,
-        VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
-        VK_RESOLVE_MODE_NONE,
-        VK_NULL_HANDLE,
-        VK_IMAGE_LAYOUT_UNDEFINED,
-        VK_ATTACHMENT_LOAD_OP_CLEAR,
-        VK_ATTACHMENT_STORE_OP_STORE,
-        VkClearColor(clearColor),
-    };
+    VkRenderingAttachmentInfo color_attachment =
+        default_rendering_attachment_info(hdrBufferView, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
+    color_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    color_attachment.clearValue = VkClearColor({0.1f, 0.1f, 0.1f, 0.0f});
 
-    const VkRenderingAttachmentInfo depth_attachment = {
-        VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-        nullptr,
-        depthBufferView,
-        VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
-        VK_RESOLVE_MODE_NONE,
-        VK_NULL_HANDLE,
-        VK_IMAGE_LAYOUT_UNDEFINED,
-        VK_ATTACHMENT_LOAD_OP_CLEAR,
-        VK_ATTACHMENT_STORE_OP_STORE,
-        VkClearDepthStencil(depthClearValue, 0),
-    };
+    VkRenderingAttachmentInfo depth_attachment =
+        default_rendering_attachment_info(depthBufferView, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
+    depth_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    depth_attachment.clearValue = VkClearDepthStencil(ForwardUseReverseZ ? 0.f : 1.f, 0);
 
     VkRenderingInfo renderingInfo = {
         VK_STRUCTURE_TYPE_RENDERING_INFO,

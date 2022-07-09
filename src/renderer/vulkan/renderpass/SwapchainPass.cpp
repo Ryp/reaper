@@ -246,18 +246,9 @@ void record_swapchain_command_buffer(CommandBuffer& cmdBuffer, const FrameData& 
 
     const VkRect2D blitPassRect = default_vk_rect(frame_data.backbufferExtent);
 
-    const VkRenderingAttachmentInfo color_attachment = {
-        VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-        nullptr,
-        swapchain_buffer_view,
-        VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
-        VK_RESOLVE_MODE_NONE,
-        VK_NULL_HANDLE,
-        VK_IMAGE_LAYOUT_UNDEFINED,
-        VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-        VK_ATTACHMENT_STORE_OP_STORE,
-        VkClearValue{},
-    };
+    VkRenderingAttachmentInfo color_attachment =
+        default_rendering_attachment_info(swapchain_buffer_view, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
+    color_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 
     VkRenderingInfo renderingInfo = {
         VK_STRUCTURE_TYPE_RENDERING_INFO,

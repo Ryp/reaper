@@ -85,21 +85,12 @@ void record_gui_command_buffer(CommandBuffer& cmdBuffer, const GuiPassResources&
 {
     vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, pass_resources.guiPipe.pipeline);
 
-    const glm::fvec4 clearColor = {0.f, 0.f, 0.f, 0.f};
-    const VkRect2D   blitPassRect = default_vk_rect(backbufferExtent);
+    const VkRect2D blitPassRect = default_vk_rect(backbufferExtent);
 
-    const VkRenderingAttachmentInfo color_attachment = {
-        VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-        nullptr,
-        guiBufferView,
-        VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
-        VK_RESOLVE_MODE_NONE,
-        VK_NULL_HANDLE,
-        VK_IMAGE_LAYOUT_UNDEFINED,
-        VK_ATTACHMENT_LOAD_OP_CLEAR,
-        VK_ATTACHMENT_STORE_OP_STORE,
-        VkClearColor(clearColor),
-    };
+    VkRenderingAttachmentInfo color_attachment =
+        default_rendering_attachment_info(guiBufferView, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
+    color_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    color_attachment.clearValue = VkClearColor({0.f, 0.f, 0.f, 0.f});
 
     VkRenderingInfo renderingInfo = {
         VK_STRUCTURE_TYPE_RENDERING_INFO,

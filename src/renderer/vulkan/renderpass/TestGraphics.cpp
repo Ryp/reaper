@@ -246,7 +246,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     GPUResourceUsage scene_depth_texture_usage = {};
     scene_depth_texture_usage.access =
         GPUResourceAccess{VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT, VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
-                          VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL};
+                          VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL};
     scene_depth_texture_usage.texture_view = DefaultGPUTextureView(scene_depth_properties);
 
     const ResourceUsageHandle forward_depth_create_usage_handle =
@@ -306,7 +306,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     GPUResourceUsage tile_depth_copy_dst_usage = {};
     tile_depth_copy_dst_usage.access =
         GPUResourceAccess{VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
-                          VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL};
+                          VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL};
     tile_depth_copy_dst_usage.texture_view = DefaultGPUTextureView(tile_depth_copy_properties);
 
     const ResourceUsageHandle tile_depth_min_copy_src_usage_handle =

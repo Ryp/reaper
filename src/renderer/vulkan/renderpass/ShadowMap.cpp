@@ -177,24 +177,14 @@ void record_shadow_map_command_buffer(CommandBuffer& cmdBuffer, const PreparedDa
 
         REAPER_GPU_SCOPE(cmdBuffer, fmt::format("Shadow Pass {}", shadow_pass.pass_index).c_str());
 
-        const VkImageView  shadowMapView = shadow_map_views[shadow_pass.pass_index];
-        const VkExtent2D   output_extent = {shadow_pass.shadow_map_size.x, shadow_pass.shadow_map_size.y};
-        const VkRect2D     pass_rect = default_vk_rect(output_extent);
-        const VkClearValue shadowMapClearValue =
-            VkClearDepthStencil(ShadowUseReverseZ ? 0.f : 1.f, 0); // NOTE: handle reverse Z more gracefully
+        const VkImageView shadowMapView = shadow_map_views[shadow_pass.pass_index];
+        const VkExtent2D  output_extent = {shadow_pass.shadow_map_size.x, shadow_pass.shadow_map_size.y};
+        const VkRect2D    pass_rect = default_vk_rect(output_extent);
 
-        const VkRenderingAttachmentInfo depth_attachment = {
-            VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-            nullptr,
-            shadowMapView,
-            VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
-            VK_RESOLVE_MODE_NONE,
-            VK_NULL_HANDLE,
-            VK_IMAGE_LAYOUT_UNDEFINED,
-            VK_ATTACHMENT_LOAD_OP_CLEAR,
-            VK_ATTACHMENT_STORE_OP_STORE,
-            shadowMapClearValue,
-        };
+        VkRenderingAttachmentInfo depth_attachment =
+            default_rendering_attachment_info(shadowMapView, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
+        depth_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        depth_attachment.clearValue = VkClearDepthStencil(ShadowUseReverseZ ? 0.f : 1.f, 0);
 
         VkRenderingInfo renderingInfo = {
             VK_STRUCTURE_TYPE_RENDERING_INFO,

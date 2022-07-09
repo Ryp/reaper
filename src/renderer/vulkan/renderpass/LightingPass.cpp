@@ -209,18 +209,9 @@ void record_depth_copy(CommandBuffer& cmdBuffer, const LightingPassResources& re
 
     for (u32 depth_index = 0; depth_index < 2; depth_index++)
     {
-        const VkRenderingAttachmentInfo depth_attachment = {
-            VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-            nullptr,
-            depth_dsts[depth_index],
-            VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
-            VK_RESOLVE_MODE_NONE,
-            VK_NULL_HANDLE,
-            VK_IMAGE_LAYOUT_UNDEFINED,
-            VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-            VK_ATTACHMENT_STORE_OP_STORE,
-            VkClearValue{},
-        };
+        VkRenderingAttachmentInfo depth_attachment =
+            default_rendering_attachment_info(depth_dsts[depth_index], VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
+        depth_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 
         const VkRenderingInfo rendering_info = {
             VK_STRUCTURE_TYPE_RENDERING_INFO,

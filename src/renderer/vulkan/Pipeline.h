@@ -58,4 +58,6 @@ VkPipeline create_graphics_pipeline(VkDevice device,
                                     nonstd::span<const VkPipelineShaderStageCreateInfo>
                                                                       shader_stages,
                                     const GraphicsPipelineProperties& properties);
+
+VkRenderingAttachmentInfo default_rendering_attachment_info(VkImageView image_view, VkImageLayout layout);
 } // namespace Reaper
