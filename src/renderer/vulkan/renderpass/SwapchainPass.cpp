@@ -242,9 +242,13 @@ void upload_swapchain_frame_resources(VulkanBackend& backend, const PreparedData
 void record_swapchain_command_buffer(CommandBuffer& cmdBuffer, const FrameData& frame_data,
                                      const SwapchainPassResources& pass_resources, VkImageView swapchain_buffer_view)
 {
+    const VkRect2D   pass_rect = default_vk_rect(frame_data.backbufferExtent);
+    const VkViewport viewport = default_vk_viewport(pass_rect);
+
     vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, pass_resources.pipeline);
 
-    const VkRect2D blitPassRect = default_vk_rect(frame_data.backbufferExtent);
+    vkCmdSetViewport(cmdBuffer.handle, 0, 1, &viewport);
+    vkCmdSetScissor(cmdBuffer.handle, 0, 1, &pass_rect);
 
     VkRenderingAttachmentInfo color_attachment =
         default_rendering_attachment_info(swapchain_buffer_view, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
@@ -254,7 +258,7 @@ void record_swapchain_command_buffer(CommandBuffer& cmdBuffer, const FrameData& 
         VK_STRUCTURE_TYPE_RENDERING_INFO,
         nullptr,
         VK_FLAGS_NONE,
-        blitPassRect,
+        pass_rect,
         1, // layerCount
         0, // viewMask
         1,
@@ -264,11 +268,6 @@ void record_swapchain_command_buffer(CommandBuffer& cmdBuffer, const FrameData& 
     };
 
     vkCmdBeginRendering(cmdBuffer.handle, &renderingInfo);
-
-    const VkViewport blitViewport = default_vk_viewport(blitPassRect);
-
-    vkCmdSetViewport(cmdBuffer.handle, 0, 1, &blitViewport);
-    vkCmdSetScissor(cmdBuffer.handle, 0, 1, &blitPassRect);
 
     vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, pass_resources.pipelineLayout, 0, 1,
                             &pass_resources.descriptor_set, 0, nullptr);

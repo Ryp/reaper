@@ -653,22 +653,22 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     // Stop recording
     Assert(vkEndCommandBuffer(cmdBuffer.handle) == VK_SUCCESS);
 
-    VkPipelineStageFlags blitWaitDstMask = VK_PIPELINE_STAGE_TRANSFER_BIT;
+    VkPipelineStageFlags waitDstMask = VK_PIPELINE_STAGE_TRANSFER_BIT;
 
     std::array<VkSemaphore, 1> semaphores_to_signal = {backend.presentInfo.renderingFinishedSemaphore};
 
-    VkSubmitInfo blitSubmitInfo = {VK_STRUCTURE_TYPE_SUBMIT_INFO,
-                                   nullptr,
-                                   1,
-                                   &backend.presentInfo.imageAvailableSemaphore,
-                                   &blitWaitDstMask,
-                                   1,
-                                   &cmdBuffer.handle,
-                                   semaphores_to_signal.size(),
-                                   semaphores_to_signal.data()};
+    VkSubmitInfo submitInfo = {VK_STRUCTURE_TYPE_SUBMIT_INFO,
+                               nullptr,
+                               1,
+                               &backend.presentInfo.imageAvailableSemaphore,
+                               &waitDstMask,
+                               1,
+                               &cmdBuffer.handle,
+                               semaphores_to_signal.size(),
+                               semaphores_to_signal.data()};
 
     log_debug(root, "vulkan: submit drawing commands");
-    Assert(vkQueueSubmit(backend.deviceInfo.graphicsQueue, 1, &blitSubmitInfo, resources.frame_sync_resources.drawFence)
+    Assert(vkQueueSubmit(backend.deviceInfo.graphicsQueue, 1, &submitInfo, resources.frame_sync_resources.drawFence)
            == VK_SUCCESS);
 
     log_debug(root, "vulkan: present");

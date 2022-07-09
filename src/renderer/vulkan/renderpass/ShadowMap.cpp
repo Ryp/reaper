@@ -180,6 +180,10 @@ void record_shadow_map_command_buffer(CommandBuffer& cmdBuffer, const PreparedDa
         const VkImageView shadowMapView = shadow_map_views[shadow_pass.pass_index];
         const VkExtent2D  output_extent = {shadow_pass.shadow_map_size.x, shadow_pass.shadow_map_size.y};
         const VkRect2D    pass_rect = default_vk_rect(output_extent);
+        const VkViewport  viewport = default_vk_viewport(pass_rect);
+
+        vkCmdSetViewport(cmdBuffer.handle, 0, 1, &viewport);
+        vkCmdSetScissor(cmdBuffer.handle, 0, 1, &pass_rect);
 
         VkRenderingAttachmentInfo depth_attachment =
             default_rendering_attachment_info(shadowMapView, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
@@ -200,11 +204,6 @@ void record_shadow_map_command_buffer(CommandBuffer& cmdBuffer, const PreparedDa
         };
 
         vkCmdBeginRendering(cmdBuffer.handle, &renderingInfo);
-
-        const VkViewport viewport = default_vk_viewport(pass_rect);
-
-        vkCmdSetViewport(cmdBuffer.handle, 0, 1, &viewport);
-        vkCmdSetScissor(cmdBuffer.handle, 0, 1, &pass_rect);
 
         const CullingDrawParams draw_params = get_culling_draw_params(shadow_pass.pass_index);
 

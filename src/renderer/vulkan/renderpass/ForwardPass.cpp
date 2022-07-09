@@ -333,9 +333,13 @@ void record_forward_pass_command_buffer(CommandBuffer& cmdBuffer, const Prepared
     if (prepared.forward_instances.empty())
         return;
 
+    const VkRect2D   pass_rect = default_vk_rect(backbufferExtent);
+    const VkViewport viewport = default_vk_viewport(pass_rect);
+
     vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, pass_resources.pipe.pipeline);
 
-    const VkRect2D blitPassRect = default_vk_rect(backbufferExtent);
+    vkCmdSetViewport(cmdBuffer.handle, 0, 1, &viewport);
+    vkCmdSetScissor(cmdBuffer.handle, 0, 1, &pass_rect);
 
     VkRenderingAttachmentInfo color_attachment =
         default_rendering_attachment_info(hdrBufferView, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
@@ -351,7 +355,7 @@ void record_forward_pass_command_buffer(CommandBuffer& cmdBuffer, const Prepared
         VK_STRUCTURE_TYPE_RENDERING_INFO,
         nullptr,
         VK_FLAGS_NONE,
-        blitPassRect,
+        pass_rect,
         1, // layerCount
         0, // viewMask
         1,
@@ -361,11 +365,6 @@ void record_forward_pass_command_buffer(CommandBuffer& cmdBuffer, const Prepared
     };
 
     vkCmdBeginRendering(cmdBuffer.handle, &renderingInfo);
-
-    const VkViewport blitViewport = default_vk_viewport(blitPassRect);
-
-    vkCmdSetViewport(cmdBuffer.handle, 0, 1, &blitViewport);
-    vkCmdSetScissor(cmdBuffer.handle, 0, 1, &blitPassRect);
 
     const CullingDrawParams draw_params = get_culling_draw_params(prepared.forward_culling_pass_index);
 

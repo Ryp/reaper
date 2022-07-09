@@ -83,9 +83,13 @@ void destroy_gui_pass_resources(VulkanBackend& backend, GuiPassResources& resour
 void record_gui_command_buffer(CommandBuffer& cmdBuffer, const GuiPassResources& pass_resources,
                                VkExtent2D backbufferExtent, VkImageView guiBufferView, ImDrawData* imgui_draw_data)
 {
+    const VkRect2D   pass_rect = default_vk_rect(backbufferExtent);
+    const VkViewport viewport = default_vk_viewport(pass_rect);
+
     vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, pass_resources.guiPipe.pipeline);
 
-    const VkRect2D blitPassRect = default_vk_rect(backbufferExtent);
+    vkCmdSetViewport(cmdBuffer.handle, 0, 1, &viewport);
+    vkCmdSetScissor(cmdBuffer.handle, 0, 1, &pass_rect);
 
     VkRenderingAttachmentInfo color_attachment =
         default_rendering_attachment_info(guiBufferView, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
@@ -96,7 +100,7 @@ void record_gui_command_buffer(CommandBuffer& cmdBuffer, const GuiPassResources&
         VK_STRUCTURE_TYPE_RENDERING_INFO,
         nullptr,
         VK_FLAGS_NONE,
-        blitPassRect,
+        pass_rect,
         1, // layerCount
         0, // viewMask
         1,
@@ -106,11 +110,6 @@ void record_gui_command_buffer(CommandBuffer& cmdBuffer, const GuiPassResources&
     };
 
     vkCmdBeginRendering(cmdBuffer.handle, &renderingInfo);
-
-    const VkViewport blitViewport = default_vk_viewport(blitPassRect);
-
-    vkCmdSetViewport(cmdBuffer.handle, 0, 1, &blitViewport);
-    vkCmdSetScissor(cmdBuffer.handle, 0, 1, &blitPassRect);
 
     vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, pass_resources.guiPipe.pipelineLayout, 0,
                             1, &pass_resources.descriptor_set, 0, nullptr);
