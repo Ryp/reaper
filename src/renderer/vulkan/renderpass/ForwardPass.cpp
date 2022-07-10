@@ -199,13 +199,11 @@ namespace
     VkPipeline create_forward_pipeline(ReaperRoot& root, VulkanBackend& backend, VkPipelineLayout pipeline_layout,
                                        const ShaderModules& shader_modules)
     {
-        const char* entryPoint = "main";
-
         std::vector<VkPipelineShaderStageCreateInfo> shader_stages = {
             {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_VERTEX_BIT,
-             shader_modules.forward_vs, entryPoint, nullptr},
+             shader_modules.forward_vs, default_entry_point(), nullptr},
             {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_FRAGMENT_BIT,
-             shader_modules.forward_fs, entryPoint, nullptr}};
+             shader_modules.forward_fs, default_entry_point(), nullptr}};
 
         const VkPipelineColorBlendAttachmentState blend_attachment_state =
             default_pipeline_color_blend_attachment_state();

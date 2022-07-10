@@ -57,13 +57,12 @@ LightingPassResources create_lighting_pass_resources(ReaperRoot& root, VulkanBac
     }
 
     {
-        const char* entry_point = "main";
-
         std::vector<VkPipelineShaderStageCreateInfo> shader_stages = {
             {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_VERTEX_BIT,
-             shader_modules.fullscreen_triangle_vs, entry_point, nullptr},
+             shader_modules.fullscreen_triangle_vs, default_entry_point(), nullptr},
             {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_FRAGMENT_BIT,
-             shader_modules.copy_to_depth_fs, entry_point, nullptr}};
+             shader_modules.copy_to_depth_fs, default_entry_point(), nullptr}};
+
         std::vector<VkDescriptorSetLayoutBinding> descriptorSetLayoutBinding = {
             {0, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
         };

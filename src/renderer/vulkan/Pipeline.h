@@ -29,6 +29,8 @@ descriptor_set_layout_create_info(nonstd::span<const VkDescriptorSetLayoutBindin
 VkDescriptorSetLayout create_descriptor_set_layout(VkDevice                                         device,
                                                    nonstd::span<const VkDescriptorSetLayoutBinding> layout_bindings);
 
+const char* default_entry_point();
+
 VkPipelineLayout create_pipeline_layout(
     VkDevice device, nonstd::span<const VkDescriptorSetLayout> descriptor_set_layouts,
     nonstd::span<const VkPushConstantRange> push_constant_ranges = nonstd::span<const VkPushConstantRange>());

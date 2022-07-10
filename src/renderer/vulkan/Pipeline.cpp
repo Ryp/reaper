@@ -79,19 +79,23 @@ VkPipelineLayout create_pipeline_layout(VkDevice device,
     return pipelineLayout;
 }
 
+const char* default_entry_point()
+{
+    return "main";
+}
+
 VkPipeline create_compute_pipeline(VkDevice              device,
                                    VkPipelineLayout      pipeline_layout,
                                    VkShaderModule        compute_shader,
                                    VkSpecializationInfo* specialization_info)
 {
-    static const char* DefaultShaderEntryPoint = "main";
 
     VkPipelineShaderStageCreateInfo shaderStage = {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
                                                    nullptr,
                                                    0,
                                                    VK_SHADER_STAGE_COMPUTE_BIT,
                                                    compute_shader,
-                                                   DefaultShaderEntryPoint,
+                                                   default_entry_point(),
                                                    specialization_info};
 
     VkComputePipelineCreateInfo pipelineCreateInfo = {VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
