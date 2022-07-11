@@ -41,6 +41,13 @@ VkPipeline create_compute_pipeline(VkDevice device, VkPipelineLayout pipeline_la
 VkPipelineColorBlendAttachmentState default_pipeline_color_blend_attachment_state();
 VkPipelineRenderingCreateInfo       default_pipeline_rendering_create_info();
 
+VkPipelineVertexInputStateCreateInfo   default_pipeline_vertex_input_state_create_info();
+VkPipelineInputAssemblyStateCreateInfo default_pipeline_input_assembly_state_create_info();
+VkPipelineRasterizationStateCreateInfo default_pipeline_rasterization_state_create_info();
+VkPipelineMultisampleStateCreateInfo   default_pipeline_multisample_state_create_info();
+VkPipelineDepthStencilStateCreateInfo  default_pipeline_depth_stencil_state_create_info();
+VkPipelineColorBlendStateCreateInfo    default_pipeline_color_blend_state_create_info();
+
 // Helper with the mandatory structures you need to have to create a graphics pipeline.
 struct GraphicsPipelineProperties
 {
