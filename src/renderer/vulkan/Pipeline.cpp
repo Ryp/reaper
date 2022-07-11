@@ -163,6 +163,19 @@ VkPipelineInputAssemblyStateCreateInfo default_pipeline_input_assembly_state_cre
     return state;
 }
 
+VkPipelineViewportStateCreateInfo default_pipeline_viewport_state_create_info()
+{
+    VkPipelineViewportStateCreateInfo state;
+    state.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+    state.pNext = nullptr;
+    state.flags = VK_FLAGS_NONE;
+    state.viewportCount = 1;
+    state.pViewports = nullptr; // dynamic viewport
+    state.scissorCount = 1;
+    state.pScissors = nullptr; // dynamic scissors
+    return state;
+}
+
 VkPipelineRasterizationStateCreateInfo default_pipeline_rasterization_state_create_info()
 {
     VkPipelineRasterizationStateCreateInfo state;
@@ -240,6 +253,7 @@ GraphicsPipelineProperties default_graphics_pipeline_properties(void* pNext)
     return GraphicsPipelineProperties{
         default_pipeline_vertex_input_state_create_info(),
         default_pipeline_input_assembly_state_create_info(),
+        default_pipeline_viewport_state_create_info(),
         default_pipeline_rasterization_state_create_info(),
         default_pipeline_multisample_state_create_info(),
         default_pipeline_depth_stencil_state_create_info(),
@@ -249,27 +263,28 @@ GraphicsPipelineProperties default_graphics_pipeline_properties(void* pNext)
     };
 }
 
-VkPipeline create_graphics_pipeline(VkDevice device,
-                                    nonstd::span<const VkPipelineShaderStageCreateInfo>
-                                                                      shader_stages,
-                                    const GraphicsPipelineProperties& properties)
+VkPipelineDynamicStateCreateInfo
+create_pipeline_dynamic_state_create_info(nonstd::span<const VkDynamicState> dynamic_states)
 {
-    VkPipelineViewportStateCreateInfo viewport_state = {VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
-                                                        nullptr,
-                                                        VK_FLAGS_NONE,
-                                                        1,
-                                                        nullptr, // dynamic viewport
-                                                        1,
-                                                        nullptr}; // dynamic scissors
-
-    const std::array<VkDynamicState, 2> dynamic_states = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
-    VkPipelineDynamicStateCreateInfo    dynamic_state = {
+    return VkPipelineDynamicStateCreateInfo{
         VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
         nullptr,
         0,
         static_cast<u32>(dynamic_states.size()),
         dynamic_states.data(),
     };
+}
+
+VkPipeline create_graphics_pipeline(VkDevice device,
+                                    nonstd::span<const VkPipelineShaderStageCreateInfo>
+                                                                      shader_stages,
+                                    const GraphicsPipelineProperties& properties,
+                                    nonstd::span<const VkDynamicState>
+                                        dynamic_states)
+{
+    const std::vector<VkDynamicState> default_dynamic_states = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
+    const VkPipelineDynamicStateCreateInfo dynamic_state =
+        create_pipeline_dynamic_state_create_info(dynamic_states.empty() ? default_dynamic_states : dynamic_states);
 
     VkGraphicsPipelineCreateInfo create_info = {VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
                                                 &properties.pipeline_rendering,
@@ -279,7 +294,7 @@ VkPipeline create_graphics_pipeline(VkDevice device,
                                                 &properties.vertex_input,
                                                 &properties.input_assembly,
                                                 nullptr,
-                                                &viewport_state,
+                                                &properties.viewport,
                                                 &properties.raster,
                                                 &properties.multisample,
                                                 &properties.depth_stencil,
