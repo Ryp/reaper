@@ -38,6 +38,7 @@ REAPER_VK_INSTANCE_LEVEL_FUNCTION(vkCreateDevice)
 REAPER_VK_INSTANCE_LEVEL_FUNCTION(vkGetDeviceProcAddr)
 REAPER_VK_INSTANCE_LEVEL_FUNCTION(vkEnumerateDeviceExtensionProperties)
 REAPER_VK_INSTANCE_LEVEL_FUNCTION(vkGetPhysicalDeviceMemoryProperties)
+REAPER_VK_INSTANCE_LEVEL_FUNCTION(vkGetPhysicalDeviceMemoryProperties2)
 REAPER_VK_INSTANCE_LEVEL_FUNCTION(vkGetPhysicalDeviceFormatProperties)
 
 // Device level functions
@@ -132,7 +133,7 @@ REAPER_VK_DEVICE_LEVEL_FUNCTION(vkGetDeviceImageMemoryRequirements)
 REAPER_VK_DEVICE_LEVEL_FUNCTION(vkGetDeviceImageSparseMemoryRequirements)
 // REAPER_VK_DEVICE_LEVEL_FUNCTION(vkCmdBlitImage) NOTE: deprecated by vkCmdBlitImage2
 REAPER_VK_DEVICE_LEVEL_FUNCTION(vkCmdBlitImage2)
-// REAPER_VK_DEVICE_LEVEL_FUNCTION(vkCmdCopyBuffer) NOTE: deprecated by vkCmdCopyBuffer2
+REAPER_VK_DEVICE_LEVEL_FUNCTION(vkCmdCopyBuffer) // NOTE: deprecated by vkCmdCopyBuffer2
 REAPER_VK_DEVICE_LEVEL_FUNCTION(vkCmdCopyBuffer2)
 // REAPER_VK_DEVICE_LEVEL_FUNCTION(vkCmdCopyBufferToImage) NOTE: deprecated by vkCmdCopyBufferToImage2
 REAPER_VK_DEVICE_LEVEL_FUNCTION(vkCmdCopyBufferToImage2)
@@ -157,6 +158,22 @@ REAPER_VK_DEVICE_LEVEL_FUNCTION(vkFlushMappedMemoryRanges)
 REAPER_VK_DEVICE_LEVEL_FUNCTION(vkCreateRenderPass)
 REAPER_VK_DEVICE_LEVEL_FUNCTION(vkCmdCopyBufferToImage)
 REAPER_VK_DEVICE_LEVEL_FUNCTION(vkCmdPipelineBarrier)
+REAPER_VK_DEVICE_LEVEL_FUNCTION(vkGetBufferMemoryRequirements2)
+REAPER_VK_DEVICE_LEVEL_FUNCTION(vkGetImageMemoryRequirements2);
+REAPER_VK_DEVICE_LEVEL_FUNCTION(vkBindBufferMemory2);
+REAPER_VK_DEVICE_LEVEL_FUNCTION(vkBindImageMemory2);
+REAPER_VK_DEVICE_LEVEL_FUNCTION(vkCmdBindVertexBuffers2);
+REAPER_VK_DEVICE_LEVEL_FUNCTION(vkCmdSetCullMode);
+REAPER_VK_DEVICE_LEVEL_FUNCTION(vkCmdSetDepthBoundsTestEnable);
+REAPER_VK_DEVICE_LEVEL_FUNCTION(vkCmdSetDepthCompareOp);
+REAPER_VK_DEVICE_LEVEL_FUNCTION(vkCmdSetDepthTestEnable);
+REAPER_VK_DEVICE_LEVEL_FUNCTION(vkCmdSetDepthWriteEnable);
+REAPER_VK_DEVICE_LEVEL_FUNCTION(vkCmdSetFrontFace);
+REAPER_VK_DEVICE_LEVEL_FUNCTION(vkCmdSetPrimitiveTopology);
+REAPER_VK_DEVICE_LEVEL_FUNCTION(vkCmdSetScissorWithCount);
+REAPER_VK_DEVICE_LEVEL_FUNCTION(vkCmdSetStencilOp);
+REAPER_VK_DEVICE_LEVEL_FUNCTION(vkCmdSetStencilTestEnable);
+REAPER_VK_DEVICE_LEVEL_FUNCTION(vkCmdSetViewportWithCount);
 
 #if defined(REAPER_VK_USE_SWAPCHAIN_EXTENSIONS)
 #    include "extension/VK_KHR_swapchain.inl"
