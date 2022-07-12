@@ -37,7 +37,7 @@ endif()
 reaper_configure_library(${target} "Audio")
 
 if(UNIX)
-    reaper_add_tests(${target}
-        ${CMAKE_CURRENT_SOURCE_DIR}/test/alsa.cpp
-    )
+    #reaper_add_tests(${target}
+    #    ${CMAKE_CURRENT_SOURCE_DIR}/test/alsa.cpp
+    #)
 endif()
