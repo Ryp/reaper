@@ -21,6 +21,8 @@
 #    include <unistd.h>
 #endif
 
+#define VERBOSE_DEBUG 0
+
 namespace Reaper
 {
 static constexpr int   AxisAbsoluteResolution = (2 << 14) - 1;
@@ -164,12 +166,14 @@ GenericControllerState update_controller_state(LinuxController& controller)
                 if (remap_entry.generic_axis != GenericAxis::Unknown)
                 {
                     state.axes[remap_entry.generic_axis] = axis_value;
+#    if VERBOSE_DEBUG
                     fmt::print("Axis index {} remapped to '{}'\n", axis_index,
                                generic_axis_name_to_string(remap_entry.generic_axis));
                 }
                 else
                 {
                     fmt::print("Axis index {} ignored\n", axis_index);
+#    endif
                 }
             }
             else
@@ -189,12 +193,14 @@ GenericControllerState update_controller_state(LinuxController& controller)
                 if (remap_entry.generic_button != GenericButton::Unknown)
                 {
                     state.buttons[remap_entry.generic_button].held = button_held;
+#    if VERBOSE_DEBUG
                     fmt::print("Button index {} remapped to '{}'\n", button_index,
                                generic_button_name_to_string(remap_entry.generic_button));
                 }
                 else
                 {
                     fmt::print("Button index {} ignored\n", button_index);
+#    endif
                 }
             }
             else
