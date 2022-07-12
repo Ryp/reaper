@@ -316,10 +316,20 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     const ResourceUsageHandle tile_depth_max_copy_src_usage_handle =
         builder.read_texture(tile_ds_copy_pass_handle, tile_depth_max_create_usage_handle, tile_depth_copy_src_usage);
 
+    const GPUBufferProperties light_list_properties = DefaultGPUBufferProperties(
+        ElementsPerTile * tile_depth_storage_properties.width * tile_depth_storage_properties.height, sizeof(u32),
+        GPUBufferUsage::StorageBuffer | GPUBufferUsage::TransferDst);
+
+    GPUResourceUsage light_list_clear_usage = {};
+    light_list_clear_usage.access = GPUResourceAccess{VK_PIPELINE_STAGE_2_CLEAR_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT};
+    light_list_clear_usage.buffer_view = default_buffer_view(light_list_properties);
+
     const ResourceUsageHandle tile_depth_min_copy_create_usage_handle = builder.create_texture(
         tile_ds_copy_pass_handle, "Tile Depth Min", tile_depth_copy_properties, tile_depth_copy_dst_usage);
     const ResourceUsageHandle tile_depth_max_copy_create_usage_handle = builder.create_texture(
         tile_ds_copy_pass_handle, "Tile Depth Max", tile_depth_copy_properties, tile_depth_copy_dst_usage);
+    const ResourceUsageHandle light_list_clear_usage_handle =
+        builder.create_buffer(tile_ds_copy_pass_handle, "Light lists", light_list_properties, light_list_clear_usage);
 
     // Rasterize Light Volumes
     const RenderPassHandle light_raster_pass_handle = builder.create_render_pass("Rasterize Light Volumes", true);
@@ -330,20 +340,17 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
                           VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT, VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL};
     tile_depth_cmp_usage.texture_view = DefaultGPUTextureView(tile_depth_copy_properties);
 
-    const GPUBufferProperties light_list_properties = DefaultGPUBufferProperties(
-        ElementsPerTile * tile_depth_storage_properties.width * tile_depth_storage_properties.height, sizeof(u32),
-        GPUBufferUsage::StorageBuffer);
-
-    GPUResourceUsage light_list_usage = {};
-    light_list_usage.access = GPUResourceAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT};
-    light_list_usage.buffer_view = default_buffer_view(light_list_properties);
+    GPUResourceUsage light_list_write_usage = {};
+    light_list_write_usage.access =
+        GPUResourceAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT};
+    light_list_write_usage.buffer_view = default_buffer_view(light_list_properties);
 
     const ResourceUsageHandle tile_depth_min_usage_handle =
         builder.read_texture(light_raster_pass_handle, tile_depth_min_copy_create_usage_handle, tile_depth_cmp_usage);
     const ResourceUsageHandle tile_depth_max_usage_handle =
         builder.read_texture(light_raster_pass_handle, tile_depth_max_copy_create_usage_handle, tile_depth_cmp_usage);
-    const ResourceUsageHandle list_list_create_usage_handle =
-        builder.create_buffer(light_raster_pass_handle, "Light lists", light_list_properties, light_list_usage);
+    const ResourceUsageHandle list_list_write_usage_handle =
+        builder.write_buffer(light_raster_pass_handle, light_list_clear_usage_handle, light_list_write_usage);
 
     // GUI
     const RenderPassHandle gui_pass_handle = builder.create_render_pass("GUI");
@@ -465,7 +472,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     {
         FrameGraphBuffer buffer =
-            get_frame_graph_buffer(resources.framegraph_resources, framegraph, list_list_create_usage_handle);
+            get_frame_graph_buffer(resources.framegraph_resources, framegraph, list_list_write_usage_handle);
 
         update_light_raster_pass_descriptor_sets(
             backend, resources.lighting_resources,
@@ -607,6 +614,13 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
                                                       tile_depth_max_copy_create_usage_handle)
                                   .view_handle,
                               VkExtent2D{tile_depth_copy_properties.width, tile_depth_copy_properties.height});
+
+            const u32        clear_value = 0;
+            FrameGraphBuffer light_lists =
+                get_frame_graph_buffer(resources.framegraph_resources, framegraph, light_list_clear_usage_handle);
+
+            vkCmdFillBuffer(cmdBuffer.handle, light_lists.handle, light_lists.view.offset_bytes,
+                            light_lists.view.size_bytes, clear_value);
 
             record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
                                        tile_ds_copy_pass_handle, false);
