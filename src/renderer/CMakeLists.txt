@@ -144,6 +144,8 @@ set(REAPER_SHADER_SRCS
     ${REAPER_SHADER_DIR}/gui_write.frag.hlsl
     ${REAPER_SHADER_DIR}/histogram.comp.hlsl
     ${REAPER_SHADER_DIR}/matrix_row_major_codegen_bug.comp.hlsl
+    ${REAPER_SHADER_DIR}/rasterize_light_volume.vert.hlsl
+    ${REAPER_SHADER_DIR}/rasterize_light_volume.frag.hlsl
     ${REAPER_SHADER_DIR}/render_shadow.frag.hlsl
     ${REAPER_SHADER_DIR}/render_shadow.vert.hlsl
     ${REAPER_SHADER_DIR}/swapchain_write.frag.hlsl

@@ -20,6 +20,7 @@
 #include "renderer/shader/share/shadow_map_pass.hlsl"
 #include "renderer/shader/share/sound.hlsl"
 #include "renderer/shader/share/swapchain.hlsl"
+#include "renderer/shader/share/tiled_lighting.hlsl"
 
 #include <core/Types.h>
 
@@ -104,6 +105,7 @@ struct PreparedData
     std::vector<ForwardInstanceParams> forward_instances;
 
     std::vector<PointLightProperties> point_lights;
+    std::vector<LightVolumeInstance>  light_volumes;
 
     std::vector<ShadowPassData>          shadow_passes;
     std::vector<ShadowMapPassParams>     shadow_pass_params;

@@ -215,14 +215,18 @@ void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCa
         const glm::fmat4 light_projection_matrix = default_light_projection_matrix();
         const glm::fmat4 light_view_proj_matrix = light_projection_matrix * glm::fmat4(light_transform_inv);
 
-        PointLightProperties point_light;
+        PointLightProperties& point_light = prepared.point_lights.emplace_back();
         point_light.light_ws_to_cs = light_view_proj_matrix;
         point_light.position_vs = light_position_vs;
         point_light.intensity = light.intensity;
         point_light.color = light.color;
         point_light.shadow_map_index = scene_light_index; // FIXME
 
-        prepared.point_lights.emplace_back(point_light);
+        LightVolumeInstance& light_volume = prepared.light_volumes.emplace_back();
+        light_volume.ms_to_cs =
+            main_camera_view_proj * glm::mat4(light_transform); // FIXME handle scales from light shape
+        light_volume.light_index = scene_light_index;
+        // FIXME Fill completely
     }
 
     {

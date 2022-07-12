@@ -52,6 +52,8 @@ ShaderModules create_shader_modules(ReaperRoot& /*root*/, VulkanBackend& backend
     modules.oscillator_cs = create_shader_module(backend.device, "oscillator.comp.spv");
     modules.prepare_fine_culling_indirect_cs =
         create_shader_module(backend.device, "prepare_fine_culling_indirect.comp.spv");
+    modules.rasterize_light_volume_fs = create_shader_module(backend.device, "rasterize_light_volume.frag.spv");
+    modules.rasterize_light_volume_vs = create_shader_module(backend.device, "rasterize_light_volume.vert.spv");
     modules.render_shadow_vs = create_shader_module(backend.device, "render_shadow.vert.spv");
     modules.swapchain_write_fs = create_shader_module(backend.device, "swapchain_write.frag.spv");
     modules.tile_depth_downsample_cs = create_shader_module(backend.device, "tile_depth_downsample.comp.spv");
@@ -71,6 +73,8 @@ void destroy_shader_modules(VulkanBackend& backend, ShaderModules& shader_module
     vkDestroyShaderModule(backend.device, shader_modules.histogram_cs, nullptr);
     vkDestroyShaderModule(backend.device, shader_modules.oscillator_cs, nullptr);
     vkDestroyShaderModule(backend.device, shader_modules.prepare_fine_culling_indirect_cs, nullptr);
+    vkDestroyShaderModule(backend.device, shader_modules.rasterize_light_volume_fs, nullptr);
+    vkDestroyShaderModule(backend.device, shader_modules.rasterize_light_volume_vs, nullptr);
     vkDestroyShaderModule(backend.device, shader_modules.render_shadow_vs, nullptr);
     vkDestroyShaderModule(backend.device, shader_modules.swapchain_write_fs, nullptr);
     vkDestroyShaderModule(backend.device, shader_modules.tile_depth_downsample_cs, nullptr);

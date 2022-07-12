@@ -26,6 +26,8 @@ struct ShaderModules
     VkShaderModule histogram_cs;
     VkShaderModule oscillator_cs;
     VkShaderModule prepare_fine_culling_indirect_cs;
+    VkShaderModule rasterize_light_volume_fs;
+    VkShaderModule rasterize_light_volume_vs;
     VkShaderModule render_shadow_vs;
     VkShaderModule swapchain_write_fs;
     VkShaderModule tile_depth_downsample_cs;
