@@ -10,4 +10,4 @@ ENV LC_ALL en_US.UTF-8
 # Install dependencies
 RUN apt-get update && apt-get install -y                                                                        \
     wget unzip build-essential cmake gcc                                                                        \
-    libassimp-dev libvulkan-dev libunwind-dev libx11-xcb-dev spirv-tools glslang-dev
+    libunwind-dev libx11-xcb-dev spirv-tools glslang-dev
