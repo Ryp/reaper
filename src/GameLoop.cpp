@@ -40,6 +40,7 @@
 
 #define ENABLE_TEST_SCENE 0
 #define ENABLE_GAME_SCENE 1
+#define ENABLE_TEST_DRIVE 1
 #define ENABLE_FREE_CAM 0
 
 namespace Reaper
@@ -130,6 +131,21 @@ void execute_game_loop(ReaperRoot& root)
 #endif
 
 #if ENABLE_GAME_SCENE
+#    if ENABLE_TEST_DRIVE
+    const std::string  assetFile("res/model/quad.obj");
+    std::vector<Mesh>  meshes;
+    const glm::fmat4x3 flat_quad_transform =
+        glm::rotate(glm::fmat4(1.f), glm::pi<float>() * -0.5f, glm::fvec3(1.f, 0.f, 0.f));
+    const glm::fvec3 flat_quad_scale = glm::fvec3(100.f, 100.f, 100.f);
+
+    {
+        std::ifstream file(assetFile);
+        meshes.push_back(ModelLoader::loadOBJ(file));
+    }
+
+    SplineSonic::sim_register_static_collision_meshes(sim, meshes, nonstd::span(&flat_quad_transform, 1),
+                                                      nonstd::span(&flat_quad_scale, 1));
+#    else
     SplineSonic::Track game_track;
 
     SplineSonic::GenerationInfo genInfo = {};
@@ -143,8 +159,8 @@ void execute_game_loop(ReaperRoot& root)
     SplineSonic::generate_track_splines(game_track.skeletonNodes, game_track.splinesMS);
     SplineSonic::generate_track_skinning(game_track.skeletonNodes, game_track.splinesMS, game_track.skinning);
 
-    const std::string         assetFile("res/model/track/chunk_simple.obj");
-    std::vector<Mesh>         meshes(genInfo.length);
+    const std::string assetFile("res/model/track/chunk_simple.obj");
+    std::vector<Mesh> meshes(genInfo.length);
     std::vector<glm::fmat4x3> chunk_transforms(genInfo.length);
 
     for (u32 i = 0; i < genInfo.length; i++)
@@ -161,9 +177,10 @@ void execute_game_loop(ReaperRoot& root)
 
     // NOTE: bullet will hold pointers to the original mesh data without copy
     SplineSonic::sim_register_static_collision_meshes(sim, meshes, chunk_transforms);
+#    endif
 
     const glm::fmat4x3 player_initial_transform = glm::translate(glm::mat4(1.0f), glm::vec3(0.2f, 0.6f, 0.f));
-    const glm::fvec3   player_shape_extent(0.2f, 0.1f, 0.1f);
+    const glm::fvec3   player_shape_extent(0.2f, 0.2f, 0.2f);
     SplineSonic::sim_create_player_rigid_body(sim, player_initial_transform, player_shape_extent);
 
     std::ifstream ship_obj_file("res/model/fighter.obj");
@@ -199,7 +216,7 @@ void execute_game_loop(ReaperRoot& root)
 #    else
             const glm::fvec3 camera_position = glm::vec3(-2.f, 1.f, 0.f);
             const glm::fvec3 camera_local_target = glm::vec3(1.f, 0.f, 0.f);
-            const u32        camera_parent_index = player_scene_node_index;
+            const u32 camera_parent_index = player_scene_node_index;
 #    endif
 
             const glm::fmat4x3 camera_local_transform =
@@ -217,6 +234,15 @@ void execute_game_loop(ReaperRoot& root)
             insert_scene_mesh(scene, scene_mesh);
         }
 
+#    if ENABLE_TEST_DRIVE
+        SceneMesh scene_mesh;
+        scene_mesh.node_index =
+            insert_scene_node(scene, glm::fmat4(flat_quad_transform) * glm::scale(glm::fmat4(1.f), glm::vec3(2.f)));
+        scene_mesh.mesh_handle = mesh_handles[0];
+        scene_mesh.texture_handle = backend.resources->material_resources.texture_handles[0];
+
+        insert_scene_mesh(scene, scene_mesh);
+#    else
         // Place static track
         for (u32 chunk_index = 0; chunk_index < genInfo.length; chunk_index++)
         {
@@ -227,6 +253,7 @@ void execute_game_loop(ReaperRoot& root)
 
             insert_scene_mesh(scene, scene_mesh);
         }
+#    endif
 
         // Add lights
         const glm::vec3 light_target_ws = glm::vec3(0.f, 0.f, 0.f);

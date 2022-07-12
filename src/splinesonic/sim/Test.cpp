@@ -68,7 +68,7 @@ namespace
     static const int SimulationMaxSubStep = 3; // FIXME
 
     glm::fvec3 forward() { return glm::vec3(1.0f, 0.0f, 0.0f); }
-    glm::fvec3 up() { return glm::vec3(0.0f, 0.0f, 1.0f); }
+    glm::fvec3 up() { return glm::vec3(0.0f, 1.0f, 0.0f); }
 
     void pre_tick(PhysicsSim& sim, const ShipInput& input, float /*dt*/)
     {
@@ -100,8 +100,11 @@ namespace
         glm::vec3       shipUp;
         glm::vec3       shipFwd;
 
-        shipUp = projected_orientation * up();
-        shipFwd = player_orientation * forward();
+        // shipUp = projected_orientation * up();
+        // shipFwd = player_orientation * forward();
+        shipUp = up();
+        shipFwd = forward();
+
         // shipFwd = glm::normalize(shipFwd - glm::proj(shipFwd, shipUp)); // Ship Fwd in on slice plane
 
         // Re-eval ship orientation
@@ -128,7 +131,7 @@ namespace
 
         // Integrate forces
         glm::vec3 forces = {};
-        forces += -shipUp * 98.331f;                            // 10x earth gravity
+        forces += -shipUp * 9.8331f * 10.f;
         forces += shipFwd * input.throttle * ship_stats.thrust; // Engine thrust
         //      forces += shipFwd * player.getAcceleration(); // Engine thrust
         forces += -glm::proj(linear_speed, shipFwd) * input.brake * ship_stats.braking; // Brakes force
@@ -384,8 +387,10 @@ void sim_create_player_rigid_body(PhysicsSim& sim, const glm::fmat4x3& player_tr
     btRigidBody::btRigidBodyConstructionInfo constructInfo(mass, motionState, collisionShape, inertia);
 
     btRigidBody* player_rigid_body = new btRigidBody(constructInfo);
-    player_rigid_body->setFriction(0.1f);
-    player_rigid_body->setRollingFriction(0.8f);
+    player_rigid_body->setFriction(0.9f);
+    player_rigid_body->setRollingFriction(9.8f);
+
+    player_rigid_body->setActivationState(DISABLE_DEACTIVATION);
 
     // FIXME doesn't do anything? Wrong collision mesh?
     player_rigid_body->setCcdMotionThreshold(0.05f);
