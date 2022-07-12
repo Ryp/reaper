@@ -36,10 +36,9 @@ void DumpFrameGraph(const FrameGraph& frameGraph)
         // Instead of skipping read nodes, add the hidden info to the corresponding edge
         if (has_mask(resourceUsage.Type, UsageType::Output))
         {
-            const std::string label = fmt::format("{0} ({1})\\n{2}x{3}\\n{4}\\n{5} Cube={6} [{7}]", resource.debug_name,
-                                                  resourceUsage.resource_handle.index, desc.width, desc.height,
-                                                  GetFormatToString(PixelFormatToVulkan(desc.format)), desc.sampleCount,
-                                                  desc.miscFlags & GPUMiscFlags::Cubemap, resourceUsageIndex);
+            const std::string label = fmt::format(
+                "{0} ({1})\\n{2}x{3}\\n{4}\\n[{5}]", resource.debug_name, resourceUsage.resource_handle.index,
+                desc.width, desc.height, GetFormatToString(PixelFormatToVulkan(desc.format)), resourceUsageIndex);
 
             outResFile << "        res" << resourceUsageIndex << " [label=\"" << label << "\"";
 

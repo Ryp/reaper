@@ -222,6 +222,7 @@ void create_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& backend)
     backend.global_descriptor_pool = create_global_descriptor_pool(root, backend);
 
     log_debug(root, "vulkan: create gpu memory allocator");
+
     VmaAllocatorCreateInfo allocatorInfo = {};
     allocatorInfo.physicalDevice = backend.physicalDevice;
     allocatorInfo.device = backend.device;

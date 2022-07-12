@@ -54,7 +54,6 @@ namespace
         root.log = nullptr;
 
 #if defined(REAPER_USE_MICROPROFILE)
-        // MicroProfileDumpFileImmediately("profile.html", nullptr, nullptr);
         MicroProfileShutdown();
 #endif
     }
