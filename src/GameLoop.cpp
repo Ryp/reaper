@@ -38,6 +38,7 @@
 #include "renderer/window/Event.h"
 #include "renderer/window/Window.h"
 
+#define ENABLE_CONTROLLER 0
 #define ENABLE_TEST_SCENE 0
 #define ENABLE_GAME_SCENE 1
 #define ENABLE_TEST_DRIVE 1
@@ -307,7 +308,9 @@ void execute_game_loop(ReaperRoot& root)
     bool      shouldExit = false;
     u64       frameIndex = 0;
 
+#if ENABLE_CONTROLLER
     LinuxController controller = create_controller("/dev/input/js0");
+#endif
 
 #if ENABLE_FREE_CAM
     SceneNode& camera_node = scene.nodes[scene.camera.scene_node];
@@ -405,7 +408,11 @@ void execute_game_loop(ReaperRoot& root)
             }
         }
 
+#if ENABLE_CONTROLLER
         const GenericControllerState controller_state = update_controller_state(controller);
+#else
+        const GenericControllerState controller_state = {};
+#endif
 
         if (controller_state.buttons[GenericButton::X].pressed)
             toggle(backend.options.freeze_culling);
@@ -484,7 +491,9 @@ void execute_game_loop(ReaperRoot& root)
         output_file.close();
     }
 
+#if ENABLE_CONTROLLER
     destroy_controller(controller);
+#endif
 
     SplineSonic::destroy_sim(sim);
 
