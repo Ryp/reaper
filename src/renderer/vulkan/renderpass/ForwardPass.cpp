@@ -14,6 +14,7 @@
 
 #include "renderer/vulkan/Backend.h"
 #include "renderer/vulkan/CommandBuffer.h"
+#include "renderer/vulkan/DescriptorSet.h"
 #include "renderer/vulkan/GpuProfile.h"
 #include "renderer/vulkan/Image.h"
 #include "renderer/vulkan/MaterialResources.h"
@@ -33,7 +34,7 @@
 namespace Reaper
 {
 constexpr u32 DiffuseMapMaxCount = 8;
-constexpr u32 DrawInstanceCountMax = 512;
+constexpr u32 ForwardInstanceCountMax = 512;
 
 namespace
 {
@@ -70,68 +71,6 @@ namespace
         return layout;
     }
 
-    void update_descriptor_set_0(VulkanBackend& backend, const ForwardPassResources& resources,
-                                 const SamplerResources& sampler_resources, const MeshCache& mesh_cache,
-                                 const LightingPassResources&    lighting_resources,
-                                 const nonstd::span<VkImageView> shadow_map_views)
-    {
-        const VkDescriptorBufferInfo passParams = default_descriptor_buffer_info(resources.passConstantBuffer);
-        const VkDescriptorBufferInfo instanceParams = default_descriptor_buffer_info(resources.instancesConstantBuffer);
-
-        const VkDescriptorBufferInfo vertexPositionParams =
-            default_descriptor_buffer_info(mesh_cache.vertexBufferPosition);
-        const VkDescriptorBufferInfo vertexNormalParams = default_descriptor_buffer_info(mesh_cache.vertexBufferNormal);
-        const VkDescriptorBufferInfo vertexUVParams = default_descriptor_buffer_info(mesh_cache.vertexBufferUV);
-        const VkDescriptorBufferInfo pointLightParams =
-            default_descriptor_buffer_info(lighting_resources.pointLightBuffer);
-
-        const VkDescriptorImageInfo shadowMapSampler = {sampler_resources.shadowMapSampler, VK_NULL_HANDLE,
-                                                        VK_IMAGE_LAYOUT_UNDEFINED};
-
-        std::vector<VkWriteDescriptorSet> writes = {
-            create_buffer_descriptor_write(resources.descriptor_set, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &passParams),
-            create_buffer_descriptor_write(resources.descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                                           &instanceParams),
-            create_buffer_descriptor_write(resources.descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                                           &vertexPositionParams),
-            create_buffer_descriptor_write(resources.descriptor_set, 3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                                           &vertexNormalParams),
-            create_buffer_descriptor_write(resources.descriptor_set, 4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                                           &vertexUVParams),
-            create_buffer_descriptor_write(resources.descriptor_set, 5, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                                           &pointLightParams),
-            create_image_descriptor_write(resources.descriptor_set, 6, VK_DESCRIPTOR_TYPE_SAMPLER, &shadowMapSampler)};
-
-        std::vector<VkDescriptorImageInfo> drawDescShadowMaps;
-
-        for (auto shadow_map_texture_view : shadow_map_views)
-        {
-            drawDescShadowMaps.push_back(
-                {VK_NULL_HANDLE, shadow_map_texture_view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL});
-        }
-
-        const VkWriteDescriptorSet shadowMapBindlessImageWrite = {
-            VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-            nullptr,
-            resources.descriptor_set,
-            7,
-            0,
-            static_cast<u32>(drawDescShadowMaps.size()),
-            VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-            drawDescShadowMaps.data(),
-            nullptr,
-            nullptr,
-        };
-
-        // Only stage descriptor write if we actually have shadow maps to bind
-        if (!drawDescShadowMaps.empty())
-        {
-            writes.push_back(shadowMapBindlessImageWrite);
-        }
-
-        vkUpdateDescriptorSets(backend.device, static_cast<u32>(writes.size()), writes.data(), 0, nullptr);
-    }
-
     VkDescriptorSetLayout create_descriptor_set_layout_1(VulkanBackend& backend)
     {
         std::vector<VkDescriptorSetLayoutBinding> descriptorSetLayoutBinding = {
@@ -156,46 +95,6 @@ namespace
         return layout;
     }
 
-    void update_descriptor_set_1(VulkanBackend& backend, const ForwardPassResources& resources,
-                                 const SamplerResources& sampler_resources, const MaterialResources& material_resources)
-    {
-        if (material_resources.texture_handles.empty())
-            return;
-
-        std::vector<VkDescriptorImageInfo> descriptor_maps;
-
-        for (auto handle : material_resources.texture_handles)
-        {
-            VkImageView image_view = material_resources.textures[handle].default_view;
-            descriptor_maps.push_back({VK_NULL_HANDLE, image_view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL});
-        }
-
-        Assert(descriptor_maps.size() <= DiffuseMapMaxCount);
-
-        const VkWriteDescriptorSet diffuseMapBindlessImageWrite = {
-            VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-            nullptr,
-            resources.material_descriptor_set,
-            1,
-            0,
-            static_cast<u32>(descriptor_maps.size()),
-            VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-            descriptor_maps.data(),
-            nullptr,
-            nullptr,
-        };
-
-        const VkDescriptorImageInfo diffuseMapSampler = {sampler_resources.diffuseMapSampler, VK_NULL_HANDLE,
-                                                         VK_IMAGE_LAYOUT_UNDEFINED};
-
-        std::vector<VkWriteDescriptorSet> writes = {create_image_descriptor_write(resources.material_descriptor_set, 0,
-                                                                                  VK_DESCRIPTOR_TYPE_SAMPLER,
-                                                                                  &diffuseMapSampler),
-                                                    diffuseMapBindlessImageWrite};
-
-        vkUpdateDescriptorSets(backend.device, static_cast<u32>(writes.size()), writes.data(), 0, nullptr);
-    }
-
     VkPipeline create_forward_pipeline(ReaperRoot& root, VulkanBackend& backend, VkPipelineLayout pipeline_layout,
                                        const ShaderModules& shader_modules)
     {
@@ -214,11 +113,11 @@ namespace
         VkPipelineCreationFeedback              feedback = {};
         std::vector<VkPipelineCreationFeedback> feedback_stages(shader_stages.size());
         VkPipelineCreationFeedbackCreateInfo    feedback_info = {
-            VK_STRUCTURE_TYPE_PIPELINE_CREATION_FEEDBACK_CREATE_INFO,
-            nullptr,
-            &feedback,
-            static_cast<u32>(feedback_stages.size()),
-            feedback_stages.data(),
+               VK_STRUCTURE_TYPE_PIPELINE_CREATION_FEEDBACK_CREATE_INFO,
+               nullptr,
+               &feedback,
+               static_cast<u32>(feedback_stages.size()),
+               feedback_stages.data(),
         };
 
         GraphicsPipelineProperties pipeline_properties = default_graphics_pipeline_properties(&feedback_info);
@@ -252,11 +151,11 @@ ForwardPassResources create_forward_pass_resources(ReaperRoot& root, VulkanBacke
     ForwardPassResources resources = {};
 
     resources.pipe.descSetLayout = create_descriptor_set_layout_0(backend);
-    resources.pipe.descSetLayout2 = create_descriptor_set_layout_1(backend);
+    resources.pipe.desc_set_layout_material = create_descriptor_set_layout_1(backend);
 
     std::vector<VkDescriptorSetLayout> passDescriptorSetLayouts = {
         resources.pipe.descSetLayout,
-        resources.pipe.descSetLayout2,
+        resources.pipe.desc_set_layout_material,
     };
 
     resources.pipe.pipelineLayout = create_pipeline_layout(backend.device, passDescriptorSetLayouts);
@@ -268,12 +167,14 @@ ForwardPassResources create_forward_pass_resources(ReaperRoot& root, VulkanBacke
                       DefaultGPUBufferProperties(1, sizeof(ForwardPassParams), GPUBufferUsage::UniformBuffer),
                       backend.vma_instance, MemUsage::CPU_To_GPU);
 
-    resources.instancesConstantBuffer = create_buffer(
-        root, backend.device, "Forward Instance buffer",
-        DefaultGPUBufferProperties(DrawInstanceCountMax, sizeof(ForwardInstanceParams), GPUBufferUsage::StorageBuffer),
-        backend.vma_instance, MemUsage::CPU_To_GPU);
+    resources.instancesConstantBuffer =
+        create_buffer(root, backend.device, "Forward Instance buffer",
+                      DefaultGPUBufferProperties(ForwardInstanceCountMax, sizeof(ForwardInstanceParams),
+                                                 GPUBufferUsage::StorageBuffer),
+                      backend.vma_instance, MemUsage::CPU_To_GPU);
 
-    std::vector<VkDescriptorSetLayout> dset_layouts = {resources.pipe.descSetLayout, resources.pipe.descSetLayout2};
+    std::vector<VkDescriptorSetLayout> dset_layouts = {resources.pipe.descSetLayout,
+                                                       resources.pipe.desc_set_layout_material};
     std::vector<VkDescriptorSet>       dsets(dset_layouts.size());
 
     allocate_descriptor_sets(backend.device, backend.global_descriptor_pool, dset_layouts, dsets);
@@ -289,7 +190,7 @@ void destroy_forward_pass_resources(VulkanBackend& backend, ForwardPassResources
     vkDestroyPipeline(backend.device, resources.pipe.pipeline, nullptr);
     vkDestroyPipelineLayout(backend.device, resources.pipe.pipelineLayout, nullptr);
     vkDestroyDescriptorSetLayout(backend.device, resources.pipe.descSetLayout, nullptr);
-    vkDestroyDescriptorSetLayout(backend.device, resources.pipe.descSetLayout2, nullptr);
+    vkDestroyDescriptorSetLayout(backend.device, resources.pipe.desc_set_layout_material, nullptr);
 
     vmaDestroyBuffer(backend.vma_instance, resources.passConstantBuffer.handle,
                      resources.passConstantBuffer.allocation);
@@ -297,14 +198,61 @@ void destroy_forward_pass_resources(VulkanBackend& backend, ForwardPassResources
                      resources.instancesConstantBuffer.allocation);
 }
 
-void update_forward_pass_descriptor_sets(VulkanBackend& backend, const ForwardPassResources& resources,
+void update_forward_pass_descriptor_sets(DescriptorWriteHelper& write_helper, const ForwardPassResources& resources,
                                          const SamplerResources&  sampler_resources,
                                          const MaterialResources& material_resources, const MeshCache& mesh_cache,
                                          const LightingPassResources&    lighting_resources,
                                          const nonstd::span<VkImageView> shadow_map_views)
 {
-    update_descriptor_set_0(backend, resources, sampler_resources, mesh_cache, lighting_resources, shadow_map_views);
-    update_descriptor_set_1(backend, resources, sampler_resources, material_resources);
+    append_write(write_helper, resources.descriptor_set, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                 resources.passConstantBuffer.handle);
+    append_write(write_helper, resources.descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                 resources.instancesConstantBuffer.handle);
+    append_write(write_helper, resources.descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                 mesh_cache.vertexBufferPosition.handle);
+    append_write(write_helper, resources.descriptor_set, 3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                 mesh_cache.vertexBufferNormal.handle);
+    append_write(write_helper, resources.descriptor_set, 4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                 mesh_cache.vertexBufferUV.handle);
+    append_write(write_helper, resources.descriptor_set, 5, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                 lighting_resources.pointLightBuffer.handle);
+    append_write(write_helper, resources.descriptor_set, 6, sampler_resources.shadowMapSampler);
+
+    if (!shadow_map_views.empty())
+    {
+        const VkDescriptorImageInfo* image_info_ptr = write_helper.images.data() + write_helper.images.size();
+        for (auto shadow_map_texture_view : shadow_map_views)
+        {
+            write_helper.images.push_back(
+                {VK_NULL_HANDLE, shadow_map_texture_view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL});
+        }
+
+        nonstd::span<const VkDescriptorImageInfo> shadow_map_image_infos(image_info_ptr, shadow_map_views.size());
+
+        write_helper.writes.push_back(create_image_descriptor_write(
+            resources.descriptor_set, 7, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, shadow_map_image_infos));
+    }
+
+    if (!material_resources.texture_handles.empty())
+    {
+        append_write(write_helper, resources.material_descriptor_set, 0, sampler_resources.diffuseMapSampler);
+
+        const VkDescriptorImageInfo* image_info_ptr = write_helper.images.data() + write_helper.images.size();
+
+        for (auto handle : material_resources.texture_handles)
+        {
+            write_helper.images.push_back({VK_NULL_HANDLE, material_resources.textures[handle].default_view,
+                                           VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL});
+        }
+
+        nonstd::span<const VkDescriptorImageInfo> albedo_image_infos(image_info_ptr,
+                                                                     material_resources.texture_handles.size());
+
+        Assert(albedo_image_infos.size() <= DiffuseMapMaxCount);
+
+        write_helper.writes.push_back(create_image_descriptor_write(
+            resources.material_descriptor_set, 1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, albedo_image_infos));
+    }
 }
 
 void upload_forward_pass_frame_resources(VulkanBackend& backend, const PreparedData& prepared,

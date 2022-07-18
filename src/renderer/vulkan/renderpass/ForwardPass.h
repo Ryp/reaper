@@ -29,7 +29,7 @@ struct ForwardPipelineInfo
     VkPipeline            pipeline;
     VkPipelineLayout      pipelineLayout;
     VkDescriptorSetLayout descSetLayout;
-    VkDescriptorSetLayout descSetLayout2;
+    VkDescriptorSetLayout desc_set_layout_material;
 };
 
 struct ReaperRoot;
@@ -56,8 +56,9 @@ struct MaterialResources;
 struct MeshCache;
 struct LightingPassResources;
 struct SamplerResources;
+struct DescriptorWriteHelper;
 
-void update_forward_pass_descriptor_sets(VulkanBackend& backend, const ForwardPassResources& resources,
+void update_forward_pass_descriptor_sets(DescriptorWriteHelper& write_helper, const ForwardPassResources& resources,
                                          const SamplerResources&  sampler_resources,
                                          const MaterialResources& material_resources, const MeshCache& mesh_cache,
                                          const LightingPassResources&    lighting_resources,

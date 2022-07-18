@@ -8,11 +8,12 @@
 #include "LightingPass.h"
 
 #include "renderer/PrepareBuckets.h"
-
+#include "renderer/buffer/GPUBufferView.h"
 #include "renderer/vulkan/Backend.h"
 #include "renderer/vulkan/Buffer.h"
 #include "renderer/vulkan/CommandBuffer.h"
 #include "renderer/vulkan/ComputeHelper.h"
+#include "renderer/vulkan/DescriptorSet.h"
 #include "renderer/vulkan/Image.h"
 #include "renderer/vulkan/Pipeline.h"
 #include "renderer/vulkan/RenderPassHelpers.h"
@@ -192,73 +193,45 @@ void destroy_lighting_pass_resources(VulkanBackend& backend, LightingPassResourc
     vkDestroyDescriptorSetLayout(backend.device, resources.light_raster_descriptor_set_layout, nullptr);
 }
 
-void update_lighting_pass_descriptor_set(VulkanBackend& backend, const LightingPassResources& resources,
+void update_lighting_pass_descriptor_set(DescriptorWriteHelper& write_helper, const LightingPassResources& resources,
                                          const SamplerResources& sampler_resources, VkImageView scene_depth_view,
                                          VkImageView tile_depth_min_view, VkImageView tile_depth_max_view)
 {
-    const VkDescriptorImageInfo descSampler = {sampler_resources.linearClampSampler, VK_NULL_HANDLE,
-                                               VK_IMAGE_LAYOUT_UNDEFINED};
-    const VkDescriptorImageInfo descTexture = {VK_NULL_HANDLE, scene_depth_view,
-                                               VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL};
-    const VkDescriptorImageInfo descTileMin = {VK_NULL_HANDLE, tile_depth_min_view, VK_IMAGE_LAYOUT_GENERAL};
-    const VkDescriptorImageInfo descTileMax = {VK_NULL_HANDLE, tile_depth_max_view, VK_IMAGE_LAYOUT_GENERAL};
-
-    std::vector<VkWriteDescriptorSet> descriptorSetWrites = {
-        create_image_descriptor_write(resources.tile_depth_descriptor_set, 0, VK_DESCRIPTOR_TYPE_SAMPLER, &descSampler),
-        create_image_descriptor_write(resources.tile_depth_descriptor_set, 1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-                                      &descTexture),
-        create_image_descriptor_write(resources.tile_depth_descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
-                                      &descTileMin),
-        create_image_descriptor_write(resources.tile_depth_descriptor_set, 3, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
-                                      &descTileMax),
-    };
-
-    vkUpdateDescriptorSets(backend.device, static_cast<u32>(descriptorSetWrites.size()), descriptorSetWrites.data(), 0,
-                           nullptr);
+    append_write(write_helper, resources.tile_depth_descriptor_set, 0, sampler_resources.linearClampSampler);
+    append_write(write_helper, resources.tile_depth_descriptor_set, 1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+                 scene_depth_view, VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL);
+    append_write(write_helper, resources.tile_depth_descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+                 tile_depth_min_view, VK_IMAGE_LAYOUT_GENERAL);
+    append_write(write_helper, resources.tile_depth_descriptor_set, 3, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+                 tile_depth_max_view, VK_IMAGE_LAYOUT_GENERAL);
 }
 
-void update_depth_copy_pass_descriptor_set(VulkanBackend& backend, const LightingPassResources& resources,
+void update_depth_copy_pass_descriptor_set(DescriptorWriteHelper& write_helper, const LightingPassResources& resources,
                                            VkImageView depth_min_src, VkImageView depth_max_src)
 {
-    const VkDescriptorImageInfo descTileMin = {VK_NULL_HANDLE, depth_min_src, VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL};
-    const VkDescriptorImageInfo descTileMax = {VK_NULL_HANDLE, depth_max_src, VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL};
-
-    std::vector<VkWriteDescriptorSet> writes = {
-        create_image_descriptor_write(resources.depth_copy_descriptor_sets[0], 0, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-                                      &descTileMin),
-        create_image_descriptor_write(resources.depth_copy_descriptor_sets[1], 0, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-                                      &descTileMax),
-    };
-
-    vkUpdateDescriptorSets(backend.device, static_cast<u32>(writes.size()), writes.data(), 0, nullptr);
+    append_write(write_helper, resources.depth_copy_descriptor_sets[0], 0, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+                 depth_min_src, VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL);
+    append_write(write_helper, resources.depth_copy_descriptor_sets[1], 0, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+                 depth_max_src, VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL);
 }
 
-void update_light_raster_pass_descriptor_sets(VulkanBackend& backend, const LightingPassResources& resources,
-                                              VkImageView depth_min, VkImageView depth_max, VkBuffer light_list_buffer,
-                                              const GPUBufferView& light_list_view)
+void update_light_raster_pass_descriptor_sets(DescriptorWriteHelper&       write_helper,
+                                              const LightingPassResources& resources, VkImageView depth_min,
+                                              VkImageView depth_max, VkBuffer light_list_buffer)
 {
-    const VkDescriptorBufferInfo volumes = default_descriptor_buffer_info(resources.lightVolumeBuffer);
-    const VkDescriptorImageInfo  tile_min = {VK_NULL_HANDLE, depth_min, VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL};
-    const VkDescriptorImageInfo  tile_max = {VK_NULL_HANDLE, depth_max, VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL};
-    const VkDescriptorBufferInfo light_list = {light_list_buffer, light_list_view.offset_bytes,
-                                               light_list_view.size_bytes};
+    append_write(write_helper, resources.light_raster_descriptor_sets[RasterPass::Inner], 0,
+                 VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, resources.lightVolumeBuffer.handle);
+    append_write(write_helper, resources.light_raster_descriptor_sets[RasterPass::Inner], 1,
+                 VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, depth_min, VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL);
+    append_write(write_helper, resources.light_raster_descriptor_sets[RasterPass::Inner], 2,
+                 VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, light_list_buffer);
 
-    std::vector<VkWriteDescriptorSet> writes = {
-        create_buffer_descriptor_write(resources.light_raster_descriptor_sets[RasterPass::Inner], 0,
-                                       VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &volumes),
-        create_image_descriptor_write(resources.light_raster_descriptor_sets[RasterPass::Inner], 1,
-                                      VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, &tile_min),
-        create_buffer_descriptor_write(resources.light_raster_descriptor_sets[RasterPass::Inner], 2,
-                                       VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &light_list),
-        create_buffer_descriptor_write(resources.light_raster_descriptor_sets[RasterPass::Outer], 0,
-                                       VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &volumes),
-        create_image_descriptor_write(resources.light_raster_descriptor_sets[RasterPass::Outer], 1,
-                                      VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, &tile_max),
-        create_buffer_descriptor_write(resources.light_raster_descriptor_sets[RasterPass::Outer], 2,
-                                       VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &light_list),
-    };
-
-    vkUpdateDescriptorSets(backend.device, static_cast<u32>(writes.size()), writes.data(), 0, nullptr);
+    append_write(write_helper, resources.light_raster_descriptor_sets[RasterPass::Outer], 0,
+                 VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, resources.lightVolumeBuffer.handle);
+    append_write(write_helper, resources.light_raster_descriptor_sets[RasterPass::Outer], 1,
+                 VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, depth_max, VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL);
+    append_write(write_helper, resources.light_raster_descriptor_sets[RasterPass::Outer], 2,
+                 VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, light_list_buffer);
 }
 
 void upload_lighting_pass_frame_resources(VulkanBackend& backend, const PreparedData& prepared,

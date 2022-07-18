@@ -1074,22 +1074,4 @@ VkImageView create_image_view(ReaperRoot& root, VkDevice device, const ImageInfo
 
     return imageView;
 }
-
-VkWriteDescriptorSet create_image_descriptor_write(VkDescriptorSet descriptorSet, u32 binding,
-                                                   VkDescriptorType             descriptorType,
-                                                   const VkDescriptorImageInfo* imageInfo)
-{
-    return {
-        VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-        nullptr,
-        descriptorSet,
-        binding,
-        0,
-        1,
-        descriptorType,
-        imageInfo,
-        nullptr,
-        nullptr,
-    };
-}
 } // namespace Reaper

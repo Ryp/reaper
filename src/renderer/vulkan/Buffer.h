@@ -12,7 +12,6 @@
 #include <vulkan_loader/Vulkan.h>
 
 #include "renderer/buffer/GPUBufferProperties.h"
-#include "renderer/buffer/GPUBufferView.h"
 
 #include <core/Assert.h>
 
@@ -42,24 +41,4 @@ BufferInfo create_buffer(ReaperRoot& root, VkDevice device, const char* debug_st
 
 void upload_buffer_data(VkDevice device, const VmaAllocator& allocator, const BufferInfo& buffer, const void* data,
                         std::size_t size, u32 offset_elements = 0);
-
-VkWriteDescriptorSet create_buffer_descriptor_write(VkDescriptorSet descriptorSet, u32 binding,
-                                                    VkDescriptorType              descriptorType,
-                                                    const VkDescriptorBufferInfo* bufferInfo);
-
-VkDescriptorBufferInfo default_descriptor_buffer_info(const BufferInfo& bufferInfo);
-
-inline VkDescriptorBufferInfo get_vk_descriptor_buffer_info(const BufferInfo&        bufferInfo,
-                                                            const BufferSubresource& subresource)
-{
-    Assert(bufferInfo.properties.stride > 0);
-
-    const GPUBufferView view = get_buffer_view(bufferInfo.properties, subresource);
-
-    return {
-        bufferInfo.handle,
-        view.offset_bytes,
-        view.size_bytes,
-    };
-}
 } // namespace Reaper

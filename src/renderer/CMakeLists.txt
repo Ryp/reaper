@@ -61,6 +61,8 @@ target_sources(${target} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Buffer.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Debug.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Debug.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/DescriptorSet.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/DescriptorSet.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Display.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Display.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/FrameGraphResources.cpp

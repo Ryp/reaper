@@ -13,6 +13,7 @@
 #include "renderer/vulkan/Backend.h"
 #include "renderer/vulkan/Barrier.h"
 #include "renderer/vulkan/CommandBuffer.h"
+#include "renderer/vulkan/DescriptorSet.h"
 #include "renderer/vulkan/Pipeline.h"
 #include "renderer/vulkan/ShaderModules.h"
 
@@ -128,21 +129,14 @@ void upload_audio_frame_resources(VulkanBackend& backend, const PreparedData& pr
                        prepared.audio_instance_params.size() * sizeof(OscillatorInstance));
 }
 
-void update_audio_pass_descriptor_set(VulkanBackend& backend, AudioResources& resources)
+void update_audio_pass_descriptor_set(DescriptorWriteHelper& write_helper, AudioResources& resources)
 {
-    const VkDescriptorBufferInfo descPassParams = default_descriptor_buffer_info(resources.passConstantBuffer);
-    const VkDescriptorBufferInfo descInstanceParams = default_descriptor_buffer_info(resources.instanceParamsBuffer);
-    const VkDescriptorBufferInfo descOutput = default_descriptor_buffer_info(resources.outputBuffer);
-
-    std::array<VkWriteDescriptorSet, 3> audioPassDescriptorSetWrites = {
-        create_buffer_descriptor_write(resources.descriptor_set, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &descPassParams),
-        create_buffer_descriptor_write(resources.descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                                       &descInstanceParams),
-        create_buffer_descriptor_write(resources.descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &descOutput),
-    };
-
-    vkUpdateDescriptorSets(backend.device, static_cast<u32>(audioPassDescriptorSetWrites.size()),
-                           audioPassDescriptorSetWrites.data(), 0, nullptr);
+    append_write(write_helper, resources.descriptor_set, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                 resources.passConstantBuffer.handle);
+    append_write(write_helper, resources.descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                 resources.instanceParamsBuffer.handle);
+    append_write(write_helper, resources.descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                 resources.outputBuffer.handle);
 }
 
 void record_audio_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& prepared, AudioResources& resources)

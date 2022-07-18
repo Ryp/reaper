@@ -13,6 +13,7 @@
 #include "renderer/vulkan/CommandBuffer.h"
 #include "renderer/vulkan/ComputeHelper.h"
 #include "renderer/vulkan/Debug.h"
+#include "renderer/vulkan/DescriptorSet.h"
 #include "renderer/vulkan/FrameSync.h"
 #include "renderer/vulkan/GpuProfile.h"
 #include "renderer/vulkan/MaterialResources.h"
@@ -439,9 +440,12 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     allocate_framegraph_volatile_resources(root, backend, resources.framegraph_resources, framegraph);
 
-    update_culling_pass_descriptor_sets(backend, prepared, resources.cull_resources, resources.mesh_cache);
+    DescriptorWriteHelper descriptor_write_helper = create_descriptor_write_helper(200, 200);
 
-    update_shadow_map_pass_descriptor_sets(backend, prepared, resources.shadow_map_resources,
+    update_culling_pass_descriptor_sets(descriptor_write_helper, prepared, resources.cull_resources,
+                                        resources.mesh_cache);
+
+    update_shadow_map_pass_descriptor_sets(descriptor_write_helper, prepared, resources.shadow_map_resources,
                                            resources.mesh_cache.vertexBufferPosition);
 
     std::vector<VkImageView> shadow_map_views;
@@ -451,12 +455,12 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
             get_frame_graph_texture(resources.framegraph_resources, framegraph, handle).view_handle);
     }
 
-    update_forward_pass_descriptor_sets(backend, resources.forward_pass_resources, resources.samplers_resources,
-                                        resources.material_resources, resources.mesh_cache,
-                                        resources.lighting_resources, shadow_map_views);
+    update_forward_pass_descriptor_sets(descriptor_write_helper, resources.forward_pass_resources,
+                                        resources.samplers_resources, resources.material_resources,
+                                        resources.mesh_cache, resources.lighting_resources, shadow_map_views);
 
     update_lighting_pass_descriptor_set(
-        backend, resources.lighting_resources, resources.samplers_resources,
+        descriptor_write_helper, resources.lighting_resources, resources.samplers_resources,
         get_frame_graph_texture(resources.framegraph_resources, framegraph, tile_depth_read_usage_handle).view_handle,
         get_frame_graph_texture(resources.framegraph_resources, framegraph, tile_depth_min_create_usage_handle)
             .view_handle,
@@ -464,7 +468,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
             .view_handle);
 
     update_depth_copy_pass_descriptor_set(
-        backend, resources.lighting_resources,
+        descriptor_write_helper, resources.lighting_resources,
         get_frame_graph_texture(resources.framegraph_resources, framegraph, tile_depth_min_copy_src_usage_handle)
             .view_handle,
         get_frame_graph_texture(resources.framegraph_resources, framegraph, tile_depth_max_copy_src_usage_handle)
@@ -475,25 +479,27 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
             get_frame_graph_buffer(resources.framegraph_resources, framegraph, list_list_write_usage_handle);
 
         update_light_raster_pass_descriptor_sets(
-            backend, resources.lighting_resources,
+            descriptor_write_helper, resources.lighting_resources,
             get_frame_graph_texture(resources.framegraph_resources, framegraph, tile_depth_min_usage_handle)
                 .view_handle,
             get_frame_graph_texture(resources.framegraph_resources, framegraph, tile_depth_max_usage_handle)
                 .view_handle,
-            buffer.handle, buffer.view);
+            buffer.handle);
     }
 
     update_histogram_pass_descriptor_set(
-        backend, resources.histogram_pass_resources, resources.samplers_resources,
+        descriptor_write_helper, resources.histogram_pass_resources, resources.samplers_resources,
         get_frame_graph_texture(resources.framegraph_resources, framegraph, histogram_hdr_usage_handle).view_handle,
         get_frame_graph_buffer(resources.framegraph_resources, framegraph, histogram_write_usage_handle));
 
     update_swapchain_pass_descriptor_set(
-        backend, resources.swapchain_pass_resources, resources.samplers_resources,
+        descriptor_write_helper, resources.swapchain_pass_resources, resources.samplers_resources,
         get_frame_graph_texture(resources.framegraph_resources, framegraph, swapchain_hdr_usage_handle).view_handle,
         get_frame_graph_texture(resources.framegraph_resources, framegraph, swapchain_gui_usage_handle).view_handle);
 
-    update_audio_pass_descriptor_set(backend, resources.audio_resources);
+    update_audio_pass_descriptor_set(descriptor_write_helper, resources.audio_resources);
+
+    flush_descriptor_write_helper(descriptor_write_helper, backend.device);
 
     log_debug(root, "vulkan: record command buffer");
     Assert(vkResetCommandBuffer(cmdBuffer.handle, 0) == VK_SUCCESS);

@@ -55,9 +55,10 @@ struct PreparedData;
 void upload_culling_resources(VulkanBackend& backend, const PreparedData& prepared, CullResources& resources);
 
 struct MeshCache;
+struct DescriptorWriteHelper;
 
-void update_culling_pass_descriptor_sets(VulkanBackend& backend, const PreparedData& prepared, CullResources& resources,
-                                         const MeshCache& mesh_cache);
+void update_culling_pass_descriptor_sets(DescriptorWriteHelper& write_helper, const PreparedData& prepared,
+                                         CullResources& resources, const MeshCache& mesh_cache);
 
 struct CommandBuffer;
 

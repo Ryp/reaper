@@ -47,17 +47,19 @@ LightingPassResources create_lighting_pass_resources(ReaperRoot& root, VulkanBac
 void                  destroy_lighting_pass_resources(VulkanBackend& backend, LightingPassResources& resources);
 
 struct SamplerResources;
+struct GPUBufferView;
+struct DescriptorWriteHelper;
 
-void update_lighting_pass_descriptor_set(VulkanBackend& backend, const LightingPassResources& resources,
+void update_lighting_pass_descriptor_set(DescriptorWriteHelper& write_helper, const LightingPassResources& resources,
                                          const SamplerResources& sampler_resources, VkImageView scene_depth_view,
                                          VkImageView tile_depth_min_view, VkImageView tile_depth_max_view);
 
-void update_depth_copy_pass_descriptor_set(VulkanBackend& backend, const LightingPassResources& resources,
+void update_depth_copy_pass_descriptor_set(DescriptorWriteHelper& write_helper, const LightingPassResources& resources,
                                            VkImageView depth_min_src, VkImageView depth_max_src);
 
-void update_light_raster_pass_descriptor_sets(VulkanBackend& backend, const LightingPassResources& resources,
-                                              VkImageView depth_min, VkImageView depth_max, VkBuffer light_list_buffer,
-                                              const GPUBufferView& light_list_view);
+void update_light_raster_pass_descriptor_sets(DescriptorWriteHelper&       write_helper,
+                                              const LightingPassResources& resources, VkImageView depth_min,
+                                              VkImageView depth_max, VkBuffer light_list_buffer);
 
 struct PreparedData;
 

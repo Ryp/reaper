@@ -11,9 +11,11 @@
 #include "ShadowConstants.h"
 
 #include "renderer/PrepareBuckets.h"
+#include "renderer/buffer/GPUBufferView.h"
 #include "renderer/texture/GPUTextureProperties.h"
 #include "renderer/vulkan/Backend.h"
 #include "renderer/vulkan/CommandBuffer.h"
+#include "renderer/vulkan/DescriptorSet.h"
 #include "renderer/vulkan/GpuProfile.h"
 #include "renderer/vulkan/Image.h"
 #include "renderer/vulkan/Pipeline.h"
@@ -31,32 +33,6 @@ namespace Reaper
 {
 constexpr u32 ShadowInstanceCountMax = 512;
 constexpr u32 MaxShadowPassCount = 4;
-
-namespace
-{
-    void update_shadow_map_pass_descriptor_set(VulkanBackend& backend, const ShadowMapResources& resources,
-                                               const ShadowPassData& shadow_pass, BufferInfo& vertex_position_buffer)
-    {
-        Assert(shadow_pass.pass_index < resources.descriptor_sets.size());
-        VkDescriptorSet descriptor_set = resources.descriptor_sets[shadow_pass.pass_index];
-
-        const VkDescriptorBufferInfo descPassParams =
-            get_vk_descriptor_buffer_info(resources.passConstantBuffer, BufferSubresource{shadow_pass.pass_index, 1});
-        const VkDescriptorBufferInfo descInstanceParams =
-            get_vk_descriptor_buffer_info(resources.instanceConstantBuffer,
-                                          BufferSubresource{shadow_pass.instance_offset, shadow_pass.instance_count});
-        const VkDescriptorBufferInfo descVertexPosition = default_descriptor_buffer_info(vertex_position_buffer);
-
-        std::vector<VkWriteDescriptorSet> shadowMapPassDescriptorSetWrites = {
-            create_buffer_descriptor_write(descriptor_set, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &descPassParams),
-            create_buffer_descriptor_write(descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &descInstanceParams),
-            create_buffer_descriptor_write(descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &descVertexPosition),
-        };
-
-        vkUpdateDescriptorSets(backend.device, static_cast<u32>(shadowMapPassDescriptorSetWrites.size()),
-                               shadowMapPassDescriptorSetWrites.data(), 0, nullptr);
-    }
-} // namespace
 
 ShadowMapResources create_shadow_map_resources(ReaperRoot& root, VulkanBackend& backend,
                                                const ShaderModules& shader_modules)
@@ -117,14 +93,29 @@ void destroy_shadow_map_resources(VulkanBackend& backend, ShadowMapResources& re
     vkDestroyDescriptorSetLayout(backend.device, resources.pipe.descSetLayout, nullptr);
 }
 
-void update_shadow_map_pass_descriptor_sets(VulkanBackend& backend, const PreparedData& prepared,
-                                            ShadowMapResources& pass_resources, BufferInfo& vertex_position_buffer)
+void update_shadow_map_pass_descriptor_sets(DescriptorWriteHelper& write_helper, const PreparedData& prepared,
+                                            ShadowMapResources& resources, BufferInfo& vertex_position_buffer)
 {
     for (const ShadowPassData& shadow_pass : prepared.shadow_passes)
     {
         if (shadow_pass.instance_count > 0)
         {
-            update_shadow_map_pass_descriptor_set(backend, pass_resources, shadow_pass, vertex_position_buffer);
+            Assert(shadow_pass.pass_index < resources.descriptor_sets.size());
+
+            VkDescriptorSet descriptor_set = resources.descriptor_sets[shadow_pass.pass_index];
+
+            const GPUBufferView constant_view =
+                get_buffer_view(resources.passConstantBuffer.properties, BufferSubresource{shadow_pass.pass_index, 1});
+            const GPUBufferView instances_view = get_buffer_view(resources.instanceConstantBuffer.properties,
+                                                                 BufferSubresource{shadow_pass.pass_index, 1});
+
+            append_write(write_helper, descriptor_set, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                         resources.passConstantBuffer.handle, constant_view.offset_bytes, constant_view.size_bytes);
+            append_write(write_helper, descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                         resources.instanceConstantBuffer.handle, instances_view.offset_bytes,
+                         instances_view.size_bytes);
+            append_write(write_helper, descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                         vertex_position_buffer.handle);
         }
     }
 }

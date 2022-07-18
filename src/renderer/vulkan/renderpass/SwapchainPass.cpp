@@ -13,6 +13,7 @@
 #include "renderer/PrepareBuckets.h"
 #include "renderer/vulkan/Backend.h"
 #include "renderer/vulkan/CommandBuffer.h"
+#include "renderer/vulkan/DescriptorSet.h"
 #include "renderer/vulkan/Image.h"
 #include "renderer/vulkan/Pipeline.h"
 #include "renderer/vulkan/RenderPassHelpers.h"
@@ -207,26 +208,17 @@ void reload_swapchain_pipeline(VulkanBackend& backend, const ShaderModules& shad
                                                    backend.presentInfo.surfaceFormat.format);
 }
 
-void update_swapchain_pass_descriptor_set(VulkanBackend& backend, const SwapchainPassResources& resources,
+void update_swapchain_pass_descriptor_set(DescriptorWriteHelper& write_helper, const SwapchainPassResources& resources,
                                           const SamplerResources& sampler_resources, VkImageView hdr_scene_texture_view,
                                           VkImageView gui_texture_view)
 {
-    const VkDescriptorBufferInfo passParams = default_descriptor_buffer_info(resources.passConstantBuffer);
-    const VkDescriptorImageInfo  sampler = {sampler_resources.linearBlackBorderSampler, VK_NULL_HANDLE,
-                                           VK_IMAGE_LAYOUT_UNDEFINED};
-    const VkDescriptorImageInfo  sceneTexture = {VK_NULL_HANDLE, hdr_scene_texture_view,
-                                                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
-    const VkDescriptorImageInfo  guiTextureInfo = {VK_NULL_HANDLE, gui_texture_view,
-                                                  VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
-
-    std::vector<VkWriteDescriptorSet> writes = {
-        create_buffer_descriptor_write(resources.descriptor_set, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &passParams),
-        create_image_descriptor_write(resources.descriptor_set, 1, VK_DESCRIPTOR_TYPE_SAMPLER, &sampler),
-        create_image_descriptor_write(resources.descriptor_set, 2, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, &sceneTexture),
-        create_image_descriptor_write(resources.descriptor_set, 3, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, &guiTextureInfo),
-    };
-
-    vkUpdateDescriptorSets(backend.device, static_cast<u32>(writes.size()), writes.data(), 0, nullptr);
+    append_write(write_helper, resources.descriptor_set, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                 resources.passConstantBuffer.handle);
+    append_write(write_helper, resources.descriptor_set, 1, sampler_resources.linearBlackBorderSampler);
+    append_write(write_helper, resources.descriptor_set, 2, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, hdr_scene_texture_view,
+                 VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    append_write(write_helper, resources.descriptor_set, 3, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, gui_texture_view,
+                 VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 }
 
 void upload_swapchain_frame_resources(VulkanBackend& backend, const PreparedData& prepared,

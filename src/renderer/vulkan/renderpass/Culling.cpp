@@ -14,6 +14,7 @@
 #include "renderer/vulkan/CommandBuffer.h"
 #include "renderer/vulkan/ComputeHelper.h"
 #include "renderer/vulkan/Debug.h"
+#include "renderer/vulkan/DescriptorSet.h"
 #include "renderer/vulkan/GpuProfile.h"
 #include "renderer/vulkan/MeshCache.h"
 #include "renderer/vulkan/Pipeline.h"
@@ -39,83 +40,6 @@ constexpr u32 MaxSurvivingMeshletsPerPass = 200;
 constexpr u64 DynamicIndexBufferSizeBytes =
     MaxSurvivingMeshletsPerPass * MaxCullPassCount * MeshletMaxTriangleCount * 3 * IndexSizeBytes;
 constexpr u32 MaxIndirectDrawCountPerPass = MaxSurvivingMeshletsPerPass;
-
-namespace
-{
-    void update_cull_meshlet_descriptor_sets(VulkanBackend& backend, CullResources& resources,
-                                             const BufferInfo& meshletBuffer, u32 pass_index)
-    {
-        VkDescriptorSet descriptor_set = resources.cull_meshlet_descriptor_sets[pass_index];
-
-        const VkDescriptorBufferInfo meshlets = default_descriptor_buffer_info(meshletBuffer);
-        const VkDescriptorBufferInfo instanceParams =
-            default_descriptor_buffer_info(resources.cullInstanceParamsBuffer);
-        const VkDescriptorBufferInfo counters = get_vk_descriptor_buffer_info(
-            resources.countersBuffer, BufferSubresource{pass_index * CountersCount, CountersCount});
-        const VkDescriptorBufferInfo meshlet_offsets = get_vk_descriptor_buffer_info(
-            resources.dynamicMeshletBuffer,
-            BufferSubresource{pass_index * MaxSurvivingMeshletsPerPass, MaxSurvivingMeshletsPerPass});
-
-        std::vector<VkWriteDescriptorSet> writes = {
-            create_buffer_descriptor_write(descriptor_set, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &meshlets),
-            create_buffer_descriptor_write(descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &instanceParams),
-            create_buffer_descriptor_write(descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &counters),
-            create_buffer_descriptor_write(descriptor_set, 3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &meshlet_offsets),
-        };
-
-        vkUpdateDescriptorSets(backend.device, static_cast<u32>(writes.size()), writes.data(), 0, nullptr);
-    }
-
-    void update_culling_descriptor_sets(VulkanBackend& backend, CullResources& resources,
-                                        const BufferInfo& staticIndexBuffer, const BufferInfo& vertexBufferPosition,
-                                        u32 pass_index)
-    {
-        VkDescriptorSet descriptor_set = resources.cull_triangles_descriptor_sets[pass_index];
-
-        const VkDescriptorBufferInfo meshlets = get_vk_descriptor_buffer_info(
-            resources.dynamicMeshletBuffer,
-            BufferSubresource{pass_index * MaxSurvivingMeshletsPerPass, MaxSurvivingMeshletsPerPass});
-        const VkDescriptorBufferInfo indices = default_descriptor_buffer_info(staticIndexBuffer);
-        const VkDescriptorBufferInfo vertexPositions = default_descriptor_buffer_info(vertexBufferPosition);
-        const VkDescriptorBufferInfo instanceParams =
-            default_descriptor_buffer_info(resources.cullInstanceParamsBuffer);
-        const VkDescriptorBufferInfo indicesOut = get_vk_descriptor_buffer_info(
-            resources.dynamicIndexBuffer,
-            BufferSubresource{pass_index * DynamicIndexBufferSizeBytes, DynamicIndexBufferSizeBytes});
-        const VkDescriptorBufferInfo drawCommandOut = get_vk_descriptor_buffer_info(
-            resources.indirectDrawBuffer,
-            BufferSubresource{pass_index * MaxIndirectDrawCountPerPass, MaxIndirectDrawCountPerPass});
-        const VkDescriptorBufferInfo countersOut = get_vk_descriptor_buffer_info(
-            resources.countersBuffer, BufferSubresource{pass_index * CountersCount, CountersCount});
-
-        std::vector<VkWriteDescriptorSet> writes = {
-            create_buffer_descriptor_write(descriptor_set, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &meshlets),
-            create_buffer_descriptor_write(descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &indices),
-            create_buffer_descriptor_write(descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &vertexPositions),
-            create_buffer_descriptor_write(descriptor_set, 3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &instanceParams),
-            create_buffer_descriptor_write(descriptor_set, 4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &indicesOut),
-            create_buffer_descriptor_write(descriptor_set, 5, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &drawCommandOut),
-            create_buffer_descriptor_write(descriptor_set, 6, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &countersOut),
-        };
-
-        vkUpdateDescriptorSets(backend.device, static_cast<u32>(writes.size()), writes.data(), 0, nullptr);
-    }
-
-    void update_cull_prepare_indirect_descriptor_set(VulkanBackend& backend, CullResources& resources,
-                                                     VkDescriptorSet descriptor_set)
-    {
-        const VkDescriptorBufferInfo counters = default_descriptor_buffer_info(resources.countersBuffer);
-        const VkDescriptorBufferInfo indirectCommands =
-            default_descriptor_buffer_info(resources.indirectDispatchBuffer);
-
-        std::vector<VkWriteDescriptorSet> writes = {
-            create_buffer_descriptor_write(descriptor_set, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &counters),
-            create_buffer_descriptor_write(descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &indirectCommands),
-        };
-
-        vkUpdateDescriptorSets(backend.device, static_cast<u32>(writes.size()), writes.data(), 0, nullptr);
-    }
-} // namespace
 
 CullResources create_culling_resources(ReaperRoot& root, VulkanBackend& backend, const ShaderModules& shader_modules)
 {
@@ -298,18 +222,68 @@ void upload_culling_resources(VulkanBackend& backend, const PreparedData& prepar
                        prepared.cull_mesh_instance_params.size() * sizeof(CullMeshInstanceParams));
 }
 
-void update_culling_pass_descriptor_sets(VulkanBackend& backend, const PreparedData& prepared, CullResources& resources,
-                                         const MeshCache& mesh_cache)
+void update_culling_pass_descriptor_sets(DescriptorWriteHelper& write_helper, const PreparedData& prepared,
+                                         CullResources& resources, const MeshCache& mesh_cache)
 {
+    append_write(write_helper, resources.cull_prepare_descriptor_set, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                 resources.countersBuffer.handle);
+    append_write(write_helper, resources.cull_prepare_descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                 resources.indirectDispatchBuffer.handle);
+
     for (const CullPassData& cull_pass : prepared.cull_passes)
     {
-        Assert(cull_pass.pass_index < MaxCullPassCount);
-        update_cull_meshlet_descriptor_sets(backend, resources, mesh_cache.meshletBuffer, cull_pass.pass_index);
-        update_culling_descriptor_sets(backend, resources, mesh_cache.indexBuffer, mesh_cache.vertexBufferPosition,
-                                       cull_pass.pass_index);
-    }
+        const u32 pass_index = cull_pass.pass_index;
+        Assert(pass_index < MaxCullPassCount);
 
-    update_cull_prepare_indirect_descriptor_set(backend, resources, resources.cull_prepare_descriptor_set);
+        const GPUBufferView counter_buffer_view = get_buffer_view(
+            resources.countersBuffer.properties, BufferSubresource{pass_index * CountersCount, CountersCount});
+        const GPUBufferView dynamic_meshlet_view =
+            get_buffer_view(resources.dynamicMeshletBuffer.properties,
+                            BufferSubresource{pass_index * MaxSurvivingMeshletsPerPass, MaxSurvivingMeshletsPerPass});
+
+        {
+            VkDescriptorSet descriptor_set = resources.cull_meshlet_descriptor_sets[pass_index];
+            append_write(write_helper, descriptor_set, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                         mesh_cache.meshletBuffer.handle);
+            append_write(write_helper, descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                         resources.cullInstanceParamsBuffer.handle);
+            append_write(write_helper, descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                         resources.countersBuffer.handle, counter_buffer_view.offset_bytes,
+                         counter_buffer_view.size_bytes);
+            append_write(write_helper, descriptor_set, 3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                         resources.dynamicMeshletBuffer.handle, dynamic_meshlet_view.offset_bytes,
+                         dynamic_meshlet_view.size_bytes);
+        }
+
+        {
+            const GPUBufferView dynamic_index_view = get_buffer_view(
+                resources.dynamicIndexBuffer.properties,
+                BufferSubresource{pass_index * DynamicIndexBufferSizeBytes, DynamicIndexBufferSizeBytes});
+            const GPUBufferView indirect_draw_view = get_buffer_view(
+                resources.indirectDrawBuffer.properties,
+                BufferSubresource{pass_index * MaxIndirectDrawCountPerPass, MaxIndirectDrawCountPerPass});
+
+            VkDescriptorSet descriptor_set = resources.cull_triangles_descriptor_sets[pass_index];
+            append_write(write_helper, descriptor_set, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                         resources.dynamicMeshletBuffer.handle, dynamic_meshlet_view.offset_bytes,
+                         dynamic_meshlet_view.size_bytes);
+            append_write(write_helper, descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                         mesh_cache.indexBuffer.handle),
+                append_write(write_helper, descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                             mesh_cache.vertexBufferPosition.handle),
+                append_write(write_helper, descriptor_set, 3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                             resources.cullInstanceParamsBuffer.handle),
+                append_write(write_helper, descriptor_set, 4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                             resources.dynamicIndexBuffer.handle, dynamic_index_view.offset_bytes,
+                             dynamic_index_view.size_bytes);
+            append_write(write_helper, descriptor_set, 5, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                         resources.indirectDrawBuffer.handle, indirect_draw_view.offset_bytes,
+                         indirect_draw_view.size_bytes);
+            append_write(write_helper, descriptor_set, 6, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                         resources.countersBuffer.handle, counter_buffer_view.offset_bytes,
+                         counter_buffer_view.size_bytes);
+        }
+    }
 }
 
 void record_culling_command_buffer(ReaperRoot& root, CommandBuffer& cmdBuffer, const PreparedData& prepared,
@@ -326,7 +300,7 @@ void record_culling_command_buffer(ReaperRoot& root, CommandBuffer& cmdBuffer, c
 
         const GPUMemoryAccess  src = {VK_PIPELINE_STAGE_2_CLEAR_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT};
         const GPUMemoryAccess  dst = {VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-                                     VK_ACCESS_2_SHADER_WRITE_BIT | VK_ACCESS_2_SHADER_READ_BIT};
+                                      VK_ACCESS_2_SHADER_WRITE_BIT | VK_ACCESS_2_SHADER_READ_BIT};
         const VkMemoryBarrier2 memoryBarrier = get_vk_memory_barrier(src, dst);
         const VkDependencyInfo dependencies = get_vk_memory_barrier_depency_info(1, &memoryBarrier);
 
@@ -425,7 +399,7 @@ void record_culling_command_buffer(ReaperRoot& root, CommandBuffer& cmdBuffer, c
 
         const GPUMemoryAccess  src = {VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT};
         const GPUMemoryAccess  dst = {VK_PIPELINE_STAGE_2_VERTEX_INPUT_BIT | VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT,
-                                     VK_ACCESS_2_INDEX_READ_BIT | VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT};
+                                      VK_ACCESS_2_INDEX_READ_BIT | VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT};
         const VkMemoryBarrier2 memoryBarrier = get_vk_memory_barrier(src, dst);
         const VkDependencyInfo dependencies = get_vk_memory_barrier_depency_info(1, &memoryBarrier);
 

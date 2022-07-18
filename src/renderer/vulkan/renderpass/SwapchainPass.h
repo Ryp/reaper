@@ -42,8 +42,9 @@ void reload_swapchain_pipeline(VulkanBackend& backend, const ShaderModules& shad
                                SwapchainPassResources& resources);
 
 struct SamplerResources;
+struct DescriptorWriteHelper;
 
-void update_swapchain_pass_descriptor_set(VulkanBackend& backend, const SwapchainPassResources& resources,
+void update_swapchain_pass_descriptor_set(DescriptorWriteHelper& write_helper, const SwapchainPassResources& resources,
                                           const SamplerResources& sampler_resources, VkImageView hdr_scene_texture_view,
                                           VkImageView gui_texture_view);
 

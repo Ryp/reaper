@@ -51,8 +51,10 @@ struct PreparedData;
 
 void upload_shadow_map_resources(VulkanBackend& backend, const PreparedData& prepared, ShadowMapResources& resources);
 
-void update_shadow_map_pass_descriptor_sets(VulkanBackend& backend, const PreparedData& prepared,
-                                            ShadowMapResources& pass_resources, BufferInfo& vertex_position_buffer);
+struct DescriptorWriteHelper;
+
+void update_shadow_map_pass_descriptor_sets(DescriptorWriteHelper& write_helper, const PreparedData& prepared,
+                                            ShadowMapResources& resources, BufferInfo& vertex_position_buffer);
 
 std::vector<GPUTextureProperties> fill_shadow_map_properties(const PreparedData& prepared);
 

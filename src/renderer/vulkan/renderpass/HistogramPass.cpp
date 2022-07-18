@@ -12,6 +12,7 @@
 #include "renderer/vulkan/Backend.h"
 #include "renderer/vulkan/CommandBuffer.h"
 #include "renderer/vulkan/ComputeHelper.h"
+#include "renderer/vulkan/DescriptorSet.h"
 #include "renderer/vulkan/FrameGraphResources.h"
 #include "renderer/vulkan/Image.h"
 #include "renderer/vulkan/Pipeline.h"
@@ -65,25 +66,15 @@ void destroy_histogram_pass_resources(VulkanBackend& backend, const HistogramPas
     vkDestroyDescriptorSetLayout(backend.device, resources.descSetLayout, nullptr);
 }
 
-void update_histogram_pass_descriptor_set(VulkanBackend& backend, const HistogramPassResources& resources,
+void update_histogram_pass_descriptor_set(DescriptorWriteHelper& write_helper, const HistogramPassResources& resources,
                                           const SamplerResources& sampler_resources, VkImageView scene_hdr_view,
                                           const FrameGraphBuffer& histogram_buffer)
 {
-    const VkDescriptorImageInfo  descSampler = {sampler_resources.linearClampSampler, VK_NULL_HANDLE,
-                                               VK_IMAGE_LAYOUT_UNDEFINED};
-    const VkDescriptorImageInfo  descTexture = {VK_NULL_HANDLE, scene_hdr_view,
-                                               VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
-    const VkDescriptorBufferInfo descOutput = {histogram_buffer.handle, histogram_buffer.view.offset_bytes,
-                                               histogram_buffer.view.size_bytes};
-
-    std::vector<VkWriteDescriptorSet> drawPassDescriptorSetWrites = {
-        create_image_descriptor_write(resources.descriptor_set, 0, VK_DESCRIPTOR_TYPE_SAMPLER, &descSampler),
-        create_image_descriptor_write(resources.descriptor_set, 1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, &descTexture),
-        create_buffer_descriptor_write(resources.descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &descOutput),
-    };
-
-    vkUpdateDescriptorSets(backend.device, static_cast<u32>(drawPassDescriptorSetWrites.size()),
-                           drawPassDescriptorSetWrites.data(), 0, nullptr);
+    append_write(write_helper, resources.descriptor_set, 0, sampler_resources.linearClampSampler);
+    append_write(write_helper, resources.descriptor_set, 1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, scene_hdr_view,
+                 VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    append_write(write_helper, resources.descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, histogram_buffer.handle,
+                 histogram_buffer.view.offset_bytes, histogram_buffer.view.size_bytes);
 }
 
 void record_histogram_command_buffer(CommandBuffer& cmdBuffer, const FrameData& frame_data,
