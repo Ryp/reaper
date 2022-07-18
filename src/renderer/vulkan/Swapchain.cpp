@@ -119,8 +119,6 @@ VkFormat vulkan_swapchain_view_format_override(VkSurfaceFormatKHR surface_format
 }
 } // namespace
 
-using namespace vk;
-
 #if 0
 #    include "renderer/window/Win32Window.h"
 #endif

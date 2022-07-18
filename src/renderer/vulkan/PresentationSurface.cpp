@@ -21,8 +21,6 @@
 
 namespace Reaper
 {
-using namespace vk;
-
 void vulkan_create_presentation_surface(VkInstance instance, VkSurfaceKHR& vkPresentationSurface, IWindow* window)
 {
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
