@@ -42,12 +42,6 @@ target_sources(${target} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/texture/GPUTextureProperties.h
     ${CMAKE_CURRENT_SOURCE_DIR}/texture/GPUTextureView.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/texture/GPUTextureView.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/texture/Texture.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/texture/Texture.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/texture/TextureCache.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/texture/TextureCache.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/texture/TextureLoader.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/texture/TextureLoader.h
 
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Backend.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Backend.h
@@ -299,6 +293,5 @@ reaper_add_tests(${target}
     ${CMAKE_CURRENT_SOURCE_DIR}/test/hlsl/float_vector.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test/hlsl/float_matrix.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test/hlsl/struct.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/test/texture_loading.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test/window.cpp
 )
