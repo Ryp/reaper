@@ -9,12 +9,7 @@
 VK_CONSTANT(0) const bool spec_enable_frustum_culling = true;
 VK_CONSTANT(1) const bool spec_enable_cone_culling = true;
 
-// https://github.com/KhronosGroup/glslang/issues/1629
-#if defined(_DXC)
-VK_PUSH_CONSTANT() CullMeshletPushConstants consts;
-#else
-VK_PUSH_CONSTANT() ConstantBuffer<CullMeshletPushConstants> consts;
-#endif
+VK_PUSH_CONSTANT_HELPER(CullMeshletPushConstants) consts;
 
 VK_BINDING(0, 0) StructuredBuffer<Meshlet> meshlets;
 VK_BINDING(1, 0) StructuredBuffer<CullMeshInstanceParams> cull_mesh_instance_params;

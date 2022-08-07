@@ -26,8 +26,11 @@ descriptor_set_layout_binding_flags_create_info(nonstd::span<const VkDescriptorB
 VkDescriptorSetLayoutCreateInfo
 descriptor_set_layout_create_info(nonstd::span<const VkDescriptorSetLayoutBinding> layout_bindings);
 
-VkDescriptorSetLayout create_descriptor_set_layout(VkDevice                                         device,
-                                                   nonstd::span<const VkDescriptorSetLayoutBinding> layout_bindings);
+VkDescriptorSetLayout create_descriptor_set_layout(
+    VkDevice device,
+    nonstd::span<const VkDescriptorSetLayoutBinding>
+                                                 layout_bindings,
+    nonstd::span<const VkDescriptorBindingFlags> binding_flags = nonstd::span<const VkDescriptorBindingFlags>());
 
 const char* default_entry_point();
 

@@ -18,6 +18,8 @@
 
 namespace Reaper
 {
+constexpr u32 DiffuseMapMaxCount = 8;
+
 struct StagingEntry
 {
     GPUTextureProperties texture_properties;

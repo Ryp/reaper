@@ -268,14 +268,14 @@ void update_culling_pass_descriptor_sets(DescriptorWriteHelper& write_helper, co
                          resources.dynamicMeshletBuffer.handle, dynamic_meshlet_view.offset_bytes,
                          dynamic_meshlet_view.size_bytes);
             append_write(write_helper, descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                         mesh_cache.indexBuffer.handle),
-                append_write(write_helper, descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                             mesh_cache.vertexBufferPosition.handle),
-                append_write(write_helper, descriptor_set, 3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                             resources.cullInstanceParamsBuffer.handle),
-                append_write(write_helper, descriptor_set, 4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                             resources.dynamicIndexBuffer.handle, dynamic_index_view.offset_bytes,
-                             dynamic_index_view.size_bytes);
+                         mesh_cache.indexBuffer.handle);
+            append_write(write_helper, descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                         mesh_cache.vertexBufferPosition.handle);
+            append_write(write_helper, descriptor_set, 3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                         resources.cullInstanceParamsBuffer.handle);
+            append_write(write_helper, descriptor_set, 4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                         resources.dynamicIndexBuffer.handle, dynamic_index_view.offset_bytes,
+                         dynamic_index_view.size_bytes);
             append_write(write_helper, descriptor_set, 5, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                          resources.indirectDrawBuffer.handle, indirect_draw_view.offset_bytes,
                          indirect_draw_view.size_bytes);
@@ -487,15 +487,18 @@ std::vector<CullingStats> get_gpu_culling_stats(VulkanBackend& backend, const Pr
 
 namespace
 {
-    constexpr VkIndexType get_vk_culling_index_type()
+    VkIndexType get_vk_culling_index_type()
     {
-        if constexpr (IndexSizeBytes == 2)
+        if (IndexSizeBytes == 2)
             return VK_INDEX_TYPE_UINT16;
+        else if (IndexSizeBytes == 4)
+            return VK_INDEX_TYPE_UINT32;
         else
         {
-            static_assert(IndexSizeBytes == 4, "Invalid index size");
-            return VK_INDEX_TYPE_UINT32;
+            AssertUnreachable();
         }
+
+        return VK_INDEX_TYPE_NONE_KHR;
     }
 } // namespace
 
@@ -510,5 +513,4 @@ CullingDrawParams get_culling_draw_params(u32 pass_index)
 
     return params;
 }
-
 } // namespace Reaper

@@ -333,7 +333,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         builder.create_buffer(tile_ds_copy_pass_handle, "Light lists", light_list_properties, light_list_clear_usage);
 
     // Rasterize Light Volumes
-    const RenderPassHandle light_raster_pass_handle = builder.create_render_pass("Rasterize Light Volumes", true);
+    const RenderPassHandle light_raster_pass_handle = builder.create_render_pass("Rasterize Light Volumes");
 
     GPUResourceUsage tile_depth_cmp_usage = {};
     tile_depth_cmp_usage.access =
@@ -352,6 +352,45 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         builder.read_texture(light_raster_pass_handle, tile_depth_max_copy_create_usage_handle, tile_depth_cmp_usage);
     const ResourceUsageHandle list_list_write_usage_handle =
         builder.write_buffer(light_raster_pass_handle, light_list_clear_usage_handle, light_list_write_usage);
+
+    // Tiled Lighting
+    struct TiledLightingFrameGraphData
+    {
+        RenderPassHandle    pass_handle;
+        GPUResourceUsage    light_list_usage = {};
+        ResourceUsageHandle light_list_usage_handle;
+        GPUResourceUsage    depth_usage = {};
+        ResourceUsageHandle depth_usage_handle;
+        GPUResourceUsage    lighting_usage = {};
+        ResourceUsageHandle lighting_usage_handle;
+    } tiled_lighting;
+
+    tiled_lighting.pass_handle = builder.create_render_pass("Tiled Lighting");
+
+    tiled_lighting.light_list_usage.access =
+        GPUResourceAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT};
+    tiled_lighting.light_list_usage.buffer_view = default_buffer_view(light_list_properties);
+
+    tiled_lighting.light_list_usage_handle =
+        builder.read_buffer(tiled_lighting.pass_handle, list_list_write_usage_handle, tiled_lighting.light_list_usage);
+
+    tiled_lighting.depth_usage.access = GPUResourceAccess{
+        VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT, VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL};
+    tiled_lighting.depth_usage.texture_view = DefaultGPUTextureView(scene_depth_properties);
+
+    tiled_lighting.depth_usage_handle =
+        builder.read_texture(tiled_lighting.pass_handle, forward_depth_create_usage_handle, tiled_lighting.depth_usage);
+
+    GPUTextureProperties lighting_properties = DefaultGPUTextureProperties(
+        backbufferExtent.width, backbufferExtent.height, PixelFormat::B10G11R11_UFLOAT_PACK32);
+    lighting_properties.usage_flags = GPUTextureUsage::Storage | GPUTextureUsage::Sampled;
+
+    tiled_lighting.lighting_usage.access = GPUResourceAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+                                                             VK_ACCESS_2_SHADER_WRITE_BIT, VK_IMAGE_LAYOUT_GENERAL};
+    tiled_lighting.lighting_usage.texture_view = DefaultGPUTextureView(lighting_properties);
+
+    tiled_lighting.lighting_usage_handle = builder.create_texture(tiled_lighting.pass_handle, "Lighting",
+                                                                  lighting_properties, tiled_lighting.lighting_usage);
 
     // GUI
     const RenderPassHandle gui_pass_handle = builder.create_render_pass("GUI");
@@ -411,6 +450,14 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     const ResourceUsageHandle swapchain_hdr_usage_handle =
         builder.read_texture(swapchain_pass_handle, forward_hdr_usage_handle, swapchain_hdr_usage);
+
+    GPUResourceUsage swapchain_l_usage = {};
+    swapchain_l_usage.access = GPUResourceAccess{VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
+                                                 VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL};
+    swapchain_l_usage.texture_view = DefaultGPUTextureView(lighting_properties);
+
+    const ResourceUsageHandle swapchain_l_usage_handle =
+        builder.read_texture(swapchain_pass_handle, tiled_lighting.lighting_usage_handle, swapchain_l_usage);
 
     GPUResourceUsage swapchain_gui_usage = {};
     swapchain_gui_usage.access = GPUResourceAccess{VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
@@ -487,6 +534,16 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
             buffer.handle);
     }
 
+    update_tiled_lighting_pass_descriptor_sets(
+        descriptor_write_helper, resources.lighting_resources, resources.samplers_resources,
+        get_frame_graph_buffer(resources.framegraph_resources, framegraph, tiled_lighting.light_list_usage_handle)
+            .handle,
+        get_frame_graph_texture(resources.framegraph_resources, framegraph, tiled_lighting.depth_usage_handle)
+            .view_handle,
+        get_frame_graph_texture(resources.framegraph_resources, framegraph, tiled_lighting.lighting_usage_handle)
+            .view_handle,
+        shadow_map_views, resources.material_resources);
+
     update_histogram_pass_descriptor_set(
         descriptor_write_helper, resources.histogram_pass_resources, resources.samplers_resources,
         get_frame_graph_texture(resources.framegraph_resources, framegraph, histogram_hdr_usage_handle).view_handle,
@@ -495,6 +552,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     update_swapchain_pass_descriptor_set(
         descriptor_write_helper, resources.swapchain_pass_resources, resources.samplers_resources,
         get_frame_graph_texture(resources.framegraph_resources, framegraph, swapchain_hdr_usage_handle).view_handle,
+        get_frame_graph_texture(resources.framegraph_resources, framegraph, swapchain_l_usage_handle).view_handle,
         get_frame_graph_texture(resources.framegraph_resources, framegraph, swapchain_gui_usage_handle).view_handle);
 
     update_audio_pass_descriptor_set(descriptor_write_helper, resources.audio_resources);
@@ -647,6 +705,19 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
             record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
                                        light_raster_pass_handle, false);
+        }
+
+        {
+            REAPER_GPU_SCOPE(cmdBuffer, "Tiled Lighting");
+            record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
+                                       tiled_lighting.pass_handle, true);
+
+            record_tiled_lighting_command_buffer(
+                cmdBuffer, resources.lighting_resources, backbufferExtent,
+                VkExtent2D{tile_depth_copy_properties.width, tile_depth_copy_properties.height});
+
+            record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
+                                       tiled_lighting.pass_handle, false);
         }
 
         {

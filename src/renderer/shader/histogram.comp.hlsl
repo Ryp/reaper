@@ -5,12 +5,7 @@
 #include "share/hdr.hlsl"
 
 // Input
-// https://github.com/KhronosGroup/glslang/issues/1629
-#if defined(_DXC)
-VK_PUSH_CONSTANT() ReduceHDRPassParams consts;
-#else
-VK_PUSH_CONSTANT() ConstantBuffer<ReduceHDRPassParams> consts;
-#endif
+VK_PUSH_CONSTANT_HELPER(ReduceHDRPassParams) consts;
 
 VK_BINDING(0, 0) SamplerState Sampler;
 VK_BINDING(1, 0) Texture2D<float3> t_hdr_color;

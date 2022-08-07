@@ -7,12 +7,7 @@
 //------------------------------------------------------------------------------
 // Input
 
-// https://github.com/KhronosGroup/glslang/issues/1629
-#if defined(_DXC)
-VK_PUSH_CONSTANT() SoundPushConstants consts;
-#else
-VK_PUSH_CONSTANT() ConstantBuffer<SoundPushConstants> consts;
-#endif
+VK_PUSH_CONSTANT_HELPER(SoundPushConstants) consts;
 
 VK_BINDING(0, 0) ConstantBuffer<AudioPassParams> params;
 VK_BINDING(1, 0) StructuredBuffer<OscillatorInstance> instance_params;

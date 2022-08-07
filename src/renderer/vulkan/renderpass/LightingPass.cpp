@@ -7,6 +7,8 @@
 
 #include "LightingPass.h"
 
+#include "ShadowConstants.h"
+
 #include "renderer/PrepareBuckets.h"
 #include "renderer/buffer/GPUBufferView.h"
 #include "renderer/vulkan/Backend.h"
@@ -15,6 +17,7 @@
 #include "renderer/vulkan/ComputeHelper.h"
 #include "renderer/vulkan/DescriptorSet.h"
 #include "renderer/vulkan/Image.h"
+#include "renderer/vulkan/MaterialResources.h"
 #include "renderer/vulkan/Pipeline.h"
 #include "renderer/vulkan/RenderPassHelpers.h"
 #include "renderer/vulkan/SamplerResources.h"
@@ -147,11 +150,55 @@ LightingPassResources create_lighting_pass_resources(ReaperRoot& root, VulkanBac
         resources.light_raster_pipeline = pipeline;
     }
 
-    std::vector<VkDescriptorSetLayout> dset_layouts = {
-        resources.tile_depth_descriptor_set_layout, resources.depth_copy_descriptor_set_layout,
-        resources.depth_copy_descriptor_set_layout, resources.light_raster_descriptor_set_layout,
-        resources.light_raster_descriptor_set_layout};
-    std::vector<VkDescriptorSet> dsets(dset_layouts.size());
+    {
+        std::vector<VkDescriptorSetLayoutBinding> bindings0 = {
+            {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+            {1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+            {2, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+            {3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+            {4, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+            {5, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+            {6, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, ShadowMapMaxCount, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+        };
+
+        std::vector<VkDescriptorBindingFlags> bindingFlags0(bindings0.size(), VK_FLAGS_NONE);
+        bindingFlags0[6] = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT;
+
+        std::vector<VkDescriptorSetLayoutBinding> bindings1 = {
+            {0, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+            {1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, DiffuseMapMaxCount, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+        };
+
+        std::vector<VkDescriptorBindingFlags> bindingFlags1 = {VK_FLAGS_NONE,
+                                                               VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT};
+
+        std::vector<VkDescriptorSetLayout> descriptor_set_layouts = {
+            create_descriptor_set_layout(backend.device, bindings0, bindingFlags0),
+            create_descriptor_set_layout(backend.device, bindings1, bindingFlags1)};
+
+        const VkPushConstantRange pushConstantRange = {VK_SHADER_STAGE_COMPUTE_BIT, 0,
+                                                       sizeof(TiledLightingPushConstants)};
+
+        VkPipelineLayout pipeline_layout =
+            create_pipeline_layout(backend.device, descriptor_set_layouts, nonstd::span(&pushConstantRange, 1));
+
+        VkPipeline pipeline =
+            create_compute_pipeline(backend.device, pipeline_layout, shader_modules.tiled_lighting_cs);
+
+        resources.tiled_lighting_descriptor_set_layout = descriptor_set_layouts[0];
+        resources.tiled_lighting_descriptor_set_layout_material = descriptor_set_layouts[1];
+        resources.tiled_lighting_pipeline_layout = pipeline_layout;
+        resources.tiled_lighting_pipeline = pipeline;
+    }
+
+    std::vector<VkDescriptorSetLayout> dset_layouts = {resources.tile_depth_descriptor_set_layout,
+                                                       resources.depth_copy_descriptor_set_layout,
+                                                       resources.depth_copy_descriptor_set_layout,
+                                                       resources.light_raster_descriptor_set_layout,
+                                                       resources.light_raster_descriptor_set_layout,
+                                                       resources.tiled_lighting_descriptor_set_layout,
+                                                       resources.tiled_lighting_descriptor_set_layout_material};
+    std::vector<VkDescriptorSet>       dsets(dset_layouts.size());
 
     allocate_descriptor_sets(backend.device, backend.global_descriptor_pool, dset_layouts, dsets);
 
@@ -160,6 +207,8 @@ LightingPassResources create_lighting_pass_resources(ReaperRoot& root, VulkanBac
     resources.depth_copy_descriptor_sets[1] = dsets[2];
     resources.light_raster_descriptor_sets[0] = dsets[3];
     resources.light_raster_descriptor_sets[1] = dsets[4];
+    resources.tiled_lighting_descriptor_set = dsets[5];
+    resources.tiled_lighting_descriptor_set_material = dsets[6];
 
     resources.pointLightBuffer = create_buffer(
         root, backend.device, "Point light buffer",
@@ -171,14 +220,20 @@ LightingPassResources create_lighting_pass_resources(ReaperRoot& root, VulkanBac
         DefaultGPUBufferProperties(LightVolumeMax, sizeof(LightVolumeInstance), GPUBufferUsage::UniformBuffer),
         backend.vma_instance, MemUsage::CPU_To_GPU);
 
+    resources.tiledLightingConstantBuffer =
+        create_buffer(root, backend.device, "Tiled lighting constants",
+                      DefaultGPUBufferProperties(1, sizeof(TiledLightingConstants), GPUBufferUsage::UniformBuffer),
+                      backend.vma_instance, MemUsage::CPU_To_GPU);
+
     return resources;
 }
 
 void destroy_lighting_pass_resources(VulkanBackend& backend, LightingPassResources& resources)
 {
+    vmaDestroyBuffer(backend.vma_instance, resources.tiledLightingConstantBuffer.handle,
+                     resources.tiledLightingConstantBuffer.allocation);
     vmaDestroyBuffer(backend.vma_instance, resources.lightVolumeBuffer.handle, resources.lightVolumeBuffer.allocation);
     vmaDestroyBuffer(backend.vma_instance, resources.pointLightBuffer.handle, resources.pointLightBuffer.allocation);
-    vmaDestroyBuffer(backend.vma_instance, resources.light_list_buffer.handle, resources.light_list_buffer.allocation);
 
     vkDestroyPipeline(backend.device, resources.depth_copy_pipeline, nullptr);
     vkDestroyPipelineLayout(backend.device, resources.depth_copy_pipeline_layout, nullptr);
@@ -191,6 +246,11 @@ void destroy_lighting_pass_resources(VulkanBackend& backend, LightingPassResourc
     vkDestroyPipeline(backend.device, resources.light_raster_pipeline, nullptr);
     vkDestroyPipelineLayout(backend.device, resources.light_raster_pipeline_layout, nullptr);
     vkDestroyDescriptorSetLayout(backend.device, resources.light_raster_descriptor_set_layout, nullptr);
+
+    vkDestroyPipeline(backend.device, resources.tiled_lighting_pipeline, nullptr);
+    vkDestroyPipelineLayout(backend.device, resources.tiled_lighting_pipeline_layout, nullptr);
+    vkDestroyDescriptorSetLayout(backend.device, resources.tiled_lighting_descriptor_set_layout, nullptr);
+    vkDestroyDescriptorSetLayout(backend.device, resources.tiled_lighting_descriptor_set_layout_material, nullptr);
 }
 
 void update_lighting_pass_descriptor_set(DescriptorWriteHelper& write_helper, const LightingPassResources& resources,
@@ -222,16 +282,75 @@ void update_light_raster_pass_descriptor_sets(DescriptorWriteHelper&       write
     append_write(write_helper, resources.light_raster_descriptor_sets[RasterPass::Inner], 0,
                  VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, resources.lightVolumeBuffer.handle);
     append_write(write_helper, resources.light_raster_descriptor_sets[RasterPass::Inner], 1,
-                 VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, depth_min, VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL);
+                 VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, depth_min, VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL);
     append_write(write_helper, resources.light_raster_descriptor_sets[RasterPass::Inner], 2,
                  VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, light_list_buffer);
 
     append_write(write_helper, resources.light_raster_descriptor_sets[RasterPass::Outer], 0,
                  VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, resources.lightVolumeBuffer.handle);
     append_write(write_helper, resources.light_raster_descriptor_sets[RasterPass::Outer], 1,
-                 VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, depth_max, VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL);
+                 VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, depth_max, VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL);
     append_write(write_helper, resources.light_raster_descriptor_sets[RasterPass::Outer], 2,
                  VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, light_list_buffer);
+}
+
+void update_tiled_lighting_pass_descriptor_sets(DescriptorWriteHelper&       write_helper,
+                                                const LightingPassResources& resources,
+                                                const SamplerResources&      sampler_resources,
+                                                VkBuffer                     light_list_buffer,
+                                                VkImageView                  main_view_depth,
+                                                VkImageView                  lighting_output,
+                                                const nonstd::span<VkImageView>
+                                                                         shadow_map_views,
+                                                const MaterialResources& material_resources)
+{
+    VkDescriptorSet dset0 = resources.tiled_lighting_descriptor_set;
+    append_write(write_helper, dset0, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                 resources.tiledLightingConstantBuffer.handle);
+    append_write(write_helper, dset0, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, light_list_buffer);
+    append_write(write_helper, dset0, 2, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, main_view_depth,
+                 VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL);
+    append_write(write_helper, dset0, 3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, resources.pointLightBuffer.handle);
+    append_write(write_helper, dset0, 4, sampler_resources.shadowMapSampler);
+    append_write(write_helper, dset0, 5, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, lighting_output, VK_IMAGE_LAYOUT_GENERAL);
+
+    if (!shadow_map_views.empty())
+    {
+        const VkDescriptorImageInfo* image_info_ptr = write_helper.images.data() + write_helper.images.size();
+        for (auto shadow_map_texture_view : shadow_map_views)
+        {
+            write_helper.images.push_back(
+                {VK_NULL_HANDLE, shadow_map_texture_view, VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL});
+        }
+
+        nonstd::span<const VkDescriptorImageInfo> shadow_map_image_infos(image_info_ptr, shadow_map_views.size());
+
+        write_helper.writes.push_back(
+            create_image_descriptor_write(dset0, 6, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, shadow_map_image_infos));
+    }
+
+    if (!material_resources.texture_handles.empty())
+    {
+        VkDescriptorSet dset1 = resources.tiled_lighting_descriptor_set_material;
+
+        append_write(write_helper, dset1, 0, sampler_resources.diffuseMapSampler);
+
+        const VkDescriptorImageInfo* image_info_ptr = write_helper.images.data() + write_helper.images.size();
+
+        for (auto handle : material_resources.texture_handles)
+        {
+            write_helper.images.push_back({VK_NULL_HANDLE, material_resources.textures[handle].default_view,
+                                           VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL});
+        }
+
+        nonstd::span<const VkDescriptorImageInfo> albedo_image_infos(image_info_ptr,
+                                                                     material_resources.texture_handles.size());
+
+        Assert(albedo_image_infos.size() <= DiffuseMapMaxCount);
+
+        write_helper.writes.push_back(
+            create_image_descriptor_write(dset1, 1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, albedo_image_infos));
+    }
 }
 
 void upload_lighting_pass_frame_resources(VulkanBackend& backend, const PreparedData& prepared,
@@ -247,6 +366,9 @@ void upload_lighting_pass_frame_resources(VulkanBackend& backend, const Prepared
 
     upload_buffer_data(backend.device, backend.vma_instance, resources.lightVolumeBuffer, prepared.light_volumes.data(),
                        prepared.light_volumes.size() * sizeof(LightVolumeInstance));
+
+    upload_buffer_data(backend.device, backend.vma_instance, resources.tiledLightingConstantBuffer,
+                       &prepared.tiled_light_constants, sizeof(TiledLightingConstants));
 }
 
 void record_tile_depth_pass_command_buffer(CommandBuffer& cmdBuffer, const LightingPassResources& resources,
@@ -347,5 +469,28 @@ void record_light_raster_command_buffer(CommandBuffer& cmdBuffer, const Lighting
 
         vkCmdEndRendering(cmdBuffer.handle);
     }
+}
+
+void record_tiled_lighting_command_buffer(CommandBuffer& cmdBuffer, const LightingPassResources& resources,
+                                          VkExtent2D backbufferExtent, VkExtent2D tile_extent)
+{
+    vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE, resources.tiled_lighting_pipeline);
+
+    TiledLightingPushConstants push_constants;
+    push_constants.extent_ts = glm::uvec2(backbufferExtent.width, backbufferExtent.height);
+    push_constants.extent_ts_inv =
+        glm::fvec2(1.f / static_cast<float>(backbufferExtent.width), 1.f / static_cast<float>(backbufferExtent.height));
+    push_constants.tile_count_x = tile_extent.width;
+
+    vkCmdPushConstants(cmdBuffer.handle, resources.tiled_lighting_pipeline_layout, VK_SHADER_STAGE_COMPUTE_BIT, 0,
+                       sizeof(push_constants), &push_constants);
+
+    vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE, resources.tiled_lighting_pipeline_layout,
+                            0, 1, &resources.tiled_lighting_descriptor_set, 0, nullptr);
+
+    vkCmdDispatch(cmdBuffer.handle,
+                  div_round_up(backbufferExtent.width, TiledLightingThreadCountX),
+                  div_round_up(backbufferExtent.height, TiledLightingThreadCountY),
+                  1);
 }
 } // namespace Reaper

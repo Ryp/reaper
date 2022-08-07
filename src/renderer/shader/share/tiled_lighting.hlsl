@@ -10,9 +10,13 @@
 
 #include "types.hlsl"
 
-// Has to be a multiple of 8!
+// Has to be a multiple of 8
 static const hlsl_uint TileSizeX = 16;
 static const hlsl_uint TileSizeY = 16;
+
+// Has to be a multiple of TileSizeX
+static const hlsl_uint TiledLightingThreadCountX = 16;
+static const hlsl_uint TiledLightingThreadCountY = 16;
 
 static const hlsl_uint LightVolumeMax = 128;
 
@@ -36,6 +40,22 @@ struct LightVolumeInstance
     hlsl_uint       _pad0;
     hlsl_uint       _pad1;
     hlsl_uint       _pad2;
+};
+
+struct TiledLightingConstants
+{
+    hlsl_float4x4 cs_to_vs;
+    hlsl_float3x4 vs_to_ws;
+};
+
+struct TiledLightingPushConstants
+{
+    hlsl_uint2  extent_ts;
+    hlsl_float2 extent_ts_inv;
+    hlsl_uint   tile_count_x;
+    hlsl_uint   _pad0;
+    hlsl_uint   _pad1;
+    hlsl_uint   _pad2;
 };
 
 #endif

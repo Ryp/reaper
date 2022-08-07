@@ -167,6 +167,7 @@ SwapchainPassResources create_swapchain_pass_resources(ReaperRoot& root, VulkanB
         {1, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
         {2, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
         {3, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+        {4, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
     };
 
     resources.descriptorSetLayout = create_descriptor_set_layout(backend.device, descriptorSetLayoutBinding);
@@ -210,14 +211,16 @@ void reload_swapchain_pipeline(VulkanBackend& backend, const ShaderModules& shad
 
 void update_swapchain_pass_descriptor_set(DescriptorWriteHelper& write_helper, const SwapchainPassResources& resources,
                                           const SamplerResources& sampler_resources, VkImageView hdr_scene_texture_view,
-                                          VkImageView gui_texture_view)
+                                          VkImageView lighting_texture_view, VkImageView gui_texture_view)
 {
     append_write(write_helper, resources.descriptor_set, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
                  resources.passConstantBuffer.handle);
     append_write(write_helper, resources.descriptor_set, 1, sampler_resources.linearBlackBorderSampler);
     append_write(write_helper, resources.descriptor_set, 2, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, hdr_scene_texture_view,
                  VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-    append_write(write_helper, resources.descriptor_set, 3, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, gui_texture_view,
+    append_write(write_helper, resources.descriptor_set, 3, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, lighting_texture_view,
+                 VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    append_write(write_helper, resources.descriptor_set, 4, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, gui_texture_view,
                  VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 }
 

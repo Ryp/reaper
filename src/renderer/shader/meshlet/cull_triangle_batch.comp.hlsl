@@ -13,12 +13,7 @@ VK_CONSTANT(1) const bool spec_enable_backface_culling = true;
 VK_CONSTANT(2) const bool spec_enable_frustum_culling = true;
 VK_CONSTANT(3) const bool spec_enable_small_triangle_culling = true;
 
-// https://github.com/KhronosGroup/glslang/issues/1629
-#if defined(_DXC)
-VK_PUSH_CONSTANT() CullPushConstants consts;
-#else
-VK_PUSH_CONSTANT() ConstantBuffer<CullPushConstants> consts;
-#endif
+VK_PUSH_CONSTANT_HELPER(CullPushConstants) consts;
 
 VK_BINDING(0, 0) StructuredBuffer<MeshletOffsets> meshlets;
 VK_BINDING(1, 0) ByteAddressBuffer Indices;
@@ -154,9 +149,7 @@ void main(uint3 gtid : SV_GroupThreadID,
     {
         uint draw_command_index;
 
-        // NOTE: casting to uint is needed for glslang
-        // https://github.com/KhronosGroup/glslang/issues/2066
-        Counters.InterlockedAdd(DrawCommandCounterOffset * 4, uint(1), draw_command_index);
+        Counters.InterlockedAdd(DrawCommandCounterOffset * 4, 1u, draw_command_index);
 
         IndirectDrawCommand command;
         command.indexCount = lds_triangle_count * 3;

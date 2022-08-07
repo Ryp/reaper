@@ -54,9 +54,14 @@ struct StandardMaterial
     float f0;
 };
 
-float3 specular_brdf(StandardMaterial material, float3 n, float3 v, float3 l)
+float specular_brdf(StandardMaterial material, float3 n, float3 v, float3 l)
 {
     return LightingFuncGGX_REF(n, v, l, material.roughness, material.f0);
+}
+
+float diffuse_brdf(float n_dot_l_clamped)
+{
+    return n_dot_l_clamped;
 }
 
 #endif

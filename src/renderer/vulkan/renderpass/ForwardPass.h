@@ -28,7 +28,7 @@ struct ForwardPipelineInfo
 {
     VkPipeline            pipeline;
     VkPipelineLayout      pipelineLayout;
-    VkDescriptorSetLayout descSetLayout;
+    VkDescriptorSetLayout desc_set_layout;
     VkDescriptorSetLayout desc_set_layout_material;
 };
 

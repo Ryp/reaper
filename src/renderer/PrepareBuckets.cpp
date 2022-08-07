@@ -22,7 +22,10 @@ namespace Reaper
 {
 namespace
 {
-    float note(float semitone_offset, float base_freq = 440.f) { return base_freq * powf(2.f, semitone_offset / 12.f); }
+    float note(float semitone_offset, float base_freq = 440.f)
+    {
+        return base_freq * powf(2.f, semitone_offset / 12.f);
+    }
 
     glm::fmat4 apply_reverse_z_fixup(glm::fmat4 projection_matrix, bool reverse_z)
     {
@@ -201,6 +204,9 @@ void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCa
     prepared.forward_pass_constants.vs_to_cs_matrix = camera_projection_matrix;
     prepared.forward_pass_constants.ws_to_cs_matrix = main_camera_view_proj;
     prepared.forward_pass_constants.point_light_count = scene.lights.size();
+
+    prepared.tiled_light_constants.cs_to_vs = glm::inverse(camera_projection_matrix);
+    prepared.tiled_light_constants.vs_to_ws = glm::fmat4x3(main_camera_transform);
 
     for (u32 scene_light_index = 0; scene_light_index < scene.lights.size(); scene_light_index++)
     {

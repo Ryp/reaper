@@ -46,7 +46,7 @@ struct DescriptorWriteHelper;
 
 void update_swapchain_pass_descriptor_set(DescriptorWriteHelper& write_helper, const SwapchainPassResources& resources,
                                           const SamplerResources& sampler_resources, VkImageView hdr_scene_texture_view,
-                                          VkImageView gui_texture_view);
+                                          VkImageView lighting_texture_view, VkImageView gui_texture_view);
 
 struct PreparedData;
 

@@ -1,6 +1,6 @@
 #include "lib/base.hlsl"
 
-#include "lib/brdf.hlsl"
+#include "lib/lighting.hlsl"
 #include "share/forward.hlsl"
 #include "share/lighting.hlsl"
 
@@ -42,45 +42,6 @@ struct PS_OUTPUT
     float3 color : SV_Target0;
 };
 
-struct LightOutput
-{
-    float3 diffuse;
-    float3 specular;
-};
-
-LightOutput shade_point_light(
-    PointLightProperties point_light, StandardMaterial material,
-    float3 object_position_vs, float3 object_normal_vs, float3 view_direction_vs)
-{
-    const float3 object_to_light_vs = point_light.position_vs - object_position_vs;
-    const float light_distance_sq = dot(object_to_light_vs, object_to_light_vs);
-    const float light_distance_fade = rcp(1.0 + light_distance_sq);
-    const float3 light_direction_vs = object_to_light_vs * rsqrt(max(light_distance_sq, 0.0001));
-
-    const float NdotL = saturate(dot(object_normal_vs, light_direction_vs));
-
-    const float3 light_incoming_radiance = point_light.color * point_light.intensity * light_distance_fade;
-
-    LightOutput output;
-    output.diffuse = light_incoming_radiance * NdotL;
-    output.specular = light_incoming_radiance * specular_brdf(material, object_normal_vs, view_direction_vs, light_direction_vs);
-
-    return output;
-}
-
-// NOTE: shadow_map_index MUST be uniform
-float sample_shadow_map(float4x4 light_transform_ws_to_cs, float3 object_position_ws, uint shadow_map_index)
-{
-    const float4 position_shadow_map_cs = mul(light_transform_ws_to_cs, float4(object_position_ws, 1.0));
-    const float3 position_shadow_map_ndc = position_shadow_map_cs.xyz / position_shadow_map_cs.w;
-    const float2 position_shadow_map_uv = ndc_to_uv(position_shadow_map_ndc.xy);
-
-    const float shadow_depth_bias = 0.001;
-    const float shadow_pcf = t_shadow_map[shadow_map_index].SampleCmp(shadow_map_sampler, position_shadow_map_uv, position_shadow_map_ndc.z + shadow_depth_bias);
-
-    return shadow_pcf;
-}
-
 void main(in PS_INPUT input, out PS_OUTPUT output)
 {
     const float3 view_direction_vs = -normalize(input.PositionVS);
@@ -99,7 +60,8 @@ void main(in PS_INPUT input, out PS_OUTPUT output)
 
         const LightOutput lighting = shade_point_light(point_light, material, input.PositionVS, normal_vs, view_direction_vs);
 
-        const float shadow_term = spec_debug_enable_shadows ? sample_shadow_map(point_light.light_ws_to_cs, input.PositionWS, point_light.shadow_map_index) : 1.0;
+        // NOTE: shadow_map_index MUST be uniform
+        const float shadow_term = spec_debug_enable_shadows ? sample_shadow_map(t_shadow_map[point_light.shadow_map_index], shadow_map_sampler, point_light.light_ws_to_cs, input.PositionWS) : 1.0;
 
         lighting_accum.diffuse += lighting.diffuse * shadow_term;
         lighting_accum.specular += lighting.specular * shadow_term;

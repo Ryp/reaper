@@ -129,22 +129,23 @@ endif()
 set(REAPER_SHADER_DIR ${CMAKE_CURRENT_SOURCE_DIR}/shader)
 set(REAPER_SHADER_SRCS
     ${REAPER_SHADER_DIR}/copy_to_depth.frag.hlsl
-    ${REAPER_SHADER_DIR}/meshlet/prepare_fine_culling_indirect.comp.hlsl
-    ${REAPER_SHADER_DIR}/meshlet/cull_meshlet.comp.hlsl
-    ${REAPER_SHADER_DIR}/meshlet/cull_triangle_batch.comp.hlsl
     ${REAPER_SHADER_DIR}/forward.frag.hlsl
     ${REAPER_SHADER_DIR}/forward.vert.hlsl
     ${REAPER_SHADER_DIR}/fullscreen_triangle.vert.hlsl
     ${REAPER_SHADER_DIR}/gui_write.frag.hlsl
     ${REAPER_SHADER_DIR}/histogram.comp.hlsl
     ${REAPER_SHADER_DIR}/matrix_row_major_codegen_bug.comp.hlsl
-    ${REAPER_SHADER_DIR}/rasterize_light_volume.vert.hlsl
-    ${REAPER_SHADER_DIR}/rasterize_light_volume.frag.hlsl
+    ${REAPER_SHADER_DIR}/meshlet/cull_meshlet.comp.hlsl
+    ${REAPER_SHADER_DIR}/meshlet/cull_triangle_batch.comp.hlsl
+    ${REAPER_SHADER_DIR}/meshlet/prepare_fine_culling_indirect.comp.hlsl
     ${REAPER_SHADER_DIR}/render_shadow.frag.hlsl
     ${REAPER_SHADER_DIR}/render_shadow.vert.hlsl
-    ${REAPER_SHADER_DIR}/swapchain_write.frag.hlsl
     ${REAPER_SHADER_DIR}/sound/oscillator.comp.hlsl
-    ${REAPER_SHADER_DIR}/tile_depth_downsample.comp.hlsl
+    ${REAPER_SHADER_DIR}/swapchain_write.frag.hlsl
+    ${REAPER_SHADER_DIR}/tiled_lighting/rasterize_light_volume.frag.hlsl
+    ${REAPER_SHADER_DIR}/tiled_lighting/rasterize_light_volume.vert.hlsl
+    ${REAPER_SHADER_DIR}/tiled_lighting/tile_depth_downsample.comp.hlsl
+    ${REAPER_SHADER_DIR}/tiled_lighting/tiled_lighting.comp.hlsl
 )
 
 # Shader compilation
@@ -170,8 +171,10 @@ foreach(INPUT_SHADER IN LISTS REAPER_SHADER_SRCS)
     # Build the correct output name and path
     file(RELATIVE_PATH INPUT_SHADER_REL ${REAPER_SHADER_DIR} ${INPUT_SHADER})
     get_filename_component(INPUT_SHADER_REL_WLE ${INPUT_SHADER_REL} NAME_WLE)
+    get_filename_component(INPUT_SHADER_REL_DIR ${INPUT_SHADER_REL} DIRECTORY)
+    get_filename_component(SHADER_BINARY_DIR "${CMAKE_BINARY_DIR}/shader/${INPUT_SHADER_REL_DIR}" ABSOLUTE)
 
-    set(OUTPUT_SPIRV "${CMAKE_BINARY_DIR}/shader/${INPUT_SHADER_REL_WLE}.spv")
+    set(OUTPUT_SPIRV "${SHADER_BINARY_DIR}/${INPUT_SHADER_REL_WLE}.spv")
 
     get_filename_component(OUTPUT_SPIRV_PATH ${OUTPUT_SPIRV} DIRECTORY)
     get_filename_component(OUTPUT_SPIRV_NAME ${OUTPUT_SPIRV} NAME)

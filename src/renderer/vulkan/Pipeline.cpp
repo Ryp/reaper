@@ -48,10 +48,23 @@ descriptor_set_layout_create_info(nonstd::span<const VkDescriptorSetLayoutBindin
                                            static_cast<u32>(layout_bindings.size()), layout_bindings.data()};
 }
 
-VkDescriptorSetLayout create_descriptor_set_layout(VkDevice                                         device,
-                                                   nonstd::span<const VkDescriptorSetLayoutBinding> layout_bindings)
+VkDescriptorSetLayout create_descriptor_set_layout(VkDevice device,
+                                                   nonstd::span<const VkDescriptorSetLayoutBinding>
+                                                       layout_bindings,
+                                                   nonstd::span<const VkDescriptorBindingFlags>
+                                                       binding_flags)
 {
     VkDescriptorSetLayoutCreateInfo descriptorSetLayoutInfo = descriptor_set_layout_create_info(layout_bindings);
+    VkDescriptorSetLayoutBindingFlagsCreateInfo descriptorSetLayoutBindingFlags;
+
+    if (!binding_flags.empty())
+    {
+        Assert(binding_flags.size() == layout_bindings.size());
+
+        descriptorSetLayoutBindingFlags = descriptor_set_layout_binding_flags_create_info(binding_flags);
+
+        descriptorSetLayoutInfo.pNext = &descriptorSetLayoutBindingFlags;
+    }
 
     VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
     Assert(vkCreateDescriptorSetLayout(device, &descriptorSetLayoutInfo, nullptr, &descriptorSetLayout) == VK_SUCCESS);

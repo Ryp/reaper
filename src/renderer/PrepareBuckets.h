@@ -106,6 +106,7 @@ struct PreparedData
 
     std::vector<PointLightProperties> point_lights;
     std::vector<LightVolumeInstance>  light_volumes;
+    TiledLightingConstants            tiled_light_constants;
 
     std::vector<ShadowPassData>          shadow_passes;
     std::vector<ShadowMapPassParams>     shadow_pass_params;

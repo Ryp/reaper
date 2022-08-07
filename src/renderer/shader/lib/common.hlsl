@@ -28,4 +28,11 @@ float2 ndc_to_ts(float2 position_ndc, float2 extent_ts)
     return ndc_to_uv(position_ndc) * extent_ts;
 }
 
+// Does NOT take in floating point texel-space coordinates!
+// This is useful for compute shaders mostly.
+float2 ts_to_uv(uint2 position_ts, float2 extent_ts_inv)
+{
+    return (float2(position_ts) + 0.5) * extent_ts_inv;
+}
+
 #endif

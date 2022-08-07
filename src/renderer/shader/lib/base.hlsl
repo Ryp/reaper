@@ -33,12 +33,19 @@
 // Vulkan compat
 #if REAPER_USE_VULKAN_BINDING
     #define VK_PUSH_CONSTANT()          [[vk::push_constant]]
+    // https://github.com/KhronosGroup/glslang/issues/1629
+    #if defined(_DXC)
+        #define VK_PUSH_CONSTANT_HELPER(_type) VK_PUSH_CONSTANT() _type
+    #else
+        #define VK_PUSH_CONSTANT_HELPER(_type) VK_PUSH_CONSTANT() ConstantBuffer<_type>
+    #endif
     #define VK_CONSTANT(_index)         [[vk::constant_id(_index)]]
     #define VK_BINDING(_binding, _set)  [[vk::binding(_binding, _set)]]
     #define VK_LOCATION(_location)      [[vk::location(_location)]]
 #else
     // Not supported
     #define VK_PUSH_CONSTANT()
+    #define VK_PUSH_CONSTANT_HELPER(_type) _type
     #define VK_CONSTANT(_index)
     #define VK_BINDING(_binding, _set)
     #define VK_LOCATION(_location)

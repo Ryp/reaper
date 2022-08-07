@@ -3,12 +3,7 @@
 #include "share/tile_depth.hlsl"
 
 // Input
-// https://github.com/KhronosGroup/glslang/issues/1629
-#if defined(_DXC)
-VK_PUSH_CONSTANT() TileDepthConstants consts;
-#else
-VK_PUSH_CONSTANT() ConstantBuffer<TileDepthConstants> consts;
-#endif
+VK_PUSH_CONSTANT_HELPER(TileDepthConstants) consts;
 
 VK_BINDING(0, 0) SamplerState Sampler;
 VK_BINDING(1, 0) Texture2D<float> SceneDepth;

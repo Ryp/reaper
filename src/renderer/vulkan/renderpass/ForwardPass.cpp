@@ -33,68 +33,10 @@
 
 namespace Reaper
 {
-constexpr u32 DiffuseMapMaxCount = 8;
 constexpr u32 ForwardInstanceCountMax = 512;
 
 namespace
 {
-    VkDescriptorSetLayout create_descriptor_set_layout_0(VulkanBackend& backend)
-    {
-        std::vector<VkDescriptorSetLayoutBinding> descriptorSetLayoutBinding = {
-            {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-             nullptr},
-            {1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
-            {2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
-            {3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
-            {4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
-            {5, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
-            {6, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
-            {7, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, ShadowMapMaxCount, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
-        };
-
-        std::vector<VkDescriptorBindingFlags> bindingFlags = {
-            VK_FLAGS_NONE, VK_FLAGS_NONE, VK_FLAGS_NONE, VK_FLAGS_NONE,
-            VK_FLAGS_NONE, VK_FLAGS_NONE, VK_FLAGS_NONE, VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT};
-
-        Assert(bindingFlags.size() == descriptorSetLayoutBinding.size());
-
-        const VkDescriptorSetLayoutBindingFlagsCreateInfo descriptorSetLayoutBindingFlags =
-            descriptor_set_layout_binding_flags_create_info(bindingFlags);
-
-        VkDescriptorSetLayoutCreateInfo descriptorSetLayoutInfo =
-            descriptor_set_layout_create_info(descriptorSetLayoutBinding);
-        descriptorSetLayoutInfo.pNext = &descriptorSetLayoutBindingFlags;
-
-        VkDescriptorSetLayout layout = VK_NULL_HANDLE;
-        Assert(vkCreateDescriptorSetLayout(backend.device, &descriptorSetLayoutInfo, nullptr, &layout) == VK_SUCCESS);
-
-        return layout;
-    }
-
-    VkDescriptorSetLayout create_descriptor_set_layout_1(VulkanBackend& backend)
-    {
-        std::vector<VkDescriptorSetLayoutBinding> descriptorSetLayoutBinding = {
-            {0, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
-            {1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, DiffuseMapMaxCount, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
-        };
-
-        std::vector<VkDescriptorBindingFlags> bindingFlags = {VK_FLAGS_NONE, VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT};
-
-        Assert(bindingFlags.size() == descriptorSetLayoutBinding.size());
-
-        const VkDescriptorSetLayoutBindingFlagsCreateInfo descriptorSetLayoutBindingFlags =
-            descriptor_set_layout_binding_flags_create_info(bindingFlags);
-
-        VkDescriptorSetLayoutCreateInfo descriptorSetLayoutInfo =
-            descriptor_set_layout_create_info(descriptorSetLayoutBinding);
-        descriptorSetLayoutInfo.pNext = &descriptorSetLayoutBindingFlags;
-
-        VkDescriptorSetLayout layout = VK_NULL_HANDLE;
-        Assert(vkCreateDescriptorSetLayout(backend.device, &descriptorSetLayoutInfo, nullptr, &layout) == VK_SUCCESS);
-
-        return layout;
-    }
-
     VkPipeline create_forward_pipeline(ReaperRoot& root, VulkanBackend& backend, VkPipelineLayout pipeline_layout,
                                        const ShaderModules& shader_modules)
     {
@@ -150,15 +92,36 @@ ForwardPassResources create_forward_pass_resources(ReaperRoot& root, VulkanBacke
 {
     ForwardPassResources resources = {};
 
-    resources.pipe.descSetLayout = create_descriptor_set_layout_0(backend);
-    resources.pipe.desc_set_layout_material = create_descriptor_set_layout_1(backend);
-
-    std::vector<VkDescriptorSetLayout> passDescriptorSetLayouts = {
-        resources.pipe.descSetLayout,
-        resources.pipe.desc_set_layout_material,
+    std::vector<VkDescriptorSetLayoutBinding> bindings0 = {
+        {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+        {1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
+        {2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
+        {3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
+        {4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
+        {5, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+        {6, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+        {7, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, ShadowMapMaxCount, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
     };
 
-    resources.pipe.pipelineLayout = create_pipeline_layout(backend.device, passDescriptorSetLayouts);
+    std::vector<VkDescriptorBindingFlags> bindingFlags0(bindings0.size(), VK_FLAGS_NONE);
+    bindingFlags0[7] = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT;
+
+    std::vector<VkDescriptorSetLayoutBinding> bindings1 = {
+        {0, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+        {1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, DiffuseMapMaxCount, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+    };
+
+    std::vector<VkDescriptorBindingFlags> bindingFlags1 = {VK_FLAGS_NONE, VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT};
+
+    std::vector<VkDescriptorSetLayout> descriptorSetLayouts = {
+        create_descriptor_set_layout(backend.device, bindings0, bindingFlags0),
+        create_descriptor_set_layout(backend.device, bindings1, bindingFlags1),
+    };
+
+    resources.pipe.desc_set_layout = descriptorSetLayouts[0];
+    resources.pipe.desc_set_layout_material = descriptorSetLayouts[1];
+
+    resources.pipe.pipelineLayout = create_pipeline_layout(backend.device, descriptorSetLayouts);
 
     resources.pipe.pipeline = create_forward_pipeline(root, backend, resources.pipe.pipelineLayout, shader_modules);
 
@@ -173,11 +136,9 @@ ForwardPassResources create_forward_pass_resources(ReaperRoot& root, VulkanBacke
                                                  GPUBufferUsage::StorageBuffer),
                       backend.vma_instance, MemUsage::CPU_To_GPU);
 
-    std::vector<VkDescriptorSetLayout> dset_layouts = {resources.pipe.descSetLayout,
-                                                       resources.pipe.desc_set_layout_material};
-    std::vector<VkDescriptorSet>       dsets(dset_layouts.size());
+    std::vector<VkDescriptorSet> dsets(descriptorSetLayouts.size());
 
-    allocate_descriptor_sets(backend.device, backend.global_descriptor_pool, dset_layouts, dsets);
+    allocate_descriptor_sets(backend.device, backend.global_descriptor_pool, descriptorSetLayouts, dsets);
 
     resources.descriptor_set = dsets[0];
     resources.material_descriptor_set = dsets[1];
@@ -189,7 +150,7 @@ void destroy_forward_pass_resources(VulkanBackend& backend, ForwardPassResources
 {
     vkDestroyPipeline(backend.device, resources.pipe.pipeline, nullptr);
     vkDestroyPipelineLayout(backend.device, resources.pipe.pipelineLayout, nullptr);
-    vkDestroyDescriptorSetLayout(backend.device, resources.pipe.descSetLayout, nullptr);
+    vkDestroyDescriptorSetLayout(backend.device, resources.pipe.desc_set_layout, nullptr);
     vkDestroyDescriptorSetLayout(backend.device, resources.pipe.desc_set_layout_material, nullptr);
 
     vmaDestroyBuffer(backend.vma_instance, resources.passConstantBuffer.handle,
@@ -224,7 +185,7 @@ void update_forward_pass_descriptor_sets(DescriptorWriteHelper& write_helper, co
         for (auto shadow_map_texture_view : shadow_map_views)
         {
             write_helper.images.push_back(
-                {VK_NULL_HANDLE, shadow_map_texture_view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL});
+                {VK_NULL_HANDLE, shadow_map_texture_view, VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL});
         }
 
         nonstd::span<const VkDescriptorImageInfo> shadow_map_image_infos(image_info_ptr, shadow_map_views.size());

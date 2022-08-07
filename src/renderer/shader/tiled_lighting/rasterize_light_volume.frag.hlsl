@@ -1,6 +1,7 @@
 #include "lib/base.hlsl"
 
 #include "rasterize_light_volume.hlsl"
+#include "tiled_lighting.hlsl"
 
 // FIXME use spec constants
 static const bool spec_tile_lighting_enable_ps_culling = false;
@@ -56,13 +57,13 @@ void main(in VS_OUTPUT input)
 
         // Add the light to the visible lights array for this tile
         uint visible_light_array_index;
-        VisibleLightIndices.InterlockedAdd(tile_start_offset * 4, 1u, visible_light_array_index);
+        TileVisibleLightIndices.InterlockedAdd(tile_start_offset * 4, 1u, visible_light_array_index);
 
         // Discard if we filled the buffer
         if (visible_light_array_index < LightsPerTileMax)
         {
             const uint next_light_offset = tile_start_offset + 1 + visible_light_array_index;
-            VisibleLightIndices.Store(next_light_offset * 4, instance_data.light_index);
+            TileVisibleLightIndices.Store(next_light_offset * 4, instance_data.light_index);
         }
     }
 }
