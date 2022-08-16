@@ -12,8 +12,6 @@ add_library(${target} ${REAPER_BUILD_TYPE})
 target_sources(${target} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/ExecuteFrame.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/ExecuteFrame.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/Material.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/Material.h
     ${CMAKE_CURRENT_SOURCE_DIR}/PrepareBuckets.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/PrepareBuckets.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Renderer.cpp
