@@ -39,7 +39,7 @@ void update_camera_state(CameraState& state, glm::vec2 yaw_pitch_delta, glm::vec
     const float magnitudeSq = glm::dot(translation, translation);
 
     if (magnitudeSq > 1.f)
-        translation *= 1.f / glm::sqrt(magnitudeSq);
+        translation *= glm::inversesqrt(magnitudeSq);
 
     const glm::vec3 camera_offset = translation * translation_speed;
 

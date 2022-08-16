@@ -7,7 +7,8 @@
 
 #pragma once
 
-#include <Windows.h>
+#include <core/Platform.h>
+#include <windows.h>
 
 #include "Window.h"
 
@@ -19,9 +20,10 @@ public:
     Win32Window(const WindowCreationDescriptor& creationInfo);
     ~Win32Window();
 
-    void map() override final;
-    void unmap() override final;
-    void pumpEvents(std::vector<Window::Event>& eventOutput) override final;
+    void       map() override final;
+    void       unmap() override final;
+    void       pumpEvents(std::vector<Window::Event>& eventOutput) override final;
+    MouseState get_mouse_state() override final;
 
 public:
     HINSTANCE m_instance;

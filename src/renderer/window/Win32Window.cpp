@@ -154,8 +154,7 @@ void Win32Window::pumpEvents(std::vector<Window::Event>& eventOutput)
     {
         switch (message.message)
         {
-        case REAPER_WM_UPDATE_SIZE:
-        {
+        case REAPER_WM_UPDATE_SIZE: {
             const WindowSize window_size = getWindowSize(m_handle);
             eventOutput.emplace_back(Window::createResizeEvent(window_size.width, window_size.height));
             break;
@@ -167,5 +166,10 @@ void Win32Window::pumpEvents(std::vector<Window::Event>& eventOutput)
         TranslateMessage(&message);
         DispatchMessage(&message);
     }
+}
+
+MouseState Win32Window::get_mouse_state()
+{
+    return MouseState{};
 }
 } // namespace Reaper

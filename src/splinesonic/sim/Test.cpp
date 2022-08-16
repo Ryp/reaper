@@ -25,14 +25,15 @@
 #include <glm/gtx/projection.hpp>
 #include <glm/vec3.hpp>
 
-#include <bit>
-
 namespace SplineSonic
 {
 namespace
 {
 #if defined(REAPER_USE_BULLET_PHYSICS)
-    inline glm::vec3 toGlm(btVector3 const& vec) { return glm::vec3(vec.getX(), vec.getY(), vec.getZ()); }
+    inline glm::vec3 toGlm(btVector3 const& vec)
+    {
+        return glm::vec3(vec.getX(), vec.getY(), vec.getZ());
+    }
 
     inline glm::quat toGlm(btQuaternion const& quat)
     {
@@ -48,7 +49,10 @@ namespace
         return glm::fmat4x3(toGlm(basis[0]), toGlm(basis[1]), toGlm(basis[2]), translation);
     }
 
-    inline btVector3 toBt(glm::vec3 const& vec) { return btVector3(vec.x, vec.y, vec.z); }
+    inline btVector3 toBt(glm::vec3 const& vec)
+    {
+        return btVector3(vec.x, vec.y, vec.z);
+    }
 
     inline btMatrix3x3 m33toBt(const glm::fmat3x3& m)
     {
@@ -67,8 +71,15 @@ namespace
 
     static const int SimulationMaxSubStep = 3; // FIXME
 
-    glm::fvec3 forward() { return glm::vec3(1.0f, 0.0f, 0.0f); }
-    glm::fvec3 up() { return glm::vec3(0.0f, 1.0f, 0.0f); }
+    glm::fvec3 forward()
+    {
+        return glm::vec3(1.0f, 0.0f, 0.0f);
+    }
+
+    glm::fvec3 up()
+    {
+        return glm::vec3(0.0f, 1.0f, 0.0f);
+    }
 
     void pre_tick(PhysicsSim& sim, const ShipInput& input, float /*dt*/)
     {
