@@ -9,5 +9,6 @@ __pycache__/
 *$py.class
 
 # user
+.vscode/
 compile_commands.json
 misc
