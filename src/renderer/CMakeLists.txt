@@ -276,7 +276,6 @@ target_link_libraries(${target} PUBLIC
     reaper_common
     reaper_vulkan_loader
     fmt
-    gli
     glm
     span
     amd-vma
