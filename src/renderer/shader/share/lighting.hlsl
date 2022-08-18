@@ -10,6 +10,8 @@
 
 #include "types.hlsl"
 
+static const hlsl_uint InvalidShadowMapIndex = 0xFFFFFFFF;
+
 struct PointLightProperties
 {
     hlsl_float4x4 light_ws_to_cs; // FIXME xy could be in uv-space already

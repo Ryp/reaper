@@ -60,8 +60,12 @@ void main(in PS_INPUT input, out PS_OUTPUT output)
 
         const LightOutput lighting = shade_point_light(point_light, material, input.PositionVS, normal_vs, view_direction_vs);
 
-        // NOTE: shadow_map_index MUST be uniform
-        const float shadow_term = spec_debug_enable_shadows ? sample_shadow_map(t_shadow_map[point_light.shadow_map_index], shadow_map_sampler, point_light.light_ws_to_cs, input.PositionWS) : 1.0;
+        float shadow_term = 1.0;
+        if (point_light.shadow_map_index != InvalidShadowMapIndex && spec_debug_enable_shadows)
+        {
+            // NOTE: shadow_map_index MUST be uniform
+            shadow_term = sample_shadow_map(t_shadow_map[point_light.shadow_map_index], shadow_map_sampler, point_light.light_ws_to_cs, input.PositionWS);
+        }
 
         lighting_accum.diffuse += lighting.diffuse * shadow_term;
         lighting_accum.specular += lighting.specular * shadow_term;

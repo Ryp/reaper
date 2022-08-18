@@ -59,27 +59,33 @@ void                  destroy_lighting_pass_resources(VulkanBackend& backend, Li
 struct SamplerResources;
 struct GPUBufferView;
 struct DescriptorWriteHelper;
+struct FrameGraphTexture;
+struct FrameGraphBuffer;
 
 void update_lighting_pass_descriptor_set(DescriptorWriteHelper& write_helper, const LightingPassResources& resources,
-                                         const SamplerResources& sampler_resources, VkImageView scene_depth_view,
-                                         VkImageView tile_depth_min_view, VkImageView tile_depth_max_view);
+                                         const SamplerResources&  sampler_resources,
+                                         const FrameGraphTexture& scene_depth, const FrameGraphTexture& tile_depth_min,
+                                         const FrameGraphTexture& tile_depth_max);
 
 void update_depth_copy_pass_descriptor_set(DescriptorWriteHelper& write_helper, const LightingPassResources& resources,
-                                           VkImageView depth_min_src, VkImageView depth_max_src);
+                                           const FrameGraphTexture& depth_min_src,
+                                           const FrameGraphTexture& depth_max_src);
 
 void update_light_raster_pass_descriptor_sets(DescriptorWriteHelper&       write_helper,
-                                              const LightingPassResources& resources, VkImageView depth_min,
-                                              VkImageView depth_max, VkBuffer light_list_buffer);
+                                              const LightingPassResources& resources,
+                                              const FrameGraphTexture&     depth_min,
+                                              const FrameGraphTexture&     depth_max,
+                                              const FrameGraphBuffer&      light_list_buffer);
 
 struct MaterialResources;
 void update_tiled_lighting_pass_descriptor_sets(DescriptorWriteHelper&       write_helper,
                                                 const LightingPassResources& resources,
                                                 const SamplerResources&      sampler_resources,
-                                                VkBuffer                     light_list_buffer,
-                                                VkImageView                  main_view_depth,
-                                                VkImageView                  lighting_output,
-                                                const nonstd::span<VkImageView>
-                                                                         shadow_map_views,
+                                                const FrameGraphBuffer&      light_list_buffer,
+                                                const FrameGraphTexture&     main_view_depth,
+                                                const FrameGraphTexture&     lighting_output,
+                                                nonstd::span<const FrameGraphTexture>
+                                                                         shadow_maps,
                                                 const MaterialResources& material_resources);
 
 struct PreparedData;
@@ -92,12 +98,12 @@ struct CommandBuffer;
 void record_tile_depth_pass_command_buffer(CommandBuffer& cmdBuffer, const LightingPassResources& pass_resources,
                                            VkExtent2D backbufferExtent);
 
-void record_depth_copy(CommandBuffer& cmdBuffer, const LightingPassResources& pass_resources, VkImageView depth_min_dst,
-                       VkImageView depth_max_dst, VkExtent2D backbufferExtent);
+void record_depth_copy(CommandBuffer& cmdBuffer, const LightingPassResources& pass_resources,
+                       const FrameGraphTexture& depth_min_dst, const FrameGraphTexture& depth_max_dst);
 
 void record_light_raster_command_buffer(CommandBuffer& cmdBuffer, const LightingPassResources& resources,
-                                        const PreparedData& prepared, VkImageView depth_min, VkImageView depth_max,
-                                        VkExtent2D depth_extent);
+                                        const PreparedData& prepared, const FrameGraphTexture& depth_min,
+                                        const FrameGraphTexture& depth_max);
 
 void record_tiled_lighting_command_buffer(CommandBuffer& cmdBuffer, const LightingPassResources& resources,
                                           VkExtent2D backbufferExtent, VkExtent2D tile_extent);

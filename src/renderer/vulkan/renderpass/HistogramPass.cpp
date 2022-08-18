@@ -67,12 +67,12 @@ void destroy_histogram_pass_resources(VulkanBackend& backend, const HistogramPas
 }
 
 void update_histogram_pass_descriptor_set(DescriptorWriteHelper& write_helper, const HistogramPassResources& resources,
-                                          const SamplerResources& sampler_resources, VkImageView scene_hdr_view,
+                                          const SamplerResources& sampler_resources, const FrameGraphTexture& scene_hdr,
                                           const FrameGraphBuffer& histogram_buffer)
 {
     append_write(write_helper, resources.descriptor_set, 0, sampler_resources.linearClampSampler);
-    append_write(write_helper, resources.descriptor_set, 1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, scene_hdr_view,
-                 VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    append_write(write_helper, resources.descriptor_set, 1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, scene_hdr.view_handle,
+                 scene_hdr.image_layout);
     append_write(write_helper, resources.descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, histogram_buffer.handle,
                  histogram_buffer.view.offset_bytes, histogram_buffer.view.size_bytes);
 }

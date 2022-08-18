@@ -226,7 +226,12 @@ void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCa
         point_light.position_vs = light_position_vs;
         point_light.intensity = light.intensity;
         point_light.color = light.color;
-        point_light.shadow_map_index = scene_light_index; // FIXME
+        point_light.shadow_map_index = InvalidShadowMapIndex;
+
+        if (light.shadow_map_size != glm::uvec2(0, 0))
+        {
+            point_light.shadow_map_index = scene_light_index; // FIXME
+        }
 
         LightVolumeInstance& light_volume = prepared.light_volumes.emplace_back();
         light_volume.ms_to_cs =
@@ -270,13 +275,6 @@ void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCa
 
             insert_cull_command(cull_pass, mesh_alloc, cull_instance_index, 1);
         }
-    }
-
-    // Swapchain pass
-    {
-        SwapchainPassParams params = {};
-
-        prepared.swapchain_pass_params = params;
     }
 
     // Audio pass

@@ -13,6 +13,7 @@
 #include "renderer/PrepareBuckets.h"
 #include "renderer/vulkan/Backend.h"
 #include "renderer/vulkan/CommandBuffer.h"
+#include "renderer/vulkan/FrameGraphResources.h"
 #include "renderer/vulkan/Image.h"
 #include "renderer/vulkan/Pipeline.h"
 #include "renderer/vulkan/RenderPassHelpers.h"
@@ -79,9 +80,10 @@ void destroy_gui_pass_resources(VulkanBackend& backend, GuiPassResources& resour
 }
 
 void record_gui_command_buffer(CommandBuffer& cmdBuffer, const GuiPassResources& pass_resources,
-                               VkExtent2D backbufferExtent, VkImageView guiBufferView, ImDrawData* imgui_draw_data)
+                               const FrameGraphTexture& gui_buffer, ImDrawData* imgui_draw_data)
 {
-    const VkRect2D   pass_rect = default_vk_rect(backbufferExtent);
+    const VkExtent2D gui_extent = {gui_buffer.properties.width, gui_buffer.properties.height};
+    const VkRect2D   pass_rect = default_vk_rect(gui_extent);
     const VkViewport viewport = default_vk_viewport(pass_rect);
 
     vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, pass_resources.guiPipe.pipeline);
@@ -90,7 +92,7 @@ void record_gui_command_buffer(CommandBuffer& cmdBuffer, const GuiPassResources&
     vkCmdSetScissor(cmdBuffer.handle, 0, 1, &pass_rect);
 
     VkRenderingAttachmentInfo color_attachment =
-        default_rendering_attachment_info(guiBufferView, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
+        default_rendering_attachment_info(gui_buffer.view_handle, gui_buffer.image_layout);
     color_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
     color_attachment.clearValue = VkClearColor({0.f, 0.f, 0.f, 0.f});
 

@@ -32,6 +32,8 @@ target_sources(${REAPER_BIN} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/Camera.h
     ${CMAKE_CURRENT_SOURCE_DIR}/GameLoop.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/GameLoop.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/TestTiledLighting.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/TestTiledLighting.h
 )
 
 target_link_libraries(${REAPER_BIN} PRIVATE

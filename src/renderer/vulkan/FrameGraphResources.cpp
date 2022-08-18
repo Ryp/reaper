@@ -158,7 +158,8 @@ FrameGraphTexture get_frame_graph_texture(FrameGraphResources& resources, const 
     Assert(texture.handle != VK_NULL_HANDLE);
     Assert(view_handle != VK_NULL_HANDLE);
 
-    return FrameGraphTexture{texture.properties, usage.Usage.texture_view, texture.handle, view_handle};
+    return FrameGraphTexture{texture.properties, usage.Usage.texture_view, texture.handle, view_handle,
+                             usage.Usage.access.image_layout};
 }
 
 VkBuffer get_frame_graph_buffer_handle(FrameGraphResources& resources, FrameGraph::ResourceHandle resource_handle)

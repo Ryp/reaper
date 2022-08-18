@@ -16,6 +16,7 @@
 #include "renderer/vulkan/Backend.h"
 #include "renderer/vulkan/CommandBuffer.h"
 #include "renderer/vulkan/DescriptorSet.h"
+#include "renderer/vulkan/FrameGraphResources.h"
 #include "renderer/vulkan/GpuProfile.h"
 #include "renderer/vulkan/Image.h"
 #include "renderer/vulkan/Pipeline.h"
@@ -154,8 +155,9 @@ void upload_shadow_map_resources(VulkanBackend& backend, const PreparedData& pre
 }
 
 void record_shadow_map_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& prepared,
-                                      ShadowMapResources& resources, const nonstd::span<VkImageView> shadow_map_views,
-                                      const CullResources& cull_resources)
+                                      ShadowMapResources&                         resources,
+                                      const nonstd::span<const FrameGraphTexture> shadow_maps,
+                                      const CullResources&                        cull_resources)
 {
     vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, resources.pipe.pipeline);
 
@@ -166,16 +168,19 @@ void record_shadow_map_command_buffer(CommandBuffer& cmdBuffer, const PreparedDa
 
         REAPER_GPU_SCOPE(cmdBuffer, fmt::format("Shadow Pass {}", shadow_pass.pass_index).c_str());
 
-        const VkImageView shadowMapView = shadow_map_views[shadow_pass.pass_index];
-        const VkExtent2D  output_extent = {shadow_pass.shadow_map_size.x, shadow_pass.shadow_map_size.y};
-        const VkRect2D    pass_rect = default_vk_rect(output_extent);
-        const VkViewport  viewport = default_vk_viewport(pass_rect);
+        const FrameGraphTexture& shadow_map = shadow_maps[shadow_pass.pass_index];
+        const VkExtent2D         output_extent = {shadow_pass.shadow_map_size.x, shadow_pass.shadow_map_size.y};
+        const VkRect2D           pass_rect = default_vk_rect(output_extent);
+        const VkViewport         viewport = default_vk_viewport(pass_rect);
+
+        Assert(output_extent.width == shadow_map.properties.width);
+        Assert(output_extent.height == shadow_map.properties.height);
 
         vkCmdSetViewport(cmdBuffer.handle, 0, 1, &viewport);
         vkCmdSetScissor(cmdBuffer.handle, 0, 1, &pass_rect);
 
         VkRenderingAttachmentInfo depth_attachment =
-            default_rendering_attachment_info(shadowMapView, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
+            default_rendering_attachment_info(shadow_map.view_handle, shadow_map.image_layout);
         depth_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
         depth_attachment.clearValue = VkClearDepthStencil(ShadowUseReverseZ ? 0.f : 1.f, 0);
 

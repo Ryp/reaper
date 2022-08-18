@@ -57,12 +57,13 @@ struct MeshCache;
 struct LightingPassResources;
 struct SamplerResources;
 struct DescriptorWriteHelper;
+struct FrameGraphTexture;
 
 void update_forward_pass_descriptor_sets(DescriptorWriteHelper& write_helper, const ForwardPassResources& resources,
                                          const SamplerResources&  sampler_resources,
                                          const MaterialResources& material_resources, const MeshCache& mesh_cache,
-                                         const LightingPassResources&    lighting_resources,
-                                         const nonstd::span<VkImageView> shadow_map_views);
+                                         const LightingPassResources&          lighting_resources,
+                                         nonstd::span<const FrameGraphTexture> shadow_maps);
 
 struct PreparedData;
 
@@ -74,6 +75,5 @@ struct CullResources;
 
 void record_forward_pass_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& prepared,
                                         const ForwardPassResources& pass_resources, const CullResources& cull_resources,
-                                        VkExtent2D backbufferExtent, VkImageView hdrBufferView,
-                                        VkImageView depthBufferView);
+                                        const FrameGraphTexture& hdr_buffer, const FrameGraphTexture& depth_buffer);
 } // namespace Reaper

@@ -46,9 +46,10 @@ void destroy_histogram_pass_resources(VulkanBackend& backend, const HistogramPas
 
 struct SamplerResources;
 struct DescriptorWriteHelper;
+struct FrameGraphTexture;
 
 void update_histogram_pass_descriptor_set(DescriptorWriteHelper& write_helper, const HistogramPassResources& resources,
-                                          const SamplerResources& sampler_resources, VkImageView scene_hdr_view,
+                                          const SamplerResources& sampler_resources, const FrameGraphTexture& scene_hdr,
                                           const FrameGraphBuffer& histogram_buffer);
 
 struct CommandBuffer;

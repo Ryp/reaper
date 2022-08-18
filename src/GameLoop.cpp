@@ -26,6 +26,8 @@
 #include "splinesonic/trackgen/Track.h"
 
 #include "Camera.h"
+#include "Geometry.h"
+#include "TestTiledLighting.h"
 
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -38,68 +40,14 @@
 #include "renderer/window/Event.h"
 #include "renderer/window/Window.h"
 
+#define ENABLE_TEST_SCENE 1
 #define ENABLE_CONTROLLER 0
-#define ENABLE_TEST_SCENE 0
-#define ENABLE_GAME_SCENE 1
-#define ENABLE_TEST_DRIVE 1
+#define ENABLE_GAME_SCENE 0
+#define ENABLE_TEST_DRIVE 0
 #define ENABLE_FREE_CAM 0
 
 namespace Reaper
 {
-namespace
-{
-#if ENABLE_TEST_SCENE
-    SceneGraph create_static_test_scene_graph(MeshHandle mesh_handle, TextureHandle texture_handle)
-    {
-        SceneGraph scene;
-        scene.camera.scene_node = insert_scene_node(scene, glm::translate(glm::mat4(1.0f), glm::vec3(-10.f, 3.f, 3.f)));
-
-        constexpr i32 asteroid_count = 4;
-
-        // Place static track
-        for (i32 i = 0; i < asteroid_count; i++)
-        {
-            for (i32 j = 0; j < asteroid_count; j++)
-            {
-                for (i32 k = 0; k < asteroid_count; k++)
-                {
-                    glm::fvec3   position_ws(static_cast<float>(i * 2), static_cast<float>(j * 2),
-                                             static_cast<float>(k * 2));
-                    glm::fmat4x3 transform = glm::translate(glm::mat4(1.0f), position_ws);
-
-                    SceneMesh scene_mesh;
-                    scene_mesh.node_index = insert_scene_node(scene, transform);
-                    scene_mesh.mesh_handle = mesh_handle;
-                    scene_mesh.texture_handle = texture_handle;
-
-                    insert_scene_mesh(scene, scene_mesh);
-                }
-            }
-        }
-
-        const glm::vec3    light_target_ws = glm::vec3(0.f, 0.f, 0.f);
-        const glm::vec3    up_ws = glm::vec3(0.f, 1.f, 0.f);
-        const glm::vec3    light_position_ws = glm::vec3(-4.f, -4.f, -4.f);
-        const glm::fmat4x3 light_transform = glm::inverse(glm::lookAt(light_position_ws, light_target_ws, up_ws));
-
-        SceneLight light;
-        light.color = glm::fvec3(1.f, 1.f, 1.f);
-        light.intensity = 60.f;
-        light.scene_node = insert_scene_node(scene, light_transform);
-
-#    if 1
-        light.shadow_map_size = glm::uvec2(1024, 1024);
-#    else
-        light.shadow_map_size = glm::uvec2(0, 0);
-#    endif
-
-        insert_scene_light(scene, light);
-
-        return scene;
-    }
-#endif
-} // namespace
-
 void execute_game_loop(ReaperRoot& root)
 {
     IWindow*       window = root.renderer->window;
@@ -114,21 +62,7 @@ void execute_game_loop(ReaperRoot& root)
     SceneGraph scene;
 
 #if ENABLE_TEST_SCENE
-    std::vector<Mesh> meshes;
-    std::ifstream     obj_file("res/model/asteroid.obj");
-    meshes.push_back(ModelLoader::loadOBJ(obj_file));
-
-    std::vector<MeshHandle> mesh_handles(meshes.size());
-    load_meshes(backend, backend.resources->mesh_cache, meshes, mesh_handles);
-
-    std::vector<const char*> texture_filenames = {"res/texture/default.dds"};
-
-    backend.resources->material_resources.texture_handles.resize(texture_filenames.size());
-    load_textures(root, backend, backend.resources->material_resources, texture_filenames,
-                  backend.resources->material_resources.texture_handles);
-
-    scene =
-        create_static_test_scene_graph(mesh_handles.front(), backend.resources->material_resources.texture_handles[0]);
+    scene = create_test_scene_tiled_lighting(root, backend);
 #endif
 
 #if ENABLE_GAME_SCENE
@@ -160,8 +94,8 @@ void execute_game_loop(ReaperRoot& root)
     SplineSonic::generate_track_splines(game_track.skeletonNodes, game_track.splinesMS);
     SplineSonic::generate_track_skinning(game_track.skeletonNodes, game_track.splinesMS, game_track.skinning);
 
-    const std::string assetFile("res/model/track/chunk_simple.obj");
-    std::vector<Mesh> meshes(genInfo.length);
+    const std::string         assetFile("res/model/track/chunk_simple.obj");
+    std::vector<Mesh>         meshes(genInfo.length);
     std::vector<glm::fmat4x3> chunk_transforms(genInfo.length);
 
     for (u32 i = 0; i < genInfo.length; i++)
@@ -217,7 +151,7 @@ void execute_game_loop(ReaperRoot& root)
 #    else
             const glm::fvec3 camera_position = glm::vec3(-2.f, 1.f, 0.f);
             const glm::fvec3 camera_local_target = glm::vec3(1.f, 0.f, 0.f);
-            const u32 camera_parent_index = player_scene_node_index;
+            const u32        camera_parent_index = player_scene_node_index;
 #    endif
 
             const glm::fmat4x3 camera_local_transform =
@@ -238,7 +172,7 @@ void execute_game_loop(ReaperRoot& root)
 #    if ENABLE_TEST_DRIVE
         SceneMesh scene_mesh;
         scene_mesh.node_index =
-            insert_scene_node(scene, glm::fmat4(flat_quad_transform) * glm::scale(glm::fmat4(1.f), glm::vec3(2.f)));
+            insert_scene_node(scene, glm::fmat4(flat_quad_transform) * glm::scale(glm::fmat4(1.f), flat_quad_scale));
         scene_mesh.mesh_handle = mesh_handles[0];
         scene_mesh.texture_handle = backend.resources->material_resources.texture_handles[0];
 

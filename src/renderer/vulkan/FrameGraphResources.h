@@ -24,8 +24,9 @@ struct FrameGraphTexture
     GPUTextureProperties properties;
     GPUTextureView       view;
 
-    VkImage     handle;
-    VkImageView view_handle;
+    VkImage       handle;
+    VkImageView   view_handle;
+    VkImageLayout image_layout;
 };
 
 struct FrameGraphBuffer

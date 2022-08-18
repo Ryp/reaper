@@ -3,6 +3,8 @@
 #include "lib/lighting.hlsl"
 #include "tiled_lighting/tiled_lighting.hlsl"
 
+VK_CONSTANT(0) const bool spec_debug_enable_shadows = true;
+
 VK_PUSH_CONSTANT_HELPER(TiledLightingPushConstants) push;
 
 VK_BINDING(0, 0) ConstantBuffer<TiledLightingConstants> pass_params;
@@ -59,7 +61,12 @@ void main(uint3 gtid : SV_GroupThreadID,
         const LightOutput lighting = shade_point_light(point_light, material, position_vs, normal_vs, view_direction_vs);
 
         // NOTE: shadow_map_index MUST be uniform
-        const float shadow_term = sample_shadow_map(t_shadow_map[point_light.shadow_map_index], shadow_map_sampler, point_light.light_ws_to_cs, position_ws);
+        float shadow_term = 1.0;
+        if (point_light.shadow_map_index != InvalidShadowMapIndex && spec_debug_enable_shadows)
+        {
+            // NOTE: shadow_map_index MUST be uniform
+            shadow_term = sample_shadow_map(t_shadow_map[point_light.shadow_map_index], shadow_map_sampler, point_light.light_ws_to_cs, position_ws);
+        }
 
         lighting_accum.diffuse += lighting.diffuse * shadow_term;
         lighting_accum.specular += lighting.specular * shadow_term;

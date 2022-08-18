@@ -10,10 +10,10 @@
 #include "Frame.h"
 #include "ShadowConstants.h"
 
-#include "renderer/PrepareBuckets.h"
 #include "renderer/vulkan/Backend.h"
 #include "renderer/vulkan/CommandBuffer.h"
 #include "renderer/vulkan/DescriptorSet.h"
+#include "renderer/vulkan/FrameGraphResources.h"
 #include "renderer/vulkan/Image.h"
 #include "renderer/vulkan/Pipeline.h"
 #include "renderer/vulkan/RenderPassHelpers.h"
@@ -26,7 +26,6 @@
 #include "profiling/Scope.h"
 
 #include "renderer/shader/share/color_space.hlsl"
-#include "renderer/shader/share/swapchain.hlsl"
 
 namespace Reaper
 {
@@ -157,17 +156,16 @@ namespace
     }
 } // namespace
 
-SwapchainPassResources create_swapchain_pass_resources(ReaperRoot& root, VulkanBackend& backend,
+SwapchainPassResources create_swapchain_pass_resources(ReaperRoot& /*root*/, VulkanBackend& backend,
                                                        const ShaderModules& shader_modules)
 {
     SwapchainPassResources resources = {};
 
     std::vector<VkDescriptorSetLayoutBinding> descriptorSetLayoutBinding = {
-        {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
-        {1, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+        {0, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+        {1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
         {2, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
         {3, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
-        {4, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
     };
 
     resources.descriptorSetLayout = create_descriptor_set_layout(backend.device, descriptorSetLayoutBinding);
@@ -175,11 +173,6 @@ SwapchainPassResources create_swapchain_pass_resources(ReaperRoot& root, VulkanB
     resources.pipelineLayout = create_pipeline_layout(backend.device, nonstd::span(&resources.descriptorSetLayout, 1));
     resources.pipeline = create_swapchain_pipeline(backend, shader_modules, resources.pipelineLayout,
                                                    backend.presentInfo.surfaceFormat.format);
-
-    resources.passConstantBuffer =
-        create_buffer(root, backend.device, "Swapchain Pass Constant buffer",
-                      DefaultGPUBufferProperties(1, sizeof(SwapchainPassParams), GPUBufferUsage::UniformBuffer),
-                      backend.vma_instance, MemUsage::CPU_To_GPU);
 
     allocate_descriptor_sets(backend.device, backend.global_descriptor_pool,
                              nonstd::span(&resources.descriptorSetLayout, 1),
@@ -190,9 +183,6 @@ SwapchainPassResources create_swapchain_pass_resources(ReaperRoot& root, VulkanB
 
 void destroy_swapchain_pass_resources(VulkanBackend& backend, const SwapchainPassResources& resources)
 {
-    vmaDestroyBuffer(backend.vma_instance, resources.passConstantBuffer.handle,
-                     resources.passConstantBuffer.allocation);
-
     vkDestroyPipeline(backend.device, resources.pipeline, nullptr);
     vkDestroyPipelineLayout(backend.device, resources.pipelineLayout, nullptr);
     vkDestroyDescriptorSetLayout(backend.device, resources.descriptorSetLayout, nullptr);
@@ -210,27 +200,18 @@ void reload_swapchain_pipeline(VulkanBackend& backend, const ShaderModules& shad
 }
 
 void update_swapchain_pass_descriptor_set(DescriptorWriteHelper& write_helper, const SwapchainPassResources& resources,
-                                          const SamplerResources& sampler_resources, VkImageView hdr_scene_texture_view,
-                                          VkImageView lighting_texture_view, VkImageView gui_texture_view)
+                                          const SamplerResources&  sampler_resources,
+                                          const FrameGraphTexture& hdr_scene_texture,
+                                          const FrameGraphTexture& lighting_texture,
+                                          const FrameGraphTexture& gui_texture)
 {
-    append_write(write_helper, resources.descriptor_set, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                 resources.passConstantBuffer.handle);
-    append_write(write_helper, resources.descriptor_set, 1, sampler_resources.linearBlackBorderSampler);
-    append_write(write_helper, resources.descriptor_set, 2, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, hdr_scene_texture_view,
-                 VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-    append_write(write_helper, resources.descriptor_set, 3, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, lighting_texture_view,
-                 VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-    append_write(write_helper, resources.descriptor_set, 4, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, gui_texture_view,
-                 VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-}
-
-void upload_swapchain_frame_resources(VulkanBackend& backend, const PreparedData& prepared,
-                                      const SwapchainPassResources& pass_resources)
-{
-    REAPER_PROFILE_SCOPE_FUNC();
-
-    upload_buffer_data(backend.device, backend.vma_instance, pass_resources.passConstantBuffer,
-                       &prepared.swapchain_pass_params, sizeof(SwapchainPassParams));
+    append_write(write_helper, resources.descriptor_set, 0, sampler_resources.linearBlackBorderSampler);
+    append_write(write_helper, resources.descriptor_set, 1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+                 hdr_scene_texture.view_handle, hdr_scene_texture.image_layout);
+    append_write(write_helper, resources.descriptor_set, 2, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+                 lighting_texture.view_handle, lighting_texture.image_layout);
+    append_write(write_helper, resources.descriptor_set, 3, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, gui_texture.view_handle,
+                 gui_texture.image_layout);
 }
 
 void record_swapchain_command_buffer(CommandBuffer& cmdBuffer, const FrameData& frame_data,

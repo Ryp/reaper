@@ -16,6 +16,7 @@
 #include "renderer/vulkan/CommandBuffer.h"
 #include "renderer/vulkan/ComputeHelper.h"
 #include "renderer/vulkan/DescriptorSet.h"
+#include "renderer/vulkan/FrameGraphResources.h"
 #include "renderer/vulkan/Image.h"
 #include "renderer/vulkan/MaterialResources.h"
 #include "renderer/vulkan/Pipeline.h"
@@ -254,76 +255,80 @@ void destroy_lighting_pass_resources(VulkanBackend& backend, LightingPassResourc
 }
 
 void update_lighting_pass_descriptor_set(DescriptorWriteHelper& write_helper, const LightingPassResources& resources,
-                                         const SamplerResources& sampler_resources, VkImageView scene_depth_view,
-                                         VkImageView tile_depth_min_view, VkImageView tile_depth_max_view)
+                                         const SamplerResources&  sampler_resources,
+                                         const FrameGraphTexture& scene_depth, const FrameGraphTexture& tile_depth_min,
+                                         const FrameGraphTexture& tile_depth_max)
 {
     append_write(write_helper, resources.tile_depth_descriptor_set, 0, sampler_resources.linearClampSampler);
     append_write(write_helper, resources.tile_depth_descriptor_set, 1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-                 scene_depth_view, VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL);
+                 scene_depth.view_handle, scene_depth.image_layout);
     append_write(write_helper, resources.tile_depth_descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
-                 tile_depth_min_view, VK_IMAGE_LAYOUT_GENERAL);
+                 tile_depth_min.view_handle, tile_depth_min.image_layout);
     append_write(write_helper, resources.tile_depth_descriptor_set, 3, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
-                 tile_depth_max_view, VK_IMAGE_LAYOUT_GENERAL);
+                 tile_depth_max.view_handle, tile_depth_max.image_layout);
 }
 
 void update_depth_copy_pass_descriptor_set(DescriptorWriteHelper& write_helper, const LightingPassResources& resources,
-                                           VkImageView depth_min_src, VkImageView depth_max_src)
+                                           const FrameGraphTexture& depth_min_src,
+                                           const FrameGraphTexture& depth_max_src)
 {
     append_write(write_helper, resources.depth_copy_descriptor_sets[0], 0, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-                 depth_min_src, VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL);
+                 depth_min_src.view_handle, depth_min_src.image_layout);
     append_write(write_helper, resources.depth_copy_descriptor_sets[1], 0, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-                 depth_max_src, VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL);
+                 depth_max_src.view_handle, depth_max_src.image_layout);
 }
 
 void update_light_raster_pass_descriptor_sets(DescriptorWriteHelper&       write_helper,
-                                              const LightingPassResources& resources, VkImageView depth_min,
-                                              VkImageView depth_max, VkBuffer light_list_buffer)
+                                              const LightingPassResources& resources,
+                                              const FrameGraphTexture&     depth_min,
+                                              const FrameGraphTexture&     depth_max,
+                                              const FrameGraphBuffer&      light_list_buffer)
 {
     append_write(write_helper, resources.light_raster_descriptor_sets[RasterPass::Inner], 0,
                  VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, resources.lightVolumeBuffer.handle);
     append_write(write_helper, resources.light_raster_descriptor_sets[RasterPass::Inner], 1,
-                 VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, depth_min, VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL);
+                 VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, depth_min.view_handle, depth_min.image_layout);
     append_write(write_helper, resources.light_raster_descriptor_sets[RasterPass::Inner], 2,
-                 VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, light_list_buffer);
+                 VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, light_list_buffer.handle);
 
     append_write(write_helper, resources.light_raster_descriptor_sets[RasterPass::Outer], 0,
                  VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, resources.lightVolumeBuffer.handle);
     append_write(write_helper, resources.light_raster_descriptor_sets[RasterPass::Outer], 1,
-                 VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, depth_max, VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL);
+                 VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, depth_max.view_handle, depth_max.image_layout);
     append_write(write_helper, resources.light_raster_descriptor_sets[RasterPass::Outer], 2,
-                 VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, light_list_buffer);
+                 VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, light_list_buffer.handle);
 }
 
 void update_tiled_lighting_pass_descriptor_sets(DescriptorWriteHelper&       write_helper,
                                                 const LightingPassResources& resources,
                                                 const SamplerResources&      sampler_resources,
-                                                VkBuffer                     light_list_buffer,
-                                                VkImageView                  main_view_depth,
-                                                VkImageView                  lighting_output,
-                                                const nonstd::span<VkImageView>
-                                                                         shadow_map_views,
+                                                const FrameGraphBuffer&      light_list_buffer,
+                                                const FrameGraphTexture&     main_view_depth,
+                                                const FrameGraphTexture&     lighting_output,
+                                                nonstd::span<const FrameGraphTexture>
+                                                                         shadow_maps,
                                                 const MaterialResources& material_resources)
 {
     VkDescriptorSet dset0 = resources.tiled_lighting_descriptor_set;
     append_write(write_helper, dset0, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
                  resources.tiledLightingConstantBuffer.handle);
-    append_write(write_helper, dset0, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, light_list_buffer);
-    append_write(write_helper, dset0, 2, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, main_view_depth,
-                 VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL);
+    append_write(write_helper, dset0, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, light_list_buffer.handle);
+    append_write(write_helper, dset0, 2, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, main_view_depth.view_handle,
+                 main_view_depth.image_layout);
     append_write(write_helper, dset0, 3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, resources.pointLightBuffer.handle);
     append_write(write_helper, dset0, 4, sampler_resources.shadowMapSampler);
-    append_write(write_helper, dset0, 5, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, lighting_output, VK_IMAGE_LAYOUT_GENERAL);
+    append_write(write_helper, dset0, 5, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, lighting_output.view_handle,
+                 lighting_output.image_layout);
 
-    if (!shadow_map_views.empty())
+    if (!shadow_maps.empty())
     {
         const VkDescriptorImageInfo* image_info_ptr = write_helper.images.data() + write_helper.images.size();
-        for (auto shadow_map_texture_view : shadow_map_views)
+        for (auto shadow_map : shadow_maps)
         {
-            write_helper.images.push_back(
-                {VK_NULL_HANDLE, shadow_map_texture_view, VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL});
+            write_helper.images.push_back({VK_NULL_HANDLE, shadow_map.view_handle, shadow_map.image_layout});
         }
 
-        nonstd::span<const VkDescriptorImageInfo> shadow_map_image_infos(image_info_ptr, shadow_map_views.size());
+        nonstd::span<const VkDescriptorImageInfo> shadow_map_image_infos(image_info_ptr, shadow_maps.size());
 
         write_helper.writes.push_back(
             create_image_descriptor_write(dset0, 6, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, shadow_map_image_infos));
@@ -393,12 +398,13 @@ void record_tile_depth_pass_command_buffer(CommandBuffer& cmdBuffer, const Light
                   1);
 }
 
-void record_depth_copy(CommandBuffer& cmdBuffer, const LightingPassResources& resources, VkImageView depth_min_dst,
-                       VkImageView depth_max_dst, VkExtent2D depth_extent)
+void record_depth_copy(CommandBuffer& cmdBuffer, const LightingPassResources& resources,
+                       const FrameGraphTexture& depth_min_dst, const FrameGraphTexture& depth_max_dst)
 {
-    std::vector<VkImageView> depth_dsts = {depth_min_dst, depth_max_dst};
-    const VkRect2D           pass_rect = default_vk_rect(depth_extent);
-    const VkViewport         viewport = default_vk_viewport(pass_rect);
+    std::vector<FrameGraphTexture> depth_dsts = {depth_min_dst, depth_max_dst};
+    const VkExtent2D               depth_extent = {depth_min_dst.properties.width, depth_min_dst.properties.height};
+    const VkRect2D                 pass_rect = default_vk_rect(depth_extent);
+    const VkViewport               viewport = default_vk_viewport(pass_rect);
 
     vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, resources.depth_copy_pipeline);
 
@@ -407,8 +413,9 @@ void record_depth_copy(CommandBuffer& cmdBuffer, const LightingPassResources& re
 
     for (u32 depth_index = 0; depth_index < 2; depth_index++)
     {
+        const FrameGraphTexture   depth_dst = depth_dsts[depth_index];
         VkRenderingAttachmentInfo depth_attachment =
-            default_rendering_attachment_info(depth_dsts[depth_index], VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
+            default_rendering_attachment_info(depth_dst.view_handle, depth_dst.image_layout);
         depth_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 
         const VkRenderingInfo rendering_info = default_rendering_info(pass_rect, nullptr, &depth_attachment);
@@ -425,12 +432,13 @@ void record_depth_copy(CommandBuffer& cmdBuffer, const LightingPassResources& re
 }
 
 void record_light_raster_command_buffer(CommandBuffer& cmdBuffer, const LightingPassResources& resources,
-                                        const PreparedData& prepared, VkImageView depth_min, VkImageView depth_max,
-                                        VkExtent2D depth_extent)
+                                        const PreparedData& prepared, const FrameGraphTexture& depth_min,
+                                        const FrameGraphTexture& depth_max)
 {
-    std::vector<VkImageView> depth_buffers = {depth_max, depth_min};
-    const VkRect2D           pass_rect = default_vk_rect(depth_extent);
-    const VkViewport         viewport = default_vk_viewport(pass_rect);
+    std::vector<FrameGraphTexture> depth_buffers = {depth_max, depth_min};
+    const VkExtent2D               depth_extent = {depth_max.properties.width, depth_max.properties.height};
+    const VkRect2D                 pass_rect = default_vk_rect(depth_extent);
+    const VkViewport               viewport = default_vk_viewport(pass_rect);
 
     vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, resources.light_raster_pipeline);
 
@@ -439,8 +447,9 @@ void record_light_raster_command_buffer(CommandBuffer& cmdBuffer, const Lighting
 
     for (u32 pass_index = 0; pass_index < 2; pass_index++)
     {
+        const FrameGraphTexture   depth_buffer = depth_buffers[pass_index];
         VkRenderingAttachmentInfo depth_attachment =
-            default_rendering_attachment_info(depth_buffers[pass_index], VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL);
+            default_rendering_attachment_info(depth_buffer.view_handle, depth_buffer.image_layout);
         depth_attachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 
         const VkRenderingInfo rendering_info = default_rendering_info(pass_rect, nullptr, &depth_attachment);

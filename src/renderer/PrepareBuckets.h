@@ -5,6 +5,8 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
+#pragma once
+
 #include <glm/glm.hpp>
 
 #include "renderer/Mesh2.h" // FIXME
@@ -19,7 +21,6 @@
 #include "renderer/shader/share/meshlet_culling.hlsl"
 #include "renderer/shader/share/shadow_map_pass.hlsl"
 #include "renderer/shader/share/sound.hlsl"
-#include "renderer/shader/share/swapchain.hlsl"
 #include "renderer/shader/share/tiled_lighting.hlsl"
 
 #include <core/Types.h>
@@ -114,8 +115,6 @@ struct PreparedData
 
     SoundPushConstants              audio_push_constants;
     std::vector<OscillatorInstance> audio_instance_params;
-
-    SwapchainPassParams swapchain_pass_params;
 };
 
 struct MeshCache;

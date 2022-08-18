@@ -49,7 +49,8 @@ void             destroy_gui_pass_resources(VulkanBackend& backend, GuiPassResou
 
 struct CommandBuffer;
 struct FrameData;
+struct FrameGraphTexture;
 
 void record_gui_command_buffer(CommandBuffer& cmdBuffer, const GuiPassResources& pass_resources,
-                               VkExtent2D backbufferExtent, VkImageView guiBufferView, ImDrawData* imgui_draw_data);
+                               const FrameGraphTexture& gui_buffer, ImDrawData* imgui_draw_data);
 } // namespace Reaper

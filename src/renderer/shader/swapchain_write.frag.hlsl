@@ -5,17 +5,15 @@
 #include "lib/tonemapping.hlsl"
 
 #include "share/color_space.hlsl"
-#include "share/swapchain.hlsl"
 
 VK_CONSTANT(0) const uint spec_transfer_function = 0;
 VK_CONSTANT(1) const uint spec_color_space = 0;
 VK_CONSTANT(2) const uint spec_tonemap_function = 0;
 
-VK_BINDING(0, 0) ConstantBuffer<SwapchainPassParams> pass_params;
-VK_BINDING(1, 0) SamplerState linear_sampler;
-VK_BINDING(2, 0) Texture2D<float3> t_hdr_scene;
-VK_BINDING(3, 0) Texture2D<float3> Lighting;
-VK_BINDING(4, 0) Texture2D<float4> t_ldr_gui;
+VK_BINDING(0, 0) SamplerState linear_sampler;
+VK_BINDING(1, 0) Texture2D<float3> t_hdr_scene;
+VK_BINDING(2, 0) Texture2D<float3> Lighting;
+VK_BINDING(3, 0) Texture2D<float4> t_ldr_gui;
 
 struct PS_INPUT
 {

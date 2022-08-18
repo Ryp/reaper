@@ -15,6 +15,7 @@
 #include "renderer/vulkan/Backend.h"
 #include "renderer/vulkan/CommandBuffer.h"
 #include "renderer/vulkan/DescriptorSet.h"
+#include "renderer/vulkan/FrameGraphResources.h"
 #include "renderer/vulkan/GpuProfile.h"
 #include "renderer/vulkan/Image.h"
 #include "renderer/vulkan/MaterialResources.h"
@@ -162,8 +163,8 @@ void destroy_forward_pass_resources(VulkanBackend& backend, ForwardPassResources
 void update_forward_pass_descriptor_sets(DescriptorWriteHelper& write_helper, const ForwardPassResources& resources,
                                          const SamplerResources&  sampler_resources,
                                          const MaterialResources& material_resources, const MeshCache& mesh_cache,
-                                         const LightingPassResources&    lighting_resources,
-                                         const nonstd::span<VkImageView> shadow_map_views)
+                                         const LightingPassResources&          lighting_resources,
+                                         nonstd::span<const FrameGraphTexture> shadow_maps)
 {
     append_write(write_helper, resources.descriptor_set, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
                  resources.passConstantBuffer.handle);
@@ -179,16 +180,15 @@ void update_forward_pass_descriptor_sets(DescriptorWriteHelper& write_helper, co
                  lighting_resources.pointLightBuffer.handle);
     append_write(write_helper, resources.descriptor_set, 6, sampler_resources.shadowMapSampler);
 
-    if (!shadow_map_views.empty())
+    if (!shadow_maps.empty())
     {
         const VkDescriptorImageInfo* image_info_ptr = write_helper.images.data() + write_helper.images.size();
-        for (auto shadow_map_texture_view : shadow_map_views)
+        for (auto shadow_map : shadow_maps)
         {
-            write_helper.images.push_back(
-                {VK_NULL_HANDLE, shadow_map_texture_view, VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL});
+            write_helper.images.push_back({VK_NULL_HANDLE, shadow_map.view_handle, shadow_map.image_layout});
         }
 
-        nonstd::span<const VkDescriptorImageInfo> shadow_map_image_infos(image_info_ptr, shadow_map_views.size());
+        nonstd::span<const VkDescriptorImageInfo> shadow_map_image_infos(image_info_ptr, shadow_maps.size());
 
         write_helper.writes.push_back(create_image_descriptor_write(
             resources.descriptor_set, 7, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, shadow_map_image_infos));
@@ -234,13 +234,13 @@ void upload_forward_pass_frame_resources(VulkanBackend& backend, const PreparedD
 
 void record_forward_pass_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& prepared,
                                         const ForwardPassResources& pass_resources, const CullResources& cull_resources,
-                                        VkExtent2D backbufferExtent, VkImageView hdrBufferView,
-                                        VkImageView depthBufferView)
+                                        const FrameGraphTexture& hdr_buffer, const FrameGraphTexture& depth_buffer)
 {
     if (prepared.forward_instances.empty())
         return;
 
-    const VkRect2D   pass_rect = default_vk_rect(backbufferExtent);
+    const VkExtent2D extent = {hdr_buffer.properties.width, hdr_buffer.properties.height};
+    const VkRect2D   pass_rect = default_vk_rect(extent);
     const VkViewport viewport = default_vk_viewport(pass_rect);
 
     vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, pass_resources.pipe.pipeline);
@@ -249,12 +249,12 @@ void record_forward_pass_command_buffer(CommandBuffer& cmdBuffer, const Prepared
     vkCmdSetScissor(cmdBuffer.handle, 0, 1, &pass_rect);
 
     VkRenderingAttachmentInfo color_attachment =
-        default_rendering_attachment_info(hdrBufferView, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
+        default_rendering_attachment_info(hdr_buffer.view_handle, hdr_buffer.image_layout);
     color_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
     color_attachment.clearValue = VkClearColor({0.1f, 0.1f, 0.1f, 0.0f});
 
     VkRenderingAttachmentInfo depth_attachment =
-        default_rendering_attachment_info(depthBufferView, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
+        default_rendering_attachment_info(depth_buffer.view_handle, depth_buffer.image_layout);
     depth_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
     depth_attachment.clearValue = VkClearDepthStencil(ForwardUseReverseZ ? 0.f : 1.f, 0);
 

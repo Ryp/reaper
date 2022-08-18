@@ -25,8 +25,6 @@ struct SwapchainPassResources
     VkPipelineLayout      pipelineLayout;
     VkDescriptorSetLayout descriptorSetLayout;
 
-    BufferInfo passConstantBuffer;
-
     VkDescriptorSet descriptor_set;
 };
 
@@ -43,15 +41,13 @@ void reload_swapchain_pipeline(VulkanBackend& backend, const ShaderModules& shad
 
 struct SamplerResources;
 struct DescriptorWriteHelper;
+struct FrameGraphTexture;
 
 void update_swapchain_pass_descriptor_set(DescriptorWriteHelper& write_helper, const SwapchainPassResources& resources,
-                                          const SamplerResources& sampler_resources, VkImageView hdr_scene_texture_view,
-                                          VkImageView lighting_texture_view, VkImageView gui_texture_view);
-
-struct PreparedData;
-
-void upload_swapchain_frame_resources(VulkanBackend& backend, const PreparedData& prepared,
-                                      const SwapchainPassResources& pass_resources);
+                                          const SamplerResources&  sampler_resources,
+                                          const FrameGraphTexture& hdr_scene_texture,
+                                          const FrameGraphTexture& lighting_texture,
+                                          const FrameGraphTexture& gui_texture);
 
 struct CommandBuffer;
 struct FrameData;
