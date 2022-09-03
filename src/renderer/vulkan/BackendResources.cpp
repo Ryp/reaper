@@ -49,7 +49,8 @@ void create_backend_resources(ReaperRoot& root, VulkanBackend& backend)
     resources.frame_sync_resources = create_frame_sync_resources(root, backend);
     resources.gui_pass_resources = create_gui_pass_resources(root, backend, resources.shader_modules);
     resources.histogram_pass_resources = create_histogram_pass_resources(root, backend, resources.shader_modules);
-    resources.lighting_resources = create_lighting_pass_resources(root, backend, resources.shader_modules);
+    resources.lighting_resources = create_lighting_pass_resources(root, backend);
+    resources.tiled_lighting_resources = create_tiled_lighting_pass_resources(root, backend, resources.shader_modules);
     resources.forward_pass_resources = create_forward_pass_resources(root, backend, resources.shader_modules);
     resources.material_resources = create_material_resources(root, backend);
     resources.mesh_cache = create_mesh_cache(root, backend);
@@ -61,20 +62,21 @@ void destroy_backend_resources(VulkanBackend& backend)
 {
     BackendResources& resources = *backend.resources;
 
+    destroy_shader_modules(backend, resources.shader_modules);
+    destroy_sampler_resources(backend, resources.samplers_resources);
+    destroy_framegraph_resources(backend, resources.framegraph_resources);
     destroy_audio_resources(backend, resources.audio_resources);
     destroy_culling_resources(backend, resources.cull_resources);
     destroy_frame_sync_resources(backend, resources.frame_sync_resources);
     destroy_gui_pass_resources(backend, resources.gui_pass_resources);
     destroy_histogram_pass_resources(backend, resources.histogram_pass_resources);
     destroy_lighting_pass_resources(backend, resources.lighting_resources);
+    destroy_tiled_lighting_pass_resources(backend, resources.tiled_lighting_resources);
     destroy_forward_pass_resources(backend, resources.forward_pass_resources);
     destroy_material_resources(backend, resources.material_resources);
     destroy_mesh_cache(backend, resources.mesh_cache);
     destroy_shadow_map_resources(backend, resources.shadow_map_resources);
     destroy_swapchain_pass_resources(backend, resources.swapchain_pass_resources);
-    destroy_framegraph_resources(backend, resources.framegraph_resources);
-    destroy_sampler_resources(backend, resources.samplers_resources);
-    destroy_shader_modules(backend, resources.shader_modules);
 
     vkDestroyEvent(backend.device, resources.event, nullptr);
     vkFreeCommandBuffers(backend.device, resources.gfxCommandPool, 1, &resources.gfxCmdBuffer.handle);

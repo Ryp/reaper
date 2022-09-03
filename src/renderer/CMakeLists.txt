@@ -109,6 +109,8 @@ target_sources(${target} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/SwapchainPass.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/TestGraphics.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/TestGraphics.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/TiledLightingPass.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/TiledLightingPass.h
 
     ${CMAKE_CURRENT_SOURCE_DIR}/window/Event.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/window/Event.h

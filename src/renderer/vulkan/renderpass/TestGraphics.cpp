@@ -174,6 +174,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         upload_culling_resources(backend, prepared, resources.cull_resources);
         upload_shadow_map_resources(backend, prepared, resources.shadow_map_resources);
         upload_lighting_pass_frame_resources(backend, prepared, resources.lighting_resources);
+        upload_tiled_lighting_pass_frame_resources(backend, prepared, resources.tiled_lighting_resources);
         upload_forward_pass_frame_resources(backend, prepared, resources.forward_pass_resources);
         upload_audio_frame_resources(backend, prepared, resources.audio_resources);
     }
@@ -595,20 +596,20 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
                                         resources.samplers_resources, resources.material_resources,
                                         resources.mesh_cache, resources.lighting_resources, forward_shadow_map_views);
 
-    update_lighting_pass_descriptor_set(
-        descriptor_write_helper, resources.lighting_resources, resources.samplers_resources,
+    update_lighting_depth_downsample_descriptor_set(
+        descriptor_write_helper, resources.tiled_lighting_resources, resources.samplers_resources,
         get_frame_graph_texture(resources.framegraph_resources, framegraph, tile_depth.depth_read_usage_handle),
         get_frame_graph_texture(resources.framegraph_resources, framegraph, tile_depth.depth_min_storage_usage_handle),
         get_frame_graph_texture(resources.framegraph_resources, framegraph, tile_depth.depth_max_storage_usage_handle));
 
     update_depth_copy_pass_descriptor_set(
-        descriptor_write_helper, resources.lighting_resources,
+        descriptor_write_helper, resources.tiled_lighting_resources,
         get_frame_graph_texture(resources.framegraph_resources, framegraph, tile_depth_copy.depth_min_src_usage_handle),
         get_frame_graph_texture(resources.framegraph_resources, framegraph,
                                 tile_depth_copy.depth_max_src_usage_handle));
 
     update_light_raster_pass_descriptor_sets(
-        descriptor_write_helper, resources.lighting_resources,
+        descriptor_write_helper, resources.tiled_lighting_resources,
         get_frame_graph_texture(resources.framegraph_resources, framegraph, light_raster.tile_depth_min_usage_handle),
         get_frame_graph_texture(resources.framegraph_resources, framegraph, light_raster.tile_depth_max_usage_handle),
         get_frame_graph_buffer(resources.framegraph_resources, framegraph, light_raster.light_list_usage_handle));
@@ -620,7 +621,8 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     }
 
     update_tiled_lighting_pass_descriptor_sets(
-        descriptor_write_helper, resources.lighting_resources, resources.samplers_resources,
+        descriptor_write_helper, resources.lighting_resources, resources.tiled_lighting_resources,
+        resources.samplers_resources,
         get_frame_graph_buffer(resources.framegraph_resources, framegraph, tiled_lighting.light_list_usage_handle),
         get_frame_graph_texture(resources.framegraph_resources, framegraph, tiled_lighting.depth_usage_handle),
         get_frame_graph_texture(resources.framegraph_resources, framegraph, tiled_lighting.lighting_usage_handle),
@@ -745,7 +747,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
             record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
                                        tile_depth.pass_handle, true);
 
-            record_tile_depth_pass_command_buffer(cmdBuffer, resources.lighting_resources, backbufferExtent);
+            record_tile_depth_pass_command_buffer(cmdBuffer, resources.tiled_lighting_resources, backbufferExtent);
 
             record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
                                        tile_depth.pass_handle, false);
@@ -756,7 +758,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
             record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
                                        tile_depth_copy.pass_handle, true);
 
-            record_depth_copy(cmdBuffer, resources.lighting_resources,
+            record_depth_copy(cmdBuffer, resources.tiled_lighting_resources,
                               get_frame_graph_texture(resources.framegraph_resources, framegraph,
                                                       tile_depth_copy.depth_min_usage_handle),
                               get_frame_graph_texture(resources.framegraph_resources, framegraph,
@@ -778,7 +780,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
             record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
                                        light_raster.pass_handle, true);
 
-            record_light_raster_command_buffer(cmdBuffer, resources.lighting_resources, prepared,
+            record_light_raster_command_buffer(cmdBuffer, resources.tiled_lighting_resources, prepared,
                                                get_frame_graph_texture(resources.framegraph_resources, framegraph,
                                                                        light_raster.tile_depth_min_usage_handle),
                                                get_frame_graph_texture(resources.framegraph_resources, framegraph,
@@ -794,7 +796,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
                                        tiled_lighting.pass_handle, true);
 
             record_tiled_lighting_command_buffer(
-                cmdBuffer, resources.lighting_resources, backbufferExtent,
+                cmdBuffer, resources.tiled_lighting_resources, backbufferExtent,
                 VkExtent2D{tile_depth_copy_properties.width, tile_depth_copy_properties.height});
 
             record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,

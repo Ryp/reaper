@@ -24,6 +24,7 @@
 #include "renderpass/LightingPass.h"
 #include "renderpass/ShadowMap.h"
 #include "renderpass/SwapchainPass.h"
+#include "renderpass/TiledLightingPass.h"
 
 #include <vulkan_loader/Vulkan.h>
 
@@ -32,20 +33,21 @@ namespace Reaper
 struct BackendResources
 {
     // TODO remove *_resources suffix
-    ShaderModules          shader_modules;
-    SamplerResources       samplers_resources;
-    FrameGraphResources    framegraph_resources;
-    MeshCache              mesh_cache;
-    MaterialResources      material_resources;
-    CullResources          cull_resources;
-    ShadowMapResources     shadow_map_resources;
-    LightingPassResources  lighting_resources;
-    ForwardPassResources   forward_pass_resources;
-    HistogramPassResources histogram_pass_resources;
-    GuiPassResources       gui_pass_resources;
-    SwapchainPassResources swapchain_pass_resources;
-    FrameSyncResources     frame_sync_resources;
-    AudioResources         audio_resources;
+    ShaderModules              shader_modules;
+    SamplerResources           samplers_resources;
+    FrameGraphResources        framegraph_resources;
+    MeshCache                  mesh_cache;
+    MaterialResources          material_resources;
+    CullResources              cull_resources;
+    ShadowMapResources         shadow_map_resources;
+    LightingPassResources      lighting_resources;
+    TiledLightingPassResources tiled_lighting_resources;
+    ForwardPassResources       forward_pass_resources;
+    HistogramPassResources     histogram_pass_resources;
+    GuiPassResources           gui_pass_resources;
+    SwapchainPassResources     swapchain_pass_resources;
+    FrameSyncResources         frame_sync_resources;
+    AudioResources             audio_resources;
 
     // FIXME wrap this
     VkCommandPool gfxCommandPool;
