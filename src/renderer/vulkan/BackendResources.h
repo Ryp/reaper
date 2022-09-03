@@ -25,6 +25,7 @@
 #include "renderpass/ShadowMap.h"
 #include "renderpass/SwapchainPass.h"
 #include "renderpass/TiledLightingPass.h"
+#include "renderpass/TiledRasterPass.h"
 
 #include <vulkan_loader/Vulkan.h>
 
@@ -41,6 +42,7 @@ struct BackendResources
     CullResources              cull_resources;
     ShadowMapResources         shadow_map_resources;
     LightingPassResources      lighting_resources;
+    TiledRasterResources       tiled_raster_resources;
     TiledLightingPassResources tiled_lighting_resources;
     ForwardPassResources       forward_pass_resources;
     HistogramPassResources     histogram_pass_resources;
