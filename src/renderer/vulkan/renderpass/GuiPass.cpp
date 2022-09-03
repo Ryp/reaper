@@ -103,7 +103,7 @@ void record_gui_command_buffer(CommandBuffer& cmdBuffer, const GuiPassResources&
     vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, pass_resources.guiPipe.pipelineLayout, 0,
                             1, &pass_resources.descriptor_set, 0, nullptr);
 
-    vkCmdDraw(cmdBuffer.handle, 3, 1, 0, 0);
+    // vkCmdDraw(cmdBuffer.handle, 3, 1, 0, 0);
 
     ImGui_ImplVulkan_RenderDrawData(imgui_draw_data, cmdBuffer.handle);
 

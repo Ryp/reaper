@@ -141,7 +141,7 @@ namespace
 GenericControllerState update_controller_state(LinuxController& controller)
 {
     GenericControllerState state = controller.last_state;
-    const RemapTable&      remap_table = RemapTables[Controllers::XboxOne];
+    const RemapTable&      remap_table = RemapTables[Controllers::DualShock4];
 #if defined(REAPER_PLATFORM_LINUX)
     float           val;
     struct js_event event;
@@ -155,7 +155,9 @@ GenericControllerState update_controller_state(LinuxController& controller)
             val = static_cast<float>(event.value) / static_cast<float>(AxisAbsoluteResolution);
 
             if (fabs(val) < AxisDeadzone)
-                continue;
+            {
+                val = 0.f;
+            }
 
             const float axis_value = val;
 
