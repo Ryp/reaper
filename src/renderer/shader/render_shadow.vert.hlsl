@@ -20,7 +20,7 @@ struct VS_OUTPUT
 
 void main(in VS_INPUT input, uint instance_id : SV_InstanceID, out VS_OUTPUT output)
 {
-    const float3 position_ms = pull_position_ms(buffer_position_ms, input.vertex_id);
+    const float3 position_ms = pull_position(buffer_position_ms, input.vertex_id);
     const float4 position_cs = mul(instance_params[instance_id].ms_to_cs_matrix, float4(position_ms, 1.0));
 
     output.position_cs = position_cs;

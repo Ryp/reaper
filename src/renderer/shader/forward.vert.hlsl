@@ -28,8 +28,8 @@ struct VS_OUTPUT
 
 void main(in VS_INPUT input, out VS_OUTPUT output)
 {
-    const float3 position_ms = pull_position_ms(buffer_position_ms, input.vertex_id);
-    const float3 normal_ms = pull_normal_ms(buffer_normal_ms, input.vertex_id);
+    const float3 position_ms = pull_position(buffer_position_ms, input.vertex_id);
+    const float3 normal_ms = pull_normal(buffer_normal_ms, input.vertex_id);
     const float2 uv = pull_uv(buffer_uv, input.vertex_id);
 
     const ForwardInstanceParams instance_data = instance_params[input.instance_id];

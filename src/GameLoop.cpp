@@ -201,6 +201,7 @@ void execute_game_loop(ReaperRoot& root)
             SceneLight light;
             light.color = glm::fvec3(0.03f, 0.21f, 0.61f);
             light.intensity = 6.f;
+            light.radius = 42.f;
             light.scene_node = insert_scene_node(scene, light_transform, player_scene_node_index);
             light.shadow_map_size = glm::uvec2(1024, 1024);
 
@@ -214,6 +215,7 @@ void execute_game_loop(ReaperRoot& root)
             SceneLight light;
             light.color = glm::fvec3(0.61f, 0.21f, 0.03f);
             light.intensity = 6.f;
+            light.radius = 42.f;
             light.scene_node = insert_scene_node(scene, light_transform);
             light.shadow_map_size = glm::uvec2(512, 512);
 
@@ -227,6 +229,7 @@ void execute_game_loop(ReaperRoot& root)
             SceneLight light;
             light.color = glm::fvec3(0.03f, 0.8f, 0.21f);
             light.intensity = 6.f;
+            light.radius = 42.f;
             light.scene_node = insert_scene_node(scene, light_transform);
             light.shadow_map_size = glm::uvec2(256, 256);
 

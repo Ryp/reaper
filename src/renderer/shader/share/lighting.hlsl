@@ -18,7 +18,11 @@ struct PointLightProperties
     hlsl_float3 position_vs;
     hlsl_float  intensity;
     hlsl_float3 color;
+    hlsl_float  radius_sq;
     hlsl_uint   shadow_map_index;
+    hlsl_uint   _pad0;
+    hlsl_uint   _pad1;
+    hlsl_uint   _pad2;
 };
 
 #endif

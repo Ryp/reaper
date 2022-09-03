@@ -207,6 +207,7 @@ void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCa
 
     prepared.tiled_light_constants.cs_to_vs = glm::inverse(camera_projection_matrix);
     prepared.tiled_light_constants.vs_to_ws = glm::fmat4x3(main_camera_transform);
+    prepared.tiled_light_constants.ws_to_vs_temp = glm::fmat4x3(main_camera_transform_inv);
 
     for (u32 scene_light_index = 0; scene_light_index < scene.lights.size(); scene_light_index++)
     {
@@ -226,6 +227,7 @@ void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCa
         point_light.position_vs = light_position_vs;
         point_light.intensity = light.intensity;
         point_light.color = light.color;
+        point_light.radius_sq = light.radius * light.radius;
         point_light.shadow_map_index = InvalidShadowMapIndex;
 
         if (light.shadow_map_size != glm::uvec2(0, 0))
@@ -235,8 +237,9 @@ void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCa
 
         LightVolumeInstance& light_volume = prepared.light_volumes.emplace_back();
         light_volume.ms_to_cs =
-            main_camera_view_proj * glm::mat4(light_transform); // FIXME handle scales from light shape
+            main_camera_view_proj * glm::mat4(light_transform); // FIXME should handle scales from light shape
         light_volume.light_index = scene_light_index;
+        light_volume.radius = light.radius; // FIXME might be better baked in ms_to_cs
         // FIXME Fill completely
     }
 

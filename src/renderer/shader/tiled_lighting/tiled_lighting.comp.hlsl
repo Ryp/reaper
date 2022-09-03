@@ -39,7 +39,8 @@ void main(uint3 gtid : SV_GroupThreadID,
     const float3 position_ws = mul(pass_params.vs_to_ws, float4(position_vs, 1.0));
 
     // FIXME Entirely faked, we need normals for tiled lighting
-    const float3 normal_vs = float3(0.0, 0.0, -1.0);
+    const float3 normal_ws = float3(0.0, 1.0, 0.0);
+    const float3 normal_vs = mul(pass_params.ws_to_vs_temp, float4(normal_ws, 0.0));
 
     // Get tile data
     const uint2 tile_index = gid.xy;
@@ -72,7 +73,12 @@ void main(uint3 gtid : SV_GroupThreadID,
         lighting_accum.specular += lighting.specular * shadow_term;
     }
 
-    const float3 lighting_sum = lighting_accum.diffuse + lighting_accum.specular;
+    float3 lighting_sum = lighting_accum.diffuse + lighting_accum.specular;
+
+    if (depth_ndc == 0.0) // Far plane
+    {
+        lighting_sum = 0.1; // FIXME match forward clear
+    }
 
     if (all(position_ts < push.extent_ts))
     {

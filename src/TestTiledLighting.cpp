@@ -108,6 +108,7 @@ SceneGraph create_static_test_scene(ReaperRoot& root, VulkanBackend& backend)
     SceneLight light;
     light.color = glm::fvec3(1.f, 1.f, 1.f);
     light.intensity = 60.f;
+    light.radius = 10.f;
     light.scene_node = insert_scene_node(scene, light_transform);
     light.shadow_map_size = glm::uvec2(1024, 1024);
 
@@ -149,10 +150,20 @@ SceneGraph create_test_scene_tiled_lighting(ReaperRoot& root, VulkanBackend& bac
     SceneLight light;
     light.color = glm::fvec3(1.f, 0.f, 1.f);
     light.intensity = 3.f;
+    light.radius = 2.f;
     light.scene_node = insert_scene_node(scene, glm::translate(glm::mat4(1.0f), glm::fvec3(0.f, 1.f, 0.f)));
     light.shadow_map_size = glm::uvec2(0, 0);
 
     insert_scene_light(scene, light);
+
+    SceneLight light2;
+    light2.color = glm::fvec3(1.f, 0.f, 0.f);
+    light2.intensity = 3.f;
+    light2.radius = 2.f;
+    light2.scene_node = insert_scene_node(scene, glm::translate(glm::mat4(1.0f), glm::fvec3(2.f, 0.1f, 2.f)));
+    light2.shadow_map_size = glm::uvec2(0, 0);
+
+    insert_scene_light(scene, light2);
 
     return scene;
 }

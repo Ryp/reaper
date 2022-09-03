@@ -25,6 +25,8 @@
 #include "renderer/vulkan/ShaderModules.h"
 
 #include "common/ReaperRoot.h"
+#include "mesh/Mesh.h"
+#include "mesh/ModelLoader.h"
 #include "profiling/Scope.h"
 
 #include "renderer/shader/share/tile_depth.hlsl"
@@ -33,7 +35,8 @@
 namespace Reaper
 {
 constexpr u32 PointLightMax = 128;
-constexpr u32 CubeStripVertexCount = 14;
+constexpr u32 CubeStripVertexCount = 14; // FIXME
+constexpr u32 MAX_VERTEX_COUNT = 1024;
 
 namespace RasterPass
 {
@@ -129,12 +132,19 @@ LightingPassResources create_lighting_pass_resources(ReaperRoot& root, VulkanBac
         VkPipelineLayout pipeline_layout = create_pipeline_layout(
             backend.device, nonstd::span(&descriptor_set_layout, 1), nonstd::span(&pushConstantRange, 1));
 
+        const VkVertexInputBindingDescription   vertex_binding = {0, sizeof(hlsl_float3), VK_VERTEX_INPUT_RATE_VERTEX};
+        const VkVertexInputAttributeDescription vertex_input_attribute = {0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0};
+
         GraphicsPipelineProperties pipeline_properties = default_graphics_pipeline_properties();
+        pipeline_properties.vertex_input.vertexBindingDescriptionCount = 1;
+        pipeline_properties.vertex_input.pVertexBindingDescriptions = &vertex_binding;
+        pipeline_properties.vertex_input.vertexAttributeDescriptionCount = 1;
+        pipeline_properties.vertex_input.pVertexAttributeDescriptions = &vertex_input_attribute;
         pipeline_properties.depth_stencil.depthTestEnable = VK_TRUE;
         pipeline_properties.depth_stencil.depthWriteEnable = VK_FALSE;
         pipeline_properties.depth_stencil.depthCompareOp = VK_COMPARE_OP_NEVER; // dynamic
         pipeline_properties.raster.cullMode = VK_CULL_MODE_FRONT_AND_BACK;      // dynamic
-        pipeline_properties.input_assembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
+        pipeline_properties.input_assembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
         pipeline_properties.pipeline_layout = pipeline_layout;
         pipeline_properties.pipeline_rendering.depthAttachmentFormat =
             PixelFormatToVulkan(PixelFormat::D16_UNORM); // FIXME
@@ -211,6 +221,27 @@ LightingPassResources create_lighting_pass_resources(ReaperRoot& root, VulkanBac
     resources.tiled_lighting_descriptor_set = dsets[5];
     resources.tiled_lighting_descriptor_set_material = dsets[6];
 
+    {
+        resources.vertex_buffer_offset = 0;
+        resources.vertex_buffer_position = create_buffer(
+            root, backend.device, "Lighting vertex buffer",
+            DefaultGPUBufferProperties(MAX_VERTEX_COUNT, sizeof(hlsl_float3), GPUBufferUsage::VertexBuffer),
+            backend.vma_instance, MemUsage::CPU_To_GPU);
+
+        std::vector<Mesh> meshes;
+        const Mesh&       icosahedron = meshes.emplace_back(ModelLoader::loadOBJ("res/model/icosahedron.obj"));
+
+        ProxyMeshAlloc& icosahedron_alloc = resources.proxy_allocs.emplace_back();
+        icosahedron_alloc.vertex_offset = resources.vertex_buffer_offset;
+        icosahedron_alloc.vertex_count = icosahedron.positions.size();
+
+        resources.vertex_buffer_offset += icosahedron_alloc.vertex_count;
+
+        upload_buffer_data(
+            backend.device, backend.vma_instance, resources.vertex_buffer_position, icosahedron.positions.data(),
+            icosahedron.positions.size() * sizeof(icosahedron.positions[0]), icosahedron_alloc.vertex_offset);
+    }
+
     resources.pointLightBuffer = create_buffer(
         root, backend.device, "Point light buffer",
         DefaultGPUBufferProperties(PointLightMax, sizeof(PointLightProperties), GPUBufferUsage::StorageBuffer),
@@ -235,6 +266,8 @@ void destroy_lighting_pass_resources(VulkanBackend& backend, LightingPassResourc
                      resources.tiledLightingConstantBuffer.allocation);
     vmaDestroyBuffer(backend.vma_instance, resources.lightVolumeBuffer.handle, resources.lightVolumeBuffer.allocation);
     vmaDestroyBuffer(backend.vma_instance, resources.pointLightBuffer.handle, resources.pointLightBuffer.allocation);
+    vmaDestroyBuffer(backend.vma_instance, resources.vertex_buffer_position.handle,
+                     resources.vertex_buffer_position.allocation);
 
     vkDestroyPipeline(backend.device, resources.depth_copy_pipeline, nullptr);
     vkDestroyPipelineLayout(backend.device, resources.depth_copy_pipeline_layout, nullptr);
@@ -442,6 +475,9 @@ void record_light_raster_command_buffer(CommandBuffer& cmdBuffer, const Lighting
 
     vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, resources.light_raster_pipeline);
 
+    const VkDeviceSize vertex_buffer_offset = 0;
+    vkCmdBindVertexBuffers(cmdBuffer.handle, 0, 1, &resources.vertex_buffer_position.handle, &vertex_buffer_offset);
+
     vkCmdSetViewport(cmdBuffer.handle, 0, 1, &viewport);
     vkCmdSetScissor(cmdBuffer.handle, 0, 1, &pass_rect);
 
@@ -474,7 +510,9 @@ void record_light_raster_command_buffer(CommandBuffer& cmdBuffer, const Lighting
                            VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(push_constants),
                            &push_constants);
 
-        vkCmdDraw(cmdBuffer.handle, CubeStripVertexCount, prepared.light_volumes.size(), 0, 0);
+        const ProxyMeshAlloc& icosahedron_alloc = resources.proxy_allocs.front();
+        vkCmdDraw(cmdBuffer.handle, icosahedron_alloc.vertex_count, prepared.light_volumes.size(),
+                  icosahedron_alloc.vertex_offset, 0);
 
         vkCmdEndRendering(cmdBuffer.handle);
     }

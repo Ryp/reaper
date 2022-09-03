@@ -11,9 +11,16 @@
 
 #include <array>
 #include <nonstd/span.hpp>
+#include <vector>
 
 namespace Reaper
 {
+struct ProxyMeshAlloc
+{
+    u32 vertex_offset;
+    u32 vertex_count;
+};
+
 struct LightingPassResources
 {
     VkDescriptorSetLayout tile_depth_descriptor_set_layout;
@@ -42,10 +49,13 @@ struct LightingPassResources
     VkDescriptorSet tiled_lighting_descriptor_set;
     VkDescriptorSet tiled_lighting_descriptor_set_material;
 
-    BufferInfo pointLightBuffer;
-    BufferInfo lightVolumeBuffer;
-    BufferInfo light_list_buffer;
-    BufferInfo tiledLightingConstantBuffer;
+    std::vector<ProxyMeshAlloc> proxy_allocs;
+    u32                         vertex_buffer_offset;
+    BufferInfo                  vertex_buffer_position;
+    BufferInfo                  pointLightBuffer;
+    BufferInfo                  lightVolumeBuffer;
+    BufferInfo                  light_list_buffer;
+    BufferInfo                  tiledLightingConstantBuffer;
 };
 
 struct ReaperRoot;

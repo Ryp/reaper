@@ -17,6 +17,7 @@ VK_CONSTANT(0) const uint spec_debug_mode = debug_mode_none;
 #endif
 VK_CONSTANT(1) const bool spec_debug_enable_shadows = true;
 VK_CONSTANT(2) const bool spec_debug_enable_lighting = true;
+VK_CONSTANT(3) const bool spec_debug_enable_albedo = false;
 
 VK_BINDING(0, 0) ConstantBuffer<ForwardPassParams> pass_params;
 
@@ -48,7 +49,7 @@ void main(in PS_INPUT input, out PS_OUTPUT output)
     const float3 normal_vs = normalize(input.NormalVS);
 
     StandardMaterial material;
-    material.albedo = t_diffuse_map[input.texture_index].Sample(diffuse_map_sampler, input.UV);
+    material.albedo = spec_debug_enable_albedo ? t_diffuse_map[input.texture_index].Sample(diffuse_map_sampler, input.UV) : 1.0;
     material.roughness = 0.5;
     material.f0 = 0.1;
 

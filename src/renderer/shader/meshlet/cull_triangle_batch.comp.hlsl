@@ -55,9 +55,9 @@ void main(uint3 gtid : SV_GroupThreadID,
     const uint3 indices_with_vertex_offset = indices + meshlet.vertex_offset;
 
     // NOTE: We will read out of bounds, this might be wasteful - or even illegal. OOB reads in DirectX11 are defined to return zero, what about Vulkan?
-    const float3 vpos0_ms = pull_position_ms(buffer_position_ms, indices_with_vertex_offset.x);
-    const float3 vpos1_ms = pull_position_ms(buffer_position_ms, indices_with_vertex_offset.y);
-    const float3 vpos2_ms = pull_position_ms(buffer_position_ms, indices_with_vertex_offset.z);
+    const float3 vpos0_ms = pull_position(buffer_position_ms, indices_with_vertex_offset.x);
+    const float3 vpos1_ms = pull_position(buffer_position_ms, indices_with_vertex_offset.y);
+    const float3 vpos2_ms = pull_position(buffer_position_ms, indices_with_vertex_offset.z);
 
     const CullMeshInstanceParams mesh_instance = cull_mesh_instance_params[meshlet.cull_instance_id];
 

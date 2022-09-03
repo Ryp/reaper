@@ -51,6 +51,7 @@ struct SceneLight
     glm::mat4  projection_matrix;
     glm::vec3  color;
     float      intensity;
+    float      radius;
     u32        scene_node;
     glm::uvec2 shadow_map_size; // Set to zero to disable shadow
 };

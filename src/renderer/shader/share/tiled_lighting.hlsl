@@ -37,15 +37,16 @@ struct LightVolumeInstance
     hlsl_float4x4   cs_to_vs;
     hlsl_float3x4   vs_to_ms;
     hlsl_uint       light_index;
+    hlsl_uint       radius;
     hlsl_uint       _pad0;
     hlsl_uint       _pad1;
-    hlsl_uint       _pad2;
 };
 
 struct TiledLightingConstants
 {
     hlsl_float4x4 cs_to_vs;
     hlsl_float3x4 vs_to_ws;
+    hlsl_float3x4 ws_to_vs_temp;
 };
 
 struct TiledLightingPushConstants

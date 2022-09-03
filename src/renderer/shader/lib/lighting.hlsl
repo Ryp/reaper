@@ -46,11 +46,15 @@ LightOutput shade_point_light(
 
     const float dot_nl_sat = saturate(dot(object_normal_vs, light_direction_vs));
 
-    const float3 light_incoming_radiance = point_light.color * point_light.intensity * light_distance_falloff;
+    float attenuation = point_light.intensity * light_distance_falloff;
+    if (light_distance_sq > point_light.radius_sq)
+    {
+        attenuation = 0.0;
+    }
 
     LightOutput output;
-    output.diffuse = light_incoming_radiance * diffuse_brdf(dot_nl_sat);
-    output.specular = light_incoming_radiance * specular_brdf(material, object_normal_vs, view_direction_vs, light_direction_vs);
+    output.diffuse = point_light.color * attenuation * diffuse_brdf(dot_nl_sat);
+    output.specular = point_light.color * attenuation * specular_brdf(material, object_normal_vs, view_direction_vs, light_direction_vs);
 
     return output;
 }

@@ -15,6 +15,7 @@ float3 unit_box_strip(uint vertex_id)
 
 struct VS_INPUT
 {
+    float3 position_ms : TEXCOORD0;
     uint vertex_id : SV_VertexID;
     uint api_instance_id : SV_InstanceID;
 };
@@ -24,9 +25,15 @@ void main(VS_INPUT input, out VS_OUTPUT output)
     // Patch instance_id
     // https://twitter.com/iquilezles/status/736353148969746432
     const uint instance_id = consts.instance_id_offset + input.api_instance_id;
+    const LightVolumeInstance volume_instance = pass_params.instance_array[instance_id];
 
-    const float3 position_ms = unit_box_strip(input.vertex_id);
-    const float4 position_cs = mul(pass_params.instance_array[instance_id].ms_to_cs, float4(position_ms, 1.0));
+#if 1
+    const float3 position_ms = input.position_ms * volume_instance.radius;
+#else
+    const float3 position_ms = unit_box_strip(input.vertex_id) * volume_instance.radius;
+#endif
+
+    const float4 position_cs = mul(volume_instance.ms_to_cs, float4(position_ms, 1.0));
 
     output.position = position_cs;
     output.position_cs = position_cs;
