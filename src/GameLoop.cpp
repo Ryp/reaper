@@ -48,6 +48,41 @@
 
 namespace Reaper
 {
+namespace
+{
+    void imgui_process_button_press(ImGuiIO& io, Window::MouseButton::type button, bool is_pressed)
+    {
+        constexpr float ImGuiScrollMultiplier = 0.5f;
+
+        switch (button)
+        {
+        case Window::MouseButton::Left:
+            io.AddMouseButtonEvent(0, is_pressed);
+            break;
+        case Window::MouseButton::Right:
+            io.AddMouseButtonEvent(1, is_pressed);
+            break;
+        case Window::MouseButton::Middle:
+            io.AddMouseButtonEvent(2, is_pressed);
+            break;
+        case Window::MouseButton::WheelUp:
+            io.AddMouseWheelEvent(0.f, is_pressed ? ImGuiScrollMultiplier : 0.f);
+            break;
+        case Window::MouseButton::WheelDown:
+            io.AddMouseWheelEvent(0.f, is_pressed ? -ImGuiScrollMultiplier : 0.f);
+            break;
+        case Window::MouseButton::WheelLeft:
+            io.AddMouseWheelEvent(is_pressed ? ImGuiScrollMultiplier : 0.f, 0.f);
+            break;
+        case Window::MouseButton::WheelRight:
+            io.AddMouseWheelEvent(is_pressed ? -ImGuiScrollMultiplier : 0.f, 0.f);
+            break;
+        case Window::MouseButton::Invalid:
+            break;
+        }
+    }
+} // namespace
+
 void execute_game_loop(ReaperRoot& root)
 {
     IWindow*       window = root.renderer->window;
@@ -299,38 +334,12 @@ void execute_game_loop(ReaperRoot& root)
                 else if (event.type == Window::EventType::ButtonPress)
                 {
                     Window::MouseButton::type button = event.message.buttonpress.button;
-                    constexpr float           ImGuiScrollMultiplier = 0.5f;
                     bool                      press = event.message.buttonpress.press;
 
                     log_debug(root, "window: button index = {}, press = {}", Window::get_mouse_button_string(button),
                               press);
 
-                    switch (button)
-                    {
-                    case Window::MouseButton::Left:
-                        io.AddMouseButtonEvent(0, press);
-                        break;
-                    case Window::MouseButton::Right:
-                        io.AddMouseButtonEvent(1, press);
-                        break;
-                    case Window::MouseButton::Middle:
-                        io.AddMouseButtonEvent(2, press);
-                        break;
-                    case Window::MouseButton::WheelUp:
-                        io.AddMouseWheelEvent(0.f, press ? ImGuiScrollMultiplier : 0.f);
-                        break;
-                    case Window::MouseButton::WheelDown:
-                        io.AddMouseWheelEvent(0.f, press ? -ImGuiScrollMultiplier : 0.f);
-                        break;
-                    case Window::MouseButton::WheelLeft:
-                        io.AddMouseWheelEvent(press ? ImGuiScrollMultiplier : 0.f, 0.f);
-                        break;
-                    case Window::MouseButton::WheelRight:
-                        io.AddMouseWheelEvent(press ? -ImGuiScrollMultiplier : 0.f, 0.f);
-                        break;
-                    case Window::MouseButton::Invalid:
-                        break;
-                    }
+                    imgui_process_button_press(io, button, press);
                 }
                 else if (event.type == Window::EventType::KeyPress)
                 {
