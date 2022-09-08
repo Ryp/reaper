@@ -14,6 +14,7 @@ VK_BINDING(0, 0) SamplerState linear_sampler;
 VK_BINDING(1, 0) Texture2D<float3> t_hdr_scene;
 VK_BINDING(2, 0) Texture2D<float3> Lighting;
 VK_BINDING(3, 0) Texture2D<float4> t_ldr_gui;
+VK_BINDING(4, 0) Texture2D<float4> t_ldr_debug;
 
 struct PS_INPUT
 {
@@ -87,13 +88,24 @@ void main(in PS_INPUT input, out PS_OUTPUT output)
     // Unexposed scene color in linear sRGB
     float3 color = t_hdr_scene.SampleLevel(linear_sampler, input.PositionUV, 0);
 
-    const float3 lighting = Lighting.SampleLevel(linear_sampler, input.PositionUV, 0);
-    color *= lighting;
-
-    float4 ldr_gui_color = t_ldr_gui.SampleLevel(linear_sampler, input.PositionUV, 0);
+    if (input.PositionUV.x > 0.5)
+    {
+        const float3 lighting = Lighting.SampleLevel(linear_sampler, input.PositionUV, 0);
+        color = lighting;
+    }
 
     color *= exposure;
     color = apply_tonemapping_operator(color, spec_tonemap_function);
+
+    if (true)
+    {
+        // FIXME Blend in debug color
+        const float4 ldr_debug_color = t_ldr_debug.SampleLevel(linear_sampler, input.PositionUV, 0);
+
+        color = lerp(color, ldr_debug_color, 0.25);
+    }
+
+    float4 ldr_gui_color = t_ldr_gui.SampleLevel(linear_sampler, input.PositionUV, 0);
 
     // Blend in GUI
     // FIXME This is wrong:

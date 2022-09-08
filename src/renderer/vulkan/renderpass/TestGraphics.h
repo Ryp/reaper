@@ -23,6 +23,11 @@ void resize_swapchain(ReaperRoot& root, VulkanBackend& backend);
 struct CommandBuffer;
 struct PreparedData;
 
+REAPER_RENDERER_API void backend_debug_ui(VulkanBackend& backend);
+
+struct TiledLightingFrame;
+
 void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuffer& cmdBuffer,
-                           const PreparedData& prepared, BackendResources& resources, ImDrawData* imgui_draw_data);
+                           const PreparedData& prepared, const TiledLightingFrame& tiled_lighting_frame,
+                           BackendResources& resources, ImDrawData* imgui_draw_data);
 } // namespace Reaper

@@ -24,7 +24,7 @@ VK_BINDING(3, 0) StructuredBuffer<CullMeshInstanceParams> cull_mesh_instance_par
 // Output
 
 VK_BINDING(4, 0) RWByteAddressBuffer IndicesOut;
-VK_BINDING(5, 0) RWStructuredBuffer<IndirectDrawCommand> DrawCommandOut;
+VK_BINDING(5, 0) RWStructuredBuffer<DrawIndexedIndirectCommand> DrawCommandOut;
 VK_BINDING(6, 0) globallycoherent RWByteAddressBuffer Counters;
 
 //------------------------------------------------------------------------------
@@ -151,7 +151,7 @@ void main(uint3 gtid : SV_GroupThreadID,
 
         Counters.InterlockedAdd(DrawCommandCounterOffset * 4, 1u, draw_command_index);
 
-        IndirectDrawCommand command;
+        DrawIndexedIndirectCommand command;
         command.indexCount = lds_triangle_count * 3;
         command.instanceCount = 1;
         command.firstIndex = lds_triangle_offset * 3;

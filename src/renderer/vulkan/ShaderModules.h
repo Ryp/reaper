@@ -33,8 +33,10 @@ struct ShaderModules
     VkShaderModule rasterize_light_volume_vs;
     VkShaderModule render_shadow_vs;
     VkShaderModule swapchain_write_fs;
+    VkShaderModule classify_volume_cs;
     VkShaderModule tile_depth_downsample_cs;
     VkShaderModule tiled_lighting_cs;
+    VkShaderModule tiled_lighting_debug_cs;
 };
 
 ShaderModules create_shader_modules(ReaperRoot& root, VulkanBackend& backend);

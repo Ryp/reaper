@@ -47,7 +47,8 @@ void update_swapchain_pass_descriptor_set(DescriptorWriteHelper& write_helper, c
                                           const SamplerResources&  sampler_resources,
                                           const FrameGraphTexture& hdr_scene_texture,
                                           const FrameGraphTexture& lighting_texture,
-                                          const FrameGraphTexture& gui_texture);
+                                          const FrameGraphTexture& gui_texture,
+                                          const FrameGraphTexture& tile_lighting_debug_texture);
 
 struct CommandBuffer;
 struct FrameData;

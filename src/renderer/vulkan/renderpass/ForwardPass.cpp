@@ -279,6 +279,7 @@ void record_forward_pass_command_buffer(CommandBuffer& cmdBuffer, const Prepared
                                   draw_params.command_buffer_offset, cull_resources.countersBuffer.handle,
                                   draw_params.counter_buffer_offset, draw_params.command_buffer_max_count,
                                   cull_resources.indirectDrawBuffer.properties.element_size_bytes);
+
     vkCmdEndRendering(cmdBuffer.handle);
 }
 } // namespace Reaper

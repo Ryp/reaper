@@ -8,9 +8,17 @@
 #ifndef LIB_INDIRECT_COMMAND_INCLUDED
 #define LIB_INDIRECT_COMMAND_INCLUDED
 
-static const uint IndirectDrawCommandSize = 5;
+// For vkCmdDrawIndirect
+struct DrawIndirectCommand
+{
+    uint vertexCount;
+    uint instanceCount;
+    uint firstVertex;
+    uint firstInstance;
+};
 
-struct IndirectDrawCommand
+// For vkCmdDrawIndexedIndirect
+struct DrawIndexedIndirectCommand
 {
     uint indexCount;
     uint instanceCount;
@@ -19,9 +27,8 @@ struct IndirectDrawCommand
     uint firstInstance;
 };
 
-static const uint IndirectDispatchCommandSize = 3;
-
-struct IndirectDispatchCommand
+// For vkCmdDispatchIndirect
+struct DispatchIndirectCommand
 {
     uint x;
     uint y;

@@ -34,12 +34,17 @@ struct LightVolumeInstance
 {
     hlsl_float4x4   ms_to_cs;
     hlsl_float4x4   cs_to_ms;
-    hlsl_float4x4   cs_to_vs;
+    hlsl_float4x4   cs_to_vs; // FIXME
     hlsl_float3x4   vs_to_ms;
     hlsl_uint       light_index;
     hlsl_uint       radius;
     hlsl_uint       _pad0;
     hlsl_uint       _pad1;
+};
+
+struct ProxyVolumeInstance
+{
+    hlsl_float3x4 ms_to_vs_with_scale;
 };
 
 struct TiledLightingConstants
@@ -49,14 +54,27 @@ struct TiledLightingConstants
     hlsl_float3x4 ws_to_vs_temp;
 };
 
+// No need for padding here
 struct TiledLightingPushConstants
 {
     hlsl_uint2  extent_ts;
     hlsl_float2 extent_ts_inv;
     hlsl_uint   tile_count_x;
+};
+
+struct TileDebug
+{
+    hlsl_uint   light_count;
     hlsl_uint   _pad0;
     hlsl_uint   _pad1;
     hlsl_uint   _pad2;
+};
+
+// No need for padding here
+struct TiledLightingDebugPushConstants
+{
+    hlsl_uint2  extent_ts;
+    hlsl_uint   tile_count_x;
 };
 
 #endif

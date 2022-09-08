@@ -7,16 +7,17 @@
 
 #include "PrepareBuckets.h"
 
-#include "renderer/vulkan/MeshCache.h"
-#include "renderer/vulkan/renderpass/ForwardPassConstants.h"
-#include "renderer/vulkan/renderpass/ShadowConstants.h"
+#include "Camera.h"
 
-#include <cmath>
-#include <glm/gtc/matrix_transform.hpp>
+#include "renderer/vulkan/MeshCache.h"
+#include "renderer/vulkan/renderpass/ShadowConstants.h"
 
 #include "profiling/Scope.h"
 
 #include "math/Constants.h"
+
+#include <cmath>
+#include <glm/gtc/matrix_transform.hpp>
 
 namespace Reaper
 {
@@ -116,7 +117,7 @@ namespace
 } // namespace
 
 void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCache& mesh_cache,
-                   glm::uvec2 viewport_extent, u32 current_audio_frame)
+                   const RendererPerspectiveCamera& main_camera, u32 current_audio_frame)
 {
     REAPER_PROFILE_SCOPE_FUNC();
 
@@ -159,8 +160,8 @@ void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCa
 
             cull_instance.ms_to_cs_matrix = shadow_instance.ms_to_cs_matrix;
 
-            const glm::mat4x3 modelView = glm::mat4(light_transform_inv) * glm::mat4(mesh_transform);
-            const glm::mat4x3 vs_to_ms_matrix = glm::inverse(glm::mat4(modelView));
+            const glm::mat4x3 ms_to_vs_matrix = glm::mat4(light_transform_inv) * glm::mat4(mesh_transform);
+            const glm::mat4x3 vs_to_ms_matrix = glm::inverse(glm::mat4(ms_to_vs_matrix));
 
             cull_instance.vs_to_ms_matrix_translate = vs_to_ms_matrix * glm::vec4(0.f, 0.f, 0.f, 1.f);
             cull_instance.instance_id = i;
@@ -176,29 +177,15 @@ void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCa
         shadow_pass.instance_count = shadow_total_instance_count - shadow_pass.instance_offset;
     }
 
-    const float near_plane_distance = 0.1f;
-    const float far_plane_distance = 100.f;
-    const float fov_radian = glm::pi<float>() * 0.25f;
-    const float aspect_ratio = static_cast<float>(viewport_extent.x) / static_cast<float>(viewport_extent.y);
-
-    glm::mat4 camera_projection_matrix = apply_reverse_z_fixup(
-        build_perspective_matrix(near_plane_distance, far_plane_distance, aspect_ratio, fov_radian),
-        ForwardUseReverseZ);
-
-    const glm::fmat4 main_camera_transform = get_scene_node_transform_slow(scene, scene.camera.scene_node);
-    const glm::fmat4 main_camera_transform_inv = glm::inverse(main_camera_transform);
-
     // Main + culling pass
-    const glm::mat4 main_camera_view_proj = camera_projection_matrix * main_camera_transform_inv;
-
-    prepared.forward_pass_constants.ws_to_vs_matrix = glm::fmat4x3(main_camera_transform_inv);
-    prepared.forward_pass_constants.vs_to_cs_matrix = camera_projection_matrix;
-    prepared.forward_pass_constants.ws_to_cs_matrix = main_camera_view_proj;
+    prepared.forward_pass_constants.ws_to_vs_matrix = main_camera.ws_to_vs_matrix;
+    prepared.forward_pass_constants.vs_to_cs_matrix = main_camera.perspective_projection.vs_to_cs_matrix;
+    prepared.forward_pass_constants.ws_to_cs_matrix = main_camera.ws_to_cs_matrix;
     prepared.forward_pass_constants.point_light_count = scene.scene_lights.size();
 
-    prepared.tiled_light_constants.cs_to_vs = glm::inverse(camera_projection_matrix);
-    prepared.tiled_light_constants.vs_to_ws = glm::fmat4x3(main_camera_transform);
-    prepared.tiled_light_constants.ws_to_vs_temp = glm::fmat4x3(main_camera_transform_inv);
+    prepared.tiled_light_constants.cs_to_vs = main_camera.perspective_projection.cs_to_vs_matrix;
+    prepared.tiled_light_constants.vs_to_ws = main_camera.vs_to_ws_matrix;
+    prepared.tiled_light_constants.ws_to_vs_temp = main_camera.ws_to_vs_matrix;
 
     for (u32 scene_light_index = 0; scene_light_index < scene.scene_lights.size(); scene_light_index++)
     {
@@ -207,8 +194,7 @@ void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCa
         const glm::fmat4x3 light_transform_inv = glm::inverse(glm::fmat4(light_transform));
 
         const glm::vec3 light_position_ws = light_transform * glm::vec4(0.f, 0.f, 0.f, 1.0f);
-        const glm::vec3 light_position_vs =
-            glm::fmat4x3(main_camera_transform_inv) * glm::fvec4(light_position_ws, 1.f);
+        const glm::vec3 light_position_vs = main_camera.ws_to_vs_matrix * glm::fvec4(light_position_ws, 1.f);
 
         const glm::fmat4 light_projection_matrix = default_light_projection_matrix();
         const glm::fmat4 light_view_proj_matrix = light_projection_matrix * glm::fmat4(light_transform_inv);
@@ -225,19 +211,12 @@ void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCa
         {
             point_light.shadow_map_index = scene_light_index; // FIXME
         }
-
-        LightVolumeInstance& light_volume = prepared.light_volumes.emplace_back();
-        light_volume.ms_to_cs =
-            main_camera_view_proj * glm::mat4(light_transform); // FIXME should handle scales from light shape
-        light_volume.light_index = scene_light_index;
-        light_volume.radius = light.radius; // FIXME might be better baked in ms_to_cs
-        // FIXME Fill completely
     }
 
     {
         CullPassData& cull_pass = prepared.cull_passes.emplace_back();
         cull_pass.pass_index = prepared.cull_passes.size() - 1;
-        cull_pass.output_size_ts = glm::fvec2(viewport_extent);
+        cull_pass.output_size_ts = glm::fvec2(main_camera.viewport.extent);
 
         prepared.forward_culling_pass_index = cull_pass.pass_index;
 
@@ -248,19 +227,19 @@ void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCa
 
             // Assumption that our 3x3 submatrix is orthonormal (no skew/non-uniform scaling)
             // FIXME use 4x3 matrices directly
-            const glm::mat4x3 modelView = main_camera_transform_inv * glm::mat4(mesh_transform);
+            const glm::mat4x3 ms_to_vs_matrix = glm::mat4(main_camera.ws_to_vs_matrix) * glm::mat4(mesh_transform);
 
             ForwardInstanceParams& forward_instance = prepared.forward_instances.emplace_back();
             forward_instance.ms_to_ws_matrix = mesh_transform;
-            forward_instance.normal_ms_to_vs_matrix = glm::mat3(modelView);
+            forward_instance.normal_ms_to_vs_matrix = glm::mat3(ms_to_vs_matrix);
             forward_instance.texture_index = scene_mesh.texture_handle;
 
             const u32               cull_instance_index = prepared.cull_mesh_instance_params.size();
             CullMeshInstanceParams& cull_instance = prepared.cull_mesh_instance_params.emplace_back();
 
-            cull_instance.ms_to_cs_matrix = main_camera_view_proj * glm::mat4(mesh_transform);
+            cull_instance.ms_to_cs_matrix = main_camera.ws_to_cs_matrix * glm::mat4(mesh_transform);
 
-            const glm::mat4x3 vs_to_ms_matrix = glm::inverse(glm::mat4(modelView));
+            const glm::mat4x3 vs_to_ms_matrix = glm::inverse(glm::mat4(ms_to_vs_matrix));
             cull_instance.vs_to_ms_matrix_translate = vs_to_ms_matrix * glm::vec4(0.f, 0.f, 0.f, 1.f);
             cull_instance.instance_id = i;
 

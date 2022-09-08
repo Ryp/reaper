@@ -10,13 +10,17 @@
 #include "window/Window.h"
 #include "vulkan/Backend.h"
 #include "vulkan/BackendResources.h"
+#include "vulkan/renderpass/ForwardPassConstants.h"
 #include "vulkan/renderpass/TestGraphics.h"
+#include "vulkan/renderpass/TiledLightingCommon.h"
 
+#include "Camera.h"
 #include "PrepareBuckets.h"
 
 #include "common/Log.h"
 
 #include <backends/imgui_impl_vulkan.h>
+#include <glm/gtc/constants.hpp>
 
 namespace Reaper
 {
@@ -74,14 +78,31 @@ void renderer_execute_frame(ReaperRoot& root, const SceneGraph& scene, std::vect
     const VkExtent2D backbufferExtent = backend.presentInfo.surfaceExtent;
     const glm::uvec2 backbuffer_viewport_extent(backbufferExtent.width, backbufferExtent.height);
 
+    const float near_plane_distance = 0.1f;
+    const float far_plane_distance = 100.f;
+    const float half_fov_horizontal_radian = glm::pi<float>() * 0.25f;
+
+    const RendererViewport viewport = build_renderer_viewport(backbuffer_viewport_extent);
+
+    const RendererPerspectiveProjection perspective_projection = build_renderer_perspective_projection(
+        viewport.aspect_ratio, near_plane_distance, far_plane_distance, half_fov_horizontal_radian, ForwardUseReverseZ);
+
+    const glm::fmat4x3 main_camera_transform = get_scene_node_transform_slow(scene.camera_node);
+
+    const RendererPerspectiveCamera main_camera =
+        build_renderer_perspective_camera(main_camera_transform, perspective_projection, viewport);
+
     PreparedData prepared;
-    prepare_scene(scene, prepared, backend.resources->mesh_cache, backbuffer_viewport_extent,
+    prepare_scene(scene, prepared, backend.resources->mesh_cache, main_camera,
                   static_cast<u32>(audio_output.size() / 8));
+
+    TiledLightingFrame tiled_lighting_frame; // FIXME use frame allocator
+    prepare_tile_lighting_frame(scene, main_camera, tiled_lighting_frame);
 
     ImDrawData* imgui_draw_data = ImGui::GetDrawData();
 
-    backend_execute_frame(root, backend, backend.resources->gfxCmdBuffer, prepared, *backend.resources,
-                          imgui_draw_data);
+    backend_execute_frame(root, backend, backend.resources->gfxCmdBuffer, prepared, tiled_lighting_frame,
+                          *backend.resources, imgui_draw_data);
 
     if (false) // Re-enable when we're playing with GPU-based sound again
     {

@@ -14,6 +14,8 @@
 
 namespace Reaper
 {
+constexpr u32 TiledRasterMaxIndirectCommandCount = 512;
+
 struct ProxyMeshAlloc
 {
     u32 vertex_offset;
@@ -40,19 +42,18 @@ struct TiledRasterResources
 
     std::array<VkDescriptorSet, 2> light_raster_descriptor_sets;
 
-    VkDescriptorSetLayout tiled_lighting_descriptor_set_layout;
-    VkDescriptorSetLayout tiled_lighting_descriptor_set_layout_material;
-    VkPipelineLayout      tiled_lighting_pipeline_layout;
-    VkPipeline            tiled_lighting_pipeline;
+    VkDescriptorSetLayout classify_descriptor_set_layout;
+    VkPipelineLayout      classify_pipeline_layout;
+    VkPipeline            classify_pipeline;
 
-    VkDescriptorSet tiled_lighting_descriptor_set;
-    VkDescriptorSet tiled_lighting_descriptor_set_material;
+    VkDescriptorSet classify_descriptor_set;
 
-    std::vector<ProxyMeshAlloc> proxy_allocs;
+    std::vector<ProxyMeshAlloc> proxy_mesh_allocs;
     u32                         vertex_buffer_offset;
     BufferInfo                  vertex_buffer_position;
     BufferInfo                  light_volume_buffer;
     BufferInfo                  light_list_buffer;
+    BufferInfo                  proxy_volume_buffer;
 };
 
 struct ReaperRoot;
@@ -82,16 +83,27 @@ void update_depth_copy_pass_descriptor_set(DescriptorWriteHelper&      write_hel
                                            const FrameGraphTexture&    depth_min_src,
                                            const FrameGraphTexture&    depth_max_src);
 
+void update_classify_descriptor_set(DescriptorWriteHelper& write_helper, const TiledRasterResources& resources,
+                                    const FrameGraphBuffer& classification_counters,
+                                    const FrameGraphBuffer& draw_commands_inner,
+                                    const FrameGraphBuffer& draw_commands_outer);
+
 void update_light_raster_pass_descriptor_sets(DescriptorWriteHelper&      write_helper,
                                               const TiledRasterResources& resources,
                                               const FrameGraphTexture&    depth_min,
                                               const FrameGraphTexture&    depth_max,
                                               const FrameGraphBuffer&     light_list_buffer);
 
+struct SceneGraph;
+struct TiledLightingFrame;
+
+void prepare_tile_lighting_frame(const SceneGraph& scene, TiledLightingFrame& tiled_lighting_frame);
+
 struct PreparedData;
 
-void upload_tiled_raster_pass_frame_resources(VulkanBackend& backend, const PreparedData& prepared,
-                                              TiledRasterResources& resources);
+void upload_tiled_raster_pass_frame_resources(VulkanBackend&            backend,
+                                              const TiledLightingFrame& tiled_lighting_frame,
+                                              TiledRasterResources&     resources);
 
 struct CommandBuffer;
 
@@ -101,7 +113,13 @@ void record_tile_depth_pass_command_buffer(CommandBuffer& cmdBuffer, const Tiled
 void record_depth_copy(CommandBuffer& cmdBuffer, const TiledRasterResources& pass_resources,
                        const FrameGraphTexture& depth_min_dst, const FrameGraphTexture& depth_max_dst);
 
+void record_light_classify_command_buffer(CommandBuffer&              cmdBuffer,
+                                          const TiledLightingFrame&   tiled_lighting_frame,
+                                          const TiledRasterResources& resources);
+
 void record_light_raster_command_buffer(CommandBuffer& cmdBuffer, const TiledRasterResources& resources,
-                                        const PreparedData& prepared, const FrameGraphTexture& depth_min,
+                                        const FrameGraphBuffer& command_counters,
+                                        const FrameGraphBuffer& draw_commands_inner,
+                                        const FrameGraphBuffer& draw_commands_outer, const FrameGraphTexture& depth_min,
                                         const FrameGraphTexture& depth_max);
 } // namespace Reaper

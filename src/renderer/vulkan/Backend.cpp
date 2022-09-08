@@ -98,22 +98,6 @@ void vulkan_create_logical_device(ReaperRoot&                     root,
                                   VulkanBackend&                  backend,
                                   const std::vector<const char*>& device_extensions);
 
-VulkanBackend::VulkanBackend()
-    : vulkanLib(nullptr)
-    , instance(VK_NULL_HANDLE)
-    , physicalDevice(VK_NULL_HANDLE)
-    , physicalDeviceInfo({0, 0, {}})
-    , device(VK_NULL_HANDLE)
-    , deviceInfo({VK_NULL_HANDLE, VK_NULL_HANDLE})
-    , presentInfo({})
-    , debugMessenger(VK_NULL_HANDLE)
-    , mustTransitionSwapchain(false)
-    , new_swapchain_extent({0, 0})
-    , resources(nullptr)
-{
-    options.freeze_culling = false;
-}
-
 void create_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& backend)
 {
     REAPER_PROFILE_SCOPE_FUNC();
@@ -407,8 +391,9 @@ namespace
             }
         }
 
-        constexpr i32    ID_CoreValidation_Shader_OutputNotConsumed = 101294395;
-        std::vector<i32> ignored_ids = {ID_CoreValidation_Shader_OutputNotConsumed};
+        constexpr i32 UNASSIGNED_CoreValidation_Shader_OutputNotConsumed = 0x609a13b;
+
+        std::vector<i32> ignored_ids = {UNASSIGNED_CoreValidation_Shader_OutputNotConsumed};
 
         bool ignore_assert = false;
         for (auto ignored_id : ignored_ids)

@@ -60,9 +60,12 @@ ShaderModules create_shader_modules(ReaperRoot& /*root*/, VulkanBackend& backend
         create_shader_module(backend.device, "tiled_lighting/rasterize_light_volume.vert.spv");
     modules.render_shadow_vs = create_shader_module(backend.device, "render_shadow.vert.spv");
     modules.swapchain_write_fs = create_shader_module(backend.device, "swapchain_write.frag.spv");
+    modules.classify_volume_cs = create_shader_module(backend.device, "tiled_lighting/classify_volume.comp.spv");
     modules.tile_depth_downsample_cs =
         create_shader_module(backend.device, "tiled_lighting/tile_depth_downsample.comp.spv");
     modules.tiled_lighting_cs = create_shader_module(backend.device, "tiled_lighting/tiled_lighting.comp.spv");
+    modules.tiled_lighting_debug_cs =
+        create_shader_module(backend.device, "tiled_lighting/tiled_lighting_debug.comp.spv");
 
     return modules;
 }
@@ -86,7 +89,9 @@ void destroy_shader_modules(VulkanBackend& backend, ShaderModules& shader_module
     vkDestroyShaderModule(backend.device, shader_modules.rasterize_light_volume_vs, nullptr);
     vkDestroyShaderModule(backend.device, shader_modules.render_shadow_vs, nullptr);
     vkDestroyShaderModule(backend.device, shader_modules.swapchain_write_fs, nullptr);
+    vkDestroyShaderModule(backend.device, shader_modules.classify_volume_cs, nullptr);
     vkDestroyShaderModule(backend.device, shader_modules.tile_depth_downsample_cs, nullptr);
     vkDestroyShaderModule(backend.device, shader_modules.tiled_lighting_cs, nullptr);
+    vkDestroyShaderModule(backend.device, shader_modules.tiled_lighting_debug_cs, nullptr);
 }
 } // namespace Reaper

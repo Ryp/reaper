@@ -20,6 +20,7 @@ VK_PUSH_CONSTANT_HELPER(TileLightRasterPushConstants) consts;
 VK_BINDING(0, 0) ConstantBuffer<PassParams> pass_params;
 VK_BINDING(1, 0) Texture2D<float> TileDepth;
 VK_BINDING(2, 0) globallycoherent RWByteAddressBuffer TileVisibleLightIndices;
+VK_BINDING(3, 0) ByteAddressBuffer VertexPositionsMS;
 
 struct VS_OUTPUT
 {

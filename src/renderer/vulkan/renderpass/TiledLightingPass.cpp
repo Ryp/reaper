@@ -45,11 +45,12 @@ TiledLightingPassResources create_tiled_lighting_pass_resources(ReaperRoot& root
             {3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
             {4, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
             {5, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-            {6, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, ShadowMapMaxCount, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+            {6, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+            {7, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, ShadowMapMaxCount, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
         };
 
         std::vector<VkDescriptorBindingFlags> bindingFlags0(bindings0.size(), VK_FLAGS_NONE);
-        bindingFlags0[6] = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT;
+        bindingFlags0[7] = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT;
 
         std::vector<VkDescriptorSetLayoutBinding> bindings1 = {
             {0, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
@@ -78,25 +79,63 @@ TiledLightingPassResources create_tiled_lighting_pass_resources(ReaperRoot& root
         resources.tiled_lighting_pipeline = pipeline;
     }
 
-    std::vector<VkDescriptorSetLayout> dset_layouts = {resources.tiled_lighting_descriptor_set_layout,
-                                                       resources.tiled_lighting_descriptor_set_layout_material};
-    std::vector<VkDescriptorSet>       dsets(dset_layouts.size());
+    {
+        std::vector<VkDescriptorSetLayout> dset_layouts = {resources.tiled_lighting_descriptor_set_layout,
+                                                           resources.tiled_lighting_descriptor_set_layout_material};
+        std::vector<VkDescriptorSet>       dsets(dset_layouts.size());
 
-    allocate_descriptor_sets(backend.device, backend.global_descriptor_pool, dset_layouts, dsets);
+        allocate_descriptor_sets(backend.device, backend.global_descriptor_pool, dset_layouts, dsets);
 
-    resources.tiled_lighting_descriptor_set = dsets[0];
-    resources.tiled_lighting_descriptor_set_material = dsets[1];
+        resources.tiled_lighting_descriptor_set = dsets[0];
+        resources.tiled_lighting_descriptor_set_material = dsets[1];
+    }
 
     resources.tiled_lighting_constant_buffer =
         create_buffer(root, backend.device, "Tiled lighting constants",
                       DefaultGPUBufferProperties(1, sizeof(TiledLightingConstants), GPUBufferUsage::UniformBuffer),
                       backend.vma_instance, MemUsage::CPU_To_GPU);
 
+    // Debug
+    {
+        std::vector<VkDescriptorSetLayoutBinding> bindings = {
+            {0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+            {1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+        };
+
+        VkDescriptorSetLayout descriptor_set_layout = create_descriptor_set_layout(backend.device, bindings);
+
+        const VkPushConstantRange pushConstantRange = {VK_SHADER_STAGE_COMPUTE_BIT, 0,
+                                                       sizeof(TiledLightingDebugPushConstants)};
+
+        VkPipelineLayout pipeline_layout = create_pipeline_layout(
+            backend.device, nonstd::span(&descriptor_set_layout, 1), nonstd::span(&pushConstantRange, 1));
+
+        VkPipeline pipeline =
+            create_compute_pipeline(backend.device, pipeline_layout, shader_modules.tiled_lighting_debug_cs);
+
+        resources.tiled_lighting_debug_descriptor_set_layout = descriptor_set_layout;
+        resources.tiled_lighting_debug_pipeline_layout = pipeline_layout;
+        resources.tiled_lighting_debug_pipeline = pipeline;
+    }
+
+    {
+        std::vector<VkDescriptorSetLayout> dset_layouts = {resources.tiled_lighting_debug_descriptor_set_layout};
+        std::vector<VkDescriptorSet>       dsets(dset_layouts.size());
+
+        allocate_descriptor_sets(backend.device, backend.global_descriptor_pool, dset_layouts, dsets);
+
+        resources.tiled_lighting_debug_descriptor_set = dsets[0];
+    }
+
     return resources;
 }
 
 void destroy_tiled_lighting_pass_resources(VulkanBackend& backend, TiledLightingPassResources& resources)
 {
+    vkDestroyPipeline(backend.device, resources.tiled_lighting_debug_pipeline, nullptr);
+    vkDestroyPipelineLayout(backend.device, resources.tiled_lighting_debug_pipeline_layout, nullptr);
+    vkDestroyDescriptorSetLayout(backend.device, resources.tiled_lighting_debug_descriptor_set_layout, nullptr);
+
     vmaDestroyBuffer(backend.vma_instance, resources.tiled_lighting_constant_buffer.handle,
                      resources.tiled_lighting_constant_buffer.allocation);
 
@@ -113,6 +152,7 @@ void update_tiled_lighting_pass_descriptor_sets(DescriptorWriteHelper&          
                                                 const FrameGraphBuffer&           light_list_buffer,
                                                 const FrameGraphTexture&          main_view_depth,
                                                 const FrameGraphTexture&          lighting_output,
+                                                const FrameGraphBuffer&           tile_debug_buffer,
                                                 nonstd::span<const FrameGraphTexture>
                                                                          shadow_maps,
                                                 const MaterialResources& material_resources)
@@ -127,6 +167,7 @@ void update_tiled_lighting_pass_descriptor_sets(DescriptorWriteHelper&          
     append_write(write_helper, dset0, 4, sampler_resources.shadowMapSampler);
     append_write(write_helper, dset0, 5, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, lighting_output.view_handle,
                  lighting_output.image_layout);
+    append_write(write_helper, dset0, 6, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, tile_debug_buffer.handle);
 
     if (!shadow_maps.empty())
     {
@@ -139,7 +180,7 @@ void update_tiled_lighting_pass_descriptor_sets(DescriptorWriteHelper&          
         nonstd::span<const VkDescriptorImageInfo> shadow_map_image_infos(image_info_ptr, shadow_maps.size());
 
         write_helper.writes.push_back(
-            create_image_descriptor_write(dset0, 6, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, shadow_map_image_infos));
+            create_image_descriptor_write(dset0, 7, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, shadow_map_image_infos));
     }
 
     if (!material_resources.texture_handles.empty())
@@ -194,6 +235,39 @@ void record_tiled_lighting_command_buffer(CommandBuffer& cmdBuffer, const TiledL
 
     vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE, resources.tiled_lighting_pipeline_layout,
                             0, 1, &resources.tiled_lighting_descriptor_set, 0, nullptr);
+
+    vkCmdDispatch(cmdBuffer.handle,
+                  div_round_up(backbufferExtent.width, TiledLightingThreadCountX),
+                  div_round_up(backbufferExtent.height, TiledLightingThreadCountY),
+                  1);
+}
+
+void update_tiled_lighting_debug_pass_descriptor_sets(DescriptorWriteHelper&            write_helper,
+                                                      const TiledLightingPassResources& resources,
+                                                      const FrameGraphBuffer&           tile_debug_buffer,
+                                                      const FrameGraphTexture&          tile_debug_texture)
+{
+    VkDescriptorSet dset = resources.tiled_lighting_debug_descriptor_set;
+    append_write(write_helper, dset, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, tile_debug_buffer.handle);
+    append_write(write_helper, dset, 1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, tile_debug_texture.view_handle,
+                 tile_debug_texture.image_layout);
+}
+
+void record_tiled_lighting_debug_command_buffer(CommandBuffer& cmdBuffer, const TiledLightingPassResources& resources,
+                                                VkExtent2D backbufferExtent, VkExtent2D tile_extent)
+{
+    vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE, resources.tiled_lighting_debug_pipeline);
+
+    TiledLightingDebugPushConstants push_constants;
+    push_constants.extent_ts = glm::uvec2(backbufferExtent.width, backbufferExtent.height);
+    push_constants.tile_count_x = tile_extent.width;
+
+    vkCmdPushConstants(cmdBuffer.handle, resources.tiled_lighting_debug_pipeline_layout, VK_SHADER_STAGE_COMPUTE_BIT, 0,
+                       sizeof(push_constants), &push_constants);
+
+    vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE,
+                            resources.tiled_lighting_debug_pipeline_layout, 0, 1,
+                            &resources.tiled_lighting_debug_descriptor_set, 0, nullptr);
 
     vkCmdDispatch(cmdBuffer.handle,
                   div_round_up(backbufferExtent.width, TiledLightingThreadCountX),

@@ -61,36 +61,34 @@ struct BackendResources;
 
 struct REAPER_RENDERER_API VulkanBackend
 {
-    LibHandle  vulkanLib;
-    VkInstance instance;
+    LibHandle  vulkanLib = nullptr;
+    VkInstance instance = VK_NULL_HANDLE;
 
-    VkPhysicalDevice           physicalDevice;
+    VkPhysicalDevice           physicalDevice = VK_NULL_HANDLE;
     VkPhysicalDeviceProperties physicalDeviceProperties;
-    PhysicalDeviceInfo         physicalDeviceInfo;
+    PhysicalDeviceInfo         physicalDeviceInfo = {0, 0, {}};
 
-    VkDevice   device;
-    DeviceInfo deviceInfo;
+    VkDevice   device = VK_NULL_HANDLE;
+    DeviceInfo deviceInfo = {VK_NULL_HANDLE, VK_NULL_HANDLE};
 
-    VkDescriptorPool global_descriptor_pool;
+    VkDescriptorPool global_descriptor_pool = VK_NULL_HANDLE;
 
     VmaAllocator vma_instance;
 
-    PresentationInfo presentInfo;
+    PresentationInfo presentInfo = {};
 
-    VkDebugUtilsMessengerEXT debugMessenger;
+    VkDebugUtilsMessengerEXT debugMessenger = VK_NULL_HANDLE;
 
-    bool       mustTransitionSwapchain;
-    VkExtent2D new_swapchain_extent;
+    bool       mustTransitionSwapchain = false;
+    VkExtent2D new_swapchain_extent = {0, 0};
 
     struct Options
     {
-        bool freeze_culling;
+        bool freeze_culling = false;
+        bool enable_debug_tile_lighting = true;
     } options;
 
-    BackendResources* resources;
-
-public:
-    VulkanBackend();
+    BackendResources* resources = nullptr;
 };
 
 void create_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& renderer);

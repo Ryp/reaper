@@ -10,6 +10,8 @@ set(target reaper_renderer)
 add_library(${target} ${REAPER_BUILD_TYPE})
 
 target_sources(${target} PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/Camera.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Camera.h
     ${CMAKE_CURRENT_SOURCE_DIR}/ExecuteFrame.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/ExecuteFrame.h
     ${CMAKE_CURRENT_SOURCE_DIR}/PrepareBuckets.cpp
@@ -111,6 +113,8 @@ target_sources(${target} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/SwapchainPass.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/TestGraphics.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/TestGraphics.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/TiledLightingCommon.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/TiledLightingCommon.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/TiledLightingPass.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/TiledLightingPass.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/TiledRasterPass.cpp
@@ -151,10 +155,12 @@ set(REAPER_SHADER_SRCS
     ${REAPER_SHADER_DIR}/render_shadow.vert.hlsl
     ${REAPER_SHADER_DIR}/sound/oscillator.comp.hlsl
     ${REAPER_SHADER_DIR}/swapchain_write.frag.hlsl
+    ${REAPER_SHADER_DIR}/tiled_lighting/classify_volume.comp.hlsl
     ${REAPER_SHADER_DIR}/tiled_lighting/rasterize_light_volume.frag.hlsl
     ${REAPER_SHADER_DIR}/tiled_lighting/rasterize_light_volume.vert.hlsl
     ${REAPER_SHADER_DIR}/tiled_lighting/tile_depth_downsample.comp.hlsl
     ${REAPER_SHADER_DIR}/tiled_lighting/tiled_lighting.comp.hlsl
+    ${REAPER_SHADER_DIR}/tiled_lighting/tiled_lighting_debug.comp.hlsl
 )
 
 # Shader compilation
@@ -246,6 +252,9 @@ target_sources(${target} PRIVATE
     ${REAPER_SHADER_SRCS}
     ${REAPER_SPIRV_OUTPUT}
     ${REAPER_GCN_OUTPUT})
+
+# Allow the C++ side to have the same include path as shaders, this is important for shared files.
+target_include_directories(${target} PRIVATE ${REAPER_SHADER_DIR})
 
 # Choose windowing system
 if(WIN32)

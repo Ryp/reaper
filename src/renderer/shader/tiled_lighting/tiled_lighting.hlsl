@@ -15,7 +15,7 @@ uint get_tile_index_flat(uint2 tile_index, uint tile_count_x)
     return tile_index.y * tile_count_x + tile_index.x;
 }
 
-uint get_tile_offset(uint tile_index_flat)
+uint get_light_list_offset(uint tile_index_flat)
 {
     return tile_index_flat * ElementsPerTile;
 }

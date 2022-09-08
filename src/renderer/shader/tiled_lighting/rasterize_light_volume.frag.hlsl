@@ -53,7 +53,7 @@ void main(in VS_OUTPUT input)
     if (is_visible)
     {
         const uint tile_index_flat = get_tile_index_flat(position_ts, consts.tile_count_x);
-        const uint tile_start_offset = get_tile_offset(tile_index_flat);
+        const uint tile_start_offset = get_light_list_offset(tile_index_flat);
 
         // Add the light to the visible lights array for this tile
         uint visible_light_array_index;

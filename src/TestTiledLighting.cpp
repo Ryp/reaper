@@ -132,9 +132,10 @@ SceneGraph create_test_scene_tiled_lighting(ReaperRoot& root, VulkanBackend& bac
     scene.camera_node = create_scene_node(scene, camera_local_transform);
 
     const glm::fmat4x3 flat_quad_transform =
-        glm::rotate(glm::fmat4(1.f), glm::pi<float>() * -0.5f, glm::fvec3(1.f, 0.f, 0.f));
+        glm::rotate(glm::identity<glm::fmat4>(), glm::pi<float>() * -0.5f, glm::fvec3(1.f, 0.f, 0.f));
     const glm::fvec3   flat_quad_scale = glm::fvec3(4.f, 4.f, 4.f);
-    const glm::fmat4x3 transform = glm::fmat4(flat_quad_transform) * glm::scale(glm::fmat4(1.f), flat_quad_scale);
+    const glm::fmat4x3 transform =
+        glm::fmat4(flat_quad_transform) * glm::scale(glm::identity<glm::fmat4>(), flat_quad_scale);
 
     SceneMesh& scene_mesh = scene.scene_meshes.emplace_back();
     scene_mesh.scene_node = create_scene_node(scene, transform);

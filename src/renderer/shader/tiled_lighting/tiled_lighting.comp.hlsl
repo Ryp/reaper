@@ -12,8 +12,9 @@ VK_BINDING(1, 0) ByteAddressBuffer TileVisibleLightIndices;
 VK_BINDING(2, 0) Texture2D<float> DepthNDC;
 VK_BINDING(3, 0) StructuredBuffer<PointLightProperties> point_lights;
 VK_BINDING(4, 0) SamplerComparisonState shadow_map_sampler;
-VK_BINDING(5, 0) RWTexture2D<float3> LightingOutput;
-VK_BINDING(6, 0) Texture2D<float> t_shadow_map[];
+VK_BINDING(5, 0) RWTexture2D<float4> LightingOutput; // FIXME should be float3 but would trigger validation error
+VK_BINDING(6, 0) RWStructuredBuffer<TileDebug> TileDebugOutput;
+VK_BINDING(7, 0) Texture2D<float> t_shadow_map[];
 
 VK_BINDING(0, 1) SamplerState diffuse_map_sampler;
 VK_BINDING(1, 1) Texture2D<float3> t_diffuse_map[];
@@ -45,7 +46,7 @@ void main(uint3 gtid : SV_GroupThreadID,
     // Get tile data
     const uint2 tile_index = gid.xy;
     const uint tile_index_flat = get_tile_index_flat(tile_index, push.tile_count_x);
-    const uint tile_start_offset = get_tile_offset(tile_index_flat);
+    const uint tile_start_offset = get_light_list_offset(tile_index_flat);
     const uint tile_light_count = TileVisibleLightIndices.Load(tile_start_offset * 4);
 
     StandardMaterial material;
@@ -55,13 +56,15 @@ void main(uint3 gtid : SV_GroupThreadID,
 
     LightOutput lighting_accum = (LightOutput)0;
 
-    for (uint i = 0; i < tile_light_count; i++)
+    for (uint slot_index = 0; slot_index < tile_light_count; slot_index++)
     {
-        const PointLightProperties point_light = point_lights[i];
+        const uint light_index_offset_bytes = (tile_start_offset + 1 + slot_index) * 4;
+        const uint light_index = TileVisibleLightIndices.Load(light_index_offset_bytes);
+
+        const PointLightProperties point_light = point_lights[light_index];
 
         const LightOutput lighting = shade_point_light(point_light, material, position_vs, normal_vs, view_direction_vs);
 
-        // NOTE: shadow_map_index MUST be uniform
         float shadow_term = 1.0;
         if (point_light.shadow_map_index != InvalidShadowMapIndex && spec_debug_enable_shadows)
         {
@@ -82,6 +85,14 @@ void main(uint3 gtid : SV_GroupThreadID,
 
     if (all(position_ts < push.extent_ts))
     {
-        LightingOutput[position_ts] = lighting_sum;
+        LightingOutput[position_ts] = float4(lighting_sum, 0.0);
+    }
+
+    if (gi == 0)
+    {
+        TileDebug debug;
+
+        debug.light_count = tile_light_count;
+        TileDebugOutput[tile_index_flat] = debug;
     }
 }

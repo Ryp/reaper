@@ -99,7 +99,6 @@ struct PreparedData
     std::vector<ForwardInstanceParams> forward_instances;
 
     std::vector<PointLightProperties> point_lights;
-    std::vector<LightVolumeInstance>  light_volumes;
     TiledLightingConstants            tiled_light_constants;
 
     std::vector<ShadowPassData>          shadow_passes;
@@ -111,7 +110,8 @@ struct PreparedData
 };
 
 struct MeshCache;
+struct RendererPerspectiveCamera;
 
 void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCache& mesh_cache,
-                   glm::uvec2 viewport_extent, u32 current_audio_frame);
+                   const RendererPerspectiveCamera& main_camera, u32 current_audio_frame);
 } // namespace Reaper
