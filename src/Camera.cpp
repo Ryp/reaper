@@ -46,5 +46,15 @@ void update_camera_state(CameraState& state, glm::vec2 yaw_pitch_delta, glm::vec
     state.position += camera_offset;
     state.yaw += yaw_pitch_delta.x * yaw_sensitivity;
     state.pitch += yaw_pitch_delta.y * pitch_sensitivity;
+
+    const float epsilon = 0.0001f;
+    const float pitch_upper_limit = M_PI_2 - epsilon;
+    const float pitch_lower_limit = -M_PI_2 + epsilon;
+
+    if (state.pitch > pitch_upper_limit)
+        state.pitch = pitch_upper_limit;
+
+    if (state.pitch < pitch_lower_limit)
+        state.pitch = pitch_lower_limit;
 }
 } // namespace Reaper
