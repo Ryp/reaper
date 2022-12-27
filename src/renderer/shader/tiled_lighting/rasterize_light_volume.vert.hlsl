@@ -1,4 +1,5 @@
 #include "lib/base.hlsl"
+#include "lib/vertex_pull.hlsl"
 
 #include "rasterize_light_volume.hlsl"
 
@@ -15,7 +16,6 @@ float3 unit_box_strip(uint vertex_id)
 
 struct VS_INPUT
 {
-    float3 position_ms : TEXCOORD0;
     uint vertex_id : SV_VertexID;
     uint api_instance_id : SV_InstanceID;
 };
@@ -28,7 +28,8 @@ void main(VS_INPUT input, out VS_OUTPUT output)
     const LightVolumeInstance volume_instance = pass_params.instance_array[instance_id];
 
 #if 1
-    const float3 position_ms = input.position_ms * volume_instance.radius;
+    const float3 vpos_ms = pull_position(VertexPositionsMS, input.vertex_id);
+    const float3 position_ms = vpos_ms * volume_instance.radius;
 #else
     const float3 position_ms = unit_box_strip(input.vertex_id) * volume_instance.radius;
 #endif

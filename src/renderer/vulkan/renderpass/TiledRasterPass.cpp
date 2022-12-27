@@ -114,6 +114,7 @@ TiledRasterResources create_tiled_raster_pass_resources(ReaperRoot& root, Vulkan
              nullptr},
             {2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
              nullptr},
+            {3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
         };
 
         VkDescriptorSetLayout descriptor_set_layout =
@@ -125,14 +126,7 @@ TiledRasterResources create_tiled_raster_pass_resources(ReaperRoot& root, Vulkan
         VkPipelineLayout pipeline_layout = create_pipeline_layout(
             backend.device, nonstd::span(&descriptor_set_layout, 1), nonstd::span(&pushConstantRange, 1));
 
-        const VkVertexInputBindingDescription   vertex_binding = {0, sizeof(hlsl_float3), VK_VERTEX_INPUT_RATE_VERTEX};
-        const VkVertexInputAttributeDescription vertex_input_attribute = {0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0};
-
         GraphicsPipelineProperties pipeline_properties = default_graphics_pipeline_properties();
-        pipeline_properties.vertex_input.vertexBindingDescriptionCount = 1;
-        pipeline_properties.vertex_input.pVertexBindingDescriptions = &vertex_binding;
-        pipeline_properties.vertex_input.vertexAttributeDescriptionCount = 1;
-        pipeline_properties.vertex_input.pVertexAttributeDescriptions = &vertex_input_attribute;
         pipeline_properties.depth_stencil.depthTestEnable = VK_TRUE;
         pipeline_properties.depth_stencil.depthWriteEnable = VK_FALSE;
         pipeline_properties.depth_stencil.depthCompareOp = VK_COMPARE_OP_NEVER; // dynamic
@@ -256,6 +250,8 @@ void update_light_raster_pass_descriptor_sets(DescriptorWriteHelper&      write_
                  VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, depth_min.view_handle, depth_min.image_layout);
     append_write(write_helper, resources.light_raster_descriptor_sets[RasterPass::Inner], 2,
                  VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, light_list_buffer.handle);
+    append_write(write_helper, resources.light_raster_descriptor_sets[RasterPass::Inner], 3,
+                 VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, resources.vertex_buffer_position.handle);
 
     append_write(write_helper, resources.light_raster_descriptor_sets[RasterPass::Outer], 0,
                  VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, resources.light_volume_buffer.handle);
@@ -263,6 +259,8 @@ void update_light_raster_pass_descriptor_sets(DescriptorWriteHelper&      write_
                  VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, depth_max.view_handle, depth_max.image_layout);
     append_write(write_helper, resources.light_raster_descriptor_sets[RasterPass::Outer], 2,
                  VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, light_list_buffer.handle);
+    append_write(write_helper, resources.light_raster_descriptor_sets[RasterPass::Outer], 3,
+                 VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, resources.vertex_buffer_position.handle);
 }
 
 void upload_tiled_raster_pass_frame_resources(VulkanBackend& backend, const PreparedData& prepared,
@@ -342,9 +340,6 @@ void record_light_raster_command_buffer(CommandBuffer& cmdBuffer, const TiledRas
     const VkViewport               viewport = default_vk_viewport(pass_rect);
 
     vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, resources.light_raster_pipeline);
-
-    const VkDeviceSize vertex_buffer_offset = 0;
-    vkCmdBindVertexBuffers(cmdBuffer.handle, 0, 1, &resources.vertex_buffer_position.handle, &vertex_buffer_offset);
 
     vkCmdSetViewport(cmdBuffer.handle, 0, 1, &viewport);
     vkCmdSetScissor(cmdBuffer.handle, 0, 1, &pass_rect);
