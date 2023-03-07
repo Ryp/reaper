@@ -11,7 +11,7 @@
 
 #include <nonstd/span.hpp>
 
-#include <glm/matrix.hpp>
+#include <glm/fwd.hpp>
 #include <vector>
 
 class btBroadphaseInterface;
