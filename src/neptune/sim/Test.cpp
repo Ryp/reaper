@@ -25,7 +25,7 @@
 #include <glm/gtx/projection.hpp>
 #include <glm/vec3.hpp>
 
-namespace SplineSonic
+namespace Neptune
 {
 namespace
 {
@@ -415,4 +415,4 @@ void sim_create_player_rigid_body(PhysicsSim& sim, const glm::fmat4x3& player_tr
     static_cast<void>(shape_extent);
 #endif
 }
-} // namespace SplineSonic
+} // namespace Neptune

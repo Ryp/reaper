@@ -19,18 +19,18 @@ namespace Reaper::Math
 struct Spline;
 }
 
-namespace SplineSonic
+namespace Neptune
 {
 struct TrackSkeletonNode;
 struct TrackSkinning;
 
-SPLINESONIC_TRACKGEN_API
+NEPTUNE_TRACKGEN_API
 void SaveTrackSkeletonAsObj(std::ostream& output, std::vector<TrackSkeletonNode>& skeleton);
 
-SPLINESONIC_TRACKGEN_API
+NEPTUNE_TRACKGEN_API
 void SaveTrackSplinesAsObj(std::ostream& output, std::vector<TrackSkeletonNode>& skeleton,
                            std::vector<Reaper::Math::Spline>& splines, u32 tesselation);
 
-SPLINESONIC_TRACKGEN_API
+NEPTUNE_TRACKGEN_API
 void SaveTrackBonesAsObj(std::ostream& output, std::vector<TrackSkinning>& skinningInfo);
-} // namespace SplineSonic
+} // namespace Neptune

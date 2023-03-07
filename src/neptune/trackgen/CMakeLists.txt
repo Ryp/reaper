@@ -5,7 +5,7 @@
 #// This file is distributed under the MIT License
 #///////////////////////////////////////////////////////////////////////////////
 
-set(target splinesonic_trackgen)
+set(target neptune_trackgen)
 
 add_library(${target} ${REAPER_BUILD_TYPE})
 
@@ -25,7 +25,7 @@ target_link_libraries(${target} PUBLIC
     span
 )
 
-set_target_properties(${target} PROPERTIES FOLDER SplineSonic)
+set_target_properties(${target} PROPERTIES FOLDER Neptune)
 
 reaper_configure_library(${target} "TrackGen")
 

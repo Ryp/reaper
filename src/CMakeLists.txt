@@ -18,7 +18,7 @@ add_subdirectory(common)
 add_subdirectory(audio)
 add_subdirectory(renderer)
 
-add_subdirectory(splinesonic)
+add_subdirectory(neptune)
 
 # Main executable
 set(REAPER_BIN reaper)
@@ -44,8 +44,8 @@ target_link_libraries(${REAPER_BIN} PRIVATE
     reaper_mesh
     reaper_input
     reaper_audio
-    splinesonic_sim
-    splinesonic_trackgen
+    neptune_sim
+    neptune_trackgen
 )
 
 # Configure main VS projet

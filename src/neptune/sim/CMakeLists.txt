@@ -5,7 +5,7 @@
 #// This file is distributed under the MIT License
 #///////////////////////////////////////////////////////////////////////////////
 
-set(target splinesonic_sim)
+set(target neptune_sim)
 
 add_library(${target} ${REAPER_BUILD_TYPE})
 
@@ -27,7 +27,7 @@ if(REAPER_USE_BULLET_PHYSICS)
     target_link_libraries(${target} PRIVATE bullet)
 endif()
 
-set_target_properties(${target} PROPERTIES FOLDER SplineSonic)
+set_target_properties(${target} PROPERTIES FOLDER Neptune)
 
 reaper_configure_library(${target} "Sim")
 

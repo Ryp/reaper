@@ -15,7 +15,7 @@
 
 #include <mesh/Mesh.h>
 
-#include "splinesonic/Constants.h"
+#include "neptune/Constants.h"
 
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/norm.hpp>
@@ -25,7 +25,7 @@
 
 using namespace Reaper;
 
-namespace SplineSonic
+namespace Neptune
 {
 constexpr float ThetaMax = 0.8f * Math::HalfPi;
 constexpr float PhiMax = 1.0f * Math::Pi;
@@ -307,4 +307,4 @@ void skin_track_chunk_mesh(const TrackSkeletonNode& node, const TrackSkinning& t
     }
     mesh.positions = skinnedVertices;
 }
-} // namespace SplineSonic
+} // namespace Neptune

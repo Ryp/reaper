@@ -12,10 +12,10 @@
 
 #include "math/Spline.h"
 
-#include "splinesonic/trackgen/Track.h"
-#include "splinesonic/trackgen/TrackDebug.h"
+#include "neptune/trackgen/Track.h"
+#include "neptune/trackgen/TrackDebug.h"
 
-using namespace SplineSonic;
+using namespace Neptune;
 
 TEST_CASE("Track generation")
 {

@@ -22,8 +22,8 @@
 #include "math/Spline.h"
 #include "mesh/ModelLoader.h"
 #include "profiling/Scope.h"
-#include "splinesonic/sim/Test.h"
-#include "splinesonic/trackgen/Track.h"
+#include "neptune/sim/Test.h"
+#include "neptune/trackgen/Track.h"
 
 #include "Camera.h"
 #include "Geometry.h"
@@ -91,8 +91,8 @@ void execute_game_loop(ReaperRoot& root)
 
     renderer_start(root, backend, window);
 
-    SplineSonic::PhysicsSim sim = SplineSonic::create_sim();
-    SplineSonic::sim_start(&sim);
+    Neptune::PhysicsSim sim = Neptune::create_sim();
+    Neptune::sim_start(&sim);
 
     SceneGraph scene;
 
@@ -113,21 +113,21 @@ void execute_game_loop(ReaperRoot& root)
         meshes.push_back(ModelLoader::loadOBJ(file));
     }
 
-    SplineSonic::sim_register_static_collision_meshes(sim, meshes, nonstd::span(&flat_quad_transform, 1),
+    Neptune::sim_register_static_collision_meshes(sim, meshes, nonstd::span(&flat_quad_transform, 1),
                                                       nonstd::span(&flat_quad_scale, 1));
 #    else
-    SplineSonic::Track game_track;
+    Neptune::Track game_track;
 
-    SplineSonic::GenerationInfo genInfo = {};
+    Neptune::GenerationInfo genInfo = {};
     genInfo.length = 5;
     genInfo.width = 10.0f;
     genInfo.chaos = 1.0f;
 
     game_track.genInfo = genInfo;
 
-    SplineSonic::generate_track_skeleton(genInfo, game_track.skeletonNodes);
-    SplineSonic::generate_track_splines(game_track.skeletonNodes, game_track.splinesMS);
-    SplineSonic::generate_track_skinning(game_track.skeletonNodes, game_track.splinesMS, game_track.skinning);
+    Neptune::generate_track_skeleton(genInfo, game_track.skeletonNodes);
+    Neptune::generate_track_splines(game_track.skeletonNodes, game_track.splinesMS);
+    Neptune::generate_track_skinning(game_track.skeletonNodes, game_track.splinesMS, game_track.skinning);
 
     const std::string         assetFile("res/model/track/chunk_simple.obj");
     std::vector<Mesh>         meshes(genInfo.length);
@@ -138,20 +138,20 @@ void execute_game_loop(ReaperRoot& root)
         std::ifstream file(assetFile);
         meshes[i] = ModelLoader::loadOBJ(file);
 
-        const SplineSonic::TrackSkeletonNode& track_node = game_track.skeletonNodes[i];
+        const Neptune::TrackSkeletonNode& track_node = game_track.skeletonNodes[i];
 
         chunk_transforms[i] = glm::translate(glm::mat4(1.0f), track_node.positionWS);
 
-        SplineSonic::skin_track_chunk_mesh(track_node, game_track.skinning[i], meshes[i], 10.0f);
+        Neptune::skin_track_chunk_mesh(track_node, game_track.skinning[i], meshes[i], 10.0f);
     }
 
     // NOTE: bullet will hold pointers to the original mesh data without copy
-    SplineSonic::sim_register_static_collision_meshes(sim, meshes, chunk_transforms);
+    Neptune::sim_register_static_collision_meshes(sim, meshes, chunk_transforms);
 #    endif
 
     const glm::fmat4x3 player_initial_transform = glm::translate(glm::mat4(1.0f), glm::vec3(0.2f, 0.6f, 0.f));
     const glm::fvec3   player_shape_extent(0.2f, 0.2f, 0.2f);
-    SplineSonic::sim_create_player_rigid_body(sim, player_initial_transform, player_shape_extent);
+    Neptune::sim_create_player_rigid_body(sim, player_initial_transform, player_shape_extent);
 
     std::ifstream ship_obj_file("res/model/fighter.obj");
     meshes.push_back(ModelLoader::loadOBJ(ship_obj_file));
@@ -375,16 +375,16 @@ void execute_game_loop(ReaperRoot& root)
         ImGui::Render();
 
 #if ENABLE_GAME_SCENE
-        SplineSonic::ShipInput input;
+        Neptune::ShipInput input;
         input.throttle = controller_state.axes[GenericAxis::RT] * 0.5 + 0.5;
         input.brake = controller_state.axes[GenericAxis::LT] * 0.5 + 0.5;
         input.steer = controller_state.axes[GenericAxis::LSX];
 
         log_debug(root, "sim: throttle = {}, braking = {}, steer = {}", input.throttle, input.brake, input.steer);
 
-        SplineSonic::sim_update(sim, input, timeDtSecs);
+        Neptune::sim_update(sim, input, timeDtSecs);
 
-        const glm::fmat4x3 player_transform = SplineSonic::get_player_transform(sim);
+        const glm::fmat4x3 player_transform = Neptune::get_player_transform(sim);
         const glm::fvec3   player_translation = player_transform[3];
 
         log_debug(root, "sim: player pos = ({}, {}, {})", player_translation[0], player_translation[1],
@@ -441,7 +441,7 @@ void execute_game_loop(ReaperRoot& root)
     destroy_controller(controller);
 #endif
 
-    SplineSonic::destroy_sim(sim);
+    Neptune::destroy_sim(sim);
 
     renderer_stop(root, backend, window);
 }

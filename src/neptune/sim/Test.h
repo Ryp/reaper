@@ -25,7 +25,7 @@ class btCollisionShape;
 
 struct Mesh;
 
-namespace SplineSonic
+namespace Neptune
 {
 struct ShipStats
 {
@@ -60,19 +60,19 @@ struct PhysicsSim
 #endif
 };
 
-SPLINESONIC_SIM_API PhysicsSim create_sim();
-SPLINESONIC_SIM_API void       destroy_sim(PhysicsSim& sim);
+NEPTUNE_SIM_API PhysicsSim create_sim();
+NEPTUNE_SIM_API void       destroy_sim(PhysicsSim& sim);
 
-SPLINESONIC_SIM_API void sim_start(PhysicsSim* sim);
+NEPTUNE_SIM_API void sim_start(PhysicsSim* sim);
 
-SPLINESONIC_SIM_API void sim_update(PhysicsSim& sim, const ShipInput& input, float dt);
-SPLINESONIC_SIM_API glm::fmat4x3 get_player_transform(PhysicsSim& sim);
+NEPTUNE_SIM_API void sim_update(PhysicsSim& sim, const ShipInput& input, float dt);
+NEPTUNE_SIM_API glm::fmat4x3 get_player_transform(PhysicsSim& sim);
 
-SPLINESONIC_SIM_API void
+NEPTUNE_SIM_API void
 sim_register_static_collision_meshes(PhysicsSim& sim, const nonstd::span<Mesh> meshes,
                                      nonstd::span<const glm::fmat4x3> transforms_no_scale,
                                      nonstd::span<const glm::fvec3>   scales = nonstd::span<const glm::fvec3>());
 
-SPLINESONIC_SIM_API void sim_create_player_rigid_body(PhysicsSim& sim, const glm::fmat4x3& player_transform,
+NEPTUNE_SIM_API void sim_create_player_rigid_body(PhysicsSim& sim, const glm::fmat4x3& player_transform,
                                                       const glm::fvec3& shape_extent);
-} // namespace SplineSonic
+} // namespace Neptune

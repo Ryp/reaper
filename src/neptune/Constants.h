@@ -7,7 +7,7 @@
 
 #pragma once
 
-namespace SplineSonic
+namespace Neptune
 {
 constexpr float MeterInGameUnits = 0.01f;
 }

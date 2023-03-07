@@ -24,7 +24,7 @@ struct Spline;
 
 struct Mesh;
 
-namespace SplineSonic
+namespace Neptune
 {
 struct GenerationInfo
 {
@@ -64,21 +64,21 @@ struct Track
     std::vector<TrackSkinning>        skinning;
 };
 
-SPLINESONIC_TRACKGEN_API
+NEPTUNE_TRACKGEN_API
 void generate_track_skeleton(const GenerationInfo& genInfo, std::vector<TrackSkeletonNode>& skeletonNodes);
 
-SPLINESONIC_TRACKGEN_API
+NEPTUNE_TRACKGEN_API
 void generate_track_splines(const std::vector<TrackSkeletonNode>& skeletonNodes,
                             std::vector<Reaper::Math::Spline>&    splines);
 
-SPLINESONIC_TRACKGEN_API
+NEPTUNE_TRACKGEN_API
 void generate_track_skinning(const std::vector<TrackSkeletonNode>&    skeletonNodes,
                              const std::vector<Reaper::Math::Spline>& splines,
                              std::vector<TrackSkinning>&              skinning);
 
-SPLINESONIC_TRACKGEN_API
+NEPTUNE_TRACKGEN_API
 void skin_track_chunk_mesh(const TrackSkeletonNode& node,
                            const TrackSkinning&     trackSkinning,
                            Mesh&                    mesh,
                            float                    meshLength);
-} // namespace SplineSonic
+} // namespace Neptune

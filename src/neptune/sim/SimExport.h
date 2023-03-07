@@ -12,13 +12,13 @@
 #include "core/Compiler.h"
 
 #if defined(REAPER_BUILD_SHARED)
-#    if defined(SPLINESONIC_SIM_EXPORT)
-#        define SPLINESONIC_SIM_API REAPER_EXPORT
+#    if defined(NEPTUNE_SIM_EXPORT)
+#        define NEPTUNE_SIM_API REAPER_EXPORT
 #    else
-#        define SPLINESONIC_SIM_API REAPER_IMPORT
+#        define NEPTUNE_SIM_API REAPER_IMPORT
 #    endif
 #elif defined(REAPER_BUILD_STATIC)
-#    define SPLINESONIC_SIM_API
+#    define NEPTUNE_SIM_API
 #else
 #    error "Build type must be defined"
 #endif

@@ -13,7 +13,7 @@
 
 #include "math/Spline.h"
 
-namespace SplineSonic
+namespace Neptune
 {
 void SaveTrackSkeletonAsObj(std::ostream& output, std::vector<TrackSkeletonNode>& skeleton)
 {
@@ -118,4 +118,4 @@ void SaveTrackBonesAsObj(std::ostream& output, std::vector<TrackSkinning>& skinn
         output << std::endl;
     }
 }
-} // namespace SplineSonic
+} // namespace Neptune
