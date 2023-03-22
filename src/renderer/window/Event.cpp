@@ -29,11 +29,12 @@ Event createButtonEvent(Window::MouseButton::type button, bool press)
     return event;
 }
 
-Event createKeyPressEvent(Window::KeyCode::type id)
+Event createKeyEvent(Window::KeyCode::type id, bool press, u8 key_code)
 {
     Event event = {};
-    event.type = EventType::KeyPress;
+    event.type = press ? EventType::KeyPress : EventType::KeyRelease;
     event.message.keypress.key = id;
+    event.message.keypress.key_code = key_code;
     return event;
 }
 

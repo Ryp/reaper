@@ -47,19 +47,73 @@ namespace Window
 
         KeyCode::type convert_xcb_keycode(xcb_keycode_t key_code)
         {
+            // FIXME this is ignoring a lot of layers from the Xlib code
+            constexpr u32 XCB_KEY_CODE_ESCAPE = 9; // XK_Escape
+            constexpr u32 XCB_KEY_CODE_RETURN = 36;
+            constexpr u32 XCB_KEY_CODE_SPACE = 65;
+            constexpr u32 XCB_KEY_CODE_ARROW_RIGHT = 114;
+            constexpr u32 XCB_KEY_CODE_ARROW_LEFT = 113;
+            constexpr u32 XCB_KEY_CODE_ARROW_DOWN = 116;
+            constexpr u32 XCB_KEY_CODE_ARROW_UP = 111;
+            constexpr u32 XCB_KEY_CODE_W = 25;
+            constexpr u32 XCB_KEY_CODE_A = 38;
+            constexpr u32 XCB_KEY_CODE_S = 39;
+            constexpr u32 XCB_KEY_CODE_D = 40;
+            constexpr u32 XCB_KEY_CODE_1 = 10;
+            constexpr u32 XCB_KEY_CODE_2 = 11;
+            constexpr u32 XCB_KEY_CODE_3 = 12;
+            constexpr u32 XCB_KEY_CODE_4 = 13;
+            constexpr u32 XCB_KEY_CODE_5 = 14;
+            constexpr u32 XCB_KEY_CODE_6 = 15;
+            constexpr u32 XCB_KEY_CODE_7 = 16;
+            constexpr u32 XCB_KEY_CODE_8 = 17;
+            constexpr u32 XCB_KEY_CODE_9 = 18;
+            constexpr u32 XCB_KEY_CODE_0 = 19;
+
             switch (key_code)
             {
-            // case XK_Escape: return KeyCode::ESCAPE;
-            // case XK_Return: return KeyCode::ENTER;
-            // case XK_space: return KeyCode::SPACE;
-            // case XK_Right: return KeyCode::RIGHT;
-            // case XK_Left: return KeyCode::LEFT;
-            // case XK_Down: return KeyCode::DOWN;
-            // case XK_Up: return KeyCode::UP;
-            // case XK_W: return KeyCode::W;
-            // case XK_A: return KeyCode::A;
-            // case XK_S: return KeyCode::S;
-            // case XK_D: return KeyCode::D;
+            case XCB_KEY_CODE_ESCAPE:
+                return KeyCode::ESCAPE;
+            case XCB_KEY_CODE_RETURN:
+                return KeyCode::ENTER;
+            case XCB_KEY_CODE_SPACE:
+                return KeyCode::SPACE;
+            case XCB_KEY_CODE_ARROW_RIGHT:
+                return KeyCode::ARROW_RIGHT;
+            case XCB_KEY_CODE_ARROW_LEFT:
+                return KeyCode::ARROW_LEFT;
+            case XCB_KEY_CODE_ARROW_DOWN:
+                return KeyCode::ARROW_DOWN;
+            case XCB_KEY_CODE_ARROW_UP:
+                return KeyCode::ARROW_UP;
+            case XCB_KEY_CODE_W:
+                return KeyCode::W;
+            case XCB_KEY_CODE_A:
+                return KeyCode::A;
+            case XCB_KEY_CODE_S:
+                return KeyCode::S;
+            case XCB_KEY_CODE_D:
+                return KeyCode::D;
+            case XCB_KEY_CODE_1:
+                return KeyCode::NUM_1;
+            case XCB_KEY_CODE_2:
+                return KeyCode::NUM_2;
+            case XCB_KEY_CODE_3:
+                return KeyCode::NUM_3;
+            case XCB_KEY_CODE_4:
+                return KeyCode::NUM_4;
+            case XCB_KEY_CODE_5:
+                return KeyCode::NUM_5;
+            case XCB_KEY_CODE_6:
+                return KeyCode::NUM_6;
+            case XCB_KEY_CODE_7:
+                return KeyCode::NUM_7;
+            case XCB_KEY_CODE_8:
+                return KeyCode::NUM_8;
+            case XCB_KEY_CODE_9:
+                return KeyCode::NUM_9;
+            case XCB_KEY_CODE_0:
+                return KeyCode::NUM_0;
             default:
                 return KeyCode::UNKNOWN;
             }
@@ -207,12 +261,12 @@ namespace
         case XCB_KEY_PRESS: {
             xcb_key_press_event_t* key_event = (xcb_key_press_event_t*)event;
             xcb_keycode_t          key_code = key_event->detail;
-            return Window::createKeyPressEvent(Window::convert_xcb_keycode(key_code));
+            return Window::createKeyEvent(Window::convert_xcb_keycode(key_code), true, key_code);
         }
         case XCB_KEY_RELEASE: {
             xcb_key_release_event_t* key_event = (xcb_key_release_event_t*)event;
-            (void)key_event;
-            break;
+            xcb_keycode_t            key_code = key_event->detail;
+            return Window::createKeyEvent(Window::convert_xcb_keycode(key_code), false, key_code);
         }
         default:
             // AssertUnreachable();

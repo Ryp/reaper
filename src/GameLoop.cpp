@@ -333,8 +333,9 @@ void execute_game_loop(ReaperRoot& root)
                 }
                 else if (event.type == Window::EventType::ButtonPress)
                 {
-                    Window::MouseButton::type button = event.message.buttonpress.button;
-                    bool                      press = event.message.buttonpress.press;
+                    Window::Event::Message::ButtonPress buttonpress = event.message.buttonpress;
+                    Window::MouseButton::type           button = buttonpress.button;
+                    bool                                press = buttonpress.press;
 
                     log_debug(root, "window: button index = {}, press = {}", Window::get_mouse_button_string(button),
                               press);
@@ -343,9 +344,28 @@ void execute_game_loop(ReaperRoot& root)
                 }
                 else if (event.type == Window::EventType::KeyPress)
                 {
-                    log_warning(root, "window: key press detected: now exiting...");
-                    shouldExit = true;
+                    Window::Event::Message::KeyPress keypress = event.message.keypress;
+
+                    if (keypress.key == Window::KeyCode::ESCAPE)
+                    {
+                        log_warning(root, "window: escape key press detected: now exiting...");
+                        shouldExit = true;
+                    }
+                    else if (keypress.key == Window::KeyCode::UNKNOWN)
+                    {
+                        log_warning(root, "window: key with unknown key_code '{}' press detected", keypress.key_code);
+                    }
+
                     break;
+                }
+                else if (event.type == Window::EventType::KeyRelease)
+                {
+                    Window::Event::Message::KeyPress keypress = event.message.keypress;
+
+                    if (keypress.key == Window::KeyCode::UNKNOWN)
+                    {
+                        log_warning(root, "window: key with unknown key_code '{}' release detected", keypress.key_code);
+                    }
                 }
                 else
                 {
