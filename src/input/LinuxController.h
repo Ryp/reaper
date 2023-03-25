@@ -14,12 +14,12 @@ namespace Reaper
 {
 struct REAPER_INPUT_API LinuxController
 {
-    GenericControllerState last_state;
-    int                    fd;
+    int fd;
 };
 
-REAPER_INPUT_API LinuxController create_controller(const char* device_path);
+REAPER_INPUT_API LinuxController create_controller(const char* device_path, GenericControllerState& start_state);
 REAPER_INPUT_API void            destroy_controller(LinuxController& controller);
 
-REAPER_INPUT_API GenericControllerState update_controller_state(LinuxController& controller);
+REAPER_INPUT_API GenericControllerState update_controller_state(LinuxController&              controller,
+                                                                const GenericControllerState& last_state);
 } // namespace Reaper

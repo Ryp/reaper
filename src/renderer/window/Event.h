@@ -19,13 +19,12 @@ enum class EventType
     Resize,
     ButtonPress,
     KeyPress,
-    KeyRelease,
     Close
 };
 
 namespace MouseButton
 {
-    enum type : u32
+    enum type
     {
         Invalid,
         Left,
@@ -41,9 +40,9 @@ namespace MouseButton
 
 namespace KeyCode
 {
-    enum type : u32
+    enum type
     {
-        UNKNOWN,
+        Invalid,
         NUM_1,
         NUM_2,
         NUM_3,
@@ -87,6 +86,7 @@ struct Event
         {
             Window::KeyCode::type key;
             u8                    key_code; // FIXME internal
+            bool                  press;
         } keypress;
     } message;
 };
@@ -96,4 +96,5 @@ Event createButtonEvent(Window::MouseButton::type button, bool press);
 Event createKeyEvent(Window::KeyCode::type id, bool press, u8 key_code);
 
 REAPER_RENDERER_API const char* get_mouse_button_string(MouseButton::type button);
+REAPER_RENDERER_API const char* get_keyboard_key_string(KeyCode::type key);
 } // namespace Reaper::Window

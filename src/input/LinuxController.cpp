@@ -28,7 +28,7 @@ namespace Reaper
 static constexpr int   AxisAbsoluteResolution = (2 << 14) - 1;
 static constexpr float AxisDeadzone = 0.08f; // FIXME Don't use dead zones on all axes
 
-LinuxController create_controller(const char* device_path)
+LinuxController create_controller(const char* device_path, GenericControllerState& start_state)
 {
     LinuxController controller = {};
 #if defined(REAPER_PLATFORM_LINUX)
@@ -41,7 +41,7 @@ LinuxController create_controller(const char* device_path)
     // Assert(false, fmt::format("New controller = {}", deviceName));
 
     // FIXME Should get the initial state with JS_EVENT_INIT instead
-    controller.last_state = update_controller_state(controller);
+    start_state = update_controller_state(controller, {});
 #endif
     return controller;
 }
@@ -138,9 +138,9 @@ namespace
 
 } // namespace
 
-GenericControllerState update_controller_state(LinuxController& controller)
+GenericControllerState update_controller_state(LinuxController& controller, const GenericControllerState& last_state)
 {
-    GenericControllerState state = controller.last_state;
+    GenericControllerState state = last_state;
     const RemapTable&      remap_table = RemapTables[Controllers::DualShock4];
 #if defined(REAPER_PLATFORM_LINUX)
     float           val;
@@ -212,10 +212,6 @@ GenericControllerState update_controller_state(LinuxController& controller)
         }
     }
 #endif
-
-    compute_controller_transient_state(controller.last_state, state);
-
-    controller.last_state = state;
 
     return state;
 }

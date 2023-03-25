@@ -21,9 +21,9 @@
 #include "input/LinuxController.h"
 #include "math/Spline.h"
 #include "mesh/ModelLoader.h"
-#include "profiling/Scope.h"
 #include "neptune/sim/Test.h"
 #include "neptune/trackgen/Track.h"
+#include "profiling/Scope.h"
 
 #include "Camera.h"
 #include "Geometry.h"
@@ -41,15 +41,85 @@
 #include "renderer/window/Window.h"
 
 #define ENABLE_TEST_SCENE 1
-#define ENABLE_CONTROLLER 0
+#define ENABLE_LINUX_CONTROLLER 0
 #define ENABLE_GAME_SCENE 0
 #define ENABLE_TEST_DRIVE 0
-#define ENABLE_FREE_CAM 0
+#define ENABLE_FREE_CAM 1
 
 namespace Reaper
 {
 namespace
 {
+    void imgui_draw_gamepad_axis(float size_px, float axis_x, float axis_y)
+    {
+        const ImU32 white_color = IM_COL32(255, 255, 255, 255);
+        const float half_size_px = size_px * 0.5f;
+
+        const ImVec2 pos = ImGui::GetCursorScreenPos();
+        ImDrawList*  draw_list = ImGui::GetWindowDrawList();
+
+        // Draw safe region
+        draw_list->AddRectFilled(pos, ImVec2(pos.x + size_px, pos.y + size_px), IM_COL32(0, 30, 0, 255));
+
+        // Draw frame and cross lines
+        draw_list->AddRect(pos, ImVec2(pos.x + size_px, pos.y + size_px), white_color);
+        draw_list->AddLine(ImVec2(pos.x + half_size_px, pos.y), ImVec2(pos.x + half_size_px, pos.y + size_px),
+                           white_color);
+        draw_list->AddLine(ImVec2(pos.x, pos.y + half_size_px), ImVec2(pos.x + size_px, pos.y + half_size_px),
+                           white_color);
+        draw_list->AddCircle(ImVec2(pos.x + half_size_px, pos.y + half_size_px), half_size_px, white_color, 32);
+
+        // Current position
+        draw_list->AddCircleFilled(
+            ImVec2(pos.x + axis_x * half_size_px + half_size_px, pos.y + axis_y * half_size_px + half_size_px), 10,
+            white_color);
+    }
+
+    void imgui_controller_debug(const GenericControllerState& controller_state)
+    {
+        static bool show_window = true;
+        static int  corner = 0;
+
+        ImGuiWindowFlags window_flags =
+            0; // ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav;
+
+        if (corner != -1)
+        {
+            const float          PAD = 100.0f;
+            const ImGuiViewport* viewport = ImGui::GetMainViewport();
+            ImVec2               work_pos = viewport->WorkPos; // Use work area to avoid menu-bar/task-bar, if any!
+            ImVec2               work_size = viewport->WorkSize;
+            ImVec2               window_pos, window_pos_pivot;
+            window_pos.x = (corner & 1) ? (work_pos.x + work_size.x - PAD) : (work_pos.x + PAD);
+            window_pos.y = (corner & 2) ? (work_pos.y + work_size.y - PAD) : (work_pos.y + PAD);
+            window_pos_pivot.x = (corner & 1) ? 1.0f : 0.0f;
+            window_pos_pivot.y = (corner & 2) ? 1.0f : 0.0f;
+            ImGui::SetNextWindowPos(window_pos, ImGuiCond_Always, window_pos_pivot);
+        }
+
+        ImGui::SetNextWindowBgAlpha(0.35f); // Transparent background
+
+        if (ImGui::Begin("Controller Axes", &show_window, window_flags))
+        {
+            const float size_px = 200.f;
+
+            // Left pad.
+            ImGui::BeginChild("LeftStick", ImVec2(size_px, size_px));
+            imgui_draw_gamepad_axis(size_px, controller_state.axes[GenericAxis::LSX],
+                                    controller_state.axes[GenericAxis::LSY]);
+            ImGui::EndChild();
+            ImGui::SameLine(size_px + 20.f);
+
+            // Right pad.
+            ImGui::BeginChild("RightStick", ImVec2(size_px, size_px));
+            imgui_draw_gamepad_axis(size_px, controller_state.axes[GenericAxis::RSX],
+                                    controller_state.axes[GenericAxis::RSY]);
+            ImGui::EndChild();
+        }
+
+        ImGui::End();
+    }
+
     void imgui_process_button_press(ImGuiIO& io, Window::MouseButton::type button, bool is_pressed)
     {
         constexpr float ImGuiScrollMultiplier = 0.5f;
@@ -114,7 +184,7 @@ void execute_game_loop(ReaperRoot& root)
     }
 
     Neptune::sim_register_static_collision_meshes(sim, meshes, nonstd::span(&flat_quad_transform, 1),
-                                                      nonstd::span(&flat_quad_scale, 1));
+                                                  nonstd::span(&flat_quad_scale, 1));
 #    else
     Neptune::Track game_track;
 
@@ -280,8 +350,10 @@ void execute_game_loop(ReaperRoot& root)
     bool      shouldExit = false;
     u64       frameIndex = 0;
 
-#if ENABLE_CONTROLLER
-    LinuxController controller = create_controller("/dev/input/js0");
+    GenericControllerState last_controller_state = {};
+
+#if ENABLE_LINUX_CONTROLLER
+    LinuxController controller = create_controller("/dev/input/js0", last_controller_state);
 #endif
 
 #if ENABLE_FREE_CAM
@@ -293,7 +365,7 @@ void execute_game_loop(ReaperRoot& root)
 #endif
 
     const auto startTime = std::chrono::system_clock::now();
-    auto       lastFrameStart = startTime;
+    auto       last_frame_start = startTime;
 
     while (!shouldExit)
     {
@@ -301,14 +373,24 @@ void execute_game_loop(ReaperRoot& root)
 
         const auto currentTime = std::chrono::system_clock::now();
 
-        const auto  timeDeltaMs = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - lastFrameStart);
-        const float timeDtSecs = static_cast<float>(timeDeltaMs.count()) * 0.001f;
+        const auto time_delta_ms =
+            std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - last_frame_start);
+        const float time_delta_secs = static_cast<float>(time_delta_ms.count()) * 0.001f;
 
         const MouseState mouse_state = window->get_mouse_state();
         ImGuiIO&         io = ImGui::GetIO();
         io.DisplaySize =
             ImVec2((float)backend.presentInfo.surfaceExtent.width, (float)backend.presentInfo.surfaceExtent.height);
         io.AddMousePosEvent((float)mouse_state.pos_x, (float)mouse_state.pos_y);
+
+        ImGui_ImplVulkan_NewFrame();
+        ImGui::NewFrame();
+
+#if ENABLE_LINUX_CONTROLLER
+        GenericControllerState controller_state = update_controller_state(controller, last_controller_state);
+#else
+        GenericControllerState controller_state = last_controller_state;
+#endif
 
         {
             REAPER_PROFILE_SCOPE("Window Events");
@@ -345,27 +427,59 @@ void execute_game_loop(ReaperRoot& root)
                 else if (event.type == Window::EventType::KeyPress)
                 {
                     Window::Event::Message::KeyPress keypress = event.message.keypress;
+                    bool                             is_pressed = keypress.press;
 
-                    if (keypress.key == Window::KeyCode::ESCAPE)
+                    if (keypress.press && keypress.key == Window::KeyCode::ESCAPE)
                     {
                         log_warning(root, "window: escape key press detected: now exiting...");
                         shouldExit = true;
                     }
-                    else if (keypress.key == Window::KeyCode::UNKNOWN)
+                    else if (keypress.key == Window::KeyCode::A)
                     {
-                        log_warning(root, "window: key with unknown key_code '{}' press detected", keypress.key_code);
+                        controller_state.axes[GenericAxis::LSX] += is_pressed ? -1.f : 1.f;
+                    }
+                    else if (keypress.key == Window::KeyCode::D)
+                    {
+                        controller_state.axes[GenericAxis::LSX] += is_pressed ? 1.f : -1.f;
+                    }
+                    else if (keypress.key == Window::KeyCode::W)
+                    {
+                        controller_state.axes[GenericAxis::LSY] += is_pressed ? -1.f : 1.f;
+                    }
+                    else if (keypress.key == Window::KeyCode::S)
+                    {
+                        controller_state.axes[GenericAxis::LSY] += is_pressed ? 1.f : -1.f;
+                    }
+                    else if (keypress.key == Window::KeyCode::ARROW_LEFT)
+                    {
+                        controller_state.axes[GenericAxis::RSX] += is_pressed ? -1.f : 1.f;
+                    }
+                    else if (keypress.key == Window::KeyCode::ARROW_RIGHT)
+                    {
+                        controller_state.axes[GenericAxis::RSX] += is_pressed ? 1.f : -1.f;
+                    }
+                    else if (keypress.key == Window::KeyCode::ARROW_UP)
+                    {
+                        controller_state.axes[GenericAxis::RSY] += is_pressed ? -1.f : 1.f;
+                    }
+                    else if (keypress.key == Window::KeyCode::ARROW_DOWN)
+                    {
+                        controller_state.axes[GenericAxis::RSY] += is_pressed ? 1.f : -1.f;
+                    }
+
+                    if (keypress.key == Window::KeyCode::Invalid)
+                    {
+                        log_warning(root, "window: key with unknown key_code '{}' {} detected", keypress.key_code,
+                                    keypress.press ? "press" : "release");
+                    }
+                    else
+                    {
+                        // FIXME debug
+                        log_warning(root, "window: key '{}' {} detected", Window::get_keyboard_key_string(keypress.key),
+                                    keypress.press ? "press" : "release");
                     }
 
                     break;
-                }
-                else if (event.type == Window::EventType::KeyRelease)
-                {
-                    Window::Event::Message::KeyPress keypress = event.message.keypress;
-
-                    if (keypress.key == Window::KeyCode::UNKNOWN)
-                    {
-                        log_warning(root, "window: key with unknown key_code '{}' release detected", keypress.key_code);
-                    }
                 }
                 else
                 {
@@ -374,25 +488,16 @@ void execute_game_loop(ReaperRoot& root)
             }
         }
 
-#if ENABLE_CONTROLLER
-        const GenericControllerState controller_state = update_controller_state(controller);
-#else
-        const GenericControllerState controller_state = {};
-#endif
+        // Up until now you can manually mutate the controller state
+        compute_controller_transient_state(last_controller_state, controller_state);
+        // From that point on you should treat this data as immutable
 
         if (controller_state.buttons[GenericButton::X].pressed)
             toggle(backend.options.freeze_culling);
 
-        ImGui_ImplVulkan_NewFrame();
-        ImGui::NewFrame();
+        imgui_controller_debug(controller_state);
 
-        static bool show_demo_window = false;
-        if (show_demo_window)
-        {
-            ImGui::ShowDemoWindow(&show_demo_window);
-        }
-
-        ImGui::Render();
+        backend_debug_ui(backend);
 
 #if ENABLE_GAME_SCENE
         Neptune::ShipInput input;
@@ -402,7 +507,7 @@ void execute_game_loop(ReaperRoot& root)
 
         log_debug(root, "sim: throttle = {}, braking = {}, steer = {}", input.throttle, input.brake, input.steer);
 
-        Neptune::sim_update(sim, input, timeDtSecs);
+        Neptune::sim_update(sim, input, time_delta_secs);
 
         const glm::fmat4x3 player_transform = Neptune::get_player_transform(sim);
         const glm::fvec3   player_translation = player_transform[3];
@@ -416,14 +521,18 @@ void execute_game_loop(ReaperRoot& root)
 
 #if ENABLE_FREE_CAM
         const glm::vec2 yaw_pitch_delta =
-            glm::vec2(controller_state.axes[GenericAxis::RSY], -controller_state.axes[GenericAxis::RSX]) * timeDtSecs;
+            glm::vec2(controller_state.axes[GenericAxis::RSX], -controller_state.axes[GenericAxis::RSY])
+            * time_delta_secs;
         const glm::vec2 forward_side_delta =
-            glm::vec2(controller_state.axes[GenericAxis::LSY], controller_state.axes[GenericAxis::LSX]) * timeDtSecs;
+            glm::vec2(controller_state.axes[GenericAxis::LSY], controller_state.axes[GenericAxis::LSX])
+            * time_delta_secs;
 
         update_camera_state(camera_state, yaw_pitch_delta, forward_side_delta);
 
         camera_node.transform_matrix = glm::inverse(compute_camera_view_matrix(camera_state));
 #endif
+
+        ImGui::Render();
 
         log_debug(root, "renderer: begin frame {}", frameIndex);
 
@@ -441,7 +550,8 @@ void execute_game_loop(ReaperRoot& root)
         if (frameIndex == MaxFrameCount)
             shouldExit = true;
 
-        lastFrameStart = currentTime;
+        last_frame_start = currentTime;
+        last_controller_state = controller_state;
     }
 
     const bool write_audio_to_file = false;
@@ -457,7 +567,7 @@ void execute_game_loop(ReaperRoot& root)
         output_file.close();
     }
 
-#if ENABLE_CONTROLLER
+#if ENABLE_LINUX_CONTROLLER
     destroy_controller(controller);
 #endif
 

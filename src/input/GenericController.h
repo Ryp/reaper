@@ -9,6 +9,8 @@
 
 #include <array>
 
+#include "InputExport.h"
+
 namespace Reaper
 {
 // Based on a Xbox One controller
@@ -66,7 +68,9 @@ struct GenericControllerState
     std::array<AxisState, GenericAxis::Count>     axes;
 };
 
-void compute_controller_transient_state(const GenericControllerState& last_state, GenericControllerState& new_state);
+// Updates transient fields like 'pressed' or 'released' for this frame
+REAPER_INPUT_API void compute_controller_transient_state(const GenericControllerState& last_state,
+                                                         GenericControllerState&       new_state);
 
 const char* generic_button_name_to_string(GenericButton::Type button);
 const char* generic_axis_name_to_string(GenericAxis::Type axis);

@@ -32,9 +32,10 @@ Event createButtonEvent(Window::MouseButton::type button, bool press)
 Event createKeyEvent(Window::KeyCode::type id, bool press, u8 key_code)
 {
     Event event = {};
-    event.type = press ? EventType::KeyPress : EventType::KeyRelease;
+    event.type = EventType::KeyPress;
     event.message.keypress.key = id;
     event.message.keypress.key_code = key_code;
+    event.message.keypress.press = press;
     return event;
 }
 
@@ -57,6 +58,59 @@ const char* get_mouse_button_string(MouseButton::type button)
     case Window::MouseButton::WheelRight:
         return "WheelRight";
     case Window::MouseButton::Invalid:
+    default:
+        AssertUnreachable();
+        return "Invalid";
+    }
+}
+
+const char* get_keyboard_key_string(KeyCode::type key)
+{
+    switch (key)
+    {
+    case Window::KeyCode::NUM_1:
+        return "NUM_1";
+    case Window::KeyCode::NUM_2:
+        return "NUM_2";
+    case Window::KeyCode::NUM_3:
+        return "NUM_3";
+    case Window::KeyCode::NUM_4:
+        return "NUM_4";
+    case Window::KeyCode::NUM_5:
+        return "NUM_5";
+    case Window::KeyCode::NUM_6:
+        return "NUM_6";
+    case Window::KeyCode::NUM_7:
+        return "NUM_7";
+    case Window::KeyCode::NUM_8:
+        return "NUM_8";
+    case Window::KeyCode::NUM_9:
+        return "NUM_9";
+    case Window::KeyCode::NUM_0:
+        return "NUM_0";
+    case Window::KeyCode::ESCAPE:
+        return "ESCAPE";
+    case Window::KeyCode::ENTER:
+        return "ENTER";
+    case Window::KeyCode::SPACE:
+        return "SPACE";
+    case Window::KeyCode::ARROW_RIGHT:
+        return "ARROW_RIGHT";
+    case Window::KeyCode::ARROW_LEFT:
+        return "ARROW_LEFT";
+    case Window::KeyCode::ARROW_DOWN:
+        return "ARROW_DOWN";
+    case Window::KeyCode::ARROW_UP:
+        return "ARROW_UP";
+    case Window::KeyCode::W:
+        return "W";
+    case Window::KeyCode::A:
+        return "A";
+    case Window::KeyCode::S:
+        return "S";
+    case Window::KeyCode::D:
+        return "D";
+    case Window::KeyCode::Invalid:
     default:
         AssertUnreachable();
         return "Invalid";

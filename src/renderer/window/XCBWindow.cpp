@@ -115,7 +115,7 @@ namespace Window
             case XCB_KEY_CODE_0:
                 return KeyCode::NUM_0;
             default:
-                return KeyCode::UNKNOWN;
+                return KeyCode::Invalid;
             }
         }
     } // namespace
