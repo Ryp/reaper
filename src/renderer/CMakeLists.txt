@@ -249,7 +249,7 @@ if(WIN32)
         ${CMAKE_CURRENT_SOURCE_DIR}/window/Win32Window.h)
 elseif(APPLE OR UNIX)
     if(ON) # Prefer XCB
-        find_package(XCB REQUIRED)
+        find_package(XCB COMPONENTS XKB REQUIRED)
         target_link_libraries(${target} PUBLIC ${LIBXCB_LIBRARIES})
         target_include_directories(${target} SYSTEM PUBLIC ${LIBXCB_INCLUDE_DIR})
         target_sources(${target} PRIVATE
