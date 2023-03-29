@@ -29,16 +29,28 @@ void DumpFrameGraph(const FrameGraph& frameGraph)
 
     for (u32 resourceUsageIndex = 0; resourceUsageIndex < resourceUsageCount; resourceUsageIndex++)
     {
-        const ResourceUsage&        resourceUsage = frameGraph.ResourceUsages[resourceUsageIndex];
-        const Resource&             resource = GetResource(frameGraph, resourceUsage);
-        const GPUTextureProperties& desc = resource.properties.texture;
+        const ResourceUsage& resourceUsage = frameGraph.ResourceUsages[resourceUsageIndex];
+        const ResourceHandle resource_handle = resourceUsage.resource_handle;
+        const Resource&      resource = GetResource(frameGraph, resourceUsage);
 
         // Instead of skipping read nodes, add the hidden info to the corresponding edge
         if (has_mask(resourceUsage.Type, UsageType::Output))
         {
-            const std::string label = fmt::format(
-                "{0} ({1})\\n{2}x{3}\\n{4}\\n[{5}]", resource.debug_name, resourceUsage.resource_handle.index,
-                desc.width, desc.height, GetFormatToString(PixelFormatToVulkan(desc.format)), resourceUsageIndex);
+            std::string label;
+
+            if (resource_handle.is_texture)
+            {
+                const GPUTextureProperties& desc = resource.properties.texture;
+                label = fmt::format("{0} ({1})\\n{2}x{3}\\n{4}\\n[{5}]", resource.debug_name, resource_handle.index,
+                                    desc.width, desc.height, GetFormatToString(PixelFormatToVulkan(desc.format)),
+                                    resourceUsageIndex);
+            }
+            else
+            {
+                const GPUBufferProperties& desc = resource.properties.buffer;
+                label = fmt::format("{0} ({1})\\n{2}x{3} bytes\\n[{4}]", resource.debug_name, resource_handle.index,
+                                    desc.element_count, desc.element_size_bytes, resourceUsageIndex);
+            }
 
             outResFile << "        res" << resourceUsageIndex << " [label=\"" << label << "\"";
 
