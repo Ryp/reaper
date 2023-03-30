@@ -427,56 +427,57 @@ void execute_game_loop(ReaperRoot& root)
                 else if (event.type == Window::EventType::KeyPress)
                 {
                     Window::Event::Message::KeyPress keypress = event.message.keypress;
-                    bool                             is_pressed = keypress.press;
+                    const Window::KeyCode::type      key = keypress.key;
+                    const bool                       is_pressed = keypress.press;
 
-                    if (keypress.press && keypress.key == Window::KeyCode::ESCAPE)
+                    if (is_pressed && key == Window::KeyCode::ESCAPE)
                     {
                         log_warning(root, "window: escape key press detected: now exiting...");
                         shouldExit = true;
                     }
-                    else if (keypress.key == Window::KeyCode::A)
+                    else if (key == Window::KeyCode::A) // FIXME key auto-repeat will ruin this for us
                     {
-                        controller_state.axes[GenericAxis::LSX] += is_pressed ? -1.f : 1.f;
+                        controller_state.axes[GenericAxis::LSX] = is_pressed ? -1.f : 0.f;
                     }
-                    else if (keypress.key == Window::KeyCode::D)
+                    else if (key == Window::KeyCode::D)
                     {
-                        controller_state.axes[GenericAxis::LSX] += is_pressed ? 1.f : -1.f;
+                        controller_state.axes[GenericAxis::LSX] = is_pressed ? 1.f : 0.f;
                     }
-                    else if (keypress.key == Window::KeyCode::W)
+                    else if (key == Window::KeyCode::W)
                     {
-                        controller_state.axes[GenericAxis::LSY] += is_pressed ? -1.f : 1.f;
+                        controller_state.axes[GenericAxis::LSY] = is_pressed ? -1.f : 0.f;
                     }
-                    else if (keypress.key == Window::KeyCode::S)
+                    else if (key == Window::KeyCode::S)
                     {
-                        controller_state.axes[GenericAxis::LSY] += is_pressed ? 1.f : -1.f;
+                        controller_state.axes[GenericAxis::LSY] = is_pressed ? 1.f : 0.f;
                     }
-                    else if (keypress.key == Window::KeyCode::ARROW_LEFT)
+                    else if (key == Window::KeyCode::ARROW_LEFT)
                     {
-                        controller_state.axes[GenericAxis::RSX] += is_pressed ? -1.f : 1.f;
+                        controller_state.axes[GenericAxis::RSX] = is_pressed ? -1.f : 0.f;
                     }
-                    else if (keypress.key == Window::KeyCode::ARROW_RIGHT)
+                    else if (key == Window::KeyCode::ARROW_RIGHT)
                     {
-                        controller_state.axes[GenericAxis::RSX] += is_pressed ? 1.f : -1.f;
+                        controller_state.axes[GenericAxis::RSX] = is_pressed ? 1.f : 0.f;
                     }
-                    else if (keypress.key == Window::KeyCode::ARROW_UP)
+                    else if (key == Window::KeyCode::ARROW_UP)
                     {
-                        controller_state.axes[GenericAxis::RSY] += is_pressed ? -1.f : 1.f;
+                        controller_state.axes[GenericAxis::RSY] = is_pressed ? -1.f : 0.f;
                     }
-                    else if (keypress.key == Window::KeyCode::ARROW_DOWN)
+                    else if (key == Window::KeyCode::ARROW_DOWN)
                     {
-                        controller_state.axes[GenericAxis::RSY] += is_pressed ? 1.f : -1.f;
+                        controller_state.axes[GenericAxis::RSY] = is_pressed ? 1.f : 0.f;
                     }
 
-                    if (keypress.key == Window::KeyCode::Invalid)
+                    if (key == Window::KeyCode::Invalid)
                     {
                         log_warning(root, "window: key with unknown key_code '{}' {} detected", keypress.key_code,
-                                    keypress.press ? "press" : "release");
+                                    is_pressed ? "press" : "release");
                     }
                     else
                     {
                         // FIXME debug
-                        log_warning(root, "window: key '{}' {} detected", Window::get_keyboard_key_string(keypress.key),
-                                    keypress.press ? "press" : "release");
+                        log_warning(root, "window: key '{}' {} detected", Window::get_keyboard_key_string(key),
+                                    is_pressed ? "press" : "release");
                     }
 
                     break;

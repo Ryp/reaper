@@ -11,12 +11,36 @@
 
 #include "Event.h"
 
+// XCB has a C interface but uses the C++-reserved explicit keyword.
+// This workaround lets us compile without having to wait on the project to address the issue.
+#define XCB_UGLY_DEFINE_HACK 1
+
+#if XCB_UGLY_DEFINE_HACK
+#    ifdef __clang__
+#        pragma clang diagnostic push
+#        pragma clang diagnostic ignored "-Wkeyword-macro"
+#    endif
+#    define explicit explicit_
+#    ifdef __clang__
+#        pragma clang diagnostic pop
+#    endif
+
+#    include <xcb/xkb.h>
+
+#    undef explicit
+#endif // XCB_UGLY_DEFINE_HACK
+
 #include <cstring>
 
 #include "renderer/Renderer.h"
 
 namespace Reaper
 {
+namespace
+{
+    constexpr bool InitializeXKBAutoRepeatSettings = true;
+}
+
 namespace Window
 {
     namespace
@@ -131,6 +155,46 @@ XCBWindow::XCBWindow(const WindowCreationDescriptor& creationInfo)
     m_connection = xcb_connect(nullptr, &screen_index);
     Assert(m_connection != nullptr);
 
+    if (InitializeXKBAutoRepeatSettings)
+    {
+        xcb_xkb_use_extension_cookie_t use_extension_cookie =
+            xcb_xkb_use_extension(m_connection, XCB_XKB_MAJOR_VERSION, XCB_XKB_MINOR_VERSION);
+
+        {
+            xcb_generic_error_t*           error = nullptr;
+            xcb_xkb_use_extension_reply_t* use_extension_reply =
+                xcb_xkb_use_extension_reply(m_connection, use_extension_cookie, &error);
+
+            if (error)
+            {
+                Assert(false, "Could not enable XKB extension");
+                free(error);
+            }
+
+            Assert(use_extension_reply->supported);
+        }
+
+        {
+            u32 flags = XCB_XKB_PER_CLIENT_FLAG_GRABS_USE_XKB_STATE | XCB_XKB_PER_CLIENT_FLAG_DETECTABLE_AUTO_REPEAT;
+
+            // Set the per client detectable auto repeat flag
+            xcb_xkb_per_client_flags_cookie_t set_flags_cookie =
+                xcb_xkb_per_client_flags(m_connection, XCB_XKB_ID_USE_CORE_KBD, flags, 1, 0, 0, 0);
+
+            xcb_generic_error_t*              error = nullptr;
+            xcb_xkb_per_client_flags_reply_t* set_flags_reply =
+                xcb_xkb_per_client_flags_reply(m_connection, set_flags_cookie, &error);
+
+            if (error)
+            {
+                Assert(false, "Could not set XKB flags");
+                free(error);
+            }
+
+            Assert((set_flags_reply->value & XCB_XKB_PER_CLIENT_FLAG_DETECTABLE_AUTO_REPEAT) != 0);
+        }
+    }
+
     const xcb_setup_t*    setup = xcb_get_setup(m_connection);
     xcb_screen_iterator_t screen_iterator = xcb_setup_roots_iterator(setup);
 
@@ -189,17 +253,18 @@ void XCBWindow::map()
     xcb_intern_atom_cookie_t delete_cookie = xcb_intern_atom(m_connection, 0, 16, "WM_DELETE_WINDOW");
     m_deleteWindowReply = xcb_intern_atom_reply(m_connection, delete_cookie, 0);
 
-    xcb_change_property(
-        m_connection, XCB_PROP_MODE_REPLACE, m_handle, (*protocols_reply).atom, 4, 32, 1, &(*m_deleteWindowReply).atom);
+    xcb_change_property(m_connection, XCB_PROP_MODE_REPLACE, m_handle, (*protocols_reply).atom, 4, 32, 1,
+                        &(*m_deleteWindowReply).atom);
 
     xcb_void_cookie_t    cookie = xcb_map_window_checked(m_connection, m_handle);
     xcb_generic_error_t* error = nullptr;
 
     if ((error = xcb_request_check(m_connection, cookie)))
     {
-        fprintf(stderr, "Could not reparent the window\n");
+        Assert(false, "Could not map the window");
         free(error);
     }
+
     Assert(xcb_connection_has_error(m_connection) == 0);
     xcb_flush(m_connection);
 }
@@ -211,9 +276,10 @@ void XCBWindow::unmap()
 
     if ((error = xcb_request_check(m_connection, cookie)))
     {
-        fprintf(stderr, "Could not reparent the window\n");
+        Assert(false, "Could not unmap the window");
         free(error);
     }
+
     Assert(xcb_connection_has_error(m_connection) == 0);
 }
 
