@@ -99,28 +99,15 @@ namespace
     void imgui_controller_debug(const GenericControllerState& controller_state)
     {
         static bool show_window = true;
-        static int  corner = 0;
 
-        ImGuiWindowFlags window_flags =
-            0; // ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav;
-
-        if (corner != -1)
-        {
-            const float          PAD = 100.0f;
-            const ImGuiViewport* viewport = ImGui::GetMainViewport();
-            ImVec2               work_pos = viewport->WorkPos; // Use work area to avoid menu-bar/task-bar, if any!
-            ImVec2               work_size = viewport->WorkSize;
-            ImVec2               window_pos, window_pos_pivot;
-            window_pos.x = (corner & 1) ? (work_pos.x + work_size.x - PAD) : (work_pos.x + PAD);
-            window_pos.y = (corner & 2) ? (work_pos.y + work_size.y - PAD) : (work_pos.y + PAD);
-            window_pos_pivot.x = (corner & 1) ? 1.0f : 0.0f;
-            window_pos_pivot.y = (corner & 2) ? 1.0f : 0.0f;
-            ImGui::SetNextWindowPos(window_pos, ImGuiCond_Always, window_pos_pivot);
-        }
-
+        const float          pad = 100.0f;
+        const ImGuiViewport* viewport = ImGui::GetMainViewport();
+        ImVec2               work_pos = viewport->WorkPos; // Use work area to avoid menu-bar/task-bar, if any!
+                                                           //
+        ImGui::SetNextWindowPos(ImVec2(work_pos.x + pad, work_pos.y + pad), ImGuiCond_Always);
         ImGui::SetNextWindowBgAlpha(0.35f); // Transparent background
 
-        if (ImGui::Begin("Controller Axes", &show_window, window_flags))
+        if (ImGui::Begin("Controller Axes", &show_window))
         {
             const float size_px = 200.f;
             const float w_px = 40.f;
@@ -146,6 +133,25 @@ namespace
             ImGui::BeginChild("RightTrigger", ImVec2(w_px, size_px));
             imgui_draw_gamepad_trigger(w_px, size_px, controller_state.axes[GenericAxis::RT]);
             ImGui::EndChild();
+        }
+
+        ImGui::End();
+    }
+
+    void imgui_draw_player_position(glm::vec3 position)
+    {
+        static bool show_window = true;
+
+        const float          pad = 100.0f;
+        const ImGuiViewport* viewport = ImGui::GetMainViewport();
+        ImVec2               work_pos = viewport->WorkPos; // Use work area to avoid menu-bar/task-bar, if any!
+                                                           //
+        ImGui::SetNextWindowPos(ImVec2(work_pos.x + pad, work_pos.y + pad), ImGuiCond_Always);
+        ImGui::SetNextWindowBgAlpha(0.35f); // Transparent background
+
+        if (ImGui::Begin("Physics", &show_window))
+        {
+            ImGui::InputFloat3("ship position", &position[0], "%.3f", ImGuiInputTextFlags_ReadOnly);
         }
 
         ImGui::End();
@@ -550,6 +556,8 @@ void execute_game_loop(ReaperRoot& root)
         SceneNode& player_scene_node = scene.nodes[player_scene_node_index];
         player_scene_node.transform_matrix = player_transform;
 #endif
+
+        imgui_draw_player_position(player_translation);
 
 #if ENABLE_FREE_CAM
         const glm::vec2 yaw_pitch_delta =
