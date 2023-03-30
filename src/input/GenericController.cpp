@@ -12,6 +12,16 @@
 
 namespace Reaper
 {
+GenericControllerState create_generic_controller_state()
+{
+    GenericControllerState state = {};
+
+    state.axes[GenericAxis::LT] = -1.f;
+    state.axes[GenericAxis::RT] = -1.f;
+
+    return state;
+}
+
 void compute_controller_transient_state(const GenericControllerState& last_state, GenericControllerState& new_state)
 {
     for (u32 i = 0; i < GenericButton::Count; i++)

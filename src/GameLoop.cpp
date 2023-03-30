@@ -50,29 +50,50 @@ namespace Reaper
 {
 namespace
 {
+    constexpr ImU32 ImGuiWhite = IM_COL32(255, 255, 255, 255);
+    constexpr ImU32 ImGuiGreen = IM_COL32(0, 255, 0, 255);
+    constexpr ImU32 ImGuiGamepadBg = IM_COL32(0, 30, 0, 255);
+
     void imgui_draw_gamepad_axis(float size_px, float axis_x, float axis_y)
     {
-        const ImU32 white_color = IM_COL32(255, 255, 255, 255);
         const float half_size_px = size_px * 0.5f;
 
         const ImVec2 pos = ImGui::GetCursorScreenPos();
         ImDrawList*  draw_list = ImGui::GetWindowDrawList();
 
         // Draw safe region
-        draw_list->AddRectFilled(pos, ImVec2(pos.x + size_px, pos.y + size_px), IM_COL32(0, 30, 0, 255));
+        draw_list->AddRectFilled(pos, ImVec2(pos.x + size_px, pos.y + size_px), ImGuiGamepadBg);
 
         // Draw frame and cross lines
-        draw_list->AddRect(pos, ImVec2(pos.x + size_px, pos.y + size_px), white_color);
+        draw_list->AddRect(pos, ImVec2(pos.x + size_px, pos.y + size_px), ImGuiWhite);
         draw_list->AddLine(ImVec2(pos.x + half_size_px, pos.y), ImVec2(pos.x + half_size_px, pos.y + size_px),
-                           white_color);
+                           ImGuiWhite);
         draw_list->AddLine(ImVec2(pos.x, pos.y + half_size_px), ImVec2(pos.x + size_px, pos.y + half_size_px),
-                           white_color);
-        draw_list->AddCircle(ImVec2(pos.x + half_size_px, pos.y + half_size_px), half_size_px, white_color, 32);
+                           ImGuiWhite);
+        draw_list->AddCircle(ImVec2(pos.x + half_size_px, pos.y + half_size_px), half_size_px, ImGuiWhite, 32);
 
         // Current position
         draw_list->AddCircleFilled(
             ImVec2(pos.x + axis_x * half_size_px + half_size_px, pos.y + axis_y * half_size_px + half_size_px), 10,
-            white_color);
+            ImGuiWhite);
+    }
+
+    void imgui_draw_gamepad_trigger(float w_px, float h_px, float trigger_axis)
+    {
+        const float mag = trigger_axis * 0.5 + 0.5;
+        const float current_y = h_px * (1.0f - mag);
+
+        const ImVec2 pos = ImGui::GetCursorScreenPos();
+        ImDrawList*  draw_list = ImGui::GetWindowDrawList();
+
+        // Draw safe region
+        draw_list->AddRectFilled(pos, ImVec2(pos.x + w_px, pos.y + h_px), ImGuiGamepadBg);
+
+        // Draw frame
+        draw_list->AddRect(pos, ImVec2(pos.x + w_px, pos.y + h_px), ImGuiWhite);
+
+        // Current position
+        draw_list->AddLine(ImVec2(pos.x, pos.y + current_y), ImVec2(pos.x + w_px, pos.y + current_y), ImGuiWhite, 8.0f);
     }
 
     void imgui_controller_debug(const GenericControllerState& controller_state)
@@ -102,18 +123,28 @@ namespace
         if (ImGui::Begin("Controller Axes", &show_window, window_flags))
         {
             const float size_px = 200.f;
+            const float w_px = 40.f;
 
-            // Left pad.
             ImGui::BeginChild("LeftStick", ImVec2(size_px, size_px));
             imgui_draw_gamepad_axis(size_px, controller_state.axes[GenericAxis::LSX],
                                     controller_state.axes[GenericAxis::LSY]);
             ImGui::EndChild();
             ImGui::SameLine(size_px + 20.f);
 
+            ImGui::BeginChild("LeftTrigger", ImVec2(w_px, size_px));
+            imgui_draw_gamepad_trigger(w_px, size_px, controller_state.axes[GenericAxis::LT]);
+            ImGui::EndChild();
+            ImGui::SameLine(size_px + w_px + 2.f * 20.f);
+
             // Right pad.
             ImGui::BeginChild("RightStick", ImVec2(size_px, size_px));
             imgui_draw_gamepad_axis(size_px, controller_state.axes[GenericAxis::RSX],
                                     controller_state.axes[GenericAxis::RSY]);
+            ImGui::EndChild();
+            ImGui::SameLine(size_px * 2.f + w_px + 3.f * 20.f);
+
+            ImGui::BeginChild("RightTrigger", ImVec2(w_px, size_px));
+            imgui_draw_gamepad_trigger(w_px, size_px, controller_state.axes[GenericAxis::RT]);
             ImGui::EndChild();
         }
 
@@ -350,7 +381,7 @@ void execute_game_loop(ReaperRoot& root)
     bool      shouldExit = false;
     u64       frameIndex = 0;
 
-    GenericControllerState last_controller_state = {};
+    GenericControllerState last_controller_state = create_generic_controller_state();
 
 #if ENABLE_LINUX_CONTROLLER
     LinuxController controller = create_controller("/dev/input/js0", last_controller_state);
@@ -461,11 +492,11 @@ void execute_game_loop(ReaperRoot& root)
                     }
                     else if (key == Window::KeyCode::ARROW_UP)
                     {
-                        controller_state.axes[GenericAxis::RSY] = is_pressed ? -1.f : 0.f;
+                        controller_state.axes[GenericAxis::RT] = is_pressed ? 1.f : -1.f;
                     }
                     else if (key == Window::KeyCode::ARROW_DOWN)
                     {
-                        controller_state.axes[GenericAxis::RSY] = is_pressed ? 1.f : 0.f;
+                        controller_state.axes[GenericAxis::LT] = is_pressed ? 1.f : -1.f;
                     }
 
                     if (key == Window::KeyCode::Invalid)

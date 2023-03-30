@@ -68,6 +68,8 @@ struct GenericControllerState
     std::array<AxisState, GenericAxis::Count>     axes;
 };
 
+REAPER_INPUT_API GenericControllerState create_generic_controller_state();
+
 // Updates transient fields like 'pressed' or 'released' for this frame
 REAPER_INPUT_API void compute_controller_transient_state(const GenericControllerState& last_state,
                                                          GenericControllerState&       new_state);
