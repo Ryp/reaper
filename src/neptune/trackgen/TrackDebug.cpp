@@ -15,7 +15,7 @@
 
 namespace Neptune
 {
-void SaveTrackSkeletonAsObj(std::ostream& output, std::vector<TrackSkeletonNode>& skeleton)
+void write_track_skeleton_as_obj(std::ostream& output, std::vector<TrackSkeletonNode>& skeleton)
 {
     output << "o Skeleton" << std::endl;
 
@@ -37,8 +37,8 @@ void SaveTrackSkeletonAsObj(std::ostream& output, std::vector<TrackSkeletonNode>
     }
 }
 
-void SaveTrackSplinesAsObj(std::ostream& output, std::vector<TrackSkeletonNode>& skeleton,
-                           std::vector<Reaper::Math::Spline>& splines, u32 tesselation)
+void write_track_splines_as_obj(std::ostream& output, std::vector<TrackSkeletonNode>& skeleton,
+                                std::vector<Reaper::Math::Spline>& splines, u32 tesselation)
 {
     const u32 splineCount = static_cast<u32>(splines.size());
 
@@ -74,7 +74,7 @@ void SaveTrackSplinesAsObj(std::ostream& output, std::vector<TrackSkeletonNode>&
     }
 }
 
-void SaveTrackBonesAsObj(std::ostream& output, std::vector<TrackSkinning>& skinningInfo)
+void write_track_bones_as_obj(std::ostream& output, std::vector<TrackSkinning>& skinningInfo)
 {
     const u32 trackChunkCount = static_cast<u32>(skinningInfo.size());
 

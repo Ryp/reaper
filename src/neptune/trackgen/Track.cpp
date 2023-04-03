@@ -73,8 +73,8 @@ namespace
         return rollFixup * deviation;
     }
 
-    bool IsNodeSelfColliding(const std::vector<TrackSkeletonNode>& nodes, const TrackSkeletonNode& currentNode,
-                             u32& outputNodeIdx)
+    bool is_node_self_colliding(nonstd::span<const TrackSkeletonNode> nodes, const TrackSkeletonNode& currentNode,
+                                u32& outputNodeIdx)
     {
         for (u32 i = 0; (i + 1) < nodes.size(); i++)
         {
@@ -91,8 +91,8 @@ namespace
         return false;
     }
 
-    TrackSkeletonNode GenerateNode(const GenerationInfo& genInfo, const std::vector<TrackSkeletonNode>& skeletonNodes,
-                                   RNG& rng)
+    TrackSkeletonNode generate_node(const GenerationInfo& genInfo, nonstd::span<const TrackSkeletonNode> skeleton_nodes,
+                                    RNG& rng)
     {
         std::uniform_real_distribution<float> widthDistribution(WidthMin, WidthMax);
         std::uniform_real_distribution<float> radiusDistribution(RadiusMin, RadiusMax);
@@ -101,7 +101,7 @@ namespace
 
         node.radius = radiusDistribution(rng);
 
-        if (skeletonNodes.empty())
+        if (skeleton_nodes.empty())
         {
             node.orientation_ms_to_ws = glm::quat();
             node.inWidth = widthDistribution(rng);
@@ -109,7 +109,7 @@ namespace
         }
         else
         {
-            const TrackSkeletonNode& previousNode = skeletonNodes.back();
+            const TrackSkeletonNode& previousNode = skeleton_nodes.back();
 
             node.orientation_ms_to_ws = previousNode.orientation_ms_to_ws * previousNode.end_orientation_ms;
             node.inWidth = previousNode.outWidth;
@@ -127,28 +127,37 @@ namespace
     }
 } // namespace
 
-void generate_track_skeleton(const GenerationInfo& genInfo, std::vector<TrackSkeletonNode>& skeletonNodes)
+void generate_track_skeleton(const GenerationInfo& genInfo, nonstd::span<TrackSkeletonNode> skeleton_nodes)
 {
     Assert(genInfo.length >= MinLength);
     Assert(genInfo.length <= MaxLength);
-
-    skeletonNodes.resize(0);
-    skeletonNodes.reserve(genInfo.length);
+    Assert(genInfo.length == skeleton_nodes.size());
 
     std::random_device rd;
     RNG                rng(rd());
 
     u32 tryCount = 0;
+    u32 current_node_index = 0;
 
-    while (skeletonNodes.size() < genInfo.length && tryCount < MaxTryCount)
+    while (current_node_index < genInfo.length && tryCount < MaxTryCount)
     {
-        const TrackSkeletonNode node = GenerateNode(genInfo, skeletonNodes, rng);
+        // Make span on generated nodes so far
+        nonstd::span<const TrackSkeletonNode> generated_nodes =
+            nonstd::make_span(skeleton_nodes.data(), current_node_index);
 
-        u32 colliderIdx = 0;
-        if (IsNodeSelfColliding(skeletonNodes, node, colliderIdx))
-            skeletonNodes.resize(colliderIdx + 1); // Shrink the vector and generate from collider
+        const TrackSkeletonNode new_node = generate_node(genInfo, generated_nodes, rng);
+
+        u32 collider_index = 0;
+
+        if (is_node_self_colliding(generated_nodes, new_node, collider_index))
+        {
+            current_node_index = collider_index + 1;
+        }
         else
-            skeletonNodes.push_back(node);
+        {
+            skeleton_nodes[current_node_index] = new_node;
+            current_node_index += 1;
+        }
 
         ++tryCount;
     }
@@ -156,19 +165,16 @@ void generate_track_skeleton(const GenerationInfo& genInfo, std::vector<TrackSke
     Assert(tryCount < MaxTryCount, "something is majorly FUBAR");
 }
 
-void generate_track_splines(const std::vector<TrackSkeletonNode>& skeletonNodes, std::vector<Math::Spline>& splines)
+void generate_track_splines(nonstd::span<const TrackSkeletonNode> skeleton_nodes,
+                            nonstd::span<Reaper::Math::Spline>    splines)
 {
+    Assert(skeleton_nodes.size() == splines.size());
+
     std::vector<glm::vec4> controlPoints(4);
-    const u32              trackChunkCount = static_cast<u32>(skeletonNodes.size());
 
-    Assert(trackChunkCount > 0);
-    Assert(trackChunkCount == skeletonNodes.size());
-
-    splines.resize(trackChunkCount);
-
-    for (u32 i = 0; i < trackChunkCount; i++)
+    for (u32 chunk_index = 0; chunk_index < skeleton_nodes.size(); chunk_index++)
     {
-        const TrackSkeletonNode& node = skeletonNodes[i];
+        const TrackSkeletonNode& node = skeleton_nodes[chunk_index];
 
         // Laying down 1 control point at each end and 2 in the center of the sphere
         // seems to work pretty well.
@@ -177,15 +183,15 @@ void generate_track_splines(const std::vector<TrackSkeletonNode>& skeletonNodes,
         controlPoints[2] = glm::vec4(glm::vec3(0.0f), SplineInnerWeight);
         controlPoints[3] = glm::vec4(node.end_orientation_ms * UnitXAxis * node.radius, 1.0f);
 
-        splines[i] = Math::ConstructSpline(SplineOrder, controlPoints);
+        splines[chunk_index] = Math::create_spline(SplineOrder, controlPoints);
     }
 }
 
 namespace
 {
-    void GenerateTrackSkinningForChunk(const TrackSkeletonNode& node,
-                                       const Math::Spline&      spline,
-                                       TrackSkinning&           skinningInfo)
+    void generate_track_skinning_for_chunk(const TrackSkeletonNode& node,
+                                           const Math::Spline&      spline,
+                                           TrackSkinning&           skinningInfo)
     {
         skinningInfo.bones.resize(BoneCountPerChunk);
 
@@ -245,19 +251,18 @@ namespace
     }
 } // namespace
 
-void generate_track_skinning(const std::vector<TrackSkeletonNode>& skeletonNodes,
-                             const std::vector<Math::Spline>&      splines,
-                             std::vector<TrackSkinning>&           skinning)
+void generate_track_skinning(nonstd::span<const TrackSkeletonNode> skeleton_nodes,
+                             nonstd::span<const Reaper::Math::Spline>
+                                 splines,
+                             nonstd::span<TrackSkinning>
+                                 skinning)
 {
-    const u32 trackChunkCount = static_cast<u32>(splines.size());
+    Assert(skeleton_nodes.size() == splines.size());
+    Assert(splines.size() == skinning.size());
 
-    Assert(trackChunkCount > 0);
-
-    skinning.resize(trackChunkCount);
-
-    for (u32 chunkIdx = 0; chunkIdx < splines.size(); chunkIdx++)
+    for (u32 chunk_index = 0; chunk_index < splines.size(); chunk_index++)
     {
-        GenerateTrackSkinningForChunk(skeletonNodes[chunkIdx], splines[chunkIdx], skinning[chunkIdx]);
+        generate_track_skinning_for_chunk(skeleton_nodes[chunk_index], splines[chunk_index], skinning[chunk_index]);
     }
 }
 
@@ -274,18 +279,18 @@ namespace
     }
 } // namespace
 
-void skin_track_chunk_mesh(const TrackSkeletonNode& node, const TrackSkinning& trackSkinning, Mesh& mesh,
+void skin_track_chunk_mesh(const TrackSkeletonNode& node, const TrackSkinning& track_skinning, Mesh& mesh,
                            float meshLength)
 {
-    const u32               vertexCount = static_cast<u32>(mesh.positions.size());
-    const u32               boneCount = 4; // FIXME choose if this is a hard limit or not
-    std::vector<glm::fvec3> skinnedVertices(vertexCount);
+    const u32               vertex_count = static_cast<u32>(mesh.positions.size());
+    const u32               bone_count = 4; // FIXME choose if this is a hard limit or not
+    std::vector<glm::fvec3> skinnedVertices(vertex_count);
 
-    Assert(vertexCount > 0);
+    Assert(vertex_count > 0);
 
     const float scaleX = node.radius / (meshLength * 0.5f);
 
-    for (u32 i = 0; i < vertexCount; i++)
+    for (u32 i = 0; i < vertex_count; i++)
     {
         const glm::fvec3 vertex = mesh.positions[i] * glm::fvec3(scaleX, 1.0f, 1.0f);
         const glm::fvec4 boneWeights = ComputeBoneWeights(vertex, node.radius);
@@ -294,9 +299,9 @@ void skin_track_chunk_mesh(const TrackSkeletonNode& node, const TrackSkinning& t
         Assert(Math::IsEqualWithEpsilon(debugSum, 1.0f));
 
         glm::fvec4 skinnedVertex(0.0f);
-        for (u32 j = 0; j < boneCount; j++)
+        for (u32 j = 0; j < bone_count; j++)
         {
-            const glm::fmat4 boneTransform = trackSkinning.poseTransforms[j] * trackSkinning.invBindTransforms[j];
+            const glm::fmat4 boneTransform = track_skinning.poseTransforms[j] * track_skinning.invBindTransforms[j];
 
             skinnedVertex += (boneTransform * glm::fvec4(vertex, 1.0f)) * boneWeights[j];
         }

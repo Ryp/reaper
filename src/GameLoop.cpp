@@ -40,11 +40,89 @@
 #include "renderer/window/Event.h"
 #include "renderer/window/Window.h"
 
-#define ENABLE_TEST_SCENE 1
+#define ENABLE_TEST_SCENE 0
 #define ENABLE_LINUX_CONTROLLER 0
-#define ENABLE_GAME_SCENE 0
-#define ENABLE_TEST_DRIVE 0
+#define ENABLE_GAME_SCENE 1
 #define ENABLE_FREE_CAM 1
+
+namespace Neptune
+{
+struct Track
+{
+    std::vector<TrackSkeletonNode>        skeletonNodes;
+    std::vector<Reaper::Math::Spline>     splinesMS;
+    std::vector<TrackSkinning>            skinning;
+    std::vector<StaticMeshColliderHandle> sim_handles;
+};
+
+namespace
+{
+    Track create_game_track(const GenerationInfo& gen_info, Reaper::VulkanBackend& backend, PhysicsSim& sim,
+                            Reaper::SceneGraph& scene, Reaper::TextureHandle texture_handle)
+    {
+        Track track;
+
+        track.skeletonNodes.resize(gen_info.length);
+
+        generate_track_skeleton(gen_info, track.skeletonNodes);
+
+        track.splinesMS.resize(gen_info.length);
+
+        generate_track_splines(track.skeletonNodes, track.splinesMS);
+
+        track.skinning.resize(gen_info.length);
+
+        generate_track_skinning(track.skeletonNodes, track.splinesMS, track.skinning);
+
+        const std::string         assetFile("res/model/track/chunk_simple.obj");
+        std::vector<glm::fmat4x3> chunk_transforms(gen_info.length);
+        std::vector<Mesh>         track_meshes(gen_info.length);
+
+        for (u32 i = 0; i < gen_info.length; i++)
+        {
+            std::ifstream file(assetFile);
+            track_meshes[i] = ModelLoader::loadOBJ(file);
+
+            const TrackSkeletonNode& track_node = track.skeletonNodes[i];
+
+            chunk_transforms[i] = glm::translate(glm::mat4(1.0f), track_node.positionWS);
+
+            skin_track_chunk_mesh(track_node, track.skinning[i], track_meshes[i], 10.0f);
+        }
+
+        track.sim_handles.resize(gen_info.length);
+
+        // NOTE: bullet will hold pointers to the original mesh data without copy
+        sim_create_static_collision_meshes(track.sim_handles, sim, track_meshes, chunk_transforms);
+
+        std::vector<Reaper::MeshHandle> chunk_mesh_handles(track_meshes.size());
+        load_meshes(backend, backend.resources->mesh_cache, track_meshes, chunk_mesh_handles);
+
+        // Place static track in the scene
+        for (u32 chunk_index = 0; chunk_index < gen_info.length; chunk_index++)
+        {
+            Reaper::SceneMesh scene_mesh;
+            scene_mesh.node_index = insert_scene_node(scene, chunk_transforms[chunk_index]);
+            scene_mesh.mesh_handle = chunk_mesh_handles[chunk_index];
+            scene_mesh.texture_handle = texture_handle;
+
+            insert_scene_mesh(scene, scene_mesh);
+        }
+
+        return track;
+    }
+
+    void destroy_game_track(Track& track, Reaper::VulkanBackend& backend, PhysicsSim& sim, Reaper::SceneGraph& scene)
+    {
+        sim_destroy_static_collision_meshes(track.sim_handles, sim);
+
+        // FIXME Unload texture data (cpu/gpu)
+        // FIXME Unload mesh data (cpu/sim/render)
+        static_cast<void>(backend);
+        static_cast<void>(scene);
+    }
+} // namespace
+} // namespace Neptune
 
 namespace Reaper
 {
@@ -138,25 +216,6 @@ namespace
         ImGui::End();
     }
 
-    void imgui_draw_player_position(glm::vec3 position)
-    {
-        static bool show_window = true;
-
-        const float          pad = 100.0f;
-        const ImGuiViewport* viewport = ImGui::GetMainViewport();
-        ImVec2               work_pos = viewport->WorkPos; // Use work area to avoid menu-bar/task-bar, if any!
-                                                           //
-        ImGui::SetNextWindowPos(ImVec2(work_pos.x + pad, work_pos.y + pad), ImGuiCond_Always);
-        ImGui::SetNextWindowBgAlpha(0.35f); // Transparent background
-
-        if (ImGui::Begin("Physics", &show_window))
-        {
-            ImGui::InputFloat3("ship position", &position[0], "%.3f", ImGuiInputTextFlags_ReadOnly);
-        }
-
-        ImGui::End();
-    }
-
     void imgui_process_button_press(ImGuiIO& io, Window::MouseButton::type button, bool is_pressed)
     {
         constexpr float ImGuiScrollMultiplier = 0.5f;
@@ -208,64 +267,6 @@ void execute_game_loop(ReaperRoot& root)
 #endif
 
 #if ENABLE_GAME_SCENE
-#    if ENABLE_TEST_DRIVE
-    const std::string  assetFile("res/model/quad.obj");
-    std::vector<Mesh>  meshes;
-    const glm::fmat4x3 flat_quad_transform =
-        glm::rotate(glm::fmat4(1.f), glm::pi<float>() * -0.5f, glm::fvec3(1.f, 0.f, 0.f));
-    const glm::fvec3 flat_quad_scale = glm::fvec3(100.f, 100.f, 100.f);
-
-    {
-        std::ifstream file(assetFile);
-        meshes.push_back(ModelLoader::loadOBJ(file));
-    }
-
-    Neptune::sim_register_static_collision_meshes(sim, meshes, nonstd::span(&flat_quad_transform, 1),
-                                                  nonstd::span(&flat_quad_scale, 1));
-#    else
-    Neptune::Track game_track;
-
-    Neptune::GenerationInfo genInfo = {};
-    genInfo.length = 5;
-    genInfo.width = 10.0f;
-    genInfo.chaos = 1.0f;
-
-    game_track.genInfo = genInfo;
-
-    Neptune::generate_track_skeleton(genInfo, game_track.skeletonNodes);
-    Neptune::generate_track_splines(game_track.skeletonNodes, game_track.splinesMS);
-    Neptune::generate_track_skinning(game_track.skeletonNodes, game_track.splinesMS, game_track.skinning);
-
-    const std::string         assetFile("res/model/track/chunk_simple.obj");
-    std::vector<Mesh>         meshes(genInfo.length);
-    std::vector<glm::fmat4x3> chunk_transforms(genInfo.length);
-
-    for (u32 i = 0; i < genInfo.length; i++)
-    {
-        std::ifstream file(assetFile);
-        meshes[i] = ModelLoader::loadOBJ(file);
-
-        const Neptune::TrackSkeletonNode& track_node = game_track.skeletonNodes[i];
-
-        chunk_transforms[i] = glm::translate(glm::mat4(1.0f), track_node.positionWS);
-
-        Neptune::skin_track_chunk_mesh(track_node, game_track.skinning[i], meshes[i], 10.0f);
-    }
-
-    // NOTE: bullet will hold pointers to the original mesh data without copy
-    Neptune::sim_register_static_collision_meshes(sim, meshes, chunk_transforms);
-#    endif
-
-    const glm::fmat4x3 player_initial_transform = glm::translate(glm::mat4(1.0f), glm::vec3(0.2f, 0.6f, 0.f));
-    const glm::fvec3   player_shape_extent(0.2f, 0.2f, 0.2f);
-    Neptune::sim_create_player_rigid_body(sim, player_initial_transform, player_shape_extent);
-
-    std::ifstream ship_obj_file("res/model/fighter.obj");
-    meshes.push_back(ModelLoader::loadOBJ(ship_obj_file));
-
-    std::vector<MeshHandle> mesh_handles(meshes.size());
-    load_meshes(backend, backend.resources->mesh_cache, meshes, mesh_handles);
-
     std::vector<const char*> texture_filenames = {
         "res/texture/default.dds",
         "res/texture/bricks_diffuse.dds",
@@ -275,6 +276,26 @@ void execute_game_loop(ReaperRoot& root)
     backend.resources->material_resources.texture_handles.resize(texture_filenames.size());
     load_textures(root, backend, backend.resources->material_resources, texture_filenames,
                   backend.resources->material_resources.texture_handles);
+
+    Neptune::GenerationInfo track_gen_info = {};
+    track_gen_info.length = 5;
+    track_gen_info.width = 12.0f;
+    track_gen_info.chaos = 0.0f;
+
+    Neptune::Track game_track = Neptune::create_game_track(track_gen_info, backend, sim, scene,
+                                                           backend.resources->material_resources.texture_handles[0]);
+
+    const glm::fmat4x3 player_initial_transform = glm::translate(glm::mat4(1.0f), glm::vec3(0.2f, 0.6f, 0.f));
+    const glm::fvec3   player_shape_extent(0.2f, 0.2f, 0.2f);
+    Neptune::sim_create_player_rigid_body(sim, player_initial_transform, player_shape_extent);
+
+    std::vector<Mesh> meshes;
+    std::ifstream     ship_obj_file("res/model/fighter.obj");
+
+    meshes.push_back(ModelLoader::loadOBJ(ship_obj_file));
+
+    std::vector<MeshHandle> mesh_handles(meshes.size());
+    load_meshes(backend, backend.resources->mesh_cache, meshes, mesh_handles);
 
     // Build scene
     u32 player_scene_node_index;
@@ -310,27 +331,6 @@ void execute_game_loop(ReaperRoot& root)
 
             insert_scene_mesh(scene, scene_mesh);
         }
-
-#    if ENABLE_TEST_DRIVE
-        SceneMesh scene_mesh;
-        scene_mesh.node_index =
-            insert_scene_node(scene, glm::fmat4(flat_quad_transform) * glm::scale(glm::fmat4(1.f), flat_quad_scale));
-        scene_mesh.mesh_handle = mesh_handles[0];
-        scene_mesh.texture_handle = backend.resources->material_resources.texture_handles[0];
-
-        insert_scene_mesh(scene, scene_mesh);
-#    else
-        // Place static track
-        for (u32 chunk_index = 0; chunk_index < genInfo.length; chunk_index++)
-        {
-            SceneMesh scene_mesh;
-            scene_mesh.node_index = insert_scene_node(scene, chunk_transforms[chunk_index]);
-            scene_mesh.mesh_handle = mesh_handles[chunk_index]; // FIXME
-            scene_mesh.texture_handle = backend.resources->material_resources.texture_handles[0];
-
-            insert_scene_mesh(scene, scene_mesh);
-        }
-#    endif
 
         // Add lights
         const glm::vec3 light_target_ws = glm::vec3(0.f, 0.f, 0.f);
@@ -498,10 +498,12 @@ void execute_game_loop(ReaperRoot& root)
                     }
                     else if (key == Window::KeyCode::ARROW_UP)
                     {
+                        controller_state.axes[GenericAxis::RSY] = is_pressed ? -1.f : 0.f;
                         controller_state.axes[GenericAxis::RT] = is_pressed ? 1.f : -1.f;
                     }
                     else if (key == Window::KeyCode::ARROW_DOWN)
                     {
+                        controller_state.axes[GenericAxis::RSY] = is_pressed ? 1.f : 0.f;
                         controller_state.axes[GenericAxis::LT] = is_pressed ? 1.f : -1.f;
                     }
 
@@ -512,9 +514,8 @@ void execute_game_loop(ReaperRoot& root)
                     }
                     else
                     {
-                        // FIXME debug
-                        log_warning(root, "window: key '{}' {} detected", Window::get_keyboard_key_string(key),
-                                    is_pressed ? "press" : "release");
+                        log_debug(root, "window: key '{}' {} detected", Window::get_keyboard_key_string(key),
+                                  is_pressed ? "press" : "release");
                     }
 
                     break;
@@ -548,7 +549,7 @@ void execute_game_loop(ReaperRoot& root)
         Neptune::sim_update(sim, input, time_delta_secs);
 
         const glm::fmat4x3 player_transform = Neptune::get_player_transform(sim);
-        const glm::fvec3   player_translation = player_transform[3];
+        glm::fvec3         player_translation = player_transform[3];
 
         log_debug(root, "sim: player pos = ({}, {}, {})", player_translation[0], player_translation[1],
                   player_translation[2]);
@@ -557,7 +558,42 @@ void execute_game_loop(ReaperRoot& root)
         player_scene_node.transform_matrix = player_transform;
 #endif
 
-        imgui_draw_player_position(player_translation);
+        {
+            const u32  length_min = 1;
+            const u32  length_max = 100;
+            static u32 track_gen_length = track_gen_info.length;
+            static f32 track_gen_width = track_gen_info.width;
+            static f32 track_gen_chaos = track_gen_info.chaos;
+
+            static bool show_window = true;
+
+            const float          pad = 100.0f;
+            const ImGuiViewport* viewport = ImGui::GetMainViewport();
+            ImVec2               work_pos = viewport->WorkPos; // Use work area to avoid menu-bar/task-bar, if any!
+                                                               //
+            ImGui::SetNextWindowPos(ImVec2(work_pos.x + pad, work_pos.y + pad), ImGuiCond_Always);
+            ImGui::SetNextWindowBgAlpha(0.35f); // Transparent background
+
+            if (ImGui::Begin("Physics", &show_window))
+            {
+                ImGui::InputFloat3("ship position", &player_translation[0], "%.3f", ImGuiInputTextFlags_ReadOnly);
+
+                ImGui::Separator();
+                ImGui::SliderScalar("length", ImGuiDataType_U32, &track_gen_length, &length_min, &length_max, "%u");
+                ImGui::SliderFloat("witdh", &track_gen_width, 1.f, 10.f);
+                ImGui::SliderFloat("chaos", &track_gen_chaos, 0.f, 1.f);
+
+                if (ImGui::Button("Generate new track"))
+                {
+                    Neptune::destroy_game_track(game_track, backend, sim, scene);
+
+                    game_track = Neptune::create_game_track(track_gen_info, backend, sim, scene,
+                                                            backend.resources->material_resources.texture_handles[0]);
+                }
+            }
+
+            ImGui::End();
+        }
 
 #if ENABLE_FREE_CAM
         const glm::vec2 yaw_pitch_delta =
@@ -606,6 +642,8 @@ void execute_game_loop(ReaperRoot& root)
 
         output_file.close();
     }
+
+    Neptune::destroy_game_track(game_track, backend, sim, scene);
 
 #if ENABLE_LINUX_CONTROLLER
     destroy_controller(controller);

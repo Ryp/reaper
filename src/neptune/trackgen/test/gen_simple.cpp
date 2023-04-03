@@ -19,46 +19,55 @@ using namespace Neptune;
 
 TEST_CASE("Track generation")
 {
-    Track testTrack;
+    std::vector<TrackSkeletonNode>    skeletonNodes;
+    std::vector<Reaper::Math::Spline> splinesMS;
+    std::vector<TrackSkinning>        skinning;
 
-    GenerationInfo genInfo = {};
-    genInfo.length = 100;
-    genInfo.width = 12.0f;
-    genInfo.chaos = 1.0f;
-
-    testTrack.genInfo = genInfo;
+    GenerationInfo gen_info = {};
+    gen_info.length = 100;
+    gen_info.width = 12.0f;
+    gen_info.chaos = 1.0f;
 
     SUBCASE("Generate skeleton")
     {
-        generate_track_skeleton(genInfo, testTrack.skeletonNodes);
+        skeletonNodes.resize(gen_info.length);
 
-        CHECK_EQ(testTrack.skeletonNodes.size(), testTrack.genInfo.length);
+        generate_track_skeleton(gen_info, skeletonNodes);
 
-        SUBCASE("") {}
+        CHECK_EQ(skeletonNodes.size(), gen_info.length);
+
+        SUBCASE("")
+        {}
         SUBCASE("Save skeleton as obj")
         {
             std::ofstream file("test_skeleton.obj");
-            SaveTrackSkeletonAsObj(file, testTrack.skeletonNodes);
+            write_track_skeleton_as_obj(file, skeletonNodes);
         }
         SUBCASE("Generate splines")
         {
-            generate_track_splines(testTrack.skeletonNodes, testTrack.splinesMS);
+            splinesMS.resize(gen_info.length);
 
-            SUBCASE("") {}
+            generate_track_splines(skeletonNodes, splinesMS);
+
+            SUBCASE("")
+            {}
             SUBCASE("Save splines as obj")
             {
                 std::ofstream file2("test_splines.obj");
-                SaveTrackSplinesAsObj(file2, testTrack.skeletonNodes, testTrack.splinesMS, 20);
+                write_track_splines_as_obj(file2, skeletonNodes, splinesMS, 20);
             }
             SUBCASE("Generate bones")
             {
-                generate_track_skinning(testTrack.skeletonNodes, testTrack.splinesMS, testTrack.skinning);
+                skinning.resize(gen_info.length);
 
-                SUBCASE("") {}
+                generate_track_skinning(skeletonNodes, splinesMS, skinning);
+
+                SUBCASE("")
+                {}
                 SUBCASE("Save bones as obj")
                 {
                     std::ofstream file3("test_bones.obj");
-                    SaveTrackBonesAsObj(file3, testTrack.skinning);
+                    write_track_bones_as_obj(file3, skinning);
                 }
             }
         }
@@ -69,30 +78,34 @@ TEST_CASE("Track generation")
 
 TEST_CASE("Track mesh generation")
 {
-    Track testTrack;
+    std::vector<TrackSkeletonNode>    skeletonNodes;
+    std::vector<Reaper::Math::Spline> splinesMS;
+    std::vector<TrackSkinning>        skinning;
 
-    GenerationInfo genInfo = {};
-    genInfo.length = 10;
-    genInfo.width = 10.0f;
-    genInfo.chaos = 1.0f;
+    GenerationInfo gen_info = {};
+    gen_info.length = 10;
+    gen_info.width = 10.0f;
+    gen_info.chaos = 1.0f;
 
-    testTrack.genInfo = genInfo;
+    skeletonNodes.resize(gen_info.length);
+    splinesMS.resize(gen_info.length);
+    skinning.resize(gen_info.length);
 
-    generate_track_skeleton(genInfo, testTrack.skeletonNodes);
-    generate_track_splines(testTrack.skeletonNodes, testTrack.splinesMS);
-    generate_track_skinning(testTrack.skeletonNodes, testTrack.splinesMS, testTrack.skinning);
+    generate_track_skeleton(gen_info, skeletonNodes);
+    generate_track_splines(skeletonNodes, splinesMS);
+    generate_track_skinning(skeletonNodes, splinesMS, skinning);
 
     const std::string assetFile("res/model/track/chunk_simple.obj");
 
     std::ofstream     outFile("test_skinned_track.obj");
-    std::vector<Mesh> meshes(genInfo.length);
+    std::vector<Mesh> meshes(gen_info.length);
 
-    for (u32 i = 0; i < genInfo.length; i++)
+    for (u32 i = 0; i < gen_info.length; i++)
     {
         std::ifstream file(assetFile);
         meshes[i] = ModelLoader::loadOBJ(file);
 
-        skin_track_chunk_mesh(testTrack.skeletonNodes[i], testTrack.skinning[i], meshes[i], 10.0f);
+        skin_track_chunk_mesh(skeletonNodes[i], skinning[i], meshes[i], 10.0f);
     }
 
     SaveMeshesAsObj(outFile, meshes);

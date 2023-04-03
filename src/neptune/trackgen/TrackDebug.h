@@ -25,12 +25,12 @@ struct TrackSkeletonNode;
 struct TrackSkinning;
 
 NEPTUNE_TRACKGEN_API
-void SaveTrackSkeletonAsObj(std::ostream& output, std::vector<TrackSkeletonNode>& skeleton);
+void write_track_skeleton_as_obj(std::ostream& output, std::vector<TrackSkeletonNode>& skeleton);
 
 NEPTUNE_TRACKGEN_API
-void SaveTrackSplinesAsObj(std::ostream& output, std::vector<TrackSkeletonNode>& skeleton,
-                           std::vector<Reaper::Math::Spline>& splines, u32 tesselation);
+void write_track_splines_as_obj(std::ostream& output, std::vector<TrackSkeletonNode>& skeleton,
+                                std::vector<Reaper::Math::Spline>& splines, u32 tesselation);
 
 NEPTUNE_TRACKGEN_API
-void SaveTrackBonesAsObj(std::ostream& output, std::vector<TrackSkinning>& skinningInfo);
+void write_track_bones_as_obj(std::ostream& output, std::vector<TrackSkinning>& skinningInfo);
 } // namespace Neptune

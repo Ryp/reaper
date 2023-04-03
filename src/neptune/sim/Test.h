@@ -9,9 +9,12 @@
 
 #include "SimExport.h"
 
+#include <core/Types.h>
+
 #include <nonstd/span.hpp>
 
 #include <glm/fwd.hpp>
+#include <unordered_map>
 #include <vector>
 
 class btBroadphaseInterface;
@@ -22,6 +25,8 @@ class btDiscreteDynamicsWorld;
 class btRigidBody;
 class btStridingMeshInterface;
 class btCollisionShape;
+class btScaledBvhTriangleMeshShape;
+class btTriangleIndexVertexArray;
 
 struct Mesh;
 
@@ -40,11 +45,24 @@ struct ShipInput
     float steer;    // 0.0 no steering - -1.0 max left - 1.0 max right
 };
 
+using StaticMeshColliderHandle = u32;
+
+struct StaticMeshCollider
+{
+    std::vector<u32>        indices;
+    std::vector<glm::fvec3> vertex_positions;
+
+    btRigidBody*                  rigid_body;
+    btTriangleIndexVertexArray*   mesh_interface;
+    btScaledBvhTriangleMeshShape* scaled_mesh_shape;
+};
+
 struct PhysicsSim
 {
     float     linear_friction;
     float     quadratic_friction;
     ShipInput last_input;
+    u32       alloc_number_fixme; // FIXME
 
 #if defined(REAPER_USE_BULLET_PHYSICS)
     btBroadphaseInterface*               broadphase;
@@ -53,10 +71,9 @@ struct PhysicsSim
     btSequentialImpulseConstraintSolver* solver;
     btDiscreteDynamicsWorld*             dynamicsWorld;
 
-    std::vector<btRigidBody*>             static_rigid_bodies;
-    std::vector<btRigidBody*>             players;
-    std::vector<btStridingMeshInterface*> vertexArrayInterfaces;
-    std::vector<btCollisionShape*>        collision_shapes;
+    std::vector<btRigidBody*> players;
+
+    std::unordered_map<StaticMeshColliderHandle, StaticMeshCollider> static_mesh_colliders;
 #endif
 };
 
@@ -68,11 +85,15 @@ NEPTUNE_SIM_API void sim_start(PhysicsSim* sim);
 NEPTUNE_SIM_API void sim_update(PhysicsSim& sim, const ShipInput& input, float dt);
 NEPTUNE_SIM_API glm::fmat4x3 get_player_transform(PhysicsSim& sim);
 
-NEPTUNE_SIM_API void
-sim_register_static_collision_meshes(PhysicsSim& sim, const nonstd::span<Mesh> meshes,
-                                     nonstd::span<const glm::fmat4x3> transforms_no_scale,
-                                     nonstd::span<const glm::fvec3>   scales = nonstd::span<const glm::fvec3>());
+NEPTUNE_SIM_API
+void sim_create_static_collision_meshes(nonstd::span<StaticMeshColliderHandle> handles, PhysicsSim& sim,
+                                        nonstd::span<const Mesh>         meshes,
+                                        nonstd::span<const glm::fmat4x3> transforms_no_scale,
+                                        nonstd::span<const glm::fvec3>   scales = nonstd::span<const glm::fvec3>());
+
+NEPTUNE_SIM_API
+void sim_destroy_static_collision_meshes(nonstd::span<const StaticMeshColliderHandle> handles, PhysicsSim& sim);
 
 NEPTUNE_SIM_API void sim_create_player_rigid_body(PhysicsSim& sim, const glm::fmat4x3& player_transform,
-                                                      const glm::fvec3& shape_extent);
+                                                  const glm::fvec3& shape_extent);
 } // namespace Neptune
