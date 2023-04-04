@@ -86,7 +86,7 @@ const Resource&      GetResource(const FrameGraph& framegraph, const ResourceUsa
 Resource&            GetResource(FrameGraph& framegraph, const ResourceUsage& resourceUsage);
 
 // Uses depth-first traversal
-bool HasCycles(const DirectedAcyclicGraph& graph, const nonstd::span<DirectedAcyclicGraph::index_type> rootNodes);
+bool HasCycles(const DirectedAcyclicGraph& graph, nonstd::span<const DirectedAcyclicGraph::index_type> rootNodes);
 
 // Uses breadth-first traversal
 void ComputeTransitiveClosure(const DirectedAcyclicGraph& graph,

@@ -128,7 +128,7 @@ namespace
     }
 } // namespace
 
-void load_meshes(VulkanBackend& backend, MeshCache& mesh_cache, const nonstd::span<Mesh> meshes,
+void load_meshes(VulkanBackend& backend, MeshCache& mesh_cache, nonstd::span<const Mesh> meshes,
                  nonstd::span<MeshHandle> output_handles)
 {
     Assert(output_handles.size() >= meshes.size());

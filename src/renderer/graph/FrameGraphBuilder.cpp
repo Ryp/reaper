@@ -241,7 +241,7 @@ namespace
     // Thibault S. (08/02/2018)
     // This one is relatively simple, we recover infos from the DAG
     // to fill is_used fields.
-    void FillFrameGraphUsedNodes(const nonstd::span<DirectedAcyclicGraph::index_type> usedNodes, FrameGraph& frameGraph)
+    void FillFrameGraphUsedNodes(nonstd::span<const DirectedAcyclicGraph::index_type> usedNodes, FrameGraph& frameGraph)
     {
         // Reset the is_used flag
         for (auto& resourceUsage : frameGraph.ResourceUsages)

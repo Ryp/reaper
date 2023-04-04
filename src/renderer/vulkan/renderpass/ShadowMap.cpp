@@ -155,9 +155,8 @@ void upload_shadow_map_resources(VulkanBackend& backend, const PreparedData& pre
 }
 
 void record_shadow_map_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& prepared,
-                                      ShadowMapResources&                         resources,
-                                      const nonstd::span<const FrameGraphTexture> shadow_maps,
-                                      const CullResources&                        cull_resources)
+                                      ShadowMapResources& resources, nonstd::span<const FrameGraphTexture> shadow_maps,
+                                      const CullResources& cull_resources)
 {
     vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, resources.pipe.pipeline);
 

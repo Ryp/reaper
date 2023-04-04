@@ -141,8 +141,8 @@ namespace
 
         vkCmdPipelineBarrier2(cmdBuffer.handle, &dependencies);
 
-        const nonstd::span<const VkBufferImageCopy2> copy_regions(&staging.bufferCopyRegions[entry.copy_command_offset],
-                                                                  entry.copy_command_count);
+        nonstd::span<const VkBufferImageCopy2> copy_regions(&staging.bufferCopyRegions[entry.copy_command_offset],
+                                                            entry.copy_command_count);
 
         // Copy mip levels from staging buffer
         const VkCopyBufferToImageInfo2 copy = {

@@ -63,7 +63,6 @@ struct CullResources;
 struct FrameGraphTexture;
 
 void record_shadow_map_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& prepared,
-                                      ShadowMapResources&                         resources,
-                                      const nonstd::span<const FrameGraphTexture> shadow_maps,
-                                      const CullResources&                        cull_resources);
+                                      ShadowMapResources& resources, nonstd::span<const FrameGraphTexture> shadow_maps,
+                                      const CullResources& cull_resources);
 } // namespace Reaper

@@ -85,7 +85,7 @@ namespace
 } // namespace
 
 // Uses depth-first traversal
-bool HasCycles(const DirectedAcyclicGraph& graph, const nonstd::span<DirectedAcyclicGraph::index_type> rootNodes)
+bool HasCycles(const DirectedAcyclicGraph& graph, nonstd::span<const DirectedAcyclicGraph::index_type> rootNodes)
 {
     Assert(!rootNodes.empty(), "No root nodes were specified");
     std::vector<DirectedAcyclicGraph::index_type> ancestorStack;
