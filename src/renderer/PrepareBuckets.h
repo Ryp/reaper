@@ -27,21 +27,15 @@
 
 namespace Reaper
 {
-static constexpr u32 InvalidNodeIndex = u32(-1);
 struct SceneNode
 {
-    glm::fmat4x3 transform_matrix;                     // Local space to parent space
-    u32          parent_scene_node = InvalidNodeIndex; // If no parent, parent space is world space
-};
-
-struct SceneCamera
-{
-    u32 scene_node;
+    glm::fmat4x3 transform_matrix; // Local space to parent space
+    SceneNode*   parent = nullptr; // If no parent, parent space is world space
 };
 
 struct SceneMesh
 {
-    u32           node_index;
+    SceneNode*    scene_node;
     MeshHandle    mesh_handle;
     TextureHandle texture_handle;
 };
@@ -52,26 +46,22 @@ struct SceneLight
     glm::vec3  color;
     float      intensity;
     float      radius;
-    u32        scene_node;
+    SceneNode* scene_node;
     glm::uvec2 shadow_map_size; // Set to zero to disable shadow
 };
 
 struct SceneGraph
 {
-    std::vector<SceneNode> nodes;
-
-    SceneCamera             camera;
-    std::vector<SceneMesh>  meshes;
-    std::vector<SceneLight> lights;
+    SceneNode*              camera_node;
+    std::vector<SceneMesh>  scene_meshes;
+    std::vector<SceneLight> scene_lights;
 };
 
-REAPER_RENDERER_API u32 insert_scene_node(SceneGraph& scene, glm::mat4x3 transform_matrix,
-                                          u32 parent_node_index = InvalidNodeIndex);
-REAPER_RENDERER_API u32 insert_scene_mesh(SceneGraph& scene, SceneMesh scene_mesh);
-REAPER_RENDERER_API u32 insert_scene_light(SceneGraph& scene, SceneLight scene_light);
+REAPER_RENDERER_API SceneNode* create_scene_node(SceneGraph& scene, glm::mat4x3 transform_matrix,
+                                                 SceneNode* parent_node = nullptr);
 
 // FIXME Support proper parenting with caching and disallow cycles!
-REAPER_RENDERER_API glm::fmat4x3 get_scene_node_transform_slow(const SceneGraph& scene, u32 node_index);
+REAPER_RENDERER_API glm::fmat4x3 get_scene_node_transform_slow(SceneNode* node);
 
 struct CullCmd
 {

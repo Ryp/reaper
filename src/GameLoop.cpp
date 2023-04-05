@@ -101,12 +101,10 @@ namespace
         // Place static track in the scene
         for (u32 chunk_index = 0; chunk_index < gen_info.length; chunk_index++)
         {
-            Reaper::SceneMesh scene_mesh;
-            scene_mesh.node_index = insert_scene_node(scene, chunk_transforms[chunk_index]);
+            Reaper::SceneMesh& scene_mesh = scene.scene_meshes.emplace_back();
+            scene_mesh.scene_node = create_scene_node(scene, chunk_transforms[chunk_index]);
             scene_mesh.mesh_handle = chunk_mesh_handles[chunk_index];
             scene_mesh.texture_handle = texture_handle;
-
-            insert_scene_mesh(scene, scene_mesh);
         }
 
         return track;
@@ -298,38 +296,37 @@ void execute_game_loop(ReaperRoot& root)
     load_meshes(backend, backend.resources->mesh_cache, meshes, mesh_handles);
 
     // Build scene
-    u32 player_scene_node_index;
+    SceneNode* player_scene_node = nullptr;
+
     {
         const glm::vec3 up_ws = glm::vec3(0.f, 1.f, 0.f);
 
         // Ship scene node
         {
             // NOTE: one node is for the physics object, and the mesh is a child node
-            player_scene_node_index = insert_scene_node(scene, player_initial_transform);
+            player_scene_node = create_scene_node(scene, player_initial_transform);
 
 #    if ENABLE_FREE_CAM
             const glm::fvec3 camera_position = glm::vec3(-5.f, 0.f, 0.f);
             const glm::fvec3 camera_local_target = glm::vec3(0.f, 0.f, 0.f);
-            const u32        camera_parent_index = InvalidNodeIndex;
+            SceneNode*       camera_parent_node = nullptr;
 #    else
             const glm::fvec3 camera_position = glm::vec3(-2.f, 1.f, 0.f);
             const glm::fvec3 camera_local_target = glm::vec3(1.f, 0.f, 0.f);
-            const u32        camera_parent_index = player_scene_node_index;
+            SceneNode*       camera_parent_node = player_scene_node;
 #    endif
 
             const glm::fmat4x3 camera_local_transform =
                 glm::inverse(glm::lookAt(camera_position, camera_local_target, up_ws));
-            scene.camera.scene_node = insert_scene_node(scene, camera_local_transform, camera_parent_index);
+            scene.camera_node = create_scene_node(scene, camera_local_transform, camera_parent_node);
 
             const glm::fmat4x3 mesh_local_transform =
                 glm::rotate(glm::scale(glm::fmat4(1.f), glm::vec3(0.05f)), glm::pi<float>() * -0.5f, up_ws);
 
-            SceneMesh scene_mesh;
-            scene_mesh.node_index = insert_scene_node(scene, mesh_local_transform, player_scene_node_index);
+            SceneMesh& scene_mesh = scene.scene_meshes.emplace_back();
+            scene_mesh.scene_node = create_scene_node(scene, mesh_local_transform, player_scene_node);
             scene_mesh.mesh_handle = mesh_handles.back(); // FIXME
             scene_mesh.texture_handle = backend.resources->material_resources.texture_handles[1];
-
-            insert_scene_mesh(scene, scene_mesh);
         }
 
         // Add lights
@@ -340,42 +337,36 @@ void execute_game_loop(ReaperRoot& root)
             const glm::fmat4x3 light_transform = glm::translate(glm::mat4(1.0f), glm::vec3(2.f, 0.f, 0.f))
                                                  * glm::inverse(glm::lookAt(light_position_ws, light_target_ws, up_ws));
 
-            SceneLight light;
+            SceneLight& light = scene.scene_lights.emplace_back();
             light.color = glm::fvec3(0.03f, 0.21f, 0.61f);
             light.intensity = 6.f;
             light.radius = 42.f;
-            light.scene_node = insert_scene_node(scene, light_transform, player_scene_node_index);
+            light.scene_node = create_scene_node(scene, light_transform, player_scene_node);
             light.shadow_map_size = glm::uvec2(1024, 1024);
-
-            insert_scene_light(scene, light);
         }
 
         {
             const glm::fvec3   light_position_ws = glm::vec3(3.f, 3.f, 3.f);
             const glm::fmat4x3 light_transform = glm::inverse(glm::lookAt(light_position_ws, light_target_ws, up_ws));
 
-            SceneLight light;
+            SceneLight& light = scene.scene_lights.emplace_back();
             light.color = glm::fvec3(0.61f, 0.21f, 0.03f);
             light.intensity = 6.f;
             light.radius = 42.f;
-            light.scene_node = insert_scene_node(scene, light_transform);
+            light.scene_node = create_scene_node(scene, light_transform);
             light.shadow_map_size = glm::uvec2(512, 512);
-
-            insert_scene_light(scene, light);
         }
 
         {
             const glm::vec3    light_position_ws = glm::vec3(0.f, 3.f, -3.f);
             const glm::fmat4x3 light_transform = glm::inverse(glm::lookAt(light_position_ws, light_target_ws, up_ws));
 
-            SceneLight light;
+            SceneLight& light = scene.scene_lights.emplace_back();
             light.color = glm::fvec3(0.03f, 0.8f, 0.21f);
             light.intensity = 6.f;
             light.radius = 42.f;
-            light.scene_node = insert_scene_node(scene, light_transform);
+            light.scene_node = create_scene_node(scene, light_transform);
             light.shadow_map_size = glm::uvec2(256, 256);
-
-            insert_scene_light(scene, light);
         }
     }
 #endif
@@ -394,11 +385,9 @@ void execute_game_loop(ReaperRoot& root)
 #endif
 
 #if ENABLE_FREE_CAM
-    SceneNode& camera_node = scene.nodes[scene.camera.scene_node];
-
     // Try to match the camera state with the initial transform of the scene node
     CameraState camera_state = {};
-    camera_state.position = camera_node.transform_matrix[3];
+    camera_state.position = scene.camera_node->transform_matrix[3];
 #endif
 
     const auto startTime = std::chrono::system_clock::now();
@@ -554,8 +543,7 @@ void execute_game_loop(ReaperRoot& root)
         log_debug(root, "sim: player pos = ({}, {}, {})", player_translation[0], player_translation[1],
                   player_translation[2]);
 
-        SceneNode& player_scene_node = scene.nodes[player_scene_node_index];
-        player_scene_node.transform_matrix = player_transform;
+        player_scene_node->transform_matrix = player_transform;
 #endif
 
         {
@@ -605,7 +593,7 @@ void execute_game_loop(ReaperRoot& root)
 
         update_camera_state(camera_state, yaw_pitch_delta, forward_side_delta);
 
-        camera_node.transform_matrix = glm::inverse(compute_camera_view_matrix(camera_state));
+        scene.camera_node->transform_matrix = glm::inverse(compute_camera_view_matrix(camera_state));
 #endif
 
         ImGui::Render();

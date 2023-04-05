@@ -76,7 +76,7 @@ SceneGraph create_static_test_scene(ReaperRoot& root, VulkanBackend& backend)
     allocate_scene_resources(root, backend, geometries);
 
     SceneGraph scene;
-    scene.camera.scene_node = insert_scene_node(scene, glm::translate(glm::mat4(1.0f), glm::vec3(-10.f, 3.f, 3.f)));
+    scene.camera_node = create_scene_node(scene, glm::translate(glm::mat4(1.0f), glm::vec3(-10.f, 3.f, 3.f)));
 
     constexpr i32 asteroid_count = 4;
 
@@ -90,12 +90,10 @@ SceneGraph create_static_test_scene(ReaperRoot& root, VulkanBackend& backend)
                 glm::fvec3 position_ws(static_cast<float>(i * 2), static_cast<float>(j * 2), static_cast<float>(k * 2));
                 glm::fmat4x3 transform = glm::translate(glm::mat4(1.0f), position_ws);
 
-                SceneMesh scene_mesh;
-                scene_mesh.node_index = insert_scene_node(scene, transform);
+                Reaper::SceneMesh& scene_mesh = scene.scene_meshes.emplace_back();
+                scene_mesh.scene_node = create_scene_node(scene, transform);
                 scene_mesh.mesh_handle = asteroid_geometry.mesh.handle;
                 scene_mesh.texture_handle = asteroid_geometry.material.albedo.handle;
-
-                insert_scene_mesh(scene, scene_mesh);
             }
         }
     }
@@ -105,14 +103,12 @@ SceneGraph create_static_test_scene(ReaperRoot& root, VulkanBackend& backend)
     const glm::vec3    light_position_ws = glm::vec3(-4.f, -4.f, -4.f);
     const glm::fmat4x3 light_transform = glm::inverse(glm::lookAt(light_position_ws, light_target_ws, up_ws));
 
-    SceneLight light;
+    SceneLight& light = scene.scene_lights.emplace_back();
     light.color = glm::fvec3(1.f, 1.f, 1.f);
     light.intensity = 60.f;
     light.radius = 10.f;
-    light.scene_node = insert_scene_node(scene, light_transform);
+    light.scene_node = create_scene_node(scene, light_transform);
     light.shadow_map_size = glm::uvec2(1024, 1024);
-
-    insert_scene_light(scene, light);
 
     return scene;
 }
@@ -133,37 +129,31 @@ SceneGraph create_test_scene_tiled_lighting(ReaperRoot& root, VulkanBackend& bac
     const glm::fvec3   camera_local_target = glm::vec3(0.f, 0.f, 0.f);
     const glm::fmat4x3 camera_local_transform = glm::inverse(glm::lookAt(camera_position, camera_local_target, up_ws));
 
-    scene.camera.scene_node = insert_scene_node(scene, camera_local_transform);
+    scene.camera_node = create_scene_node(scene, camera_local_transform);
 
     const glm::fmat4x3 flat_quad_transform =
         glm::rotate(glm::fmat4(1.f), glm::pi<float>() * -0.5f, glm::fvec3(1.f, 0.f, 0.f));
     const glm::fvec3   flat_quad_scale = glm::fvec3(4.f, 4.f, 4.f);
     const glm::fmat4x3 transform = glm::fmat4(flat_quad_transform) * glm::scale(glm::fmat4(1.f), flat_quad_scale);
 
-    SceneMesh scene_mesh;
-    scene_mesh.node_index = insert_scene_node(scene, transform);
+    SceneMesh& scene_mesh = scene.scene_meshes.emplace_back();
+    scene_mesh.scene_node = create_scene_node(scene, transform);
     scene_mesh.mesh_handle = asteroid_geometry.mesh.handle;
     scene_mesh.texture_handle = asteroid_geometry.material.albedo.handle;
 
-    insert_scene_mesh(scene, scene_mesh);
-
-    SceneLight light;
+    SceneLight& light = scene.scene_lights.emplace_back();
     light.color = glm::fvec3(1.f, 0.f, 1.f);
     light.intensity = 3.f;
     light.radius = 2.f;
-    light.scene_node = insert_scene_node(scene, glm::translate(glm::mat4(1.0f), glm::fvec3(0.f, 1.f, 0.f)));
+    light.scene_node = create_scene_node(scene, glm::translate(glm::mat4(1.0f), glm::fvec3(0.f, 1.f, 0.f)));
     light.shadow_map_size = glm::uvec2(0, 0);
 
-    insert_scene_light(scene, light);
-
-    SceneLight light2;
+    SceneLight& light2 = scene.scene_lights.emplace_back();
     light2.color = glm::fvec3(1.f, 0.f, 0.f);
     light2.intensity = 3.f;
     light2.radius = 2.f;
-    light2.scene_node = insert_scene_node(scene, glm::translate(glm::mat4(1.0f), glm::fvec3(2.f, 0.1f, 2.f)));
+    light2.scene_node = create_scene_node(scene, glm::translate(glm::mat4(1.0f), glm::fvec3(2.f, 0.1f, 2.f)));
     light2.shadow_map_size = glm::uvec2(0, 0);
-
-    insert_scene_light(scene, light2);
 
     return scene;
 }

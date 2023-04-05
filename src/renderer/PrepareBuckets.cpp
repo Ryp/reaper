@@ -61,44 +61,28 @@ namespace
     }
 } // namespace
 
-u32 insert_scene_node(SceneGraph& scene, glm::mat4x3 transform_matrix, u32 parent_node_index)
+SceneNode* create_scene_node(SceneGraph& scene, glm::mat4x3 transform_matrix, SceneNode* parent_node)
 {
-    u32        node_index = scene.nodes.size();
-    SceneNode& node = scene.nodes.emplace_back();
-    node.transform_matrix = transform_matrix;
-    node.parent_scene_node = parent_node_index;
+    SceneNode* node = new SceneNode;
+    node->transform_matrix = transform_matrix;
+    node->parent = parent_node;
 
-    return node_index;
+    static_cast<void>(scene); // FIXME use for some kind of pool allocator?
+
+    return node;
 }
 
-u32 insert_scene_mesh(SceneGraph& scene, SceneMesh scene_mesh)
+glm::fmat4x3 get_scene_node_transform_slow(SceneNode* node)
 {
-    u32 scene_mesh_index = scene.meshes.size();
-    scene.meshes.emplace_back(scene_mesh);
+    Assert(node != nullptr);
 
-    return scene_mesh_index;
-}
+    glm::fmat4x4 accum = node->transform_matrix;
 
-u32 insert_scene_light(SceneGraph& scene, SceneLight scene_light)
-{
-    u32 scene_light_index = scene.lights.size();
-    scene.lights.emplace_back(scene_light);
-
-    return scene_light_index;
-}
-
-glm::fmat4x3 get_scene_node_transform_slow(const SceneGraph& scene, u32 node_index)
-{
-    glm::fmat4x4 accum = glm::fmat4x4(1.f);
-    u32          current_parent = node_index;
-
-    do
+    while (node->parent != nullptr)
     {
-        const SceneNode& node = scene.nodes[current_parent];
-
-        accum = glm::fmat4(node.transform_matrix) * accum;
-        current_parent = node.parent_scene_node;
-    } while (current_parent != InvalidNodeIndex);
+        accum = glm::fmat4(node->parent->transform_matrix) * accum;
+        node = node->parent;
+    }
 
     return accum;
 }
@@ -130,7 +114,7 @@ void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCa
     REAPER_PROFILE_SCOPE_FUNC();
 
     // Shadow pass
-    for (const auto& light : scene.lights)
+    for (const auto& light : scene.scene_lights)
     {
         if (light.shadow_map_size == glm::uvec2(0, 0))
             continue;
@@ -150,15 +134,15 @@ void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCa
         ShadowMapPassParams& shadow_pass_params = prepared.shadow_pass_params.emplace_back();
         shadow_pass_params.dummy = glm::mat4(1.f);
 
-        const glm::fmat4x3 light_transform = get_scene_node_transform_slow(scene, light.scene_node);
+        const glm::fmat4x3 light_transform = get_scene_node_transform_slow(light.scene_node);
         const glm::fmat4x3 light_transform_inv = glm::inverse(glm::fmat4(light_transform));
         const glm::fmat4   light_projection_matrix = default_light_projection_matrix();
         const glm::fmat4   light_view_proj_matrix = light_projection_matrix * glm::mat4(light_transform_inv);
 
-        for (u32 i = 0; i < scene.meshes.size(); i++)
+        for (u32 i = 0; i < scene.scene_meshes.size(); i++)
         {
-            const SceneMesh&   scene_mesh = scene.meshes[i];
-            const glm::fmat4x3 mesh_transform = get_scene_node_transform_slow(scene, scene_mesh.node_index);
+            const SceneMesh&   scene_mesh = scene.scene_meshes[i];
+            const glm::fmat4x3 mesh_transform = get_scene_node_transform_slow(scene_mesh.scene_node);
 
             ShadowMapInstanceParams& shadow_instance = prepared.shadow_instance_params.emplace_back();
             shadow_instance.ms_to_cs_matrix = light_view_proj_matrix * glm::mat4(mesh_transform);
@@ -203,16 +187,16 @@ void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCa
     prepared.forward_pass_constants.ws_to_vs_matrix = glm::fmat4x3(main_camera_transform_inv);
     prepared.forward_pass_constants.vs_to_cs_matrix = camera_projection_matrix;
     prepared.forward_pass_constants.ws_to_cs_matrix = main_camera_view_proj;
-    prepared.forward_pass_constants.point_light_count = scene.lights.size();
+    prepared.forward_pass_constants.point_light_count = scene.scene_lights.size();
 
     prepared.tiled_light_constants.cs_to_vs = glm::inverse(camera_projection_matrix);
     prepared.tiled_light_constants.vs_to_ws = glm::fmat4x3(main_camera_transform);
     prepared.tiled_light_constants.ws_to_vs_temp = glm::fmat4x3(main_camera_transform_inv);
 
-    for (u32 scene_light_index = 0; scene_light_index < scene.lights.size(); scene_light_index++)
+    for (u32 scene_light_index = 0; scene_light_index < scene.scene_lights.size(); scene_light_index++)
     {
-        const SceneLight&  light = scene.lights[scene_light_index];
-        const glm::fmat4x3 light_transform = get_scene_node_transform_slow(scene, light.scene_node);
+        const SceneLight&  light = scene.scene_lights[scene_light_index];
+        const glm::fmat4x3 light_transform = get_scene_node_transform_slow(light.scene_node);
         const glm::fmat4x3 light_transform_inv = glm::inverse(glm::fmat4(light_transform));
 
         const glm::vec3 light_position_ws = light_transform * glm::vec4(0.f, 0.f, 0.f, 1.0f);
@@ -250,10 +234,10 @@ void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCa
 
         prepared.forward_culling_pass_index = cull_pass.pass_index;
 
-        for (u32 i = 0; i < scene.meshes.size(); i++)
+        for (u32 i = 0; i < scene.scene_meshes.size(); i++)
         {
-            const SceneMesh&   scene_mesh = scene.meshes[i];
-            const glm::fmat4x3 mesh_transform = get_scene_node_transform_slow(scene, scene_mesh.node_index);
+            const SceneMesh&   scene_mesh = scene.scene_meshes[i];
+            const glm::fmat4x3 mesh_transform = get_scene_node_transform_slow(scene_mesh.scene_node);
 
             // Assumption that our 3x3 submatrix is orthonormal (no skew/non-uniform scaling)
             // FIXME use 4x3 matrices directly
