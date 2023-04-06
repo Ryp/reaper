@@ -902,9 +902,26 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
                                     &current_swapchain_index,
                                     nullptr};
 
+    Assert(!backend.mustTransitionSwapchain);
+
     VkResult presentResult = vkQueuePresentKHR(backend.deviceInfo.presentQueue, &presentInfo);
-    // NOTE: window can change state between event handling and presenting, so it's normal to get OOD events.
-    Assert(presentResult == VK_SUCCESS || presentResult == VK_ERROR_OUT_OF_DATE_KHR);
+
+    if (presentResult == VK_SUBOPTIMAL_KHR)
+    {
+        backend.new_swapchain_extent = backend.presentInfo.surfaceExtent;
+        backend.mustTransitionSwapchain = true;
+        log_warning(root, "vulkan: present returned 'VK_SUBOPTIMAL_KHR' requesting swapchain re-creation");
+    }
+    else if (presentResult == VK_ERROR_OUT_OF_DATE_KHR)
+    {
+        // NOTE: window can change state between event handling and presenting, so it's ok to get OOD events as long as
+        // we re-create a correct swapchain later
+        log_error(root, "vulkan: present failed with 'VK_ERROR_OUT_OF_DATE_KHR'");
+    }
+    else
+    {
+        Assert(presentResult == VK_SUCCESS);
+    }
 
     // VkResult acquireFullscreenResult = vkAcquireFullScreenExclusiveModeEXT(backend.device,
     // backend.presentInfo.swapchain); Assert(acquireFullscreenResult == VK_SUCCESS);
