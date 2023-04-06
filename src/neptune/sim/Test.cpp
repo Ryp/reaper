@@ -145,7 +145,7 @@ namespace
 
         // Integrate forces
         glm::vec3 forces = {};
-        forces += -shipUp * 9.8331f * 10.f;
+        forces += -shipUp * 9.8331f;
         forces += shipFwd * input.throttle * ship_stats.thrust; // Engine thrust
         //      forces += shipFwd * player.getAcceleration(); // Engine thrust
         forces += -glm::proj(linear_speed, shipFwd) * input.brake * ship_stats.braking; // Brakes force
