@@ -72,6 +72,13 @@ SceneNode* create_scene_node(SceneGraph& scene, glm::mat4x3 transform_matrix, Sc
     return node;
 }
 
+void destroy_scene_node(SceneGraph& scene, SceneNode* node)
+{
+    static_cast<void>(scene); // FIXME use for some kind of pool allocator?
+
+    delete node;
+}
+
 glm::fmat4x3 get_scene_node_transform_slow(SceneNode* node)
 {
     Assert(node != nullptr);

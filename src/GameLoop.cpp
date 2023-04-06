@@ -53,6 +53,7 @@ struct Track
     std::vector<Reaper::Math::Spline>     splinesMS;
     std::vector<TrackSkinning>            skinning;
     std::vector<StaticMeshColliderHandle> sim_handles;
+    std::vector<Reaper::SceneMesh>        scene_meshes;
 };
 
 namespace
@@ -101,7 +102,7 @@ namespace
         // Place static track in the scene
         for (u32 chunk_index = 0; chunk_index < gen_info.length; chunk_index++)
         {
-            Reaper::SceneMesh& scene_mesh = scene.scene_meshes.emplace_back();
+            Reaper::SceneMesh& scene_mesh = track.scene_meshes.emplace_back();
             scene_mesh.scene_node = create_scene_node(scene, chunk_transforms[chunk_index]);
             scene_mesh.mesh_handle = chunk_mesh_handles[chunk_index];
             scene_mesh.texture_handle = texture_handle;
@@ -114,10 +115,14 @@ namespace
     {
         sim_destroy_static_collision_meshes(track.sim_handles, sim);
 
+        for (auto scene_mesh : track.scene_meshes)
+        {
+            destroy_scene_node(scene, scene_mesh.scene_node);
+        }
+
         // FIXME Unload texture data (cpu/gpu)
-        // FIXME Unload mesh data (cpu/sim/render)
+        // FIXME Unload mesh data (cpu/render)
         static_cast<void>(backend);
-        static_cast<void>(scene);
     }
 } // namespace
 } // namespace Neptune
@@ -297,6 +302,7 @@ void execute_game_loop(ReaperRoot& root)
 
     // Build scene
     SceneNode* player_scene_node = nullptr;
+    SceneMesh  player_scene_mesh;
 
     {
         const glm::vec3 up_ws = glm::vec3(0.f, 1.f, 0.f);
@@ -323,10 +329,9 @@ void execute_game_loop(ReaperRoot& root)
             const glm::fmat4x3 mesh_local_transform =
                 glm::rotate(glm::scale(glm::fmat4(1.f), glm::vec3(0.05f)), glm::pi<float>() * -0.5f, up_ws);
 
-            SceneMesh& scene_mesh = scene.scene_meshes.emplace_back();
-            scene_mesh.scene_node = create_scene_node(scene, mesh_local_transform, player_scene_node);
-            scene_mesh.mesh_handle = mesh_handles.back(); // FIXME
-            scene_mesh.texture_handle = backend.resources->material_resources.texture_handles[1];
+            player_scene_mesh.scene_node = create_scene_node(scene, mesh_local_transform, player_scene_node);
+            player_scene_mesh.mesh_handle = mesh_handles.back(); // FIXME
+            player_scene_mesh.texture_handle = backend.resources->material_resources.texture_handles[1];
         }
 
         // Add lights
@@ -599,6 +604,12 @@ void execute_game_loop(ReaperRoot& root)
         ImGui::Render();
 
         log_debug(root, "renderer: begin frame {}", frameIndex);
+
+        // Scene meshes are rebuilt every frame
+        scene.scene_meshes.clear();
+        scene.scene_meshes.insert(scene.scene_meshes.end(), game_track.scene_meshes.begin(),
+                                  game_track.scene_meshes.end());
+        scene.scene_meshes.push_back(player_scene_mesh);
 
         renderer_execute_frame(root, scene, audio_backend.audio_buffer);
 

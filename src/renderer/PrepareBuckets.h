@@ -60,6 +60,8 @@ struct SceneGraph
 REAPER_RENDERER_API SceneNode* create_scene_node(SceneGraph& scene, glm::mat4x3 transform_matrix,
                                                  SceneNode* parent_node = nullptr);
 
+REAPER_RENDERER_API void destroy_scene_node(SceneGraph& scene, SceneNode* node);
+
 // FIXME Support proper parenting with caching and disallow cycles!
 REAPER_RENDERER_API glm::fmat4x3 get_scene_node_transform_slow(SceneNode* node);
 
