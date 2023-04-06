@@ -552,14 +552,10 @@ void execute_game_loop(ReaperRoot& root)
 #endif
 
         {
-            const u32  length_min = 1;
-            const u32  length_max = 100;
-            static u32 track_gen_length = track_gen_info.length;
-            static f32 track_gen_width = track_gen_info.width;
-            static f32 track_gen_chaos = track_gen_info.chaos;
+            constexpr u32 length_min = 1;
+            constexpr u32 length_max = 100;
 
-            static bool show_window = true;
-
+            static bool          show_window = true;
             const float          pad = 100.0f;
             const ImGuiViewport* viewport = ImGui::GetMainViewport();
             ImVec2               work_pos = viewport->WorkPos; // Use work area to avoid menu-bar/task-bar, if any!
@@ -570,11 +566,11 @@ void execute_game_loop(ReaperRoot& root)
             if (ImGui::Begin("Physics", &show_window))
             {
                 ImGui::InputFloat3("ship position", &player_translation[0], "%.3f", ImGuiInputTextFlags_ReadOnly);
-
                 ImGui::Separator();
-                ImGui::SliderScalar("length", ImGuiDataType_U32, &track_gen_length, &length_min, &length_max, "%u");
-                ImGui::SliderFloat("witdh", &track_gen_width, 1.f, 10.f);
-                ImGui::SliderFloat("chaos", &track_gen_chaos, 0.f, 1.f);
+                ImGui::SliderScalar("length", ImGuiDataType_U32, &track_gen_info.length, &length_min, &length_max,
+                                    "%u");
+                ImGui::SliderFloat("witdh", &track_gen_info.width, 1.f, 10.f);
+                ImGui::SliderFloat("chaos", &track_gen_info.chaos, 0.f, 1.f);
 
                 if (ImGui::Button("Generate new track"))
                 {
