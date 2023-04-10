@@ -51,11 +51,7 @@ MeshCache create_mesh_cache(ReaperRoot& root, VulkanBackend& backend)
         DefaultGPUBufferProperties(MeshCache::MAX_MESHLET_COUNT, sizeof(Meshlet), GPUBufferUsage::StorageBuffer),
         backend.vma_instance, MemUsage::CPU_To_GPU);
 
-    cache.current_uv_offset = 0;
-    cache.current_normal_offset = 0;
-    cache.current_position_offset = 0;
-    cache.current_index_offset = 0;
-    cache.current_meshlet_offset = 0;
+    clear_meshes(backend, cache);
 
     return cache;
 }
@@ -69,6 +65,17 @@ void destroy_mesh_cache(VulkanBackend& backend, const MeshCache& mesh_cache)
     vmaDestroyBuffer(backend.vma_instance, mesh_cache.vertexBufferNormal.handle,
                      mesh_cache.vertexBufferNormal.allocation);
     vmaDestroyBuffer(backend.vma_instance, mesh_cache.vertexBufferUV.handle, mesh_cache.vertexBufferUV.allocation);
+}
+
+void clear_meshes(VulkanBackend& backend, MeshCache& mesh_cache)
+{
+    mesh_cache.mesh2_instances.clear();
+
+    mesh_cache.current_uv_offset = 0;
+    mesh_cache.current_normal_offset = 0;
+    mesh_cache.current_position_offset = 0;
+    mesh_cache.current_index_offset = 0;
+    mesh_cache.current_meshlet_offset = 0;
 }
 
 namespace

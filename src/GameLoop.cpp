@@ -292,13 +292,13 @@ void execute_game_loop(ReaperRoot& root)
     const glm::fvec3   player_shape_extent(0.2f, 0.2f, 0.2f);
     Neptune::sim_create_player_rigid_body(sim, player_initial_transform, player_shape_extent);
 
-    std::vector<Mesh> meshes;
+    std::vector<Mesh> ship_meshes;
     std::ifstream     ship_obj_file("res/model/fighter.obj");
 
-    meshes.push_back(ModelLoader::loadOBJ(ship_obj_file));
+    ship_meshes.push_back(ModelLoader::loadOBJ(ship_obj_file));
 
-    std::vector<MeshHandle> mesh_handles(meshes.size());
-    load_meshes(backend, backend.resources->mesh_cache, meshes, mesh_handles);
+    MeshHandle ship_mesh_handle;
+    load_meshes(backend, backend.resources->mesh_cache, ship_meshes, nonstd::make_span(&ship_mesh_handle, 1));
 
     // Build scene
     SceneNode* player_scene_node = nullptr;
@@ -330,7 +330,7 @@ void execute_game_loop(ReaperRoot& root)
                 glm::rotate(glm::scale(glm::fmat4(1.f), glm::vec3(0.05f)), glm::pi<float>() * -0.5f, up_ws);
 
             player_scene_mesh.scene_node = create_scene_node(scene, mesh_local_transform, player_scene_node);
-            player_scene_mesh.mesh_handle = mesh_handles.back(); // FIXME
+            player_scene_mesh.mesh_handle = ship_mesh_handle;
             player_scene_mesh.texture_handle = backend.resources->material_resources.texture_handles[1];
         }
 
@@ -576,8 +576,18 @@ void execute_game_loop(ReaperRoot& root)
                 {
                     Neptune::destroy_game_track(game_track, backend, sim, scene);
 
+                    // We don't handle fragmentation yet, so we recreate ALL renderer meshes
+                    clear_meshes(backend, backend.resources->mesh_cache);
+
                     game_track = Neptune::create_game_track(track_gen_info, backend, sim, scene,
                                                             backend.resources->material_resources.texture_handles[0]);
+
+                    // We kill the ship mesh as well, so let's rebuild it
+                    load_meshes(backend, backend.resources->mesh_cache, ship_meshes,
+                                nonstd::make_span(&ship_mesh_handle, 1));
+
+                    // Patch the scene to use the right mesh handle, otherwise we might crash!
+                    player_scene_mesh.mesh_handle = ship_mesh_handle;
                 }
             }
 
