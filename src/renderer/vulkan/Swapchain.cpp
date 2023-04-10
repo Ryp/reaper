@@ -180,11 +180,11 @@ void configure_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backen
         if (surfaceFormat.format != swapchainDesc.preferredFormat.format
             || surfaceFormat.colorSpace != swapchainDesc.preferredFormat.colorSpace)
         {
-            // TODO format to_string() function
             log_warning(root, "vulkan: incompatible swapchain format: format = {}, colorspace = {}",
-                        swapchainDesc.preferredFormat.format, swapchainDesc.preferredFormat.colorSpace);
-            log_warning(root, "- falling back to: format = {}, colorspace = {}", surfaceFormat.format,
-                        surfaceFormat.colorSpace);
+                        GetFormatToString(swapchainDesc.preferredFormat.format),
+                        GetColorSpaceKHRToString(swapchainDesc.preferredFormat.colorSpace));
+            log_warning(root, "- falling back to: format = {}, colorspace = {}",
+                        GetFormatToString(surfaceFormat.format), GetColorSpaceKHRToString(surfaceFormat.colorSpace));
         }
 
         presentInfo.view_format = vulkan_swapchain_view_format_override(surfaceFormat);
