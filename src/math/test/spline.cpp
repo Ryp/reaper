@@ -17,5 +17,5 @@ TEST_CASE("Spline")
     Reaper::Math::Spline s = Reaper::Math::create_spline(3, controlPoints);
 
     // TODO: Implement IsEqualEpsilon for floats
-    CHECK(EvalSpline(s, 0.5f).x == 2.f);
+    CHECK(spline_eval(s, 0.5f).x == 2.f);
 }

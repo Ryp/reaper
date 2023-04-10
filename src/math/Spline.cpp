@@ -7,6 +7,8 @@
 
 #include "Spline.h"
 
+#include <core/Assert.h>
+
 namespace Reaper::Math
 {
 Spline create_spline(u32 order, nonstd::span<const glm::vec4> controlPoints)
@@ -69,12 +71,14 @@ namespace
     }
 } // namespace
 
-glm::vec3 EvalSpline(const Spline& spline, float t)
+glm::vec3 spline_eval(const Spline& spline, float t)
 {
     glm::vec3 result = glm::vec3(0, 0, 0);
     float     sum = 0.0f;
     float     coeff;
     const u32 controlPointCount = static_cast<u32>(spline.controlPoints.size()); // cast
+
+    Assert(controlPointCount > 0);
 
     for (u32 i = 0; i < controlPointCount; i++)
     {

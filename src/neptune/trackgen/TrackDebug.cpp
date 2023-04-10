@@ -54,7 +54,7 @@ void write_track_splines_as_obj(std::ostream& output, std::vector<TrackSkeletonN
         for (u32 j = 0; j < (tesselation + 1); j++)
         {
             const float     param = static_cast<float>(j) / static_cast<float>(tesselation);
-            const glm::vec3 posMS = Reaper::Math::EvalSpline(spline, param);
+            const glm::vec3 posMS = Reaper::Math::spline_eval(spline, param);
             const glm::vec3 posWS = node.positionWS + node.orientation_ms_to_ws * posMS;
 
             output << 'v';

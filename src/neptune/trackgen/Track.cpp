@@ -189,21 +189,20 @@ void generate_track_splines(nonstd::span<const TrackSkeletonNode> skeleton_nodes
 
 namespace
 {
-    void generate_track_skinning_for_chunk(const TrackSkeletonNode& node,
-                                           const Math::Spline&      spline,
-                                           TrackSkinning&           skinningInfo)
+    TrackSkinning generate_track_skinning_for_chunk(const TrackSkeletonNode& node, const Math::Spline& spline)
     {
+        TrackSkinning skinningInfo;
         skinningInfo.bones.resize(BoneCountPerChunk);
 
         // Fill bone positions
-        skinningInfo.bones[0].root = EvalSpline(spline, 0.0f);
-        skinningInfo.bones[BoneCountPerChunk - 1].end = EvalSpline(spline, 1.0f);
+        skinningInfo.bones[0].root = spline_eval(spline, 0.0f);
+        skinningInfo.bones[BoneCountPerChunk - 1].end = spline_eval(spline, 1.0f);
 
         // Compute bone start and end positions
         for (u32 i = 1; i < BoneCountPerChunk; i++)
         {
             const float     param = static_cast<float>(i) / static_cast<float>(BoneCountPerChunk);
-            const glm::vec3 anchorPos = EvalSpline(spline, param);
+            const glm::vec3 anchorPos = spline_eval(spline, param);
 
             skinningInfo.bones[i - 1].end = anchorPos;
             skinningInfo.bones[i].root = anchorPos;
@@ -248,6 +247,8 @@ namespace
 
             skinningInfo.poseTransforms[i] = translation * rotation;
         }
+
+        return skinningInfo;
     }
 } // namespace
 
@@ -262,7 +263,7 @@ void generate_track_skinning(nonstd::span<const TrackSkeletonNode> skeleton_node
 
     for (u32 chunk_index = 0; chunk_index < splines.size(); chunk_index++)
     {
-        generate_track_skinning_for_chunk(skeleton_nodes[chunk_index], splines[chunk_index], skinning[chunk_index]);
+        skinning[chunk_index] = generate_track_skinning_for_chunk(skeleton_nodes[chunk_index], splines[chunk_index]);
     }
 }
 

@@ -28,5 +28,5 @@ struct Spline
 
 REAPER_MATH_API Spline create_spline(u32 order, nonstd::span<const glm::vec4> controlPoints);
 
-REAPER_MATH_API glm::vec3 EvalSpline(const Spline& spline, float t);
+REAPER_MATH_API glm::vec3 spline_eval(const Spline& spline, float t);
 } // namespace Reaper::Math
