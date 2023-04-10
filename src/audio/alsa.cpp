@@ -30,7 +30,6 @@ void test_alsa2()
     snd_pcm_t*           handle;
     snd_pcm_hw_params_t* params;
     unsigned int         val2;
-    int                  dir;
     snd_pcm_uframes_t    frames;
 
     // Open PCM device for playback.
@@ -59,6 +58,7 @@ void test_alsa2()
     snd_pcm_hw_params_set_channels(handle, params, 2);
 
     // 44100 bits/second sampling rate (CD quality)
+    int              dir = 0;
     u32              sample_rate_near = 44100;
     snd_pcm_access_t val;
     snd_pcm_hw_params_set_rate_near(handle, params, &sample_rate_near, &dir);

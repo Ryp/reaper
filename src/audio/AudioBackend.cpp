@@ -50,7 +50,7 @@ AudioBackend create_audio_backend(ReaperRoot& root, const AudioConfig& config)
     snd_pcm_hw_params_set_format(backend.pcm_handle, hw_params, alsa_format);
     snd_pcm_hw_params_set_channels(backend.pcm_handle, hw_params, config.channel_count);
 
-    int dir; // FIXME ?
+    int dir = 0; // Rounding direction
 
     u32 adjusted_sample_rate = config.sample_rate;
     snd_pcm_hw_params_set_rate_near(backend.pcm_handle, hw_params, &adjusted_sample_rate, &dir);
@@ -89,9 +89,15 @@ void destroy_audio_backend(ReaperRoot& root, AudioBackend& backend)
 
 namespace
 {
-    i32 f32_to_i32(f32 value) { return (i32)(value * (float)0x7fffffff); }
+    i32 f32_to_i32(f32 value)
+    {
+        return (i32)(value * (float)0x7fffffff);
+    }
 
-    float note(float semitone_offset, float base_freq = 440.f) { return base_freq * powf(2.f, semitone_offset / 12.f); }
+    float note(float semitone_offset, float base_freq = 440.f)
+    {
+        return base_freq * powf(2.f, semitone_offset / 12.f);
+    }
 
     float wave(float time_s, float frequency)
     {
