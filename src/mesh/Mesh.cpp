@@ -9,7 +9,8 @@
 
 namespace
 {
-u32 getTriangleCount(const Mesh& mesh)
+
+u32 get_triangle_count(const Mesh& mesh)
 {
     if (!mesh.indexes.empty())
         return static_cast<u32>(mesh.indexes.size());
@@ -20,10 +21,10 @@ u32 getTriangleCount(const Mesh& mesh)
 
 void computeNormalsSimple(Mesh& mesh)
 {
-    std::size_t trianglesNo = getTriangleCount(mesh);
+    std::size_t triangle_count = get_triangle_count(mesh);
 
     mesh.normals.resize(mesh.positions.size());
-    for (std::size_t i = 0; i < trianglesNo; ++i)
+    for (std::size_t i = 0; i < triangle_count; ++i)
     {
         u32 index0 = i * 3 + 0;
         u32 index1 = i * 3 + 1;

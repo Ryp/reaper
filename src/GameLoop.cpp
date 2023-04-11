@@ -77,18 +77,18 @@ namespace
 
         const std::string         assetFile("res/model/track/chunk_simple.obj");
         std::vector<glm::fmat4x3> chunk_transforms(gen_info.length);
-        std::vector<Mesh>         track_meshes(gen_info.length);
+        std::vector<Mesh>         track_meshes;
 
         for (u32 i = 0; i < gen_info.length; i++)
         {
             std::ifstream file(assetFile);
-            track_meshes[i] = ModelLoader::loadOBJ(file);
+            Mesh&         track_mesh = track_meshes.emplace_back(ModelLoader::loadOBJ(file));
 
             const TrackSkeletonNode& track_node = track.skeletonNodes[i];
 
             chunk_transforms[i] = glm::translate(glm::mat4(1.0f), track_node.positionWS);
 
-            skin_track_chunk_mesh(track_node, track.skinning[i], track_meshes[i], 10.0f);
+            skin_track_chunk_mesh(track_node, track.skinning[i], track_mesh, 10.0f);
         }
 
         track.sim_handles.resize(gen_info.length);
@@ -327,7 +327,7 @@ void execute_game_loop(ReaperRoot& root)
             scene.camera_node = create_scene_node(scene, camera_local_transform, camera_parent_node);
 
             const glm::fmat4x3 mesh_local_transform =
-                glm::rotate(glm::scale(glm::fmat4(1.f), glm::vec3(0.05f)), glm::pi<float>() * -0.5f, up_ws);
+                glm::rotate(glm::scale(glm::identity<glm::fmat4>(), glm::vec3(0.05f)), glm::pi<float>() * -0.5f, up_ws);
 
             player_scene_mesh.scene_node = create_scene_node(scene, mesh_local_transform, player_scene_node);
             player_scene_mesh.mesh_handle = ship_mesh_handle;

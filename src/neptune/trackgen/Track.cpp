@@ -53,11 +53,11 @@ using Math::UnitZAxis;
 
 namespace
 {
-    glm::quat GenerateChunkEndLocalSpace(const GenerationInfo& genInfo, RNG& rng)
+    glm::quat GenerateChunkEndLocalSpace(const GenerationInfo& gen_info, RNG& rng)
     {
-        const glm::vec2 thetaBounds = glm::vec2(0.0f, ThetaMax) * genInfo.chaos;
-        const glm::vec2 phiBounds = glm::vec2(-PhiMax, PhiMax) * genInfo.chaos;
-        const glm::vec2 rollBounds = glm::vec2(-RollMax, RollMax) * genInfo.chaos;
+        const glm::vec2 thetaBounds = glm::vec2(0.0f, ThetaMax) * gen_info.chaos;
+        const glm::vec2 phiBounds = glm::vec2(-PhiMax, PhiMax) * gen_info.chaos;
+        const glm::vec2 rollBounds = glm::vec2(-RollMax, RollMax) * gen_info.chaos;
 
         std::uniform_real_distribution<float> thetaDistribution(thetaBounds.x, thetaBounds.y);
         std::uniform_real_distribution<float> phiDistribution(phiBounds.x, phiBounds.y);
@@ -73,13 +73,13 @@ namespace
         return rollFixup * deviation;
     }
 
-    bool is_node_self_colliding(nonstd::span<const TrackSkeletonNode> nodes, const TrackSkeletonNode& currentNode,
+    bool is_node_self_colliding(nonstd::span<const TrackSkeletonNode> nodes, const TrackSkeletonNode& current_node,
                                 u32& outputNodeIdx)
     {
         for (u32 i = 0; (i + 1) < nodes.size(); i++)
         {
-            const float distanceSq = glm::distance2(currentNode.positionWS, nodes[i].positionWS);
-            const float minRadius = currentNode.radius + nodes[i].radius;
+            const float distanceSq = glm::distance2(current_node.positionWS, nodes[i].positionWS);
+            const float minRadius = current_node.radius + nodes[i].radius;
 
             if (distanceSq < (minRadius * minRadius))
             {
@@ -91,8 +91,8 @@ namespace
         return false;
     }
 
-    TrackSkeletonNode generate_node(const GenerationInfo& genInfo, nonstd::span<const TrackSkeletonNode> skeleton_nodes,
-                                    RNG& rng)
+    TrackSkeletonNode generate_node(const GenerationInfo&                 gen_info,
+                                    nonstd::span<const TrackSkeletonNode> previous_nodes, RNG& rng)
     {
         std::uniform_real_distribution<float> widthDistribution(WidthMin, WidthMax);
         std::uniform_real_distribution<float> radiusDistribution(RadiusMin, RadiusMax);
@@ -101,37 +101,37 @@ namespace
 
         node.radius = radiusDistribution(rng);
 
-        if (skeleton_nodes.empty())
+        if (previous_nodes.empty())
         {
-            node.orientation_ms_to_ws = glm::quat();
+            node.orientation_ms_to_ws = glm::identity<glm::quat>();
             node.inWidth = widthDistribution(rng);
             node.positionWS = glm::vec3(0.f);
         }
         else
         {
-            const TrackSkeletonNode& previousNode = skeleton_nodes.back();
+            const TrackSkeletonNode& previous_node = previous_nodes.back();
 
-            node.orientation_ms_to_ws = previousNode.orientation_ms_to_ws * previousNode.end_orientation_ms;
-            node.inWidth = previousNode.outWidth;
+            node.orientation_ms_to_ws = previous_node.orientation_ms_to_ws * previous_node.end_orientation_ms;
+            node.inWidth = previous_node.outWidth;
 
-            const glm::vec3 offsetMS = UnitXAxis * (previousNode.radius + node.radius);
+            const glm::vec3 offsetMS = UnitXAxis * (previous_node.radius + node.radius);
             const glm::vec3 offsetWS = node.orientation_ms_to_ws * offsetMS;
 
-            node.positionWS = previousNode.positionWS + offsetWS;
+            node.positionWS = previous_node.positionWS + offsetWS;
         }
 
-        node.end_orientation_ms = GenerateChunkEndLocalSpace(genInfo, rng);
+        node.end_orientation_ms = GenerateChunkEndLocalSpace(gen_info, rng);
         node.outWidth = widthDistribution(rng);
 
         return node;
     }
 } // namespace
 
-void generate_track_skeleton(const GenerationInfo& genInfo, nonstd::span<TrackSkeletonNode> skeleton_nodes)
+void generate_track_skeleton(const GenerationInfo& gen_info, nonstd::span<TrackSkeletonNode> skeleton_nodes)
 {
-    Assert(genInfo.length >= MinLength);
-    Assert(genInfo.length <= MaxLength);
-    Assert(genInfo.length == skeleton_nodes.size());
+    Assert(gen_info.length >= MinLength);
+    Assert(gen_info.length <= MaxLength);
+    Assert(gen_info.length == skeleton_nodes.size());
 
     std::random_device rd;
     RNG                rng(rd());
@@ -139,15 +139,15 @@ void generate_track_skeleton(const GenerationInfo& genInfo, nonstd::span<TrackSk
     u32 tryCount = 0;
     u32 current_node_index = 0;
 
-    while (current_node_index < genInfo.length && tryCount < MaxTryCount)
+    while (current_node_index < gen_info.length && tryCount < MaxTryCount)
     {
         // Make span on generated nodes so far
         nonstd::span<const TrackSkeletonNode> generated_nodes =
             nonstd::make_span(skeleton_nodes.data(), current_node_index);
 
-        const TrackSkeletonNode new_node = generate_node(genInfo, generated_nodes, rng);
+        const TrackSkeletonNode new_node = generate_node(gen_info, generated_nodes, rng);
 
-        u32 collider_index = 0;
+        u32 collider_index;
 
         if (is_node_self_colliding(generated_nodes, new_node, collider_index))
         {
@@ -159,18 +159,16 @@ void generate_track_skeleton(const GenerationInfo& genInfo, nonstd::span<TrackSk
             current_node_index += 1;
         }
 
-        ++tryCount;
+        tryCount += 1;
     }
 
     Assert(tryCount < MaxTryCount, "something is majorly FUBAR");
 }
 
-void generate_track_splines(nonstd::span<const TrackSkeletonNode> skeleton_nodes,
-                            nonstd::span<Reaper::Math::Spline>    splines)
+void generate_track_splines(
+    nonstd::span<const TrackSkeletonNode> skeleton_nodes, nonstd::span<Reaper::Math::Spline> splines)
 {
     Assert(skeleton_nodes.size() == splines.size());
-
-    std::vector<glm::vec4> controlPoints(4);
 
     for (u32 chunk_index = 0; chunk_index < skeleton_nodes.size(); chunk_index++)
     {
@@ -178,6 +176,7 @@ void generate_track_splines(nonstd::span<const TrackSkeletonNode> skeleton_nodes
 
         // Laying down 1 control point at each end and 2 in the center of the sphere
         // seems to work pretty well.
+        std::array<glm::fvec4, 4> controlPoints;
         controlPoints[0] = glm::vec4(UnitXAxis * -node.radius, 1.0f);
         controlPoints[1] = glm::vec4(glm::vec3(0.0f), SplineInnerWeight);
         controlPoints[2] = glm::vec4(glm::vec3(0.0f), SplineInnerWeight);
@@ -228,8 +227,10 @@ namespace
         // use tricks to get the correct bone rotation
         for (u32 i = 0; i < BoneCountPerChunk; i++)
         {
-            const float      t = static_cast<float>(i) / static_cast<float>(BoneCountPerChunk);
-            const glm::fquat interpolatedOrientation = glm::slerp(glm::quat(), node.end_orientation_ms, t);
+            const float t = static_cast<float>(i) / static_cast<float>(BoneCountPerChunk);
+
+            const glm::fquat interpolatedOrientation =
+                glm::slerp(glm::identity<glm::quat>(), node.end_orientation_ms, t);
 
             const Bone&      bone = skinningInfo.bones[i];
             const glm::fvec3 plusX = glm::normalize(bone.end - bone.root);
@@ -243,7 +244,7 @@ namespace
 
             // Convert to a matrix
             const glm::fmat4 rotation = glm::fmat3(plusX, plusY, plusZ);
-            const glm::fmat4 translation = glm::translate(glm::fmat4(1.0f), bone.root);
+            const glm::fmat4 translation = glm::translate(glm::identity<glm::fmat4>(), bone.root);
 
             skinningInfo.poseTransforms[i] = translation * rotation;
         }

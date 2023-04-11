@@ -98,14 +98,14 @@ TEST_CASE("Track mesh generation")
     const std::string assetFile("res/model/track/chunk_simple.obj");
 
     std::ofstream     outFile("test_skinned_track.obj");
-    std::vector<Mesh> meshes(gen_info.length);
+    std::vector<Mesh> meshes;
 
     for (u32 i = 0; i < gen_info.length; i++)
     {
         std::ifstream file(assetFile);
-        meshes[i] = ModelLoader::loadOBJ(file);
+        Mesh&         mesh = meshes.emplace_back(ModelLoader::loadOBJ(file));
 
-        skin_track_chunk_mesh(skeletonNodes[i], skinning[i], meshes[i], 10.0f);
+        skin_track_chunk_mesh(skeletonNodes[i], skinning[i], mesh, 10.0f);
     }
 
     SaveMeshesAsObj(outFile, meshes);
