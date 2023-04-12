@@ -536,7 +536,7 @@ void execute_game_loop(ReaperRoot& root)
         Neptune::ShipInput input;
         input.throttle = controller_state.axes[GenericAxis::RT] * 0.5 + 0.5;
         input.brake = controller_state.axes[GenericAxis::LT] * 0.5 + 0.5;
-        input.steer = controller_state.axes[GenericAxis::LSX];
+        input.steer = controller_state.axes[GenericAxis::RSX];
 
         log_debug(root, "sim: throttle = {}, braking = {}, steer = {}", input.throttle, input.brake, input.steer);
 

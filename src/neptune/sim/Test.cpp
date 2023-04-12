@@ -27,6 +27,8 @@
 
 namespace Neptune
 {
+static constexpr float ShipMass = 1.f;
+
 namespace
 {
 #if defined(REAPER_USE_BULLET_PHYSICS)
@@ -128,6 +130,7 @@ namespace
         // FIXME player_orientation = glm::quat(glm::mat3(shipFwd, shipUp, glm::cross(shipFwd, shipUp)));
 
         const glm::fvec3 linear_speed = toGlm(playerRigidBody->getLinearVelocity());
+        const glm::fvec3 angular_speed = toGlm(playerRigidBody->getAngularVelocity());
 
         // change steer angle
         {
@@ -162,7 +165,12 @@ namespace
         // if (projection.relativePosition.y > 2.0f && upSpeed > 0.0f)
         //     forces += player_orientation * (glm::vec3(0.0f, 2.0f - upSpeed, 0.0f) * 10.0f);
 
+        glm::fvec3 angular_force = {};
+        angular_force += up() * input.steer;
+        angular_force += angular_speed * -0.3f;
+
         playerRigidBody->clearForces();
+        playerRigidBody->applyTorque(toBt(angular_force));
         playerRigidBody->applyCentralForce(toBt(forces));
     }
 
@@ -415,10 +423,11 @@ void sim_create_player_rigid_body(PhysicsSim& sim, const glm::fmat4x3& player_tr
     btMotionState*    motionState = new btDefaultMotionState(toBt(player_transform));
     btCollisionShape* collisionShape = new btBoxShape(toBt(shape_extent));
 
-    btScalar  mass = 10.f; // FIXME
-    btVector3 inertia(0.f, 0.f, 0.f);
+    btScalar mass = ShipMass;
 
+    btVector3 inertia;
     collisionShape->calculateLocalInertia(mass, inertia);
+
     btRigidBody::btRigidBodyConstructionInfo constructInfo(mass, motionState, collisionShape, inertia);
 
     btRigidBody* player_rigid_body = new btRigidBody(constructInfo);
