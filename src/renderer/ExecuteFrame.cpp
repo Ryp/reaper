@@ -83,7 +83,10 @@ void renderer_execute_frame(ReaperRoot& root, const SceneGraph& scene, std::vect
     backend_execute_frame(root, backend, backend.resources->gfxCmdBuffer, prepared, *backend.resources,
                           imgui_draw_data);
 
-    const auto& gpu_audio_buffer = backend.resources->audio_resources.frame_audio_data;
-    audio_output.insert(audio_output.end(), gpu_audio_buffer.begin(), gpu_audio_buffer.end());
+    if (false) // Re-enable when we're playing with GPU-based sound again
+    {
+        const auto& gpu_audio_buffer = backend.resources->audio_resources.frame_audio_data;
+        audio_output.insert(audio_output.end(), gpu_audio_buffer.begin(), gpu_audio_buffer.end());
+    }
 }
 } // namespace Reaper
