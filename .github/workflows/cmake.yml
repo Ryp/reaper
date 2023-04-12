@@ -39,7 +39,7 @@ jobs:
           submodules: recursive
 
       - name: Install dependencies
-        run: sudo apt-get install -y build-essential cmake gcc libunwind-dev libx11-xcb-dev libasound2-dev
+        run: sudo apt-get install -y build-essential cmake gcc libunwind-dev libx11-xcb-dev libxcb-xkb-dev libasound2-dev
 
       - name: Prepare Vulkan SDK
         uses: humbletim/setup-vulkan-sdk@v1.2.0
