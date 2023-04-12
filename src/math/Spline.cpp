@@ -71,7 +71,7 @@ namespace
 
 glm::vec3 EvalSpline(const Spline& spline, float t)
 {
-    glm::vec3 result;
+    glm::vec3 result = glm::vec3(0, 0, 0);
     float     sum = 0.0f;
     float     coeff;
     const u32 controlPointCount = static_cast<u32>(spline.controlPoints.size()); // cast
