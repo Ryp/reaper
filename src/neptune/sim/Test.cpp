@@ -336,7 +336,13 @@ void sim_create_static_collision_meshes(nonstd::span<StaticMeshColliderHandle> h
     {
         const Mesh& mesh = meshes[i];
 
-        StaticMeshCollider mesh_collider;
+        // Insert a new struct and get a reference on it
+        // It's crucial to avoid copies here because we give pointers to the mesh data to bullet
+        sim.static_mesh_colliders.emplace(sim.alloc_number_fixme, StaticMeshCollider{});
+        StaticMeshCollider& mesh_collider = sim.static_mesh_colliders.at(sim.alloc_number_fixme);
+
+        handles[i] = sim.alloc_number_fixme;
+        sim.alloc_number_fixme += 1;
 
         // Deep copy vertex data
         mesh_collider.indices = mesh.indexes;
@@ -373,11 +379,6 @@ void sim_create_static_collision_meshes(nonstd::span<StaticMeshColliderHandle> h
         mesh_collider.scaled_mesh_shape = scaled_mesh_shape;
 
         sim.dynamicsWorld->addRigidBody(mesh_collider.rigid_body);
-
-        sim.static_mesh_colliders.emplace(sim.alloc_number_fixme, mesh_collider); // FIXME extra cpy
-        handles[i] = sim.alloc_number_fixme;
-
-        sim.alloc_number_fixme += 1;
     }
 #else
     static_cast<void>(sim);
