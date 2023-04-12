@@ -317,8 +317,8 @@ void execute_game_loop(ReaperRoot& root)
             const glm::fvec3 camera_local_target = glm::vec3(0.f, 0.f, 0.f);
             SceneNode*       camera_parent_node = nullptr;
 #    else
-            const glm::fvec3 camera_position = glm::vec3(-2.f, 1.f, 0.f);
-            const glm::fvec3 camera_local_target = glm::vec3(1.f, 0.f, 0.f);
+            const glm::fvec3 camera_position = glm::vec3(-2.0f, 0.8f, 0.f);
+            const glm::fvec3 camera_local_target = glm::vec3(1.f, 0.4f, 0.f);
             SceneNode*       camera_parent_node = player_scene_node;
 #    endif
 
