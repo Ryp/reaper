@@ -43,7 +43,7 @@
 #define ENABLE_TEST_SCENE 0
 #define ENABLE_LINUX_CONTROLLER 0
 #define ENABLE_GAME_SCENE 1
-#define ENABLE_FREE_CAM 1
+#define ENABLE_FREE_CAM 0
 
 namespace Neptune
 {

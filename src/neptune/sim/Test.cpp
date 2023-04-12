@@ -40,6 +40,11 @@ namespace
         return glm::quat(quat.getW(), quat.getX(), quat.getY(), quat.getZ());
     }
 
+    inline glm::fmat3x3 toGlm(const btMatrix3x3& basis)
+    {
+        return glm::fmat3x3(toGlm(basis[0]), toGlm(basis[1]), toGlm(basis[2]));
+    }
+
     inline glm::fmat4x3 toGlm(const btTransform& transform)
     {
         const btMatrix3x3 basis = transform.getBasis();
@@ -88,7 +93,6 @@ namespace
         btRigidBody*       playerRigidBody = sim.players[0];
         const glm::fmat4x3 player_transform = toGlm(playerRigidBody->getWorldTransform());
         const glm::fvec3   player_position_ws = player_transform[3];
-        const glm::quat    player_orientation = toGlm(playerRigidBody->getWorldTransform().getRotation());
 
         float              min_dist_sq = 10000000.f;
         const btRigidBody* closest_track_chunk = nullptr;
@@ -115,9 +119,8 @@ namespace
         glm::vec3       shipFwd;
 
         // shipUp = projected_orientation * up();
-        // shipFwd = player_orientation * forward();
-        shipUp = up();
-        shipFwd = forward();
+        shipUp = up(); // FIXME
+        shipFwd = player_transform * glm::vec4(forward(), 0.f);
 
         // shipFwd = glm::normalize(shipFwd - glm::proj(shipFwd, shipUp)); // Ship Fwd in on slice plane
 
