@@ -46,11 +46,11 @@ ResourceUsageHandle Builder::create_resource_usage(u32                 usageType
     ResourceUsage& newResourceUsage = m_Graph.ResourceUsages.emplace_back();
 
     Assert(is_valid(resourceHandle), "Invalid resource handle");
-    newResourceUsage.Type = usageType;
+    newResourceUsage.type = usageType;
     newResourceUsage.resource_handle = resourceHandle;
-    newResourceUsage.RenderPass = renderPassHandle;
+    newResourceUsage.render_pass = renderPassHandle;
     newResourceUsage.parent_usage_handle = parentUsageHandle;
-    newResourceUsage.Usage = resourceUsage;
+    newResourceUsage.usage = resourceUsage;
 
     return ResourceUsageHandle(m_Graph.ResourceUsages.size() - 1);
 }
@@ -108,7 +108,7 @@ RenderPassHandle Builder::create_render_pass(const char* debug_name, bool hasSid
     // TODO test for name clashes
     RenderPass& newRenderPass = m_Graph.RenderPasses.emplace_back();
     newRenderPass.debug_name = debug_name;
-    newRenderPass.HasSideEffects = hasSideEffects;
+    newRenderPass.has_side_effects = hasSideEffects;
 
     return RenderPassHandle(m_Graph.RenderPasses.size() - 1);
 }
@@ -187,7 +187,7 @@ namespace
             // Renderpasses that have side effects cannot be pruned
             // We use them as terminal nodes in the DAG so that orphan nodes
             // can properly be pruned later.
-            if (renderPass.HasSideEffects)
+            if (renderPass.has_side_effects)
             {
                 outRootNodes.push_back(renderPassIndexInDAG);
             }
@@ -201,7 +201,7 @@ namespace
 
                 // Edges are directed in reverse compared to the rendering flow.
                 // This part is critical and not necessarily intuitive because of this. Draw a graph!
-                if (resourceUsage.Type == UsageType::Input)
+                if (resourceUsage.type == UsageType::Input)
                 {
                     dag.Nodes[renderPassIndexInDAG].Children.push_back(resourceUsageIndexInDAG);
 
@@ -211,11 +211,11 @@ namespace
 
                     dag.Nodes[resourceUsageIndexInDAG].Children.push_back(parentUsageIndexInDAG);
                 }
-                else if (resourceUsage.Type == UsageType::Output)
+                else if (resourceUsage.type == UsageType::Output)
                 {
                     dag.Nodes[resourceUsageIndexInDAG].Children.push_back(renderPassIndexInDAG);
                 }
-                else if (resourceUsage.Type == (UsageType::Input | UsageType::Output))
+                else if (resourceUsage.type == (UsageType::Input | UsageType::Output))
                 {
                     dag.Nodes[resourceUsageIndexInDAG].Children.push_back(renderPassIndexInDAG);
 
@@ -233,7 +233,7 @@ namespace
         }
 
         // Check if the whole graph is likely to be pruned
-        Assert(!outRootNodes.empty(), "No render passes were marked with the HasSideEffects flag.");
+        Assert(!outRootNodes.empty(), "No render passes were marked with the has_side_effects flag.");
 
         return dag;
     }
@@ -285,7 +285,7 @@ namespace
             {
                 ResourceUsage& resourceUsage = frameGraph.ResourceUsages[resourceUsageHandle];
 
-                if (has_mask(resourceUsage.Type, UsageType::Output))
+                if (has_mask(resourceUsage.type, UsageType::Output))
                 {
                     resourceUsage.is_used = true;
                 }

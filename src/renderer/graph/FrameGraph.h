@@ -24,7 +24,7 @@ namespace Reaper::FrameGraph
 struct RenderPass
 {
     const char*                      debug_name;
-    bool                             HasSideEffects;
+    bool                             has_side_effects;
     std::vector<ResourceUsageHandle> ResourceUsageHandles;
     bool                             is_used;
 };
@@ -54,11 +54,11 @@ struct GPUResourceUsage
 
 struct ResourceUsage
 {
-    u32                 Type; // UsageType
+    u32                 type; // UsageType
     ResourceHandle      resource_handle;
-    RenderPassHandle    RenderPass;
+    RenderPassHandle    render_pass;
     ResourceUsageHandle parent_usage_handle;
-    GPUResourceUsage    Usage;
+    GPUResourceUsage    usage;
     bool                is_used;
 };
 

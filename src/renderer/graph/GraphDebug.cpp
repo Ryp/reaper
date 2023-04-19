@@ -34,7 +34,7 @@ void DumpFrameGraph(const FrameGraph& frameGraph)
         const Resource&      resource = GetResource(frameGraph, resourceUsage);
 
         // Instead of skipping read nodes, add the hidden info to the corresponding edge
-        if (has_mask(resourceUsage.Type, UsageType::Output))
+        if (has_mask(resourceUsage.type, UsageType::Output))
         {
             std::string label;
 
@@ -64,7 +64,7 @@ void DumpFrameGraph(const FrameGraph& frameGraph)
     for (u32 renderPassIndex = 0; renderPassIndex < renderPassCount; renderPassIndex++)
     {
         const RenderPass& renderPass = frameGraph.RenderPasses[renderPassIndex];
-        std::ostream&     output = (renderPass.HasSideEffects ? outRenderPassSEFile : outRenderPassFile);
+        std::ostream&     output = (renderPass.has_side_effects ? outRenderPassSEFile : outRenderPassFile);
 
         const std::string label = fmt::format("{0} [{1}]", renderPass.debug_name, renderPassIndex);
 
@@ -77,13 +77,13 @@ void DumpFrameGraph(const FrameGraph& frameGraph)
         for (auto& resourceUsageHandle : renderPass.ResourceUsageHandles)
         {
             const ResourceUsage& resourceUsage = GetResourceUsage(frameGraph, resourceUsageHandle);
-            if (has_mask(resourceUsage.Type, UsageType::Input))
+            if (has_mask(resourceUsage.type, UsageType::Input))
             {
                 outRPInput << "        res" << resourceUsage.parent_usage_handle << " -> pass" << renderPassIndex
                            << std::endl;
             }
 
-            if (has_mask(resourceUsage.Type, UsageType::Output))
+            if (has_mask(resourceUsage.type, UsageType::Output))
             {
                 outRPOutput << "        pass" << renderPassIndex << " -> res" << resourceUsageHandle << std::endl;
             }

@@ -154,8 +154,8 @@ namespace FrameGraph
 
         void PresentPass(Builder& builder, const CompositePassOutput& compositeOutput)
         {
-            const bool             HasSideEffects = true;
-            const RenderPassHandle presentPass = builder.create_render_pass("Present", HasSideEffects);
+            const bool             has_side_effects = true;
+            const RenderPassHandle presentPass = builder.create_render_pass("Present", has_side_effects);
 
             // Inputs
             {

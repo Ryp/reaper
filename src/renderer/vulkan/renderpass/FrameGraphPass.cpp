@@ -42,13 +42,13 @@ void record_framegraph_barriers(CommandBuffer& cmdBuffer, const FrameGraph::Fram
         {
             VkImage texture = get_frame_graph_texture_handle(resources, dst_usage.resource_handle);
             imageBarriers.emplace_back(
-                get_vk_image_barrier(texture, dst_usage.Usage.texture_view, barrier.src.access, barrier.dst.access));
+                get_vk_image_barrier(texture, dst_usage.usage.texture_view, barrier.src.access, barrier.dst.access));
         }
         else
         {
             VkBuffer buffer = get_frame_graph_buffer_handle(resources, dst_usage.resource_handle);
             bufferBarriers.emplace_back(
-                get_vk_buffer_barrier(buffer, dst_usage.Usage.buffer_view, barrier.src.access, barrier.dst.access));
+                get_vk_buffer_barrier(buffer, dst_usage.usage.buffer_view, barrier.src.access, barrier.dst.access));
         }
 
         const VkDependencyInfo dependencies = VkDependencyInfo{VK_STRUCTURE_TYPE_DEPENDENCY_INFO,

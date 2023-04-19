@@ -105,7 +105,7 @@ void allocate_framegraph_volatile_resources(ReaperRoot& root, VulkanBackend& bac
         if (resource_handle.is_texture && usage.is_used)
         {
             const ImageInfo&     image = resources.textures[usage.resource_handle.index];
-            const GPUTextureView view = usage.Usage.texture_view;
+            const GPUTextureView view = usage.usage.texture_view;
 
             resources.texture_views[index] = create_image_view(root, backend.device, image, view);
         }
@@ -158,8 +158,8 @@ FrameGraphTexture get_frame_graph_texture(FrameGraphResources& resources, const 
     Assert(texture.handle != VK_NULL_HANDLE);
     Assert(view_handle != VK_NULL_HANDLE);
 
-    return FrameGraphTexture{texture.properties, usage.Usage.texture_view, texture.handle, view_handle,
-                             usage.Usage.access.image_layout};
+    return FrameGraphTexture{texture.properties, usage.usage.texture_view, texture.handle, view_handle,
+                             usage.usage.access.image_layout};
 }
 
 VkBuffer get_frame_graph_buffer_handle(FrameGraphResources& resources, FrameGraph::ResourceHandle resource_handle)
@@ -183,7 +183,7 @@ FrameGraphBuffer get_frame_graph_buffer(FrameGraphResources& resources, const Fr
 
     const BufferInfo& buffer = resources.buffers[usage.resource_handle.index];
 
-    return FrameGraphBuffer{buffer.properties, usage.Usage.buffer_view, buffer.handle};
+    return FrameGraphBuffer{buffer.properties, usage.usage.buffer_view, buffer.handle};
 }
 
 } // namespace Reaper

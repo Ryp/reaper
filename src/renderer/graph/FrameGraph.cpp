@@ -184,10 +184,10 @@ namespace
                     GetResourceUsage(framegraph, previous_resource_event.usage_handle);
 
                 // If we are in a multiple-reader situation, merge both accesses at earliest time
-                if (previous_resource_usage.Type == UsageType::Input && resourceUsage.Type == UsageType::Input)
+                if (previous_resource_usage.type == UsageType::Input && resourceUsage.type == UsageType::Input)
                 {
-                    const GPUResourceAccess old_access = previous_resource_usage.Usage.access;
-                    const GPUResourceAccess new_access = resourceUsage.Usage.access;
+                    const GPUResourceAccess old_access = previous_resource_usage.usage.access;
+                    const GPUResourceAccess new_access = resourceUsage.usage.access;
 
                     Assert(!resourceHandle.is_texture || old_access.image_layout == new_access.image_layout,
                            "Using the same image layout is not supported for now");
@@ -202,7 +202,7 @@ namespace
                     ResourceUsageEvent& resource_event = resource_events.emplace_back();
                     resource_event.render_pass = renderPassHandle;
                     resource_event.usage_handle = resourceUsageHandle;
-                    resource_event.access = resourceUsage.Usage.access;
+                    resource_event.access = resourceUsage.usage.access;
                 }
             }
         }
