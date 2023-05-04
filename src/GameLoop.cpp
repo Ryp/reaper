@@ -577,7 +577,7 @@ void execute_game_loop(ReaperRoot& root)
                     Neptune::destroy_game_track(game_track, backend, sim, scene);
 
                     // We don't handle fragmentation yet, so we recreate ALL renderer meshes
-                    clear_meshes(backend, backend.resources->mesh_cache);
+                    clear_meshes(backend.resources->mesh_cache);
 
                     game_track = Neptune::create_game_track(track_gen_info, backend, sim, scene,
                                                             backend.resources->material_resources.texture_handles[0]);

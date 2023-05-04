@@ -48,7 +48,7 @@ MeshCache create_mesh_cache(ReaperRoot& root, VulkanBackend& backend);
 void      destroy_mesh_cache(VulkanBackend& backend, const MeshCache& mesh_cache);
 
 // This invalidates all current handles
-REAPER_RENDERER_API void clear_meshes(VulkanBackend& backend, MeshCache& mesh_cache);
+REAPER_RENDERER_API void clear_meshes(MeshCache& mesh_cache);
 
 REAPER_RENDERER_API void load_meshes(VulkanBackend& backend, MeshCache& mesh_cache, nonstd::span<const Mesh> meshes,
                                      nonstd::span<MeshHandle> output_handles);

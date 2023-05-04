@@ -51,7 +51,7 @@ MeshCache create_mesh_cache(ReaperRoot& root, VulkanBackend& backend)
         DefaultGPUBufferProperties(MeshCache::MAX_MESHLET_COUNT, sizeof(Meshlet), GPUBufferUsage::StorageBuffer),
         backend.vma_instance, MemUsage::CPU_To_GPU);
 
-    clear_meshes(backend, cache);
+    clear_meshes(cache);
 
     return cache;
 }
@@ -67,7 +67,7 @@ void destroy_mesh_cache(VulkanBackend& backend, const MeshCache& mesh_cache)
     vmaDestroyBuffer(backend.vma_instance, mesh_cache.vertexBufferUV.handle, mesh_cache.vertexBufferUV.allocation);
 }
 
-void clear_meshes(VulkanBackend& backend, MeshCache& mesh_cache)
+void clear_meshes(MeshCache& mesh_cache)
 {
     mesh_cache.mesh2_instances.clear();
 
