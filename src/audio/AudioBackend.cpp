@@ -54,7 +54,7 @@ AudioBackend create_audio_backend(ReaperRoot& root, const AudioConfig& config)
 
     u32 adjusted_sample_rate = config.sample_rate;
     snd_pcm_hw_params_set_rate_near(backend.pcm_handle, hw_params, &adjusted_sample_rate, &dir);
-    // Assert(adjusted_sample_rate == config.sample_rate); FIXME
+    Assert(adjusted_sample_rate == config.sample_rate);
 
     backend.period_size = 128; // FIXME
     snd_pcm_hw_params_set_period_size_near(backend.pcm_handle, hw_params, &backend.period_size, &dir);

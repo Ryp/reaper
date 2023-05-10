@@ -8,7 +8,7 @@
 #ifndef LIB_CONVERSION_INCLUDED
 #define LIB_CONVERSION_INCLUDED
 
-int float_to_snorm(float v, uint bits)
+int float_to_snorm_clamp(float v, uint bits)
 {
     float v_clamp = max(min(v, 1.0), -1.0);
     uint max_value = (1u << (bits - 1)) - 1;
