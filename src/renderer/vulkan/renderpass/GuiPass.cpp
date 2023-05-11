@@ -37,11 +37,8 @@ GuiPassResources create_gui_pass_resources(ReaperRoot& /*root*/, VulkanBackend& 
         {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_FRAGMENT_BIT,
          shader_modules.gui_write_fs, default_entry_point(), nullptr}};
 
-    std::vector<VkDescriptorSetLayoutBinding> descriptorSetLayoutBinding = {
-        {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
-        {1, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
-        {2, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
-    };
+    // Nothing for now
+    std::vector<VkDescriptorSetLayoutBinding> descriptorSetLayoutBinding = {};
 
     VkDescriptorSetLayout descriptor_set_layout =
         create_descriptor_set_layout(backend.device, descriptorSetLayoutBinding);
