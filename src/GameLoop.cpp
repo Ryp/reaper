@@ -132,7 +132,6 @@ namespace Reaper
 namespace
 {
     constexpr ImU32 ImGuiWhite = IM_COL32(255, 255, 255, 255);
-    constexpr ImU32 ImGuiGreen = IM_COL32(0, 255, 0, 255);
     constexpr ImU32 ImGuiGamepadBg = IM_COL32(0, 30, 0, 255);
 
     void imgui_draw_gamepad_axis(float size_px, float axis_x, float axis_y)
