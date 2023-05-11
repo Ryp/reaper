@@ -16,4 +16,15 @@ int float_to_snorm_clamp(float v, uint bits)
     return (int)trunc(v_clamp * max_value + (v_clamp >= 0.f ? 0.5f : -0.5f));
 }
 
+float4 rgba8_unorm_to_rgba32_float(uint rgba8_unorm)
+{
+    const uint4 unorm_split = uint4(
+        rgba8_unorm,
+        rgba8_unorm >> 8,
+        rgba8_unorm >> 16,
+        rgba8_unorm >> 24);
+
+    return float4(unorm_split & 0xFF) / 255.f;
+}
+
 #endif

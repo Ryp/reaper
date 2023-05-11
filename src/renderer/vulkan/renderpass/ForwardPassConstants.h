@@ -7,7 +7,11 @@
 
 #pragma once
 
+#include "renderer/format/PixelFormat.h"
+
 namespace Reaper
 {
-constexpr bool ForwardUseReverseZ = true;
+constexpr PixelFormat ForwardHDRColorFormat = PixelFormat::B10G11R11_UFLOAT_PACK32;
+constexpr PixelFormat ForwardDepthFormat = PixelFormat::D16_UNORM;
+constexpr bool        ForwardUseReverseZ = true;
 } // namespace Reaper

@@ -21,6 +21,7 @@
 #include "renderer/vulkan/MeshCache.h"
 #include "renderer/vulkan/Swapchain.h"
 #include "renderer/vulkan/api/VulkanStringConversion.h"
+#include "renderer/vulkan/renderpass/ForwardPassConstants.h"
 #include "renderer/vulkan/renderpass/FrameGraphPass.h"
 
 #include "renderer/Mesh2.h"
@@ -37,6 +38,7 @@
 #include "core/memory/Allocator.h"
 #include "profiling/Scope.h"
 
+#include "renderer/shader/share/debug_geometry_private.hlsl"
 #include "renderer/shader/share/hdr.hlsl"
 #include "renderer/shader/share/tiled_lighting.hlsl"
 
@@ -177,6 +179,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         upload_tiled_raster_pass_frame_resources(backend, prepared, resources.tiled_raster_resources);
         upload_tiled_lighting_pass_frame_resources(backend, prepared, resources.tiled_lighting_resources);
         upload_forward_pass_frame_resources(backend, prepared, resources.forward_pass_resources);
+        upload_debug_geometry_build_cmds_pass_frame_resources(backend, prepared, resources.debug_geometry_resources);
         upload_audio_frame_resources(backend, prepared, resources.audio_resources);
     }
 
@@ -205,6 +208,45 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     using namespace FrameGraph;
 
     Builder builder(framegraph);
+
+    // Debug geometry clear
+    struct DebugGeometryClearFrameGraphData
+    {
+        RenderPassHandle    pass_handle;
+        ResourceUsageHandle draw_counter;
+        ResourceUsageHandle user_commands_buffer;
+    } debug_geometry_clear;
+
+    debug_geometry_clear.pass_handle = builder.create_render_pass("Debug Geometry Clear");
+
+    const GPUBufferProperties debug_geometry_counter_properties = DefaultGPUBufferProperties(
+        1, sizeof(u32), GPUBufferUsage::IndirectBuffer | GPUBufferUsage::StorageBuffer | GPUBufferUsage::TransferDst);
+
+    {
+        GPUResourceUsage draw_counter_usage = {};
+        draw_counter_usage.access = GPUResourceAccess{VK_PIPELINE_STAGE_2_CLEAR_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT};
+        draw_counter_usage.buffer_view = default_buffer_view(debug_geometry_counter_properties);
+
+        debug_geometry_clear.draw_counter =
+            builder.create_buffer(debug_geometry_clear.pass_handle, "Debug Indirect draw counter buffer",
+                                  debug_geometry_counter_properties, draw_counter_usage);
+    }
+
+    const GPUBufferProperties debug_geometry_user_commands_properties = DefaultGPUBufferProperties(
+        DebugGeometryCountMax, sizeof(DebugGeometryUserCommand), GPUBufferUsage::StorageBuffer);
+
+    {
+        // Technically we shouldn't create an usage here, the first client of the debug geometry API should call
+        // create_buffer() with the right data. But it makes it slightly simpler this way for the user API so I'm taking
+        // the trade-off and paying for an extra useless barrier.
+        GPUResourceUsage user_commands_usage = {};
+        user_commands_usage.access = GPUResourceAccess{VK_PIPELINE_STAGE_2_CLEAR_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT};
+        user_commands_usage.buffer_view = default_buffer_view(debug_geometry_user_commands_properties);
+
+        debug_geometry_clear.user_commands_buffer =
+            builder.create_buffer(debug_geometry_clear.pass_handle, "Debug geometry user command buffer",
+                                  debug_geometry_user_commands_properties, user_commands_usage);
+    }
 
     // Shadow
     struct ShadowFrameGraphData
@@ -449,7 +491,8 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     GPUTextureProperties lighting_properties = DefaultGPUTextureProperties(
         backbufferExtent.width, backbufferExtent.height, PixelFormat::B10G11R11_UFLOAT_PACK32);
-    lighting_properties.usage_flags = GPUTextureUsage::Storage | GPUTextureUsage::Sampled;
+    lighting_properties.usage_flags =
+        GPUTextureUsage::Storage | GPUTextureUsage::Sampled | GPUTextureUsage::ColorAttachment;
 
     {
         GPUResourceUsage lighting_usage = {};
@@ -525,6 +568,132 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     histogram.histogram_buffer =
         builder.write_buffer(histogram.pass_handle, histogram_clear.histogram_buffer, histogram_write_usage);
+
+    // Debug geometry create command buffer
+    struct DebugGeometryComputeFrameGraphData
+    {
+        RenderPassHandle    pass_handle;
+        ResourceUsageHandle draw_counter;
+        ResourceUsageHandle user_commands_buffer;
+        ResourceUsageHandle draw_commands;
+        ResourceUsageHandle instance_buffer;
+    } debug_geometry_build_cmds;
+
+    debug_geometry_build_cmds.pass_handle = builder.create_render_pass("Debug Geometry Build Commands");
+
+    {
+        GPUResourceUsage draw_counter_usage = {};
+        draw_counter_usage.access =
+            GPUResourceAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT};
+        draw_counter_usage.buffer_view = default_buffer_view(debug_geometry_counter_properties);
+
+        debug_geometry_build_cmds.draw_counter = builder.read_buffer(
+            debug_geometry_build_cmds.pass_handle, debug_geometry_clear.draw_counter, draw_counter_usage);
+    }
+
+    {
+        GPUResourceUsage user_commands_usage = {};
+        user_commands_usage.access =
+            GPUResourceAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT};
+        user_commands_usage.buffer_view = default_buffer_view(debug_geometry_user_commands_properties);
+
+        debug_geometry_build_cmds.user_commands_buffer = builder.read_buffer(
+            debug_geometry_build_cmds.pass_handle, debug_geometry_clear.user_commands_buffer, user_commands_usage);
+    }
+
+    const GPUBufferProperties debug_geometry_command_properties =
+        DefaultGPUBufferProperties(DebugGeometryCountMax, sizeof(VkDrawIndexedIndirectCommand),
+                                   GPUBufferUsage::IndirectBuffer | GPUBufferUsage::StorageBuffer);
+
+    {
+        GPUResourceUsage draw_commands_usage = {};
+        draw_commands_usage.access =
+            GPUResourceAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT};
+        draw_commands_usage.buffer_view = default_buffer_view(debug_geometry_command_properties);
+
+        debug_geometry_build_cmds.draw_commands =
+            builder.create_buffer(debug_geometry_build_cmds.pass_handle, "Debug Indirect draw command buffer",
+                                  debug_geometry_command_properties, draw_commands_usage);
+    }
+
+    const GPUBufferProperties debug_geometry_instance_properties =
+        DefaultGPUBufferProperties(DebugGeometryCountMax, sizeof(DebugGeometryInstance), GPUBufferUsage::StorageBuffer);
+
+    {
+        GPUResourceUsage instance_buffer_usage = {};
+        instance_buffer_usage.access =
+            GPUResourceAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT};
+        instance_buffer_usage.buffer_view = default_buffer_view(debug_geometry_instance_properties);
+
+        debug_geometry_build_cmds.instance_buffer =
+            builder.create_buffer(debug_geometry_build_cmds.pass_handle, "Debug geometry instance buffer",
+                                  debug_geometry_instance_properties, instance_buffer_usage);
+    }
+
+    // Debug geometry draw
+    struct DebugGeometryDrawFrameGraphData
+    {
+        RenderPassHandle    pass_handle;
+        ResourceUsageHandle scene_hdr;
+        ResourceUsageHandle scene_depth;
+        ResourceUsageHandle draw_counter;
+        ResourceUsageHandle draw_commands;
+        ResourceUsageHandle instance_buffer;
+    } debug_geometry_draw;
+
+    debug_geometry_draw.pass_handle = builder.create_render_pass("Debug Geometry Draw");
+
+    {
+        GPUResourceUsage scene_hdr_usage = {};
+        scene_hdr_usage.access =
+            GPUResourceAccess{VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+                              VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
+        scene_hdr_usage.texture_view = DefaultGPUTextureView(scene_hdr_properties);
+
+        debug_geometry_draw.scene_hdr = builder.write_texture(debug_geometry_draw.pass_handle,
+                                                              tiled_lighting.lighting_usage_handle, scene_hdr_usage);
+    }
+
+    {
+        GPUResourceUsage depth_usage = {};
+        depth_usage.access = GPUResourceAccess{
+            VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
+            VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT, VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL};
+        depth_usage.texture_view = DefaultGPUTextureView(scene_depth_properties);
+
+        debug_geometry_draw.scene_depth =
+            builder.read_texture(debug_geometry_draw.pass_handle, forward.depth_usage_handle, depth_usage);
+    }
+
+    {
+        GPUResourceUsage draw_counter_usage = {};
+        draw_counter_usage.access =
+            GPUResourceAccess{VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT, VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT};
+        draw_counter_usage.buffer_view = default_buffer_view(debug_geometry_counter_properties);
+
+        debug_geometry_draw.draw_counter =
+            builder.read_buffer(debug_geometry_draw.pass_handle, debug_geometry_clear.draw_counter, draw_counter_usage);
+    }
+
+    {
+        GPUResourceUsage draw_commands_usage = {};
+        draw_commands_usage.access =
+            GPUResourceAccess{VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT, VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT};
+        draw_commands_usage.buffer_view = default_buffer_view(debug_geometry_command_properties);
+
+        debug_geometry_draw.draw_commands = builder.read_buffer(
+            debug_geometry_draw.pass_handle, debug_geometry_build_cmds.draw_commands, draw_commands_usage);
+    }
+
+    {
+        GPUResourceUsage instance_buffer_usage = {};
+        instance_buffer_usage.access =
+            GPUResourceAccess{VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT};
+        instance_buffer_usage.buffer_view = default_buffer_view(debug_geometry_instance_properties);
+
+        debug_geometry_draw.instance_buffer = builder.read_buffer(
+            debug_geometry_draw.pass_handle, debug_geometry_build_cmds.instance_buffer, instance_buffer_usage);
+    }
 
     // Swapchain
     struct SwapchainFrameGraphData
@@ -634,6 +803,18 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         get_frame_graph_texture(resources.framegraph_resources, framegraph, histogram.scene_hdr),
         get_frame_graph_buffer(resources.framegraph_resources, framegraph, histogram.histogram_buffer));
 
+    update_debug_geometry_build_cmds_pass_descriptor_sets(
+        descriptor_write_helper, resources.debug_geometry_resources,
+        get_frame_graph_buffer(resources.framegraph_resources, framegraph, debug_geometry_build_cmds.draw_counter),
+        get_frame_graph_buffer(resources.framegraph_resources, framegraph,
+                               debug_geometry_build_cmds.user_commands_buffer),
+        get_frame_graph_buffer(resources.framegraph_resources, framegraph, debug_geometry_build_cmds.draw_commands),
+        get_frame_graph_buffer(resources.framegraph_resources, framegraph, debug_geometry_build_cmds.instance_buffer));
+
+    update_debug_geometry_draw_pass_descriptor_sets(
+        descriptor_write_helper, resources.debug_geometry_resources,
+        get_frame_graph_buffer(resources.framegraph_resources, framegraph, debug_geometry_draw.instance_buffer));
+
     update_swapchain_pass_descriptor_set(
         descriptor_write_helper, resources.swapchain_pass_resources, resources.samplers_resources,
         get_frame_graph_texture(resources.framegraph_resources, framegraph, swapchain.scene_hdr),
@@ -709,6 +890,22 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
             {
                 record_culling_command_buffer(root, cmdBuffer, prepared, resources.cull_resources);
             }
+        }
+
+        {
+            REAPER_GPU_SCOPE(cmdBuffer, "Debug Geometry Clear");
+            record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
+                                       debug_geometry_clear.pass_handle, true);
+
+            const u32        clear_value = 0;
+            FrameGraphBuffer draw_counter =
+                get_frame_graph_buffer(resources.framegraph_resources, framegraph, debug_geometry_clear.draw_counter);
+
+            vkCmdFillBuffer(cmdBuffer.handle, draw_counter.handle, draw_counter.view.offset_bytes,
+                            draw_counter.view.size_bytes, clear_value);
+
+            record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
+                                       debug_geometry_clear.pass_handle, false);
         }
 
         {
@@ -843,6 +1040,33 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
             record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
                                        histogram.pass_handle, false);
+        }
+
+        {
+            REAPER_GPU_SCOPE(cmdBuffer, "Debug Geometry Build Commands");
+            record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
+                                       debug_geometry_build_cmds.pass_handle, true);
+
+            record_debug_geometry_build_cmds_command_buffer(cmdBuffer, resources.debug_geometry_resources);
+
+            record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
+                                       debug_geometry_build_cmds.pass_handle, false);
+        }
+
+        {
+            REAPER_GPU_SCOPE(cmdBuffer, "Debug Geometry Draw");
+            record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
+                                       debug_geometry_draw.pass_handle, true);
+
+            record_debug_geometry_draw_command_buffer(
+                cmdBuffer, resources.debug_geometry_resources,
+                get_frame_graph_texture(resources.framegraph_resources, framegraph, debug_geometry_draw.scene_hdr),
+                get_frame_graph_texture(resources.framegraph_resources, framegraph, debug_geometry_draw.scene_depth),
+                get_frame_graph_buffer(resources.framegraph_resources, framegraph, debug_geometry_draw.draw_counter),
+                get_frame_graph_buffer(resources.framegraph_resources, framegraph, debug_geometry_draw.draw_commands));
+
+            record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
+                                       debug_geometry_draw.pass_handle, false);
         }
 
         {

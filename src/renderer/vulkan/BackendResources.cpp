@@ -43,6 +43,7 @@ void create_backend_resources(ReaperRoot& root, VulkanBackend& backend)
 
     resources.shader_modules = create_shader_modules(root, backend);
     resources.samplers_resources = create_sampler_resources(root, backend);
+    resources.debug_geometry_resources = create_debug_geometry_pass_resources(root, backend, resources.shader_modules);
     resources.framegraph_resources = create_framegraph_resources(root, backend);
     resources.audio_resources = create_audio_resources(root, backend, resources.shader_modules);
     resources.cull_resources = create_culling_resources(root, backend, resources.shader_modules);
@@ -65,6 +66,7 @@ void destroy_backend_resources(VulkanBackend& backend)
 
     destroy_shader_modules(backend, resources.shader_modules);
     destroy_sampler_resources(backend, resources.samplers_resources);
+    destroy_debug_geometry_pass_resources(backend, resources.debug_geometry_resources);
     destroy_framegraph_resources(backend, resources.framegraph_resources);
     destroy_audio_resources(backend, resources.audio_resources);
     destroy_culling_resources(backend, resources.cull_resources);

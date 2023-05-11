@@ -93,6 +93,8 @@ target_sources(${target} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/Audio.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/Culling.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/Culling.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/DebugGeometryRenderPass.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/DebugGeometryRenderPass.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/ForwardPass.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/ForwardPass.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/FrameGraphPass.cpp
@@ -133,6 +135,9 @@ endif()
 set(REAPER_SHADER_DIR ${CMAKE_CURRENT_SOURCE_DIR}/shader)
 set(REAPER_SHADER_SRCS
     ${REAPER_SHADER_DIR}/copy_to_depth.frag.hlsl
+    ${REAPER_SHADER_DIR}/debug_geometry/build_cmds.comp.hlsl
+    ${REAPER_SHADER_DIR}/debug_geometry/draw.frag.hlsl
+    ${REAPER_SHADER_DIR}/debug_geometry/draw.vert.hlsl
     ${REAPER_SHADER_DIR}/forward.frag.hlsl
     ${REAPER_SHADER_DIR}/forward.vert.hlsl
     ${REAPER_SHADER_DIR}/fullscreen_triangle.vert.hlsl

@@ -19,6 +19,9 @@ struct ShaderModules
     VkShaderModule copy_to_depth_fs;
     VkShaderModule cull_meshlet_cs;
     VkShaderModule cull_triangle_batch_cs;
+    VkShaderModule debug_geometry_build_cmds_cs;
+    VkShaderModule debug_geometry_draw_fs;
+    VkShaderModule debug_geometry_draw_vs;
     VkShaderModule forward_fs;
     VkShaderModule forward_vs;
     VkShaderModule fullscreen_triangle_vs;

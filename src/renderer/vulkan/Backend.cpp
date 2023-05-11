@@ -508,7 +508,7 @@ bool vulkan_check_physical_device(IWindow*                        window,
            "Unsupported Vulkan version. Is your GPU driver too old?");
     Assert(device_properties.limits.maxImageDimension2D >= 4096);
     Assert(device_features2.features.shaderClipDistance == VK_TRUE); // This is just checked, not enabled
-    Assert(device_features2.features.shaderClipDistance == VK_TRUE); // This is just checked, not enabled
+    Assert(device_features2.features.fillModeNonSolid == VK_TRUE);
     Assert(device_vulkan13_features.synchronization2 == VK_TRUE);
     Assert(device_vulkan13_features.dynamicRendering == VK_TRUE);
 
@@ -742,6 +742,7 @@ void vulkan_create_logical_device(ReaperRoot&                     root,
     deviceFeatures.multiDrawIndirect = VK_TRUE;
     deviceFeatures.drawIndirectFirstInstance = VK_TRUE;
     deviceFeatures.fragmentStoresAndAtomics = VK_TRUE;
+    deviceFeatures.fillModeNonSolid = VK_TRUE;
 
     VkPhysicalDeviceVulkan13Features device_vulkan13_features = {};
     device_vulkan13_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
