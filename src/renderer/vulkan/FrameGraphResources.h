@@ -39,7 +39,7 @@ struct FrameGraphBuffer
 
 struct FrameGraphResources
 {
-    static const u32 EventCount = 40;
+    static const u32 EventCount = 100;
     // Persistent
     // NOTE: you need to have as many events as concurrent synchronization barriers.
     // For the first implem we can just have as many events as barriers.
