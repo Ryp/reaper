@@ -15,6 +15,8 @@
 #    include <btBulletDynamicsCommon.h>
 #endif
 
+#include "neptune/trackgen/Track.h"
+
 #include "mesh/Mesh.h"
 
 #include "core/Assert.h"

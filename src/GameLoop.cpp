@@ -87,7 +87,7 @@ namespace
 
             const TrackSkeletonNode& track_node = track.skeleton_nodes[i];
 
-            chunk_transforms[i] = glm::translate(glm::mat4(1.0f), track_node.positionWS);
+            chunk_transforms[i] = glm::translate(glm::mat4(1.0f), track_node.position_ws);
 
             skin_track_chunk_mesh(track_node, track.skinning[i], track_mesh, 10.0f);
         }

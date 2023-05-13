@@ -22,9 +22,9 @@ void write_track_skeleton_as_obj(std::ostream& output, std::vector<TrackSkeleton
     for (const auto& node : skeleton)
     {
         output << 'v';
-        output << ' ' << node.positionWS.x;
-        output << ' ' << node.positionWS.y;
-        output << ' ' << node.positionWS.z;
+        output << ' ' << node.position_ws.x;
+        output << ' ' << node.position_ws.y;
+        output << ' ' << node.position_ws.z;
         output << std::endl;
     }
 
@@ -54,13 +54,13 @@ void write_track_splines_as_obj(std::ostream& output, std::vector<TrackSkeletonN
         for (u32 j = 0; j < (tesselation + 1); j++)
         {
             const float     param = static_cast<float>(j) / static_cast<float>(tesselation);
-            const glm::vec3 posMS = Reaper::Math::spline_eval(spline, param);
-            const glm::vec3 posWS = node.positionWS + node.orientation_ms_to_ws * posMS;
+            const glm::vec3 pos_ms = Reaper::Math::spline_eval(spline, param);
+            const glm::vec3 pos_ws = node.position_ws + node.orientation_ms_to_ws * pos_ms;
 
             output << 'v';
-            output << ' ' << posWS.x;
-            output << ' ' << posWS.y;
-            output << ' ' << posWS.z;
+            output << ' ' << pos_ws.x;
+            output << ' ' << pos_ws.y;
+            output << ' ' << pos_ws.z;
             output << std::endl;
         }
     }

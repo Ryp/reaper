@@ -78,7 +78,7 @@ namespace
     {
         for (u32 i = 0; (i + 1) < nodes.size(); i++)
         {
-            const float distanceSq = glm::distance2(current_node.positionWS, nodes[i].positionWS);
+            const float distanceSq = glm::distance2(current_node.position_ws, nodes[i].position_ws);
             const float minRadius = current_node.radius + nodes[i].radius;
 
             if (distanceSq < (minRadius * minRadius))
@@ -104,24 +104,24 @@ namespace
         if (previous_nodes.empty())
         {
             node.orientation_ms_to_ws = glm::identity<glm::quat>();
-            node.inWidth = widthDistribution(rng);
-            node.positionWS = glm::vec3(0.f);
+            node.in_width = widthDistribution(rng);
+            node.position_ws = glm::vec3(0.f);
         }
         else
         {
             const TrackSkeletonNode& previous_node = previous_nodes.back();
 
             node.orientation_ms_to_ws = previous_node.orientation_ms_to_ws * previous_node.end_orientation_ms;
-            node.inWidth = previous_node.outWidth;
+            node.in_width = previous_node.out_width;
 
-            const glm::vec3 offsetMS = UnitXAxis * (previous_node.radius + node.radius);
-            const glm::vec3 offsetWS = node.orientation_ms_to_ws * offsetMS;
+            const glm::vec3 offset_ms = UnitXAxis * (previous_node.radius + node.radius);
+            const glm::vec3 offset_ws = node.orientation_ms_to_ws * offset_ms;
 
-            node.positionWS = previous_node.positionWS + offsetWS;
+            node.position_ws = previous_node.position_ws + offset_ws;
         }
 
         node.end_orientation_ms = GenerateChunkEndLocalSpace(gen_info, rng);
-        node.outWidth = widthDistribution(rng);
+        node.out_width = widthDistribution(rng);
 
         return node;
     }
@@ -165,8 +165,8 @@ void generate_track_skeleton(const GenerationInfo& gen_info, nonstd::span<TrackS
     Assert(tryCount < MaxTryCount, "something is majorly FUBAR");
 }
 
-void generate_track_splines(
-    nonstd::span<const TrackSkeletonNode> skeleton_nodes, nonstd::span<Reaper::Math::Spline> splines)
+void generate_track_splines(nonstd::span<const TrackSkeletonNode> skeleton_nodes,
+                            nonstd::span<Reaper::Math::Spline>    splines)
 {
     Assert(skeleton_nodes.size() == splines.size());
 

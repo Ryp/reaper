@@ -36,12 +36,12 @@ struct GenerationInfo
 
 struct TrackSkeletonNode
 {
-    glm::vec3 positionWS;
+    glm::vec3 position_ws;
     float     radius;
     glm::quat orientation_ms_to_ws;
     glm::quat end_orientation_ms; // Deviation of the chunk in local space
-    float     inWidth;
-    float     outWidth;
+    float     in_width;
+    float     out_width;
 };
 
 struct Bone
