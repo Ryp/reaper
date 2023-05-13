@@ -49,9 +49,10 @@ namespace Neptune
 {
 struct Track
 {
-    std::vector<TrackSkeletonNode>        skeletonNodes;
-    std::vector<Reaper::Math::Spline>     splinesMS;
-    std::vector<TrackSkinning>            skinning;
+    std::vector<TrackSkeletonNode>    skeleton_nodes;
+    std::vector<Reaper::Math::Spline> splines_ms;
+    std::vector<TrackSkinning>        skinning;
+
     std::vector<StaticMeshColliderHandle> sim_handles;
     std::vector<Reaper::SceneMesh>        scene_meshes;
 };
@@ -63,17 +64,17 @@ namespace
     {
         Track track;
 
-        track.skeletonNodes.resize(gen_info.length);
+        track.skeleton_nodes.resize(gen_info.length);
 
-        generate_track_skeleton(gen_info, track.skeletonNodes);
+        generate_track_skeleton(gen_info, track.skeleton_nodes);
 
-        track.splinesMS.resize(gen_info.length);
+        track.splines_ms.resize(gen_info.length);
 
-        generate_track_splines(track.skeletonNodes, track.splinesMS);
+        generate_track_splines(track.skeleton_nodes, track.splines_ms);
 
         track.skinning.resize(gen_info.length);
 
-        generate_track_skinning(track.skeletonNodes, track.splinesMS, track.skinning);
+        generate_track_skinning(track.skeleton_nodes, track.splines_ms, track.skinning);
 
         const std::string         assetFile("res/model/track/chunk_simple.obj");
         std::vector<glm::fmat4x3> chunk_transforms(gen_info.length);
@@ -84,7 +85,7 @@ namespace
             std::ifstream file(assetFile);
             Mesh&         track_mesh = track_meshes.emplace_back(ModelLoader::loadOBJ(file));
 
-            const TrackSkeletonNode& track_node = track.skeletonNodes[i];
+            const TrackSkeletonNode& track_node = track.skeleton_nodes[i];
 
             chunk_transforms[i] = glm::translate(glm::mat4(1.0f), track_node.positionWS);
 
@@ -539,7 +540,7 @@ void execute_game_loop(ReaperRoot& root)
 
         log_debug(root, "sim: throttle = {}, braking = {}, steer = {}", input.throttle, input.brake, input.steer);
 
-        Neptune::sim_update(sim, input, time_delta_secs);
+        Neptune::sim_update(sim, game_track.skeleton_nodes, input, time_delta_secs);
 
         const glm::fmat4x3 player_transform = Neptune::get_player_transform(sim);
         glm::fvec3         player_translation = player_transform[3];

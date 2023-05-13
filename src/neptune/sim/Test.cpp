@@ -88,7 +88,7 @@ namespace
         return glm::vec3(0.0f, 1.0f, 0.0f);
     }
 
-    void pre_tick(PhysicsSim& sim, const ShipInput& input, float /*dt*/)
+    void pre_tick(PhysicsSim& sim, const PhysicsSim::FrameData& frame_data, float /*dt*/)
     {
         REAPER_PROFILE_SCOPE_FUNC();
 
@@ -97,32 +97,29 @@ namespace
         const glm::fvec3   player_position_ws = player_transform[3];
 
         float              min_dist_sq = 10000000.f;
-        const btRigidBody* closest_track_chunk = nullptr;
+        const btRigidBody* closest_track_chunk_rigid_body = nullptr;
+
+        Assert(frame_data.skeleton_nodes.size() == sim.static_mesh_colliders.size());
 
         // FIXME correctly iterate on track chunks only
         for (auto mesh_collider : sim.static_mesh_colliders)
         {
-            auto       track_chunk = mesh_collider.second.rigid_body;
-            glm::fvec3 delta = player_position_ws - toGlm(track_chunk->getWorldTransform().getOrigin());
+            auto       track_chunk_rigid_body = mesh_collider.second.rigid_body;
+            glm::fvec3 delta = player_position_ws - toGlm(track_chunk_rigid_body->getWorldTransform().getOrigin());
             float      dist_sq = glm::dot(delta, delta);
 
             if (dist_sq < min_dist_sq)
             {
                 min_dist_sq = dist_sq;
-                closest_track_chunk = track_chunk;
+                closest_track_chunk_rigid_body = track_chunk_rigid_body;
             }
         }
 
-        Assert(closest_track_chunk);
+        Assert(closest_track_chunk_rigid_body);
 
-        // FIXME const glm::fmat4x3 projected_transform = toGlm(closest_track_chunk->getWorldTransform());
-        const glm::quat projected_orientation = toGlm(closest_track_chunk->getWorldTransform().getRotation());
-        glm::vec3       shipUp;
-        glm::vec3       shipFwd;
-
-        // shipUp = projected_orientation * up();
-        shipUp = up(); // FIXME
-        shipFwd = player_transform * glm::vec4(forward(), 0.f);
+        // FIXME
+        glm::vec3 shipUp = up();
+        glm::vec3 shipFwd = player_transform * glm::vec4(forward(), 0.f);
 
         // shipFwd = glm::normalize(shipFwd - glm::proj(shipFwd, shipUp)); // Ship Fwd in on slice plane
 
@@ -152,9 +149,9 @@ namespace
         // Integrate forces
         glm::vec3 forces = {};
         forces += -shipUp * 9.8331f;
-        forces += shipFwd * input.throttle * ship_stats.thrust; // Engine thrust
+        forces += shipFwd * frame_data.input.throttle * ship_stats.thrust; // Engine thrust
         //      forces += shipFwd * player.getAcceleration(); // Engine thrust
-        forces += -glm::proj(linear_speed, shipFwd) * input.brake * ship_stats.braking; // Brakes force
+        forces += -glm::proj(linear_speed, shipFwd) * frame_data.input.brake * ship_stats.braking; // Brakes force
         // forces += -glm::proj(movement.speed, glm::cross(shipFwd, shipUp)) * sim.pHandling;           // Handling term
         forces += -linear_speed * sim.linear_friction;
         forces += -linear_speed * glm::length(linear_speed) * sim.quadratic_friction;
@@ -166,7 +163,7 @@ namespace
         //     forces += player_orientation * (glm::vec3(0.0f, 2.0f - upSpeed, 0.0f) * 10.0f);
 
         glm::fvec3 angular_force = {};
-        angular_force += up() * input.steer;
+        angular_force += up() * frame_data.input.steer;
         angular_force += angular_speed * -0.3f;
 
         playerRigidBody->clearForces();
@@ -276,7 +273,7 @@ namespace
 
         PhysicsSim& sim = *sim_ptr;
 
-        pre_tick(sim, sim.last_input, dt);
+        pre_tick(sim, sim.frame_data, dt);
     }
 
     void post_tick_callback(btDynamicsWorld* world, btScalar dt)
@@ -301,11 +298,14 @@ void sim_start(PhysicsSim* sim)
 #endif
 }
 
-void sim_update(PhysicsSim& sim, const ShipInput& input, float dt)
+void sim_update(PhysicsSim& sim, nonstd::span<const TrackSkeletonNode> skeleton_nodes, const ShipInput& input, float dt)
 {
     REAPER_PROFILE_SCOPE_FUNC();
 
-    sim.last_input = input; // FIXME
+    // FIXME we should be able to provide input for each discrete sim step for greater accuration.
+    // Maybe that doesn't matter now, but at polish time this might be a big deal
+    sim.frame_data.input = input; // FIXME
+    sim.frame_data.skeleton_nodes = skeleton_nodes;
 
 #if defined(REAPER_USE_BULLET_PHYSICS)
     sim.dynamicsWorld->stepSimulation(dt, SimulationMaxSubStep);

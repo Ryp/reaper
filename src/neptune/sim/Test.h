@@ -57,12 +57,20 @@ struct StaticMeshCollider
     btScaledBvhTriangleMeshShape* scaled_mesh_shape;
 };
 
+struct TrackSkeletonNode;
+
 struct PhysicsSim
 {
-    float     linear_friction;
-    float     quadratic_friction;
-    ShipInput last_input;
-    u32       alloc_number_fixme; // FIXME
+    float linear_friction;
+    float quadratic_friction;
+    u32   alloc_number_fixme; // FIXME
+
+    // This must always be set before calling any sim update
+    struct FrameData
+    {
+        ShipInput                             input;
+        nonstd::span<const TrackSkeletonNode> skeleton_nodes;
+    } frame_data;
 
 #if defined(REAPER_USE_BULLET_PHYSICS)
     btBroadphaseInterface*               broadphase;
@@ -82,7 +90,8 @@ NEPTUNE_SIM_API void       destroy_sim(PhysicsSim& sim);
 
 NEPTUNE_SIM_API void sim_start(PhysicsSim* sim);
 
-NEPTUNE_SIM_API void sim_update(PhysicsSim& sim, const ShipInput& input, float dt);
+NEPTUNE_SIM_API void sim_update(PhysicsSim& sim, nonstd::span<const TrackSkeletonNode> skeleton_nodes,
+                                const ShipInput& input, float dt);
 NEPTUNE_SIM_API glm::fmat4x3 get_player_transform(PhysicsSim& sim);
 
 NEPTUNE_SIM_API
