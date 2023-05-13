@@ -98,26 +98,24 @@ namespace
         const glm::fmat4x3 player_transform = toGlm(playerRigidBody->getWorldTransform());
         const glm::fvec3   player_position_ws = player_transform[3];
 
-        float              min_dist_sq = 10000000.f;
-        const btRigidBody* closest_track_chunk_rigid_body = nullptr;
+        float                    min_dist_sq = 10000000.f;
+        const TrackSkeletonNode* closest_skeleton_node = nullptr;
 
         Assert(frame_data.skeleton_nodes.size() == sim.static_mesh_colliders.size());
 
-        // FIXME correctly iterate on track chunks only
-        for (auto mesh_collider : sim.static_mesh_colliders)
+        for (const auto& skeleton_node : frame_data.skeleton_nodes)
         {
-            auto       track_chunk_rigid_body = mesh_collider.second.rigid_body;
-            glm::fvec3 delta = player_position_ws - toGlm(track_chunk_rigid_body->getWorldTransform().getOrigin());
-            float      dist_sq = glm::dot(delta, delta);
+            const glm::fvec3 position_delta = player_position_ws - skeleton_node.position_ws;
+            const float      dist_sq = glm::dot(position_delta, position_delta);
 
             if (dist_sq < min_dist_sq)
             {
                 min_dist_sq = dist_sq;
-                closest_track_chunk_rigid_body = track_chunk_rigid_body;
+                closest_skeleton_node = &skeleton_node;
             }
         }
 
-        Assert(closest_track_chunk_rigid_body);
+        Assert(closest_skeleton_node);
 
         // FIXME
         glm::vec3 shipUp = up();
