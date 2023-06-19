@@ -13,7 +13,6 @@
 #include "math/Spline.h"
 
 #include "neptune/trackgen/Track.h"
-#include "neptune/trackgen/TrackDebug.h"
 
 using namespace Neptune;
 
@@ -38,11 +37,6 @@ TEST_CASE("Track generation")
 
         SUBCASE("")
         {}
-        SUBCASE("Save skeleton as obj")
-        {
-            std::ofstream file("test_skeleton.obj");
-            write_track_skeleton_as_obj(file, skeletonNodes);
-        }
         SUBCASE("Generate splines")
         {
             splinesMS.resize(gen_info.length);
@@ -51,24 +45,11 @@ TEST_CASE("Track generation")
 
             SUBCASE("")
             {}
-            SUBCASE("Save splines as obj")
-            {
-                std::ofstream file2("test_splines.obj");
-                write_track_splines_as_obj(file2, skeletonNodes, splinesMS, 20);
-            }
             SUBCASE("Generate bones")
             {
                 skinning.resize(gen_info.length);
 
                 generate_track_skinning(skeletonNodes, splinesMS, skinning);
-
-                SUBCASE("")
-                {}
-                SUBCASE("Save bones as obj")
-                {
-                    std::ofstream file3("test_bones.obj");
-                    write_track_bones_as_obj(file3, skinning);
-                }
             }
         }
     }

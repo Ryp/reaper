@@ -20,6 +20,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/norm.hpp>
 #include <glm/gtx/projection.hpp>
+#include <glm/gtx/quaternion.hpp>
 
 #include <random>
 
@@ -33,7 +34,7 @@ constexpr float RollMax = 0.25f * Math::Pi;
 constexpr float WidthMin = 20.0f * MeterInGameUnits;
 constexpr float WidthMax = 50.0f * MeterInGameUnits;
 constexpr float RadiusMin = 100.0f * MeterInGameUnits;
-constexpr float RadiusMax = 300.0f * MeterInGameUnits;
+constexpr float RadiusMax = 200.0f * MeterInGameUnits;
 
 constexpr u32 MinLength = 3;
 constexpr u32 MaxLength = 1000;
@@ -53,7 +54,7 @@ using Math::UnitZAxis;
 
 namespace
 {
-    glm::quat GenerateChunkEndLocalSpace(const GenerationInfo& gen_info, RNG& rng)
+    glm::fmat4x3 GenerateChunkEndLocalSpace(const GenerationInfo& gen_info, RNG& rng)
     {
         const glm::vec2 thetaBounds = glm::vec2(0.0f, ThetaMax) * gen_info.chaos;
         const glm::vec2 phiBounds = glm::vec2(-PhiMax, PhiMax) * gen_info.chaos;
@@ -70,7 +71,7 @@ namespace
         glm::quat deviation = glm::angleAxis(phi, UnitXAxis) * glm::angleAxis(theta, UnitZAxis);
         glm::quat rollFixup = glm::angleAxis(-phi + roll, deviation * UnitXAxis);
 
-        return rollFixup * deviation;
+        return glm::toMat4(rollFixup * deviation);
     }
 
     bool is_node_self_colliding(nonstd::span<const TrackSkeletonNode> nodes, const TrackSkeletonNode& current_node,
@@ -78,7 +79,7 @@ namespace
     {
         for (u32 i = 0; (i + 1) < nodes.size(); i++)
         {
-            const float distanceSq = glm::distance2(current_node.position_ws, nodes[i].position_ws);
+            const float distanceSq = glm::distance2(current_node.center_ws, nodes[i].center_ws);
             const float minRadius = current_node.radius + nodes[i].radius;
 
             if (distanceSq < (minRadius * minRadius))
@@ -100,28 +101,36 @@ namespace
         TrackSkeletonNode node;
 
         node.radius = radiusDistribution(rng);
+        const glm::fvec3 forward_offset_ms = UnitXAxis * node.radius;
 
         if (previous_nodes.empty())
         {
-            node.orientation_ms_to_ws = glm::identity<glm::quat>();
+            node.in_transform_ms_to_ws = glm::identity<glm::fmat4x3>();
             node.in_width = widthDistribution(rng);
-            node.position_ws = glm::vec3(0.f);
+            node.center_ws = forward_offset_ms;
         }
         else
         {
             const TrackSkeletonNode& previous_node = previous_nodes.back();
 
-            node.orientation_ms_to_ws = previous_node.orientation_ms_to_ws * previous_node.end_orientation_ms;
+            node.in_transform_ms_to_ws = previous_node.out_transform_ms_to_ws;
             node.in_width = previous_node.out_width;
-
-            const glm::vec3 offset_ms = UnitXAxis * (previous_node.radius + node.radius);
-            const glm::vec3 offset_ws = node.orientation_ms_to_ws * offset_ms;
-
-            node.position_ws = previous_node.position_ws + offset_ws;
+            node.center_ws = node.in_transform_ms_to_ws * glm::fvec4(forward_offset_ms, 1.f);
         }
 
-        node.end_orientation_ms = GenerateChunkEndLocalSpace(gen_info, rng);
+        // TODO Cheat sheet for matrix combination in C++/GLM and HLSL
+        node.end_transform = GenerateChunkEndLocalSpace(gen_info, rng);
+
+        const glm::fmat4 translation_a = glm::translate(glm::identity<glm::fmat4>(), forward_offset_ms);
+        const glm::fmat4 translation_b =
+            glm::translate(glm::identity<glm::fmat4>(), node.end_transform * glm::vec4(forward_offset_ms, 0.f));
+
+        node.out_transform_ms_to_ws =
+            node.in_transform_ms_to_ws * translation_a * translation_b * glm::fmat4(node.end_transform);
         node.out_width = widthDistribution(rng);
+
+        node.in_transform_ws_to_ms = glm::inverse(glm::fmat4(node.in_transform_ms_to_ws));
+        node.out_transform_ws_to_ms = glm::inverse(glm::fmat4(node.out_transform_ms_to_ws));
 
         return node;
     }
@@ -177,10 +186,11 @@ void generate_track_splines(nonstd::span<const TrackSkeletonNode> skeleton_nodes
         // Laying down 1 control point at each end and 2 in the center of the sphere
         // seems to work pretty well.
         std::array<glm::fvec4, 4> controlPoints;
-        controlPoints[0] = glm::vec4(UnitXAxis * -node.radius, 1.0f);
-        controlPoints[1] = glm::vec4(glm::vec3(0.0f), SplineInnerWeight);
-        controlPoints[2] = glm::vec4(glm::vec3(0.0f), SplineInnerWeight);
-        controlPoints[3] = glm::vec4(node.end_orientation_ms * UnitXAxis * node.radius, 1.0f);
+        controlPoints[0] = glm::vec4(glm::vec3(0.0f), 1.0f);
+        controlPoints[1] = glm::vec4(UnitXAxis * node.radius, SplineInnerWeight);
+        controlPoints[2] = glm::vec4(UnitXAxis * node.radius, SplineInnerWeight);
+        controlPoints[3] =
+            glm::vec4(UnitXAxis * node.radius + node.end_transform * glm::fvec4(UnitXAxis * node.radius, 0.f), 1.0f);
 
         splines[chunk_index] = Math::create_spline(SplineOrder, controlPoints);
     }
@@ -230,7 +240,7 @@ namespace
             const float t = static_cast<float>(i) / static_cast<float>(BoneCountPerChunk);
 
             const glm::fquat interpolatedOrientation =
-                glm::slerp(glm::identity<glm::quat>(), node.end_orientation_ms, t);
+                glm::slerp(glm::identity<glm::quat>(), glm::toQuat(glm::fmat3(node.end_transform)), t); // FIXME
 
             const Bone&      bone = skinningInfo.bones[i];
             const glm::fvec3 plusX = glm::normalize(bone.end - bone.root);
@@ -310,7 +320,7 @@ void skin_track_chunk_mesh(const TrackSkeletonNode& node, const TrackSkinning& t
         if (glm::abs(skinnedVertex.w) > 0.0f)
             skinnedVertices[i] = glm::fvec3(skinnedVertex) / skinnedVertex.w;
 
-        skinnedVertices[i] = node.orientation_ms_to_ws * skinnedVertices[i];
+        skinnedVertices[i] = skinnedVertices[i]; // FIXME
     }
     mesh.positions = skinnedVertices;
 }

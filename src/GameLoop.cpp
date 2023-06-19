@@ -21,7 +21,8 @@
 #include "input/LinuxController.h"
 #include "math/Spline.h"
 #include "mesh/ModelLoader.h"
-#include "neptune/sim/Test.h"
+#include "neptune/sim/PhysicsSim.h"
+#include "neptune/sim/PhysicsSimUpdate.h"
 #include "neptune/trackgen/Track.h"
 #include "profiling/Scope.h"
 
@@ -87,7 +88,7 @@ namespace
 
             const TrackSkeletonNode& track_node = track.skeleton_nodes[i];
 
-            chunk_transforms[i] = glm::translate(glm::mat4(1.0f), track_node.position_ws);
+            chunk_transforms[i] = track_node.in_transform_ms_to_ws;
 
             skin_track_chunk_mesh(track_node, track.skinning[i], track_mesh, 10.0f);
         }
@@ -538,15 +539,10 @@ void execute_game_loop(ReaperRoot& root)
         input.brake = controller_state.axes[GenericAxis::LT] * 0.5 + 0.5;
         input.steer = controller_state.axes[GenericAxis::RSX];
 
-        log_debug(root, "sim: throttle = {}, braking = {}, steer = {}", input.throttle, input.brake, input.steer);
-
         Neptune::sim_update(sim, game_track.skeleton_nodes, input, time_delta_secs);
 
         const glm::fmat4x3 player_transform = Neptune::get_player_transform(sim);
         glm::fvec3         player_translation = player_transform[3];
-
-        log_debug(root, "sim: player pos = ({}, {}, {})", player_translation[0], player_translation[1],
-                  player_translation[2]);
 
         player_scene_node->transform_matrix = player_transform;
 #endif

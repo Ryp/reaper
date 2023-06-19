@@ -10,9 +10,12 @@ set(target neptune_sim)
 add_library(${target} ${REAPER_BUILD_TYPE})
 
 target_sources(${target} PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/BulletConversion.inl
     ${CMAKE_CURRENT_SOURCE_DIR}/SimExport.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/Test.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/Test.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/PhysicsSim.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/PhysicsSim.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/PhysicsSimUpdate.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/PhysicsSimUpdate.h
 )
 
 target_link_libraries(${target} PUBLIC

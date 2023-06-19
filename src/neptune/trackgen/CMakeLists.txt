@@ -12,8 +12,6 @@ add_library(${target} ${REAPER_BUILD_TYPE})
 target_sources(${target} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/Track.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Track.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/TrackDebug.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/TrackDebug.h
     ${CMAKE_CURRENT_SOURCE_DIR}/TrackGenExport.h
 )
 

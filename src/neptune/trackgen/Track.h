@@ -36,12 +36,20 @@ struct GenerationInfo
 
 struct TrackSkeletonNode
 {
-    glm::vec3 position_ws;
-    float     radius;
-    glm::quat orientation_ms_to_ws;
-    glm::quat end_orientation_ms; // Deviation of the chunk in local space
-    float     in_width;
-    float     out_width;
+    glm::fmat4x3 in_transform_ms_to_ws; // Transform of the input frame placed on the tangent of the bounding sphere
+    glm::fmat4x3 end_transform;
+
+    float radius;
+    float in_width;
+    float out_width;
+
+    // Extra
+    glm::fvec3   center_ws;
+    glm::fmat4x3 out_transform_ms_to_ws;
+
+    // Matrix inverses
+    glm::fmat4x3 in_transform_ws_to_ms;
+    glm::fmat4x3 out_transform_ws_to_ms;
 };
 
 struct Bone
