@@ -114,8 +114,8 @@ namespace
                                                  {GenericAxis::LSX},   // LSX
                                                  {GenericAxis::LSY},   // LSY
                                                  {GenericAxis::LT},    // L2Pressure
-                                                 {GenericAxis::RSY},   // RightAnalogY
-                                                 {GenericAxis::RSX},   // RightAnalogX
+                                                 {GenericAxis::RSX},   // RightAnalogY
+                                                 {GenericAxis::RSY},   // RightAnalogX
                                                  {GenericAxis::RT},    // R2Pressure
                                                  {GenericAxis::DPadX}, // DPadHorizontal
                                                  {GenericAxis::DPadY}, // DPadVertical
