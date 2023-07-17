@@ -20,8 +20,10 @@ target_sources(${target} PRIVATE
 
 target_link_libraries(${target} PUBLIC
     reaper_core
+    reaper_common
     glm
     span
+    fmt
 )
 
 if(REAPER_USE_BULLET_PHYSICS)

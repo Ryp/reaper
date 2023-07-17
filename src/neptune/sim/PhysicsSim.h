@@ -14,6 +14,7 @@
 #include <nonstd/span.hpp>
 
 #include <glm/fwd.hpp>
+#include <glm/vec3.hpp>
 #include <unordered_map>
 #include <vector>
 
@@ -43,8 +44,8 @@ using StaticMeshColliderHandle = u32;
 
 struct StaticMeshCollider
 {
-    std::vector<u32>        indices;
-    std::vector<glm::fvec3> vertex_positions;
+    std::vector<u32>       indices;
+    std::vector<glm::vec3> vertex_positions;
 
     btRigidBody*                  rigid_body;
     btTriangleIndexVertexArray*   mesh_interface;
@@ -56,6 +57,22 @@ struct ShipInput
     float brake;    // 0.0 not braking - 1.0 max
     float throttle; // 0.0 no trottle - 1.0 max
     float steer;    // 0.0 no steering - -1.0 max left - 1.0 max right
+};
+
+struct RaycastSuspension
+{
+    glm::vec3 position_start_ms;
+    glm::vec3 position_end_ms;
+
+    float length_max;
+    float length_ratio_rest;
+    float length_ratio_last;
+
+    // Could be two staged or following a curve
+    float spring_stiffness;
+
+    float damper_friction_compression;
+    float damper_friction_extension;
 };
 
 struct TrackSkeletonNode;
@@ -70,6 +87,10 @@ struct PhysicsSim
         float     linear_friction;
         float     quadratic_friction;
         float     angular_friction;
+        float     max_suspension_force;
+        float     default_spring_stiffness;
+        float     default_damper_friction_compression;
+        float     default_damper_friction_extension;
         ShipStats default_ship_stats;
     } vars;
 
@@ -82,12 +103,14 @@ struct PhysicsSim
         nonstd::span<const TrackSkeletonNode> skeleton_nodes;
     } frame_data;
 
+    std::vector<RaycastSuspension> raycast_suspensions;
+
 #if defined(REAPER_USE_BULLET_PHYSICS)
     btBroadphaseInterface*               broadphase;
     btDefaultCollisionConfiguration*     collisionConfiguration;
     btCollisionDispatcher*               dispatcher;
     btSequentialImpulseConstraintSolver* solver;
-    btDiscreteDynamicsWorld*             dynamicsWorld;
+    btDiscreteDynamicsWorld*             dynamics_world;
 
     std::vector<btRigidBody*> players;
 
@@ -110,5 +133,5 @@ NEPTUNE_SIM_API
 void sim_destroy_static_collision_meshes(nonstd::span<const StaticMeshColliderHandle> handles, PhysicsSim& sim);
 
 NEPTUNE_SIM_API void sim_create_player_rigid_body(PhysicsSim& sim, const glm::fmat4x3& player_transform,
-                                                  const glm::fvec3& shape_extent);
+                                                  const glm::fvec3& shape_half_extent);
 } // namespace Neptune

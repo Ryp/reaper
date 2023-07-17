@@ -34,26 +34,30 @@ namespace Neptune
 {
 namespace
 {
-    glm::fvec3 forward()
+    inline glm::fvec3 forward()
     {
         return glm::vec3(1.0f, 0.0f, 0.0f);
     }
 
-    glm::fvec3 up()
+    inline glm::fvec3 up()
     {
         return glm::vec3(0.0f, 1.0f, 0.0f);
     }
 
+    /*
     glm::fvec3 get_interpolated_up_vector_ws(const TrackSkeletonNode& skeleton_node)
-    {}
+    {
+    }
+    */
 
 #if defined(REAPER_USE_BULLET_PHYSICS)
-    void pre_tick(const PhysicsSim& sim, const PhysicsSim::FrameData& frame_data, float /*dt*/)
+    void pre_tick(PhysicsSim& sim, const PhysicsSim::FrameData& frame_data, float dt)
     {
         REAPER_PROFILE_SCOPE_FUNC();
 
-        btRigidBody*       playerRigidBody = sim.players[0];
-        const glm::fmat4x3 player_transform = toGlm(playerRigidBody->getWorldTransform());
+        btRigidBody*       player_rigid_body = sim.players[0];
+        const auto         player_transform_bt = player_rigid_body->getWorldTransform();
+        const glm::fmat4x3 player_transform = toGlm(player_transform_bt);
         const glm::fvec3   player_position_ws = player_transform[3];
 
         float                    min_dist_sq = 10000000.f;
@@ -105,8 +109,8 @@ namespace
         const glm::fvec3 gravity_up_ws = gravity_frame * up();
         const glm::fvec3 player_forward_ws = player_transform * glm::vec4(forward(), 0.f);
         const glm::fvec3 player_up_ws = player_transform * glm::vec4(up(), 0.f);
-        const glm::fvec3 player_linear_speed = toGlm(playerRigidBody->getLinearVelocity());
-        const glm::fvec3 player_angular_speed = toGlm(playerRigidBody->getAngularVelocity());
+        const glm::fvec3 player_linear_speed = toGlm(player_rigid_body->getLinearVelocity());
+        const glm::fvec3 player_angular_speed = toGlm(player_rigid_body->getAngularVelocity());
 
         glm::fvec3 force_ws = {};
 
@@ -131,6 +135,7 @@ namespace
         // torque_ws += glm::eulerAngles(glm::angleAxis(frame_data.input.steer, player_up_ws));
 
         // Torque to orient the ship upright
+        if (false) // FIXME
         {
             const float dot_gravity_to_player = glm::dot(player_up_ws, gravity_up_ws);
 
@@ -146,9 +151,116 @@ namespace
         // Friction torque (FIXME might be better applied by bullet directly)
         torque_ws += -player_angular_speed * sim.vars.angular_friction;
 
-        playerRigidBody->clearForces();
-        playerRigidBody->applyTorque(toBt(torque_ws));
-        playerRigidBody->applyCentralForce(toBt(force_ws));
+        player_rigid_body->clearForces();
+        player_rigid_body->applyTorque(toBt(torque_ws));
+        player_rigid_body->applyCentralForce(toBt(force_ws));
+
+        for (auto& suspension : sim.raycast_suspensions)
+        {
+            btTransform chassis_transform = player_transform_bt;
+
+            constexpr bool interpolated = false;
+            if (interpolated)
+            {
+                player_rigid_body->getMotionState()->getWorldTransform(chassis_transform); // FIXME
+            }
+
+            const btVector3 suspension_position_start_ws = chassis_transform(toBt(suspension.position_start_ms));
+            const btVector3 suspension_position_end_ws = chassis_transform(toBt(suspension.position_end_ms));
+            const btVector3 suspension_direction_ws =
+                (suspension_position_end_ws - suspension_position_start_ws).normalized();
+
+            btCollisionWorld::ClosestRayResultCallback ray_result_callback(suspension_position_start_ws,
+                                                                           suspension_position_end_ws);
+
+            sim.dynamics_world->rayTest(suspension_position_start_ws, suspension_position_end_ws, ray_result_callback);
+
+            const float chassisMass = 1.f / player_rigid_body->getInvMass(); // FIXME or get the constant directly
+
+            static constexpr bool force_defaults = true;
+
+            if (ray_result_callback.hasHit())
+            {
+                const btRigidBody* body = btRigidBody::upcast(ray_result_callback.m_collisionObject);
+
+                if (body && body->hasContactResponse())
+                {
+                    const btVector3 ray_hit_position_ws = ray_result_callback.m_hitPointWorld;
+                    const btVector3 ray_hit_normal_ws =
+                        ray_result_callback.m_hitNormalWorld.normalized(); // FIXME is that necessary?
+
+                    //
+                    float denominator = ray_hit_normal_ws.dot(suspension_direction_ws);
+
+                    btVector3 ray_hit_position_ms = ray_hit_position_ws - player_rigid_body->getCenterOfMassPosition();
+                    btVector3 body_velocity_at_ray_hit_ws =
+                        player_rigid_body->getVelocityInLocalPoint(ray_hit_position_ms);
+
+                    float suspension_velocity = ray_hit_normal_ws.dot(body_velocity_at_ray_hit_ws);
+
+                    float suspension_relative_velocity;
+                    float suspension_clippedInvContactDotSuspension;
+
+                    if (denominator >= -0.1f)
+                    {
+                        suspension_relative_velocity = 0.f;
+                        suspension_clippedInvContactDotSuspension = 1.f / 0.1f;
+                    }
+                    else
+                    {
+                        const float inv = -1.f / denominator;
+                        suspension_relative_velocity = suspension_velocity * inv;
+                        suspension_clippedInvContactDotSuspension = inv;
+                    }
+                    //
+
+                    float suspension_force = 0.f;
+
+                    // Spring
+                    {
+                        const float stiffness =
+                            force_defaults ? sim.vars.default_spring_stiffness : suspension.spring_stiffness;
+                        const float length_ratio_diff =
+                            (ray_result_callback.m_closestHitFraction - suspension.length_ratio_rest);
+
+                        suspension_force -= stiffness * length_ratio_diff * suspension.length_max
+                                            * suspension_clippedInvContactDotSuspension;
+                    }
+
+                    // Damper
+                    {
+                        float susp_damping;
+                        if (suspension_relative_velocity < 0.f)
+                        {
+                            susp_damping = force_defaults ? sim.vars.default_damper_friction_compression
+                                                          : suspension.damper_friction_compression;
+                        }
+                        else
+                        {
+                            susp_damping = force_defaults ? sim.vars.default_damper_friction_extension
+                                                          : suspension.damper_friction_extension;
+                        }
+                        suspension_force -= susp_damping * suspension_relative_velocity;
+                    }
+
+                    // RESULT
+                    suspension_force *= chassisMass; // FIXME this is making the force weight independent?
+                    suspension_force = glm::clamp(suspension_force, 0.f, sim.vars.max_suspension_force);
+
+                    btVector3 impulse = ray_hit_normal_ws * suspension_force * dt;
+                    btVector3 force_relpos = ray_hit_position_ws - player_rigid_body->getCenterOfMassPosition();
+
+                    player_rigid_body->applyImpulse(impulse, force_relpos);
+
+                    // Update dynamic suspension data FIXME this makes the sim non-const
+                    suspension.length_ratio_last = ray_result_callback.m_closestHitFraction;
+                }
+            }
+            else
+            {
+                suspension.length_ratio_last = suspension.length_ratio_rest;
+            }
+        }
     }
 
     // FIXME Handling force to pull you inside when cornering
@@ -177,9 +289,9 @@ namespace
     {
         REAPER_PROFILE_SCOPE_FUNC();
 
-        btRigidBody* playerRigidBody = sim.players.front(); // FIXME
-        toGlm(playerRigidBody->getLinearVelocity());
-        toGlm(playerRigidBody->getOrientation());
+        btRigidBody* player_rigid_body = sim.players.front(); // FIXME
+        toGlm(player_rigid_body->getLinearVelocity());
+        toGlm(player_rigid_body->getOrientation());
     }
 #endif
 
@@ -211,8 +323,8 @@ void sim_start(PhysicsSim* sim)
     Assert(sim);
 
 #if defined(REAPER_USE_BULLET_PHYSICS)
-    sim->dynamicsWorld->setInternalTickCallback(pre_tick_callback, sim, true);
-    sim->dynamicsWorld->setInternalTickCallback(post_tick_callback, sim, false);
+    sim->dynamics_world->setInternalTickCallback(pre_tick_callback, sim, true);
+    sim->dynamics_world->setInternalTickCallback(post_tick_callback, sim, false);
 #endif
 }
 
@@ -226,7 +338,7 @@ void sim_update(PhysicsSim& sim, nonstd::span<const TrackSkeletonNode> skeleton_
     sim.frame_data.skeleton_nodes = skeleton_nodes;
 
 #if defined(REAPER_USE_BULLET_PHYSICS)
-    sim.dynamicsWorld->stepSimulation(dt, sim.vars.max_simulation_substep_count, sim.vars.simulation_substep_duration);
+    sim.dynamics_world->stepSimulation(dt, sim.vars.max_simulation_substep_count, sim.vars.simulation_substep_duration);
 #else
     static_cast<void>(sim);
     static_cast<void>(dt);

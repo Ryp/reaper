@@ -220,6 +220,38 @@ namespace
         ImGui::End();
     }
 
+    void imgui_sim_debug(Neptune::PhysicsSim& sim)
+    {
+        ImGui::SliderFloat("simulation_substep_duration", &sim.vars.simulation_substep_duration, 1.f / 200.f,
+                           1.f / 5.f);
+        ImGui::SliderInt("max_simulation_substep_count", &sim.vars.max_simulation_substep_count, 1, 10);
+        ImGui::SliderFloat("gravity_force_intensity", &sim.vars.gravity_force_intensity, 0.f, 100.f, "%.3f",
+                           ImGuiSliderFlags_Logarithmic);
+        ImGui::SliderFloat("linear_friction", &sim.vars.linear_friction, 0.f, 100.f, "%.3f",
+                           ImGuiSliderFlags_Logarithmic);
+        ImGui::SliderFloat("quadratic_friction", &sim.vars.quadratic_friction, 0.f, 10.f, "%.3f",
+                           ImGuiSliderFlags_Logarithmic);
+        ImGui::SliderFloat("angular_friction", &sim.vars.angular_friction, 0.f, 100.f, "%.3f",
+                           ImGuiSliderFlags_Logarithmic);
+        ImGui::SliderFloat("max_suspension_force", &sim.vars.max_suspension_force, 0.f, 100000.f, "%.3f",
+                           ImGuiSliderFlags_Logarithmic);
+        ImGui::SliderFloat("default_spring_stiffness", &sim.vars.default_spring_stiffness, 0.0f, 100.f, "%.3f",
+                           ImGuiSliderFlags_Logarithmic);
+        ImGui::SliderFloat("default_damper_friction_compression", &sim.vars.default_damper_friction_compression, 0.0f,
+                           100.f, "%.3f", ImGuiSliderFlags_Logarithmic);
+        ImGui::SliderFloat("default_damper_friction_extension", &sim.vars.default_damper_friction_extension, 0.0f,
+                           100.f, "%.3f", ImGuiSliderFlags_Logarithmic);
+        ImGui::BeginDisabled();
+        ImGui::SliderFloat("suspension ratio 0", &sim.raycast_suspensions[0].length_ratio_last, 0.0f, 1.f, "%.3f");
+        ImGui::SliderFloat("suspension ratio 1", &sim.raycast_suspensions[1].length_ratio_last, 0.0f, 1.f, "%.3f");
+        ImGui::SliderFloat("suspension ratio 2", &sim.raycast_suspensions[2].length_ratio_last, 0.0f, 1.f, "%.3f");
+        ImGui::SliderFloat("suspension ratio 3", &sim.raycast_suspensions[3].length_ratio_last, 0.0f, 1.f, "%.3f");
+        ImGui::EndDisabled();
+        ImGui::SliderFloat("default_ship_stats.thrust", &sim.vars.default_ship_stats.thrust, 0.f, 1000.f);
+        ImGui::SliderFloat("default_ship_stats.braking", &sim.vars.default_ship_stats.braking, 0.f, 100.f);
+        ImGui::SliderFloat("default_ship_stats.handling", &sim.vars.default_ship_stats.handling, 0.1f, 10.f);
+    }
+
     void imgui_process_button_press(ImGuiIO& io, Window::MouseButton::type button, bool is_pressed)
     {
         constexpr float ImGuiScrollMultiplier = 0.5f;
@@ -290,8 +322,8 @@ void execute_game_loop(ReaperRoot& root)
                                                            backend.resources->material_resources.texture_handles[0]);
 
     const glm::fmat4x3 player_initial_transform = glm::translate(glm::mat4(1.0f), glm::vec3(0.2f, 0.6f, 0.f));
-    const glm::fvec3   player_shape_extent(0.2f, 0.2f, 0.2f);
-    Neptune::sim_create_player_rigid_body(sim, player_initial_transform, player_shape_extent);
+    const glm::fvec3   player_shape_half_extent(0.4f, 0.3f, 0.3f);
+    Neptune::sim_create_player_rigid_body(sim, player_initial_transform, player_shape_half_extent);
 
     std::vector<Mesh> ship_meshes;
     std::ifstream     ship_obj_file("res/model/fighter.obj");
@@ -585,6 +617,9 @@ void execute_game_loop(ReaperRoot& root)
                     // Patch the scene to use the right mesh handle, otherwise we might crash!
                     player_scene_mesh.mesh_handle = ship_mesh_handle;
                 }
+
+                ImGui::Separator();
+                imgui_sim_debug(sim);
             }
 
             ImGui::End();

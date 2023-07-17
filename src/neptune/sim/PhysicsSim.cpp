@@ -28,9 +28,22 @@
 #include <glm/gtx/projection.hpp>
 #include <glm/vec3.hpp>
 
+namespace
+{
+inline glm::fvec3 forward()
+{
+    return glm::fvec3(1.0f, 0.0f, 0.0f);
+}
+
+inline glm::fvec3 up()
+{
+    return glm::fvec3(0.0f, 1.0f, 0.0f);
+}
+} // namespace
+
 namespace Neptune
 {
-static constexpr float ShipMass = 1.f;
+static constexpr float ShipMass = 2.f;
 
 PhysicsSim create_sim()
 {
@@ -43,6 +56,10 @@ PhysicsSim create_sim()
     sim.vars.linear_friction = 4.0f;
     sim.vars.quadratic_friction = 0.01f;
     sim.vars.angular_friction = 0.3f;
+    sim.vars.max_suspension_force = 6000.f;
+    sim.vars.default_spring_stiffness = 30.f;
+    sim.vars.default_damper_friction_compression = 2.82f;
+    sim.vars.default_damper_friction_extension = 0.22f;
     sim.vars.default_ship_stats.thrust = 100.f;
     sim.vars.default_ship_stats.braking = 10.f;
     sim.vars.default_ship_stats.handling = 0.4f;
@@ -56,9 +73,36 @@ PhysicsSim create_sim()
     sim.solver = new btSequentialImpulseConstraintSolver;
 
     // Putting all of that together
-    sim.dynamicsWorld =
+    sim.dynamics_world =
         new btDiscreteDynamicsWorld(sim.dispatcher, sim.broadphase, sim.solver, sim.collisionConfiguration);
 #endif
+
+    glm::fvec3 suspension_dir_ms = -up();
+    float      suspension_length = 0.3f;
+    float      suspension_length_ratio_rest = 0.8f;
+    float      suspension_height_offset = -0.3f + 0.05f;
+    float      suspension_forward_offset = 0.4f - 0.05f;
+    float      suspension_side_offset = 0.3f - 0.05f;
+
+    std::vector<glm::fvec3> suspension_attach_points_ms = {
+        glm::fvec3(suspension_forward_offset, suspension_height_offset, suspension_side_offset),
+        glm::fvec3(suspension_forward_offset, suspension_height_offset, -suspension_side_offset),
+        glm::fvec3(-suspension_forward_offset, suspension_height_offset, suspension_side_offset),
+        glm::fvec3(-suspension_forward_offset, suspension_height_offset, -suspension_side_offset)};
+
+    for (const auto& suspension_attach_point_ms : suspension_attach_points_ms)
+    {
+        sim.raycast_suspensions.emplace_back(RaycastSuspension{
+            .position_start_ms = suspension_attach_point_ms,
+            .position_end_ms = suspension_attach_point_ms + suspension_dir_ms * suspension_length,
+            .length_max = suspension_length,
+            .length_ratio_rest = suspension_length_ratio_rest,
+            .length_ratio_last = suspension_length_ratio_rest,
+            .spring_stiffness = sim.vars.default_spring_stiffness,
+            .damper_friction_compression = sim.vars.default_damper_friction_compression,
+            .damper_friction_extension = sim.vars.default_damper_friction_extension,
+        });
+    }
 
     return sim;
 }
@@ -70,7 +114,7 @@ void destroy_sim(PhysicsSim& sim)
 #if defined(REAPER_USE_BULLET_PHYSICS)
     for (auto player_rigid_body : sim.players)
     {
-        sim.dynamicsWorld->removeRigidBody(player_rigid_body);
+        sim.dynamics_world->removeRigidBody(player_rigid_body);
 
         delete player_rigid_body->getMotionState();
         delete player_rigid_body->getCollisionShape();
@@ -78,7 +122,7 @@ void destroy_sim(PhysicsSim& sim)
     }
 
     // Delete the rest of the bullet context
-    delete sim.dynamicsWorld;
+    delete sim.dynamics_world;
     delete sim.solver;
     delete sim.dispatcher;
     delete sim.collisionConfiguration;
@@ -162,7 +206,7 @@ void sim_create_static_collision_meshes(nonstd::span<StaticMeshColliderHandle> h
         mesh_collider.mesh_interface = meshInterface;
         mesh_collider.scaled_mesh_shape = scaled_mesh_shape;
 
-        sim.dynamicsWorld->addRigidBody(mesh_collider.rigid_body);
+        sim.dynamics_world->addRigidBody(mesh_collider.rigid_body);
     }
 #else
     static_cast<void>(sim);
@@ -178,7 +222,7 @@ void sim_destroy_static_collision_meshes(nonstd::span<const StaticMeshColliderHa
     {
         const StaticMeshCollider& collider = sim.static_mesh_colliders.at(handle);
 
-        sim.dynamicsWorld->removeRigidBody(collider.rigid_body);
+        sim.dynamics_world->removeRigidBody(collider.rigid_body);
 
         delete collider.rigid_body->getMotionState();
         delete collider.rigid_body;
@@ -190,18 +234,17 @@ void sim_destroy_static_collision_meshes(nonstd::span<const StaticMeshColliderHa
     }
 }
 
-void sim_create_player_rigid_body(PhysicsSim& sim, const glm::fmat4x3& player_transform, const glm::fvec3& shape_extent)
+void sim_create_player_rigid_body(PhysicsSim& sim, const glm::fmat4x3& player_transform,
+                                  const glm::fvec3& shape_half_extent)
 {
 #if defined(REAPER_USE_BULLET_PHYSICS)
     btMotionState*    motionState = new btDefaultMotionState(toBt(player_transform));
-    btCollisionShape* collisionShape = new btBoxShape(toBt(shape_extent));
-
-    btScalar mass = ShipMass;
+    btCollisionShape* chassisCollisionShape = new btBoxShape(toBt(shape_half_extent));
 
     btVector3 inertia;
-    collisionShape->calculateLocalInertia(mass, inertia);
+    chassisCollisionShape->calculateLocalInertia(ShipMass, inertia);
 
-    btRigidBody::btRigidBodyConstructionInfo constructInfo(mass, motionState, collisionShape, inertia);
+    btRigidBody::btRigidBodyConstructionInfo constructInfo(ShipMass, motionState, chassisCollisionShape, inertia);
 
     btRigidBody* player_rigid_body = new btRigidBody(constructInfo);
     // player_rigid_body->setFriction(0.9f);
@@ -211,9 +254,9 @@ void sim_create_player_rigid_body(PhysicsSim& sim, const glm::fmat4x3& player_tr
 
     // FIXME doesn't do anything? Wrong collision mesh?
     player_rigid_body->setCcdMotionThreshold(0.05f);
-    player_rigid_body->setCcdSweptSphereRadius(shape_extent.x);
+    player_rigid_body->setCcdSweptSphereRadius(shape_half_extent.x);
 
-    sim.dynamicsWorld->addRigidBody(player_rigid_body);
+    sim.dynamics_world->addRigidBody(player_rigid_body);
     sim.players.push_back(player_rigid_body);
 #else
     static_cast<void>(sim);
