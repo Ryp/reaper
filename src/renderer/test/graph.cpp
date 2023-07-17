@@ -16,6 +16,8 @@
 
 namespace Reaper
 {
+const u32 dummy_usage_flags = 0;
+
 namespace FrameGraph
 {
     namespace
@@ -47,7 +49,7 @@ namespace FrameGraph
             // Outputs
             {
                 GPUTextureProperties shadowRTDesc =
-                    DefaultGPUTextureProperties(512, 512, PixelFormat::R16G16B16A16_UNORM);
+                    DefaultGPUTextureProperties(512, 512, PixelFormat::R16G16B16A16_UNORM, dummy_usage_flags);
 
                 GPUResourceUsage shadowRTUsage = {};
 
@@ -64,7 +66,7 @@ namespace FrameGraph
             // Outputs
             {
                 GPUTextureProperties gbufferRTDesc =
-                    DefaultGPUTextureProperties(1280, 720, PixelFormat::R16G16B16A16_UNORM);
+                    DefaultGPUTextureProperties(1280, 720, PixelFormat::R16G16B16A16_UNORM, dummy_usage_flags);
 
                 GPUResourceUsage gbufferUsage = {};
 
@@ -88,7 +90,7 @@ namespace FrameGraph
             // Outputs
             {
                 GPUTextureProperties uselessRTDesc =
-                    DefaultGPUTextureProperties(4096, 4096, PixelFormat::R16G16_SFLOAT);
+                    DefaultGPUTextureProperties(4096, 4096, PixelFormat::R16G16_SFLOAT, dummy_usage_flags);
                 uselessRTDesc.sampleCount = 4;
 
                 GPUResourceUsage uselessRTUsage = {};
@@ -118,7 +120,7 @@ namespace FrameGraph
             // Outputs
             {
                 GPUTextureProperties opaqueRTDesc =
-                    DefaultGPUTextureProperties(1280, 720, PixelFormat::R16G16B16A16_SFLOAT);
+                    DefaultGPUTextureProperties(1280, 720, PixelFormat::R16G16B16A16_SFLOAT, dummy_usage_flags);
 
                 GPUResourceUsage opaqueRTUsage = {};
 
@@ -142,7 +144,7 @@ namespace FrameGraph
             // Outputs
             {
                 GPUTextureProperties backBufferRTDesc =
-                    DefaultGPUTextureProperties(1280, 720, PixelFormat::R8G8B8_SRGB);
+                    DefaultGPUTextureProperties(1280, 720, PixelFormat::R8G8B8_SRGB, dummy_usage_flags);
 
                 GPUResourceUsage backBufferRTUsage = {};
 

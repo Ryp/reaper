@@ -113,11 +113,11 @@ namespace
 
         const PixelFormat pixel_format = get_dds_pixel_format(dds.GetFormat());
 
-        GPUTextureProperties properties = DefaultGPUTextureProperties(dds.GetWidth(), dds.GetHeight(), pixel_format);
+        GPUTextureProperties properties = DefaultGPUTextureProperties(
+            dds.GetWidth(), dds.GetHeight(), pixel_format, GPUTextureUsage::Sampled | GPUTextureUsage::TransferDst);
         properties.depth = dds.GetDepth();
         properties.mipCount = dds.GetMipCount();
         properties.layerCount = dds.GetArraySize();
-        properties.usage_flags = GPUTextureUsage::Sampled | GPUTextureUsage::TransferDst;
 
         const u32 command_count = staging.bufferCopyRegions.size() - command_offset;
 

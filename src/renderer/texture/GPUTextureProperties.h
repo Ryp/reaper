@@ -54,5 +54,5 @@ struct GPUTextureProperties
 };
 
 REAPER_RENDERER_API
-GPUTextureProperties DefaultGPUTextureProperties(u32 width, u32 height, PixelFormat format);
+GPUTextureProperties DefaultGPUTextureProperties(u32 width, u32 height, PixelFormat format, u32 usage_flags);
 } // namespace Reaper

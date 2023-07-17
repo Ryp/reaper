@@ -308,9 +308,9 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     forward.pass_handle = builder.create_render_pass("Forward");
 
-    GPUTextureProperties scene_hdr_properties =
-        DefaultGPUTextureProperties(backbufferExtent.width, backbufferExtent.height, ForwardHDRColorFormat);
-    scene_hdr_properties.usage_flags = GPUTextureUsage::ColorAttachment | GPUTextureUsage::Sampled;
+    const GPUTextureProperties scene_hdr_properties =
+        DefaultGPUTextureProperties(backbufferExtent.width, backbufferExtent.height, ForwardHDRColorFormat,
+                                    GPUTextureUsage::ColorAttachment | GPUTextureUsage::Sampled);
 
     const GPUResourceAccess scene_hdr_access_forward_pass = {VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
                                                              VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
@@ -323,9 +323,9 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     forward.scene_hdr =
         builder.create_texture(forward.pass_handle, "Scene HDR", scene_hdr_properties, scene_hdr_texture_usage);
 
-    GPUTextureProperties scene_depth_properties =
-        DefaultGPUTextureProperties(backbufferExtent.width, backbufferExtent.height, ForwardDepthFormat);
-    scene_depth_properties.usage_flags = GPUTextureUsage::DepthStencilAttachment | GPUTextureUsage::Sampled;
+    const GPUTextureProperties scene_depth_properties =
+        DefaultGPUTextureProperties(backbufferExtent.width, backbufferExtent.height, ForwardDepthFormat,
+                                    GPUTextureUsage::DepthStencilAttachment | GPUTextureUsage::Sampled);
 
     GPUResourceUsage scene_depth_texture_usage = {};
     scene_depth_texture_usage.access =
@@ -369,9 +369,9 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
             builder.read_texture(tile_depth.pass_handle, forward.depth_usage_handle, depth_read_usage);
     }
 
-    GPUTextureProperties tile_depth_storage_properties = DefaultGPUTextureProperties(
-        tiled_lighting_frame.tile_count_x, tiled_lighting_frame.tile_count_y, PixelFormat::R16_UNORM);
-    tile_depth_storage_properties.usage_flags = GPUTextureUsage::Storage | GPUTextureUsage::Sampled;
+    const GPUTextureProperties tile_depth_storage_properties =
+        DefaultGPUTextureProperties(tiled_lighting_frame.tile_count_x, tiled_lighting_frame.tile_count_y,
+                                    PixelFormat::R16_UNORM, GPUTextureUsage::Storage | GPUTextureUsage::Sampled);
 
     GPUResourceUsage tile_depth_create_usage = {};
     tile_depth_create_usage.access = GPUResourceAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
@@ -582,9 +582,8 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     }
 
     GPUTextureProperties lighting_properties = DefaultGPUTextureProperties(
-        backbufferExtent.width, backbufferExtent.height, PixelFormat::B10G11R11_UFLOAT_PACK32);
-    lighting_properties.usage_flags =
-        GPUTextureUsage::Storage | GPUTextureUsage::Sampled | GPUTextureUsage::ColorAttachment;
+        backbufferExtent.width, backbufferExtent.height, PixelFormat::B10G11R11_UFLOAT_PACK32,
+        GPUTextureUsage::Storage | GPUTextureUsage::Sampled | GPUTextureUsage::ColorAttachment);
 
     {
         GPUResourceUsage lighting_usage = {};
@@ -628,9 +627,9 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     tiled_lighting_debug.tile_debug = builder.read_buffer(
         tiled_lighting_debug.pass_handle, tiled_lighting.tile_debug_usage_handle, tile_debug_read_usage);
 
-    GPUTextureProperties tiled_debug_properties =
-        DefaultGPUTextureProperties(backbufferExtent.width, backbufferExtent.height, PixelFormat::R8G8B8A8_UNORM);
-    tiled_debug_properties.usage_flags = GPUTextureUsage::Storage | GPUTextureUsage::Sampled;
+    const GPUTextureProperties tiled_debug_properties =
+        DefaultGPUTextureProperties(backbufferExtent.width, backbufferExtent.height, PixelFormat::R8G8B8A8_UNORM,
+                                    GPUTextureUsage::Storage | GPUTextureUsage::Sampled);
 
     {
         GPUResourceUsage tile_debug_usage = {};
@@ -651,9 +650,9 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     gui.pass_handle = builder.create_render_pass("GUI");
 
-    GPUTextureProperties gui_properties =
-        DefaultGPUTextureProperties(backbufferExtent.width, backbufferExtent.height, GUIFormat);
-    gui_properties.usage_flags = GPUTextureUsage::ColorAttachment | GPUTextureUsage::Sampled;
+    const GPUTextureProperties gui_properties =
+        DefaultGPUTextureProperties(backbufferExtent.width, backbufferExtent.height, GUIFormat,
+                                    GPUTextureUsage::ColorAttachment | GPUTextureUsage::Sampled);
 
     GPUResourceUsage gui_texture_usage = {};
     gui_texture_usage.access =
