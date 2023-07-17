@@ -249,9 +249,9 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         1, sizeof(u32), GPUBufferUsage::IndirectBuffer | GPUBufferUsage::StorageBuffer | GPUBufferUsage::TransferDst);
 
     {
-        GPUResourceUsage draw_counter_usage = {};
-        draw_counter_usage.access = GPUResourceAccess{VK_PIPELINE_STAGE_2_CLEAR_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT};
-        draw_counter_usage.buffer_view = default_buffer_view(debug_geometry_counter_properties);
+        const GPUResourceUsage draw_counter_usage = {
+            .access = GPUResourceAccess{VK_PIPELINE_STAGE_2_CLEAR_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT},
+            .buffer_view = default_buffer_view(debug_geometry_counter_properties)};
 
         debug_geometry_clear.draw_counter =
             builder.create_buffer(debug_geometry_clear.pass_handle, "Debug Indirect draw counter buffer",
@@ -265,9 +265,9 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         // Technically we shouldn't create an usage here, the first client of the debug geometry API should call
         // create_buffer() with the right data. But it makes it slightly simpler this way for the user API so I'm taking
         // the trade-off and paying for an extra useless barrier.
-        GPUResourceUsage user_commands_usage = {};
-        user_commands_usage.access = GPUResourceAccess{VK_PIPELINE_STAGE_2_CLEAR_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT};
-        user_commands_usage.buffer_view = default_buffer_view(debug_geometry_user_commands_properties);
+        const GPUResourceUsage user_commands_usage = {
+            .access = GPUResourceAccess{VK_PIPELINE_STAGE_2_CLEAR_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT},
+            .buffer_view = default_buffer_view(debug_geometry_user_commands_properties)};
 
         debug_geometry_clear.user_commands_buffer =
             builder.create_buffer(debug_geometry_clear.pass_handle, "Debug geometry user command buffer",
@@ -286,10 +286,10 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     std::vector<GPUTextureProperties> shadow_map_properties = fill_shadow_map_properties(prepared);
     for (const GPUTextureProperties& properties : shadow_map_properties)
     {
-        GPUResourceUsage shadow_map_usage = {};
-        shadow_map_usage.access = {VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT,
-                                   VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL};
-        shadow_map_usage.texture_view = DefaultGPUTextureView(properties);
+        const GPUResourceUsage shadow_map_usage = {.access = {VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT,
+                                                              VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+                                                              VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL},
+                                                   .texture_view = DefaultGPUTextureView(properties)};
 
         const ResourceUsageHandle usage_handle =
             builder.create_texture(shadow.pass_handle, "Shadow map", properties, shadow_map_usage);
@@ -316,9 +316,8 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
                                                              VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
                                                              VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL};
 
-    GPUResourceUsage scene_hdr_texture_usage = {};
-    scene_hdr_texture_usage.access = scene_hdr_access_forward_pass;
-    scene_hdr_texture_usage.texture_view = DefaultGPUTextureView(scene_hdr_properties);
+    const GPUResourceUsage scene_hdr_texture_usage = {.access = scene_hdr_access_forward_pass,
+                                                      .texture_view = DefaultGPUTextureView(scene_hdr_properties)};
 
     forward.scene_hdr =
         builder.create_texture(forward.pass_handle, "Scene HDR", scene_hdr_properties, scene_hdr_texture_usage);
@@ -327,11 +326,10 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         DefaultGPUTextureProperties(backbufferExtent.width, backbufferExtent.height, ForwardDepthFormat,
                                     GPUTextureUsage::DepthStencilAttachment | GPUTextureUsage::Sampled);
 
-    GPUResourceUsage scene_depth_texture_usage = {};
-    scene_depth_texture_usage.access =
-        GPUResourceAccess{VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT, VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
-                          VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL};
-    scene_depth_texture_usage.texture_view = DefaultGPUTextureView(scene_depth_properties);
+    const GPUResourceUsage scene_depth_texture_usage = {
+        .access = GPUResourceAccess{VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT,
+                                    VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL},
+        .texture_view = DefaultGPUTextureView(scene_depth_properties)};
 
     forward.depth_usage_handle =
         builder.create_texture(forward.pass_handle, "Scene Depth", scene_depth_properties, scene_depth_texture_usage);
@@ -360,10 +358,10 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     tile_depth.pass_handle = builder.create_render_pass("Depth Downsample");
 
     {
-        GPUResourceUsage depth_read_usage = {};
-        depth_read_usage.access = GPUResourceAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
-                                                    VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL};
-        depth_read_usage.texture_view = DefaultGPUTextureView(scene_depth_properties);
+        const GPUResourceUsage depth_read_usage = {.access = GPUResourceAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+                                                                               VK_ACCESS_2_SHADER_READ_BIT,
+                                                                               VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL},
+                                                   .texture_view = DefaultGPUTextureView(scene_depth_properties)};
 
         tile_depth.depth_read_usage_handle =
             builder.read_texture(tile_depth.pass_handle, forward.depth_usage_handle, depth_read_usage);
