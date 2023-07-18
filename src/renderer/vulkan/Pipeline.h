@@ -82,4 +82,9 @@ VkRenderingAttachmentInfo default_rendering_attachment_info(VkImageView image_vi
 
 VkRenderingInfo default_rendering_info(VkRect2D render_rect, const VkRenderingAttachmentInfo* color_attachment,
                                        const VkRenderingAttachmentInfo* depth_attachment = nullptr);
+
+VkRenderingInfo default_rendering_info(VkRect2D render_rect,
+                                       nonstd::span<const VkRenderingAttachmentInfo>
+                                                                        color_attachments,
+                                       const VkRenderingAttachmentInfo* depth_attachment = nullptr);
 } // namespace Reaper

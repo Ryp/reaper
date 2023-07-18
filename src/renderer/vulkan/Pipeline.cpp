@@ -154,58 +154,52 @@ VkPipelineRenderingCreateInfo default_pipeline_rendering_create_info()
 
 VkPipelineVertexInputStateCreateInfo default_pipeline_vertex_input_state_create_info()
 {
-    VkPipelineVertexInputStateCreateInfo state;
-    state.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-    state.pNext = nullptr;
-    state.flags = VK_FLAGS_NONE;
-    state.vertexBindingDescriptionCount = 0;
-    state.pVertexBindingDescriptions = nullptr;
-    state.vertexAttributeDescriptionCount = 0;
-    state.pVertexAttributeDescriptions = nullptr;
-    return state;
+    return VkPipelineVertexInputStateCreateInfo{.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
+                                                .pNext = nullptr,
+                                                .flags = VK_FLAGS_NONE,
+                                                .vertexBindingDescriptionCount = 0,
+                                                .pVertexBindingDescriptions = nullptr,
+                                                .vertexAttributeDescriptionCount = 0,
+                                                .pVertexAttributeDescriptions = nullptr};
 }
 
 VkPipelineInputAssemblyStateCreateInfo default_pipeline_input_assembly_state_create_info()
 {
-    VkPipelineInputAssemblyStateCreateInfo state;
-    state.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-    state.pNext = nullptr;
-    state.flags = VK_FLAGS_NONE;
-    state.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-    state.primitiveRestartEnable = VK_FALSE;
-    return state;
+    return VkPipelineInputAssemblyStateCreateInfo{.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
+                                                  .pNext = nullptr,
+                                                  .flags = VK_FLAGS_NONE,
+                                                  .topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
+                                                  .primitiveRestartEnable = VK_FALSE};
 }
 
 VkPipelineViewportStateCreateInfo default_pipeline_viewport_state_create_info()
 {
-    VkPipelineViewportStateCreateInfo state;
-    state.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-    state.pNext = nullptr;
-    state.flags = VK_FLAGS_NONE;
-    state.viewportCount = 1;
-    state.pViewports = nullptr; // dynamic viewport
-    state.scissorCount = 1;
-    state.pScissors = nullptr; // dynamic scissors
-    return state;
+    return VkPipelineViewportStateCreateInfo{
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
+        .pNext = nullptr,
+        .flags = VK_FLAGS_NONE,
+        .viewportCount = 1,
+        .pViewports = nullptr, // dynamic viewpor
+        .scissorCount = 1,
+        .pScissors = nullptr // dynamic scissors
+    };
 }
 
 VkPipelineRasterizationStateCreateInfo default_pipeline_rasterization_state_create_info()
 {
-    VkPipelineRasterizationStateCreateInfo state;
-    state.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-    state.pNext = nullptr;
-    state.flags = VK_FLAGS_NONE;
-    state.depthClampEnable = VK_FALSE;
-    state.rasterizerDiscardEnable = VK_FALSE;
-    state.polygonMode = VK_POLYGON_MODE_FILL;
-    state.cullMode = VK_CULL_MODE_BACK_BIT;
-    state.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
-    state.depthBiasEnable = VK_FALSE;
-    state.depthBiasConstantFactor = 0.f;
-    state.depthBiasClamp = 0.f;
-    state.depthBiasSlopeFactor = 0.f;
-    state.lineWidth = 1.f;
-    return state;
+    return VkPipelineRasterizationStateCreateInfo{.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
+                                                  .pNext = nullptr,
+                                                  .flags = VK_FLAGS_NONE,
+                                                  .depthClampEnable = VK_FALSE,
+                                                  .rasterizerDiscardEnable = VK_FALSE,
+                                                  .polygonMode = VK_POLYGON_MODE_FILL,
+                                                  .cullMode = VK_CULL_MODE_BACK_BIT,
+                                                  .frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
+                                                  .depthBiasEnable = VK_FALSE,
+                                                  .depthBiasConstantFactor = 0.f,
+                                                  .depthBiasClamp = 0.f,
+                                                  .depthBiasSlopeFactor = 0.f,
+                                                  .lineWidth = 1.f};
 }
 
 VkPipelineMultisampleStateCreateInfo default_pipeline_multisample_state_create_info()
@@ -346,6 +340,17 @@ VkRenderingAttachmentInfo default_rendering_attachment_info(VkImageView image_vi
 VkRenderingInfo default_rendering_info(VkRect2D render_rect, const VkRenderingAttachmentInfo* color_attachment,
                                        const VkRenderingAttachmentInfo* depth_attachment)
 {
+    auto color_attachments =
+        color_attachment ? nonstd::make_span(color_attachment, 1) : nonstd::span<const VkRenderingAttachmentInfo>();
+
+    return default_rendering_info(render_rect, color_attachments, depth_attachment);
+}
+
+VkRenderingInfo default_rendering_info(VkRect2D render_rect,
+                                       nonstd::span<const VkRenderingAttachmentInfo>
+                                                                        color_attachments,
+                                       const VkRenderingAttachmentInfo* depth_attachment)
+{
     return VkRenderingInfo{
         VK_STRUCTURE_TYPE_RENDERING_INFO,
         nullptr,
@@ -353,8 +358,8 @@ VkRenderingInfo default_rendering_info(VkRect2D render_rect, const VkRenderingAt
         render_rect,
         1, // layerCount
         0, // viewMask
-        (color_attachment != nullptr) ? 1u : 0u,
-        color_attachment,
+        static_cast<u32>(color_attachments.size()),
+        color_attachments.data(),
         depth_attachment,
         nullptr,
     };
