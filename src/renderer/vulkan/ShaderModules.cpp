@@ -49,6 +49,8 @@ ShaderModules create_shader_modules(ReaperRoot& /*root*/, VulkanBackend& backend
     modules.forward_fs = create_shader_module(backend.device, "forward.frag.spv");
     modules.forward_vs = create_shader_module(backend.device, "forward.vert.spv");
     modules.fullscreen_triangle_vs = create_shader_module(backend.device, "fullscreen_triangle.vert.spv");
+    modules.gbuffer_write_opaque_fs = create_shader_module(backend.device, "gbuffer_write_opaque.frag.spv");
+    modules.gbuffer_write_opaque_vs = create_shader_module(backend.device, "gbuffer_write_opaque.vert.spv");
     modules.gui_write_fs = create_shader_module(backend.device, "gui_write.frag.spv");
     modules.histogram_cs = create_shader_module(backend.device, "histogram.comp.spv");
     modules.oscillator_cs = create_shader_module(backend.device, "sound/oscillator.comp.spv");
@@ -81,6 +83,8 @@ void destroy_shader_modules(VulkanBackend& backend, ShaderModules& shader_module
     vkDestroyShaderModule(backend.device, shader_modules.forward_fs, nullptr);
     vkDestroyShaderModule(backend.device, shader_modules.forward_vs, nullptr);
     vkDestroyShaderModule(backend.device, shader_modules.fullscreen_triangle_vs, nullptr);
+    vkDestroyShaderModule(backend.device, shader_modules.gbuffer_write_opaque_fs, nullptr);
+    vkDestroyShaderModule(backend.device, shader_modules.gbuffer_write_opaque_vs, nullptr);
     vkDestroyShaderModule(backend.device, shader_modules.gui_write_fs, nullptr);
     vkDestroyShaderModule(backend.device, shader_modules.histogram_cs, nullptr);
     vkDestroyShaderModule(backend.device, shader_modules.oscillator_cs, nullptr);

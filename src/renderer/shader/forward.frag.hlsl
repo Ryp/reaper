@@ -49,7 +49,7 @@ void main(in PS_INPUT input, out PS_OUTPUT output)
     const float3 normal_vs = normalize(input.NormalVS);
 
     StandardMaterial material;
-    material.albedo = spec_debug_enable_albedo ? t_diffuse_map[input.texture_index].Sample(diffuse_map_sampler, input.UV) : 1.0;
+    material.albedo = spec_debug_enable_albedo ? 1.0 : t_diffuse_map[input.texture_index].Sample(diffuse_map_sampler, input.UV);
     material.roughness = 0.5;
     material.f0 = 0.1;
 

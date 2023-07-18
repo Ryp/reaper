@@ -97,7 +97,7 @@ void main(in PS_INPUT input, out PS_OUTPUT output)
     color *= exposure;
     color = apply_tonemapping_operator(color, spec_tonemap_function);
 
-    if (true)
+    if (false)
     {
         // FIXME Blend in debug color
         const float4 ldr_debug_color = t_ldr_debug.SampleLevel(linear_sampler, input.PositionUV, 0);

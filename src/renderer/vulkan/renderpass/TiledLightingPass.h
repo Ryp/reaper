@@ -16,12 +16,10 @@ namespace Reaper
 struct TiledLightingPassResources
 {
     VkDescriptorSetLayout tiled_lighting_descriptor_set_layout;
-    VkDescriptorSetLayout tiled_lighting_descriptor_set_layout_material;
     VkPipelineLayout      tiled_lighting_pipeline_layout;
     VkPipeline            tiled_lighting_pipeline;
 
     VkDescriptorSet tiled_lighting_descriptor_set;
-    VkDescriptorSet tiled_lighting_descriptor_set_material;
 
     BufferInfo tiled_lighting_constant_buffer;
 
@@ -53,12 +51,13 @@ void update_tiled_lighting_pass_descriptor_sets(DescriptorWriteHelper&          
                                                 const TiledLightingPassResources& resources,
                                                 const SamplerResources&           sampler_resources,
                                                 const FrameGraphBuffer&           light_list_buffer,
+                                                const FrameGraphTexture&          gbuffer_rt0,
+                                                const FrameGraphTexture&          gbuffer_rt1,
                                                 const FrameGraphTexture&          main_view_depth,
                                                 const FrameGraphTexture&          lighting_output,
                                                 const FrameGraphBuffer&           tile_debug_buffer,
                                                 nonstd::span<const FrameGraphTexture>
-                                                                         shadow_maps,
-                                                const MaterialResources& material_resources);
+                                                    shadow_maps);
 
 struct PreparedData;
 

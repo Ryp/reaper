@@ -10,7 +10,7 @@
 #include "window/Window.h"
 #include "vulkan/Backend.h"
 #include "vulkan/BackendResources.h"
-#include "vulkan/renderpass/ForwardPassConstants.h"
+#include "vulkan/renderpass/Constants.h"
 #include "vulkan/renderpass/TestGraphics.h"
 #include "vulkan/renderpass/TiledLightingCommon.h"
 
@@ -84,8 +84,9 @@ void renderer_execute_frame(ReaperRoot& root, const SceneGraph& scene, std::vect
 
     const RendererViewport viewport = build_renderer_viewport(backbuffer_viewport_extent);
 
-    const RendererPerspectiveProjection perspective_projection = build_renderer_perspective_projection(
-        viewport.aspect_ratio, near_plane_distance, far_plane_distance, half_fov_horizontal_radian, ForwardUseReverseZ);
+    const RendererPerspectiveProjection perspective_projection =
+        build_renderer_perspective_projection(viewport.aspect_ratio, near_plane_distance, far_plane_distance,
+                                              half_fov_horizontal_radian, MainPassUseReverseZ);
 
     const glm::fmat4x3 main_camera_transform = get_scene_node_transform_slow(scene.camera_node);
 

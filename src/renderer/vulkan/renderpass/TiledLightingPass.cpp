@@ -42,27 +42,20 @@ TiledLightingPassResources create_tiled_lighting_pass_resources(ReaperRoot& root
             {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
             {1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
             {2, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-            {3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-            {4, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-            {5, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-            {6, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-            {7, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, ShadowMapMaxCount, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+            {3, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+            {4, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+            {5, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+            {6, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+            {7, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+            {8, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+            {9, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, ShadowMapMaxCount, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
         };
 
         std::vector<VkDescriptorBindingFlags> bindingFlags0(bindings0.size(), VK_FLAGS_NONE);
-        bindingFlags0[7] = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT;
-
-        std::vector<VkDescriptorSetLayoutBinding> bindings1 = {
-            {0, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-            {1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, DiffuseMapMaxCount, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-        };
-
-        std::vector<VkDescriptorBindingFlags> bindingFlags1 = {VK_FLAGS_NONE,
-                                                               VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT};
+        bindingFlags0[9] = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT;
 
         std::vector<VkDescriptorSetLayout> descriptor_set_layouts = {
-            create_descriptor_set_layout(backend.device, bindings0, bindingFlags0),
-            create_descriptor_set_layout(backend.device, bindings1, bindingFlags1)};
+            create_descriptor_set_layout(backend.device, bindings0, bindingFlags0)};
 
         const VkPushConstantRange pushConstantRange = {VK_SHADER_STAGE_COMPUTE_BIT, 0,
                                                        sizeof(TiledLightingPushConstants)};
@@ -74,20 +67,17 @@ TiledLightingPassResources create_tiled_lighting_pass_resources(ReaperRoot& root
             create_compute_pipeline(backend.device, pipeline_layout, shader_modules.tiled_lighting_cs);
 
         resources.tiled_lighting_descriptor_set_layout = descriptor_set_layouts[0];
-        resources.tiled_lighting_descriptor_set_layout_material = descriptor_set_layouts[1];
         resources.tiled_lighting_pipeline_layout = pipeline_layout;
         resources.tiled_lighting_pipeline = pipeline;
     }
 
     {
-        std::vector<VkDescriptorSetLayout> dset_layouts = {resources.tiled_lighting_descriptor_set_layout,
-                                                           resources.tiled_lighting_descriptor_set_layout_material};
+        std::vector<VkDescriptorSetLayout> dset_layouts = {resources.tiled_lighting_descriptor_set_layout};
         std::vector<VkDescriptorSet>       dsets(dset_layouts.size());
 
         allocate_descriptor_sets(backend.device, backend.global_descriptor_pool, dset_layouts, dsets);
 
         resources.tiled_lighting_descriptor_set = dsets[0];
-        resources.tiled_lighting_descriptor_set_material = dsets[1];
     }
 
     resources.tiled_lighting_constant_buffer =
@@ -142,7 +132,6 @@ void destroy_tiled_lighting_pass_resources(VulkanBackend& backend, TiledLighting
     vkDestroyPipeline(backend.device, resources.tiled_lighting_pipeline, nullptr);
     vkDestroyPipelineLayout(backend.device, resources.tiled_lighting_pipeline_layout, nullptr);
     vkDestroyDescriptorSetLayout(backend.device, resources.tiled_lighting_descriptor_set_layout, nullptr);
-    vkDestroyDescriptorSetLayout(backend.device, resources.tiled_lighting_descriptor_set_layout_material, nullptr);
 }
 
 void update_tiled_lighting_pass_descriptor_sets(DescriptorWriteHelper&            write_helper,
@@ -150,24 +139,29 @@ void update_tiled_lighting_pass_descriptor_sets(DescriptorWriteHelper&          
                                                 const TiledLightingPassResources& resources,
                                                 const SamplerResources&           sampler_resources,
                                                 const FrameGraphBuffer&           light_list_buffer,
+                                                const FrameGraphTexture&          gbuffer_rt0,
+                                                const FrameGraphTexture&          gbuffer_rt1,
                                                 const FrameGraphTexture&          main_view_depth,
                                                 const FrameGraphTexture&          lighting_output,
                                                 const FrameGraphBuffer&           tile_debug_buffer,
                                                 nonstd::span<const FrameGraphTexture>
-                                                                         shadow_maps,
-                                                const MaterialResources& material_resources)
+                                                    shadow_maps)
 {
     VkDescriptorSet dset0 = resources.tiled_lighting_descriptor_set;
     append_write(write_helper, dset0, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
                  resources.tiled_lighting_constant_buffer.handle);
     append_write(write_helper, dset0, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, light_list_buffer.handle);
-    append_write(write_helper, dset0, 2, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, main_view_depth.view_handle,
+    append_write(write_helper, dset0, 2, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, gbuffer_rt0.view_handle,
+                 gbuffer_rt0.image_layout);
+    append_write(write_helper, dset0, 3, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, gbuffer_rt1.view_handle,
+                 gbuffer_rt1.image_layout);
+    append_write(write_helper, dset0, 4, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, main_view_depth.view_handle,
                  main_view_depth.image_layout);
-    append_write(write_helper, dset0, 3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, lighting_resources.pointLightBuffer.handle);
-    append_write(write_helper, dset0, 4, sampler_resources.shadowMapSampler);
-    append_write(write_helper, dset0, 5, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, lighting_output.view_handle,
+    append_write(write_helper, dset0, 5, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, lighting_resources.pointLightBuffer.handle);
+    append_write(write_helper, dset0, 6, sampler_resources.shadowMapSampler);
+    append_write(write_helper, dset0, 7, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, lighting_output.view_handle,
                  lighting_output.image_layout);
-    append_write(write_helper, dset0, 6, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, tile_debug_buffer.handle);
+    append_write(write_helper, dset0, 8, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, tile_debug_buffer.handle);
 
     if (!shadow_maps.empty())
     {
@@ -180,30 +174,7 @@ void update_tiled_lighting_pass_descriptor_sets(DescriptorWriteHelper&          
         nonstd::span<const VkDescriptorImageInfo> shadow_map_image_infos(image_info_ptr, shadow_maps.size());
 
         write_helper.writes.push_back(
-            create_image_descriptor_write(dset0, 7, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, shadow_map_image_infos));
-    }
-
-    if (!material_resources.texture_handles.empty())
-    {
-        VkDescriptorSet dset1 = resources.tiled_lighting_descriptor_set_material;
-
-        append_write(write_helper, dset1, 0, sampler_resources.diffuseMapSampler);
-
-        const VkDescriptorImageInfo* image_info_ptr = write_helper.images.data() + write_helper.images.size();
-
-        for (auto handle : material_resources.texture_handles)
-        {
-            write_helper.images.push_back({VK_NULL_HANDLE, material_resources.textures[handle].default_view,
-                                           VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL});
-        }
-
-        nonstd::span<const VkDescriptorImageInfo> albedo_image_infos(image_info_ptr,
-                                                                     material_resources.texture_handles.size());
-
-        Assert(albedo_image_infos.size() <= DiffuseMapMaxCount);
-
-        write_helper.writes.push_back(
-            create_image_descriptor_write(dset1, 1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, albedo_image_infos));
+            create_image_descriptor_write(dset0, 9, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, shadow_map_image_infos));
     }
 }
 

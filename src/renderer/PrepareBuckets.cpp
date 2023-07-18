@@ -185,7 +185,6 @@ void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCa
 
     prepared.tiled_light_constants.cs_to_vs = main_camera.perspective_projection.cs_to_vs_matrix;
     prepared.tiled_light_constants.vs_to_ws = main_camera.vs_to_ws_matrix;
-    prepared.tiled_light_constants.ws_to_vs_temp = main_camera.ws_to_vs_matrix;
 
     for (u32 scene_light_index = 0; scene_light_index < scene.scene_lights.size(); scene_light_index++)
     {

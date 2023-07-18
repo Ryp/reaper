@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 /// Reaper
 ///
-/// Copyright (c) 2015-2022 Thibault Schueller
+/// Copyright (c) 2015-2023 Thibault Schueller
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -11,6 +11,7 @@
 
 namespace Reaper
 {
-constexpr PixelFormat ForwardHDRColorFormat = PixelFormat::B10G11R11_UFLOAT_PACK32;
-constexpr PixelFormat ForwardDepthFormat = PixelFormat::D16_UNORM;
+constexpr PixelFormat GBufferRT0Format = PixelFormat::R32_UINT;
+constexpr PixelFormat GBufferRT1Format = PixelFormat::R32_UINT;
+constexpr PixelFormat GBufferDepthFormat = PixelFormat::D16_UNORM;
 } // namespace Reaper

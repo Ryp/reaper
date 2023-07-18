@@ -25,6 +25,8 @@ struct ShaderModules
     VkShaderModule forward_fs;
     VkShaderModule forward_vs;
     VkShaderModule fullscreen_triangle_vs;
+    VkShaderModule gbuffer_write_opaque_fs;
+    VkShaderModule gbuffer_write_opaque_vs;
     VkShaderModule gui_write_fs;
     VkShaderModule histogram_cs;
     VkShaderModule oscillator_cs;

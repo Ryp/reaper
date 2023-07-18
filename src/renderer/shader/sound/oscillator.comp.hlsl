@@ -44,10 +44,10 @@ float2 sample_oscillator(OscillatorInstance osc, float time_secs)
 
 uint2 encode_sample_stereo_integer(float2 s, uint bits)
 {
-    int2 s_snorm = int2(float_to_snorm_clamp(s.x, bits),
-                        float_to_snorm_clamp(s.y, bits));
+    uint2 s_snorm = uint2(float_to_snorm_generic_safe(s.x, bits),
+                          float_to_snorm_generic_safe(s.y, bits));
 
-    return asuint(s_snorm);
+    return s_snorm;
 }
 
 float2 apply_gain(float2 input, float gain_db)

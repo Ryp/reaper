@@ -7,6 +7,7 @@
 
 #include "DebugGeometryRenderPass.h"
 
+#include "Constants.h"
 #include "ForwardPassConstants.h"
 
 #include "renderer/buffer/GPUBufferView.h"
@@ -93,7 +94,7 @@ DebugGeometryPassResources create_debug_geometry_pass_resources(ReaperRoot& root
         pipeline_properties.depth_stencil.depthTestEnable = VK_TRUE;
         pipeline_properties.depth_stencil.depthWriteEnable = VK_FALSE;
         pipeline_properties.depth_stencil.depthCompareOp =
-            ForwardUseReverseZ ? VK_COMPARE_OP_GREATER : VK_COMPARE_OP_LESS;
+            MainPassUseReverseZ ? VK_COMPARE_OP_GREATER : VK_COMPARE_OP_LESS;
         pipeline_properties.raster.polygonMode = VK_POLYGON_MODE_LINE;
         pipeline_properties.raster.cullMode = VK_CULL_MODE_NONE;
         pipeline_properties.input_assembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
