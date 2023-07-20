@@ -6,7 +6,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "lib/base.hlsl"
-#include "lib/conversion.hlsl"
+#include "lib/format/unorm.hlsl"
 #include "lib/indirect_command.hlsl"
 
 #include "share/debug_geometry_private.hlsl"

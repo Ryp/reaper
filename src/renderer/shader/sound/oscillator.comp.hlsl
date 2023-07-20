@@ -1,6 +1,6 @@
 #include "lib/base.hlsl"
 #include "lib/constants.hlsl"
-#include "lib/conversion.hlsl"
+#include "lib/format/snorm.hlsl"
 
 #include "share/sound.hlsl"
 
@@ -44,8 +44,11 @@ float2 sample_oscillator(OscillatorInstance osc, float time_secs)
 
 uint2 encode_sample_stereo_integer(float2 s, uint bits)
 {
-    uint2 s_snorm = uint2(float_to_snorm_generic_safe(s.x, bits),
-                          float_to_snorm_generic_safe(s.y, bits));
+    // Clamp input
+    s = max(min(s, 1.0), -1.0);
+
+    uint2 s_snorm = uint2(r32_float_to_snorm_generic(s.x, bits),
+                          r32_float_to_snorm_generic(s.y, bits));
 
     return s_snorm;
 }

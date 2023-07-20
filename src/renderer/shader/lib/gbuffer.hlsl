@@ -8,7 +8,8 @@
 #ifndef LIB_GBUFFER_INCLUDED
 #define LIB_GBUFFER_INCLUDED
 
-#include "lib/conversion.hlsl"
+#include "lib/format/unorm.hlsl"
+#include "lib/format/octahedral.hlsl"
 #include "lib/eotf.hlsl"
 
 #define GBuffer0Type uint
@@ -47,7 +48,7 @@ GBufferRaw encode_gbuffer(GBuffer gbuffer)
     GBufferRaw gbuffer_raw;
 
     gbuffer_raw.rt0 = rgba32_float_to_rgba8_unorm(float4(srgb_eotf_fast(gbuffer.albedo), gbuffer.roughness));
-    gbuffer_raw.rt1 = rgb32_float_to_rgb8_snorm(gbuffer.normal_vs) | r32_float_to_r8_unorm(gbuffer.f0) << 24;
+    gbuffer_raw.rt1 = encode_normal_hemi_octahedral(gbuffer.normal_vs, 12) | r32_float_to_r8_unorm(gbuffer.f0) << 24;
 
     return gbuffer_raw;
 }
@@ -63,7 +64,7 @@ GBuffer decode_gbuffer(GBufferRaw gbuffer_raw)
 
     const uint packed_normal_f0 = gbuffer_raw.rt1;
 
-    gbuffer.normal_vs = rgb8_snorm_to_rgb32_float(packed_normal_f0);
+    gbuffer.normal_vs = decode_normal_hemi_octahedral(packed_normal_f0, 12);
     gbuffer.f0 = r8_unorm_to_r32_float(packed_normal_f0 >> 24);
 
     return gbuffer;
