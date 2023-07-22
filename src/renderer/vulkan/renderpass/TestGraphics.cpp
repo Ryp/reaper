@@ -20,6 +20,7 @@
 #include "renderer/vulkan/MeshCache.h"
 #include "renderer/vulkan/Swapchain.h"
 #include "renderer/vulkan/api/VulkanStringConversion.h"
+#include "renderer/vulkan/renderpass/Constants.h"
 #include "renderer/vulkan/renderpass/ForwardPassConstants.h"
 #include "renderer/vulkan/renderpass/FrameGraphPass.h"
 #include "renderer/vulkan/renderpass/GBufferPassConstants.h"
@@ -336,7 +337,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     }
 
     const GPUTextureProperties scene_depth_properties =
-        DefaultGPUTextureProperties(backbufferExtent.width, backbufferExtent.height, ForwardDepthFormat,
+        DefaultGPUTextureProperties(backbufferExtent.width, backbufferExtent.height, MainPassDepthFormat,
                                     GPUTextureUsage::DepthStencilAttachment | GPUTextureUsage::Sampled);
 
     {
@@ -407,7 +408,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     GPUTextureProperties tile_depth_copy_properties = tile_depth_storage_properties;
     tile_depth_copy_properties.usage_flags = GPUTextureUsage::DepthStencilAttachment | GPUTextureUsage::Sampled;
-    tile_depth_copy_properties.format = ForwardDepthFormat;
+    tile_depth_copy_properties.format = MainPassDepthFormat;
 
     GPUResourceUsage tile_depth_copy_dst_usage = {};
     tile_depth_copy_dst_usage.access =

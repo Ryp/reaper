@@ -55,7 +55,7 @@ namespace
 
         std::vector<VkFormat> color_formats = {PixelFormatToVulkan(GBufferRT0Format),
                                                PixelFormatToVulkan(GBufferRT1Format)};
-        const VkFormat        depth_format = PixelFormatToVulkan(GBufferDepthFormat);
+        const VkFormat        depth_format = PixelFormatToVulkan(MainPassDepthFormat);
 
         VkPipelineCreationFeedback              feedback = {};
         std::vector<VkPipelineCreationFeedback> feedback_stages(shader_stages.size());

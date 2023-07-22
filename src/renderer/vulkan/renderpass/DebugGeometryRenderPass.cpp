@@ -88,7 +88,7 @@ DebugGeometryPassResources create_debug_geometry_pass_resources(ReaperRoot& root
         VkPipelineColorBlendAttachmentState blend_attachment_state = default_pipeline_color_blend_attachment_state();
 
         const VkFormat color_format = PixelFormatToVulkan(ForwardHDRColorFormat);
-        const VkFormat depth_format = PixelFormatToVulkan(ForwardDepthFormat);
+        const VkFormat depth_format = PixelFormatToVulkan(MainPassDepthFormat);
 
         GraphicsPipelineProperties pipeline_properties = default_graphics_pipeline_properties();
         pipeline_properties.depth_stencil.depthTestEnable = VK_TRUE;

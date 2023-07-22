@@ -52,7 +52,7 @@ namespace
             default_pipeline_color_blend_attachment_state();
 
         const VkFormat color_format = PixelFormatToVulkan(ForwardHDRColorFormat);
-        const VkFormat depth_format = PixelFormatToVulkan(ForwardDepthFormat);
+        const VkFormat depth_format = PixelFormatToVulkan(MainPassDepthFormat);
 
         VkPipelineCreationFeedback              feedback = {};
         std::vector<VkPipelineCreationFeedback> feedback_stages(shader_stages.size());

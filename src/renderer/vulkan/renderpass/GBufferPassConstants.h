@@ -13,5 +13,4 @@ namespace Reaper
 {
 constexpr PixelFormat GBufferRT0Format = PixelFormat::R32_UINT;
 constexpr PixelFormat GBufferRT1Format = PixelFormat::R32_UINT;
-constexpr PixelFormat GBufferDepthFormat = PixelFormat::D16_UNORM;
 } // namespace Reaper

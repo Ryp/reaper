@@ -7,6 +7,7 @@
 
 #include "TiledRasterPass.h"
 
+#include "Constants.h"
 #include "TiledLightingCommon.h"
 
 #include "renderer/PrepareBuckets.h"
@@ -96,7 +97,7 @@ TiledRasterResources create_tiled_raster_pass_resources(ReaperRoot& root, Vulkan
         pipeline_properties.depth_stencil.depthWriteEnable = VK_TRUE;
         pipeline_properties.depth_stencil.depthCompareOp = VK_COMPARE_OP_ALWAYS;
         pipeline_properties.pipeline_layout = pipeline_layout;
-        pipeline_properties.pipeline_rendering.depthAttachmentFormat = PixelFormatToVulkan(PixelFormat::D16_UNORM);
+        pipeline_properties.pipeline_rendering.depthAttachmentFormat = PixelFormatToVulkan(MainPassDepthFormat);
 
         VkPipeline pipeline = create_graphics_pipeline(backend.device, shader_stages, pipeline_properties);
 
@@ -138,8 +139,7 @@ TiledRasterResources create_tiled_raster_pass_resources(ReaperRoot& root, Vulkan
         pipeline_properties.raster.cullMode = VK_CULL_MODE_FRONT_AND_BACK;      // dynamic
         pipeline_properties.input_assembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
         pipeline_properties.pipeline_layout = pipeline_layout;
-        pipeline_properties.pipeline_rendering.depthAttachmentFormat =
-            PixelFormatToVulkan(PixelFormat::D16_UNORM); // FIXME
+        pipeline_properties.pipeline_rendering.depthAttachmentFormat = PixelFormatToVulkan(MainPassDepthFormat);
 
         const std::vector<VkDynamicState> dynamic_states = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR,
                                                             VK_DYNAMIC_STATE_DEPTH_COMPARE_OP,

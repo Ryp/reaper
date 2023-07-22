@@ -12,5 +12,4 @@
 namespace Reaper
 {
 constexpr PixelFormat ForwardHDRColorFormat = PixelFormat::B10G11R11_UFLOAT_PACK32;
-constexpr PixelFormat ForwardDepthFormat = PixelFormat::D16_UNORM;
 } // namespace Reaper
