@@ -41,6 +41,10 @@ VkPipelineLayout create_pipeline_layout(
 VkPipeline create_compute_pipeline(VkDevice device, VkPipelineLayout pipeline_layout, VkShaderModule compute_shader,
                                    VkSpecializationInfo* specialization_info = nullptr);
 
+VkPipelineShaderStageCreateInfo
+default_pipeline_shader_stage_create_info(VkShaderStageFlagBits stage_bit, VkShaderModule shader_module,
+                                          const VkSpecializationInfo* specialization_info = nullptr);
+
 VkPipelineColorBlendAttachmentState default_pipeline_color_blend_attachment_state();
 VkPipelineRenderingCreateInfo       default_pipeline_rendering_create_info();
 

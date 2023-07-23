@@ -45,10 +45,10 @@ namespace
                                        const ShaderModules& shader_modules)
     {
         std::vector<VkPipelineShaderStageCreateInfo> shader_stages = {
-            {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_VERTEX_BIT,
-             shader_modules.gbuffer_write_opaque_vs, default_entry_point(), nullptr},
-            {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_FRAGMENT_BIT,
-             shader_modules.gbuffer_write_opaque_fs, default_entry_point(), nullptr}};
+            default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_VERTEX_BIT,
+                                                      shader_modules.gbuffer_write_opaque_vs),
+            default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_FRAGMENT_BIT,
+                                                      shader_modules.gbuffer_write_opaque_fs)};
 
         std::vector<VkPipelineColorBlendAttachmentState> blend_attachment_state = {
             default_pipeline_color_blend_attachment_state(), default_pipeline_color_blend_attachment_state()};

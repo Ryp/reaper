@@ -41,8 +41,7 @@ ShadowMapResources create_shadow_map_resources(ReaperRoot& root, VulkanBackend& 
     ShadowMapResources resources = {};
 
     std::vector<VkPipelineShaderStageCreateInfo> shader_stages = {
-        {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_VERTEX_BIT,
-         shader_modules.render_shadow_vs, default_entry_point(), nullptr}};
+        default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_VERTEX_BIT, shader_modules.render_shadow_vs)};
 
     std::vector<VkDescriptorSetLayoutBinding> descriptorSetLayoutBinding = {
         {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},

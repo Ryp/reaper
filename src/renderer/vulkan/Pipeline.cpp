@@ -102,13 +102,8 @@ VkPipeline create_compute_pipeline(VkDevice              device,
                                    VkShaderModule        compute_shader,
                                    VkSpecializationInfo* specialization_info)
 {
-    VkPipelineShaderStageCreateInfo shaderStage = {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-                                                   nullptr,
-                                                   0,
-                                                   VK_SHADER_STAGE_COMPUTE_BIT,
-                                                   compute_shader,
-                                                   default_entry_point(),
-                                                   specialization_info};
+    VkPipelineShaderStageCreateInfo shaderStage =
+        default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_COMPUTE_BIT, compute_shader, specialization_info);
 
     VkComputePipelineCreateInfo pipelineCreateInfo = {VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
                                                       nullptr,
@@ -124,6 +119,21 @@ VkPipeline create_compute_pipeline(VkDevice              device,
     Assert(vkCreateComputePipelines(device, cache, 1, &pipelineCreateInfo, nullptr, &pipeline) == VK_SUCCESS);
 
     return pipeline;
+}
+
+VkPipelineShaderStageCreateInfo
+default_pipeline_shader_stage_create_info(VkShaderStageFlagBits stage_bit, VkShaderModule shader_module,
+                                          const VkSpecializationInfo* specialization_info)
+{
+    return VkPipelineShaderStageCreateInfo{
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+        .pNext = nullptr,
+        .flags = VK_FLAGS_NONE,
+        .stage = stage_bit,
+        .module = shader_module,
+        .pName = default_entry_point(),
+        .pSpecializationInfo = specialization_info,
+    };
 }
 
 VkPipelineColorBlendAttachmentState default_pipeline_color_blend_attachment_state()

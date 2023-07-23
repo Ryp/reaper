@@ -69,10 +69,11 @@ DebugGeometryPassResources create_debug_geometry_pass_resources(ReaperRoot& root
 
     {
         std::vector<VkPipelineShaderStageCreateInfo> shader_stages = {
-            {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_VERTEX_BIT,
-             shader_modules.debug_geometry_draw_vs, default_entry_point(), nullptr},
-            {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_FRAGMENT_BIT,
-             shader_modules.debug_geometry_draw_fs, default_entry_point(), nullptr}};
+            default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_VERTEX_BIT,
+                                                      shader_modules.debug_geometry_draw_vs),
+            default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_FRAGMENT_BIT,
+                                                      shader_modules.debug_geometry_draw_fs),
+        };
 
         std::vector<VkDescriptorSetLayoutBinding> descriptorSetLayoutBinding = {
             {0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},

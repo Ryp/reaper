@@ -133,10 +133,10 @@ namespace
         };
 
         std::vector<VkPipelineShaderStageCreateInfo> shader_stages = {
-            {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_VERTEX_BIT,
-             shader_modules.fullscreen_triangle_vs, default_entry_point(), nullptr},
-            {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0, VK_SHADER_STAGE_FRAGMENT_BIT,
-             shader_modules.swapchain_write_fs, default_entry_point(), &specialization}};
+            default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_VERTEX_BIT,
+                                                      shader_modules.fullscreen_triangle_vs),
+            default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_FRAGMENT_BIT, shader_modules.swapchain_write_fs,
+                                                      &specialization)};
 
         VkPipelineColorBlendAttachmentState blend_attachment_state = default_pipeline_color_blend_attachment_state();
 
