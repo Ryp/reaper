@@ -2,7 +2,7 @@
 #include "lib/indirect_command.hlsl"
 #include "lib/vertex_pull.hlsl"
 
-#include "share/tiled_lighting/raster.hlsl"
+#include "raster.share.hlsl"
 #include "tiled_lighting.hlsl"
 
 VK_PUSH_CONSTANT_HELPER(ClassifyVolumePushConstants) consts;

@@ -5,10 +5,10 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef SHARE_LIGHTING_INCLUDED
-#define SHARE_LIGHTING_INCLUDED
+#ifndef LIGHTING_SHARE_INCLUDED
+#define LIGHTING_SHARE_INCLUDED
 
-#include "types.hlsl"
+#include "shared_types.hlsl"
 
 static const hlsl_uint InvalidShadowMapIndex = 0xFFFFFFFF;
 

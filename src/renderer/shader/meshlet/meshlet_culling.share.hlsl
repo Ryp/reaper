@@ -5,10 +5,10 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef SHARE_MESHLET_CULLING_INCLUDED
-#define SHARE_MESHLET_CULLING_INCLUDED
+#ifndef MESHLET_CULLING_SHARE_INCLUDED
+#define MESHLET_CULLING_SHARE_INCLUDED
 
-#include "types.hlsl"
+#include "shared_types.hlsl"
 
 struct MeshletOffsets
 {

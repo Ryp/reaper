@@ -9,7 +9,7 @@
 #include "lib/format/unorm.hlsl"
 #include "lib/indirect_command.hlsl"
 
-#include "share/debug_geometry_private.hlsl"
+#include "debug_geometry_private.share.hlsl"
 
 VK_BINDING(0, 0) ConstantBuffer<DebugGeometryBuildCmdsPassConstants> PassConstants;
 VK_BINDING(1, 0) ByteAddressBuffer DrawCounter;

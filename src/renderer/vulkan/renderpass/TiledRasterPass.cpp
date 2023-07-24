@@ -29,8 +29,8 @@
 #include "mesh/ModelLoader.h"
 #include "profiling/Scope.h"
 
-#include "share/tile_depth.hlsl"
-#include "share/tiled_lighting/raster.hlsl"
+#include "tiled_lighting/classify.share.hlsl"
+#include "tiled_lighting/tile_depth_downsample.share.hlsl"
 
 namespace Reaper
 {

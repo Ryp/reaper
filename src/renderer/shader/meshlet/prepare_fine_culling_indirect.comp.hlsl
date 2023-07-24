@@ -1,7 +1,7 @@
 #include "lib/base.hlsl"
 #include "lib/indirect_command.hlsl"
 
-#include "share/meshlet_culling.hlsl"
+#include "meshlet_culling.share.hlsl"
 
 VK_BINDING(0, 0) ByteAddressBuffer Counters;
 VK_BINDING(1, 0) RWStructuredBuffer<DispatchIndirectCommand> IndirectDispatchOut;

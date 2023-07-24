@@ -9,7 +9,7 @@
 #define LIB_LIGHTING_INCLUDED
 
 #include "lib/brdf.hlsl"
-#include "share/lighting.hlsl"
+#include "lighting.share.hlsl"
 
 float sample_shadow_map(Texture2D<float> shadow_map, SamplerComparisonState cmp_sampler, float4x4 light_transform_ws_to_cs, float3 object_position_ws)
 {

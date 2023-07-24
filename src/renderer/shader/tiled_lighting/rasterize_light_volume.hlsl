@@ -8,7 +8,7 @@
 #ifndef RASTERIZE_LIGHT_VOLUME_INCLUDED
 #define RASTERIZE_LIGHT_VOLUME_INCLUDED
 
-#include "share/tiled_lighting.hlsl"
+#include "tiled_lighting.share.hlsl"
 
 struct PassParams
 {

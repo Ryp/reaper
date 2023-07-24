@@ -31,7 +31,7 @@
 #include "common/Log.h"
 #include "common/ReaperRoot.h"
 
-#include "renderer/shader/share/forward.hlsl"
+#include "renderer/shader/forward.share.hlsl"
 
 namespace Reaper
 {

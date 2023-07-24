@@ -5,10 +5,10 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef SHARE_FORWARD_INCLUDED
-#define SHARE_FORWARD_INCLUDED
+#ifndef FORWARD_SHARE_INCLUDED
+#define FORWARD_SHARE_INCLUDED
 
-#include "types.hlsl"
+#include "shared_types.hlsl"
 
 struct ForwardPassParams
 {

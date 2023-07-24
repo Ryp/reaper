@@ -1,10 +1,9 @@
 #include "lib/base.hlsl"
 
 #include "lib/color_space.hlsl"
+#include "lib/color_space.share.hlsl"
 #include "lib/eotf.hlsl"
 #include "lib/tonemapping.hlsl"
-
-#include "share/color_space.hlsl"
 
 VK_CONSTANT(0) const uint spec_transfer_function = 0;
 VK_CONSTANT(1) const uint spec_color_space = 0;

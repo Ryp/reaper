@@ -18,7 +18,7 @@
 
 #include <meshoptimizer.h>
 
-#include "renderer/shader/share/meshlet.hlsl"
+#include "renderer/shader/meshlet/meshlet.share.hlsl"
 
 namespace Reaper
 {

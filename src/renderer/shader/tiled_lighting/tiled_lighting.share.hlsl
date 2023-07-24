@@ -5,10 +5,10 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef SHARE_TILED_LIGHTING_INCLUDED
-#define SHARE_TILED_LIGHTING_INCLUDED
+#ifndef TILED_LIGHTING_SHARE_INCLUDED
+#define TILED_LIGHTING_SHARE_INCLUDED
 
-#include "types.hlsl"
+#include "shared_types.hlsl"
 
 // Has to be a multiple of 8
 static const hlsl_uint TileSizeX = 16;

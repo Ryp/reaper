@@ -1,7 +1,7 @@
 #include "lib/base.hlsl"
 #include "lib/vertex_pull.hlsl"
 
-#include "share/forward.hlsl"
+#include "forward.share.hlsl"
 
 VK_BINDING(0, 0) ConstantBuffer<ForwardPassParams> pass_params;
 VK_BINDING(1, 0) StructuredBuffer<ForwardInstanceParams> instance_params;

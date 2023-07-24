@@ -2,8 +2,8 @@
 #include "lib/indirect_command.hlsl"
 #include "lib/vertex_pull.hlsl"
 
-#include "share/meshlet.hlsl"
-#include "share/meshlet_culling.hlsl"
+#include "meshlet.share.hlsl"
+#include "meshlet_culling.share.hlsl"
 
 //------------------------------------------------------------------------------
 // Input

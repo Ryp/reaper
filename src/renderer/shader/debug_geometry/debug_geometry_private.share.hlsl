@@ -5,12 +5,12 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef SHARE_DEBUG_GEOMETRY_PRIVATE_INCLUDED
-#define SHARE_DEBUG_GEOMETRY_PRIVATE_INCLUDED
+#ifndef DEBUG_GEOMETRY_PRIVATE_SHARE_INCLUDED
+#define DEBUG_GEOMETRY_PRIVATE_SHARE_INCLUDED
 
-#include "types.hlsl"
+#include "shared_types.hlsl"
 
-#include "share/debug_geometry_public.hlsl"
+#include "debug_geometry_public.share.hlsl"
 
 static const hlsl_uint DebugGeometryUserCommandSizeBytes = 4 * (16 + 4);
 

@@ -5,10 +5,10 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef SHARE_DEBUG_GEOMETRY_PUBLIC_INCLUDED
-#define SHARE_DEBUG_GEOMETRY_PUBLIC_INCLUDED
+#ifndef DEBUG_GEOMETRY_PUBLIC_SHARE_INCLUDED
+#define DEBUG_GEOMETRY_PUBLIC_SHARE_INCLUDED
 
-#include "types.hlsl"
+#include "shared_types.hlsl"
 
 static const hlsl_uint DebugGeometryTypeCount = 1;
 static const hlsl_uint DebugGeometryType_Icosphere = 0;

@@ -25,8 +25,8 @@
 
 #include <glm/gtc/matrix_transform.hpp>
 
-#include "renderer/shader/share/meshlet.hlsl"
-#include "renderer/shader/share/meshlet_culling.hlsl"
+#include "renderer/shader/meshlet/meshlet.share.hlsl"
+#include "renderer/shader/meshlet/meshlet_culling.share.hlsl"
 
 namespace Reaper
 {

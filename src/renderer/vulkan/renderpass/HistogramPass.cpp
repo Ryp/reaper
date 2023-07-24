@@ -24,8 +24,8 @@
 
 #include "profiling/Scope.h"
 
-#include "renderer/shader/share/color_space.hlsl"
-#include "renderer/shader/share/hdr.hlsl"
+#include "renderer/shader/histogram/reduce_histogram.share.hlsl"
+#include "renderer/shader/lib/color_space.share.hlsl"
 
 namespace Reaper
 {

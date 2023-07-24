@@ -1,8 +1,9 @@
 #include "lib/base.hlsl"
 
 #include "lib/lighting.hlsl"
-#include "share/forward.hlsl"
-#include "share/lighting.hlsl"
+
+#include "forward.share.hlsl"
+#include "lighting.share.hlsl"
 
 static const uint debug_mode_none = 0;
 static const uint debug_mode_normals = 1;

@@ -2,7 +2,7 @@
 
 #include "lib/color_space.hlsl"
 
-#include "share/hdr.hlsl"
+#include "reduce_histogram.share.hlsl"
 
 // Input
 VK_PUSH_CONSTANT_HELPER(ReduceHDRPassParams) consts;

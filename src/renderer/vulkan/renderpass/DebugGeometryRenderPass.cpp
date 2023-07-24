@@ -29,7 +29,7 @@
 
 #include "common/ReaperRoot.h"
 
-#include "share/debug_geometry_private.hlsl"
+#include "debug_geometry/debug_geometry_private.share.hlsl"
 
 static_assert(sizeof(DebugGeometryUserCommand) == DebugGeometryUserCommandSizeBytes, "Invalid HLSL struct size");
 static_assert(sizeof(DebugGeometryCommand) == DebugGeometryCommandSizeBytes, "Invalid HLSL struct size");

@@ -11,4 +11,4 @@
 #    error
 #endif
 
-#include "renderer/shader/share/types.hlsl"
+#include "renderer/shader/shared_types.hlsl"

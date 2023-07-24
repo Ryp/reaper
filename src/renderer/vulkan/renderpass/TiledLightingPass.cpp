@@ -28,7 +28,7 @@
 #include "common/ReaperRoot.h"
 #include "profiling/Scope.h"
 
-#include "renderer/shader/share/tiled_lighting.hlsl"
+#include "renderer/shader/tiled_lighting/tiled_lighting.share.hlsl"
 
 namespace Reaper
 {

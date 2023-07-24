@@ -52,7 +52,7 @@ ShaderModules create_shader_modules(ReaperRoot& /*root*/, VulkanBackend& backend
     modules.gbuffer_write_opaque_fs = create_shader_module(backend.device, "gbuffer_write_opaque.frag.spv");
     modules.gbuffer_write_opaque_vs = create_shader_module(backend.device, "gbuffer_write_opaque.vert.spv");
     modules.gui_write_fs = create_shader_module(backend.device, "gui_write.frag.spv");
-    modules.histogram_cs = create_shader_module(backend.device, "histogram.comp.spv");
+    modules.histogram_cs = create_shader_module(backend.device, "histogram/reduce_histogram.comp.spv");
     modules.oscillator_cs = create_shader_module(backend.device, "sound/oscillator.comp.spv");
     modules.prepare_fine_culling_indirect_cs =
         create_shader_module(backend.device, "meshlet/prepare_fine_culling_indirect.comp.spv");
@@ -60,7 +60,7 @@ ShaderModules create_shader_modules(ReaperRoot& /*root*/, VulkanBackend& backend
         create_shader_module(backend.device, "tiled_lighting/rasterize_light_volume.frag.spv");
     modules.rasterize_light_volume_vs =
         create_shader_module(backend.device, "tiled_lighting/rasterize_light_volume.vert.spv");
-    modules.render_shadow_vs = create_shader_module(backend.device, "render_shadow.vert.spv");
+    modules.render_shadow_vs = create_shader_module(backend.device, "shadow/render_shadow.vert.spv");
     modules.swapchain_write_fs = create_shader_module(backend.device, "swapchain_write.frag.spv");
     modules.classify_volume_cs = create_shader_module(backend.device, "tiled_lighting/classify_volume.comp.spv");
     modules.tile_depth_downsample_cs =

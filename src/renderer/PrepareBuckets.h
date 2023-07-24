@@ -16,12 +16,12 @@
 #include <nonstd/span.hpp>
 #include <vector>
 
-#include "renderer/shader/share/forward.hlsl"
-#include "renderer/shader/share/lighting.hlsl"
-#include "renderer/shader/share/meshlet_culling.hlsl"
-#include "renderer/shader/share/shadow_map_pass.hlsl"
-#include "renderer/shader/share/sound.hlsl"
-#include "renderer/shader/share/tiled_lighting.hlsl"
+#include "renderer/shader/forward.share.hlsl"
+#include "renderer/shader/lighting.share.hlsl"
+#include "renderer/shader/meshlet/meshlet_culling.share.hlsl"
+#include "renderer/shader/shadow/shadow_map_pass.share.hlsl"
+#include "renderer/shader/sound/sound.share.hlsl"
+#include "renderer/shader/tiled_lighting/tiled_lighting.share.hlsl"
 
 #include <core/Types.h>
 

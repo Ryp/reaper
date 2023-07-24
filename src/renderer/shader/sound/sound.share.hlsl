@@ -5,10 +5,10 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef SHARE_SOUND_INCLUDED
-#define SHARE_SOUND_INCLUDED
+#ifndef SOUND_SHARE_INCLUDED
+#define SOUND_SHARE_INCLUDED
 
-#include "types.hlsl"
+#include "shared_types.hlsl"
 
 static const hlsl_uint SampleRate = 44100;
 static const hlsl_float SampleRateInv = 1.f / (hlsl_float)SampleRate;

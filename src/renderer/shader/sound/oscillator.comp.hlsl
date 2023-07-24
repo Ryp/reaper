@@ -2,7 +2,7 @@
 #include "lib/constants.hlsl"
 #include "lib/format/snorm.hlsl"
 
-#include "share/sound.hlsl"
+#include "sound.share.hlsl"
 
 //------------------------------------------------------------------------------
 // Input

@@ -8,7 +8,7 @@
 #ifndef DEBUG_GEOMETRY_COMMAND_RECORD_API_INCLUDED
 #define DEBUG_GEOMETRY_COMMAND_RECORD_API_INCLUDED
 
-#include "share/debug_geometry_public.hlsl"
+#include "debug_geometry_public.share.hlsl"
 
 DebugGeometryUserCommand create_debug_command_sphere(float3x4 ms_to_ws_matrix, float radius, uint color_rgba8_unorm)
 {

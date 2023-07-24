@@ -1,7 +1,7 @@
 #include "lib/base.hlsl"
 #include "lib/vertex_pull.hlsl"
 
-#include "share/debug_geometry_private.hlsl"
+#include "debug_geometry_private.share.hlsl"
 
 #include "draw.hlsl"
 

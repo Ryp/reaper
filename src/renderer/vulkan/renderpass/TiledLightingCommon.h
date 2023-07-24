@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include "renderer/shader/share/tiled_lighting.hlsl"
+#include "renderer/shader/tiled_lighting/tiled_lighting.share.hlsl"
 
 #include <vector>
 

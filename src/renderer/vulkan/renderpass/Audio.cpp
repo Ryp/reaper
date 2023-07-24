@@ -24,7 +24,7 @@
 
 #include <array>
 
-#include "renderer/shader/share/sound.hlsl"
+#include "renderer/shader/sound/sound.share.hlsl"
 
 namespace Reaper
 {

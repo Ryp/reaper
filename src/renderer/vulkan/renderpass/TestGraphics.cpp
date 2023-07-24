@@ -40,9 +40,9 @@
 #include "core/memory/Allocator.h"
 #include "profiling/Scope.h"
 
-#include "renderer/shader/share/debug_geometry_private.hlsl"
-#include "renderer/shader/share/hdr.hlsl"
-#include "renderer/shader/share/tiled_lighting.hlsl"
+#include "renderer/shader/debug_geometry/debug_geometry_private.share.hlsl"
+#include "renderer/shader/histogram/reduce_histogram.share.hlsl"
+#include "renderer/shader/tiled_lighting/tiled_lighting.share.hlsl"
 
 #include <vulkan_loader/Vulkan.h>
 

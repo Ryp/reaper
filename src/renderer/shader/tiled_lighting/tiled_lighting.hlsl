@@ -8,7 +8,7 @@
 #ifndef TILED_LIGHTING_INCLUDED
 #define TILED_LIGHTING_INCLUDED
 
-#include "share/tiled_lighting.hlsl"
+#include "tiled_lighting.share.hlsl"
 
 uint get_tile_index_flat(uint2 tile_index, uint tile_count_x)
 {

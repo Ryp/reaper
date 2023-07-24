@@ -5,10 +5,10 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef TILE_DEPTH_INCLUDED
-#define TILE_DEPTH_INCLUDED
+#ifndef TILED_LIGHTING_TILE_DEPTH_DOWNSAMPLE_SHARE_INCLUDED
+#define TILED_LIGHTING_TILE_DEPTH_DOWNSAMPLE_SHARE_INCLUDED
 
-#include "types.hlsl"
+#include "shared_types.hlsl"
 
 static const hlsl_uint TileDepthThreadCountX = 8;
 static const hlsl_uint TileDepthThreadCountY = 8;

@@ -5,10 +5,10 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef SHARE_SHADOW_MAP_PASS_INCLUDED
-#define SHARE_SHADOW_MAP_PASS_INCLUDED
+#ifndef SHADOW_MAP_PASS_SHARE_INCLUDED
+#define SHADOW_MAP_PASS_SHARE_INCLUDED
 
-#include "types.hlsl"
+#include "shared_types.hlsl"
 
 struct ShadowMapPassParams
 {

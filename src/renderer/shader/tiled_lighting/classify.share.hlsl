@@ -5,10 +5,10 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef SHARE_TILE_LIGHTING_RASTER_INCLUDED
-#define SHARE_TILE_LIGHTING_RASTER_INCLUDED
+#ifndef TILED_LIGHTING_CLASSIFY_SHARE_INCLUDED
+#define TILED_LIGHTING_CLASSIFY_SHARE_INCLUDED
 
-#include "share/types.hlsl"
+#include "shared_types.hlsl"
 
 static const hlsl_uint ClassifyVolumeThreadCount = 64;
 

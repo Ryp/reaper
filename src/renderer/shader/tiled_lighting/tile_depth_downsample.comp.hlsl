@@ -1,6 +1,6 @@
 #include "lib/base.hlsl"
 
-#include "share/tile_depth.hlsl"
+#include "tile_depth_downsample.share.hlsl"
 
 // Input
 VK_PUSH_CONSTANT_HELPER(TileDepthConstants) consts;

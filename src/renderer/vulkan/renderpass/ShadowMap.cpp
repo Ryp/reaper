@@ -28,7 +28,7 @@
 
 #include <array>
 
-#include "renderer/shader/share/shadow_map_pass.hlsl"
+#include "renderer/shader/shadow/shadow_map_pass.share.hlsl"
 
 namespace Reaper
 {

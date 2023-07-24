@@ -1,7 +1,7 @@
 #include "lib/base.hlsl"
 #include "lib/vertex_pull.hlsl"
 
-#include "share/shadow_map_pass.hlsl"
+#include "shadow_map_pass.share.hlsl"
 
 VK_BINDING(0, 0) ConstantBuffer<ShadowMapPassParams> pass_params;
 VK_BINDING(1, 0) StructuredBuffer<ShadowMapInstanceParams> instance_params;

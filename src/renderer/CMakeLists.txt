@@ -150,13 +150,12 @@ set(REAPER_SHADER_SRCS
     ${REAPER_SHADER_DIR}/gbuffer_write_opaque.frag.hlsl
     ${REAPER_SHADER_DIR}/gbuffer_write_opaque.vert.hlsl
     ${REAPER_SHADER_DIR}/gui_write.frag.hlsl
-    ${REAPER_SHADER_DIR}/histogram.comp.hlsl
+    ${REAPER_SHADER_DIR}/histogram/reduce_histogram.comp.hlsl
     ${REAPER_SHADER_DIR}/matrix_row_major_codegen_bug.comp.hlsl
     ${REAPER_SHADER_DIR}/meshlet/cull_meshlet.comp.hlsl
     ${REAPER_SHADER_DIR}/meshlet/cull_triangle_batch.comp.hlsl
     ${REAPER_SHADER_DIR}/meshlet/prepare_fine_culling_indirect.comp.hlsl
-    ${REAPER_SHADER_DIR}/render_shadow.frag.hlsl
-    ${REAPER_SHADER_DIR}/render_shadow.vert.hlsl
+    ${REAPER_SHADER_DIR}/shadow/render_shadow.vert.hlsl
     ${REAPER_SHADER_DIR}/sound/oscillator.comp.hlsl
     ${REAPER_SHADER_DIR}/swapchain_write.frag.hlsl
     ${REAPER_SHADER_DIR}/tiled_lighting/classify_volume.comp.hlsl
@@ -258,7 +257,7 @@ target_sources(${target} PRIVATE
     ${REAPER_GCN_OUTPUT})
 
 # Allow the C++ side to have the same include path as shaders, this is important for shared files.
-target_include_directories(${target} PRIVATE ${REAPER_SHADER_DIR})
+target_include_directories(${target} PUBLIC ${REAPER_SHADER_DIR})
 
 # Choose windowing system
 if(WIN32)

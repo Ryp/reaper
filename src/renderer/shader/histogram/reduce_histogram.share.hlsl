@@ -5,10 +5,10 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef SHARE_HDR_INCLUDED
-#define SHARE_HDR_INCLUDED
+#ifndef HISTOGRAM_REDUCE_SHARE_INCLUDED
+#define HISTOGRAM_REDUCE_SHARE_INCLUDED
 
-#include "types.hlsl"
+#include "shared_types.hlsl"
 
 static const hlsl_float HistogramEVCount = 32.0;
 static const hlsl_float HistogramEVOffset = 16.0;

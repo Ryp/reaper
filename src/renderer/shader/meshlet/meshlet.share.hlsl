@@ -5,10 +5,10 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef SHARE_MESHLET_INCLUDED
-#define SHARE_MESHLET_INCLUDED
+#ifndef MESHLET_SHARE_INCLUDED
+#define MESHLET_SHARE_INCLUDED
 
-#include "types.hlsl"
+#include "shared_types.hlsl"
 
 static const hlsl_uint MeshletMaxTriangleCount = 64;
 

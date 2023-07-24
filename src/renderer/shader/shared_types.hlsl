@@ -5,8 +5,8 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef SHARE_TYPES_INCLUDED
-#define SHARE_TYPES_INCLUDED
+#ifndef SHARED_TYPES_INCLUDED
+#define SHARED_TYPES_INCLUDED
 
 // This header provides interops types to share code between HLSL and C++.
 //
