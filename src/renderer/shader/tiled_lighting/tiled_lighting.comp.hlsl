@@ -1,7 +1,7 @@
 #include "lib/base.hlsl"
 
 #include "lib/lighting.hlsl"
-#include "lib/gbuffer.hlsl"
+#include "gbuffer/gbuffer.hlsl"
 #include "tiled_lighting/tiled_lighting.hlsl"
 
 VK_CONSTANT(0) const bool spec_debug_enable_shadows = true;

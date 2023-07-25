@@ -229,6 +229,7 @@ void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCa
             const glm::mat4x3 ms_to_vs_matrix = glm::mat4(main_camera.ws_to_vs_matrix) * glm::mat4(mesh_transform);
 
             ForwardInstanceParams& forward_instance = prepared.forward_instances.emplace_back();
+            forward_instance.ms_to_cs_matrix = main_camera.ws_to_cs_matrix * glm::mat4(mesh_transform);
             forward_instance.ms_to_ws_matrix = mesh_transform;
             forward_instance.normal_ms_to_vs_matrix = glm::mat3(ms_to_vs_matrix);
             forward_instance.texture_index = scene_mesh.texture_handle;
@@ -236,7 +237,7 @@ void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCa
             const u32               cull_instance_index = prepared.cull_mesh_instance_params.size();
             CullMeshInstanceParams& cull_instance = prepared.cull_mesh_instance_params.emplace_back();
 
-            cull_instance.ms_to_cs_matrix = main_camera.ws_to_cs_matrix * glm::mat4(mesh_transform);
+            cull_instance.ms_to_cs_matrix = forward_instance.ms_to_cs_matrix;
 
             const glm::mat4x3 vs_to_ms_matrix = glm::inverse(glm::mat4(ms_to_vs_matrix));
             cull_instance.vs_to_ms_matrix_translate = vs_to_ms_matrix * glm::vec4(0.f, 0.f, 0.f, 1.f);

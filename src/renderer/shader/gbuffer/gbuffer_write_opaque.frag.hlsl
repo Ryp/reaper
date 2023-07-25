@@ -1,11 +1,11 @@
 #include "lib/base.hlsl"
 
-#include "lib/gbuffer.hlsl"
 #include "lib/lighting.hlsl"
-#include "share/forward.hlsl"
+#include "lib/brdf.hlsl"
+#include "gbuffer/gbuffer.hlsl"
 
-VK_BINDING(5, 0) SamplerState diffuse_map_sampler;
-VK_BINDING(6, 0) Texture2D<float3> t_diffuse_map[];
+VK_BINDING(4, 0) SamplerState diffuse_map_sampler;
+VK_BINDING(5, 0) Texture2D<float3> t_diffuse_map[];
 
 struct PS_INPUT
 {

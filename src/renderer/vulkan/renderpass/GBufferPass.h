@@ -26,7 +26,6 @@ struct GBufferPipelineInfo
     VkPipeline            pipeline;
     VkPipelineLayout      pipelineLayout;
     VkDescriptorSetLayout desc_set_layout;
-    VkDescriptorSetLayout desc_set_layout_material;
 };
 
 struct ReaperRoot;
@@ -35,7 +34,6 @@ struct ShaderModules;
 
 struct GBufferPassResources
 {
-    BufferInfo passConstantBuffer;
     BufferInfo instancesConstantBuffer;
 
     GBufferPipelineInfo pipe;

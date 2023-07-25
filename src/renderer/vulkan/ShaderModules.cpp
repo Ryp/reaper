@@ -49,8 +49,8 @@ ShaderModules create_shader_modules(ReaperRoot& /*root*/, VulkanBackend& backend
     modules.forward_fs = create_shader_module(backend.device, "forward.frag.spv");
     modules.forward_vs = create_shader_module(backend.device, "forward.vert.spv");
     modules.fullscreen_triangle_vs = create_shader_module(backend.device, "fullscreen_triangle.vert.spv");
-    modules.gbuffer_write_opaque_fs = create_shader_module(backend.device, "gbuffer_write_opaque.frag.spv");
-    modules.gbuffer_write_opaque_vs = create_shader_module(backend.device, "gbuffer_write_opaque.vert.spv");
+    modules.gbuffer_write_opaque_fs = create_shader_module(backend.device, "gbuffer/gbuffer_write_opaque.frag.spv");
+    modules.gbuffer_write_opaque_vs = create_shader_module(backend.device, "gbuffer/gbuffer_write_opaque.vert.spv");
     modules.gui_write_fs = create_shader_module(backend.device, "gui_write.frag.spv");
     modules.histogram_cs = create_shader_module(backend.device, "histogram/reduce_histogram.comp.spv");
     modules.oscillator_cs = create_shader_module(backend.device, "sound/oscillator.comp.spv");

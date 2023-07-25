@@ -5,8 +5,8 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef LIB_GBUFFER_INCLUDED
-#define LIB_GBUFFER_INCLUDED
+#ifndef GBUFFER_INCLUDED
+#define GBUFFER_INCLUDED
 
 #include "lib/format/unorm.hlsl"
 #include "lib/format/octahedral.hlsl"

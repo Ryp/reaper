@@ -26,12 +26,9 @@
 #include "renderer/vulkan/ShaderModules.h"
 #include "renderer/vulkan/renderpass/Constants.h"
 #include "renderer/vulkan/renderpass/GBufferPassConstants.h"
-#include "renderer/vulkan/renderpass/LightingPass.h"
 
 #include "common/Log.h"
 #include "common/ReaperRoot.h"
-
-// #include "renderer/shader/share/gbuffer.hlsl"
 
 #include <vector>
 
@@ -97,21 +94,20 @@ GBufferPassResources create_gbuffer_pass_resources(ReaperRoot& root, VulkanBacke
 {
     GBufferPassResources resources = {};
 
-    std::vector<VkDescriptorSetLayoutBinding> bindings0 = {
-        {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+    std::vector<VkDescriptorSetLayoutBinding> bindings = {
+        {0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
         {1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
         {2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
         {3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
-        {4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
-        {5, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
-        {6, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, DiffuseMapMaxCount, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+        {4, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+        {5, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, DiffuseMapMaxCount, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
     };
 
-    std::vector<VkDescriptorBindingFlags> bindingFlags0(bindings0.size(), VK_FLAGS_NONE);
-    bindingFlags0[6] = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT;
+    std::vector<VkDescriptorBindingFlags> bindingFlags(bindings.size(), VK_FLAGS_NONE);
+    bindingFlags[5] = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT;
 
     std::vector<VkDescriptorSetLayout> descriptorSetLayouts = {
-        create_descriptor_set_layout(backend.device, bindings0, bindingFlags0),
+        create_descriptor_set_layout(backend.device, bindings, bindingFlags),
     };
 
     resources.pipe.desc_set_layout = descriptorSetLayouts[0];
@@ -119,11 +115,6 @@ GBufferPassResources create_gbuffer_pass_resources(ReaperRoot& root, VulkanBacke
     resources.pipe.pipelineLayout = create_pipeline_layout(backend.device, descriptorSetLayouts);
 
     resources.pipe.pipeline = create_gbuffer_pipeline(root, backend, resources.pipe.pipelineLayout, shader_modules);
-
-    resources.passConstantBuffer =
-        create_buffer(root, backend.device, "GBuffer Pass Constant buffer",
-                      DefaultGPUBufferProperties(1, sizeof(ForwardPassParams), GPUBufferUsage::UniformBuffer),
-                      backend.vma_instance, MemUsage::CPU_To_GPU);
 
     resources.instancesConstantBuffer =
         create_buffer(root, backend.device, "GBuffer Instance buffer",
@@ -145,10 +136,7 @@ void destroy_gbuffer_pass_resources(VulkanBackend& backend, GBufferPassResources
     vkDestroyPipeline(backend.device, resources.pipe.pipeline, nullptr);
     vkDestroyPipelineLayout(backend.device, resources.pipe.pipelineLayout, nullptr);
     vkDestroyDescriptorSetLayout(backend.device, resources.pipe.desc_set_layout, nullptr);
-    vkDestroyDescriptorSetLayout(backend.device, resources.pipe.desc_set_layout_material, nullptr);
 
-    vmaDestroyBuffer(backend.vma_instance, resources.passConstantBuffer.handle,
-                     resources.passConstantBuffer.allocation);
     vmaDestroyBuffer(backend.vma_instance, resources.instancesConstantBuffer.handle,
                      resources.instancesConstantBuffer.allocation);
 }
@@ -157,17 +145,15 @@ void update_gbuffer_pass_descriptor_sets(DescriptorWriteHelper& write_helper, co
                                          const SamplerResources&  sampler_resources,
                                          const MaterialResources& material_resources, const MeshCache& mesh_cache)
 {
-    append_write(write_helper, resources.descriptor_set, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                 resources.passConstantBuffer.handle);
-    append_write(write_helper, resources.descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+    append_write(write_helper, resources.descriptor_set, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                  resources.instancesConstantBuffer.handle);
-    append_write(write_helper, resources.descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+    append_write(write_helper, resources.descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                  mesh_cache.vertexBufferPosition.handle);
-    append_write(write_helper, resources.descriptor_set, 3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+    append_write(write_helper, resources.descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                  mesh_cache.vertexBufferNormal.handle);
-    append_write(write_helper, resources.descriptor_set, 4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+    append_write(write_helper, resources.descriptor_set, 3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                  mesh_cache.vertexBufferUV.handle);
-    append_write(write_helper, resources.descriptor_set, 5, sampler_resources.diffuseMapSampler);
+    append_write(write_helper, resources.descriptor_set, 4, sampler_resources.diffuseMapSampler);
 
     if (!material_resources.texture_handles.empty())
     {
@@ -185,7 +171,7 @@ void update_gbuffer_pass_descriptor_sets(DescriptorWriteHelper& write_helper, co
         Assert(albedo_image_infos.size() <= DiffuseMapMaxCount);
 
         write_helper.writes.push_back(create_image_descriptor_write(
-            resources.descriptor_set, 6, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, albedo_image_infos));
+            resources.descriptor_set, 5, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, albedo_image_infos));
     }
 }
 
@@ -196,9 +182,6 @@ void upload_gbuffer_pass_frame_resources(VulkanBackend& backend, const PreparedD
 
     if (prepared.forward_instances.empty())
         return;
-
-    upload_buffer_data(backend.device, backend.vma_instance, pass_resources.passConstantBuffer,
-                       &prepared.forward_pass_constants, sizeof(ForwardPassParams));
 
     upload_buffer_data(backend.device, backend.vma_instance, pass_resources.instancesConstantBuffer,
                        prepared.forward_instances.data(),

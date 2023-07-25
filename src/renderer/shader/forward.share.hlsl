@@ -21,6 +21,7 @@ struct ForwardPassParams
 
 struct ForwardInstanceParams
 {
+    hlsl_float4x4 ms_to_cs_matrix; // FIXME
     hlsl_float3x4 ms_to_ws_matrix;
     hlsl_float3x3 normal_ms_to_vs_matrix;
     hlsl_uint3    _pad;

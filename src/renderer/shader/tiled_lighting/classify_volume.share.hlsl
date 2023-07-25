@@ -5,8 +5,8 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef TILED_LIGHTING_CLASSIFY_SHARE_INCLUDED
-#define TILED_LIGHTING_CLASSIFY_SHARE_INCLUDED
+#ifndef TILED_LIGHTING_CLASSIFY_VOLUME_SHARE_INCLUDED
+#define TILED_LIGHTING_CLASSIFY_VOLUME_SHARE_INCLUDED
 
 #include "shared_types.hlsl"
 

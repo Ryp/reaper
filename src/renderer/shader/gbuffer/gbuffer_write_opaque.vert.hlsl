@@ -3,12 +3,10 @@
 
 #include "forward.share.hlsl"
 
-VK_BINDING(0, 0) ConstantBuffer<ForwardPassParams> pass_params;
-VK_BINDING(1, 0) StructuredBuffer<ForwardInstanceParams> instance_params;
-
-VK_BINDING(2, 0) ByteAddressBuffer buffer_position_ms;
-VK_BINDING(3, 0) ByteAddressBuffer buffer_normal_ms;
-VK_BINDING(4, 0) ByteAddressBuffer buffer_uv;
+VK_BINDING(0, 0) StructuredBuffer<ForwardInstanceParams> instance_params;
+VK_BINDING(1, 0) ByteAddressBuffer buffer_position_ms;
+VK_BINDING(2, 0) ByteAddressBuffer buffer_normal_ms;
+VK_BINDING(3, 0) ByteAddressBuffer buffer_uv;
 
 struct VS_INPUT
 {
@@ -32,11 +30,7 @@ void main(in VS_INPUT input, out VS_OUTPUT output)
 
     const ForwardInstanceParams instance_data = instance_params[input.instance_id];
 
-    const float3 position_ws = mul(instance_data.ms_to_ws_matrix, float4(position_ms, 1.0));
-    const float3 position_vs = mul(pass_params.ws_to_vs_matrix, float4(position_ws, 1.0));
-    const float4 position_cs = mul(pass_params.vs_to_cs_matrix, float4(position_vs, 1.0));
-
-    output.PositionCS = position_cs;
+    output.PositionCS = mul(instance_data.ms_to_cs_matrix, float4(position_ms, 1.0));
     output.NormalVS = normalize(mul(instance_data.normal_ms_to_vs_matrix, normal_ms));
     output.UV = uv;
     output.texture_index = instance_data.texture_index;
