@@ -20,7 +20,6 @@
 #include "renderpass/DebugGeometryRenderPass.h"
 #include "renderpass/ForwardPass.h"
 #include "renderpass/Frame.h"
-#include "renderpass/GBufferPass.h"
 #include "renderpass/GuiPass.h"
 #include "renderpass/HistogramPass.h"
 #include "renderpass/LightingPass.h"
@@ -46,7 +45,6 @@ struct BackendResources
     CullResources                 cull_resources;
     VisibilityBufferPassResources vis_buffer_pass_resources;
     ShadowMapResources            shadow_map_resources;
-    GBufferPassResources          gbuffer_pass_resources;
     LightingPassResources         lighting_resources;
     TiledRasterResources          tiled_raster_resources;
     TiledLightingPassResources    tiled_lighting_resources;
