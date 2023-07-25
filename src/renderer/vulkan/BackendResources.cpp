@@ -47,6 +47,7 @@ void create_backend_resources(ReaperRoot& root, VulkanBackend& backend)
     resources.framegraph_resources = create_framegraph_resources(root, backend);
     resources.audio_resources = create_audio_resources(root, backend, resources.shader_modules);
     resources.cull_resources = create_culling_resources(root, backend, resources.shader_modules);
+    resources.vis_buffer_pass_resources = create_vis_buffer_pass_resources(root, backend, resources.shader_modules);
     resources.frame_sync_resources = create_frame_sync_resources(root, backend);
     resources.gui_pass_resources = create_gui_pass_resources(root, backend, resources.shader_modules);
     resources.histogram_pass_resources = create_histogram_pass_resources(root, backend, resources.shader_modules);
@@ -71,6 +72,7 @@ void destroy_backend_resources(VulkanBackend& backend)
     destroy_framegraph_resources(backend, resources.framegraph_resources);
     destroy_audio_resources(backend, resources.audio_resources);
     destroy_culling_resources(backend, resources.cull_resources);
+    destroy_vis_buffer_pass_resources(backend, resources.vis_buffer_pass_resources);
     destroy_frame_sync_resources(backend, resources.frame_sync_resources);
     destroy_gui_pass_resources(backend, resources.gui_pass_resources);
     destroy_histogram_pass_resources(backend, resources.histogram_pass_resources);

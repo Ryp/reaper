@@ -121,6 +121,8 @@ target_sources(${target} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/TiledLightingPass.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/TiledRasterPass.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/TiledRasterPass.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/VisibilityBufferPass.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/VisibilityBufferPass.h
 
     ${CMAKE_CURRENT_SOURCE_DIR}/window/Event.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/window/Event.h
@@ -164,6 +166,9 @@ set(REAPER_SHADER_SRCS
     ${REAPER_SHADER_DIR}/tiled_lighting/tile_depth_downsample.comp.hlsl
     ${REAPER_SHADER_DIR}/tiled_lighting/tiled_lighting.comp.hlsl
     ${REAPER_SHADER_DIR}/tiled_lighting/tiled_lighting_debug.comp.hlsl
+    ${REAPER_SHADER_DIR}/vis_buffer/vis_buffer_raster.frag.hlsl
+    ${REAPER_SHADER_DIR}/vis_buffer/vis_buffer_raster.vert.hlsl
+    ${REAPER_SHADER_DIR}/vis_buffer/fill_gbuffer.comp.hlsl
 )
 
 # Shader compilation

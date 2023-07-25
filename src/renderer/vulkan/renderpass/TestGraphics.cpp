@@ -25,6 +25,7 @@
 #include "renderer/vulkan/renderpass/FrameGraphPass.h"
 #include "renderer/vulkan/renderpass/GBufferPassConstants.h"
 #include "renderer/vulkan/renderpass/TiledLightingCommon.h"
+#include "renderer/vulkan/renderpass/VisibilityBufferConstants.h"
 
 #include "renderer/Mesh2.h"
 #include "renderer/texture/GPUTextureProperties.h"
@@ -202,6 +203,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     {
         REAPER_PROFILE_SCOPE("Upload Resources");
         upload_culling_resources(backend, prepared, resources.cull_resources);
+        upload_vis_buffer_pass_frame_resources(backend, prepared, resources.vis_buffer_pass_resources);
         upload_shadow_map_resources(backend, prepared, resources.shadow_map_resources);
         upload_lighting_pass_frame_resources(backend, prepared, resources.lighting_resources);
         upload_tiled_raster_pass_frame_resources(backend, tiled_lighting_frame, resources.tiled_raster_resources);
@@ -300,6 +302,74 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         shadow.shadow_maps.push_back(usage_handle);
     }
 
+    // Visibility
+    struct VisibilityFrameGraphData
+    {
+        RenderPassHandle    pass_handle;
+        ResourceUsageHandle vis_buffer;
+        ResourceUsageHandle depth;
+    } visibility;
+
+    visibility.pass_handle = builder.create_render_pass("Visibility");
+
+    const GPUTextureProperties vis_buffer_properties =
+        DefaultGPUTextureProperties(backbufferExtent.width, backbufferExtent.height, VisibilityBufferFormat,
+                                    GPUTextureUsage::ColorAttachment | GPUTextureUsage::Sampled);
+
+    visibility.vis_buffer = builder.create_texture(
+        visibility.pass_handle, "Visibility Buffer", vis_buffer_properties,
+        GPUResourceUsage{.access{VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                                 VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL},
+                         .texture_view = DefaultGPUTextureView(vis_buffer_properties)});
+
+    const GPUTextureProperties scene_depth_properties =
+        DefaultGPUTextureProperties(backbufferExtent.width, backbufferExtent.height, MainPassDepthFormat,
+                                    GPUTextureUsage::DepthStencilAttachment | GPUTextureUsage::Sampled);
+
+    visibility.depth = builder.create_texture(
+        visibility.pass_handle, "Main Depth", scene_depth_properties,
+        GPUResourceUsage{.access = GPUResourceAccess{VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT,
+                                                     VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+                                                     VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL},
+                         .texture_view = DefaultGPUTextureView(scene_depth_properties)});
+
+    // Fill GBuffer from visibility
+    struct VisibilityGBufferFrameGraphData
+    {
+        RenderPassHandle    pass_handle;
+        ResourceUsageHandle vis_buffer;
+        ResourceUsageHandle gbuffer_rt0;
+        ResourceUsageHandle gbuffer_rt1;
+    } visibility_gbuffer;
+
+    visibility_gbuffer.pass_handle = builder.create_render_pass("Visibility Fill GBuffer");
+
+    visibility_gbuffer.vis_buffer = builder.read_texture(
+        visibility_gbuffer.pass_handle, visibility.vis_buffer,
+        GPUResourceUsage{.access = {VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
+                                    VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL},
+                         .texture_view = DefaultGPUTextureView(vis_buffer_properties)});
+
+    const GPUTextureProperties gbuffer_rt0_properties = DefaultGPUTextureProperties(
+        backbufferExtent.width, backbufferExtent.height, GBufferRT0Format,
+        GPUTextureUsage::ColorAttachment | GPUTextureUsage::Sampled | GPUTextureUsage::Storage);
+
+    const GPUTextureProperties gbuffer_rt1_properties = DefaultGPUTextureProperties(
+        backbufferExtent.width, backbufferExtent.height, GBufferRT1Format,
+        GPUTextureUsage::ColorAttachment | GPUTextureUsage::Sampled | GPUTextureUsage::Storage);
+
+    visibility_gbuffer.gbuffer_rt0 =
+        builder.create_texture(visibility_gbuffer.pass_handle, "GBuffer RT0", gbuffer_rt0_properties,
+                               GPUResourceUsage{.access{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+                                                        VK_ACCESS_2_SHADER_WRITE_BIT, VK_IMAGE_LAYOUT_GENERAL},
+                                                .texture_view = DefaultGPUTextureView(gbuffer_rt0_properties)});
+
+    visibility_gbuffer.gbuffer_rt1 =
+        builder.create_texture(visibility_gbuffer.pass_handle, "GBuffer RT1", gbuffer_rt1_properties,
+                               GPUResourceUsage{.access{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+                                                        VK_ACCESS_2_SHADER_WRITE_BIT, VK_IMAGE_LAYOUT_GENERAL},
+                                                .texture_view = DefaultGPUTextureView(gbuffer_rt1_properties)});
+
     // GBuffer
     struct GBufferFrameGraphData
     {
@@ -311,45 +381,24 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     gbuffer.pass_handle = builder.create_render_pass("GBuffer");
 
-    const GPUTextureProperties gbuffer_rt0_properties =
-        DefaultGPUTextureProperties(backbufferExtent.width, backbufferExtent.height, GBufferRT0Format,
-                                    GPUTextureUsage::ColorAttachment | GPUTextureUsage::Sampled);
+    gbuffer.rt0 = builder.write_texture(
+        gbuffer.pass_handle, visibility_gbuffer.gbuffer_rt0,
+        GPUResourceUsage{.access{VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                                 VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL},
+                         .texture_view = DefaultGPUTextureView(gbuffer_rt0_properties)});
 
-    const GPUTextureProperties gbuffer_rt1_properties =
-        DefaultGPUTextureProperties(backbufferExtent.width, backbufferExtent.height, GBufferRT1Format,
-                                    GPUTextureUsage::ColorAttachment | GPUTextureUsage::Sampled);
+    gbuffer.rt1 = builder.write_texture(
+        gbuffer.pass_handle, visibility_gbuffer.gbuffer_rt1,
+        GPUResourceUsage{.access{VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                                 VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL},
+                         .texture_view = DefaultGPUTextureView(gbuffer_rt1_properties)});
 
-    {
-        const GPUResourceUsage gbuffer_rt0_usage = {.access{VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-                                                            VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-                                                            VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL},
-                                                    .texture_view = DefaultGPUTextureView(gbuffer_rt0_properties)};
-
-        const GPUResourceUsage gbuffer_rt1_usage = {.access{VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-                                                            VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-                                                            VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL},
-                                                    .texture_view = DefaultGPUTextureView(gbuffer_rt1_properties)};
-
-        gbuffer.rt0 =
-            builder.create_texture(gbuffer.pass_handle, "GBuffer RT0", gbuffer_rt0_properties, gbuffer_rt0_usage);
-        gbuffer.rt1 =
-            builder.create_texture(gbuffer.pass_handle, "GBuffer RT1", gbuffer_rt1_properties, gbuffer_rt1_usage);
-    }
-
-    const GPUTextureProperties scene_depth_properties =
-        DefaultGPUTextureProperties(backbufferExtent.width, backbufferExtent.height, MainPassDepthFormat,
-                                    GPUTextureUsage::DepthStencilAttachment | GPUTextureUsage::Sampled);
-
-    {
-        const GPUResourceUsage gbuffer_depth_usage = {
-            .access =
-                GPUResourceAccess{VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT,
-                                  VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL},
-            .texture_view = DefaultGPUTextureView(scene_depth_properties)};
-
-        gbuffer.depth =
-            builder.create_texture(gbuffer.pass_handle, "Scene Depth", scene_depth_properties, gbuffer_depth_usage);
-    }
+    gbuffer.depth = builder.write_texture(
+        gbuffer.pass_handle, visibility.depth,
+        GPUResourceUsage{.access = GPUResourceAccess{VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT,
+                                                     VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+                                                     VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL},
+                         .texture_view = DefaultGPUTextureView(scene_depth_properties)});
 
     // Depth Downsample
     struct TileDepthFrameGraphData
@@ -970,6 +1019,17 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
             get_frame_graph_texture(resources.framegraph_resources, framegraph, handle));
     }
 
+    update_vis_buffer_pass_descriptor_sets(
+        descriptor_write_helper,
+        resources.vis_buffer_pass_resources,
+        resources.samplers_resources,
+        resources.material_resources,
+        resources.cull_resources,
+        resources.mesh_cache,
+        get_frame_graph_texture(resources.framegraph_resources, framegraph, visibility_gbuffer.vis_buffer),
+        get_frame_graph_texture(resources.framegraph_resources, framegraph, visibility_gbuffer.gbuffer_rt0),
+        get_frame_graph_texture(resources.framegraph_resources, framegraph, visibility_gbuffer.gbuffer_rt1));
+
     update_gbuffer_pass_descriptor_sets(descriptor_write_helper, resources.gbuffer_pass_resources,
                                         resources.samplers_resources, resources.material_resources,
                                         resources.mesh_cache);
@@ -1151,6 +1211,31 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
             record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
                                        shadow.pass_handle, false);
+        }
+
+        {
+            REAPER_GPU_SCOPE(cmdBuffer, "Visibility");
+            record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
+                                       visibility.pass_handle, true);
+
+            record_vis_buffer_pass_command_buffer(
+                cmdBuffer, prepared, resources.vis_buffer_pass_resources, resources.cull_resources,
+                get_frame_graph_texture(resources.framegraph_resources, framegraph, visibility.vis_buffer),
+                get_frame_graph_texture(resources.framegraph_resources, framegraph, visibility.depth));
+
+            record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
+                                       visibility.pass_handle, false);
+        }
+
+        {
+            REAPER_GPU_SCOPE(cmdBuffer, "Visibility Fill GBuffer");
+            record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
+                                       visibility_gbuffer.pass_handle, true);
+
+            record_fill_gbuffer_pass_command_buffer(cmdBuffer, resources.vis_buffer_pass_resources, backbufferExtent);
+
+            record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
+                                       visibility_gbuffer.pass_handle, false);
         }
 
         {

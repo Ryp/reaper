@@ -28,6 +28,7 @@
 #include "renderpass/SwapchainPass.h"
 #include "renderpass/TiledLightingPass.h"
 #include "renderpass/TiledRasterPass.h"
+#include "renderpass/VisibilityBufferPass.h"
 
 #include <vulkan_loader/Vulkan.h>
 
@@ -36,24 +37,25 @@ namespace Reaper
 struct BackendResources
 {
     // TODO remove *_resources suffix
-    ShaderModules              shader_modules;
-    SamplerResources           samplers_resources;
-    DebugGeometryPassResources debug_geometry_resources;
-    FrameGraphResources        framegraph_resources;
-    MeshCache                  mesh_cache;
-    MaterialResources          material_resources;
-    CullResources              cull_resources;
-    ShadowMapResources         shadow_map_resources;
-    GBufferPassResources       gbuffer_pass_resources;
-    LightingPassResources      lighting_resources;
-    TiledRasterResources       tiled_raster_resources;
-    TiledLightingPassResources tiled_lighting_resources;
-    ForwardPassResources       forward_pass_resources;
-    HistogramPassResources     histogram_pass_resources;
-    GuiPassResources           gui_pass_resources;
-    SwapchainPassResources     swapchain_pass_resources;
-    FrameSyncResources         frame_sync_resources;
-    AudioResources             audio_resources;
+    ShaderModules                 shader_modules;
+    SamplerResources              samplers_resources;
+    DebugGeometryPassResources    debug_geometry_resources;
+    FrameGraphResources           framegraph_resources;
+    MeshCache                     mesh_cache;
+    MaterialResources             material_resources;
+    CullResources                 cull_resources;
+    VisibilityBufferPassResources vis_buffer_pass_resources;
+    ShadowMapResources            shadow_map_resources;
+    GBufferPassResources          gbuffer_pass_resources;
+    LightingPassResources         lighting_resources;
+    TiledRasterResources          tiled_raster_resources;
+    TiledLightingPassResources    tiled_lighting_resources;
+    ForwardPassResources          forward_pass_resources;
+    HistogramPassResources        histogram_pass_resources;
+    GuiPassResources              gui_pass_resources;
+    SwapchainPassResources        swapchain_pass_resources;
+    FrameSyncResources            frame_sync_resources;
+    AudioResources                audio_resources;
 
     // FIXME wrap this
     VkCommandPool gfxCommandPool;

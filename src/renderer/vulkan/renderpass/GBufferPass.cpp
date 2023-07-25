@@ -207,18 +207,14 @@ void record_gbuffer_pass_command_buffer(CommandBuffer& cmdBuffer, const Prepared
 
     VkRenderingAttachmentInfo rt0_attachment =
         default_rendering_attachment_info(gbuffer_rt0.view_handle, gbuffer_rt0.image_layout);
-    rt0_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 
     VkRenderingAttachmentInfo rt1_attachment =
         default_rendering_attachment_info(gbuffer_rt1.view_handle, gbuffer_rt1.image_layout);
-    rt1_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 
     std::vector<VkRenderingAttachmentInfo> color_attachments = {rt0_attachment, rt1_attachment};
 
     VkRenderingAttachmentInfo depth_attachment =
         default_rendering_attachment_info(depth_buffer.view_handle, depth_buffer.image_layout);
-    depth_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    depth_attachment.clearValue = VkClearDepthStencil(MainPassUseReverseZ ? 0.f : 1.f, 0);
 
     const VkRenderingInfo rendering_info = default_rendering_info(pass_rect, color_attachments, &depth_attachment);
 
