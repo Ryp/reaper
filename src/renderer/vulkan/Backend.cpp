@@ -480,12 +480,20 @@ bool vulkan_check_physical_device(IWindow*                        window,
     vkGetPhysicalDeviceProperties2(physical_device, &device_properties2);
     VkPhysicalDeviceProperties& device_properties = device_properties2.properties;
 
+    VkPhysicalDeviceDescriptorIndexingFeatures descriptor_indexing_features = {};
+    descriptor_indexing_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES;
+
     VkPhysicalDeviceVulkan13Features device_vulkan13_features = {};
     device_vulkan13_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
+    device_vulkan13_features.pNext = &descriptor_indexing_features;
+
+    VkPhysicalDeviceVulkan12Features device_vulkan12_features = {};
+    device_vulkan12_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+    device_vulkan12_features.pNext = &device_vulkan13_features;
 
     VkPhysicalDeviceFeatures2 device_features2 = {};
     device_features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
-    device_features2.pNext = &device_vulkan13_features;
+    device_features2.pNext = &device_vulkan12_features;
 
     vkGetPhysicalDeviceFeatures2(physical_device, &device_features2);
 
@@ -496,6 +504,7 @@ bool vulkan_check_physical_device(IWindow*                        window,
     Assert(device_features2.features.fillModeNonSolid == VK_TRUE);
     Assert(device_vulkan13_features.synchronization2 == VK_TRUE);
     Assert(device_vulkan13_features.dynamicRendering == VK_TRUE);
+    Assert(device_vulkan12_features.shaderSampledImageArrayNonUniformIndexing == VK_TRUE);
 
     uint32_t queue_families_count = 0;
     vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_families_count, nullptr);
@@ -744,6 +753,7 @@ void vulkan_create_logical_device(ReaperRoot&                     root,
     device_features_1_2.runtimeDescriptorArray = VK_TRUE;
     device_features_1_2.descriptorBindingPartiallyBound = VK_TRUE;
     device_features_1_2.timelineSemaphore = VK_TRUE;
+    device_features_1_2.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
 
     VkPhysicalDeviceFeatures2 deviceFeatures2 = {};
     deviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
