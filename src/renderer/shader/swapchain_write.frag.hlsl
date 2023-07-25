@@ -14,7 +14,7 @@ VK_BINDING(0, 0) SamplerState linear_sampler;
 VK_BINDING(1, 0) Texture2D<float3> t_hdr_scene;
 VK_BINDING(2, 0) Texture2D<float3> Lighting;
 VK_BINDING(3, 0) Texture2D<float4> t_ldr_gui;
-VK_BINDING(4, 0) Texture2D<float4> t_ldr_debug;
+VK_BINDING(4, 0) Texture2D<float3> t_ldr_debug;
 
 struct PS_INPUT
 {
@@ -100,7 +100,7 @@ void main(in PS_INPUT input, out PS_OUTPUT output)
     if (false)
     {
         // FIXME Blend in debug color
-        const float4 ldr_debug_color = t_ldr_debug.SampleLevel(linear_sampler, input.PositionUV, 0);
+        const float3 ldr_debug_color = t_ldr_debug.SampleLevel(linear_sampler, input.PositionUV, 0);
 
         color = lerp(color, ldr_debug_color, 0.25);
     }

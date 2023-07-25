@@ -40,9 +40,11 @@ void main(uint3 gtid : SV_GroupThreadID,
     const uint histogram_thread_start = gi * histogram_slots_per_thread;
     const uint histogram_thread_stop = histogram_thread_start + histogram_slots_per_thread;
 
-    for (uint i = histogram_thread_start; i < histogram_thread_stop; i++)
     {
-        lds_histogram[i] = 0;
+        for (uint i = histogram_thread_start; i < histogram_thread_stop; i++)
+        {
+            lds_histogram[i] = 0;
+        }
     }
 
     GroupMemoryBarrierWithGroupSync();
@@ -75,9 +77,11 @@ void main(uint3 gtid : SV_GroupThreadID,
 
     GroupMemoryBarrierWithGroupSync();
 
-    for (uint i = histogram_thread_start; i < histogram_thread_stop; i++)
     {
-        const uint histogram_element_size_in_bytes = 4;
-        HistogramOut.InterlockedAdd(i * histogram_element_size_in_bytes, lds_histogram[i]);
+        for (uint i = histogram_thread_start; i < histogram_thread_stop; i++)
+        {
+            const uint histogram_element_size_in_bytes = 4;
+            HistogramOut.InterlockedAdd(i * histogram_element_size_in_bytes, lds_histogram[i]);
+        }
     }
 }

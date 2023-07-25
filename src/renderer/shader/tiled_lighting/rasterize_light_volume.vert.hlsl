@@ -5,7 +5,7 @@
 
 float3 unit_box_strip(uint vertex_id)
 {
-    uint b = 1 << vertex_id;
+    uint b = 1u << vertex_id;
 
     return float3(
         (0x287A & b) != 0 ? 1.0 : -1.0,
