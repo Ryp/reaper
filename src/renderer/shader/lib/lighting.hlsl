@@ -18,7 +18,7 @@ float sample_shadow_map(Texture2D<float> shadow_map, SamplerComparisonState cmp_
     const float2 position_shadow_map_uv = ndc_to_uv(position_shadow_map_ndc.xy);
 
     const float shadow_depth_bias = 0.001;
-    const float shadow_pcf = shadow_map.SampleCmp(cmp_sampler, position_shadow_map_uv, position_shadow_map_ndc.z + shadow_depth_bias);
+    const float shadow_pcf = shadow_map.SampleCmpLevelZero(cmp_sampler, position_shadow_map_uv, position_shadow_map_ndc.z + shadow_depth_bias);
 
     return shadow_pcf;
 }
