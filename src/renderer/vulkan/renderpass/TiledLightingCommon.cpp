@@ -91,6 +91,8 @@ void prepare_tile_lighting_frame(const SceneGraph& scene, const RendererPerspect
         const glm::fmat4 conservative_scale_matrix =
             glm::scale(glm::identity<glm::fmat4>(), glm::fvec3(1.f, 1.f, 1.f) * conservative_scale);
 
+        static_cast<void>(conservative_scale_matrix);
+
         // FIXME what happens to scale inheriting from a transform hierarchy?
         // FIXME Fill completely
         // FIXME should handle scales from light shape

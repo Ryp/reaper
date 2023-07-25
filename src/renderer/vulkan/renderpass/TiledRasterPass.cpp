@@ -474,7 +474,7 @@ void record_light_raster_command_buffer(CommandBuffer& cmdBuffer, const TiledRas
                            &push_constants);
 
         const u32 command_buffer_offset = 0;
-        const u32 counter_buffer_offset = pass_index * sizeof(uint);
+        const u32 counter_buffer_offset = pass_index * sizeof(u32);
         vkCmdDrawIndirectCount(cmdBuffer.handle, draw_commands[pass_index].handle, command_buffer_offset,
                                command_counters.handle, counter_buffer_offset, TiledRasterMaxIndirectCommandCount,
                                draw_commands[pass_index].properties.element_size_bytes);
