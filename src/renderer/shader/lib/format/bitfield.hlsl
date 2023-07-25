@@ -5,11 +5,13 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#pragma once
+#ifndef LIB_FORMAT_BITFIELD_INCLUDED
+#define LIB_FORMAT_BITFIELD_INCLUDED
 
-#include "renderer/format/PixelFormat.h"
-
-namespace Reaper
+uint bitfield_extract(uint bitfield, uint first_bit_offset, uint bit_count)
 {
-constexpr PixelFormat VisibilityBufferFormat = PixelFormat::R32_UINT;
-} // namespace Reaper
+    uint mask = (1u << bit_count) - 1;
+    return (bitfield >> first_bit_offset) & mask;
+}
+
+#endif
