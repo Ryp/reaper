@@ -93,8 +93,8 @@ target_sources(${target} PRIVATE
 
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/Audio.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/Audio.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/Culling.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/Culling.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/MeshletCulling.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/MeshletCulling.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/DebugGeometryRenderPass.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/DebugGeometryRenderPass.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/ForwardPass.cpp

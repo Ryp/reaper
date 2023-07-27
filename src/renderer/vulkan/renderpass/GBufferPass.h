@@ -60,11 +60,12 @@ void upload_gbuffer_pass_frame_resources(VulkanBackend& backend, const PreparedD
                                          GBufferPassResources& pass_resources);
 
 struct CommandBuffer;
-struct CullResources;
+struct MeshletCullingResources;
 struct FrameGraphTexture;
 
 void record_gbuffer_pass_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& prepared,
-                                        const GBufferPassResources& pass_resources, const CullResources& cull_resources,
+                                        const GBufferPassResources&    pass_resources,
+                                        const MeshletCullingResources& meshlet_culling_resources,
                                         const FrameGraphTexture& gbuffer_rt0, const FrameGraphTexture& gbuffer_rt1,
                                         const FrameGraphTexture& depth_buffer);
 } // namespace Reaper

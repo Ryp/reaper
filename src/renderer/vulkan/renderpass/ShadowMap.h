@@ -59,10 +59,10 @@ void update_shadow_map_pass_descriptor_sets(DescriptorWriteHelper& write_helper,
 std::vector<GPUTextureProperties> fill_shadow_map_properties(const PreparedData& prepared);
 
 struct CommandBuffer;
-struct CullResources;
+struct MeshletCullingResources;
 struct FrameGraphTexture;
 
 void record_shadow_map_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& prepared,
                                       ShadowMapResources& resources, nonstd::span<const FrameGraphTexture> shadow_maps,
-                                      const CullResources& cull_resources);
+                                      const MeshletCullingResources& meshlet_culling_resources);
 } // namespace Reaper

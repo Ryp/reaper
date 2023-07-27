@@ -46,7 +46,7 @@ void create_backend_resources(ReaperRoot& root, VulkanBackend& backend)
     resources.debug_geometry_resources = create_debug_geometry_pass_resources(root, backend, resources.shader_modules);
     resources.framegraph_resources = create_framegraph_resources(root, backend);
     resources.audio_resources = create_audio_resources(root, backend, resources.shader_modules);
-    resources.cull_resources = create_culling_resources(root, backend, resources.shader_modules);
+    resources.meshlet_culling_resources = create_meshlet_culling_resources(root, backend, resources.shader_modules);
     resources.vis_buffer_pass_resources = create_vis_buffer_pass_resources(root, backend, resources.shader_modules);
     resources.frame_sync_resources = create_frame_sync_resources(root, backend);
     resources.gui_pass_resources = create_gui_pass_resources(root, backend, resources.shader_modules);
@@ -70,7 +70,7 @@ void destroy_backend_resources(VulkanBackend& backend)
     destroy_debug_geometry_pass_resources(backend, resources.debug_geometry_resources);
     destroy_framegraph_resources(backend, resources.framegraph_resources);
     destroy_audio_resources(backend, resources.audio_resources);
-    destroy_culling_resources(backend, resources.cull_resources);
+    destroy_meshlet_culling_resources(backend, resources.meshlet_culling_resources);
     destroy_vis_buffer_pass_resources(backend, resources.vis_buffer_pass_resources);
     destroy_frame_sync_resources(backend, resources.frame_sync_resources);
     destroy_gui_pass_resources(backend, resources.gui_pass_resources);

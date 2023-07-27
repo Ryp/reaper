@@ -122,7 +122,7 @@ void backend_debug_ui(VulkanBackend& backend)
     ImGui::SetNextWindowBgAlpha(0.35f); // Transparent background
     if (ImGui::Begin("Example: Simple overlay", &show_app_simple_overlay, window_flags))
     {
-        ImGui::Checkbox("Freeze culling", &backend.options.freeze_culling);
+        ImGui::Checkbox("Freeze culling", &backend.options.freeze_meshlet_culling);
         ImGui::Checkbox("Enable debug tile culling", &backend.options.enable_debug_tile_lighting);
     }
     ImGui::End();
@@ -202,7 +202,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     {
         REAPER_PROFILE_SCOPE("Upload Resources");
-        upload_culling_resources(backend, prepared, resources.cull_resources);
+        upload_meshlet_culling_resources(backend, prepared, resources.meshlet_culling_resources);
         upload_vis_buffer_pass_frame_resources(backend, prepared, resources.vis_buffer_pass_resources);
         upload_shadow_map_resources(backend, prepared, resources.shadow_map_resources);
         upload_lighting_pass_frame_resources(backend, prepared, resources.lighting_resources);
@@ -975,8 +975,8 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     DescriptorWriteHelper descriptor_write_helper = create_descriptor_write_helper(200, 200);
 
-    update_culling_pass_descriptor_sets(descriptor_write_helper, prepared, resources.cull_resources,
-                                        resources.mesh_cache);
+    update_meshlet_culling_pass_descriptor_sets(descriptor_write_helper, prepared, resources.meshlet_culling_resources,
+                                                resources.mesh_cache);
 
     update_shadow_map_pass_descriptor_sets(descriptor_write_helper, prepared, resources.shadow_map_resources,
                                            resources.mesh_cache.vertexBufferPosition);
@@ -993,7 +993,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         resources.vis_buffer_pass_resources,
         resources.samplers_resources,
         resources.material_resources,
-        resources.cull_resources,
+        resources.meshlet_culling_resources,
         resources.mesh_cache,
         get_frame_graph_texture(resources.framegraph_resources, framegraph, visibility_gbuffer.vis_buffer),
         get_frame_graph_texture(resources.framegraph_resources, framegraph, visibility_gbuffer.gbuffer_rt0),
@@ -1136,11 +1136,11 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         }
 
         {
-            REAPER_GPU_SCOPE(cmdBuffer, "Culling");
+            REAPER_GPU_SCOPE(cmdBuffer, "Meshlet Culling");
 
-            if (!backend.options.freeze_culling)
+            if (!backend.options.freeze_meshlet_culling)
             {
-                record_culling_command_buffer(root, cmdBuffer, prepared, resources.cull_resources);
+                record_meshlet_culling_command_buffer(root, cmdBuffer, prepared, resources.meshlet_culling_resources);
             }
         }
 
@@ -1172,7 +1172,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
             }
 
             record_shadow_map_command_buffer(cmdBuffer, prepared, resources.shadow_map_resources, shadow_maps,
-                                             resources.cull_resources);
+                                             resources.meshlet_culling_resources);
 
             record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
                                        shadow.pass_handle, false);
@@ -1184,7 +1184,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
                                        visibility.pass_handle, true);
 
             record_vis_buffer_pass_command_buffer(
-                cmdBuffer, prepared, resources.vis_buffer_pass_resources, resources.cull_resources,
+                cmdBuffer, prepared, resources.vis_buffer_pass_resources, resources.meshlet_culling_resources,
                 get_frame_graph_texture(resources.framegraph_resources, framegraph, visibility.vis_buffer),
                 get_frame_graph_texture(resources.framegraph_resources, framegraph, visibility.depth));
 
@@ -1305,7 +1305,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
                                        forward.pass_handle, true);
 
             record_forward_pass_command_buffer(
-                cmdBuffer, prepared, resources.forward_pass_resources, resources.cull_resources,
+                cmdBuffer, prepared, resources.forward_pass_resources, resources.meshlet_culling_resources,
                 get_frame_graph_texture(resources.framegraph_resources, framegraph, forward.scene_hdr),
                 get_frame_graph_texture(resources.framegraph_resources, framegraph, forward.depth));
 
@@ -1463,12 +1463,13 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     // backend.presentInfo.swapchain); Assert(acquireFullscreenResult == VK_SUCCESS);
 
     {
-        const VkResult event_status = vkGetEventStatus(backend.device, resources.cull_resources.countersReadyEvent);
+        const VkResult event_status =
+            vkGetEventStatus(backend.device, resources.meshlet_culling_resources.countersReadyEvent);
         Assert(event_status == VK_EVENT_SET || event_status == VK_EVENT_RESET);
 
-        CullingStats                    total = {};
-        const std::vector<CullingStats> culling_stats =
-            get_gpu_culling_stats(backend, prepared, resources.cull_resources);
+        MeshletCullingStats                    total = {};
+        const std::vector<MeshletCullingStats> culling_stats =
+            get_meshlet_culling_gpu_stats(backend, prepared, resources.meshlet_culling_resources);
 
         log_debug(root, "{}GPU mesh culling stats:", event_status == VK_EVENT_SET ? "" : "[OUT OF DATE] ");
         for (auto stats : culling_stats)

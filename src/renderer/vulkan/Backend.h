@@ -84,7 +84,7 @@ struct REAPER_RENDERER_API VulkanBackend
 
     struct Options
     {
-        bool freeze_culling = false;
+        bool freeze_meshlet_culling = false;
         bool enable_debug_tile_lighting = true;
     } options;
 

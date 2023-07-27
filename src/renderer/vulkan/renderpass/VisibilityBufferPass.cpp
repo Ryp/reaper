@@ -7,7 +7,7 @@
 
 #include "VisibilityBufferPass.h"
 
-#include "Culling.h"
+#include "MeshletCulling.h"
 #include "ShadowConstants.h"
 
 #include "renderer/PrepareBuckets.h"
@@ -178,7 +178,7 @@ void update_vis_buffer_pass_descriptor_sets(DescriptorWriteHelper&              
                                             const VisibilityBufferPassResources& resources,
                                             const SamplerResources&              sampler_resources,
                                             const MaterialResources&             material_resources,
-                                            const CullResources&                 cull_resources,
+                                            const MeshletCullingResources&       meshlet_culling_resources,
                                             const MeshCache&                     mesh_cache,
                                             const FrameGraphTexture&             vis_buffer,
                                             const FrameGraphTexture&             gbuffer_rt0,
@@ -198,7 +198,7 @@ void update_vis_buffer_pass_descriptor_sets(DescriptorWriteHelper&              
     append_write(write_helper, resources.descriptor_set_fill, 3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                  resources.instancesConstantBuffer.handle);
     append_write(write_helper, resources.descriptor_set_fill, 4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                 cull_resources.dynamicIndexBuffer.handle);
+                 meshlet_culling_resources.visible_index_buffer.handle);
     append_write(write_helper, resources.descriptor_set_fill, 5, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                  mesh_cache.vertexBufferPosition.handle);
     append_write(write_helper, resources.descriptor_set_fill, 6, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
@@ -242,8 +242,8 @@ void upload_vis_buffer_pass_frame_resources(VulkanBackend& backend, const Prepar
 
 void record_vis_buffer_pass_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& prepared,
                                            const VisibilityBufferPassResources& pass_resources,
-                                           const CullResources& cull_resources, const FrameGraphTexture& vis_buffer,
-                                           const FrameGraphTexture& depth_buffer)
+                                           const MeshletCullingResources&       meshlet_culling_resources,
+                                           const FrameGraphTexture& vis_buffer, const FrameGraphTexture& depth_buffer)
 {
     if (prepared.forward_instances.empty())
         return;
@@ -273,10 +273,10 @@ void record_vis_buffer_pass_command_buffer(CommandBuffer& cmdBuffer, const Prepa
 
     vkCmdBeginRendering(cmdBuffer.handle, &rendering_info);
 
-    const CullingDrawParams draw_params = get_culling_draw_params(prepared.forward_culling_pass_index);
+    const MeshletDrawParams draw_params = get_meshlet_draw_params(prepared.forward_culling_pass_index);
 
-    vkCmdBindIndexBuffer(cmdBuffer.handle, cull_resources.dynamicIndexBuffer.handle, draw_params.index_buffer_offset,
-                         draw_params.index_type);
+    vkCmdBindIndexBuffer(cmdBuffer.handle, meshlet_culling_resources.visible_index_buffer.handle,
+                         draw_params.index_buffer_offset, draw_params.index_type);
 
     std::vector<VkDescriptorSet> pass_descriptors = {
         pass_resources.descriptor_set,
@@ -285,10 +285,11 @@ void record_vis_buffer_pass_command_buffer(CommandBuffer& cmdBuffer, const Prepa
     vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, pass_resources.pipe.pipelineLayout, 0,
                             static_cast<u32>(pass_descriptors.size()), pass_descriptors.data(), 0, nullptr);
 
-    vkCmdDrawIndexedIndirectCount(cmdBuffer.handle, cull_resources.indirectDrawBuffer.handle,
-                                  draw_params.command_buffer_offset, cull_resources.countersBuffer.handle,
-                                  draw_params.counter_buffer_offset, draw_params.command_buffer_max_count,
-                                  cull_resources.indirectDrawBuffer.properties.element_size_bytes);
+    vkCmdDrawIndexedIndirectCount(
+        cmdBuffer.handle, meshlet_culling_resources.visible_indirect_draw_commands_buffer.handle,
+        draw_params.command_buffer_offset, meshlet_culling_resources.counters_buffer.handle,
+        draw_params.counter_buffer_offset, draw_params.command_buffer_max_count,
+        meshlet_culling_resources.visible_indirect_draw_commands_buffer.properties.element_size_bytes);
 
     vkCmdEndRendering(cmdBuffer.handle);
 }

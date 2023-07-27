@@ -16,13 +16,13 @@
 #include "ShaderModules.h"
 
 #include "renderpass/Audio.h"
-#include "renderpass/Culling.h"
 #include "renderpass/DebugGeometryRenderPass.h"
 #include "renderpass/ForwardPass.h"
 #include "renderpass/Frame.h"
 #include "renderpass/GuiPass.h"
 #include "renderpass/HistogramPass.h"
 #include "renderpass/LightingPass.h"
+#include "renderpass/MeshletCulling.h"
 #include "renderpass/ShadowMap.h"
 #include "renderpass/SwapchainPass.h"
 #include "renderpass/TiledLightingPass.h"
@@ -42,7 +42,7 @@ struct BackendResources
     FrameGraphResources           framegraph_resources;
     MeshCache                     mesh_cache;
     MaterialResources             material_resources;
-    CullResources                 cull_resources;
+    MeshletCullingResources       meshlet_culling_resources;
     VisibilityBufferPassResources vis_buffer_pass_resources;
     ShadowMapResources            shadow_map_resources;
     LightingPassResources         lighting_resources;

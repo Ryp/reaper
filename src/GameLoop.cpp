@@ -559,7 +559,7 @@ void execute_game_loop(ReaperRoot& root)
         // From that point on you should treat this data as immutable
 
         if (controller_state.buttons[GenericButton::X].pressed)
-            toggle(backend.options.freeze_culling);
+            toggle(backend.options.freeze_meshlet_culling);
 
         imgui_controller_debug(controller_state);
 

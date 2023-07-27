@@ -48,7 +48,7 @@ VisibilityBufferPassResources create_vis_buffer_pass_resources(ReaperRoot& root,
 void destroy_vis_buffer_pass_resources(VulkanBackend& backend, VisibilityBufferPassResources& resources);
 
 struct MaterialResources;
-struct CullResources;
+struct MeshletCullingResources;
 struct MeshCache;
 struct SamplerResources;
 struct DescriptorWriteHelper;
@@ -58,7 +58,7 @@ void update_vis_buffer_pass_descriptor_sets(DescriptorWriteHelper&              
                                             const VisibilityBufferPassResources& resources,
                                             const SamplerResources&              sampler_resources,
                                             const MaterialResources&             material_resources,
-                                            const CullResources&                 cull_resources,
+                                            const MeshletCullingResources&       meshlet_culling_resources,
                                             const MeshCache&                     mesh_cache,
                                             const FrameGraphTexture&             vis_buffer,
                                             const FrameGraphTexture&             gbuffer_rt0,
@@ -70,13 +70,13 @@ void upload_vis_buffer_pass_frame_resources(VulkanBackend& backend, const Prepar
                                             VisibilityBufferPassResources& pass_resources);
 
 struct CommandBuffer;
-struct CullResources;
+struct MeshletCullingResources;
 struct FrameGraphTexture;
 
 void record_vis_buffer_pass_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& prepared,
                                            const VisibilityBufferPassResources& pass_resources,
-                                           const CullResources& cull_resources, const FrameGraphTexture& vis_buffer,
-                                           const FrameGraphTexture& depth_buffer);
+                                           const MeshletCullingResources&       meshlet_culling_resources,
+                                           const FrameGraphTexture& vis_buffer, const FrameGraphTexture& depth_buffer);
 
 void record_fill_gbuffer_pass_command_buffer(CommandBuffer& cmdBuffer, const VisibilityBufferPassResources& resources,
                                              VkExtent2D backbufferExtent);
