@@ -190,6 +190,7 @@ void create_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& backend)
     std::vector<const char*> device_extensions = {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME,
         VK_KHR_SWAPCHAIN_MUTABLE_FORMAT_EXTENSION_NAME,
+        VK_EXT_CALIBRATED_TIMESTAMPS_EXTENSION_NAME,
 #if 0
         VK_EXT_HDR_METADATA_EXTENSION_NAME,
         VK_EXT_FULL_SCREEN_EXCLUSIVE_EXTENSION_NAME,
@@ -225,12 +226,6 @@ void create_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& backend)
     create_vulkan_wm_swapchain(root, backend, backend.presentInfo);
 
     // create_vulkan_display_swapchain(root, backend);
-
-#if defined(REAPER_USE_MICROPROFILE)
-    const u32 node_count = 1; // NOTE: not sure what this is for
-    MicroProfileGpuInitVulkan(&backend.device, &backend.physicalDevice, &backend.deviceInfo.graphicsQueue,
-                              &backend.physicalDeviceInfo.graphicsQueueFamilyIndex, node_count);
-#endif
 
     {
         // this initializes the core structures of imgui
@@ -268,10 +263,6 @@ void destroy_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& backend)
     Assert(vkDeviceWaitIdle(backend.device) == VK_SUCCESS);
 
     ImGui_ImplVulkan_Shutdown();
-
-#if defined(REAPER_USE_MICROPROFILE)
-    MicroProfileGpuShutdown();
-#endif
 
     destroy_vulkan_wm_swapchain(root, backend, backend.presentInfo);
 

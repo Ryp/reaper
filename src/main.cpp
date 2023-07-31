@@ -22,13 +22,6 @@ namespace
 {
     void start_engine(ReaperRoot& root)
     {
-#if defined(REAPER_USE_MICROPROFILE)
-        MicroProfileOnThreadCreate("Main");
-        MicroProfileSetEnableAllGroups(true);
-        MicroProfileSetForceMetaCounters(true);
-        MicroProfileStartContextSwitchTrace();
-#endif
-
         root.log = new DebugLog(LogLevel::Info);
 
         log_info(root, "engine: start");
@@ -52,10 +45,6 @@ namespace
 
         delete root.log;
         root.log = nullptr;
-
-#if defined(REAPER_USE_MICROPROFILE)
-        MicroProfileShutdown();
-#endif
     }
 } // namespace
 } // namespace Reaper

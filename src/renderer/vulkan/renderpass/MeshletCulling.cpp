@@ -300,7 +300,7 @@ void record_meshlet_culling_command_buffer(ReaperRoot& root, CommandBuffer& cmdB
     vkCmdFillBuffer(cmdBuffer.handle, resources.counters_buffer.handle, 0, VK_WHOLE_SIZE, clear_value);
 
     {
-        REAPER_GPU_SCOPE_COLOR(cmdBuffer, "Barrier", MP_RED);
+        REAPER_GPU_SCOPE_COLOR(cmdBuffer, "Barrier", Color::Red);
 
         const GPUMemoryAccess  src = {VK_PIPELINE_STAGE_2_CLEAR_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT};
         const GPUMemoryAccess  dst = {VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
@@ -342,7 +342,7 @@ void record_meshlet_culling_command_buffer(ReaperRoot& root, CommandBuffer& cmdB
     }
 
     {
-        REAPER_GPU_SCOPE_COLOR(cmdBuffer, "Barrier", MP_RED);
+        REAPER_GPU_SCOPE_COLOR(cmdBuffer, "Barrier", Color::Red);
 
         const GPUMemoryAccess  src = {VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT};
         const GPUMemoryAccess  dst = {VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT};
@@ -367,7 +367,7 @@ void record_meshlet_culling_command_buffer(ReaperRoot& root, CommandBuffer& cmdB
     }
 
     {
-        REAPER_GPU_SCOPE_COLOR(cmdBuffer, "Barrier", MP_RED);
+        REAPER_GPU_SCOPE_COLOR(cmdBuffer, "Barrier", Color::Red);
 
         const GPUMemoryAccess  src = {VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT};
         const GPUMemoryAccess  dst = {VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT};
@@ -400,7 +400,7 @@ void record_meshlet_culling_command_buffer(ReaperRoot& root, CommandBuffer& cmdB
     }
 
     {
-        REAPER_GPU_SCOPE_COLOR(cmdBuffer, "Barrier", MP_RED);
+        REAPER_GPU_SCOPE_COLOR(cmdBuffer, "Barrier", Color::Red);
 
         const GPUMemoryAccess  src = {VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT};
         const GPUMemoryAccess  dst = {VK_PIPELINE_STAGE_2_VERTEX_INPUT_BIT | VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT,

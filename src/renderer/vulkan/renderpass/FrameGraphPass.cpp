@@ -25,7 +25,7 @@ void record_framegraph_barriers(CommandBuffer& cmdBuffer, const FrameGraph::Fram
         return;
 
     using namespace FrameGraph;
-    REAPER_GPU_SCOPE_COLOR(cmdBuffer, "FrameGraph Barrier", MP_RED);
+    REAPER_GPU_SCOPE_COLOR(cmdBuffer, "FrameGraph Barrier", Color::Red);
 
     for (const auto& barrier_event : barrier_events)
     {

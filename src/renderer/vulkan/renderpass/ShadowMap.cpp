@@ -163,7 +163,9 @@ void record_shadow_map_command_buffer(CommandBuffer& cmdBuffer, const PreparedDa
         if (shadow_pass.instance_count == 0)
             continue;
 
-        REAPER_GPU_SCOPE(cmdBuffer, fmt::format("Shadow Pass {}", shadow_pass.pass_index).c_str());
+        VulkanDebugLabelCmdBufferScope s(cmdBuffer.handle,
+                                         fmt::format("Shadow Pass {}", shadow_pass.pass_index).c_str());
+        REAPER_PROFILE_SCOPE_GPU(cmdBuffer, "Shadow Pass");
 
         const FrameGraphTexture& shadow_map = shadow_maps[shadow_pass.pass_index];
         const VkExtent2D         output_extent = {shadow_pass.shadow_map_size.x, shadow_pass.shadow_map_size.y};

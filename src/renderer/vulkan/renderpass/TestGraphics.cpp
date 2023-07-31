@@ -175,7 +175,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
         do
         {
-            REAPER_PROFILE_SCOPE_COLOR("Wait for fence", MP_RED);
+            REAPER_PROFILE_SCOPE_COLOR("Wait for fence", Color::Red);
 
             const u64 waitTimeoutNs = 1 * 1000 * 1000 * 1000;
             waitResult = vkWaitForFences(backend.device, 1, &drawFence, VK_TRUE, waitTimeoutNs);
@@ -185,6 +185,10 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
                 log_debug(root, "- return result {}", GetResultToString(waitResult));
             }
         } while (waitResult != VK_SUCCESS);
+
+#if defined(REAPER_USE_TRACY)
+        FrameMark;
+#endif
 
         Assert(vkGetFenceStatus(backend.device, drawFence) == VK_SUCCESS);
 
@@ -1088,13 +1092,6 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     Assert(vkBeginCommandBuffer(cmdBuffer.handle, &cmdBufferBeginInfo) == VK_SUCCESS);
 
-#if defined(REAPER_USE_MICROPROFILE)
-    MicroProfileFlip(cmdBuffer.handle);
-
-    cmdBuffer.mlog = MicroProfileThreadLogGpuAlloc();
-    MICROPROFILE_GPU_BEGIN(cmdBuffer.handle, cmdBuffer.mlog);
-#endif
-
     {
         REAPER_GPU_SCOPE(cmdBuffer, "GPU Frame");
 
@@ -1399,11 +1396,8 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         }
     }
 
-#if defined(REAPER_USE_MICROPROFILE)
-    const u64 microprofile_data = MicroProfileGpuEnd(cmdBuffer.mlog);
-    MicroProfileThreadLogGpuFree(cmdBuffer.mlog);
-
-    MICROPROFILE_GPU_SUBMIT(MicroProfileGetGlobalGpuQueue(), microprofile_data);
+#if defined(REAPER_USE_TRACY)
+    TracyVkCollect(cmdBuffer.tracy_ctx, cmdBuffer.handle);
 #endif
 
     // Stop recording

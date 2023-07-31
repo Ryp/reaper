@@ -29,7 +29,7 @@ REAPER_VK_GLOBAL_LEVEL_FUNCTION(vkEnumerateInstanceLayerProperties)
 REAPER_VK_INSTANCE_LEVEL_FUNCTION(vkDestroyInstance)
 REAPER_VK_INSTANCE_LEVEL_FUNCTION(vkEnumeratePhysicalDevices)
 REAPER_VK_INSTANCE_LEVEL_FUNCTION(
-    vkGetPhysicalDeviceProperties) // NOTE: deprecated by vkGetPhysicalDeviceProperties2 but kept for microprofile
+    vkGetPhysicalDeviceProperties) // NOTE: deprecated by vkGetPhysicalDeviceProperties2 but kept for Tracy
 REAPER_VK_INSTANCE_LEVEL_FUNCTION(vkGetPhysicalDeviceProperties2)
 // REAPER_VK_INSTANCE_LEVEL_FUNCTION(vkGetPhysicalDeviceFeatures) NOTE: deprecated by vkGetPhysicalDeviceFeatures2
 REAPER_VK_INSTANCE_LEVEL_FUNCTION(vkGetPhysicalDeviceFeatures2)
@@ -191,6 +191,8 @@ REAPER_VK_DEVICE_LEVEL_FUNCTION(vkCmdSetViewportWithCount);
 #    include "extension/VK_EXT_full_screen_exclusive.inl"
 #    include "extension/VK_EXT_hdr_metadata.inl"
 #endif
+
+#include "extension/VK_EXT_calibrated_timestamps.inl"
 #include "extension/VK_KHR_get_surface_capabilities2.inl"
 
 #undef REAPER_VK_EXPORTED_FUNCTION

@@ -1,24 +1,18 @@
 #///////////////////////////////////////////////////////////////////////////////
 #// Reaper
 #//
-#// Copyright (c) 2015-2022 Thibault Schueller
+#// Copyright (c) 2015-2023 Thibault Schueller
 #// This file is distributed under the MIT License
 #///////////////////////////////////////////////////////////////////////////////
 
 set(target reaper_profiling)
 
-add_library(${target} ${REAPER_BUILD_TYPE})
+add_library(${target} INTERFACE
+    ${CMAKE_CURRENT_SOURCE_DIR}/Scope.h)
 
-target_sources(${target} PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/Scope.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/Scope.h
-)
-
-# Setup microprofile
-if(REAPER_USE_MICROPROFILE)
-    include(microprofile)
-    target_compile_definitions(${target} PUBLIC REAPER_USE_MICROPROFILE)
-    target_link_libraries(${target} PUBLIC microprofile)
+if(REAPER_USE_TRACY)
+    include(tracy)
+    target_include_directories(${target} SYSTEM INTERFACE ${CMAKE_SOURCE_DIR}/external/tracy/public)
+    target_compile_definitions(${target} INTERFACE REAPER_USE_TRACY)
+    target_link_libraries(${target} INTERFACE Tracy::TracyClient reaper_vulkan_loader)
 endif()
-
-reaper_configure_library(${target} "Profiling")

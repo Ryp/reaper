@@ -59,8 +59,9 @@ option(REAPER_BUILD_TESTS               "Build tests"                   ON)
 # The runtime performance should be comparable to a classic static build.
 option(REAPER_BUILD_SHARED_LIBS         "Build shared libraries"        ${BUILD_SHARED_LIBS})
 
-# Enable runtime profiling. Go to localhost:1338 in chrome to get the output.
-option(REAPER_USE_MICROPROFILE          "Use microprofile"              ON)
+# Enable runtime profiling with Tracy.
+# Tracy has its own profiler app that you have to compile from source.
+option(REAPER_USE_TRACY                 "Use tracy"                     ON)
 
 # See .clang-tidy for the list of useful checks.
 option(REAPER_RUN_CLANG_TIDY            "Run clang-tidy when compiling" OFF)

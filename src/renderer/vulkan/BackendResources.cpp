@@ -8,6 +8,7 @@
 #include "BackendResources.h"
 
 #include "Backend.h"
+#include "profiling/Scope.h"
 
 #include "common/Log.h"
 
@@ -40,6 +41,13 @@ void create_backend_resources(ReaperRoot& root, VulkanBackend& backend)
         VK_EVENT_CREATE_DEVICE_ONLY_BIT,
     };
     Assert(vkCreateEvent(backend.device, &event_info, nullptr, &resources.event) == VK_SUCCESS);
+
+#if defined(REAPER_USE_TRACY)
+    resources.gfxCmdBuffer.tracy_ctx = TracyVkContextCalibrated(
+        backend.physicalDevice, backend.device, backend.deviceInfo.graphicsQueue, resources.gfxCmdBuffer.handle,
+        vkGetPhysicalDeviceCalibrateableTimeDomainsEXT, vkGetCalibratedTimestampsEXT);
+    // TracyVkContextName(resources.gfxCmdBuffer.tracy_ctx, name, size);
+#endif
 
     resources.shader_modules = create_shader_modules(root, backend);
     resources.samplers_resources = create_sampler_resources(root, backend);
@@ -83,6 +91,10 @@ void destroy_backend_resources(VulkanBackend& backend)
     destroy_mesh_cache(backend, resources.mesh_cache);
     destroy_shadow_map_resources(backend, resources.shadow_map_resources);
     destroy_swapchain_pass_resources(backend, resources.swapchain_pass_resources);
+
+#if defined(REAPER_USE_TRACY)
+    TracyVkDestroy(resources.gfxCmdBuffer.tracy_ctx);
+#endif
 
     vkDestroyEvent(backend.device, resources.event, nullptr);
     vkFreeCommandBuffers(backend.device, resources.gfxCommandPool, 1, &resources.gfxCmdBuffer.handle);

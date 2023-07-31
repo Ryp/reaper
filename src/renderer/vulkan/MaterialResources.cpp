@@ -245,7 +245,7 @@ void record_material_upload_command_buffer(ResourceStagingArea& staging, Command
     }
 
     {
-        REAPER_GPU_SCOPE_COLOR(cmdBuffer, "Image Barriers", MP_RED);
+        REAPER_GPU_SCOPE_COLOR(cmdBuffer, "Image Barriers", Color::Red);
 
         std::vector<VkImageMemoryBarrier2> prerender_barriers;
 

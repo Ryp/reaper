@@ -444,7 +444,8 @@ void record_light_raster_command_buffer(CommandBuffer& cmdBuffer, const TiledRas
 
     for (u32 pass_index = 0; pass_index < RasterPass::Count; pass_index++)
     {
-        REAPER_GPU_SCOPE(cmdBuffer, pass_index == RasterPass::Inner ? "Inner" : "Outer");
+        VulkanDebugLabelCmdBufferScope s(cmdBuffer.handle, pass_index == RasterPass::Inner ? "Inner" : "Outer");
+        REAPER_PROFILE_SCOPE_GPU(cmdBuffer, "Raster");
 
         const FrameGraphTexture   depth_buffer = depth_buffers[pass_index];
         VkRenderingAttachmentInfo depth_attachment =

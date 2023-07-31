@@ -1,8 +1,9 @@
 ////////////////////////////////////////////////////////////////////////////////
 /// Reaper
 ///
-/// Copyright (c) 2015-2022 Thibault Schueller
+/// Copyright (c) 2020-2023 Thibault Schueller
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "Scope.h"
+REAPER_VK_INSTANCE_LEVEL_FUNCTION(vkGetCalibratedTimestampsEXT)
+REAPER_VK_INSTANCE_LEVEL_FUNCTION(vkGetPhysicalDeviceCalibrateableTimeDomainsEXT)
