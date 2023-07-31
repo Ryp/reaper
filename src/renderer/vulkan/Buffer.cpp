@@ -50,7 +50,7 @@ BufferInfo create_buffer(ReaperRoot& root, VkDevice device, const char* debug_st
         // const u64 minUniformBufferOffsetAlignment =
         // backend.physicalDeviceProperties.limits.minUniformBufferOffsetAlignment;
         const u32 minUniformBufferOffsetAlignment = 0x40; // FIXME
-        const u32 stride = std::max(properties.element_size_bytes, minUniformBufferOffsetAlignment);
+        const u32 stride = (std::max)(properties.element_size_bytes, minUniformBufferOffsetAlignment);
 
         properties.stride = stride;
     }

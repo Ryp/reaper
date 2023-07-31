@@ -109,9 +109,9 @@ PhysicsSim create_sim()
 
 void destroy_sim(PhysicsSim& sim)
 {
+#if defined(REAPER_USE_BULLET_PHYSICS)
     Assert(sim.static_mesh_colliders.empty());
 
-#if defined(REAPER_USE_BULLET_PHYSICS)
     for (auto player_rigid_body : sim.players)
     {
         sim.dynamics_world->removeRigidBody(player_rigid_body);
@@ -209,6 +209,7 @@ void sim_create_static_collision_meshes(nonstd::span<StaticMeshColliderHandle> h
         sim.dynamics_world->addRigidBody(mesh_collider.rigid_body);
     }
 #else
+    static_cast<void>(handles);
     static_cast<void>(sim);
     static_cast<void>(meshes);
     static_cast<void>(transforms_no_scale);
@@ -218,6 +219,7 @@ void sim_create_static_collision_meshes(nonstd::span<StaticMeshColliderHandle> h
 
 void sim_destroy_static_collision_meshes(nonstd::span<const StaticMeshColliderHandle> handles, PhysicsSim& sim)
 {
+#if defined(REAPER_USE_BULLET_PHYSICS)
     for (auto handle : handles)
     {
         const StaticMeshCollider& collider = sim.static_mesh_colliders.at(handle);
@@ -232,6 +234,10 @@ void sim_destroy_static_collision_meshes(nonstd::span<const StaticMeshColliderHa
 
         sim.static_mesh_colliders.erase(handle);
     }
+#else
+    static_cast<void>(handles);
+    static_cast<void>(sim);
+#endif
 }
 
 void sim_create_player_rigid_body(PhysicsSim& sim, const glm::fmat4x3& player_transform,
@@ -261,7 +267,7 @@ void sim_create_player_rigid_body(PhysicsSim& sim, const glm::fmat4x3& player_tr
 #else
     static_cast<void>(sim);
     static_cast<void>(player_transform);
-    static_cast<void>(shape_extent);
+    static_cast<void>(shape_half_extent);
 #endif
 }
 } // namespace Neptune

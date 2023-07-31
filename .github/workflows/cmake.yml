@@ -55,6 +55,8 @@ jobs:
             -DBUILD_SHARED_LIBS=${{ matrix.config.cmake_build_shared_libs }} \
             -DREAPER_GIT_HOOKS_AUTO_UPDATE=OFF \
             -DREAPER_RUN_CLANG_TIDY=OFF \
+            -DREAPER_USE_BULLET_PHYSICS=OFF \
+            -DREAPER_USE_MICROPROFILE=OFF \
             -DREAPER_BUILD_WARNINGS_AS_ERRORS=ON
 
       - name: Build
@@ -103,6 +105,8 @@ jobs:
             -DBUILD_SHARED_LIBS=${{ matrix.config.cmake_build_shared_libs }} `
             -DREAPER_GIT_HOOKS_AUTO_UPDATE=OFF `
             -DREAPER_RUN_CLANG_TIDY=OFF `
+            -DREAPER_USE_BULLET_PHYSICS=OFF `
+            -DREAPER_USE_MICROPROFILE=OFF `
             -DREAPER_BUILD_WARNINGS_AS_ERRORS=ON
 
       - name: Build

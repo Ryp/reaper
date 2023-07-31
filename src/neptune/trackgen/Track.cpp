@@ -22,6 +22,7 @@
 #include <glm/gtx/projection.hpp>
 #include <glm/gtx/quaternion.hpp>
 
+#include <array>
 #include <random>
 
 using namespace Reaper;

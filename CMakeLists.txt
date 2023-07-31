@@ -73,7 +73,7 @@ option(REAPER_USE_RENDERDOC             "Build with RenderDoc support"  OFF)
 option(REAPER_HLSL_USE_DXC              "Build HLSL shaders with DXC"   OFF)
 
 # Enable physics simulation with bullet.
-option(REAPER_USE_BULLET_PHYSICS        "Enable game physics"           OFF)
+option(REAPER_USE_BULLET_PHYSICS        "Enable game physics"           ON)
 
 # Override binary output paths
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${Reaper_BINARY_DIR})

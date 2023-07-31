@@ -48,8 +48,8 @@ void update_camera_state(CameraState& state, glm::vec2 yaw_pitch_delta, glm::vec
     state.pitch += yaw_pitch_delta.y * pitch_sensitivity;
 
     const float epsilon = 0.0001f;
-    const float pitch_upper_limit = M_PI_2 - epsilon;
-    const float pitch_lower_limit = -M_PI_2 + epsilon;
+    const float pitch_upper_limit = glm::pi<float>() - epsilon;
+    const float pitch_lower_limit = -glm::pi<float>() + epsilon;
 
     if (state.pitch > pitch_upper_limit)
         state.pitch = pitch_upper_limit;
