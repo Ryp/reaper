@@ -298,6 +298,7 @@ include(imgui)
 
 target_link_libraries(${target} PUBLIC
     reaper_core
+    reaper_profiling
     reaper_mesh
     reaper_common
     reaper_vulkan_loader

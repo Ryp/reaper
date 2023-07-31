@@ -40,6 +40,7 @@ target_link_libraries(${REAPER_BIN} PRIVATE
     reaper_core
     reaper_common
     reaper_math
+    reaper_profiling
     reaper_renderer
     reaper_mesh
     reaper_input
