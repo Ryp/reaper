@@ -34,3 +34,6 @@
     path = external/imgui
     url = https://github.com/Ryp/imgui
     ignore = untracked
+[submodule "external/tracy"]
+	path = external/tracy
+	url = https://github.com/wolfpld/tracy
