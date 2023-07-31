@@ -217,9 +217,9 @@ foreach(INPUT_SHADER IN LISTS REAPER_SHADER_SRCS)
             add_custom_command(OUTPUT ${OUTPUT_SPIRV}
                 COMMAND ${CMAKE_COMMAND} -E make_directory ${OUTPUT_SPIRV_PATH}
                 COMMAND ${DXC_EXEC} -nologo -T ${SHADER_MODEL_STRING} -spirv -fspv-target-env=${REAPER_VULKAN_VERSION} -D_DXC -Zi -E ${REAPER_SHADER_ENTRY_POINT} ${INPUT_SHADER} -I${REAPER_SHADER_DIR} -Fo ${OUTPUT_SPIRV}.unoptimized
-                COMMAND ${VULKAN_SPIRV_OPT_EXEC} ${OUTPUT_SPIRV}.unoptimized --legalize-hlsl -Os -o ${OUTPUT_SPIRV}
-                COMMAND ${VULKAN_SPIRV_DIS_EXEC} ${OUTPUT_SPIRV} -o ${OUTPUT_SPIRV}asm
-                COMMAND ${VULKAN_SPIRV_VAL_EXEC} ${OUTPUT_SPIRV}
+                COMMAND ${Vulkan_SPIRV_OPT_EXEC} ${OUTPUT_SPIRV}.unoptimized --legalize-hlsl -Os -o ${OUTPUT_SPIRV}
+                COMMAND ${Vulkan_SPIRV_DIS_EXEC} ${OUTPUT_SPIRV} -o ${OUTPUT_SPIRV}asm
+                COMMAND ${Vulkan_SPIRV_VAL_EXEC} ${OUTPUT_SPIRV}
                 MAIN_DEPENDENCY ${INPUT_SHADER}
                 COMMENT "Compiling HLSL shader ${INPUT_SHADER_REL} to SPIR-V (${OUTPUT_SPIRV_NAME})"
                 VERBATIM)
@@ -228,9 +228,9 @@ foreach(INPUT_SHADER IN LISTS REAPER_SHADER_SRCS)
                 COMMAND ${CMAKE_COMMAND} -E make_directory ${OUTPUT_SPIRV_PATH}
                 # https://github.com/KhronosGroup/glslang/issues/1461
                 COMMAND ${GLSLANGVALIDATOR_EXEC} --target-env ${REAPER_VULKAN_VERSION} -g -e ${REAPER_SHADER_ENTRY_POINT} -V -D ${INPUT_SHADER} -I${REAPER_SHADER_DIR} -o ${OUTPUT_SPIRV}.unoptimized
-                COMMAND ${VULKAN_SPIRV_OPT_EXEC} ${OUTPUT_SPIRV}.unoptimized --legalize-hlsl -Os -o ${OUTPUT_SPIRV}
-                COMMAND ${VULKAN_SPIRV_DIS_EXEC} ${OUTPUT_SPIRV} -o ${OUTPUT_SPIRV}asm
-                COMMAND ${VULKAN_SPIRV_VAL_EXEC} ${OUTPUT_SPIRV}
+                COMMAND ${Vulkan_SPIRV_OPT_EXEC} ${OUTPUT_SPIRV}.unoptimized --legalize-hlsl -Os -o ${OUTPUT_SPIRV}
+                COMMAND ${Vulkan_SPIRV_DIS_EXEC} ${OUTPUT_SPIRV} -o ${OUTPUT_SPIRV}asm
+                COMMAND ${Vulkan_SPIRV_VAL_EXEC} ${OUTPUT_SPIRV}
                 MAIN_DEPENDENCY ${INPUT_SHADER}
                 COMMENT "Compiling HLSL shader ${INPUT_SHADER_REL} to SPIR-V (${OUTPUT_SPIRV_NAME})"
                 VERBATIM)
@@ -241,9 +241,9 @@ foreach(INPUT_SHADER IN LISTS REAPER_SHADER_SRCS)
         add_custom_command(OUTPUT ${OUTPUT_SPIRV}
             COMMAND ${CMAKE_COMMAND} -E make_directory ${OUTPUT_SPIRV_PATH}
             COMMAND ${GLSLANGVALIDATOR_EXEC} --target-env ${REAPER_VULKAN_VERSION} -g -V ${INPUT_SHADER} -I${REAPER_SHADER_DIR} -o ${OUTPUT_SPIRV}.unoptimized
-            COMMAND ${VULKAN_SPIRV_OPT_EXEC} ${OUTPUT_SPIRV}.unoptimized -Os -o ${OUTPUT_SPIRV}
-            COMMAND ${VULKAN_SPIRV_DIS_EXEC} ${OUTPUT_SPIRV} -o ${OUTPUT_SPIRV}asm
-            COMMAND ${VULKAN_SPIRV_VAL_EXEC} ${OUTPUT_SPIRV}
+            COMMAND ${Vulkan_SPIRV_OPT_EXEC} ${OUTPUT_SPIRV}.unoptimized -Os -o ${OUTPUT_SPIRV}
+            COMMAND ${Vulkan_SPIRV_DIS_EXEC} ${OUTPUT_SPIRV} -o ${OUTPUT_SPIRV}asm
+            COMMAND ${Vulkan_SPIRV_VAL_EXEC} ${OUTPUT_SPIRV}
             MAIN_DEPENDENCY ${INPUT_SHADER}
             COMMENT "Compiling GLSL shader ${INPUT_SHADER_REL} to SPIR-V (${OUTPUT_SPIRV_NAME})"
             VERBATIM)

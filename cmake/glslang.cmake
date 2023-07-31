@@ -9,17 +9,9 @@ find_package(Vulkan REQUIRED)
 
 get_property(GLSLANGVALIDATOR_EXEC TARGET Vulkan::glslangValidator PROPERTY LOCATION)
 
-find_program(VULKAN_SPIRV_OPT_EXEC spirv-opt HINTS
-    "$ENV{VULKAN_SDK}/Bin"
-    "$ENV{VK_SDK_PATH}/Bin")
-
-find_program(VULKAN_SPIRV_DIS_EXEC spirv-dis HINTS
-    "$ENV{VULKAN_SDK}/Bin"
-    "$ENV{VK_SDK_PATH}/Bin")
-
-find_program(VULKAN_SPIRV_VAL_EXEC spirv-val HINTS
-    "$ENV{VULKAN_SDK}/Bin"
-    "$ENV{VK_SDK_PATH}/Bin")
+find_program(Vulkan_SPIRV_OPT_EXEC spirv-opt HINTS "$ENV{VULKAN_SDK}/Bin")
+find_program(Vulkan_SPIRV_DIS_EXEC spirv-dis HINTS "$ENV{VULKAN_SDK}/Bin")
+find_program(Vulkan_SPIRV_VAL_EXEC spirv-val HINTS "$ENV{VULKAN_SDK}/Bin")
 
 if(NOT GLSLANGVALIDATOR_EXEC)
     message(FATAL_ERROR "${GLSLANGVALIDATOR_EXEC} not found")
@@ -39,14 +31,14 @@ else()
     message(STATUS "Found glslang: ${GLSLANG_VERSION}")
 endif()
 
-if(NOT VULKAN_SPIRV_OPT_EXEC)
-    message(FATAL_ERROR "${VULKAN_SPIRV_OPT_EXEC} not found")
+if(NOT Vulkan_SPIRV_OPT_EXEC)
+    message(FATAL_ERROR "${Vulkan_SPIRV_OPT_EXEC} not found")
 endif()
 
-if(NOT VULKAN_SPIRV_DIS_EXEC)
-    message(FATAL_ERROR "${VULKAN_SPIRV_DIS_EXEC} not found")
+if(NOT Vulkan_SPIRV_DIS_EXEC)
+    message(FATAL_ERROR "${Vulkan_SPIRV_DIS_EXEC} not found")
 endif()
 
-if(NOT VULKAN_SPIRV_VAL_EXEC)
-    message(FATAL_ERROR "${VULKAN_SPIRV_VAL_EXEC} not found")
+if(NOT Vulkan_SPIRV_VAL_EXEC)
+    message(FATAL_ERROR "${Vulkan_SPIRV_VAL_EXEC} not found")
 endif()
