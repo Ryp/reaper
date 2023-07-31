@@ -48,16 +48,18 @@ jobs:
           vulkan-components: ${{ env.vulkan_sdk_modules }}
           vulkan-use-cache: true
 
+      # FIXME Enable bullet physics and microprofile
       - name: Configure CMake
         run: |
           cmake -H. -Bbuild \
             -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} \
             -DBUILD_SHARED_LIBS=${{ matrix.config.cmake_build_shared_libs }} \
+            -DREAPER_BUILD_WARNINGS_AS_ERRORS=ON \
             -DREAPER_GIT_HOOKS_AUTO_UPDATE=OFF \
             -DREAPER_RUN_CLANG_TIDY=OFF \
+            -DREAPER_HEADLESS=ON \
             -DREAPER_USE_BULLET_PHYSICS=OFF \
-            -DREAPER_USE_MICROPROFILE=OFF \
-            -DREAPER_BUILD_WARNINGS_AS_ERRORS=ON
+            -DREAPER_USE_MICROPROFILE=OFF
 
       - name: Build
         run: cmake --build build
@@ -97,17 +99,19 @@ jobs:
           vulkan-components: ${{ env.vulkan_sdk_modules }}
           vulkan-use-cache: true
 
+      # FIXME Enable bullet physics and microprofile
       - name: Configure CMake
         run: |
           cmake .\ -Bbuild `
             -G "${{ matrix.config.cmake_generator }}" `
             -A "${{ matrix.cmake_arch }}" `
             -DBUILD_SHARED_LIBS=${{ matrix.config.cmake_build_shared_libs }} `
+            -DREAPER_BUILD_WARNINGS_AS_ERRORS=ON `
             -DREAPER_GIT_HOOKS_AUTO_UPDATE=OFF `
             -DREAPER_RUN_CLANG_TIDY=OFF `
+            -DREAPER_HEADLESS=ON `
             -DREAPER_USE_BULLET_PHYSICS=OFF `
-            -DREAPER_USE_MICROPROFILE=OFF `
-            -DREAPER_BUILD_WARNINGS_AS_ERRORS=ON
+            -DREAPER_USE_MICROPROFILE=OFF
 
       - name: Build
         run: cmake --build build --config ${{ matrix.cmake_build_type }}

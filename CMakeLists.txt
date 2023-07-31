@@ -48,6 +48,10 @@ option(REAPER_BUILD_WARNINGS_AS_ERRORS  "Treats warnings as errors"     OFF)
 # if you intent to push code from your local copy.
 option(REAPER_GIT_HOOKS_AUTO_UPDATE     "Update git hooks"              ON)
 
+# Disables use of features that need a graphical display.
+# This is especially useful for test machines.
+option(REAPER_HEADLESS                  "Headless mode"                 OFF)
+
 # Enable testing. Remember to run the tests before submitting code.
 option(REAPER_BUILD_TESTS               "Build tests"                   ON)
 

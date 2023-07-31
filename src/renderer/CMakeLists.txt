@@ -312,7 +312,7 @@ target_link_libraries(${target} PUBLIC
 
 reaper_configure_library(${target} "Renderer")
 
-reaper_add_tests(${target}
+set(REAPER_TEST_SRCS
     #${CMAKE_CURRENT_SOURCE_DIR}/test/culling.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test/graph.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test/mesh_loading.cpp
@@ -321,5 +321,11 @@ reaper_add_tests(${target}
     ${CMAKE_CURRENT_SOURCE_DIR}/test/hlsl/float_vector.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test/hlsl/float_matrix.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test/hlsl/struct.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/test/window.cpp
 )
+
+if(NOT REAPER_HEADLESS)
+    list(APPEND REAPER_TEST_SRCS
+        ${CMAKE_CURRENT_SOURCE_DIR}/test/window.cpp)
+endif()
+
+reaper_add_tests(${target} ${REAPER_TEST_SRCS})
