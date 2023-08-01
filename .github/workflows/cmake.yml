@@ -58,6 +58,7 @@ jobs:
             -DREAPER_GIT_HOOKS_AUTO_UPDATE=OFF \
             -DREAPER_RUN_CLANG_TIDY=OFF \
             -DREAPER_HEADLESS=ON \
+            -DREAPER_USE_TRACY=OFF \
             -DREAPER_USE_BULLET_PHYSICS=OFF
 
       - name: Build
@@ -109,6 +110,7 @@ jobs:
             -DREAPER_GIT_HOOKS_AUTO_UPDATE=OFF `
             -DREAPER_RUN_CLANG_TIDY=OFF `
             -DREAPER_HEADLESS=ON `
+            -DREAPER_USE_TRACY=OFF `
             -DREAPER_USE_BULLET_PHYSICS=OFF
 
       - name: Build
