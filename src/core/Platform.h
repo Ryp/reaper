@@ -10,8 +10,6 @@
 // Identify the operating system.
 #if defined(WIN32) || defined(_WIN32) || defined(__MINGW32__)
 #    define REAPER_PLATFORM_WINDOWS
-#    define WIN32_LEAN_AND_MEAN
-#    define NOMINMAX
 #    include <windows.h>
 #elif defined(linux) || defined(__linux) || defined(__linux__)
 #    define REAPER_PLATFORM_LINUX
