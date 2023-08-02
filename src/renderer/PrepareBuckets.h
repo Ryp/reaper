@@ -76,6 +76,7 @@ struct CullPassData
 {
     u32        pass_index;
     glm::fvec2 output_size_ts;
+    bool       main_pass;
 
     std::vector<CullCmd> cull_commands;
 };
@@ -94,7 +95,7 @@ struct PreparedData
     std::vector<CullPassData>           cull_passes;
     std::vector<CullMeshInstanceParams> cull_mesh_instance_params;
 
-    u32                                forward_culling_pass_index;
+    u32                                main_culling_pass_index;
     ForwardPassParams                  forward_pass_constants;
     std::vector<ForwardInstanceParams> forward_instances;
 

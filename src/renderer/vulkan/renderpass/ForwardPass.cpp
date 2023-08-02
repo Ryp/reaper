@@ -98,13 +98,14 @@ ForwardPassResources create_forward_pass_resources(ReaperRoot& root, VulkanBacke
         {2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
         {3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
         {4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
-        {5, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
-        {6, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
-        {7, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, ShadowMapMaxCount, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+        {5, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
+        {6, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+        {7, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+        {8, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, ShadowMapMaxCount, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
     };
 
     std::vector<VkDescriptorBindingFlags> bindingFlags0(bindings0.size(), VK_FLAGS_NONE);
-    bindingFlags0[7] = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT;
+    bindingFlags0[8] = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT;
 
     std::vector<VkDescriptorSetLayoutBinding> bindings1 = {
         {0, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
@@ -160,7 +161,8 @@ void destroy_forward_pass_resources(VulkanBackend& backend, ForwardPassResources
 }
 
 void update_forward_pass_descriptor_sets(DescriptorWriteHelper& write_helper, const ForwardPassResources& resources,
-                                         const SamplerResources&  sampler_resources,
+                                         const MeshletCullingResources& meshlet_culling_resources,
+                                         const SamplerResources&        sampler_resources,
                                          const MaterialResources& material_resources, const MeshCache& mesh_cache,
                                          const LightingPassResources&          lighting_resources,
                                          nonstd::span<const FrameGraphTexture> shadow_maps)
@@ -170,14 +172,16 @@ void update_forward_pass_descriptor_sets(DescriptorWriteHelper& write_helper, co
     append_write(write_helper, resources.descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                  resources.instancesConstantBuffer.handle);
     append_write(write_helper, resources.descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                 mesh_cache.vertexBufferPosition.handle);
+                 meshlet_culling_resources.visible_meshlet_buffer.handle);
     append_write(write_helper, resources.descriptor_set, 3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                 mesh_cache.vertexBufferNormal.handle);
+                 mesh_cache.vertexBufferPosition.handle);
     append_write(write_helper, resources.descriptor_set, 4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                 mesh_cache.vertexBufferUV.handle);
+                 mesh_cache.vertexBufferNormal.handle);
     append_write(write_helper, resources.descriptor_set, 5, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                 mesh_cache.vertexBufferUV.handle);
+    append_write(write_helper, resources.descriptor_set, 6, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                  lighting_resources.pointLightBuffer.handle);
-    append_write(write_helper, resources.descriptor_set, 6, sampler_resources.shadowMapSampler);
+    append_write(write_helper, resources.descriptor_set, 7, sampler_resources.shadowMapSampler);
 
     if (!shadow_maps.empty())
     {
@@ -190,7 +194,7 @@ void update_forward_pass_descriptor_sets(DescriptorWriteHelper& write_helper, co
         nonstd::span<const VkDescriptorImageInfo> shadow_map_image_infos(image_info_ptr, shadow_maps.size());
 
         write_helper.writes.push_back(create_image_descriptor_write(
-            resources.descriptor_set, 7, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, shadow_map_image_infos));
+            resources.descriptor_set, 8, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, shadow_map_image_infos));
     }
 
     if (!material_resources.texture_handles.empty())
@@ -262,7 +266,7 @@ void record_forward_pass_command_buffer(CommandBuffer& cmdBuffer, const Prepared
 
     vkCmdBeginRendering(cmdBuffer.handle, &rendering_info);
 
-    const MeshletDrawParams draw_params = get_meshlet_draw_params(prepared.forward_culling_pass_index);
+    const MeshletDrawParams draw_params = get_meshlet_draw_params(prepared.main_culling_pass_index);
 
     vkCmdBindIndexBuffer(cmdBuffer.handle, meshlet_culling_resources.visible_index_buffer.handle,
                          draw_params.index_buffer_offset, draw_params.index_type);

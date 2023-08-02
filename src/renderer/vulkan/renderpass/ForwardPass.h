@@ -55,9 +55,11 @@ struct LightingPassResources;
 struct SamplerResources;
 struct DescriptorWriteHelper;
 struct FrameGraphTexture;
+struct MeshletCullingResources;
 
 void update_forward_pass_descriptor_sets(DescriptorWriteHelper& write_helper, const ForwardPassResources& resources,
-                                         const SamplerResources&  sampler_resources,
+                                         const MeshletCullingResources& meshlet_culling_resources,
+                                         const SamplerResources&        sampler_resources,
                                          const MaterialResources& material_resources, const MeshCache& mesh_cache,
                                          const LightingPassResources&          lighting_resources,
                                          nonstd::span<const FrameGraphTexture> shadow_maps);
@@ -68,7 +70,6 @@ void upload_forward_pass_frame_resources(VulkanBackend& backend, const PreparedD
                                          ForwardPassResources& pass_resources);
 
 struct CommandBuffer;
-struct MeshletCullingResources;
 
 void record_forward_pass_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& prepared,
                                         const ForwardPassResources&    pass_resources,

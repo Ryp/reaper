@@ -4,6 +4,8 @@
 #include "lib/barycentrics.hlsl"
 #include "lib/vertex_pull.hlsl"
 #include "gbuffer/gbuffer.hlsl"
+#include "meshlet/meshlet.share.hlsl"
+#include "forward.share.hlsl" // FIXME
 
 #include "vis_buffer.hlsl"
 #include "fill_gbuffer.share.hlsl"
@@ -13,14 +15,15 @@ VK_PUSH_CONSTANT_HELPER(FillGBufferPushConstants) push;
 VK_BINDING(0, 0) Texture2D<VisBufferRawType> VisBuffer;
 VK_BINDING(1, 0) RWTexture2D<GBuffer0Type> GBuffer0;
 VK_BINDING(2, 0) RWTexture2D<GBuffer1Type> GBuffer1;
-#include "forward.share.hlsl" // FIXME
 VK_BINDING(3, 0) StructuredBuffer<ForwardInstanceParams> instance_params;
-VK_BINDING(4, 0) ByteAddressBuffer IndexBuffer; // FIXME
+VK_BINDING(4, 0) ByteAddressBuffer visible_index_buffer;
 VK_BINDING(5, 0) ByteAddressBuffer buffer_position_ms;
 VK_BINDING(6, 0) ByteAddressBuffer buffer_normal_ms;
 VK_BINDING(7, 0) ByteAddressBuffer buffer_uv;
-VK_BINDING(8, 0) SamplerState diffuse_map_sampler;
-VK_BINDING(9, 0) Texture2D<float3> t_diffuse_map[];
+VK_BINDING(8, 0) StructuredBuffer<VisibleMeshlet> visible_meshlets;
+
+VK_BINDING(9, 0) SamplerState diffuse_map_sampler;
+VK_BINDING(10, 0) Texture2D<float3> t_diffuse_map[];
 
 struct VertexData
 {
@@ -54,28 +57,30 @@ void main(uint3 gtid : SV_GroupThreadID,
 
     VisibilityBuffer vis_buffer = decode_vis_buffer(vis_buffer_raw);
 
-    uint v0_id = vis_buffer.triangle_id * 3;
-    uint v1_id = vis_buffer.triangle_id * 3 + 1;
-    uint v2_id = vis_buffer.triangle_id * 3 + 2;
+    VisibleMeshlet visible_meshlet = visible_meshlets[vis_buffer.visible_meshlet_index];
+
+    uint visible_index_offset = visible_meshlet.visible_index_offset + vis_buffer.meshlet_triangle_id * 3;
+    uint3 indices = visible_index_buffer.Load3(visible_index_offset * MeshletIndexSizeBytes);
+    indices += visible_meshlet.vertex_offset;
 
     VertexData p0;
     VertexData p1;
     VertexData p2;
 
     // FIXME AoS or SoA?
-    p0.position_ms = pull_position(buffer_position_ms, v0_id);
-    p1.position_ms = pull_position(buffer_position_ms, v1_id);
-    p2.position_ms = pull_position(buffer_position_ms, v2_id);
+    p0.position_ms = pull_position(buffer_position_ms, indices.x);
+    p1.position_ms = pull_position(buffer_position_ms, indices.y);
+    p2.position_ms = pull_position(buffer_position_ms, indices.z);
 
-    p0.normal_ms = pull_normal(buffer_normal_ms, v0_id);
-    p1.normal_ms = pull_normal(buffer_normal_ms, v1_id);
-    p2.normal_ms = pull_normal(buffer_normal_ms, v2_id);
+    p0.normal_ms = pull_normal(buffer_normal_ms, indices.x);
+    p1.normal_ms = pull_normal(buffer_normal_ms, indices.y);
+    p2.normal_ms = pull_normal(buffer_normal_ms, indices.z);
 
-    p0.uv = pull_uv(buffer_uv, v0_id);
-    p1.uv = pull_uv(buffer_uv, v1_id);
-    p2.uv = pull_uv(buffer_uv, v2_id);
+    p0.uv = pull_uv(buffer_uv, indices.x);
+    p1.uv = pull_uv(buffer_uv, indices.y);
+    p2.uv = pull_uv(buffer_uv, indices.z);
 
-    ForwardInstanceParams instance_data = instance_params[vis_buffer.instance_id];
+    ForwardInstanceParams instance_data = instance_params[visible_meshlet.mesh_instance_id];
     float4 p0_cs = mul(instance_data.ms_to_cs_matrix, float4(p0.position_ms, 1.0));
     float4 p1_cs = mul(instance_data.ms_to_cs_matrix, float4(p1.position_ms, 1.0));
     float4 p2_cs = mul(instance_data.ms_to_cs_matrix, float4(p2.position_ms, 1.0));

@@ -98,6 +98,7 @@ MeshletCullingResources create_meshlet_culling_resources(ReaperRoot& root, Vulka
             {4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
             {5, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
             {6, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+            {7, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
         };
 
         VkDescriptorSetLayout descriptorSetLayout =
@@ -156,6 +157,12 @@ MeshletCullingResources create_meshlet_culling_resources(ReaperRoot& root, Vulka
                                                  GPUBufferUsage::IndirectBuffer | GPUBufferUsage::StorageBuffer),
                       backend.vma_instance);
 
+    // NOTE: This buffer should only be used in the main pass.
+    resources.visible_meshlet_buffer = create_buffer(
+        root, backend.device, "Visible meshlet buffer",
+        DefaultGPUBufferProperties(MaxIndirectDrawCountPerPass, sizeof(VisibleMeshlet), GPUBufferUsage::StorageBuffer),
+        backend.vma_instance);
+
     Assert(MaxIndirectDrawCountPerPass < backend.physicalDeviceProperties.limits.maxDrawIndirectCount);
 
     resources.cull_meshlet_descriptor_sets.resize(4);
@@ -205,6 +212,8 @@ void destroy_meshlet_culling_resources(VulkanBackend& backend, MeshletCullingRes
                      resources.visible_meshlet_offsets_buffer.allocation);
     vmaDestroyBuffer(backend.vma_instance, resources.visible_indirect_draw_commands_buffer.handle,
                      resources.visible_indirect_draw_commands_buffer.allocation);
+    vmaDestroyBuffer(backend.vma_instance, resources.visible_meshlet_buffer.handle,
+                     resources.visible_meshlet_buffer.allocation);
 
     destroy_simple_pipeline(backend.device, resources.cull_meshlets_pipe);
     destroy_simple_pipeline(backend.device, resources.cull_meshlets_prep_indirect_pipe);
@@ -241,7 +250,7 @@ void update_meshlet_culling_pass_descriptor_sets(DescriptorWriteHelper& write_he
 
         const GPUBufferView counter_buffer_view = get_buffer_view(
             resources.counters_buffer.properties, BufferSubresource{pass_index * CountersCount, CountersCount});
-        const GPUBufferView dynamic_meshlet_view =
+        const GPUBufferView visible_meshlet_offsets_view =
             get_buffer_view(resources.visible_meshlet_offsets_buffer.properties,
                             BufferSubresource{pass_index * MaxVisibleMeshletsPerPass, MaxVisibleMeshletsPerPass});
 
@@ -255,22 +264,21 @@ void update_meshlet_culling_pass_descriptor_sets(DescriptorWriteHelper& write_he
                          resources.counters_buffer.handle, counter_buffer_view.offset_bytes,
                          counter_buffer_view.size_bytes);
             append_write(write_helper, descriptor_set, 3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                         resources.visible_meshlet_offsets_buffer.handle, dynamic_meshlet_view.offset_bytes,
-                         dynamic_meshlet_view.size_bytes);
+                         resources.visible_meshlet_offsets_buffer.handle, visible_meshlet_offsets_view.offset_bytes,
+                         visible_meshlet_offsets_view.size_bytes);
         }
 
         {
-            const GPUBufferView dynamic_index_view = get_buffer_view(
-                resources.visible_index_buffer.properties,
-                BufferSubresource{pass_index * VisibleIndexBufferSizeBytes, VisibleIndexBufferSizeBytes});
+            const GPUBufferView visible_indices_view = get_buffer_view(
+                resources.visible_index_buffer.properties, get_meshlet_visible_index_buffer_pass(pass_index));
             const GPUBufferView indirect_draw_view = get_buffer_view(
                 resources.visible_indirect_draw_commands_buffer.properties,
                 BufferSubresource{pass_index * MaxIndirectDrawCountPerPass, MaxIndirectDrawCountPerPass});
 
             VkDescriptorSet descriptor_set = resources.cull_triangles_descriptor_sets[pass_index];
             append_write(write_helper, descriptor_set, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                         resources.visible_meshlet_offsets_buffer.handle, dynamic_meshlet_view.offset_bytes,
-                         dynamic_meshlet_view.size_bytes);
+                         resources.visible_meshlet_offsets_buffer.handle, visible_meshlet_offsets_view.offset_bytes,
+                         visible_meshlet_offsets_view.size_bytes);
             append_write(write_helper, descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                          mesh_cache.indexBuffer.handle);
             append_write(write_helper, descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
@@ -278,14 +286,16 @@ void update_meshlet_culling_pass_descriptor_sets(DescriptorWriteHelper& write_he
             append_write(write_helper, descriptor_set, 3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                          resources.mesh_instance_buffer.handle);
             append_write(write_helper, descriptor_set, 4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                         resources.visible_index_buffer.handle, dynamic_index_view.offset_bytes,
-                         dynamic_index_view.size_bytes);
+                         resources.visible_index_buffer.handle, visible_indices_view.offset_bytes,
+                         visible_indices_view.size_bytes);
             append_write(write_helper, descriptor_set, 5, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                          resources.visible_indirect_draw_commands_buffer.handle, indirect_draw_view.offset_bytes,
                          indirect_draw_view.size_bytes);
             append_write(write_helper, descriptor_set, 6, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                          resources.counters_buffer.handle, counter_buffer_view.offset_bytes,
                          counter_buffer_view.size_bytes);
+            append_write(write_helper, descriptor_set, 7, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                         resources.visible_meshlet_buffer.handle);
         }
     }
 }
@@ -390,6 +400,7 @@ void record_meshlet_culling_command_buffer(ReaperRoot& root, CommandBuffer& cmdB
 
             CullPushConstants consts;
             consts.output_size_ts = cull_pass.output_size_ts;
+            consts.main_pass = cull_pass.main_pass ? 1 : 0;
 
             vkCmdPushConstants(cmdBuffer.handle, resources.cull_triangles_pipe.pipelineLayout,
                                VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(consts), &consts);
@@ -517,5 +528,10 @@ MeshletDrawParams get_meshlet_draw_params(u32 pass_index)
     params.command_buffer_max_count = MaxIndirectDrawCountPerPass;
 
     return params;
+}
+
+BufferSubresource get_meshlet_visible_index_buffer_pass(u32 pass_index)
+{
+    return BufferSubresource{pass_index * VisibleIndexBufferSizeBytes, VisibleIndexBufferSizeBytes};
 }
 } // namespace Reaper

@@ -100,6 +100,7 @@ VisibilityBufferPassResources create_vis_buffer_pass_resources(ReaperRoot& root,
         std::vector<VkDescriptorSetLayoutBinding> bindings = {
             {0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
             {1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
+            {2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
         };
 
         const VkDescriptorSetLayout descriptor_set_layout = create_descriptor_set_layout(backend.device, bindings);
@@ -122,8 +123,9 @@ VisibilityBufferPassResources create_vis_buffer_pass_resources(ReaperRoot& root,
             {5, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
             {6, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
             {7, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-            {8, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-            {9, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, DiffuseMapMaxCount, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+            {8, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+            {9, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+            {10, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, DiffuseMapMaxCount, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
         };
 
         std::vector<VkDescriptorBindingFlags> binding_flags(bindings.size(), VK_FLAGS_NONE);
@@ -176,6 +178,7 @@ void destroy_vis_buffer_pass_resources(VulkanBackend& backend, VisibilityBufferP
 
 void update_vis_buffer_pass_descriptor_sets(DescriptorWriteHelper&               write_helper,
                                             const VisibilityBufferPassResources& resources,
+                                            const PreparedData&                  prepared,
                                             const SamplerResources&              sampler_resources,
                                             const MaterialResources&             material_resources,
                                             const MeshletCullingResources&       meshlet_culling_resources,
@@ -184,9 +187,15 @@ void update_vis_buffer_pass_descriptor_sets(DescriptorWriteHelper&              
                                             const FrameGraphTexture&             gbuffer_rt0,
                                             const FrameGraphTexture&             gbuffer_rt1)
 {
+    const GPUBufferView visible_index_buffer_view =
+        get_buffer_view(meshlet_culling_resources.visible_index_buffer.properties,
+                        get_meshlet_visible_index_buffer_pass(prepared.main_culling_pass_index));
+
     append_write(write_helper, resources.descriptor_set, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                  resources.instancesConstantBuffer.handle);
     append_write(write_helper, resources.descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                 meshlet_culling_resources.visible_meshlet_buffer.handle);
+    append_write(write_helper, resources.descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                  mesh_cache.vertexBufferPosition.handle);
 
     append_write(write_helper, resources.descriptor_set_fill, 0, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
@@ -198,14 +207,17 @@ void update_vis_buffer_pass_descriptor_sets(DescriptorWriteHelper&              
     append_write(write_helper, resources.descriptor_set_fill, 3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                  resources.instancesConstantBuffer.handle);
     append_write(write_helper, resources.descriptor_set_fill, 4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                 meshlet_culling_resources.visible_index_buffer.handle);
+                 meshlet_culling_resources.visible_index_buffer.handle, visible_index_buffer_view.offset_bytes,
+                 visible_index_buffer_view.size_bytes);
     append_write(write_helper, resources.descriptor_set_fill, 5, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                  mesh_cache.vertexBufferPosition.handle);
     append_write(write_helper, resources.descriptor_set_fill, 6, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                  mesh_cache.vertexBufferNormal.handle);
     append_write(write_helper, resources.descriptor_set_fill, 7, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                  mesh_cache.vertexBufferUV.handle);
-    append_write(write_helper, resources.descriptor_set_fill, 8, sampler_resources.diffuseMapSampler);
+    append_write(write_helper, resources.descriptor_set_fill, 8, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                 meshlet_culling_resources.visible_meshlet_buffer.handle);
+    append_write(write_helper, resources.descriptor_set_fill, 9, sampler_resources.diffuseMapSampler);
 
     if (!material_resources.texture_handles.empty())
     {
@@ -223,7 +235,7 @@ void update_vis_buffer_pass_descriptor_sets(DescriptorWriteHelper&              
         Assert(albedo_image_infos.size() <= DiffuseMapMaxCount);
 
         write_helper.writes.push_back(create_image_descriptor_write(
-            resources.descriptor_set_fill, 9, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, albedo_image_infos));
+            resources.descriptor_set_fill, 10, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, albedo_image_infos));
     }
 }
 
@@ -273,14 +285,14 @@ void record_vis_buffer_pass_command_buffer(CommandBuffer& cmdBuffer, const Prepa
 
     vkCmdBeginRendering(cmdBuffer.handle, &rendering_info);
 
-    const MeshletDrawParams draw_params = get_meshlet_draw_params(prepared.forward_culling_pass_index);
-
-    vkCmdBindIndexBuffer(cmdBuffer.handle, meshlet_culling_resources.visible_index_buffer.handle,
-                         draw_params.index_buffer_offset, draw_params.index_type);
+    const MeshletDrawParams draw_params = get_meshlet_draw_params(prepared.main_culling_pass_index);
 
     std::vector<VkDescriptorSet> pass_descriptors = {
         pass_resources.descriptor_set,
     };
+
+    vkCmdBindIndexBuffer(cmdBuffer.handle, meshlet_culling_resources.visible_index_buffer.handle,
+                         draw_params.index_buffer_offset, draw_params.index_type);
 
     vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, pass_resources.pipe.pipelineLayout, 0,
                             static_cast<u32>(pass_descriptors.size()), pass_descriptors.data(), 0, nullptr);

@@ -54,8 +54,11 @@ struct SamplerResources;
 struct DescriptorWriteHelper;
 struct FrameGraphTexture;
 
+struct PreparedData;
+
 void update_vis_buffer_pass_descriptor_sets(DescriptorWriteHelper&               write_helper,
                                             const VisibilityBufferPassResources& resources,
+                                            const PreparedData&                  prepared,
                                             const SamplerResources&              sampler_resources,
                                             const MaterialResources&             material_resources,
                                             const MeshletCullingResources&       meshlet_culling_resources,
@@ -63,8 +66,6 @@ void update_vis_buffer_pass_descriptor_sets(DescriptorWriteHelper&              
                                             const FrameGraphTexture&             vis_buffer,
                                             const FrameGraphTexture&             gbuffer_rt0,
                                             const FrameGraphTexture&             gbuffer_rt1);
-
-struct PreparedData;
 
 void upload_vis_buffer_pass_frame_resources(VulkanBackend& backend, const PreparedData& prepared,
                                             VisibilityBufferPassResources& pass_resources);

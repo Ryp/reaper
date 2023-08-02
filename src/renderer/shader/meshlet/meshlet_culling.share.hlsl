@@ -41,6 +41,7 @@ struct CullMeshletPushConstants
 struct CullPushConstants
 {
     hlsl_float2 output_size_ts;
+    hlsl_uint   main_pass;
     // No need for manual padding for push constants
 };
 

@@ -39,6 +39,7 @@ struct MeshletCullingResources
     BufferInfo triangle_culling_indirect_dispatch_buffer;
     BufferInfo visible_index_buffer;
     BufferInfo visible_indirect_draw_commands_buffer;
+    BufferInfo visible_meshlet_buffer;
 
     VkEvent countersReadyEvent;
 };
@@ -88,4 +89,5 @@ struct MeshletDrawParams
 };
 
 MeshletDrawParams get_meshlet_draw_params(u32 pass_index);
+BufferSubresource get_meshlet_visible_index_buffer_pass(u32 pass_index);
 } // namespace Reaper

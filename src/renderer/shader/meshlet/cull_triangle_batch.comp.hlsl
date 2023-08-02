@@ -23,9 +23,10 @@ VK_BINDING(3, 0) StructuredBuffer<CullMeshInstanceParams> cull_mesh_instance_par
 //------------------------------------------------------------------------------
 // Output
 
-VK_BINDING(4, 0) RWByteAddressBuffer IndicesOut;
+VK_BINDING(4, 0) RWByteAddressBuffer visible_index_buffer;
 VK_BINDING(5, 0) RWStructuredBuffer<DrawIndexedIndirectCommand> DrawCommandOut;
 VK_BINDING(6, 0) globallycoherent RWByteAddressBuffer Counters;
+VK_BINDING(7, 0) RWStructuredBuffer<VisibleMeshlet> VisibleMeshlets;
 
 //------------------------------------------------------------------------------
 
@@ -51,7 +52,7 @@ void main(uint3 gtid : SV_GroupThreadID,
 
     const uint input_triangle_index_offset = meshlet.index_offset + gtid.x * 3;
 
-    const uint3 indices = Indices.Load3(input_triangle_index_offset * 4);
+    const uint3 indices = Indices.Load3(input_triangle_index_offset * MeshletIndexSizeBytes);
     const uint3 indices_with_vertex_offset = indices + meshlet.vertex_offset;
 
     // NOTE: We will read out of bounds, this might be wasteful - or even illegal. OOB reads in DirectX11 are defined to return zero, what about Vulkan?
@@ -142,7 +143,7 @@ void main(uint3 gtid : SV_GroupThreadID,
 
     if (is_visible)
     {
-        IndicesOut.Store3(output_triangle_index * 3 * 4, indices);
+        visible_index_buffer.Store3(output_triangle_index * 3 * 4, indices);
     }
 
     if (gi == 0 && lds_triangle_count > 0)
@@ -155,9 +156,29 @@ void main(uint3 gtid : SV_GroupThreadID,
         command.indexCount = lds_triangle_count * 3;
         command.instanceCount = 1;
         command.firstIndex = lds_triangle_offset * 3;
-        command.vertexOffset = meshlet.vertex_offset;
-        command.firstInstance = mesh_instance.instance_id;
+
+        if (consts.main_pass)
+        {
+            command.vertexOffset = 0;
+            command.firstInstance = draw_command_index;
+        }
+        else
+        {
+            command.vertexOffset = meshlet.vertex_offset;
+            command.firstInstance = mesh_instance.instance_id;
+        }
 
         DrawCommandOut[draw_command_index] = command;
+
+        if (consts.main_pass)
+        {
+            VisibleMeshlet visible_meshlet;
+            visible_meshlet.meshlet_index = meshlet_index;
+            visible_meshlet.mesh_instance_id = mesh_instance.instance_id;
+            visible_meshlet.visible_index_offset = lds_triangle_offset * 3;
+            visible_meshlet.vertex_offset = meshlet.vertex_offset;
+
+            VisibleMeshlets[draw_command_index] = visible_meshlet;
+        }
     }
 }

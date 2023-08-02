@@ -135,6 +135,7 @@ void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCa
         CullPassData& cull_pass = prepared.cull_passes.emplace_back();
         cull_pass.pass_index = prepared.cull_passes.size() - 1;
         cull_pass.output_size_ts = glm::fvec2(light.shadow_map_size);
+        cull_pass.main_pass = false;
 
         shadow_pass.culling_pass_index = cull_pass.pass_index;
         shadow_pass.shadow_map_size = light.shadow_map_size;
@@ -216,8 +217,9 @@ void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCa
         CullPassData& cull_pass = prepared.cull_passes.emplace_back();
         cull_pass.pass_index = prepared.cull_passes.size() - 1;
         cull_pass.output_size_ts = glm::fvec2(main_camera.viewport.extent);
+        cull_pass.main_pass = true;
 
-        prepared.forward_culling_pass_index = cull_pass.pass_index;
+        prepared.main_culling_pass_index = cull_pass.pass_index;
 
         for (u32 i = 0; i < scene.scene_meshes.size(); i++)
         {

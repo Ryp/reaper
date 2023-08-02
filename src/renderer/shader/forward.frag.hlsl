@@ -22,9 +22,9 @@ VK_CONSTANT(3) const bool spec_debug_enable_albedo = false;
 
 VK_BINDING(0, 0) ConstantBuffer<ForwardPassParams> pass_params;
 
-VK_BINDING(5, 0) StructuredBuffer<PointLightProperties> point_lights;
-VK_BINDING(6, 0) SamplerComparisonState shadow_map_sampler;
-VK_BINDING(7, 0) Texture2D<float> t_shadow_map[];
+VK_BINDING(6, 0) StructuredBuffer<PointLightProperties> point_lights;
+VK_BINDING(7, 0) SamplerComparisonState shadow_map_sampler;
+VK_BINDING(8, 0) Texture2D<float> t_shadow_map[];
 
 VK_BINDING(0, 1) SamplerState diffuse_map_sampler;
 VK_BINDING(1, 1) Texture2D<float3> t_diffuse_map[];

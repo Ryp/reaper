@@ -995,6 +995,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     update_vis_buffer_pass_descriptor_sets(
         descriptor_write_helper,
         resources.vis_buffer_pass_resources,
+        prepared,
         resources.samplers_resources,
         resources.material_resources,
         resources.meshlet_culling_resources,
@@ -1004,8 +1005,9 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         get_frame_graph_texture(resources.framegraph_resources, framegraph, visibility_gbuffer.gbuffer_rt1));
 
     update_forward_pass_descriptor_sets(descriptor_write_helper, resources.forward_pass_resources,
-                                        resources.samplers_resources, resources.material_resources,
-                                        resources.mesh_cache, resources.lighting_resources, forward_shadow_map_views);
+                                        resources.meshlet_culling_resources, resources.samplers_resources,
+                                        resources.material_resources, resources.mesh_cache,
+                                        resources.lighting_resources, forward_shadow_map_views);
 
     update_lighting_depth_downsample_descriptor_set(
         descriptor_write_helper, resources.tiled_raster_resources, resources.samplers_resources,

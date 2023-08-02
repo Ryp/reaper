@@ -11,6 +11,7 @@
 #include "shared_types.hlsl"
 
 static const hlsl_uint MeshletMaxTriangleCount = 64;
+static const hlsl_uint MeshletIndexSizeBytes = 4;
 
 struct Meshlet
 {
@@ -24,6 +25,14 @@ struct Meshlet
     hlsl_float  cone_cutoff; /* = cos(angle/2) */
     hlsl_float3 cone_apex_ms;
     hlsl_float  _pad;
+};
+
+struct VisibleMeshlet
+{
+    hlsl_uint meshlet_index;
+    hlsl_uint mesh_instance_id;
+    hlsl_uint visible_index_offset;
+    hlsl_uint vertex_offset;
 };
 
 #endif

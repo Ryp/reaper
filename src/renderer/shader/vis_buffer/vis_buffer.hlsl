@@ -10,33 +10,32 @@
 
 #include "lib/format/bitfield.hlsl"
 
-#define VisBufferRawType uint
-
-// FIXME this is not a lot of bits for the instance id
-static const uint TriangleIDOffset = 0;
-static const uint TriangleIDBits = 22;
-static const uint InstanceIDOffset = TriangleIDBits;
-static const uint InstanceIDBits = 10;
-
 struct VisibilityBuffer
 {
-    uint triangle_id;
-    uint instance_id;
+    uint visible_meshlet_index;
+    uint meshlet_triangle_id;
 };
+
+#define VisBufferRawType uint
+
+static const uint VisibleMeshletIndex_Offset = 0;
+static const uint VisibleMeshletIndex_Bits = 25;
+static const uint MeshletTriangleIndex_Offset = VisibleMeshletIndex_Bits;
+static const uint MeshletTriangleIndex_Bits = 7;
 
 // NOTE: Overflow is not handled
 VisBufferRawType encode_vis_buffer(VisibilityBuffer vis_buffer)
 {
-    return (vis_buffer.triangle_id + 1) << TriangleIDOffset
-          | vis_buffer.instance_id << InstanceIDOffset;
+    return (vis_buffer.visible_meshlet_index + 1) << VisibleMeshletIndex_Offset
+          | vis_buffer.meshlet_triangle_id << MeshletTriangleIndex_Offset;
 }
 
 VisibilityBuffer decode_vis_buffer(VisBufferRawType vis_buffer_raw)
 {
     VisibilityBuffer vis_buffer;
 
-    vis_buffer.triangle_id = bitfield_extract(vis_buffer_raw, TriangleIDOffset, TriangleIDBits) - 1;
-    vis_buffer.instance_id = bitfield_extract(vis_buffer_raw, InstanceIDOffset, InstanceIDBits);
+    vis_buffer.visible_meshlet_index = bitfield_extract(vis_buffer_raw, VisibleMeshletIndex_Offset, VisibleMeshletIndex_Bits) - 1;
+    vis_buffer.meshlet_triangle_id = bitfield_extract(vis_buffer_raw, MeshletTriangleIndex_Offset, MeshletTriangleIndex_Bits);
 
     return vis_buffer;
 }
