@@ -29,10 +29,10 @@ struct Meshlet
 
 struct VisibleMeshlet
 {
-    hlsl_uint meshlet_index;
     hlsl_uint mesh_instance_id;
     hlsl_uint visible_index_offset;
     hlsl_uint vertex_offset;
+    hlsl_float  _pad;
 };
 
 #endif

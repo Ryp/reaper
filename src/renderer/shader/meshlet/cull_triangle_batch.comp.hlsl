@@ -173,7 +173,6 @@ void main(uint3 gtid : SV_GroupThreadID,
         if (consts.main_pass)
         {
             VisibleMeshlet visible_meshlet;
-            visible_meshlet.meshlet_index = meshlet_index;
             visible_meshlet.mesh_instance_id = mesh_instance.instance_id;
             visible_meshlet.visible_index_offset = lds_triangle_offset * 3;
             visible_meshlet.vertex_offset = meshlet.vertex_offset;
