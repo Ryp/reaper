@@ -12,7 +12,7 @@
 
 static const hlsl_float HistogramEVCount = 32.0;
 static const hlsl_float HistogramEVOffset = 16.0;
-static const hlsl_uint  HistogramRes = 512;
+static const hlsl_uint  HistogramRes = 128;
 
 static const hlsl_uint HistogramThreadCountX = 8;
 static const hlsl_uint HistogramThreadCountY = 8;
