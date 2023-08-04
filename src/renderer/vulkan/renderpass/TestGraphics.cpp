@@ -201,9 +201,6 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     FrameData frame_data = {};
     frame_data.backbufferExtent = backbufferExtent;
 
-    // FIXME Recreate the swapchain pipeline every frame
-    reload_swapchain_pipeline(backend, resources.shader_modules, resources.swapchain_pass_resources);
-
     {
         REAPER_PROFILE_SCOPE("Upload Resources");
         upload_meshlet_culling_resources(backend, prepared, resources.meshlet_culling_resources);
