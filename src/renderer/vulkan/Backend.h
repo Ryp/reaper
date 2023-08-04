@@ -33,7 +33,7 @@ struct PresentationInfo
     VkImageUsageFlags             swapchainUsageFlags;
     VkSurfaceTransformFlagBitsKHR transform;
 
-    VkSwapchainKHR swapchain;
+    VkSwapchainKHR swapchain = VK_NULL_HANDLE;
 
     // TODO Vulkan 1.3 might allow timeline semaphores soon
     VkSemaphore imageAvailableSemaphore;

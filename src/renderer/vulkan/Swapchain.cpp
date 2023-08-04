@@ -292,24 +292,24 @@ void create_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backend, 
     };
 
     VkSwapchainCreateInfoKHR swap_chain_create_info = {
-        VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR, // VkStructureType                sType
-        &format_list,                                // const void                    *pNext
-        VK_SWAPCHAIN_CREATE_MUTABLE_FORMAT_BIT_KHR,  // VkSwapchainCreateFlagsKHR      flags
-        presentInfo.surface,                         // VkSurfaceKHR                   surface
-        presentInfo.imageCount,                      // uint32_t                       minImageCount
-        presentInfo.surfaceFormat.format,            // VkFormat                       imageFormat
-        presentInfo.surfaceFormat.colorSpace,        // VkColorSpaceKHR                imageColorSpace
-        presentInfo.surfaceExtent,                   // VkExtent2D                     imageExtent
-        1,                                           // uint32_t                       imageArrayLayers
-        presentInfo.swapchainUsageFlags,             // VkImageUsageFlags              imageUsage
-        VK_SHARING_MODE_EXCLUSIVE,                   // VkSharingMode                  imageSharingMode
-        0,                                           // uint32_t                       queueFamilyIndexCount
-        nullptr,                                     // const uint32_t                *pQueueFamilyIndices
-        presentInfo.transform,                       // VkSurfaceTransformFlagBitsKHR  preTransform
-        VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,           // VkCompositeAlphaFlagBitsKHR    compositeAlpha
-        presentInfo.presentMode,                     // VkPresentModeKHR               presentMode
-        VK_TRUE,                                     // VkBool32                       clipped
-        VK_NULL_HANDLE                               // VkSwapchainKHR                 oldSwapchain
+        .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
+        .pNext = &format_list,
+        .flags = VK_SWAPCHAIN_CREATE_MUTABLE_FORMAT_BIT_KHR,
+        .surface = presentInfo.surface,
+        .minImageCount = presentInfo.imageCount,
+        .imageFormat = presentInfo.surfaceFormat.format,
+        .imageColorSpace = presentInfo.surfaceFormat.colorSpace,
+        .imageExtent = presentInfo.surfaceExtent,
+        .imageArrayLayers = 1,
+        .imageUsage = presentInfo.swapchainUsageFlags,
+        .imageSharingMode = VK_SHARING_MODE_EXCLUSIVE,
+        .queueFamilyIndexCount = 0,
+        .pQueueFamilyIndices = nullptr,
+        .preTransform = presentInfo.transform,
+        .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
+        .presentMode = presentInfo.presentMode,
+        .clipped = VK_TRUE,
+        .oldSwapchain = presentInfo.swapchain,
     };
 
     Assert(vkCreateSwapchainKHR(backend.device, &swap_chain_create_info, nullptr, &presentInfo.swapchain)
@@ -384,9 +384,6 @@ void resize_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backend, 
 
     destroy_swapchain_views(backend, presentInfo);
 
-    vkDestroySwapchainKHR(backend.device, presentInfo.swapchain, nullptr);
-    presentInfo.swapchain = VK_NULL_HANDLE;
-
     // Reconfigure even if we know most of what we expect/need
     SwapchainDescriptor swapchainDesc;
     swapchainDesc.preferredImageCount = presentInfo.imageCount;
@@ -395,7 +392,16 @@ void resize_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backend, 
 
     configure_vulkan_wm_swapchain(root, backend, swapchainDesc, presentInfo);
 
+    // Do not destroy the current swapchain, we're recycling it
+    Assert(presentInfo.swapchain != VK_NULL_HANDLE);
+
+    VkSwapchainKHR old_swapchain = presentInfo.swapchain;
+
     create_vulkan_wm_swapchain(root, backend, presentInfo);
+
+    Assert(presentInfo.swapchain != old_swapchain);
+
+    vkDestroySwapchainKHR(backend.device, old_swapchain, nullptr);
 }
 
 void create_swapchain_views(const VulkanBackend& backend, PresentationInfo& presentInfo)
