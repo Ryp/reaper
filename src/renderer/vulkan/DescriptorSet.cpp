@@ -14,17 +14,29 @@ namespace Reaper
 {
 VkDescriptorImageInfo create_descriptor_image_info(VkImageView image_view, VkImageLayout layout)
 {
-    return {VK_NULL_HANDLE, image_view, layout};
+    return VkDescriptorImageInfo{
+        .sampler = VK_NULL_HANDLE,
+        .imageView = image_view,
+        .imageLayout = layout,
+    };
 }
 
 VkDescriptorImageInfo create_descriptor_image_info(VkSampler sampler)
 {
-    return {sampler, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_UNDEFINED};
+    return VkDescriptorImageInfo{
+        .sampler = sampler,
+        .imageView = VK_NULL_HANDLE,
+        .imageLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+    };
 }
 
 VkDescriptorBufferInfo create_descriptor_buffer_info(VkBuffer handle, u64 offset_bytes, u64 size_bytes)
 {
-    return {handle, offset_bytes, size_bytes};
+    return VkDescriptorBufferInfo{
+        .buffer = handle,
+        .offset = offset_bytes,
+        .range = size_bytes,
+    };
 }
 
 VkWriteDescriptorSet create_image_descriptor_write(VkDescriptorSet descriptor_set, u32 binding,
@@ -32,8 +44,16 @@ VkWriteDescriptorSet create_image_descriptor_write(VkDescriptorSet descriptor_se
                                                    nonstd::span<const VkDescriptorImageInfo> image_infos)
 {
     return VkWriteDescriptorSet{
-        VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, nullptr,         descriptor_set,     binding, 0,
-        static_cast<u32>(image_infos.size()),   descriptor_type, image_infos.data(), nullptr, nullptr,
+        .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+        .pNext = nullptr,
+        .dstSet = descriptor_set,
+        .dstBinding = binding,
+        .dstArrayElement = 0,
+        .descriptorCount = static_cast<u32>(image_infos.size()),
+        .descriptorType = descriptor_type,
+        .pImageInfo = image_infos.data(),
+        .pBufferInfo = nullptr,
+        .pTexelBufferView = nullptr,
     };
 }
 
@@ -48,16 +68,16 @@ VkWriteDescriptorSet create_buffer_descriptor_write(VkDescriptorSet descriptor_s
                                                     nonstd::span<const VkDescriptorBufferInfo> buffer_infos)
 {
     return VkWriteDescriptorSet{
-        VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-        nullptr,
-        descriptor_set,
-        binding,
-        0,
-        static_cast<u32>(buffer_infos.size()),
-        descriptor_type,
-        nullptr,
-        buffer_infos.data(),
-        nullptr,
+        .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+        .pNext = nullptr,
+        .dstSet = descriptor_set,
+        .dstBinding = binding,
+        .dstArrayElement = 0,
+        .descriptorCount = static_cast<u32>(buffer_infos.size()),
+        .descriptorType = descriptor_type,
+        .pImageInfo = nullptr,
+        .pBufferInfo = buffer_infos.data(),
+        .pTexelBufferView = nullptr,
     };
 }
 
@@ -66,6 +86,32 @@ VkWriteDescriptorSet create_buffer_descriptor_write(VkDescriptorSet descriptor_s
                                                     const VkDescriptorBufferInfo* buffer_info)
 {
     return create_buffer_descriptor_write(descriptor_set, binding, descriptor_type, nonstd::span(buffer_info, 1));
+}
+
+VkWriteDescriptorSet create_texel_buffer_view_descriptor_write(VkDescriptorSet descriptor_set, u32 binding,
+                                                               VkDescriptorType                 descriptor_type,
+                                                               nonstd::span<const VkBufferView> texel_buffer_views)
+{
+    return VkWriteDescriptorSet{
+        .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+        .pNext = nullptr,
+        .dstSet = descriptor_set,
+        .dstBinding = binding,
+        .dstArrayElement = 0,
+        .descriptorCount = static_cast<u32>(texel_buffer_views.size()),
+        .descriptorType = descriptor_type,
+        .pImageInfo = nullptr,
+        .pBufferInfo = nullptr,
+        .pTexelBufferView = texel_buffer_views.data(),
+    };
+}
+
+VkWriteDescriptorSet create_texel_buffer_view_descriptor_write(VkDescriptorSet descriptor_set, u32 binding,
+                                                               VkDescriptorType    descriptor_type,
+                                                               const VkBufferView* texel_buffer_view)
+{
+    return create_texel_buffer_view_descriptor_write(descriptor_set, binding, descriptor_type,
+                                                     nonstd::span(texel_buffer_view, 1));
 }
 
 DescriptorWriteHelper::~DescriptorWriteHelper()
@@ -129,6 +175,15 @@ void append_write(DescriptorWriteHelper& write_context, VkDescriptorSet descript
     append_write(write_context, descriptor_set, binding, type, buffer, 0, VK_WHOLE_SIZE);
 }
 
+void append_write(DescriptorWriteHelper& write_context, VkDescriptorSet descriptor_set, u32 binding,
+                  VkDescriptorType type, VkBufferView texel_buffer_view)
+{
+    const VkBufferView& texel_buffer_info = write_context.texel_buffers.emplace_back(texel_buffer_view);
+
+    write_context.writes.emplace_back(
+        create_texel_buffer_view_descriptor_write(descriptor_set, binding, type, &texel_buffer_info));
+}
+
 void flush_descriptor_write_helper(DescriptorWriteHelper& write_helper, VkDevice device)
 {
     // Check that no realloc happened
@@ -142,6 +197,7 @@ void flush_descriptor_write_helper(DescriptorWriteHelper& write_helper, VkDevice
     write_helper.buffers.clear();
     write_helper.images.clear();
     write_helper.texel_buffers.clear();
+
     write_helper.writes.clear();
 }
 } // namespace Reaper
