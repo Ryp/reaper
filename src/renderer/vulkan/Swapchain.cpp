@@ -277,18 +277,19 @@ void create_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backend, 
 #endif
 
     const std::vector<VkFormat> view_formats = {
-        presentInfo.view_format,
+        presentInfo.surfaceFormat.format, // Usual format if the swapchain was immutable
+        presentInfo.view_format,          // Format to use the mutable feature with
     };
 
     const VkImageFormatListCreateInfo format_list = {
-        VK_STRUCTURE_TYPE_IMAGE_FORMAT_LIST_CREATE_INFO,
+        .sType = VK_STRUCTURE_TYPE_IMAGE_FORMAT_LIST_CREATE_INFO,
 #if 0
-        &fullscreen_info,
+        .pNext = &fullscreen_info,
 #else
-        nullptr,
+        .pNext = nullptr,
 #endif
-        static_cast<u32>(view_formats.size()),
-        view_formats.data(),
+        .viewFormatCount = static_cast<u32>(view_formats.size()),
+        .pViewFormats = view_formats.data(),
     };
 
     VkSwapchainCreateInfoKHR swap_chain_create_info = {
