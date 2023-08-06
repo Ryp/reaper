@@ -116,7 +116,41 @@ VkWriteDescriptorSet create_texel_buffer_view_descriptor_write(VkDescriptorSet d
 
 DescriptorWriteHelper::~DescriptorWriteHelper()
 {
+    delete[] image_infos.data();
+    delete[] buffer_infos.data();
+    delete[] texel_buffer_views.data();
+
     Assert(writes.empty());
+}
+
+VkDescriptorImageInfo& DescriptorWriteHelper::new_image_info(const VkDescriptorImageInfo&& image_info)
+{
+    VkDescriptorImageInfo& new_element = image_infos[image_info_size];
+
+    new_element = image_info;
+    image_info_size += 1;
+
+    return new_element;
+}
+
+VkDescriptorBufferInfo& DescriptorWriteHelper::new_buffer_info(const VkDescriptorBufferInfo&& buffer_info)
+{
+    VkDescriptorBufferInfo& new_element = buffer_infos[buffer_info_size];
+
+    new_element = buffer_info;
+    buffer_info_size += 1;
+
+    return new_element;
+}
+
+VkBufferView& DescriptorWriteHelper::new_texel_buffer_view(VkBufferView texel_buffer_view)
+{
+    VkBufferView& new_element = texel_buffer_views[texel_buffer_view_size];
+
+    new_element = texel_buffer_view;
+    texel_buffer_view_size += 1;
+
+    return new_element;
 }
 
 DescriptorWriteHelper create_descriptor_write_helper(u32 image_descriptor_count, u32 buffer_descriptor_count,
@@ -124,13 +158,14 @@ DescriptorWriteHelper create_descriptor_write_helper(u32 image_descriptor_count,
 {
     DescriptorWriteHelper helper;
 
-    helper.images.reserve(image_descriptor_count);
-    helper.buffers.reserve(buffer_descriptor_count);
-    helper.texel_buffers.reserve(texel_buffer_descriptor_count);
+    helper.image_infos = nonstd::span(new VkDescriptorImageInfo[image_descriptor_count], image_descriptor_count);
+    helper.buffer_infos = nonstd::span(new VkDescriptorBufferInfo[buffer_descriptor_count], buffer_descriptor_count);
+    helper.texel_buffer_views =
+        nonstd::span(new VkBufferView[texel_buffer_descriptor_count], texel_buffer_descriptor_count);
 
-    helper.image_capacity = image_descriptor_count;
-    helper.buffer_capacity = buffer_descriptor_count;
-    helper.texel_buffer_capacity = texel_buffer_descriptor_count;
+    helper.image_info_size = 0;
+    helper.buffer_info_size = 0;
+    helper.texel_buffer_view_size = 0;
 
     return helper;
 }
@@ -142,7 +177,7 @@ void append_write(DescriptorWriteHelper& write_context, VkDescriptorSet descript
            "Invalid descriptor type");
 
     const VkDescriptorImageInfo& image_descriptor_info =
-        write_context.images.emplace_back(create_descriptor_image_info(image_view, layout));
+        write_context.new_image_info(create_descriptor_image_info(image_view, layout));
 
     write_context.writes.emplace_back(
         create_image_descriptor_write(descriptor_set, binding, type, &image_descriptor_info));
@@ -151,7 +186,7 @@ void append_write(DescriptorWriteHelper& write_context, VkDescriptorSet descript
 void append_write(DescriptorWriteHelper& write_context, VkDescriptorSet descriptor_set, u32 binding, VkSampler sampler)
 {
     const VkDescriptorImageInfo& sampler_descriptor_info =
-        write_context.images.emplace_back(create_descriptor_image_info(sampler));
+        write_context.new_image_info(create_descriptor_image_info(sampler));
 
     write_context.writes.emplace_back(
         create_image_descriptor_write(descriptor_set, binding, VK_DESCRIPTOR_TYPE_SAMPLER, &sampler_descriptor_info));
@@ -164,7 +199,7 @@ void append_write(DescriptorWriteHelper& write_context, VkDescriptorSet descript
            "Invalid descriptor type");
 
     const VkDescriptorBufferInfo& buffer_info =
-        write_context.buffers.emplace_back(create_descriptor_buffer_info(buffer, offset_bytes, size_bytes));
+        write_context.new_buffer_info(create_descriptor_buffer_info(buffer, offset_bytes, size_bytes));
 
     write_context.writes.emplace_back(create_buffer_descriptor_write(descriptor_set, binding, type, &buffer_info));
 }
@@ -178,7 +213,7 @@ void append_write(DescriptorWriteHelper& write_context, VkDescriptorSet descript
 void append_write(DescriptorWriteHelper& write_context, VkDescriptorSet descriptor_set, u32 binding,
                   VkDescriptorType type, VkBufferView texel_buffer_view)
 {
-    const VkBufferView& texel_buffer_info = write_context.texel_buffers.emplace_back(texel_buffer_view);
+    const VkBufferView& texel_buffer_info = write_context.new_texel_buffer_view(texel_buffer_view);
 
     write_context.writes.emplace_back(
         create_texel_buffer_view_descriptor_write(descriptor_set, binding, type, &texel_buffer_info));
@@ -186,17 +221,12 @@ void append_write(DescriptorWriteHelper& write_context, VkDescriptorSet descript
 
 void flush_descriptor_write_helper(DescriptorWriteHelper& write_helper, VkDevice device)
 {
-    // Check that no realloc happened
-    Assert(write_helper.image_capacity == write_helper.images.capacity());
-    Assert(write_helper.buffer_capacity == write_helper.buffers.capacity());
-    Assert(write_helper.texel_buffer_capacity == write_helper.texel_buffers.capacity());
-
     vkUpdateDescriptorSets(device, static_cast<u32>(write_helper.writes.size()), write_helper.writes.data(), 0,
                            nullptr);
 
-    write_helper.buffers.clear();
-    write_helper.images.clear();
-    write_helper.texel_buffers.clear();
+    write_helper.buffer_info_size = 0;
+    write_helper.image_info_size = 0;
+    write_helper.texel_buffer_view_size = 0;
 
     write_helper.writes.clear();
 }

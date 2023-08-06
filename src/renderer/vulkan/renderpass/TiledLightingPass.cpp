@@ -165,10 +165,11 @@ void update_tiled_lighting_pass_descriptor_sets(DescriptorWriteHelper&          
 
     if (!shadow_maps.empty())
     {
-        const VkDescriptorImageInfo* image_info_ptr = write_helper.images.data() + write_helper.images.size();
+        const VkDescriptorImageInfo* image_info_ptr = write_helper.image_infos.data() + write_helper.image_info_size;
+
         for (auto shadow_map : shadow_maps)
         {
-            write_helper.images.push_back({VK_NULL_HANDLE, shadow_map.view_handle, shadow_map.image_layout});
+            write_helper.new_image_info(create_descriptor_image_info(shadow_map.view_handle, shadow_map.image_layout));
         }
 
         nonstd::span<const VkDescriptorImageInfo> shadow_map_image_infos(image_info_ptr, shadow_maps.size());

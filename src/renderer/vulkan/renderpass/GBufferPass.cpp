@@ -161,12 +161,12 @@ void update_gbuffer_pass_descriptor_sets(DescriptorWriteHelper& write_helper, co
 
     if (!material_resources.texture_handles.empty())
     {
-        const VkDescriptorImageInfo* image_info_ptr = write_helper.images.data() + write_helper.images.size();
+        const VkDescriptorImageInfo* image_info_ptr = write_helper.image_infos.data() + write_helper.image_info_size;
 
         for (auto handle : material_resources.texture_handles)
         {
-            write_helper.images.push_back({VK_NULL_HANDLE, material_resources.textures[handle].default_view,
-                                           VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL});
+            write_helper.new_image_info(create_descriptor_image_info(material_resources.textures[handle].default_view,
+                                                                     VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL));
         }
 
         nonstd::span<const VkDescriptorImageInfo> albedo_image_infos(image_info_ptr,
