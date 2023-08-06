@@ -13,13 +13,13 @@ VK_CONSTANT(1) const bool spec_enable_cone_culling = true;
 VK_PUSH_CONSTANT_HELPER(CullMeshletPushConstants) consts;
 
 VK_BINDING(0, 0) StructuredBuffer<Meshlet> meshlets;
-VK_BINDING(1, 0) StructuredBuffer<CullMeshInstanceParams> cull_mesh_instance_params;
+VK_BINDING(0, 1) StructuredBuffer<CullMeshInstanceParams> cull_mesh_instance_params;
 
 //------------------------------------------------------------------------------
 // Output
 
-VK_BINDING(2, 0) globallycoherent RWByteAddressBuffer Counters;
-VK_BINDING(3, 0) RWStructuredBuffer<MeshletOffsets> meshlets_offsets_out;
+VK_BINDING(0, 2) globallycoherent RWByteAddressBuffer Counters;
+VK_BINDING(0, 3) RWStructuredBuffer<MeshletOffsets> meshlets_offsets_out;
 
 //------------------------------------------------------------------------------
 

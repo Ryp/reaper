@@ -6,7 +6,7 @@
 #include "draw.hlsl"
 
 VK_BINDING(0, 0) ByteAddressBuffer VertexPositionsMS;
-VK_BINDING(1, 0) StructuredBuffer<DebugGeometryInstance> InstanceBuffer;
+VK_BINDING(0, 1) StructuredBuffer<DebugGeometryInstance> InstanceBuffer;
 
 struct VS_INPUT
 {

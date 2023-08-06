@@ -3,21 +3,22 @@
 #include "lib/lighting.hlsl"
 #include "gbuffer/gbuffer.hlsl"
 #include "tiled_lighting/tiled_lighting.hlsl"
+#include "forward.share.hlsl" // FIXME
 
 VK_CONSTANT(0) const bool spec_debug_enable_shadows = true;
 
 VK_PUSH_CONSTANT_HELPER(TiledLightingPushConstants) push;
 
 VK_BINDING(0, 0) ConstantBuffer<TiledLightingConstants> pass_params;
-VK_BINDING(1, 0) ByteAddressBuffer TileVisibleLightIndices;
-VK_BINDING(2, 0) Texture2D<GBuffer0Type> GBuffer0;
-VK_BINDING(3, 0) Texture2D<GBuffer1Type> GBuffer1;
-VK_BINDING(4, 0) Texture2D<float> DepthNDC;
-VK_BINDING(5, 0) StructuredBuffer<PointLightProperties> point_lights;
-VK_BINDING(6, 0) SamplerComparisonState shadow_map_sampler;
-VK_BINDING(7, 0) RWTexture2D<float4> LightingOutput; // FIXME should be float3 but would trigger validation error
-VK_BINDING(8, 0) RWStructuredBuffer<TileDebug> TileDebugOutput;
-VK_BINDING(9, 0) Texture2D<float> t_shadow_map[];
+VK_BINDING(0, 1) ByteAddressBuffer TileVisibleLightIndices;
+VK_BINDING(0, 2) Texture2D<GBuffer0Type> GBuffer0;
+VK_BINDING(0, 3) Texture2D<GBuffer1Type> GBuffer1;
+VK_BINDING(0, 4) Texture2D<float> DepthNDC;
+VK_BINDING(0, 5) StructuredBuffer<PointLightProperties> point_lights;
+VK_BINDING(0, 6) SamplerComparisonState shadow_map_sampler;
+VK_BINDING(0, 7) RWTexture2D<float4> LightingOutput; // FIXME should be float3 but would trigger validation error
+VK_BINDING(0, 8) RWStructuredBuffer<TileDebug> TileDebugOutput;
+VK_BINDING(0, 9) Texture2D<float> t_shadow_map[ShadowMapMaxCount];
 
 [numthreads(TiledLightingThreadCountX, TiledLightingThreadCountY, 1)]
 void main(uint3 gtid : SV_GroupThreadID,

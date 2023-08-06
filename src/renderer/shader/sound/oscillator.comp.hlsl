@@ -10,12 +10,12 @@
 VK_PUSH_CONSTANT_HELPER(SoundPushConstants) consts;
 
 VK_BINDING(0, 0) ConstantBuffer<AudioPassParams> params;
-VK_BINDING(1, 0) StructuredBuffer<OscillatorInstance> instance_params;
+VK_BINDING(0, 1) StructuredBuffer<OscillatorInstance> instance_params;
 
 //------------------------------------------------------------------------------
 // Output
 
-VK_BINDING(2, 0) RWByteAddressBuffer Output;
+VK_BINDING(0, 2) RWByteAddressBuffer Output;
 
 //------------------------------------------------------------------------------
 

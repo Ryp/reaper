@@ -4,7 +4,7 @@
 #include "meshlet_culling.share.hlsl"
 
 VK_BINDING(0, 0) ByteAddressBuffer Counters;
-VK_BINDING(1, 0) RWStructuredBuffer<DispatchIndirectCommand> IndirectDispatchOut;
+VK_BINDING(0, 1) RWStructuredBuffer<DispatchIndirectCommand> IndirectDispatchOut;
 
 [numthreads(PrepareIndirectDispatchThreadCount, 1, 1)]
 void main(uint3 dtid : SV_DispatchThreadID)

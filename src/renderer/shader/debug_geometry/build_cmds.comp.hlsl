@@ -12,11 +12,11 @@
 #include "debug_geometry_private.share.hlsl"
 
 VK_BINDING(0, 0) ConstantBuffer<DebugGeometryBuildCmdsPassConstants> PassConstants;
-VK_BINDING(1, 0) ByteAddressBuffer DrawCounter;
-VK_BINDING(2, 0) StructuredBuffer<DebugGeometryUserCommand> UserCommands;
+VK_BINDING(0, 1) ByteAddressBuffer DrawCounter;
+VK_BINDING(0, 2) StructuredBuffer<DebugGeometryUserCommand> UserCommands;
 
-VK_BINDING(3, 0) RWStructuredBuffer<DrawIndexedIndirectCommand> DrawCommands;
-VK_BINDING(4, 0) RWStructuredBuffer<DebugGeometryInstance> InstanceBuffer;
+VK_BINDING(0, 3) RWStructuredBuffer<DrawIndexedIndirectCommand> DrawCommands;
+VK_BINDING(0, 4) RWStructuredBuffer<DebugGeometryInstance> InstanceBuffer;
 
 float4x4 float3x4_to_float4x4(float3x4 m)
 {

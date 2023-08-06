@@ -16,17 +16,17 @@ VK_CONSTANT(3) const bool spec_enable_small_triangle_culling = true;
 VK_PUSH_CONSTANT_HELPER(CullPushConstants) consts;
 
 VK_BINDING(0, 0) StructuredBuffer<MeshletOffsets> meshlets;
-VK_BINDING(1, 0) ByteAddressBuffer Indices;
-VK_BINDING(2, 0) ByteAddressBuffer buffer_position_ms;
-VK_BINDING(3, 0) StructuredBuffer<CullMeshInstanceParams> cull_mesh_instance_params;
+VK_BINDING(0, 1) ByteAddressBuffer Indices;
+VK_BINDING(0, 2) ByteAddressBuffer buffer_position_ms;
+VK_BINDING(0, 3) StructuredBuffer<CullMeshInstanceParams> cull_mesh_instance_params;
 
 //------------------------------------------------------------------------------
 // Output
 
-VK_BINDING(4, 0) RWByteAddressBuffer visible_index_buffer;
-VK_BINDING(5, 0) RWStructuredBuffer<DrawIndexedIndirectCommand> DrawCommandOut;
-VK_BINDING(6, 0) globallycoherent RWByteAddressBuffer Counters;
-VK_BINDING(7, 0) RWStructuredBuffer<VisibleMeshlet> VisibleMeshlets;
+VK_BINDING(0, 4) RWByteAddressBuffer visible_index_buffer;
+VK_BINDING(0, 5) RWStructuredBuffer<DrawIndexedIndirectCommand> DrawCommandOut;
+VK_BINDING(0, 6) globallycoherent RWByteAddressBuffer Counters;
+VK_BINDING(0, 7) RWStructuredBuffer<VisibleMeshlet> VisibleMeshlets;
 
 //------------------------------------------------------------------------------
 

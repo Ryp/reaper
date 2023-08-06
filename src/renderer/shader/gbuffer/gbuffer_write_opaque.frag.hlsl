@@ -6,8 +6,8 @@
 
 #include "forward.share.hlsl" // FIXME
 
-VK_BINDING(5, 0) SamplerState diffuse_map_sampler;
-VK_BINDING(6, 0) Texture2D<float3> diffuse_maps[DiffuseMapMaxCount];
+VK_BINDING(0, 5) SamplerState diffuse_map_sampler;
+VK_BINDING(0, 6) Texture2D<float3> diffuse_maps[DiffuseMapMaxCount];
 
 struct PS_INPUT
 {

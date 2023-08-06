@@ -5,10 +5,10 @@
 #include "meshlet/meshlet.share.hlsl"
 
 VK_BINDING(0, 0) StructuredBuffer<ForwardInstanceParams> instance_params;
-VK_BINDING(1, 0) StructuredBuffer<VisibleMeshlet> visible_meshlets;
-VK_BINDING(2, 0) ByteAddressBuffer buffer_position_ms;
-VK_BINDING(3, 0) ByteAddressBuffer buffer_normal_ms;
-VK_BINDING(4, 0) ByteAddressBuffer buffer_uv;
+VK_BINDING(0, 1) StructuredBuffer<VisibleMeshlet> visible_meshlets;
+VK_BINDING(0, 2) ByteAddressBuffer buffer_position_ms;
+VK_BINDING(0, 3) ByteAddressBuffer buffer_normal_ms;
+VK_BINDING(0, 4) ByteAddressBuffer buffer_uv;
 
 struct VS_INPUT
 {

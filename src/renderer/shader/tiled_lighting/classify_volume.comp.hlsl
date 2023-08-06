@@ -8,10 +8,10 @@
 VK_PUSH_CONSTANT_HELPER(ClassifyVolumePushConstants) consts;
 
 VK_BINDING(0, 0) ByteAddressBuffer VertexPositionsMS;
-VK_BINDING(1, 0) globallycoherent RWByteAddressBuffer InnerOuterCounter;
-VK_BINDING(2, 0) RWStructuredBuffer<DrawIndirectCommand> DrawCommandsInner;
-VK_BINDING(3, 0) RWStructuredBuffer<DrawIndirectCommand> DrawCommandsOuter;
-VK_BINDING(4, 0) StructuredBuffer<ProxyVolumeInstance> ProxyVolumeBuffer;
+VK_BINDING(0, 1) globallycoherent RWByteAddressBuffer InnerOuterCounter;
+VK_BINDING(0, 2) RWStructuredBuffer<DrawIndirectCommand> DrawCommandsInner;
+VK_BINDING(0, 3) RWStructuredBuffer<DrawIndirectCommand> DrawCommandsOuter;
+VK_BINDING(0, 4) StructuredBuffer<ProxyVolumeInstance> ProxyVolumeBuffer;
 
 groupshared uint lds_is_inner;
 

@@ -8,10 +8,10 @@
 VK_PUSH_CONSTANT_HELPER(ReduceHDRPassParams) consts;
 
 VK_BINDING(0, 0) SamplerState Sampler;
-VK_BINDING(1, 0) Texture2D<float3> t_hdr_color;
+VK_BINDING(0, 1) Texture2D<float3> t_hdr_color;
 
 // Output
-VK_BINDING(2, 0) globallycoherent RWByteAddressBuffer HistogramOut;
+VK_BINDING(0, 2) globallycoherent RWByteAddressBuffer HistogramOut;
 
 uint compute_histogram_bucket_index(float luma)
 {

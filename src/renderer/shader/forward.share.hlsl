@@ -11,6 +11,7 @@
 #include "shared_types.hlsl"
 
 static const hlsl_uint DiffuseMapMaxCount = 8;
+static const hlsl_uint ShadowMapMaxCount  = 8;
 
 struct ForwardPassParams
 {
