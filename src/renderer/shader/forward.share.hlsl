@@ -10,6 +10,8 @@
 
 #include "shared_types.hlsl"
 
+static const hlsl_uint DiffuseMapMaxCount = 8;
+
 struct ForwardPassParams
 {
     hlsl_float3x4 ws_to_vs_matrix;

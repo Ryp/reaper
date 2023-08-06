@@ -115,17 +115,18 @@ VisibilityBufferPassResources create_vis_buffer_pass_resources(ReaperRoot& root,
 
     {
         std::vector<VkDescriptorSetLayoutBinding> bindings = {
-            {0, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-            {1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-            {2, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-            {3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-            {4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-            {5, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-            {6, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-            {7, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-            {8, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-            {9, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-            {10, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, DiffuseMapMaxCount, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+            {Slot_VisBuffer, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+            {Slot_GBuffer0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+            {Slot_GBuffer1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+            {Slot_instance_params, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+            {Slot_visible_index_buffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+            {Slot_buffer_position_ms, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+            {Slot_buffer_normal_ms, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+            {Slot_buffer_uv, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+            {Slot_visible_meshlets, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+            {Slot_diffuse_map_sampler, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+            {Slot_diffuse_maps, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, DiffuseMapMaxCount, VK_SHADER_STAGE_COMPUTE_BIT,
+             nullptr},
         };
 
         std::vector<VkDescriptorBindingFlags> binding_flags(bindings.size(), VK_FLAGS_NONE);
@@ -198,26 +199,27 @@ void update_vis_buffer_pass_descriptor_sets(DescriptorWriteHelper&              
     append_write(write_helper, resources.descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                  mesh_cache.vertexBufferPosition.handle);
 
-    append_write(write_helper, resources.descriptor_set_fill, 0, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+    append_write(write_helper, resources.descriptor_set_fill, Slot_VisBuffer, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
                  vis_buffer.view_handle, vis_buffer.image_layout);
-    append_write(write_helper, resources.descriptor_set_fill, 1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+    append_write(write_helper, resources.descriptor_set_fill, Slot_GBuffer0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
                  gbuffer_rt0.view_handle, gbuffer_rt0.image_layout);
-    append_write(write_helper, resources.descriptor_set_fill, 2, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+    append_write(write_helper, resources.descriptor_set_fill, Slot_GBuffer1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
                  gbuffer_rt1.view_handle, gbuffer_rt1.image_layout);
-    append_write(write_helper, resources.descriptor_set_fill, 3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+    append_write(write_helper, resources.descriptor_set_fill, Slot_instance_params, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                  resources.instancesConstantBuffer.handle);
-    append_write(write_helper, resources.descriptor_set_fill, 4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                 meshlet_culling_resources.visible_index_buffer.handle, visible_index_buffer_view.offset_bytes,
-                 visible_index_buffer_view.size_bytes);
-    append_write(write_helper, resources.descriptor_set_fill, 5, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                 mesh_cache.vertexBufferPosition.handle);
-    append_write(write_helper, resources.descriptor_set_fill, 6, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+    append_write(write_helper, resources.descriptor_set_fill, Slot_visible_index_buffer,
+                 VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, meshlet_culling_resources.visible_index_buffer.handle,
+                 visible_index_buffer_view.offset_bytes, visible_index_buffer_view.size_bytes);
+    append_write(write_helper, resources.descriptor_set_fill, Slot_buffer_position_ms,
+                 VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, mesh_cache.vertexBufferPosition.handle);
+    append_write(write_helper, resources.descriptor_set_fill, Slot_buffer_normal_ms, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                  mesh_cache.vertexBufferNormal.handle);
-    append_write(write_helper, resources.descriptor_set_fill, 7, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+    append_write(write_helper, resources.descriptor_set_fill, Slot_buffer_uv, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                  mesh_cache.vertexBufferUV.handle);
-    append_write(write_helper, resources.descriptor_set_fill, 8, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+    append_write(write_helper, resources.descriptor_set_fill, Slot_visible_meshlets, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                  meshlet_culling_resources.visible_meshlet_buffer.handle);
-    append_write(write_helper, resources.descriptor_set_fill, 9, sampler_resources.diffuseMapSampler);
+    append_write(write_helper, resources.descriptor_set_fill, Slot_diffuse_map_sampler,
+                 sampler_resources.diffuseMapSampler);
 
     if (!material_resources.texture_handles.empty())
     {
@@ -235,7 +237,7 @@ void update_vis_buffer_pass_descriptor_sets(DescriptorWriteHelper&              
         Assert(albedo_image_infos.size() <= DiffuseMapMaxCount);
 
         write_helper.writes.push_back(create_image_descriptor_write(
-            resources.descriptor_set_fill, 10, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, albedo_image_infos));
+            resources.descriptor_set_fill, Slot_diffuse_maps, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, albedo_image_infos));
     }
 }
 

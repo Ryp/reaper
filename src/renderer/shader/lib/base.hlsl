@@ -41,6 +41,7 @@
     #endif
     #define VK_CONSTANT(_index)         [[vk::constant_id(_index)]]
     #define VK_BINDING(_binding, _set)  [[vk::binding(_binding, _set)]]
+    #define VK_BINDING2(_set, _binding) [[vk::binding(_binding, _set)]]
     #define VK_LOCATION(_location)      [[vk::location(_location)]]
 #else
     // Not supported
@@ -48,6 +49,7 @@
     #define VK_PUSH_CONSTANT_HELPER(_type) _type
     #define VK_CONSTANT(_index)
     #define VK_BINDING(_binding, _set)
+    #define VK_BINDING2(_set, _binding)
     #define VK_LOCATION(_location)
 #endif
 

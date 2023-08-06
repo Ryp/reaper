@@ -4,8 +4,10 @@
 #include "lib/brdf.hlsl"
 #include "gbuffer/gbuffer.hlsl"
 
+#include "forward.share.hlsl" // FIXME
+
 VK_BINDING(5, 0) SamplerState diffuse_map_sampler;
-VK_BINDING(6, 0) Texture2D<float3> t_diffuse_map[];
+VK_BINDING(6, 0) Texture2D<float3> diffuse_maps[DiffuseMapMaxCount];
 
 struct PS_INPUT
 {
@@ -24,7 +26,7 @@ struct PS_OUTPUT
 void main(in PS_INPUT input, out PS_OUTPUT output)
 {
     StandardMaterial material;
-    material.albedo = t_diffuse_map[input.texture_index].Sample(diffuse_map_sampler, input.UV);
+    material.albedo = diffuse_maps[input.texture_index].Sample(diffuse_map_sampler, input.UV);
     material.roughness = 0.5;
     material.f0 = 0.1;
 

@@ -12,18 +12,17 @@
 
 VK_PUSH_CONSTANT_HELPER(FillGBufferPushConstants) push;
 
-VK_BINDING(0, 0) Texture2D<VisBufferRawType> VisBuffer;
-VK_BINDING(1, 0) RWTexture2D<GBuffer0Type> GBuffer0;
-VK_BINDING(2, 0) RWTexture2D<GBuffer1Type> GBuffer1;
-VK_BINDING(3, 0) StructuredBuffer<ForwardInstanceParams> instance_params;
-VK_BINDING(4, 0) ByteAddressBuffer visible_index_buffer;
-VK_BINDING(5, 0) ByteAddressBuffer buffer_position_ms;
-VK_BINDING(6, 0) ByteAddressBuffer buffer_normal_ms;
-VK_BINDING(7, 0) ByteAddressBuffer buffer_uv;
-VK_BINDING(8, 0) StructuredBuffer<VisibleMeshlet> visible_meshlets;
-
-VK_BINDING(9, 0) SamplerState diffuse_map_sampler;
-VK_BINDING(10, 0) Texture2D<float3> t_diffuse_map[];
+VK_BINDING2(0, Slot_VisBuffer) Texture2D<VisBufferRawType> VisBuffer;
+VK_BINDING2(0, Slot_GBuffer0) RWTexture2D<GBuffer0Type> GBuffer0;
+VK_BINDING2(0, Slot_GBuffer1) RWTexture2D<GBuffer1Type> GBuffer1;
+VK_BINDING2(0, Slot_instance_params) StructuredBuffer<ForwardInstanceParams> instance_params;
+VK_BINDING2(0, Slot_visible_index_buffer) ByteAddressBuffer visible_index_buffer;
+VK_BINDING2(0, Slot_buffer_position_ms) ByteAddressBuffer buffer_position_ms;
+VK_BINDING2(0, Slot_buffer_normal_ms) ByteAddressBuffer buffer_normal_ms;
+VK_BINDING2(0, Slot_buffer_uv) ByteAddressBuffer buffer_uv;
+VK_BINDING2(0, Slot_visible_meshlets) StructuredBuffer<VisibleMeshlet> visible_meshlets;
+VK_BINDING2(0, Slot_diffuse_map_sampler) SamplerState diffuse_map_sampler;
+VK_BINDING2(0, Slot_diffuse_maps) Texture2D<float3> diffuse_maps[DiffuseMapMaxCount];
 
 struct VertexData
 {
@@ -101,11 +100,11 @@ void main(uint3 gtid : SV_GroupThreadID,
 
     StandardMaterial material;
 #if defined(_DXC)
-    material.albedo = t_diffuse_map[NonUniformResourceIndex(instance_data.texture_index)].SampleGrad(diffuse_map_sampler, uv, uv_ddx, uv_ddy);
+    material.albedo = diffuse_maps[NonUniformResourceIndex(instance_data.texture_index)].SampleGrad(diffuse_map_sampler, uv, uv_ddx, uv_ddy);
 #else
     // FIXME This code is wrong but that's the best I can do right now.
     // https://github.com/KhronosGroup/glslang/issues/1637
-    material.albedo = t_diffuse_map[instance_data.texture_index].SampleGrad(diffuse_map_sampler, uv, uv_ddx, uv_ddy);
+    material.albedo = diffuse_maps[instance_data.texture_index].SampleGrad(diffuse_map_sampler, uv, uv_ddx, uv_ddy);
 #endif
     material.roughness = 0.5;
     material.f0 = 0.1;

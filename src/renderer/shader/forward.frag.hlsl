@@ -27,7 +27,7 @@ VK_BINDING(7, 0) SamplerComparisonState shadow_map_sampler;
 VK_BINDING(8, 0) Texture2D<float> t_shadow_map[];
 
 VK_BINDING(0, 1) SamplerState diffuse_map_sampler;
-VK_BINDING(1, 1) Texture2D<float3> t_diffuse_map[];
+VK_BINDING(1, 1) Texture2D<float3> diffuse_maps[DiffuseMapMaxCount];
 
 struct PS_INPUT
 {
@@ -50,7 +50,7 @@ void main(in PS_INPUT input, out PS_OUTPUT output)
     const float3 normal_vs = normalize(input.NormalVS);
 
     StandardMaterial material;
-    material.albedo = spec_debug_enable_albedo ? 1.0 : t_diffuse_map[input.texture_index].Sample(diffuse_map_sampler, input.UV);
+    material.albedo = spec_debug_enable_albedo ? 1.0 : diffuse_maps[input.texture_index].Sample(diffuse_map_sampler, input.UV);
     material.roughness = 0.5;
     material.f0 = 0.1;
 

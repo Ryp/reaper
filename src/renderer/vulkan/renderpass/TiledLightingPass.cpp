@@ -147,21 +147,21 @@ void update_tiled_lighting_pass_descriptor_sets(DescriptorWriteHelper&          
                                                 nonstd::span<const FrameGraphTexture>
                                                     shadow_maps)
 {
-    VkDescriptorSet dset0 = resources.tiled_lighting_descriptor_set;
-    append_write(write_helper, dset0, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+    VkDescriptorSet dset = resources.tiled_lighting_descriptor_set;
+    append_write(write_helper, dset, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
                  resources.tiled_lighting_constant_buffer.handle);
-    append_write(write_helper, dset0, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, light_list_buffer.handle);
-    append_write(write_helper, dset0, 2, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, gbuffer_rt0.view_handle,
+    append_write(write_helper, dset, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, light_list_buffer.handle);
+    append_write(write_helper, dset, 2, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, gbuffer_rt0.view_handle,
                  gbuffer_rt0.image_layout);
-    append_write(write_helper, dset0, 3, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, gbuffer_rt1.view_handle,
+    append_write(write_helper, dset, 3, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, gbuffer_rt1.view_handle,
                  gbuffer_rt1.image_layout);
-    append_write(write_helper, dset0, 4, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, main_view_depth.view_handle,
+    append_write(write_helper, dset, 4, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, main_view_depth.view_handle,
                  main_view_depth.image_layout);
-    append_write(write_helper, dset0, 5, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, lighting_resources.pointLightBuffer.handle);
-    append_write(write_helper, dset0, 6, sampler_resources.shadowMapSampler);
-    append_write(write_helper, dset0, 7, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, lighting_output.view_handle,
+    append_write(write_helper, dset, 5, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, lighting_resources.pointLightBuffer.handle);
+    append_write(write_helper, dset, 6, sampler_resources.shadowMapSampler);
+    append_write(write_helper, dset, 7, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, lighting_output.view_handle,
                  lighting_output.image_layout);
-    append_write(write_helper, dset0, 8, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, tile_debug_buffer.handle);
+    append_write(write_helper, dset, 8, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, tile_debug_buffer.handle);
 
     if (!shadow_maps.empty())
     {
@@ -175,7 +175,7 @@ void update_tiled_lighting_pass_descriptor_sets(DescriptorWriteHelper&          
         nonstd::span<const VkDescriptorImageInfo> shadow_map_image_infos(image_info_ptr, shadow_maps.size());
 
         write_helper.writes.push_back(
-            create_image_descriptor_write(dset0, 9, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, shadow_map_image_infos));
+            create_image_descriptor_write(dset, 9, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, shadow_map_image_infos));
     }
 }
 
