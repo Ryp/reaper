@@ -191,6 +191,8 @@ void create_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& backend)
         VK_KHR_SWAPCHAIN_EXTENSION_NAME,
         VK_KHR_SWAPCHAIN_MUTABLE_FORMAT_EXTENSION_NAME,
         VK_EXT_CALIBRATED_TIMESTAMPS_EXTENSION_NAME,
+        VK_EXT_INDEX_TYPE_UINT8_EXTENSION_NAME,
+        VK_EXT_PRIMITIVE_TOPOLOGY_LIST_RESTART_EXTENSION_NAME,
 #if 0
         VK_EXT_HDR_METADATA_EXTENSION_NAME,
         VK_EXT_FULL_SCREEN_EXCLUSIVE_EXTENSION_NAME,
@@ -471,8 +473,16 @@ bool vulkan_check_physical_device(IWindow*                        window,
     vkGetPhysicalDeviceProperties2(physical_device, &device_properties2);
     VkPhysicalDeviceProperties& device_properties = device_properties2.properties;
 
+    VkPhysicalDeviceIndexTypeUint8FeaturesEXT index_uint8_feature = {};
+    index_uint8_feature.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INDEX_TYPE_UINT8_FEATURES_EXT;
+
+    VkPhysicalDevicePrimitiveTopologyListRestartFeaturesEXT primitive_restart_feature = {};
+    primitive_restart_feature.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRIMITIVE_TOPOLOGY_LIST_RESTART_FEATURES_EXT;
+    primitive_restart_feature.pNext = &index_uint8_feature;
+
     VkPhysicalDeviceDescriptorIndexingFeatures descriptor_indexing_features = {};
     descriptor_indexing_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES;
+    descriptor_indexing_features.pNext = &primitive_restart_feature;
 
     VkPhysicalDeviceVulkan13Features device_vulkan13_features = {};
     device_vulkan13_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
@@ -497,6 +507,8 @@ bool vulkan_check_physical_device(IWindow*                        window,
     Assert(device_vulkan13_features.synchronization2 == VK_TRUE);
     Assert(device_vulkan13_features.dynamicRendering == VK_TRUE);
     Assert(device_vulkan12_features.shaderSampledImageArrayNonUniformIndexing == VK_TRUE);
+    Assert(primitive_restart_feature.primitiveTopologyListRestart == VK_TRUE);
+    Assert(index_uint8_feature.indexTypeUint8 == VK_TRUE);
 
     uint32_t queue_families_count = 0;
     vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_families_count, nullptr);
@@ -731,8 +743,18 @@ void vulkan_create_logical_device(ReaperRoot&                     root,
     deviceFeatures.fillModeNonSolid = VK_TRUE;
     deviceFeatures.geometryShader = VK_TRUE;
 
+    VkPhysicalDeviceIndexTypeUint8FeaturesEXT index_uint8_feature = {};
+    index_uint8_feature.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INDEX_TYPE_UINT8_FEATURES_EXT;
+    index_uint8_feature.indexTypeUint8 = VK_TRUE;
+
+    VkPhysicalDevicePrimitiveTopologyListRestartFeaturesEXT primitive_restart_feature = {};
+    primitive_restart_feature.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRIMITIVE_TOPOLOGY_LIST_RESTART_FEATURES_EXT;
+    primitive_restart_feature.pNext = &index_uint8_feature;
+    primitive_restart_feature.primitiveTopologyListRestart = VK_TRUE;
+
     VkPhysicalDeviceVulkan13Features device_vulkan13_features = {};
     device_vulkan13_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
+    device_vulkan13_features.pNext = &primitive_restart_feature;
     device_vulkan13_features.synchronization2 = VK_TRUE;
     device_vulkan13_features.dynamicRendering = VK_TRUE;
 

@@ -63,6 +63,7 @@ namespace
         };
 
         GraphicsPipelineProperties pipeline_properties = default_graphics_pipeline_properties(&feedback_info);
+        pipeline_properties.input_assembly.primitiveRestartEnable = VK_TRUE;
         pipeline_properties.depth_stencil.depthTestEnable = VK_TRUE;
         pipeline_properties.depth_stencil.depthWriteEnable = VK_TRUE;
         pipeline_properties.depth_stencil.depthCompareOp =

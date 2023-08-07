@@ -3,6 +3,7 @@
 #include "lib/brdf.hlsl"
 #include "lib/barycentrics.hlsl"
 #include "lib/vertex_pull.hlsl"
+#include "lib/format/bitfield.hlsl"
 #include "gbuffer/gbuffer.hlsl"
 #include "meshlet/meshlet.share.hlsl"
 #include "forward.share.hlsl" // FIXME
@@ -58,9 +59,9 @@ void main(uint3 gtid : SV_GroupThreadID,
 
     VisibleMeshlet visible_meshlet = visible_meshlets[vis_buffer.visible_meshlet_index];
 
-    uint visible_index_offset = visible_meshlet.visible_index_offset + vis_buffer.meshlet_triangle_id * 3;
-    uint3 indices = visible_index_buffer.Load3(visible_index_offset * MeshletIndexSizeBytes);
-    indices += visible_meshlet.vertex_offset;
+    uint visible_index_offset = visible_meshlet.visible_triangle_offset + vis_buffer.meshlet_triangle_id;
+    uint packed_indices = visible_index_buffer.Load(visible_index_offset * 4);
+    uint3 indices = split_uint_32_to_3x8(packed_indices) + visible_meshlet.vertex_offset;
 
     VertexData p0;
     VertexData p1;

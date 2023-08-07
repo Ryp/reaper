@@ -11,7 +11,6 @@
 #include "shared_types.hlsl"
 
 static const hlsl_uint MeshletMaxTriangleCount = 64;
-static const hlsl_uint MeshletIndexSizeBytes = 4;
 
 struct Meshlet
 {
@@ -30,7 +29,7 @@ struct Meshlet
 struct VisibleMeshlet
 {
     hlsl_uint mesh_instance_id;
-    hlsl_uint visible_index_offset;
+    hlsl_uint visible_triangle_offset;
     hlsl_uint vertex_offset;
     hlsl_float  _pad;
 };

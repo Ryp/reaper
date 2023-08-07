@@ -54,6 +54,7 @@ ShadowMapResources create_shadow_map_resources(ReaperRoot& root, VulkanBackend& 
         create_pipeline_layout(backend.device, nonstd::span(&resources.pipe.descSetLayout, 1));
 
     GraphicsPipelineProperties pipeline_properties = default_graphics_pipeline_properties();
+    pipeline_properties.input_assembly.primitiveRestartEnable = VK_TRUE;
     pipeline_properties.depth_stencil.depthTestEnable = VK_TRUE;
     pipeline_properties.depth_stencil.depthWriteEnable = VK_TRUE;
     pipeline_properties.depth_stencil.depthCompareOp = ShadowUseReverseZ ? VK_COMPARE_OP_GREATER : VK_COMPARE_OP_LESS;

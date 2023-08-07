@@ -1,6 +1,7 @@
 #include "lib/base.hlsl"
 #include "lib/indirect_command.hlsl"
 #include "lib/vertex_pull.hlsl"
+#include "lib/format/bitfield.hlsl"
 
 #include "meshlet.share.hlsl"
 #include "meshlet_culling.share.hlsl"
@@ -52,7 +53,7 @@ void main(uint3 gtid : SV_GroupThreadID,
 
     const uint input_triangle_index_offset = meshlet.index_offset + gtid.x * 3;
 
-    const uint3 indices = Indices.Load3(input_triangle_index_offset * MeshletIndexSizeBytes);
+    const uint3 indices = Indices.Load3(input_triangle_index_offset * 4);
     const uint3 indices_with_vertex_offset = indices + meshlet.vertex_offset;
 
     // NOTE: We will read out of bounds, this might be wasteful - or even illegal. OOB reads in DirectX11 are defined to return zero, what about Vulkan?
@@ -143,7 +144,9 @@ void main(uint3 gtid : SV_GroupThreadID,
 
     if (is_visible)
     {
-        visible_index_buffer.Store3(output_triangle_index * 3 * 4, indices);
+        // Add extra dummy index to align all triangle indices on a 32bit boundary
+        uint packed_indices = merge_uint_4x8_to_32(uint4(indices, 0xff));
+        visible_index_buffer.Store(output_triangle_index * 4, packed_indices);
     }
 
     if (gi == 0 && lds_triangle_count > 0)
@@ -153,9 +156,9 @@ void main(uint3 gtid : SV_GroupThreadID,
         Counters.InterlockedAdd(DrawCommandCounterOffset * 4, 1u, draw_command_index);
 
         DrawIndexedIndirectCommand command;
-        command.indexCount = lds_triangle_count * 3;
+        command.indexCount = lds_triangle_count * 4; // NOTE: There's 4 indices for each triangle!
         command.instanceCount = 1;
-        command.firstIndex = lds_triangle_offset * 3;
+        command.firstIndex = lds_triangle_offset * 4;
 
         if (consts.main_pass)
         {
@@ -174,7 +177,7 @@ void main(uint3 gtid : SV_GroupThreadID,
         {
             VisibleMeshlet visible_meshlet;
             visible_meshlet.mesh_instance_id = mesh_instance.instance_id;
-            visible_meshlet.visible_index_offset = lds_triangle_offset * 3;
+            visible_meshlet.visible_triangle_offset = lds_triangle_offset;
             visible_meshlet.vertex_offset = meshlet.vertex_offset;
 
             VisibleMeshlets[draw_command_index] = visible_meshlet;

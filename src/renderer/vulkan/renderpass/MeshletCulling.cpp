@@ -30,7 +30,9 @@
 
 namespace Reaper
 {
-constexpr u32 IndexSizeBytes = 4;
+constexpr u32 IndexSizeBytes = 1;
+// NOTE: Because of u8 indices we pack a triangle in 24 bits + 8 bits for a prim restart
+constexpr u32 TriangleIndicesSizeBytes = 4;
 constexpr u32 MaxMeshletCullingPassCount = 4;
 constexpr u32 MaxMeshInstanceCount = 512;
 // NOTE: Increasing this seems to make perf degrade noticeably on my intel iGPU for the same amount of geometry drawn.
@@ -39,7 +41,7 @@ constexpr u32 MaxVisibleMeshletsPerPass = 4096;
 // Worst case if all meshlets of all passes aren't culled.
 // This shouldn't happen, we can probably cut this by half and raise a warning when we cross the limit.
 constexpr u64 VisibleIndexBufferSizeBytes =
-    MaxVisibleMeshletsPerPass * MaxMeshletCullingPassCount * MeshletMaxTriangleCount * 3 * IndexSizeBytes;
+    MaxVisibleMeshletsPerPass * MaxMeshletCullingPassCount * MeshletMaxTriangleCount * TriangleIndicesSizeBytes;
 constexpr u32 MaxIndirectDrawCountPerPass = MaxVisibleMeshletsPerPass;
 
 MeshletCullingResources create_meshlet_culling_resources(ReaperRoot& root, VulkanBackend& backend,
@@ -507,7 +509,9 @@ namespace
 {
     VkIndexType get_vk_meshlet_index_type()
     {
-        if (IndexSizeBytes == 2)
+        if (IndexSizeBytes == 1)
+            return VK_INDEX_TYPE_UINT8_EXT;
+        else if (IndexSizeBytes == 2)
             return VK_INDEX_TYPE_UINT16;
         else if (IndexSizeBytes == 4)
             return VK_INDEX_TYPE_UINT32;
