@@ -25,7 +25,7 @@
 
 #include "profiling/Scope.h"
 
-#include "renderer/shader/lib/color_space.share.hlsl"
+#include "renderer/shader/swapchain_write.share.hlsl"
 
 namespace Reaper
 {

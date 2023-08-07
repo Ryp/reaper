@@ -5,8 +5,8 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef LIB_COLOR_SPACE_SHARE_INCLUDED
-#define LIB_COLOR_SPACE_SHARE_INCLUDED
+#ifndef SWAPCHAIN_WRITE_SHARE_INCLUDED
+#define SWAPCHAIN_WRITE_SHARE_INCLUDED
 
 #include "shared_types.hlsl"
 
