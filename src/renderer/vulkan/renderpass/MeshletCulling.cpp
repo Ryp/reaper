@@ -32,8 +32,9 @@ namespace Reaper
 {
 constexpr u32 IndexSizeBytes = 4;
 constexpr u32 MaxMeshletCullingPassCount = 4;
-constexpr u32 MaxMeshInstanceCount = 512 * MaxMeshletCullingPassCount;
-constexpr u32 MaxVisibleMeshletsPerPass = 200;
+constexpr u32 MaxMeshInstanceCount = 512;
+// NOTE: Increasing this seems to make perf degrade noticeably on my intel iGPU for the same amount of geometry drawn.
+constexpr u32 MaxVisibleMeshletsPerPass = 4096;
 
 // Worst case if all meshlets of all passes aren't culled.
 // This shouldn't happen, we can probably cut this by half and raise a warning when we cross the limit.
@@ -115,10 +116,11 @@ MeshletCullingResources create_meshlet_culling_resources(ReaperRoot& root, Vulka
         resources.cull_triangles_pipe = SimplePipeline{pipeline, pipelineLayout, descriptorSetLayout};
     }
 
-    resources.mesh_instance_buffer = create_buffer(
-        root, backend.device, "Culling instance constants",
-        DefaultGPUBufferProperties(MaxMeshInstanceCount, sizeof(CullMeshInstanceParams), GPUBufferUsage::StorageBuffer),
-        backend.vma_instance, MemUsage::CPU_To_GPU);
+    resources.mesh_instance_buffer =
+        create_buffer(root, backend.device, "Culling instance constants",
+                      DefaultGPUBufferProperties(MaxMeshInstanceCount * MaxMeshletCullingPassCount,
+                                                 sizeof(CullMeshInstanceParams), GPUBufferUsage::StorageBuffer),
+                      backend.vma_instance, MemUsage::CPU_To_GPU);
 
     resources.counters_buffer =
         create_buffer(root, backend.device, "Meshlet counters",
