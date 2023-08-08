@@ -106,8 +106,9 @@ void update_shadow_map_pass_descriptor_sets(DescriptorWriteHelper& write_helper,
 
             const GPUBufferView constant_view =
                 get_buffer_view(resources.passConstantBuffer.properties, BufferSubresource{shadow_pass.pass_index, 1});
-            const GPUBufferView instances_view = get_buffer_view(resources.instanceConstantBuffer.properties,
-                                                                 BufferSubresource{shadow_pass.pass_index, 1});
+            const GPUBufferView instances_view =
+                get_buffer_view(resources.instanceConstantBuffer.properties,
+                                BufferSubresource{shadow_pass.instance_offset, shadow_pass.instance_count});
 
             append_write(write_helper, descriptor_set, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
                          resources.passConstantBuffer.handle, constant_view.offset_bytes, constant_view.size_bytes);
