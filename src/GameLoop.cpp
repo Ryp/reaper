@@ -299,7 +299,8 @@ void execute_game_loop(ReaperRoot& root)
     SceneGraph scene;
 
 #if ENABLE_TEST_SCENE
-    scene = create_test_scene_tiled_lighting(root, backend);
+    // scene = create_test_scene_tiled_lighting(root, backend);
+    scene = create_static_test_scene(root, backend);
 #endif
 
 #if ENABLE_GAME_SCENE
@@ -577,7 +578,6 @@ void execute_game_loop(ReaperRoot& root)
         glm::fvec3         player_translation = player_transform[3];
 
         player_scene_node->transform_matrix = player_transform;
-#endif
 
         {
             constexpr u32 length_min = 1;
@@ -624,6 +624,7 @@ void execute_game_loop(ReaperRoot& root)
 
             ImGui::End();
         }
+#endif
 
 #if ENABLE_FREE_CAM
         const glm::vec2 yaw_pitch_delta =
@@ -642,11 +643,13 @@ void execute_game_loop(ReaperRoot& root)
 
         log_debug(root, "renderer: begin frame {}", frameIndex);
 
+#if ENABLE_GAME_SCENE
         // Scene meshes are rebuilt every frame
         scene.scene_meshes.clear();
         scene.scene_meshes.insert(scene.scene_meshes.end(), game_track.scene_meshes.begin(),
                                   game_track.scene_meshes.end());
         scene.scene_meshes.push_back(player_scene_mesh);
+#endif
 
         renderer_execute_frame(root, scene, audio_backend.audio_buffer);
 
@@ -679,7 +682,9 @@ void execute_game_loop(ReaperRoot& root)
         output_file.close();
     }
 
+#if ENABLE_GAME_SCENE
     Neptune::destroy_game_track(game_track, backend, sim, scene);
+#endif
 
 #if ENABLE_LINUX_CONTROLLER
     destroy_controller(controller);
