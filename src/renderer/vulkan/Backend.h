@@ -48,6 +48,7 @@ struct PhysicalDeviceInfo
     uint32_t                         graphicsQueueFamilyIndex;
     uint32_t                         presentQueueFamilyIndex;
     VkPhysicalDeviceMemoryProperties memory;
+    u32                              subgroup_size;
 };
 
 struct DeviceInfo
@@ -66,7 +67,7 @@ struct REAPER_RENDERER_API VulkanBackend
 
     VkPhysicalDevice           physicalDevice = VK_NULL_HANDLE;
     VkPhysicalDeviceProperties physicalDeviceProperties;
-    PhysicalDeviceInfo         physicalDeviceInfo = {0, 0, {}};
+    PhysicalDeviceInfo         physicalDeviceInfo = {0, 0, {}, 0};
 
     VkDevice   device = VK_NULL_HANDLE;
     DeviceInfo deviceInfo = {VK_NULL_HANDLE, VK_NULL_HANDLE};

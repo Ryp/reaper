@@ -649,19 +649,12 @@ void vulkan_choose_physical_device(ReaperRoot&                     root,
 
     vkGetPhysicalDeviceProperties2(chosenPhysicalDevice, &physicalDeviceProperties2);
 
+    physicalDeviceInfo.subgroup_size = subgroupProperties.subgroupSize;
+
     Assert(subgroupProperties.supportedOperations & VK_SUBGROUP_FEATURE_BASIC_BIT);
     Assert(subgroupProperties.supportedOperations & VK_SUBGROUP_FEATURE_BALLOT_BIT);
     Assert(subgroupProperties.supportedOperations & VK_SUBGROUP_FEATURE_VOTE_BIT);
     Assert(subgroupProperties.supportedOperations & VK_SUBGROUP_FEATURE_SHUFFLE_BIT);
-    // VK_SUBGROUP_FEATURE_BASIC_BIT = 0x00000001,
-    // VK_SUBGROUP_FEATURE_VOTE_BIT = 0x00000002,
-    // VK_SUBGROUP_FEATURE_ARITHMETIC_BIT = 0x00000004,
-    // VK_SUBGROUP_FEATURE_BALLOT_BIT = 0x00000008,
-    // VK_SUBGROUP_FEATURE_SHUFFLE_BIT = 0x00000010,
-    // VK_SUBGROUP_FEATURE_SHUFFLE_RELATIVE_BIT = 0x00000020,
-    // VK_SUBGROUP_FEATURE_CLUSTERED_BIT = 0x00000040,
-    // VK_SUBGROUP_FEATURE_QUAD_BIT = 0x00000080,
-    // VK_SUBGROUP_FEATURE_PARTITIONED_BIT_NV = 0x00000100,
 
     const VkPhysicalDeviceProperties physicalDeviceProperties = physicalDeviceProperties2.properties;
 
@@ -687,6 +680,8 @@ void vulkan_choose_physical_device(ReaperRoot&                     root,
               "- memory type count = {}, memory heap count = {}",
               physicalDeviceInfo.memory.memoryTypeCount,
               physicalDeviceInfo.memory.memoryHeapCount);
+
+    log_debug(root, "- subgroup size = {}", physicalDeviceInfo.subgroup_size);
 
     for (u32 i = 0; i < physicalDeviceInfo.memory.memoryHeapCount; ++i)
     {

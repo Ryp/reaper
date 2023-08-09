@@ -8,6 +8,7 @@
 #ifndef LIB_VERTEX_PULL_INCLUDED
 #define LIB_VERTEX_PULL_INCLUDED
 
+// https://github.com/KhronosGroup/glslang/issues/3297
 float3 pull_position(ByteAddressBuffer buffer_position, uint vertex_id)
 {
     return asfloat(buffer_position.Load3(vertex_id * 3 * 4));
