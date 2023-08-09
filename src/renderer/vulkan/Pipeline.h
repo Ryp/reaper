@@ -38,12 +38,17 @@ VkPipelineLayout create_pipeline_layout(
     VkDevice device, nonstd::span<const VkDescriptorSetLayout> descriptor_set_layouts,
     nonstd::span<const VkPushConstantRange> push_constant_ranges = nonstd::span<const VkPushConstantRange>());
 
+VkPipeline create_compute_pipeline(VkDevice device, VkPipelineLayout pipeline_layout,
+                                   const VkPipelineShaderStageCreateInfo& shader_stage_create_info);
+
+// FIXME Deprecated
 VkPipeline create_compute_pipeline(VkDevice device, VkPipelineLayout pipeline_layout, VkShaderModule compute_shader,
                                    VkSpecializationInfo* specialization_info = nullptr);
 
 VkPipelineShaderStageCreateInfo
 default_pipeline_shader_stage_create_info(VkShaderStageFlagBits stage_bit, VkShaderModule shader_module,
-                                          const VkSpecializationInfo* specialization_info = nullptr);
+                                          const VkSpecializationInfo*      specialization_info = nullptr,
+                                          VkPipelineShaderStageCreateFlags flags = VK_FLAGS_NONE);
 
 VkPipelineColorBlendAttachmentState default_pipeline_color_blend_attachment_state();
 VkPipelineRenderingCreateInfo       default_pipeline_rendering_create_info();

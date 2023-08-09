@@ -97,21 +97,18 @@ const char* default_entry_point()
     return "main";
 }
 
-VkPipeline create_compute_pipeline(VkDevice              device,
-                                   VkPipelineLayout      pipeline_layout,
-                                   VkShaderModule        compute_shader,
-                                   VkSpecializationInfo* specialization_info)
+VkPipeline create_compute_pipeline(VkDevice device, VkPipelineLayout pipeline_layout,
+                                   const VkPipelineShaderStageCreateInfo& shader_stage_create_info)
 {
-    VkPipelineShaderStageCreateInfo shaderStage =
-        default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_COMPUTE_BIT, compute_shader, specialization_info);
-
-    VkComputePipelineCreateInfo pipelineCreateInfo = {VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
-                                                      nullptr,
-                                                      0,
-                                                      shaderStage,
-                                                      pipeline_layout,
-                                                      VK_NULL_HANDLE, // do not care about pipeline derivatives
-                                                      0};
+    VkComputePipelineCreateInfo pipelineCreateInfo = {
+        .sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
+        .pNext = nullptr,
+        .flags = 0,
+        .stage = shader_stage_create_info,
+        .layout = pipeline_layout,
+        .basePipelineHandle = VK_NULL_HANDLE, // do not care about pipeline derivatives
+        .basePipelineIndex = 0,
+    };
 
     VkPipeline      pipeline = VK_NULL_HANDLE;
     VkPipelineCache cache = VK_NULL_HANDLE;
@@ -121,14 +118,26 @@ VkPipeline create_compute_pipeline(VkDevice              device,
     return pipeline;
 }
 
+VkPipeline create_compute_pipeline(VkDevice              device,
+                                   VkPipelineLayout      pipeline_layout,
+                                   VkShaderModule        compute_shader,
+                                   VkSpecializationInfo* specialization_info)
+{
+    VkPipelineShaderStageCreateInfo shader_stage =
+        default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_COMPUTE_BIT, compute_shader, specialization_info);
+
+    return create_compute_pipeline(device, pipeline_layout, shader_stage);
+}
+
 VkPipelineShaderStageCreateInfo
 default_pipeline_shader_stage_create_info(VkShaderStageFlagBits stage_bit, VkShaderModule shader_module,
-                                          const VkSpecializationInfo* specialization_info)
+                                          const VkSpecializationInfo*      specialization_info,
+                                          VkPipelineShaderStageCreateFlags flags)
 {
     return VkPipelineShaderStageCreateInfo{
         .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
         .pNext = nullptr,
-        .flags = VK_FLAGS_NONE,
+        .flags = flags,
         .stage = stage_bit,
         .module = shader_module,
         .pName = default_entry_point(),

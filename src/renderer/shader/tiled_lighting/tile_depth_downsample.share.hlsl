@@ -10,6 +10,9 @@
 
 #include "shared_types.hlsl"
 
+// NOTE: Should always be a power of two
+static const hlsl_uint MinWaveLaneCount = 8;
+
 static const hlsl_uint TileDepthThreadCountX = 8;
 static const hlsl_uint TileDepthThreadCountY = 8;
 

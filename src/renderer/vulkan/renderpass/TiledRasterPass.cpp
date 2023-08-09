@@ -64,11 +64,16 @@ TiledRasterResources create_tiled_raster_pass_resources(ReaperRoot& root, Vulkan
 
         const VkPushConstantRange pushConstantRange = {VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(TileDepthConstants)};
 
-        VkPipelineLayout pipeline_layout = create_pipeline_layout(
+        const VkPipelineLayout pipeline_layout = create_pipeline_layout(
             backend.device, nonstd::span(&descriptor_set_layout, 1), nonstd::span(&pushConstantRange, 1));
 
-        VkPipeline pipeline =
-            create_compute_pipeline(backend.device, pipeline_layout, shader_modules.tile_depth_downsample_cs);
+        const VkPipelineShaderStageCreateInfo shader_stage = default_pipeline_shader_stage_create_info(
+            VK_SHADER_STAGE_COMPUTE_BIT, shader_modules.tile_depth_downsample_cs, nullptr,
+            VK_PIPELINE_SHADER_STAGE_CREATE_REQUIRE_FULL_SUBGROUPS_BIT);
+
+        VkPipeline pipeline = create_compute_pipeline(backend.device, pipeline_layout, shader_stage);
+
+        Assert(backend.physicalDeviceInfo.subgroup_size >= MinWaveLaneCount);
 
         resources.tile_depth_descriptor_set_layout = descriptor_set_layout;
         resources.tile_depth_pipeline_layout = pipeline_layout;

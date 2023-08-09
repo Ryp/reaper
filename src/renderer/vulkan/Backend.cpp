@@ -504,9 +504,10 @@ bool vulkan_check_physical_device(IWindow*                        window,
     Assert(device_features2.features.shaderClipDistance == VK_TRUE); // This is just checked, not enabled
     Assert(device_features2.features.fillModeNonSolid == VK_TRUE);
     Assert(device_features2.features.geometryShader == VK_TRUE);
+    Assert(device_vulkan12_features.shaderSampledImageArrayNonUniformIndexing == VK_TRUE);
     Assert(device_vulkan13_features.synchronization2 == VK_TRUE);
     Assert(device_vulkan13_features.dynamicRendering == VK_TRUE);
-    Assert(device_vulkan12_features.shaderSampledImageArrayNonUniformIndexing == VK_TRUE);
+    Assert(device_vulkan13_features.computeFullSubgroups == VK_TRUE);
     Assert(primitive_restart_feature.primitiveTopologyListRestart == VK_TRUE);
     Assert(index_uint8_feature.indexTypeUint8 == VK_TRUE);
 
@@ -752,6 +753,7 @@ void vulkan_create_logical_device(ReaperRoot&                     root,
     device_vulkan13_features.pNext = &primitive_restart_feature;
     device_vulkan13_features.synchronization2 = VK_TRUE;
     device_vulkan13_features.dynamicRendering = VK_TRUE;
+    device_vulkan13_features.computeFullSubgroups = VK_TRUE;
 
     VkPhysicalDeviceVulkan12Features device_features_1_2 = {};
     device_features_1_2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
