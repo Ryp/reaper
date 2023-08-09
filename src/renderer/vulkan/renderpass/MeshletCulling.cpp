@@ -22,6 +22,7 @@
 
 #include "common/Log.h"
 #include "common/ReaperRoot.h"
+#include "core/memory/Allocator.h"
 
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -470,8 +471,10 @@ std::vector<MeshletCullingStats> get_meshlet_culling_gpu_stats(VulkanBackend& ba
     vmaGetAllocationInfo(backend.vma_instance, resources.counters_cpu_buffer.allocation, &allocation_info);
 
     void* mapped_data_ptr = nullptr;
+    u64   mappped_data_size_bytes =
+        alignOffset(allocation_info.size, backend.physicalDeviceProperties.limits.nonCoherentAtomSize);
 
-    Assert(vkMapMemory(backend.device, allocation_info.deviceMemory, allocation_info.offset, allocation_info.size, 0,
+    Assert(vkMapMemory(backend.device, allocation_info.deviceMemory, allocation_info.offset, mappped_data_size_bytes, 0,
                        &mapped_data_ptr)
            == VK_SUCCESS);
 
@@ -479,7 +482,7 @@ std::vector<MeshletCullingStats> get_meshlet_culling_gpu_stats(VulkanBackend& ba
     staging_range.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
     staging_range.memory = allocation_info.deviceMemory;
     staging_range.offset = allocation_info.offset;
-    staging_range.size = VK_WHOLE_SIZE;
+    staging_range.size = mappped_data_size_bytes;
     vkInvalidateMappedMemoryRanges(backend.device, 1, &staging_range);
 
     Assert(mapped_data_ptr);
