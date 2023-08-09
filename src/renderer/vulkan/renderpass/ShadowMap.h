@@ -51,7 +51,7 @@ struct PreparedData;
 
 void upload_shadow_map_resources(VulkanBackend& backend, const PreparedData& prepared, ShadowMapResources& resources);
 
-struct DescriptorWriteHelper;
+class DescriptorWriteHelper;
 
 void update_shadow_map_pass_descriptor_sets(DescriptorWriteHelper& write_helper, const PreparedData& prepared,
                                             ShadowMapResources& resources, BufferInfo& vertex_position_buffer);

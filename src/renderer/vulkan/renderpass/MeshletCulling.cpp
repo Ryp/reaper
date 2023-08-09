@@ -242,10 +242,10 @@ void upload_meshlet_culling_resources(VulkanBackend& backend, const PreparedData
 void update_meshlet_culling_pass_descriptor_sets(DescriptorWriteHelper& write_helper, const PreparedData& prepared,
                                                  MeshletCullingResources& resources, const MeshCache& mesh_cache)
 {
-    append_write(write_helper, resources.cull_prepare_descriptor_set, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                 resources.counters_buffer.handle);
-    append_write(write_helper, resources.cull_prepare_descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                 resources.triangle_culling_indirect_dispatch_buffer.handle);
+    write_helper.append(resources.cull_prepare_descriptor_set, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                        resources.counters_buffer.handle);
+    write_helper.append(resources.cull_prepare_descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                        resources.triangle_culling_indirect_dispatch_buffer.handle);
 
     for (const CullPassData& cull_pass : prepared.cull_passes)
     {
@@ -260,16 +260,14 @@ void update_meshlet_culling_pass_descriptor_sets(DescriptorWriteHelper& write_he
 
         {
             VkDescriptorSet descriptor_set = resources.cull_meshlet_descriptor_sets[pass_index];
-            append_write(write_helper, descriptor_set, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                         mesh_cache.meshletBuffer.handle);
-            append_write(write_helper, descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                         resources.mesh_instance_buffer.handle);
-            append_write(write_helper, descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                         resources.counters_buffer.handle, counter_buffer_view.offset_bytes,
-                         counter_buffer_view.size_bytes);
-            append_write(write_helper, descriptor_set, 3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                         resources.visible_meshlet_offsets_buffer.handle, visible_meshlet_offsets_view.offset_bytes,
-                         visible_meshlet_offsets_view.size_bytes);
+            write_helper.append(descriptor_set, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, mesh_cache.meshletBuffer.handle);
+            write_helper.append(descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                                resources.mesh_instance_buffer.handle);
+            write_helper.append(descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, resources.counters_buffer.handle,
+                                counter_buffer_view.offset_bytes, counter_buffer_view.size_bytes);
+            write_helper.append(descriptor_set, 3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                                resources.visible_meshlet_offsets_buffer.handle,
+                                visible_meshlet_offsets_view.offset_bytes, visible_meshlet_offsets_view.size_bytes);
         }
 
         {
@@ -280,26 +278,24 @@ void update_meshlet_culling_pass_descriptor_sets(DescriptorWriteHelper& write_he
                 BufferSubresource{pass_index * MaxIndirectDrawCountPerPass, MaxIndirectDrawCountPerPass});
 
             VkDescriptorSet descriptor_set = resources.cull_triangles_descriptor_sets[pass_index];
-            append_write(write_helper, descriptor_set, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                         resources.visible_meshlet_offsets_buffer.handle, visible_meshlet_offsets_view.offset_bytes,
-                         visible_meshlet_offsets_view.size_bytes);
-            append_write(write_helper, descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                         mesh_cache.indexBuffer.handle);
-            append_write(write_helper, descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                         mesh_cache.vertexBufferPosition.handle);
-            append_write(write_helper, descriptor_set, 3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                         resources.mesh_instance_buffer.handle);
-            append_write(write_helper, descriptor_set, 4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                         resources.visible_index_buffer.handle, visible_indices_view.offset_bytes,
-                         visible_indices_view.size_bytes);
-            append_write(write_helper, descriptor_set, 5, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                         resources.visible_indirect_draw_commands_buffer.handle, indirect_draw_view.offset_bytes,
-                         indirect_draw_view.size_bytes);
-            append_write(write_helper, descriptor_set, 6, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                         resources.counters_buffer.handle, counter_buffer_view.offset_bytes,
-                         counter_buffer_view.size_bytes);
-            append_write(write_helper, descriptor_set, 7, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                         resources.visible_meshlet_buffer.handle);
+            write_helper.append(descriptor_set, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                                resources.visible_meshlet_offsets_buffer.handle,
+                                visible_meshlet_offsets_view.offset_bytes, visible_meshlet_offsets_view.size_bytes);
+            write_helper.append(descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, mesh_cache.indexBuffer.handle);
+            write_helper.append(descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                                mesh_cache.vertexBufferPosition.handle);
+            write_helper.append(descriptor_set, 3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                                resources.mesh_instance_buffer.handle);
+            write_helper.append(descriptor_set, 4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                                resources.visible_index_buffer.handle, visible_indices_view.offset_bytes,
+                                visible_indices_view.size_bytes);
+            write_helper.append(descriptor_set, 5, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                                resources.visible_indirect_draw_commands_buffer.handle, indirect_draw_view.offset_bytes,
+                                indirect_draw_view.size_bytes);
+            write_helper.append(descriptor_set, 6, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, resources.counters_buffer.handle,
+                                counter_buffer_view.offset_bytes, counter_buffer_view.size_bytes);
+            write_helper.append(descriptor_set, 7, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                                resources.visible_meshlet_buffer.handle);
         }
     }
 }

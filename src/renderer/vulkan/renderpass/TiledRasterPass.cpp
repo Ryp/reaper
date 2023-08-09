@@ -268,13 +268,13 @@ void update_lighting_depth_downsample_descriptor_set(DescriptorWriteHelper&     
                                                      const FrameGraphTexture&    tile_depth_min,
                                                      const FrameGraphTexture&    tile_depth_max)
 {
-    append_write(write_helper, resources.tile_depth_descriptor_set, 0, sampler_resources.linearClampSampler);
-    append_write(write_helper, resources.tile_depth_descriptor_set, 1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-                 scene_depth.view_handle, scene_depth.image_layout);
-    append_write(write_helper, resources.tile_depth_descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
-                 tile_depth_min.view_handle, tile_depth_min.image_layout);
-    append_write(write_helper, resources.tile_depth_descriptor_set, 3, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
-                 tile_depth_max.view_handle, tile_depth_max.image_layout);
+    write_helper.append(resources.tile_depth_descriptor_set, 0, sampler_resources.linearClampSampler);
+    write_helper.append(resources.tile_depth_descriptor_set, 1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+                        scene_depth.view_handle, scene_depth.image_layout);
+    write_helper.append(resources.tile_depth_descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+                        tile_depth_min.view_handle, tile_depth_min.image_layout);
+    write_helper.append(resources.tile_depth_descriptor_set, 3, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+                        tile_depth_max.view_handle, tile_depth_max.image_layout);
 }
 
 void update_depth_copy_pass_descriptor_set(DescriptorWriteHelper&      write_helper,
@@ -282,10 +282,10 @@ void update_depth_copy_pass_descriptor_set(DescriptorWriteHelper&      write_hel
                                            const FrameGraphTexture&    depth_min_src,
                                            const FrameGraphTexture&    depth_max_src)
 {
-    append_write(write_helper, resources.depth_copy_descriptor_sets[0], 0, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-                 depth_min_src.view_handle, depth_min_src.image_layout);
-    append_write(write_helper, resources.depth_copy_descriptor_sets[1], 0, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-                 depth_max_src.view_handle, depth_max_src.image_layout);
+    write_helper.append(resources.depth_copy_descriptor_sets[0], 0, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+                        depth_min_src.view_handle, depth_min_src.image_layout);
+    write_helper.append(resources.depth_copy_descriptor_sets[1], 0, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+                        depth_max_src.view_handle, depth_max_src.image_layout);
 }
 
 void update_classify_descriptor_set(DescriptorWriteHelper& write_helper, const TiledRasterResources& resources,
@@ -293,16 +293,16 @@ void update_classify_descriptor_set(DescriptorWriteHelper& write_helper, const T
                                     const FrameGraphBuffer& draw_commands_inner,
                                     const FrameGraphBuffer& draw_commands_outer)
 {
-    append_write(write_helper, resources.classify_descriptor_set, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                 resources.vertex_buffer_position.handle);
-    append_write(write_helper, resources.classify_descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                 classification_counters.handle);
-    append_write(write_helper, resources.classify_descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                 draw_commands_inner.handle);
-    append_write(write_helper, resources.classify_descriptor_set, 3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                 draw_commands_outer.handle);
-    append_write(write_helper, resources.classify_descriptor_set, 4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                 resources.proxy_volume_buffer.handle);
+    write_helper.append(resources.classify_descriptor_set, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                        resources.vertex_buffer_position.handle);
+    write_helper.append(resources.classify_descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                        classification_counters.handle);
+    write_helper.append(resources.classify_descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                        draw_commands_inner.handle);
+    write_helper.append(resources.classify_descriptor_set, 3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                        draw_commands_outer.handle);
+    write_helper.append(resources.classify_descriptor_set, 4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                        resources.proxy_volume_buffer.handle);
 }
 
 void update_light_raster_pass_descriptor_sets(DescriptorWriteHelper&      write_helper,
@@ -311,23 +311,23 @@ void update_light_raster_pass_descriptor_sets(DescriptorWriteHelper&      write_
                                               const FrameGraphTexture&    depth_max,
                                               const FrameGraphBuffer&     light_list_buffer)
 {
-    append_write(write_helper, resources.light_raster_descriptor_sets[RasterPass::Inner], 0,
-                 VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, resources.light_volume_buffer.handle);
-    append_write(write_helper, resources.light_raster_descriptor_sets[RasterPass::Inner], 1,
-                 VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, depth_min.view_handle, depth_min.image_layout);
-    append_write(write_helper, resources.light_raster_descriptor_sets[RasterPass::Inner], 2,
-                 VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, light_list_buffer.handle);
-    append_write(write_helper, resources.light_raster_descriptor_sets[RasterPass::Inner], 3,
-                 VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, resources.vertex_buffer_position.handle);
+    write_helper.append(resources.light_raster_descriptor_sets[RasterPass::Inner], 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                        resources.light_volume_buffer.handle);
+    write_helper.append(resources.light_raster_descriptor_sets[RasterPass::Inner], 1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+                        depth_min.view_handle, depth_min.image_layout);
+    write_helper.append(resources.light_raster_descriptor_sets[RasterPass::Inner], 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                        light_list_buffer.handle);
+    write_helper.append(resources.light_raster_descriptor_sets[RasterPass::Inner], 3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                        resources.vertex_buffer_position.handle);
 
-    append_write(write_helper, resources.light_raster_descriptor_sets[RasterPass::Outer], 0,
-                 VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, resources.light_volume_buffer.handle);
-    append_write(write_helper, resources.light_raster_descriptor_sets[RasterPass::Outer], 1,
-                 VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, depth_max.view_handle, depth_max.image_layout);
-    append_write(write_helper, resources.light_raster_descriptor_sets[RasterPass::Outer], 2,
-                 VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, light_list_buffer.handle);
-    append_write(write_helper, resources.light_raster_descriptor_sets[RasterPass::Outer], 3,
-                 VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, resources.vertex_buffer_position.handle);
+    write_helper.append(resources.light_raster_descriptor_sets[RasterPass::Outer], 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                        resources.light_volume_buffer.handle);
+    write_helper.append(resources.light_raster_descriptor_sets[RasterPass::Outer], 1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+                        depth_max.view_handle, depth_max.image_layout);
+    write_helper.append(resources.light_raster_descriptor_sets[RasterPass::Outer], 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                        light_list_buffer.handle);
+    write_helper.append(resources.light_raster_descriptor_sets[RasterPass::Outer], 3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                        resources.vertex_buffer_position.handle);
 }
 
 void upload_tiled_raster_pass_frame_resources(VulkanBackend&            backend,

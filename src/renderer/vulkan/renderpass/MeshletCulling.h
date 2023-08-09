@@ -58,7 +58,7 @@ void upload_meshlet_culling_resources(VulkanBackend& backend, const PreparedData
                                       MeshletCullingResources& resources);
 
 struct MeshCache;
-struct DescriptorWriteHelper;
+class DescriptorWriteHelper;
 
 void update_meshlet_culling_pass_descriptor_sets(DescriptorWriteHelper& write_helper, const PreparedData& prepared,
                                                  MeshletCullingResources& resources, const MeshCache& mesh_cache);

@@ -131,12 +131,11 @@ void upload_audio_frame_resources(VulkanBackend& backend, const PreparedData& pr
 
 void update_audio_pass_descriptor_set(DescriptorWriteHelper& write_helper, AudioResources& resources)
 {
-    append_write(write_helper, resources.descriptor_set, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                 resources.passConstantBuffer.handle);
-    append_write(write_helper, resources.descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                 resources.instanceParamsBuffer.handle);
-    append_write(write_helper, resources.descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                 resources.outputBuffer.handle);
+    write_helper.append(resources.descriptor_set, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                        resources.passConstantBuffer.handle);
+    write_helper.append(resources.descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                        resources.instanceParamsBuffer.handle);
+    write_helper.append(resources.descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, resources.outputBuffer.handle);
 }
 
 void record_audio_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& prepared, AudioResources& resources)

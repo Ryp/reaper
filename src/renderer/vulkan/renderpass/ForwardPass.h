@@ -53,7 +53,7 @@ struct MaterialResources;
 struct MeshCache;
 struct LightingPassResources;
 struct SamplerResources;
-struct DescriptorWriteHelper;
+class DescriptorWriteHelper;
 struct FrameGraphTexture;
 struct MeshletCullingResources;
 

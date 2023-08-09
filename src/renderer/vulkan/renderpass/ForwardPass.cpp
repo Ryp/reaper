@@ -168,31 +168,32 @@ void update_forward_pass_descriptor_sets(DescriptorWriteHelper& write_helper, co
                                          const LightingPassResources&          lighting_resources,
                                          nonstd::span<const FrameGraphTexture> shadow_maps)
 {
-    append_write(write_helper, resources.descriptor_set, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                 resources.passConstantBuffer.handle);
-    append_write(write_helper, resources.descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                 resources.instancesConstantBuffer.handle);
-    append_write(write_helper, resources.descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                 meshlet_culling_resources.visible_meshlet_buffer.handle);
-    append_write(write_helper, resources.descriptor_set, 3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                 mesh_cache.vertexBufferPosition.handle);
-    append_write(write_helper, resources.descriptor_set, 4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                 mesh_cache.vertexBufferNormal.handle);
-    append_write(write_helper, resources.descriptor_set, 5, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                 mesh_cache.vertexBufferUV.handle);
-    append_write(write_helper, resources.descriptor_set, 6, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                 lighting_resources.pointLightBuffer.handle);
-    append_write(write_helper, resources.descriptor_set, 7, sampler_resources.shadowMapSampler);
+    write_helper.append(resources.descriptor_set, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                        resources.passConstantBuffer.handle);
+    write_helper.append(resources.descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                        resources.instancesConstantBuffer.handle);
+    write_helper.append(resources.descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                        meshlet_culling_resources.visible_meshlet_buffer.handle);
+    write_helper.append(resources.descriptor_set, 3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                        mesh_cache.vertexBufferPosition.handle);
+    write_helper.append(resources.descriptor_set, 4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                        mesh_cache.vertexBufferNormal.handle);
+    write_helper.append(resources.descriptor_set, 5, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                        mesh_cache.vertexBufferUV.handle);
+    write_helper.append(resources.descriptor_set, 6, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                        lighting_resources.pointLightBuffer.handle);
+    write_helper.append(resources.descriptor_set, 7, sampler_resources.shadowMapSampler);
 
     if (!shadow_maps.empty())
     {
-        const VkDescriptorImageInfo* image_info_ptr = write_helper.image_infos.data() + write_helper.image_info_size;
-        for (auto shadow_map : shadow_maps)
-        {
-            write_helper.new_image_info(create_descriptor_image_info(shadow_map.view_handle, shadow_map.image_layout));
-        }
+        nonstd::span<VkDescriptorImageInfo> shadow_map_image_infos = write_helper.new_image_infos(shadow_maps.size());
 
-        nonstd::span<const VkDescriptorImageInfo> shadow_map_image_infos(image_info_ptr, shadow_maps.size());
+        for (u32 index = 0; index < shadow_maps.size(); index += 1)
+        {
+            const auto& shadow_map = shadow_maps[index];
+            shadow_map_image_infos[index] =
+                create_descriptor_image_info(shadow_map.view_handle, shadow_map.image_layout);
+        }
 
         write_helper.writes.push_back(create_image_descriptor_write(
             resources.descriptor_set, 8, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, shadow_map_image_infos));
@@ -200,20 +201,17 @@ void update_forward_pass_descriptor_sets(DescriptorWriteHelper& write_helper, co
 
     if (!material_resources.texture_handles.empty())
     {
-        append_write(write_helper, resources.material_descriptor_set, 0, sampler_resources.diffuseMapSampler);
+        write_helper.append(resources.material_descriptor_set, 0, sampler_resources.diffuseMapSampler);
 
-        const VkDescriptorImageInfo* image_info_ptr = write_helper.image_infos.data() + write_helper.image_info_size;
+        nonstd::span<VkDescriptorImageInfo> albedo_image_infos =
+            write_helper.new_image_infos(material_resources.texture_handles.size());
 
-        for (auto handle : material_resources.texture_handles)
+        for (u32 index = 0; index < albedo_image_infos.size(); index += 1)
         {
-            write_helper.new_image_info(create_descriptor_image_info(material_resources.textures[handle].default_view,
-                                                                     VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL));
+            const auto& albedo_map = material_resources.textures[index];
+            albedo_image_infos[index] =
+                create_descriptor_image_info(albedo_map.default_view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
         }
-
-        nonstd::span<const VkDescriptorImageInfo> albedo_image_infos(image_info_ptr,
-                                                                     material_resources.texture_handles.size());
-
-        Assert(albedo_image_infos.size() <= DiffuseMapMaxCount);
 
         write_helper.writes.push_back(create_image_descriptor_write(
             resources.material_descriptor_set, 1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, albedo_image_infos));

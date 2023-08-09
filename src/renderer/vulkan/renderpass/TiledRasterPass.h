@@ -66,7 +66,7 @@ void                 destroy_tiled_raster_pass_resources(VulkanBackend& backend,
 
 struct SamplerResources;
 struct GPUBufferView;
-struct DescriptorWriteHelper;
+class DescriptorWriteHelper;
 struct FrameGraphTexture;
 struct FrameGraphBuffer;
 struct LightingPassResources;

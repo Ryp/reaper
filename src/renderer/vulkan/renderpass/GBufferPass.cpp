@@ -148,32 +148,29 @@ void update_gbuffer_pass_descriptor_sets(DescriptorWriteHelper& write_helper, co
                                          const SamplerResources&       sampler_resources,
                                          const MaterialResources& material_resources, const MeshCache& mesh_cache)
 {
-    append_write(write_helper, resources.descriptor_set, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                 resources.instancesConstantBuffer.handle);
-    append_write(write_helper, resources.descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                 meshlet_culling_resources.visible_meshlet_buffer.handle);
-    append_write(write_helper, resources.descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                 mesh_cache.vertexBufferPosition.handle);
-    append_write(write_helper, resources.descriptor_set, 3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                 mesh_cache.vertexBufferNormal.handle);
-    append_write(write_helper, resources.descriptor_set, 4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                 mesh_cache.vertexBufferUV.handle);
-    append_write(write_helper, resources.descriptor_set, 5, sampler_resources.diffuseMapSampler);
+    write_helper.append(resources.descriptor_set, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                        resources.instancesConstantBuffer.handle);
+    write_helper.append(resources.descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                        meshlet_culling_resources.visible_meshlet_buffer.handle);
+    write_helper.append(resources.descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                        mesh_cache.vertexBufferPosition.handle);
+    write_helper.append(resources.descriptor_set, 3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                        mesh_cache.vertexBufferNormal.handle);
+    write_helper.append(resources.descriptor_set, 4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                        mesh_cache.vertexBufferUV.handle);
+    write_helper.append(resources.descriptor_set, 5, sampler_resources.diffuseMapSampler);
 
     if (!material_resources.texture_handles.empty())
     {
-        const VkDescriptorImageInfo* image_info_ptr = write_helper.image_infos.data() + write_helper.image_info_size;
+        nonstd::span<VkDescriptorImageInfo> albedo_image_infos =
+            write_helper.new_image_infos(material_resources.texture_handles.size());
 
-        for (auto handle : material_resources.texture_handles)
+        for (u32 index = 0; index < albedo_image_infos.size(); index += 1)
         {
-            write_helper.new_image_info(create_descriptor_image_info(material_resources.textures[handle].default_view,
-                                                                     VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL));
+            const auto& albedo_map = material_resources.textures[index];
+            albedo_image_infos[index] =
+                create_descriptor_image_info(albedo_map.default_view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
         }
-
-        nonstd::span<const VkDescriptorImageInfo> albedo_image_infos(image_info_ptr,
-                                                                     material_resources.texture_handles.size());
-
-        Assert(albedo_image_infos.size() <= DiffuseMapMaxCount);
 
         write_helper.writes.push_back(create_image_descriptor_write(
             resources.descriptor_set, 6, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, albedo_image_infos));

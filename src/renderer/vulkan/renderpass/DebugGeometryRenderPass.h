@@ -59,7 +59,7 @@ struct PreparedData;
 void upload_debug_geometry_build_cmds_pass_frame_resources(VulkanBackend& backend, const PreparedData& prepared,
                                                            const DebugGeometryPassResources& resources);
 
-struct DescriptorWriteHelper;
+class DescriptorWriteHelper;
 struct FrameGraphBuffer;
 
 void update_debug_geometry_build_cmds_pass_descriptor_sets(DescriptorWriteHelper&            write_helper,

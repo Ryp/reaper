@@ -49,7 +49,7 @@ struct MeshletCullingResources;
 struct MaterialResources;
 struct MeshCache;
 struct SamplerResources;
-struct DescriptorWriteHelper;
+class DescriptorWriteHelper;
 
 void update_gbuffer_pass_descriptor_sets(DescriptorWriteHelper& write_helper, const GBufferPassResources& resources,
                                          const MeshletCullingResources meshlet_culling_resources,

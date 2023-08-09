@@ -45,7 +45,7 @@ HistogramPassResources create_histogram_pass_resources(ReaperRoot& root, VulkanB
 void destroy_histogram_pass_resources(VulkanBackend& backend, const HistogramPassResources& resources);
 
 struct SamplerResources;
-struct DescriptorWriteHelper;
+class DescriptorWriteHelper;
 struct FrameGraphTexture;
 
 void update_histogram_pass_descriptor_set(DescriptorWriteHelper& write_helper, const HistogramPassResources& resources,

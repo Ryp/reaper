@@ -111,13 +111,13 @@ void update_shadow_map_pass_descriptor_sets(DescriptorWriteHelper& write_helper,
                 get_buffer_view(resources.instanceConstantBuffer.properties,
                                 BufferSubresource{shadow_pass.instance_offset, shadow_pass.instance_count});
 
-            append_write(write_helper, descriptor_set, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                         resources.passConstantBuffer.handle, constant_view.offset_bytes, constant_view.size_bytes);
-            append_write(write_helper, descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                         resources.instanceConstantBuffer.handle, instances_view.offset_bytes,
-                         instances_view.size_bytes);
-            append_write(write_helper, descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                         vertex_position_buffer.handle);
+            write_helper.append(descriptor_set, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                                resources.passConstantBuffer.handle, constant_view.offset_bytes,
+                                constant_view.size_bytes);
+            write_helper.append(descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                                resources.instanceConstantBuffer.handle, instances_view.offset_bytes,
+                                instances_view.size_bytes);
+            write_helper.append(descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, vertex_position_buffer.handle);
         }
     }
 }

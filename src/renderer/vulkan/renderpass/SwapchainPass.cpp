@@ -207,15 +207,15 @@ void update_swapchain_pass_descriptor_set(DescriptorWriteHelper& write_helper, c
                                           const FrameGraphTexture& gui_texture,
                                           const FrameGraphTexture& tile_lighting_debug_texture)
 {
-    append_write(write_helper, resources.descriptor_set, 0, sampler_resources.linearBlackBorderSampler);
-    append_write(write_helper, resources.descriptor_set, 1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-                 hdr_scene_texture.view_handle, hdr_scene_texture.image_layout);
-    append_write(write_helper, resources.descriptor_set, 2, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-                 lighting_texture.view_handle, lighting_texture.image_layout);
-    append_write(write_helper, resources.descriptor_set, 3, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, gui_texture.view_handle,
-                 gui_texture.image_layout);
-    append_write(write_helper, resources.descriptor_set, 4, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-                 tile_lighting_debug_texture.view_handle, tile_lighting_debug_texture.image_layout);
+    write_helper.append(resources.descriptor_set, 0, sampler_resources.linearBlackBorderSampler);
+    write_helper.append(resources.descriptor_set, 1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, hdr_scene_texture.view_handle,
+                        hdr_scene_texture.image_layout);
+    write_helper.append(resources.descriptor_set, 2, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, lighting_texture.view_handle,
+                        lighting_texture.image_layout);
+    write_helper.append(resources.descriptor_set, 3, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, gui_texture.view_handle,
+                        gui_texture.image_layout);
+    write_helper.append(resources.descriptor_set, 4, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+                        tile_lighting_debug_texture.view_handle, tile_lighting_debug_texture.image_layout);
 }
 
 void record_swapchain_command_buffer(CommandBuffer& cmdBuffer, const FrameData& frame_data,

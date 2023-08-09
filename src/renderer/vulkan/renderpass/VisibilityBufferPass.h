@@ -51,7 +51,7 @@ struct MaterialResources;
 struct MeshletCullingResources;
 struct MeshCache;
 struct SamplerResources;
-struct DescriptorWriteHelper;
+class DescriptorWriteHelper;
 struct FrameGraphTexture;
 
 struct PreparedData;

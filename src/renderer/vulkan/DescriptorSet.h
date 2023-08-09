@@ -44,8 +44,29 @@ VkWriteDescriptorSet create_texel_buffer_view_descriptor_write(VkDescriptorSet d
 
 // Vulkan needs a few structures to be chained with pointers to fill descriptor sets.
 // This is quite tedious, so this helper's job is to hold the memory for these.
-struct DescriptorWriteHelper
+class DescriptorWriteHelper
 {
+public:
+    DescriptorWriteHelper(u32 image_descriptor_count, u32 buffer_descriptor_count,
+                          u32 texel_buffer_descriptor_count = 1);
+    ~DescriptorWriteHelper();
+
+    VkDescriptorImageInfo&              new_image_info(VkDescriptorImageInfo image_info);
+    nonstd::span<VkDescriptorImageInfo> new_image_infos(u32 count);
+    VkDescriptorBufferInfo&             new_buffer_info(VkDescriptorBufferInfo buffer_info);
+    VkBufferView&                       new_texel_buffer_view(VkBufferView texel_buffer_view);
+
+    void append(VkDescriptorSet descriptor_set, u32 binding, VkDescriptorType type, VkImageView image_view,
+                VkImageLayout layout);
+    void append(VkDescriptorSet descriptor_set, u32 binding, VkSampler sampler);
+    void append(VkDescriptorSet descriptor_set, u32 binding, VkDescriptorType type, VkBuffer buffer, u64 offset_bytes,
+                u64 size_bytes);
+    void append(VkDescriptorSet descriptor_set, u32 binding, VkDescriptorType type, VkBuffer buffer);
+    void append(VkDescriptorSet descriptor_set, u32 binding, VkDescriptorType type, VkBufferView texel_buffer_view);
+
+    void flush_descriptor_write_helper(VkDevice device);
+
+private:
     nonstd::span<VkDescriptorImageInfo>  image_infos;
     nonstd::span<VkDescriptorBufferInfo> buffer_infos;
     nonstd::span<VkBufferView>           texel_buffer_views;
@@ -54,28 +75,7 @@ struct DescriptorWriteHelper
     u64 buffer_info_size;
     u64 texel_buffer_view_size;
 
+public:
     std::vector<VkWriteDescriptorSet> writes;
-
-    ~DescriptorWriteHelper();
-
-    VkDescriptorImageInfo&              new_image_info(const VkDescriptorImageInfo&& image_info);
-    nonstd::span<VkDescriptorImageInfo> new_image_infos(u32 count);
-    VkDescriptorBufferInfo&             new_buffer_info(const VkDescriptorBufferInfo&& buffer_info);
-    VkBufferView&                       new_texel_buffer_view(VkBufferView texel_buffer_view);
 };
-
-DescriptorWriteHelper create_descriptor_write_helper(u32 image_descriptor_count, u32 buffer_descriptor_count,
-                                                     u32 texel_buffer_descriptor_count = 1);
-
-void append_write(DescriptorWriteHelper& write_context, VkDescriptorSet descriptor_set, u32 binding,
-                  VkDescriptorType type, VkImageView image_view, VkImageLayout layout);
-void append_write(DescriptorWriteHelper& write_context, VkDescriptorSet descriptor_set, u32 binding, VkSampler sampler);
-void append_write(DescriptorWriteHelper& write_context, VkDescriptorSet descriptor_set, u32 binding,
-                  VkDescriptorType type, VkBuffer buffer, u64 offset_bytes, u64 size_bytes);
-void append_write(DescriptorWriteHelper& write_context, VkDescriptorSet descriptor_set, u32 binding,
-                  VkDescriptorType type, VkBuffer buffer);
-void append_write(DescriptorWriteHelper& write_context, VkDescriptorSet descriptor_set, u32 binding,
-                  VkDescriptorType type, VkBufferView texel_buffer_view);
-
-void flush_descriptor_write_helper(DescriptorWriteHelper& write_helper, VkDevice device);
 } // namespace Reaper

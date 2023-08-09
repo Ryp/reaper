@@ -148,31 +148,28 @@ void update_tiled_lighting_pass_descriptor_sets(DescriptorWriteHelper&          
                                                     shadow_maps)
 {
     VkDescriptorSet dset = resources.tiled_lighting_descriptor_set;
-    append_write(write_helper, dset, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                 resources.tiled_lighting_constant_buffer.handle);
-    append_write(write_helper, dset, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, light_list_buffer.handle);
-    append_write(write_helper, dset, 2, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, gbuffer_rt0.view_handle,
-                 gbuffer_rt0.image_layout);
-    append_write(write_helper, dset, 3, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, gbuffer_rt1.view_handle,
-                 gbuffer_rt1.image_layout);
-    append_write(write_helper, dset, 4, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, main_view_depth.view_handle,
-                 main_view_depth.image_layout);
-    append_write(write_helper, dset, 5, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, lighting_resources.pointLightBuffer.handle);
-    append_write(write_helper, dset, 6, sampler_resources.shadowMapSampler);
-    append_write(write_helper, dset, 7, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, lighting_output.view_handle,
-                 lighting_output.image_layout);
-    append_write(write_helper, dset, 8, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, tile_debug_buffer.handle);
+    write_helper.append(dset, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, resources.tiled_lighting_constant_buffer.handle);
+    write_helper.append(dset, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, light_list_buffer.handle);
+    write_helper.append(dset, 2, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, gbuffer_rt0.view_handle, gbuffer_rt0.image_layout);
+    write_helper.append(dset, 3, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, gbuffer_rt1.view_handle, gbuffer_rt1.image_layout);
+    write_helper.append(dset, 4, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, main_view_depth.view_handle,
+                        main_view_depth.image_layout);
+    write_helper.append(dset, 5, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, lighting_resources.pointLightBuffer.handle);
+    write_helper.append(dset, 6, sampler_resources.shadowMapSampler);
+    write_helper.append(dset, 7, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, lighting_output.view_handle,
+                        lighting_output.image_layout);
+    write_helper.append(dset, 8, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, tile_debug_buffer.handle);
 
     if (!shadow_maps.empty())
     {
-        const VkDescriptorImageInfo* image_info_ptr = write_helper.image_infos.data() + write_helper.image_info_size;
+        nonstd::span<VkDescriptorImageInfo> shadow_map_image_infos = write_helper.new_image_infos(shadow_maps.size());
 
-        for (auto shadow_map : shadow_maps)
+        for (u32 index = 0; index < shadow_maps.size(); index += 1)
         {
-            write_helper.new_image_info(create_descriptor_image_info(shadow_map.view_handle, shadow_map.image_layout));
+            const auto& shadow_map = shadow_maps[index];
+            shadow_map_image_infos[index] =
+                create_descriptor_image_info(shadow_map.view_handle, shadow_map.image_layout);
         }
-
-        nonstd::span<const VkDescriptorImageInfo> shadow_map_image_infos(image_info_ptr, shadow_maps.size());
 
         write_helper.writes.push_back(
             create_image_descriptor_write(dset, 9, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, shadow_map_image_infos));
@@ -220,9 +217,9 @@ void update_tiled_lighting_debug_pass_descriptor_sets(DescriptorWriteHelper&    
                                                       const FrameGraphTexture&          tile_debug_texture)
 {
     VkDescriptorSet dset = resources.tiled_lighting_debug_descriptor_set;
-    append_write(write_helper, dset, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, tile_debug_buffer.handle);
-    append_write(write_helper, dset, 1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, tile_debug_texture.view_handle,
-                 tile_debug_texture.image_layout);
+    write_helper.append(dset, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, tile_debug_buffer.handle);
+    write_helper.append(dset, 1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, tile_debug_texture.view_handle,
+                        tile_debug_texture.image_layout);
 }
 
 void record_tiled_lighting_debug_command_buffer(CommandBuffer& cmdBuffer, const TiledLightingPassResources& resources,

@@ -974,7 +974,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     allocate_framegraph_volatile_resources(root, backend, resources.framegraph_resources, framegraph);
 
-    DescriptorWriteHelper descriptor_write_helper = create_descriptor_write_helper(200, 200);
+    DescriptorWriteHelper descriptor_write_helper(200, 200);
 
     update_meshlet_culling_pass_descriptor_sets(descriptor_write_helper, prepared, resources.meshlet_culling_resources,
                                                 resources.mesh_cache);
@@ -1078,7 +1078,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     update_audio_pass_descriptor_set(descriptor_write_helper, resources.audio_resources);
 
-    flush_descriptor_write_helper(descriptor_write_helper, backend.device);
+    descriptor_write_helper.flush_descriptor_write_helper(backend.device);
 
     log_debug(root, "vulkan: record command buffer");
     Assert(vkResetCommandBuffer(cmdBuffer.handle, 0) == VK_SUCCESS);

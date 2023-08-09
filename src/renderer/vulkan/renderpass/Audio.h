@@ -63,7 +63,7 @@ struct PreparedData;
 
 void upload_audio_frame_resources(VulkanBackend& backend, const PreparedData& prepared, AudioResources& resources);
 
-struct DescriptorWriteHelper;
+class DescriptorWriteHelper;
 
 void update_audio_pass_descriptor_set(DescriptorWriteHelper& write_helper, AudioResources& resources);
 

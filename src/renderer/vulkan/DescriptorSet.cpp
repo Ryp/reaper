@@ -114,6 +114,18 @@ VkWriteDescriptorSet create_texel_buffer_view_descriptor_write(VkDescriptorSet d
                                                      nonstd::span(texel_buffer_view, 1));
 }
 
+DescriptorWriteHelper::DescriptorWriteHelper(u32 image_descriptor_count, u32 buffer_descriptor_count,
+                                             u32 texel_buffer_descriptor_count)
+{
+    image_infos = nonstd::span(new VkDescriptorImageInfo[image_descriptor_count], image_descriptor_count);
+    buffer_infos = nonstd::span(new VkDescriptorBufferInfo[buffer_descriptor_count], buffer_descriptor_count);
+    texel_buffer_views = nonstd::span(new VkBufferView[texel_buffer_descriptor_count], texel_buffer_descriptor_count);
+
+    image_info_size = 0;
+    buffer_info_size = 0;
+    texel_buffer_view_size = 0;
+}
+
 DescriptorWriteHelper::~DescriptorWriteHelper()
 {
     delete[] image_infos.data();
@@ -123,7 +135,7 @@ DescriptorWriteHelper::~DescriptorWriteHelper()
     Assert(writes.empty());
 }
 
-VkDescriptorImageInfo& DescriptorWriteHelper::new_image_info(const VkDescriptorImageInfo&& image_info)
+VkDescriptorImageInfo& DescriptorWriteHelper::new_image_info(VkDescriptorImageInfo image_info)
 {
     VkDescriptorImageInfo& new_element = image_infos[image_info_size];
 
@@ -133,7 +145,16 @@ VkDescriptorImageInfo& DescriptorWriteHelper::new_image_info(const VkDescriptorI
     return new_element;
 }
 
-VkDescriptorBufferInfo& DescriptorWriteHelper::new_buffer_info(const VkDescriptorBufferInfo&& buffer_info)
+nonstd::span<VkDescriptorImageInfo> DescriptorWriteHelper::new_image_infos(u32 count)
+{
+    auto span = nonstd::span<VkDescriptorImageInfo>(image_infos.data() + image_info_size, count);
+
+    image_info_size += count;
+
+    return span;
+}
+
+VkDescriptorBufferInfo& DescriptorWriteHelper::new_buffer_info(VkDescriptorBufferInfo buffer_info)
 {
     VkDescriptorBufferInfo& new_element = buffer_infos[buffer_info_size];
 
@@ -153,81 +174,64 @@ VkBufferView& DescriptorWriteHelper::new_texel_buffer_view(VkBufferView texel_bu
     return new_element;
 }
 
-DescriptorWriteHelper create_descriptor_write_helper(u32 image_descriptor_count, u32 buffer_descriptor_count,
-                                                     u32 texel_buffer_descriptor_count)
-{
-    DescriptorWriteHelper helper;
-
-    helper.image_infos = nonstd::span(new VkDescriptorImageInfo[image_descriptor_count], image_descriptor_count);
-    helper.buffer_infos = nonstd::span(new VkDescriptorBufferInfo[buffer_descriptor_count], buffer_descriptor_count);
-    helper.texel_buffer_views =
-        nonstd::span(new VkBufferView[texel_buffer_descriptor_count], texel_buffer_descriptor_count);
-
-    helper.image_info_size = 0;
-    helper.buffer_info_size = 0;
-    helper.texel_buffer_view_size = 0;
-
-    return helper;
-}
-
-void append_write(DescriptorWriteHelper& write_context, VkDescriptorSet descriptor_set, u32 binding,
-                  VkDescriptorType type, VkImageView image_view, VkImageLayout layout)
+void DescriptorWriteHelper::append(VkDescriptorSet descriptor_set, u32 binding, VkDescriptorType type,
+                                   VkImageView image_view, VkImageLayout layout)
 {
     Assert(type == VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE || type == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
            "Invalid descriptor type");
 
     const VkDescriptorImageInfo& image_descriptor_info =
-        write_context.new_image_info(create_descriptor_image_info(image_view, layout));
+        new_image_info(create_descriptor_image_info(image_view, layout));
 
-    write_context.writes.emplace_back(
-        create_image_descriptor_write(descriptor_set, binding, type, &image_descriptor_info));
+    writes.push_back(create_image_descriptor_write(descriptor_set, binding, type, &image_descriptor_info));
+    Assert(writes.back().sType == VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET);
 }
 
-void append_write(DescriptorWriteHelper& write_context, VkDescriptorSet descriptor_set, u32 binding, VkSampler sampler)
+void DescriptorWriteHelper::append(VkDescriptorSet descriptor_set, u32 binding, VkSampler sampler)
 {
-    const VkDescriptorImageInfo& sampler_descriptor_info =
-        write_context.new_image_info(create_descriptor_image_info(sampler));
+    const VkDescriptorImageInfo& sampler_descriptor_info = new_image_info(create_descriptor_image_info(sampler));
 
-    write_context.writes.emplace_back(
+    writes.push_back(
         create_image_descriptor_write(descriptor_set, binding, VK_DESCRIPTOR_TYPE_SAMPLER, &sampler_descriptor_info));
+    Assert(writes.back().sType == VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET);
 }
 
-void append_write(DescriptorWriteHelper& write_context, VkDescriptorSet descriptor_set, u32 binding,
-                  VkDescriptorType type, VkBuffer buffer, u64 offset_bytes, u64 size_bytes)
+void DescriptorWriteHelper::append(VkDescriptorSet descriptor_set, u32 binding, VkDescriptorType type, VkBuffer buffer,
+                                   u64 offset_bytes, u64 size_bytes)
 {
     Assert(type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER || type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
            "Invalid descriptor type");
 
     const VkDescriptorBufferInfo& buffer_info =
-        write_context.new_buffer_info(create_descriptor_buffer_info(buffer, offset_bytes, size_bytes));
+        new_buffer_info(create_descriptor_buffer_info(buffer, offset_bytes, size_bytes));
 
-    write_context.writes.emplace_back(create_buffer_descriptor_write(descriptor_set, binding, type, &buffer_info));
+    writes.push_back(create_buffer_descriptor_write(descriptor_set, binding, type, &buffer_info));
+    Assert(writes.back().sType == VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET);
 }
 
-void append_write(DescriptorWriteHelper& write_context, VkDescriptorSet descriptor_set, u32 binding,
-                  VkDescriptorType type, VkBuffer buffer)
+void DescriptorWriteHelper::append(VkDescriptorSet descriptor_set, u32 binding, VkDescriptorType type, VkBuffer buffer)
 {
-    append_write(write_context, descriptor_set, binding, type, buffer, 0, VK_WHOLE_SIZE);
+    append(descriptor_set, binding, type, buffer, 0, VK_WHOLE_SIZE);
 }
 
-void append_write(DescriptorWriteHelper& write_context, VkDescriptorSet descriptor_set, u32 binding,
-                  VkDescriptorType type, VkBufferView texel_buffer_view)
+void DescriptorWriteHelper::append(VkDescriptorSet descriptor_set, u32 binding, VkDescriptorType type,
+                                   VkBufferView texel_buffer_view)
 {
-    const VkBufferView& texel_buffer_info = write_context.new_texel_buffer_view(texel_buffer_view);
+    const VkBufferView& texel_buffer_info = new_texel_buffer_view(texel_buffer_view);
 
-    write_context.writes.emplace_back(
-        create_texel_buffer_view_descriptor_write(descriptor_set, binding, type, &texel_buffer_info));
+    writes.push_back(create_texel_buffer_view_descriptor_write(descriptor_set, binding, type, &texel_buffer_info));
+
+    Assert(writes.back().sType == VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET);
 }
 
-void flush_descriptor_write_helper(DescriptorWriteHelper& write_helper, VkDevice device)
+void DescriptorWriteHelper::flush_descriptor_write_helper(VkDevice device)
 {
-    vkUpdateDescriptorSets(device, static_cast<u32>(write_helper.writes.size()), write_helper.writes.data(), 0,
-                           nullptr);
+    vkUpdateDescriptorSets(device, static_cast<u32>(writes.size()), writes.data(), 0, nullptr);
 
-    write_helper.buffer_info_size = 0;
-    write_helper.image_info_size = 0;
-    write_helper.texel_buffer_view_size = 0;
+    buffer_info_size = 0;
+    image_info_size = 0;
+    texel_buffer_view_size = 0;
 
-    write_helper.writes.clear();
+    writes.clear();
 }
 } // namespace Reaper

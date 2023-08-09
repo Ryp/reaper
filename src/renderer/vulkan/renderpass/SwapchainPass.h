@@ -40,7 +40,7 @@ void reload_swapchain_pipeline(VulkanBackend& backend, const ShaderModules& shad
                                SwapchainPassResources& resources);
 
 struct SamplerResources;
-struct DescriptorWriteHelper;
+class DescriptorWriteHelper;
 struct FrameGraphTexture;
 
 void update_swapchain_pass_descriptor_set(DescriptorWriteHelper& write_helper, const SwapchainPassResources& resources,

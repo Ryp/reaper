@@ -211,16 +211,15 @@ void update_debug_geometry_build_cmds_pass_descriptor_sets(DescriptorWriteHelper
                                                            const FrameGraphBuffer&           draw_commands,
                                                            const FrameGraphBuffer&           instance_buffer)
 {
-    append_write(write_helper, resources.build_cmds_descriptor_set, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                 resources.build_cmds_constants.handle);
-    append_write(write_helper, resources.build_cmds_descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                 draw_counter.handle);
-    append_write(write_helper, resources.build_cmds_descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                 user_commands.handle);
-    append_write(write_helper, resources.build_cmds_descriptor_set, 3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                 draw_commands.handle);
-    append_write(write_helper, resources.build_cmds_descriptor_set, 4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                 instance_buffer.handle);
+    write_helper.append(resources.build_cmds_descriptor_set, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                        resources.build_cmds_constants.handle);
+    write_helper.append(resources.build_cmds_descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, draw_counter.handle);
+    write_helper.append(resources.build_cmds_descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                        user_commands.handle);
+    write_helper.append(resources.build_cmds_descriptor_set, 3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                        draw_commands.handle);
+    write_helper.append(resources.build_cmds_descriptor_set, 4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                        instance_buffer.handle);
 }
 
 void record_debug_geometry_build_cmds_command_buffer(CommandBuffer&                    cmdBuffer,
@@ -240,10 +239,9 @@ void update_debug_geometry_draw_pass_descriptor_sets(DescriptorWriteHelper&     
                                                      const DebugGeometryPassResources& resources,
                                                      const FrameGraphBuffer&           instance_buffer)
 {
-    append_write(write_helper, resources.draw_descriptor_set, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                 resources.vertex_buffer_position.handle);
-    append_write(write_helper, resources.draw_descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                 instance_buffer.handle);
+    write_helper.append(resources.draw_descriptor_set, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                        resources.vertex_buffer_position.handle);
+    write_helper.append(resources.draw_descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, instance_buffer.handle);
 }
 
 void record_debug_geometry_draw_command_buffer(CommandBuffer& cmdBuffer, const DebugGeometryPassResources& resources,

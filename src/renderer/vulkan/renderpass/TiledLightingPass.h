@@ -40,7 +40,7 @@ TiledLightingPassResources create_tiled_lighting_pass_resources(ReaperRoot& root
 void destroy_tiled_lighting_pass_resources(VulkanBackend& backend, TiledLightingPassResources& resources);
 
 struct SamplerResources;
-struct DescriptorWriteHelper;
+class DescriptorWriteHelper;
 struct FrameGraphTexture;
 struct FrameGraphBuffer;
 struct LightingPassResources;
