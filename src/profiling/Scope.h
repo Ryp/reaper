@@ -18,7 +18,7 @@
 #    define REAPER_PROFILE_SCOPE(name) ZoneScopedN(name)
 #    define REAPER_PROFILE_SCOPE_COLOR(name, color) ZoneScopedNC(name, color)
 #    define REAPER_PROFILE_SCOPE_FUNC() ZoneScoped
-#    define REAPER_PROFILE_SCOPE_FUNC_COLOR(color) ZoneScopeC(color)
+#    define REAPER_PROFILE_SCOPE_FUNC_COLOR(color) ZoneScopedC(color)
 #    define REAPER_PROFILE_SCOPE_GPU(cmd_buffer, name) TracyVkZone(cmd_buffer.tracy_ctx, cmd_buffer.handle, name)
 #    define REAPER_PROFILE_SCOPE_GPU_COLOR(cmd_buffer, name, color) \
         TracyVkZoneC(cmd_buffer.tracy_ctx, cmd_buffer.handle, name, color)
