@@ -190,7 +190,8 @@ REAPER_VK_DEVICE_LEVEL_FUNCTION(vkCmdSetViewportWithCount);
 #    include "extension/VK_KHR_display.inl"
 #endif
 
-#if 0
+#if REAPER_WINDOWS_HDR_TEST
+#    include "extension/VK_AMD_display_native_hdr.inl"
 #    include "extension/VK_EXT_full_screen_exclusive.inl"
 #    include "extension/VK_EXT_hdr_metadata.inl"
 #endif

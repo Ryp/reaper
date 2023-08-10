@@ -26,14 +26,14 @@ struct PresentationInfo
     bool queue_swapchain_transition = false;
 
     // Split this in another struct
-    VkSurfaceCapabilitiesKHR      surfaceCaps;
-    VkSurfaceFormatKHR            surfaceFormat;
+    VkSurfaceCapabilitiesKHR      surface_caps;
+    VkSurfaceFormatKHR            surface_format;
     VkFormat                      view_format;
-    u32                           imageCount;
-    VkPresentModeKHR              presentMode;
-    VkExtent2D                    surfaceExtent;
-    VkImageUsageFlags             swapchainUsageFlags;
-    VkSurfaceTransformFlagBitsKHR transform;
+    u32                           image_count;
+    VkPresentModeKHR              present_mode;
+    VkExtent2D                    surface_extent;
+    VkImageUsageFlags             swapchain_usage_flags;
+    VkSurfaceTransformFlagBitsKHR surface_transform;
 
     VkSwapchainKHR swapchain = VK_NULL_HANDLE;
 

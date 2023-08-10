@@ -443,7 +443,7 @@ void execute_game_loop(ReaperRoot& root)
         const MouseState mouse_state = window->get_mouse_state();
         ImGuiIO&         io = ImGui::GetIO();
         io.DisplaySize =
-            ImVec2((float)backend.presentInfo.surfaceExtent.width, (float)backend.presentInfo.surfaceExtent.height);
+            ImVec2((float)backend.presentInfo.surface_extent.width, (float)backend.presentInfo.surface_extent.height);
         io.AddMousePosEvent((float)mouse_state.pos_x, (float)mouse_state.pos_y);
 
         ImGui_ImplVulkan_NewFrame();

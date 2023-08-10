@@ -17,23 +17,28 @@
 #include "core/Assert.h"
 #include "profiling/Scope.h"
 
+#if REAPER_WINDOWS_HDR_TEST
+#    include "renderer/window/Win32Window.h" // FIXME
+#endif
+
 namespace
 {
-VkSurfaceFormatKHR vulkan_swapchain_choose_surface_format(std::vector<VkSurfaceFormatKHR>& surface_formats,
-                                                          VkSurfaceFormatKHR               preferredFormat)
+VkSurfaceFormatKHR vulkan_swapchain_choose_surface_format(std::vector<VkSurfaceFormat2KHR>& surface_formats,
+                                                          VkSurfaceFormatKHR                preferredFormat)
 {
     // If the list contains only one entry with undefined format
     // it means that there are no preferred surface formats and any can be chosen
-    if ((surface_formats.size() == 1) && (surface_formats[0].format == VK_FORMAT_UNDEFINED))
+    if ((surface_formats.size() == 1) && (surface_formats[0].surfaceFormat.format == VK_FORMAT_UNDEFINED))
         return preferredFormat;
 
-    for (const VkSurfaceFormatKHR& surface_format : surface_formats)
+    for (const VkSurfaceFormat2KHR& surface_format2 : surface_formats)
     {
+        const VkSurfaceFormatKHR& surface_format = surface_format2.surfaceFormat;
         if (surface_format.format == preferredFormat.format && surface_format.colorSpace == preferredFormat.colorSpace)
             return surface_format;
     }
 
-    return surface_formats[0]; // Return first available format
+    return surface_formats[0].surfaceFormat; // Return first available format
 }
 
 uint32_t clamp(uint32_t v, uint32_t min, uint32_t max)
@@ -119,10 +124,6 @@ VkFormat vulkan_swapchain_view_format_override(VkSurfaceFormatKHR surface_format
 }
 } // namespace
 
-#if 0
-#    include "renderer/window/Win32Window.h"
-#endif
-
 namespace Reaper
 {
 void configure_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backend,
@@ -130,93 +131,107 @@ void configure_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backen
 {
     log_debug(root, "vulkan: configuring wm swapchain");
 
-    Assert(
-        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(backend.physicalDevice, presentInfo.surface, &presentInfo.surfaceCaps)
-        == VK_SUCCESS);
+    VkPhysicalDeviceSurfaceInfo2KHR surface_info_2 = {.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SURFACE_INFO_2_KHR,
+                                                      .pNext = nullptr,
+                                                      .surface = presentInfo.surface};
 
-    VkSurfaceCapabilitiesKHR& surfaceCaps = presentInfo.surfaceCaps;
+    VkSurfaceCapabilities2KHR surface_caps_2 = {};
+    surface_caps_2.sType = VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_2_KHR;
 
-#if 0
-    {
-        Win32Window* win32Window = dynamic_cast<Win32Window*>(root.renderer->window);
-        HMONITOR     monitor = MonitorFromWindow(win32Window->m_handle, MONITOR_DEFAULTTOPRIMARY);
-        VkSurfaceFullScreenExclusiveWin32InfoEXT fullscreen_exclusive_info = {
-            VK_STRUCTURE_TYPE_SURFACE_FULL_SCREEN_EXCLUSIVE_WIN32_INFO_EXT,
-            nullptr,
-            monitor,
-        };
-        VkPhysicalDeviceSurfaceInfo2KHR             hey = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SURFACE_INFO_2_KHR,
-                                               &fullscreen_exclusive_info, presentInfo.surface};
-        VkSurfaceCapabilitiesFullScreenExclusiveEXT fullscreen_caps = {
-            VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_FULL_SCREEN_EXCLUSIVE_EXT, nullptr, {}};
-        VkSurfaceCapabilities2KHR surfaceCaps2 = {VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_2_KHR, &fullscreen_caps, {}};
+#if REAPER_WINDOWS_HDR_TEST
+    Win32Window* win32Window = dynamic_cast<Win32Window*>(root.renderer->window);
 
-        Assert(vkGetPhysicalDeviceSurfaceCapabilities2KHR(backend.physicalDevice, &hey, &surfaceCaps2) == VK_SUCCESS);
-        Assert(fullscreen_caps.fullScreenExclusiveSupported == VK_TRUE);
-    }
+    const VkSurfaceFullScreenExclusiveWin32InfoEXT fullscreen_exclusive_win32_info = {
+        .sType = VK_STRUCTURE_TYPE_SURFACE_FULL_SCREEN_EXCLUSIVE_WIN32_INFO_EXT,
+        .pNext = nullptr,
+        .hmonitor = MonitorFromWindow(win32Window->m_handle, MONITOR_DEFAULTTOPRIMARY),
+    };
+
+    surface_info_2.pNext = &fullscreen_exclusive_win32_info,
+
+    VkSurfaceCapabilitiesFullScreenExclusiveEXT fullscreen_exclusive_info = {};
+    fullscreen_exclusive_info.sType = VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_FULL_SCREEN_EXCLUSIVE_EXT;
+
+    VkDisplayNativeHdrSurfaceCapabilitiesAMD native_hdr_amd = {};
+    native_hdr_amd.sType = VK_STRUCTURE_TYPE_DISPLAY_NATIVE_HDR_SURFACE_CAPABILITIES_AMD;
+    native_hdr_amd.pNext = &fullscreen_exclusive_info;
+
+    surface_caps_2.pNext = &native_hdr_amd;
 #endif
 
+    Assert(vkGetPhysicalDeviceSurfaceCapabilities2KHR(backend.physicalDevice, &surface_info_2, &surface_caps_2)
+           == VK_SUCCESS);
+
+#if REAPER_WINDOWS_HDR_TEST
+    // Assert(native_hdr_amd.localDimmingSupport == VK_TRUE);
+    Assert(fullscreen_exclusive_info.fullScreenExclusiveSupported == VK_TRUE);
+#endif
+
+    presentInfo.surface_caps = surface_caps_2.surfaceCapabilities;
+    const VkSurfaceCapabilitiesKHR& surface_caps = surface_caps_2.surfaceCapabilities;
+
     // Choose surface format
-    VkSurfaceFormatKHR& surfaceFormat = presentInfo.surfaceFormat;
+    VkSurfaceFormatKHR& surface_format = presentInfo.surface_format;
     {
         uint32_t formats_count;
-        Assert(
-            vkGetPhysicalDeviceSurfaceFormatsKHR(backend.physicalDevice, presentInfo.surface, &formats_count, nullptr)
-            == VK_SUCCESS);
+        Assert(vkGetPhysicalDeviceSurfaceFormats2KHR(backend.physicalDevice, &surface_info_2, &formats_count, nullptr)
+               == VK_SUCCESS);
         Assert(formats_count > 0);
 
-        std::vector<VkSurfaceFormatKHR> surface_formats(formats_count);
-        Assert(vkGetPhysicalDeviceSurfaceFormatsKHR(backend.physicalDevice, presentInfo.surface, &formats_count,
-                                                    &surface_formats[0])
+        std::vector<VkSurfaceFormat2KHR> surface_formats(
+            formats_count, VkSurfaceFormat2KHR{
+                               .sType = VK_STRUCTURE_TYPE_SURFACE_FORMAT_2_KHR, .pNext = nullptr, .surfaceFormat = {}});
+        Assert(vkGetPhysicalDeviceSurfaceFormats2KHR(backend.physicalDevice, &surface_info_2, &formats_count,
+                                                     surface_formats.data())
                == VK_SUCCESS);
 
-        log_debug(root, "vulkan: swapchain supports {} formats", formats_count);
+        log_info(root, "vulkan: swapchain supports {} formats", formats_count);
         for (auto& format : surface_formats)
-            log_debug(root, "- format = {}, colorspace = {}", GetFormatToString(format.format),
-                      GetColorSpaceKHRToString(format.colorSpace));
+            log_info(root, "- format = {}, colorspace = {}", GetFormatToString(format.surfaceFormat.format),
+                     GetColorSpaceKHRToString(format.surfaceFormat.colorSpace));
 
-        surfaceFormat = vulkan_swapchain_choose_surface_format(surface_formats, swapchainDesc.preferredFormat);
+        surface_format = vulkan_swapchain_choose_surface_format(surface_formats, swapchainDesc.preferredFormat);
 
-        if (surfaceFormat.format != swapchainDesc.preferredFormat.format
-            || surfaceFormat.colorSpace != swapchainDesc.preferredFormat.colorSpace)
+        if (surface_format.format != swapchainDesc.preferredFormat.format
+            || surface_format.colorSpace != swapchainDesc.preferredFormat.colorSpace)
         {
             log_warning(root, "vulkan: incompatible swapchain format: format = {}, colorspace = {}",
                         GetFormatToString(swapchainDesc.preferredFormat.format),
                         GetColorSpaceKHRToString(swapchainDesc.preferredFormat.colorSpace));
             log_warning(root, "- falling back to: format = {}, colorspace = {}",
-                        GetFormatToString(surfaceFormat.format), GetColorSpaceKHRToString(surfaceFormat.colorSpace));
+                        GetFormatToString(surface_format.format), GetColorSpaceKHRToString(surface_format.colorSpace));
         }
 
-        presentInfo.view_format = vulkan_swapchain_view_format_override(surfaceFormat);
+        presentInfo.view_format = vulkan_swapchain_view_format_override(surface_format);
 
         log_debug(root, "vulkan: selecting swapchain format = {}, colorspace = {}",
-                  GetFormatToString(surfaceFormat.format), GetColorSpaceKHRToString(surfaceFormat.colorSpace));
+                  GetFormatToString(surface_format.format), GetColorSpaceKHRToString(surface_format.colorSpace));
         log_debug(root, "vulkan: selecting swapchain view format = {}", GetFormatToString(presentInfo.view_format));
     }
 
     // Image count
-    uint32_t imageCount = swapchainDesc.preferredImageCount;
+    uint32_t image_count = swapchainDesc.preferredImageCount;
     {
-        log_debug(root, "vulkan: swapchain image count support: min = {}, max = {}", surfaceCaps.minImageCount,
-                  surfaceCaps.maxImageCount);
+        log_debug(root, "vulkan: swapchain image count support: min = {}, max = {}", surface_caps.minImageCount,
+                  surface_caps.maxImageCount);
 
-        if (imageCount < surfaceCaps.minImageCount)
-            imageCount = surfaceCaps.minImageCount;
+        if (image_count < surface_caps.minImageCount)
+            image_count = surface_caps.minImageCount;
 
         // Max count might be zero when uncapped
-        if (imageCount > surfaceCaps.maxImageCount && surfaceCaps.maxImageCount > 0)
-            imageCount = surfaceCaps.maxImageCount;
+        if (image_count > surface_caps.maxImageCount && surface_caps.maxImageCount > 0)
+            image_count = surface_caps.maxImageCount;
 
-        if (imageCount != swapchainDesc.preferredImageCount)
+        if (image_count != swapchainDesc.preferredImageCount)
         {
             log_warning(root, "vulkan: swapchain image count {} is unsupported. falling back to {}",
-                        swapchainDesc.preferredImageCount, imageCount);
+                        swapchainDesc.preferredImageCount, image_count);
         }
 
-        Assert(imageCount >= 2, "Swapchain should support at least double-buffering");
-        Assert(imageCount <= 5, "Swapchain image count too large");
+        Assert(image_count >= 2, "Swapchain should support at least double-buffering");
+        Assert(image_count <= 5, "Swapchain image count too large");
 
-        presentInfo.imageCount = imageCount;
+        presentInfo.image_count = image_count;
     }
 
     {
@@ -235,11 +250,11 @@ void configure_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backen
         for (auto& mode : availablePresentModes)
             log_debug(root, "- {}", GetPresentModeKHRToString(mode));
 
-        presentInfo.presentMode = vulkan_swapchain_choose_present_mode(availablePresentModes);
+        presentInfo.present_mode = vulkan_swapchain_choose_present_mode(availablePresentModes);
     }
 
     {
-        VkExtent2D extent = vulkan_swapchain_choose_extent(surfaceCaps, swapchainDesc.preferredExtent);
+        VkExtent2D extent = vulkan_swapchain_choose_extent(surface_caps, swapchainDesc.preferredExtent);
 
         if (extent.width != swapchainDesc.preferredExtent.width
             || extent.height != swapchainDesc.preferredExtent.height)
@@ -248,7 +263,7 @@ void configure_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backen
                         swapchainDesc.preferredExtent.height);
             log_warning(root, "- falling back to {}x{}", extent.width, extent.height);
         }
-        presentInfo.surfaceExtent = extent;
+        presentInfo.surface_extent = extent;
     }
 
     // Usage flags
@@ -256,11 +271,11 @@ void configure_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backen
     // and might trigger a validation warning down the line.
     // I suspect this is primarily done for frame capture purposes, like adding TRANSFER_SRC to allow copies.
     // It should be safe to ignore in this case.
-    presentInfo.swapchainUsageFlags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-    Assert((surfaceCaps.supportedUsageFlags & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT) != 0, "Vulkan API error");
+    presentInfo.swapchain_usage_flags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+    Assert((surface_caps.supportedUsageFlags & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT) != 0, "Vulkan API error");
 
     // Transform
-    presentInfo.transform = vulkan_swapchain_choose_transform(surfaceCaps);
+    presentInfo.surface_transform = vulkan_swapchain_choose_transform(surface_caps);
 }
 
 void create_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backend, PresentationInfo& presentInfo)
@@ -268,47 +283,59 @@ void create_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backend, 
     REAPER_PROFILE_SCOPE_FUNC();
     log_debug(root, "vulkan: creating wm swapchain");
 
-#if 0
-    VkSurfaceFullScreenExclusiveInfoEXT fullscreen_info = {
-        VK_STRUCTURE_TYPE_SURFACE_FULL_SCREEN_EXCLUSIVE_INFO_EXT,
-        nullptr,
-        VK_FULL_SCREEN_EXCLUSIVE_APPLICATION_CONTROLLED_EXT,
-    };
-#endif
-
     const std::vector<VkFormat> view_formats = {
-        presentInfo.surfaceFormat.format, // Usual format if the swapchain was immutable
-        presentInfo.view_format,          // Format to use the mutable feature with
+        presentInfo.surface_format.format, // Usual format if the swapchain was immutable
+        presentInfo.view_format,           // Format to use the mutable feature with
     };
 
-    const VkImageFormatListCreateInfo format_list = {
+    VkImageFormatListCreateInfo format_list = {
         .sType = VK_STRUCTURE_TYPE_IMAGE_FORMAT_LIST_CREATE_INFO,
-#if 0
-        .pNext = &fullscreen_info,
-#else
         .pNext = nullptr,
-#endif
         .viewFormatCount = static_cast<u32>(view_formats.size()),
         .pViewFormats = view_formats.data(),
     };
+
+#if REAPER_WINDOWS_HDR_TEST
+    Win32Window* win32Window = dynamic_cast<Win32Window*>(root.renderer->window);
+
+    const VkSurfaceFullScreenExclusiveWin32InfoEXT fullscreen_exclusive_win32_info = {
+        .sType = VK_STRUCTURE_TYPE_SURFACE_FULL_SCREEN_EXCLUSIVE_WIN32_INFO_EXT,
+        .pNext = nullptr,
+        .hmonitor = MonitorFromWindow(win32Window->m_handle, MONITOR_DEFAULTTOPRIMARY),
+    };
+
+    const VkSurfaceFullScreenExclusiveInfoEXT fullscreen_exclusive_info = {
+        .sType = VK_STRUCTURE_TYPE_SURFACE_FULL_SCREEN_EXCLUSIVE_INFO_EXT,
+        .pNext = &fullscreen_exclusive_win32_info,
+        .fullScreenExclusive = VK_FULL_SCREEN_EXCLUSIVE_APPLICATION_CONTROLLED_EXT,
+    };
+
+    const VkSwapchainDisplayNativeHdrCreateInfoAMD display_native_hdr_amd_info = {
+        .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_DISPLAY_NATIVE_HDR_CREATE_INFO_AMD,
+        .pNext = &fullscreen_exclusive_info,
+        .localDimmingEnable = false, // FIXME
+    };
+
+    format_list.pNext = &display_native_hdr_amd_info,
+#endif
 
     VkSwapchainCreateInfoKHR swap_chain_create_info = {
         .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
         .pNext = &format_list,
         .flags = VK_SWAPCHAIN_CREATE_MUTABLE_FORMAT_BIT_KHR,
         .surface = presentInfo.surface,
-        .minImageCount = presentInfo.imageCount,
-        .imageFormat = presentInfo.surfaceFormat.format,
-        .imageColorSpace = presentInfo.surfaceFormat.colorSpace,
-        .imageExtent = presentInfo.surfaceExtent,
+        .minImageCount = presentInfo.image_count,
+        .imageFormat = presentInfo.surface_format.format,
+        .imageColorSpace = presentInfo.surface_format.colorSpace,
+        .imageExtent = presentInfo.surface_extent,
         .imageArrayLayers = 1,
-        .imageUsage = presentInfo.swapchainUsageFlags,
+        .imageUsage = presentInfo.swapchain_usage_flags,
         .imageSharingMode = VK_SHARING_MODE_EXCLUSIVE,
         .queueFamilyIndexCount = 0,
         .pQueueFamilyIndices = nullptr,
-        .preTransform = presentInfo.transform,
+        .preTransform = presentInfo.surface_transform,
         .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
-        .presentMode = presentInfo.presentMode,
+        .presentMode = presentInfo.present_mode,
         .clipped = VK_TRUE,
         .oldSwapchain = presentInfo.swapchain,
     };
@@ -320,21 +347,21 @@ void create_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backend, 
     Assert(vkGetSwapchainImagesKHR(backend.device, presentInfo.swapchain, &actualImageCount, nullptr) == VK_SUCCESS);
 
     Assert(actualImageCount > 0);
-    Assert(actualImageCount >= presentInfo.imageCount, "Invalid swapchain image count returned");
+    Assert(actualImageCount >= presentInfo.image_count, "Invalid swapchain image count returned");
 
     presentInfo.images.resize(actualImageCount);
     Assert(vkGetSwapchainImagesKHR(backend.device, presentInfo.swapchain, &actualImageCount, &presentInfo.images[0])
            == VK_SUCCESS);
 
-    if (actualImageCount != presentInfo.imageCount)
+    if (actualImageCount != presentInfo.image_count)
     {
-        log_warning(root, "vulkan: {} swapchain images were asked but we got {}", presentInfo.imageCount,
+        log_warning(root, "vulkan: {} swapchain images were asked but we got {}", presentInfo.image_count,
                     actualImageCount);
     }
 
     // Since we don't control which swapchain image index we'll get when acquiring one,
     // we have to use the full amount of swapchain we get back.
-    presentInfo.imageCount = actualImageCount;
+    presentInfo.image_count = actualImageCount;
 
     VkSemaphoreCreateInfo semaphore_create_info = {
         VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO, // VkStructureType          sType
@@ -389,8 +416,8 @@ void resize_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backend, 
 
     // Reconfigure even if we know most of what we expect/need
     SwapchainDescriptor swapchainDesc;
-    swapchainDesc.preferredImageCount = presentInfo.imageCount;
-    swapchainDesc.preferredFormat = presentInfo.surfaceFormat;
+    swapchainDesc.preferredImageCount = presentInfo.image_count;
+    swapchainDesc.preferredFormat = presentInfo.surface_format;
     swapchainDesc.preferredExtent = {extent.width, extent.height}; // New extent
 
     configure_vulkan_wm_swapchain(root, backend, swapchainDesc, presentInfo);
@@ -409,13 +436,13 @@ void resize_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backend, 
 
 void create_swapchain_views(const VulkanBackend& backend, PresentationInfo& presentInfo)
 {
-    const size_t imgCount = presentInfo.imageCount;
+    const size_t image_count = presentInfo.image_count;
 
-    Assert(imgCount > 0);
+    Assert(image_count > 0);
 
-    presentInfo.imageViews.resize(imgCount);
+    presentInfo.imageViews.resize(image_count);
 
-    for (size_t i = 0; i < imgCount; ++i)
+    for (size_t i = 0; i < image_count; ++i)
     {
         VkImageViewCreateInfo image_view_create_info = {
             VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO, // VkStructureType                sType

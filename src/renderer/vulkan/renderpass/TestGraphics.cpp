@@ -90,15 +90,15 @@ void resize_swapchain(ReaperRoot& root, VulkanBackend& backend)
     REAPER_PROFILE_SCOPE_FUNC();
 
     // Resize swapchain if necessary
-    if (backend.new_swapchain_extent.width != 0)
+    if (backend.new_swapchain_extent.width != 0 || backend.new_swapchain_extent.height != 0)
     {
         vkQueueWaitIdle(backend.deviceInfo.presentQueue); // FIXME
 
         Assert(backend.new_swapchain_extent.height > 0);
         resize_vulkan_wm_swapchain(root, backend, backend.presentInfo, backend.new_swapchain_extent);
 
-        const glm::uvec2 new_swapchain_extent(backend.presentInfo.surfaceExtent.width,
-                                              backend.presentInfo.surfaceExtent.height);
+        const glm::uvec2 new_swapchain_extent(backend.presentInfo.surface_extent.width,
+                                              backend.presentInfo.surface_extent.height);
 
         backend.new_swapchain_extent.width = 0;
         backend.new_swapchain_extent.height = 0;
@@ -196,7 +196,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         Assert(vkResetFences(backend.device, 1, &drawFence) == VK_SUCCESS);
     }
 
-    const VkExtent2D backbufferExtent = backend.presentInfo.surfaceExtent;
+    const VkExtent2D backbufferExtent = backend.presentInfo.surface_extent;
 
     FrameData frame_data = {};
     frame_data.backbufferExtent = backbufferExtent;
@@ -213,26 +213,6 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         upload_debug_geometry_build_cmds_pass_frame_resources(backend, prepared, resources.debug_geometry_resources);
         upload_audio_frame_resources(backend, prepared, resources.audio_resources);
     }
-
-#if 0
-    VkHdrMetadataEXT hdrMetaData = {};
-    hdrMetaData.sType = VK_STRUCTURE_TYPE_HDR_METADATA_EXT, hdrMetaData.pNext = nullptr,
-    hdrMetaData.displayPrimaryRed.x = 0.708f;
-    hdrMetaData.displayPrimaryRed.y = 0.292f;
-    hdrMetaData.displayPrimaryGreen.x = 0.170f;
-    hdrMetaData.displayPrimaryGreen.y = 0.797f;
-    hdrMetaData.displayPrimaryBlue.x = 0.131f;
-    hdrMetaData.displayPrimaryBlue.y = 0.046f;
-    hdrMetaData.minLuminance = 0.0f;
-    hdrMetaData.maxLuminance =
-        10000.0f; // This will cause tonemapping to happen on display end as long as it's greater than display's actual
-                  // queried max luminance. The look will change and it will be display dependent!
-    hdrMetaData.maxContentLightLevel = 10000.0f;
-    hdrMetaData.maxFrameAverageLightLevel =
-        400.0f; // max and average content light level data will be used to do tonemapping on display
-
-    vkSetHdrMetadataEXT(backend.device, 1, &backend.presentInfo.swapchain, &hdrMetaData);
-#endif
 
     FrameGraph::FrameGraph framegraph;
 
@@ -1439,7 +1419,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     if (presentResult == VK_SUBOPTIMAL_KHR)
     {
-        backend.new_swapchain_extent = backend.presentInfo.surfaceExtent;
+        backend.new_swapchain_extent = backend.presentInfo.surface_extent;
         log_warning(root, "vulkan: present returned 'VK_SUBOPTIMAL_KHR' requesting swapchain re-creation");
     }
     else if (presentResult == VK_ERROR_OUT_OF_DATE_KHR)

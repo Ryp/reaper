@@ -121,8 +121,8 @@ namespace
 
         SpecConstants spec_constants;
         spec_constants.transfer_function_index =
-            get_transfer_function(backend.presentInfo.surfaceFormat, backend.presentInfo.view_format);
-        spec_constants.color_space_index = get_color_space(backend.presentInfo.surfaceFormat.colorSpace);
+            get_transfer_function(backend.presentInfo.surface_format, backend.presentInfo.view_format);
+        spec_constants.color_space_index = get_color_space(backend.presentInfo.surface_format.colorSpace);
         spec_constants.tonemap_function_index = TONEMAP_FUNC_NONE;
 
         VkSpecializationInfo specialization = {
