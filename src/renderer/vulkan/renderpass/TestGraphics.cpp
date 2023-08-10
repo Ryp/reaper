@@ -1094,7 +1094,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     {
         REAPER_GPU_SCOPE(cmdBuffer, "GPU Frame");
 
-        if (backend.mustTransitionSwapchain)
+        if (backend.presentInfo.queue_swapchain_transition)
         {
             REAPER_GPU_SCOPE(cmdBuffer, "Barrier");
 
@@ -1123,7 +1123,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
             vkCmdPipelineBarrier2(cmdBuffer.handle, &dependencies);
 
-            backend.mustTransitionSwapchain = false;
+            backend.presentInfo.queue_swapchain_transition = false;
         }
 
         {
@@ -1422,23 +1422,24 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     log_debug(root, "vulkan: present");
 
-    VkPresentInfoKHR presentInfo = {VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
-                                    nullptr,
-                                    1,
-                                    &backend.presentInfo.renderingFinishedSemaphore,
-                                    1,
-                                    &backend.presentInfo.swapchain,
-                                    &current_swapchain_index,
-                                    nullptr};
+    VkPresentInfoKHR presentInfo = {
+        .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+        .pNext = nullptr,
+        .waitSemaphoreCount = 1,
+        .pWaitSemaphores = &backend.presentInfo.renderingFinishedSemaphore,
+        .swapchainCount = 1,
+        .pSwapchains = &backend.presentInfo.swapchain,
+        .pImageIndices = &current_swapchain_index,
+        .pResults = nullptr,
+    };
 
-    Assert(!backend.mustTransitionSwapchain);
+    Assert(!backend.presentInfo.queue_swapchain_transition);
 
     VkResult presentResult = vkQueuePresentKHR(backend.deviceInfo.presentQueue, &presentInfo);
 
     if (presentResult == VK_SUBOPTIMAL_KHR)
     {
         backend.new_swapchain_extent = backend.presentInfo.surfaceExtent;
-        backend.mustTransitionSwapchain = true;
         log_warning(root, "vulkan: present returned 'VK_SUBOPTIMAL_KHR' requesting swapchain re-creation");
     }
     else if (presentResult == VK_ERROR_OUT_OF_DATE_KHR)
@@ -1451,9 +1452,6 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     {
         Assert(presentResult == VK_SUCCESS);
     }
-
-    // VkResult acquireFullscreenResult = vkAcquireFullScreenExclusiveModeEXT(backend.device,
-    // backend.presentInfo.swapchain); Assert(acquireFullscreenResult == VK_SUCCESS);
 
     {
         const VkResult event_status =

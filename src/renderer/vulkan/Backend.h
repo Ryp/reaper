@@ -23,6 +23,8 @@ struct PresentationInfo
 {
     VkSurfaceKHR surface;
 
+    bool queue_swapchain_transition = false;
+
     // Split this in another struct
     VkSurfaceCapabilitiesKHR      surfaceCaps;
     VkSurfaceFormatKHR            surfaceFormat;
@@ -80,7 +82,6 @@ struct REAPER_RENDERER_API VulkanBackend
 
     VkDebugUtilsMessengerEXT debugMessenger = VK_NULL_HANDLE;
 
-    bool       mustTransitionSwapchain = false;
     VkExtent2D new_swapchain_extent = {0, 0};
 
     struct Options

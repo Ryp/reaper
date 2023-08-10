@@ -410,8 +410,6 @@ void execute_game_loop(ReaperRoot& root)
     }
 #endif
 
-    backend.mustTransitionSwapchain = true;
-
     const u64 MaxFrameCount = 0;
     bool      saveMyLaptop = false;
     bool      shouldExit = false;
@@ -476,7 +474,6 @@ void execute_game_loop(ReaperRoot& root)
 
                     // FIXME Do not set for duplicate events
                     backend.new_swapchain_extent = {width, height};
-                    backend.mustTransitionSwapchain = true;
                 }
                 else if (event.type == Window::EventType::ButtonPress)
                 {

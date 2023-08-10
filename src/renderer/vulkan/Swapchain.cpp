@@ -228,7 +228,7 @@ void configure_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backen
 
         std::vector<VkPresentModeKHR> availablePresentModes(presentModeCount);
         Assert(vkGetPhysicalDeviceSurfacePresentModesKHR(backend.physicalDevice, presentInfo.surface, &presentModeCount,
-                                                         &availablePresentModes[0])
+                                                         availablePresentModes.data())
                == VK_SUCCESS);
 
         log_debug(root, "vulkan: swapchain supports {} present modes", presentModeCount);
@@ -355,6 +355,8 @@ void create_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backend, 
 
     log_debug(root, "vulkan: created semaphore with handle: {}",
               static_cast<void*>(presentInfo.renderingFinishedSemaphore));
+
+    presentInfo.queue_swapchain_transition = true;
 }
 
 void destroy_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backend, PresentationInfo& presentInfo)
