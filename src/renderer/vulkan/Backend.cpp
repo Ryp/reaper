@@ -109,17 +109,22 @@ void create_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& backend)
     vulkan_load_exported_functions(backend.vulkanLib);
     vulkan_load_global_level_functions();
 
-    std::vector<const char*> instanceExtensions = {VK_KHR_GET_SURFACE_CAPABILITIES_2_EXTENSION_NAME,
-                                                   VK_KHR_SURFACE_EXTENSION_NAME, REAPER_VK_SWAPCHAIN_EXTENSION_NAME};
+    std::vector<const char*> instance_extensions = {
+        VK_KHR_GET_SURFACE_CAPABILITIES_2_EXTENSION_NAME,
+        VK_KHR_SURFACE_EXTENSION_NAME,
+        REAPER_VK_SWAPCHAIN_EXTENSION_NAME,
+        VK_EXT_SWAPCHAIN_COLOR_SPACE_EXTENSION_NAME,
+    };
+
 #if REAPER_DEBUG
-    instanceExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+    instance_extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 #endif
 
-    log_info(root, "vulkan: using {} instance level extensions", instanceExtensions.size());
-    for (auto& e : instanceExtensions)
+    log_info(root, "vulkan: using {} instance level extensions", instance_extensions.size());
+    for (auto& e : instance_extensions)
         log_debug(root, "- {}", e);
 
-    vulkan_instance_check_extensions(instanceExtensions);
+    vulkan_instance_check_extensions(instance_extensions);
 
     std::vector<const char*> instanceLayers;
 
@@ -148,14 +153,14 @@ void create_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& backend)
     };
 
     VkInstanceCreateInfo instance_create_info = {
-        VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,      // VkStructureType            sType
-        nullptr,                                     // const void*                pNext
-        0,                                           // VkInstanceCreateFlags      flags
-        &application_info,                           // const VkApplicationInfo   *pApplicationInfo
-        static_cast<u32>(instanceLayers.size()),     // uint32_t                   enabledLayerCount
-        instanceLayers.data(),                       // const char * const        *ppEnabledLayerNames
-        static_cast<u32>(instanceExtensions.size()), // uint32_t                   enabledExtensionCount
-        instanceExtensions.data(),                   // const char * const        *ppEnabledExtensionNames
+        VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,       // VkStructureType            sType
+        nullptr,                                      // const void*                pNext
+        0,                                            // VkInstanceCreateFlags      flags
+        &application_info,                            // const VkApplicationInfo   *pApplicationInfo
+        static_cast<u32>(instanceLayers.size()),      // uint32_t                   enabledLayerCount
+        instanceLayers.data(),                        // const char * const        *ppEnabledLayerNames
+        static_cast<u32>(instance_extensions.size()), // uint32_t                   enabledExtensionCount
+        instance_extensions.data(),                   // const char * const        *ppEnabledExtensionNames
     };
 
     Assert(vkCreateInstance(&instance_create_info, nullptr, &backend.instance) == VK_SUCCESS,
