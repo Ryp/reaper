@@ -104,6 +104,8 @@ const char* GetColorSpaceKHRToString(VkColorSpaceKHR colorSpace)
         return "VK_COLOR_SPACE_PASS_THROUGH_EXT";
     case VK_COLOR_SPACE_EXTENDED_SRGB_NONLINEAR_EXT:
         return "VK_COLOR_SPACE_EXTENDED_SRGB_NONLINEAR_EXT";
+    case VK_COLOR_SPACE_DISPLAY_NATIVE_AMD:
+        return "VK_COLOR_SPACE_DISPLAY_NATIVE_AMD";
     default:
         AssertUnreachable();
     }
