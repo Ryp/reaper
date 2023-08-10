@@ -175,6 +175,13 @@ REAPER_VK_DEVICE_LEVEL_FUNCTION(vkCmdSetStencilOp);
 REAPER_VK_DEVICE_LEVEL_FUNCTION(vkCmdSetStencilTestEnable);
 REAPER_VK_DEVICE_LEVEL_FUNCTION(vkCmdSetViewportWithCount);
 
+#include "extension/VK_EXT_calibrated_timestamps.inl"
+#include "extension/VK_KHR_get_surface_capabilities2.inl"
+
+#if REAPER_DEBUG
+#    include "extension/VK_EXT_debug_utils.inl"
+#endif
+
 #if defined(REAPER_VK_USE_SWAPCHAIN_EXTENSIONS)
 #    include "extension/VK_KHR_swapchain.inl"
 #endif
@@ -183,17 +190,10 @@ REAPER_VK_DEVICE_LEVEL_FUNCTION(vkCmdSetViewportWithCount);
 #    include "extension/VK_KHR_display.inl"
 #endif
 
-#if REAPER_DEBUG
-#    include "extension/VK_EXT_debug_utils.inl"
-#endif
-
 #if 0
 #    include "extension/VK_EXT_full_screen_exclusive.inl"
 #    include "extension/VK_EXT_hdr_metadata.inl"
 #endif
-
-#include "extension/VK_EXT_calibrated_timestamps.inl"
-#include "extension/VK_KHR_get_surface_capabilities2.inl"
 
 #undef REAPER_VK_EXPORTED_FUNCTION
 #undef REAPER_VK_GLOBAL_LEVEL_FUNCTION
