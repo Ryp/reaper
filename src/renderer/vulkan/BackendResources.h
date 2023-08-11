@@ -20,6 +20,7 @@
 #include "renderpass/ForwardPass.h"
 #include "renderpass/Frame.h"
 #include "renderpass/GuiPass.h"
+#include "renderpass/HZBPass.h"
 #include "renderpass/HistogramPass.h"
 #include "renderpass/LightingPass.h"
 #include "renderpass/MeshletCulling.h"
@@ -50,6 +51,7 @@ struct BackendResources
     TiledLightingPassResources    tiled_lighting_resources;
     ForwardPassResources          forward_pass_resources;
     HistogramPassResources        histogram_pass_resources;
+    HZBPassResources              hzb_pass_resources;
     GuiPassResources              gui_pass_resources;
     SwapchainPassResources        swapchain_pass_resources;
     FrameSyncResources            frame_sync_resources;

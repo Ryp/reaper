@@ -56,6 +56,7 @@ ShaderModules create_shader_modules(ReaperRoot& /*root*/, VulkanBackend& backend
     modules.gbuffer_write_opaque_vs = create_shader_module(backend.device, "gbuffer/gbuffer_write_opaque.vert.spv");
     modules.gui_write_fs = create_shader_module(backend.device, "gui_write.frag.spv");
     modules.histogram_cs = create_shader_module(backend.device, "histogram/reduce_histogram.comp.spv");
+    modules.hzb_reduce_cs = create_shader_module(backend.device, "hzb_reduce.comp.spv");
     modules.oscillator_cs = create_shader_module(backend.device, "sound/oscillator.comp.spv");
     modules.prepare_fine_culling_indirect_cs =
         create_shader_module(backend.device, "meshlet/prepare_fine_culling_indirect.comp.spv");
@@ -93,6 +94,7 @@ void destroy_shader_modules(VulkanBackend& backend, ShaderModules& shader_module
     vkDestroyShaderModule(backend.device, shader_modules.gbuffer_write_opaque_vs, nullptr);
     vkDestroyShaderModule(backend.device, shader_modules.gui_write_fs, nullptr);
     vkDestroyShaderModule(backend.device, shader_modules.histogram_cs, nullptr);
+    vkDestroyShaderModule(backend.device, shader_modules.hzb_reduce_cs, nullptr);
     vkDestroyShaderModule(backend.device, shader_modules.oscillator_cs, nullptr);
     vkDestroyShaderModule(backend.device, shader_modules.prepare_fine_culling_indirect_cs, nullptr);
     vkDestroyShaderModule(backend.device, shader_modules.rasterize_light_volume_fs, nullptr);

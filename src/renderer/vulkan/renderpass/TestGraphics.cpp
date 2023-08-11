@@ -24,6 +24,7 @@
 #include "renderer/vulkan/renderpass/ForwardPassConstants.h"
 #include "renderer/vulkan/renderpass/FrameGraphPass.h"
 #include "renderer/vulkan/renderpass/GBufferPassConstants.h"
+#include "renderer/vulkan/renderpass/HZBPass.h"
 #include "renderer/vulkan/renderpass/TiledLightingCommon.h"
 #include "renderer/vulkan/renderpass/VisibilityBufferConstants.h"
 
@@ -337,26 +338,51 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
                                                         VK_ACCESS_2_SHADER_WRITE_BIT, VK_IMAGE_LAYOUT_GENERAL},
                                                 .texture_view = DefaultGPUTextureView(gbuffer_rt1_properties)});
 
+    // HZB
+    struct HZBReduceFrameGraphData
+    {
+        RenderPassHandle    pass_handle;
+        ResourceUsageHandle depth;
+        ResourceUsageHandle hzb_texture;
+    } hzb_reduce;
+
+    hzb_reduce.pass_handle = builder.create_render_pass("HZB Reduce");
+
+    hzb_reduce.depth =
+        builder.read_texture(hzb_reduce.pass_handle, visibility.depth,
+                             GPUResourceUsage{.access = GPUResourceAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+                                                                          VK_ACCESS_2_SHADER_READ_BIT,
+                                                                          VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL},
+                                              .texture_view = DefaultGPUTextureView(scene_depth_properties)});
+
+    GPUTextureProperties hzb_properties =
+        DefaultGPUTextureProperties(scene_depth_properties.width / 2, scene_depth_properties.height / 2,
+                                    PixelFormat::R16G16_UNORM, GPUTextureUsage::Storage | GPUTextureUsage::Sampled);
+    hzb_properties.mipCount = 4; // FIXME
+
+    hzb_reduce.hzb_texture = builder.create_texture(
+        hzb_reduce.pass_handle, "HZB Texture", hzb_properties,
+        GPUResourceUsage{.access = GPUResourceAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+                                                     VK_ACCESS_2_SHADER_WRITE_BIT, VK_IMAGE_LAYOUT_GENERAL},
+                         .texture_view = DefaultGPUTextureView(hzb_properties)});
+
     // Depth Downsample
     struct TileDepthFrameGraphData
     {
         RenderPassHandle    pass_handle;
-        ResourceUsageHandle depth_read_usage_handle;
-        ResourceUsageHandle depth_min_storage_usage_handle;
-        ResourceUsageHandle depth_max_storage_usage_handle;
+        ResourceUsageHandle scene_depth;
+        ResourceUsageHandle depth_min_storage;
+        ResourceUsageHandle depth_max_storage;
     } tile_depth;
 
     tile_depth.pass_handle = builder.create_render_pass("Depth Downsample");
 
-    {
-        const GPUResourceUsage depth_read_usage = {.access = GPUResourceAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-                                                                               VK_ACCESS_2_SHADER_READ_BIT,
-                                                                               VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL},
-                                                   .texture_view = DefaultGPUTextureView(scene_depth_properties)};
-
-        tile_depth.depth_read_usage_handle =
-            builder.read_texture(tile_depth.pass_handle, visibility.depth, depth_read_usage);
-    }
+    tile_depth.scene_depth =
+        builder.read_texture(tile_depth.pass_handle, visibility.depth,
+                             GPUResourceUsage{.access = GPUResourceAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+                                                                          VK_ACCESS_2_SHADER_READ_BIT,
+                                                                          VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL},
+                                              .texture_view = DefaultGPUTextureView(scene_depth_properties)});
 
     const GPUTextureProperties tile_depth_storage_properties =
         DefaultGPUTextureProperties(tiled_lighting_frame.tile_count_x, tiled_lighting_frame.tile_count_y,
@@ -367,20 +393,21 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
                                                        VK_ACCESS_2_SHADER_WRITE_BIT, VK_IMAGE_LAYOUT_GENERAL};
     tile_depth_create_usage.texture_view = DefaultGPUTextureView(tile_depth_storage_properties);
 
-    tile_depth.depth_min_storage_usage_handle = builder.create_texture(
-        tile_depth.pass_handle, "Tile Depth Min Storage", tile_depth_storage_properties, tile_depth_create_usage);
+    tile_depth.depth_min_storage = builder.create_texture(tile_depth.pass_handle, "Tile Depth Min Storage",
+                                                          tile_depth_storage_properties, tile_depth_create_usage);
 
-    tile_depth.depth_max_storage_usage_handle = builder.create_texture(
-        tile_depth.pass_handle, "Tile Depth Max Storage", tile_depth_storage_properties, tile_depth_create_usage);
+    tile_depth.depth_max_storage = builder.create_texture(tile_depth.pass_handle, "Tile Depth Max Storage",
+                                                          tile_depth_storage_properties, tile_depth_create_usage);
 
     // Depth copy
     struct TileDepthCopyFrameGraphData
     {
         RenderPassHandle    pass_handle;
-        ResourceUsageHandle depth_min_src_usage_handle;
-        ResourceUsageHandle depth_max_src_usage_handle;
-        ResourceUsageHandle depth_min_usage_handle;
-        ResourceUsageHandle depth_max_usage_handle;
+        ResourceUsageHandle depth_min_src;
+        ResourceUsageHandle depth_max_src;
+        ResourceUsageHandle depth_min;
+        ResourceUsageHandle depth_max;
+        ResourceUsageHandle hzb_texture;
         ResourceUsageHandle light_list_clear_usage_handle;
         ResourceUsageHandle classification_counters_clear;
     } tile_depth_copy;
@@ -402,15 +429,28 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
                           VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL};
     tile_depth_copy_dst_usage.texture_view = DefaultGPUTextureView(tile_depth_copy_properties);
 
-    tile_depth_copy.depth_min_src_usage_handle = builder.read_texture(
-        tile_depth_copy.pass_handle, tile_depth.depth_min_storage_usage_handle, tile_depth_copy_src_usage);
-    tile_depth_copy.depth_max_src_usage_handle = builder.read_texture(
-        tile_depth_copy.pass_handle, tile_depth.depth_max_storage_usage_handle, tile_depth_copy_src_usage);
+    tile_depth_copy.depth_min_src =
+        builder.read_texture(tile_depth_copy.pass_handle, tile_depth.depth_min_storage, tile_depth_copy_src_usage);
+    tile_depth_copy.depth_max_src =
+        builder.read_texture(tile_depth_copy.pass_handle, tile_depth.depth_max_storage, tile_depth_copy_src_usage);
 
-    tile_depth_copy.depth_min_usage_handle = builder.create_texture(
-        tile_depth_copy.pass_handle, "Tile Depth Min", tile_depth_copy_properties, tile_depth_copy_dst_usage);
-    tile_depth_copy.depth_max_usage_handle = builder.create_texture(
-        tile_depth_copy.pass_handle, "Tile Depth Max", tile_depth_copy_properties, tile_depth_copy_dst_usage);
+    tile_depth_copy.depth_min = builder.create_texture(tile_depth_copy.pass_handle, "Tile Depth Min",
+                                                       tile_depth_copy_properties, tile_depth_copy_dst_usage);
+    tile_depth_copy.depth_max = builder.create_texture(tile_depth_copy.pass_handle, "Tile Depth Max",
+                                                       tile_depth_copy_properties, tile_depth_copy_dst_usage);
+
+    // FIXME
+    {
+        GPUTextureView hzb_view = DefaultGPUTextureView(hzb_properties);
+        hzb_view.mipCount = 1;
+        hzb_view.mipOffset = 3;
+
+        tile_depth_copy.hzb_texture = builder.read_texture(
+            tile_depth_copy.pass_handle, hzb_reduce.hzb_texture,
+            GPUResourceUsage{.access{VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
+                                     VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL},
+                             .texture_view = hzb_view});
+    }
 
     const GPUBufferProperties light_list_properties = DefaultGPUBufferProperties(
         ElementsPerTile * tile_depth_storage_properties.width * tile_depth_storage_properties.height, sizeof(u32),
@@ -474,9 +514,9 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         ResourceUsageHandle command_counters;
         ResourceUsageHandle draw_commands_inner;
         ResourceUsageHandle draw_commands_outer;
-        ResourceUsageHandle tile_depth_min_usage_handle;
-        ResourceUsageHandle tile_depth_max_usage_handle;
-        ResourceUsageHandle light_list_usage_handle;
+        ResourceUsageHandle tile_depth_min;
+        ResourceUsageHandle tile_depth_max;
+        ResourceUsageHandle light_list;
     } light_raster;
 
     light_raster.pass_handle = builder.create_render_pass("Rasterize Light Volumes");
@@ -507,10 +547,10 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
             .texture_view = DefaultGPUTextureView(tile_depth_copy_properties),
         };
 
-        light_raster.tile_depth_min_usage_handle =
-            builder.read_texture(light_raster.pass_handle, tile_depth_copy.depth_min_usage_handle, tile_depth_usage);
-        light_raster.tile_depth_max_usage_handle =
-            builder.read_texture(light_raster.pass_handle, tile_depth_copy.depth_max_usage_handle, tile_depth_usage);
+        light_raster.tile_depth_min =
+            builder.read_texture(light_raster.pass_handle, tile_depth_copy.depth_min, tile_depth_usage);
+        light_raster.tile_depth_max =
+            builder.read_texture(light_raster.pass_handle, tile_depth_copy.depth_max, tile_depth_usage);
     }
 
     {
@@ -519,8 +559,8 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
             GPUResourceAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT};
         light_list_usage.buffer_view = default_buffer_view(light_list_properties);
 
-        light_raster.light_list_usage_handle = builder.write_buffer(
-            light_raster.pass_handle, tile_depth_copy.light_list_clear_usage_handle, light_list_usage);
+        light_raster.light_list = builder.write_buffer(light_raster.pass_handle,
+                                                       tile_depth_copy.light_list_clear_usage_handle, light_list_usage);
     }
 
     // Tiled Lighting
@@ -528,7 +568,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     {
         RenderPassHandle                 pass_handle;
         std::vector<ResourceUsageHandle> shadow_maps;
-        ResourceUsageHandle              light_list_usage_handle;
+        ResourceUsageHandle              light_list;
         ResourceUsageHandle              depth;
         ResourceUsageHandle              gbuffer_rt0;
         ResourceUsageHandle              gbuffer_rt1;
@@ -556,8 +596,8 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
             GPUResourceAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT};
         light_list_usage.buffer_view = default_buffer_view(light_list_properties);
 
-        tiled_lighting.light_list_usage_handle =
-            builder.read_buffer(tiled_lighting.pass_handle, light_raster.light_list_usage_handle, light_list_usage);
+        tiled_lighting.light_list =
+            builder.read_buffer(tiled_lighting.pass_handle, light_raster.light_list, light_list_usage);
     }
 
     tiled_lighting.gbuffer_rt0 = builder.read_texture(
@@ -902,6 +942,11 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         get_frame_graph_texture(resources.framegraph_resources, framegraph, visibility_gbuffer.gbuffer_rt0),
         get_frame_graph_texture(resources.framegraph_resources, framegraph, visibility_gbuffer.gbuffer_rt1));
 
+    update_hzb_pass_descriptor_set(
+        descriptor_write_helper, resources.hzb_pass_resources, resources.samplers_resources,
+        get_frame_graph_texture(resources.framegraph_resources, framegraph, hzb_reduce.depth),
+        get_frame_graph_texture(resources.framegraph_resources, framegraph, hzb_reduce.hzb_texture));
+
     update_forward_pass_descriptor_sets(descriptor_write_helper, resources.forward_pass_resources,
                                         resources.meshlet_culling_resources, resources.samplers_resources,
                                         resources.material_resources, resources.mesh_cache,
@@ -909,15 +954,14 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     update_lighting_depth_downsample_descriptor_set(
         descriptor_write_helper, resources.tiled_raster_resources, resources.samplers_resources,
-        get_frame_graph_texture(resources.framegraph_resources, framegraph, tile_depth.depth_read_usage_handle),
-        get_frame_graph_texture(resources.framegraph_resources, framegraph, tile_depth.depth_min_storage_usage_handle),
-        get_frame_graph_texture(resources.framegraph_resources, framegraph, tile_depth.depth_max_storage_usage_handle));
+        get_frame_graph_texture(resources.framegraph_resources, framegraph, tile_depth.scene_depth),
+        get_frame_graph_texture(resources.framegraph_resources, framegraph, tile_depth.depth_min_storage),
+        get_frame_graph_texture(resources.framegraph_resources, framegraph, tile_depth.depth_max_storage));
 
     update_depth_copy_pass_descriptor_set(
         descriptor_write_helper, resources.tiled_raster_resources,
-        get_frame_graph_texture(resources.framegraph_resources, framegraph, tile_depth_copy.depth_min_src_usage_handle),
-        get_frame_graph_texture(resources.framegraph_resources, framegraph,
-                                tile_depth_copy.depth_max_src_usage_handle));
+        get_frame_graph_texture(resources.framegraph_resources, framegraph, tile_depth_copy.depth_min_src),
+        get_frame_graph_texture(resources.framegraph_resources, framegraph, tile_depth_copy.depth_max_src));
 
     update_classify_descriptor_set(
         descriptor_write_helper, resources.tiled_raster_resources,
@@ -927,9 +971,9 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     update_light_raster_pass_descriptor_sets(
         descriptor_write_helper, resources.tiled_raster_resources,
-        get_frame_graph_texture(resources.framegraph_resources, framegraph, light_raster.tile_depth_min_usage_handle),
-        get_frame_graph_texture(resources.framegraph_resources, framegraph, light_raster.tile_depth_max_usage_handle),
-        get_frame_graph_buffer(resources.framegraph_resources, framegraph, light_raster.light_list_usage_handle));
+        get_frame_graph_texture(resources.framegraph_resources, framegraph, light_raster.tile_depth_min),
+        get_frame_graph_texture(resources.framegraph_resources, framegraph, light_raster.tile_depth_max),
+        get_frame_graph_buffer(resources.framegraph_resources, framegraph, light_raster.light_list));
 
     std::vector<FrameGraphTexture> tiled_shadow_maps;
     for (auto handle : tiled_lighting.shadow_maps)
@@ -940,7 +984,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     update_tiled_lighting_pass_descriptor_sets(
         descriptor_write_helper, resources.lighting_resources, resources.tiled_lighting_resources,
         resources.samplers_resources,
-        get_frame_graph_buffer(resources.framegraph_resources, framegraph, tiled_lighting.light_list_usage_handle),
+        get_frame_graph_buffer(resources.framegraph_resources, framegraph, tiled_lighting.light_list),
         get_frame_graph_texture(resources.framegraph_resources, framegraph, tiled_lighting.gbuffer_rt0),
         get_frame_graph_texture(resources.framegraph_resources, framegraph, tiled_lighting.gbuffer_rt1),
         get_frame_graph_texture(resources.framegraph_resources, framegraph, tiled_lighting.depth),
@@ -1091,6 +1135,20 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         }
 
         {
+            REAPER_GPU_SCOPE(cmdBuffer, "HZB Reduce");
+            record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
+                                       hzb_reduce.pass_handle, true);
+
+            record_hzb_command_buffer(
+                cmdBuffer,
+                resources.hzb_pass_resources,
+                VkExtent2D{.width = scene_depth_properties.width, .height = scene_depth_properties.height});
+
+            record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
+                                       hzb_reduce.pass_handle, false);
+        }
+
+        {
             REAPER_GPU_SCOPE(cmdBuffer, "Visibility Fill GBuffer");
             record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
                                        visibility_gbuffer.pass_handle, true);
@@ -1117,11 +1175,10 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
             record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
                                        tile_depth_copy.pass_handle, true);
 
-            record_depth_copy(cmdBuffer, resources.tiled_raster_resources,
-                              get_frame_graph_texture(resources.framegraph_resources, framegraph,
-                                                      tile_depth_copy.depth_min_usage_handle),
-                              get_frame_graph_texture(resources.framegraph_resources, framegraph,
-                                                      tile_depth_copy.depth_max_usage_handle));
+            record_depth_copy(
+                cmdBuffer, resources.tiled_raster_resources,
+                get_frame_graph_texture(resources.framegraph_resources, framegraph, tile_depth_copy.depth_min),
+                get_frame_graph_texture(resources.framegraph_resources, framegraph, tile_depth_copy.depth_max));
 
             const u32        clear_value = 0;
             FrameGraphBuffer light_lists = get_frame_graph_buffer(resources.framegraph_resources, framegraph,
@@ -1162,10 +1219,8 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
                 get_frame_graph_buffer(resources.framegraph_resources, framegraph, light_raster.command_counters),
                 get_frame_graph_buffer(resources.framegraph_resources, framegraph, light_raster.draw_commands_inner),
                 get_frame_graph_buffer(resources.framegraph_resources, framegraph, light_raster.draw_commands_outer),
-                get_frame_graph_texture(resources.framegraph_resources, framegraph,
-                                        light_raster.tile_depth_min_usage_handle),
-                get_frame_graph_texture(resources.framegraph_resources, framegraph,
-                                        light_raster.tile_depth_max_usage_handle));
+                get_frame_graph_texture(resources.framegraph_resources, framegraph, light_raster.tile_depth_min),
+                get_frame_graph_texture(resources.framegraph_resources, framegraph, light_raster.tile_depth_max));
 
             record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
                                        light_raster.pass_handle, false);

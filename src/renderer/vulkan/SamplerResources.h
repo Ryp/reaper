@@ -16,10 +16,10 @@ struct VulkanBackend;
 
 struct SamplerResources
 {
-    VkSampler linearClampSampler;
-    VkSampler linearBlackBorderSampler;
-    VkSampler shadowMapSampler;
-    VkSampler diffuseMapSampler;
+    VkSampler linear_clamp;
+    VkSampler linear_black_border;
+    VkSampler shadow_map_sampler;
+    VkSampler diffuse_map_sampler;
 };
 
 SamplerResources create_sampler_resources(ReaperRoot& root, VulkanBackend& backend);

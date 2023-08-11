@@ -169,7 +169,7 @@ void update_forward_pass_descriptor_sets(DescriptorWriteHelper& write_helper, co
                         mesh_cache.vertexBufferUV.handle);
     write_helper.append(resources.descriptor_set, 6, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                         lighting_resources.pointLightBuffer.handle);
-    write_helper.append(resources.descriptor_set, 7, sampler_resources.shadowMapSampler);
+    write_helper.append(resources.descriptor_set, 7, sampler_resources.shadow_map_sampler);
 
     if (!shadow_maps.empty())
     {
@@ -188,7 +188,7 @@ void update_forward_pass_descriptor_sets(DescriptorWriteHelper& write_helper, co
 
     if (!material_resources.texture_handles.empty())
     {
-        write_helper.append(resources.material_descriptor_set, 0, sampler_resources.diffuseMapSampler);
+        write_helper.append(resources.material_descriptor_set, 0, sampler_resources.diffuse_map_sampler);
 
         nonstd::span<VkDescriptorImageInfo> albedo_image_infos =
             write_helper.new_image_infos(material_resources.texture_handles.size());

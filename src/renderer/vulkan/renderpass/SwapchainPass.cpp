@@ -207,7 +207,7 @@ void update_swapchain_pass_descriptor_set(DescriptorWriteHelper& write_helper, c
                                           const FrameGraphTexture& gui_texture,
                                           const FrameGraphTexture& tile_lighting_debug_texture)
 {
-    write_helper.append(resources.descriptor_set, 0, sampler_resources.linearBlackBorderSampler);
+    write_helper.append(resources.descriptor_set, 0, sampler_resources.linear_black_border);
     write_helper.append(resources.descriptor_set, 1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, hdr_scene_texture.view_handle,
                         hdr_scene_texture.image_layout);
     write_helper.append(resources.descriptor_set, 2, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, lighting_texture.view_handle,

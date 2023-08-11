@@ -107,6 +107,8 @@ target_sources(${target} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/GuiPass.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/HistogramPass.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/HistogramPass.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/HZBPass.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/HZBPass.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/LightingPass.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/LightingPass.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/ShadowMap.cpp
@@ -153,6 +155,7 @@ set(REAPER_SHADER_SRCS
     ${REAPER_SHADER_DIR}/gbuffer/gbuffer_write_opaque.vert.hlsl
     ${REAPER_SHADER_DIR}/gui_write.frag.hlsl
     ${REAPER_SHADER_DIR}/histogram/reduce_histogram.comp.hlsl
+    ${REAPER_SHADER_DIR}/hzb_reduce.comp.hlsl
     ${REAPER_SHADER_DIR}/matrix_row_major_codegen_bug.comp.hlsl
     ${REAPER_SHADER_DIR}/meshlet/cull_meshlet.comp.hlsl
     ${REAPER_SHADER_DIR}/meshlet/cull_triangle_batch.comp.hlsl

@@ -69,7 +69,7 @@ void update_histogram_pass_descriptor_set(DescriptorWriteHelper& write_helper, c
                                           const SamplerResources& sampler_resources, const FrameGraphTexture& scene_hdr,
                                           const FrameGraphBuffer& histogram_buffer)
 {
-    write_helper.append(resources.descriptor_set, 0, sampler_resources.linearClampSampler);
+    write_helper.append(resources.descriptor_set, 0, sampler_resources.linear_clamp);
     write_helper.append(resources.descriptor_set, 1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, scene_hdr.view_handle,
                         scene_hdr.image_layout);
     write_helper.append(resources.descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, histogram_buffer.handle,

@@ -29,6 +29,7 @@ struct ShaderModules
     VkShaderModule gbuffer_write_opaque_vs;
     VkShaderModule gui_write_fs;
     VkShaderModule histogram_cs;
+    VkShaderModule hzb_reduce_cs;
     VkShaderModule oscillator_cs;
     VkShaderModule prepare_fine_culling_indirect_cs;
     VkShaderModule rasterize_light_volume_fs;

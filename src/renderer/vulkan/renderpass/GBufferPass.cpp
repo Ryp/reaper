@@ -145,7 +145,7 @@ void update_gbuffer_pass_descriptor_sets(DescriptorWriteHelper& write_helper, co
                         mesh_cache.vertexBufferNormal.handle);
     write_helper.append(resources.descriptor_set, 4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                         mesh_cache.vertexBufferUV.handle);
-    write_helper.append(resources.descriptor_set, 5, sampler_resources.diffuseMapSampler);
+    write_helper.append(resources.descriptor_set, 5, sampler_resources.diffuse_map_sampler);
 
     if (!material_resources.texture_handles.empty())
     {

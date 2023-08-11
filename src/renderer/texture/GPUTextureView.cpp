@@ -33,13 +33,13 @@ namespace
 
 GPUTextureView DefaultGPUTextureView(const GPUTextureProperties& properties)
 {
-    return {
-        properties.format,
-        get_default_view_aspect(properties.format),
-        0, // mipOffset
-        properties.mipCount,
-        0, // layerOffset
-        properties.layerCount,
+    return GPUTextureView{
+        .format = properties.format,
+        .aspect = get_default_view_aspect(properties.format),
+        .mipOffset = 0,
+        .mipCount = properties.mipCount,
+        .layerOffset = 0,
+        .layerCount = properties.layerCount,
     };
 }
 } // namespace Reaper

@@ -268,7 +268,7 @@ void update_lighting_depth_downsample_descriptor_set(DescriptorWriteHelper&     
                                                      const FrameGraphTexture&    tile_depth_min,
                                                      const FrameGraphTexture&    tile_depth_max)
 {
-    write_helper.append(resources.tile_depth_descriptor_set, 0, sampler_resources.linearClampSampler);
+    write_helper.append(resources.tile_depth_descriptor_set, 0, sampler_resources.linear_clamp);
     write_helper.append(resources.tile_depth_descriptor_set, 1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
                         scene_depth.view_handle, scene_depth.image_layout);
     write_helper.append(resources.tile_depth_descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
