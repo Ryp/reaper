@@ -27,8 +27,6 @@ struct HistogramPipelineInfo
 
 struct HistogramPassResources
 {
-    BufferInfo passConstantBuffer;
-
     VkDescriptorSetLayout descSetLayout;
     HistogramPipelineInfo histogramPipe;
 

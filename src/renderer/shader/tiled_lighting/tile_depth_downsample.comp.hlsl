@@ -15,8 +15,8 @@ VK_PUSH_CONSTANT_HELPER(TileDepthConstants) consts;
 
 VK_BINDING(0, 0) SamplerState Sampler;
 VK_BINDING(0, 1) Texture2D<float> SceneDepth;
-VK_BINDING(0, 2) RWTexture2D<float2> TileDepthMin;
-VK_BINDING(0, 3) RWTexture2D<float2> TileDepthMax;
+VK_BINDING(0, 2) RWTexture2D<float> TileDepthMin;
+VK_BINDING(0, 3) RWTexture2D<float> TileDepthMax;
 
 static const uint ThreadCount = TileDepthThreadCountX * TileDepthThreadCountY;
 
