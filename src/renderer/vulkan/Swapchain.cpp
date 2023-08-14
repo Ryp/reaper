@@ -62,9 +62,12 @@ VkExtent2D clamp(VkExtent2D value, VkExtent2D min, VkExtent2D max)
 VkExtent2D vulkan_swapchain_choose_extent(const VkSurfaceCapabilitiesKHR& surface_capabilities,
                                           VkExtent2D                      preferredExtent)
 {
-    // Special value of surface extent is width == height == -1
-    // If this is so we define the size by ourselves but it must fit within defined confines
-    if (surface_capabilities.currentExtent.width == uint32_t(-1))
+    // currentExtent is the current width and height of the surface, or the special
+    // value (0xFFFFFFFF, 0xFFFFFFFF) indicating that the surface size will be determined by the
+    // extent of a swapchain targeting the surface.
+    const u32 special = 0xFFFFFFFF;
+
+    if (surface_capabilities.currentExtent.width == special && surface_capabilities.currentExtent.height == special)
         return clamp(preferredExtent, surface_capabilities.minImageExtent, surface_capabilities.maxImageExtent);
 
     // Most of the cases we define size of the swap_chain images equal to current window's size

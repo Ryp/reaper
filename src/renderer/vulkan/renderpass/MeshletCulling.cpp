@@ -51,15 +51,14 @@ MeshletCullingResources create_meshlet_culling_resources(ReaperRoot& root, Vulka
     MeshletCullingResources resources;
 
     {
-        std::vector<VkDescriptorSetLayoutBinding> descriptorSetLayoutBinding = {
+        std::vector<VkDescriptorSetLayoutBinding> bindings = {
             {0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
             {1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
             {2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
             {3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
         };
 
-        VkDescriptorSetLayout descriptorSetLayout =
-            create_descriptor_set_layout(backend.device, descriptorSetLayoutBinding);
+        VkDescriptorSetLayout descriptorSetLayout = create_descriptor_set_layout(backend.device, bindings);
 
         const VkPushConstantRange cullPushConstantRange = {VK_SHADER_STAGE_COMPUTE_BIT, 0,
                                                            sizeof(CullMeshletPushConstants)};
@@ -73,13 +72,12 @@ MeshletCullingResources create_meshlet_culling_resources(ReaperRoot& root, Vulka
     }
 
     {
-        std::vector<VkDescriptorSetLayoutBinding> descriptorSetLayoutBinding = {
+        std::vector<VkDescriptorSetLayoutBinding> bindings = {
             {0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
             {1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
         };
 
-        VkDescriptorSetLayout descriptorSetLayout =
-            create_descriptor_set_layout(backend.device, descriptorSetLayoutBinding);
+        VkDescriptorSetLayout descriptorSetLayout = create_descriptor_set_layout(backend.device, bindings);
 
         const VkPushConstantRange cullPushConstantRange = {VK_SHADER_STAGE_COMPUTE_BIT, 0,
                                                            sizeof(CullMeshletPushConstants)};
