@@ -37,10 +37,6 @@ struct PresentationInfo
 
     VkSwapchainKHR swapchain = VK_NULL_HANDLE;
 
-    // TODO Vulkan 1.3 might allow timeline semaphores soon
-    VkSemaphore imageAvailableSemaphore;
-    VkSemaphore renderingFinishedSemaphore;
-
     std::vector<VkImage>     images;
     std::vector<VkImageView> imageViews;
 };
@@ -79,6 +75,10 @@ struct REAPER_RENDERER_API VulkanBackend
     VmaAllocator vma_instance;
 
     PresentationInfo presentInfo = {};
+
+    // Timeline semaphores aren't supported for present operations at the time AFAIK.
+    VkSemaphore semaphore_image_available = VK_NULL_HANDLE;
+    VkSemaphore semaphore_rendering_finished = VK_NULL_HANDLE;
 
     VkDebugUtilsMessengerEXT debugMessenger = VK_NULL_HANDLE;
 

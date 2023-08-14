@@ -141,9 +141,9 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     for (u32 acquireTryCount = 0; acquireTryCount < MaxAcquireTryCount; acquireTryCount++)
     {
         log_debug(root, "vulkan: acquiring frame try #{}", acquireTryCount);
-        acquireResult = vkAcquireNextImageKHR(backend.device, backend.presentInfo.swapchain, acquireTimeoutUs,
-                                              backend.presentInfo.imageAvailableSemaphore, VK_NULL_HANDLE,
-                                              &current_swapchain_index);
+        acquireResult =
+            vkAcquireNextImageKHR(backend.device, backend.presentInfo.swapchain, acquireTimeoutUs,
+                                  backend.semaphore_image_available, VK_NULL_HANDLE, &current_swapchain_index);
 
         if (acquireResult != VK_NOT_READY)
             break;
@@ -1384,12 +1384,12 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     VkPipelineStageFlags waitDstMask = VK_PIPELINE_STAGE_TRANSFER_BIT;
 
-    std::array<VkSemaphore, 1> semaphores_to_signal = {backend.presentInfo.renderingFinishedSemaphore};
+    std::array<VkSemaphore, 1> semaphores_to_signal = {backend.semaphore_rendering_finished};
 
     VkSubmitInfo submitInfo = {VK_STRUCTURE_TYPE_SUBMIT_INFO,
                                nullptr,
                                1,
-                               &backend.presentInfo.imageAvailableSemaphore,
+                               &backend.semaphore_image_available,
                                &waitDstMask,
                                1,
                                &cmdBuffer.handle,
@@ -1406,7 +1406,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
         .pNext = nullptr,
         .waitSemaphoreCount = 1,
-        .pWaitSemaphores = &backend.presentInfo.renderingFinishedSemaphore,
+        .pWaitSemaphores = &backend.semaphore_rendering_finished,
         .swapchainCount = 1,
         .pSwapchains = &backend.presentInfo.swapchain,
         .pImageIndices = &current_swapchain_index,

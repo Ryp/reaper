@@ -15,6 +15,7 @@
 #include <core/Platform.h>
 #include <core/Version.h>
 
+#include "Debug.h"
 #include "Display.h"
 #include "Swapchain.h"
 
@@ -48,6 +49,17 @@ namespace Reaper
 {
 namespace
 {
+    VkSemaphore create_semaphore(VulkanBackend& backend, const char* debug_name,
+                                 const VkSemaphoreCreateInfo& create_info)
+    {
+        VkSemaphore semaphore;
+        Assert(vkCreateSemaphore(backend.device, &create_info, nullptr, &semaphore) == VK_SUCCESS);
+
+        VulkanSetDebugName(backend.device, semaphore, debug_name);
+
+        return semaphore;
+    }
+
     VkDescriptorPool create_global_descriptor_pool(ReaperRoot& root, VulkanBackend& backend)
     {
         // Create descriptor pool
@@ -235,6 +247,16 @@ void create_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& backend)
 
     // create_vulkan_display_swapchain(root, backend);
 
+    VkSemaphoreCreateInfo semaphore_create_info = {
+        .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
+        .pNext = nullptr,
+        .flags = VK_FLAGS_NONE,
+    };
+
+    backend.semaphore_image_available = create_semaphore(backend, "Semaphore image available", semaphore_create_info);
+    backend.semaphore_rendering_finished =
+        create_semaphore(backend, "Semaphore rendering finished", semaphore_create_info);
+
     {
         // this initializes the core structures of imgui
         ImGui::CreateContext();
@@ -271,6 +293,9 @@ void destroy_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& backend)
     Assert(vkDeviceWaitIdle(backend.device) == VK_SUCCESS);
 
     ImGui_ImplVulkan_Shutdown();
+
+    vkDestroySemaphore(backend.device, backend.semaphore_image_available, nullptr);
+    vkDestroySemaphore(backend.device, backend.semaphore_rendering_finished, nullptr);
 
     destroy_vulkan_wm_swapchain(root, backend, backend.presentInfo);
 

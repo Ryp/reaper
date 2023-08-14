@@ -363,25 +363,7 @@ void create_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backend, 
     // we have to use the full amount of swapchain we get back.
     presentInfo.image_count = actualImageCount;
 
-    VkSemaphoreCreateInfo semaphore_create_info = {
-        VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO, // VkStructureType          sType
-        nullptr,                                 // const void*              pNext
-        0                                        // VkSemaphoreCreateFlags   flags
-    };
-
     create_swapchain_views(backend, presentInfo);
-
-    Assert(vkCreateSemaphore(backend.device, &semaphore_create_info, nullptr, &presentInfo.imageAvailableSemaphore)
-           == VK_SUCCESS);
-
-    log_debug(root, "vulkan: created semaphore with handle: {}",
-              static_cast<void*>(presentInfo.imageAvailableSemaphore));
-
-    Assert(vkCreateSemaphore(backend.device, &semaphore_create_info, nullptr, &presentInfo.renderingFinishedSemaphore)
-           == VK_SUCCESS);
-
-    log_debug(root, "vulkan: created semaphore with handle: {}",
-              static_cast<void*>(presentInfo.renderingFinishedSemaphore));
 
     presentInfo.queue_swapchain_transition = true;
 }
@@ -390,9 +372,6 @@ void destroy_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backend,
 {
     REAPER_PROFILE_SCOPE_FUNC();
     log_debug(root, "vulkan: destroying wm swapchain");
-
-    vkDestroySemaphore(backend.device, presentInfo.imageAvailableSemaphore, nullptr);
-    vkDestroySemaphore(backend.device, presentInfo.renderingFinishedSemaphore, nullptr);
 
     destroy_swapchain_views(backend, presentInfo);
 
@@ -408,9 +387,6 @@ void resize_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backend, 
 
     // Destroy what needs to be
     Assert(vkDeviceWaitIdle(backend.device) == VK_SUCCESS);
-
-    vkDestroySemaphore(backend.device, presentInfo.imageAvailableSemaphore, nullptr);
-    vkDestroySemaphore(backend.device, presentInfo.renderingFinishedSemaphore, nullptr);
 
     destroy_swapchain_views(backend, presentInfo);
 
