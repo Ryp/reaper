@@ -52,17 +52,7 @@ namespace
         const VkFormat color_format = PixelFormatToVulkan(ForwardHDRColorFormat);
         const VkFormat depth_format = PixelFormatToVulkan(MainPassDepthFormat);
 
-        VkPipelineCreationFeedback              feedback = {};
-        std::vector<VkPipelineCreationFeedback> feedback_stages(shader_stages.size());
-        VkPipelineCreationFeedbackCreateInfo    feedback_info = {
-            VK_STRUCTURE_TYPE_PIPELINE_CREATION_FEEDBACK_CREATE_INFO,
-            nullptr,
-            &feedback,
-            static_cast<u32>(feedback_stages.size()),
-            feedback_stages.data(),
-        };
-
-        GraphicsPipelineProperties pipeline_properties = default_graphics_pipeline_properties(&feedback_info);
+        GraphicsPipelineProperties pipeline_properties = default_graphics_pipeline_properties();
         pipeline_properties.input_assembly.primitiveRestartEnable = VK_TRUE;
         pipeline_properties.depth_stencil.depthTestEnable = VK_TRUE;
         pipeline_properties.depth_stencil.depthWriteEnable = VK_TRUE;
@@ -80,9 +70,6 @@ namespace
         Assert(backend.physicalDeviceInfo.graphicsQueueFamilyIndex
                == backend.physicalDeviceInfo.presentQueueFamilyIndex);
         log_debug(root, "vulkan: created blit pipeline with handle: {}", static_cast<void*>(pipeline));
-
-        log_debug(root, "- total time = {}ms, vs = {}ms, fs = {}ms", feedback.duration / 1000,
-                  feedback_stages[0].duration / 1000, feedback_stages[1].duration / 1000);
 
         return pipeline;
     }

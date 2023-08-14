@@ -21,24 +21,32 @@ void create_backend_resources(ReaperRoot& root, VulkanBackend& backend)
     BackendResources& resources = *backend.resources;
 
     // Create command buffer
-    VkCommandPoolCreateInfo poolCreateInfo = {VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO, nullptr,
-                                              VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
-                                              backend.physicalDeviceInfo.graphicsQueueFamilyIndex};
+    const VkCommandPoolCreateInfo poolCreateInfo = {
+        .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+        .pNext = nullptr,
+        .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+        .queueFamilyIndex = backend.physicalDeviceInfo.graphicsQueueFamilyIndex,
+    };
 
     Assert(vkCreateCommandPool(backend.device, &poolCreateInfo, nullptr, &resources.gfxCommandPool) == VK_SUCCESS);
     log_debug(root, "vulkan: created command pool with handle: {}", static_cast<void*>(resources.gfxCommandPool));
 
-    VkCommandBufferAllocateInfo cmdBufferAllocInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO, nullptr,
-                                                      resources.gfxCommandPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, 1};
+    const VkCommandBufferAllocateInfo cmdBufferAllocInfo = {
+        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+        .pNext = nullptr,
+        .commandPool = resources.gfxCommandPool,
+        .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+        .commandBufferCount = 1,
+    };
 
     Assert(vkAllocateCommandBuffers(backend.device, &cmdBufferAllocInfo, &resources.gfxCmdBuffer.handle) == VK_SUCCESS);
     log_debug(root, "vulkan: created command buffer with handle: {}",
               static_cast<void*>(resources.gfxCmdBuffer.handle));
 
     const VkEventCreateInfo event_info = {
-        VK_STRUCTURE_TYPE_EVENT_CREATE_INFO,
-        nullptr,
-        VK_EVENT_CREATE_DEVICE_ONLY_BIT,
+        .sType = VK_STRUCTURE_TYPE_EVENT_CREATE_INFO,
+        .pNext = nullptr,
+        .flags = VK_EVENT_CREATE_DEVICE_ONLY_BIT,
     };
     Assert(vkCreateEvent(backend.device, &event_info, nullptr, &resources.event) == VK_SUCCESS);
 

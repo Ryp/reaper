@@ -131,9 +131,11 @@ void configure_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backen
 {
     log_debug(root, "vulkan: configuring wm swapchain");
 
-    VkPhysicalDeviceSurfaceInfo2KHR surface_info_2 = {.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SURFACE_INFO_2_KHR,
-                                                      .pNext = nullptr,
-                                                      .surface = presentInfo.surface};
+    VkPhysicalDeviceSurfaceInfo2KHR surface_info_2 = {
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SURFACE_INFO_2_KHR,
+        .pNext = nullptr,
+        .surface = presentInfo.surface,
+    };
 
     VkSurfaceCapabilities2KHR surface_caps_2 = {};
     surface_caps_2.sType = VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_2_KHR;
@@ -420,28 +422,23 @@ void create_swapchain_views(const VulkanBackend& backend, PresentationInfo& pres
 
     for (size_t i = 0; i < image_count; ++i)
     {
-        VkImageViewCreateInfo image_view_create_info = {
-            VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO, // VkStructureType                sType
-            nullptr,                                  // const void                    *pNext
-            0,                                        // VkImageViewCreateFlags         flags
-            presentInfo.images[i],                    // VkImage                        image
-            VK_IMAGE_VIEW_TYPE_2D,                    // VkImageViewType                viewType
-            presentInfo.view_format,                  // VkFormat                       format
-            {
-                // VkComponentMapping             components
-                VK_COMPONENT_SWIZZLE_IDENTITY, // VkComponentSwizzle             r
-                VK_COMPONENT_SWIZZLE_IDENTITY, // VkComponentSwizzle             g
-                VK_COMPONENT_SWIZZLE_IDENTITY, // VkComponentSwizzle             b
-                VK_COMPONENT_SWIZZLE_IDENTITY  // VkComponentSwizzle             a
-            },
-            {
-                // VkImageSubresourceRange        subresourceRange
-                VK_IMAGE_ASPECT_COLOR_BIT, // VkImageAspectFlags             aspectMask
-                0,                         // uint32_t                       baseMipLevel
-                1,                         // uint32_t                       levelCount
-                0,                         // uint32_t                       baseArrayLayer
-                1                          // uint32_t                       layerCount
-            }};
+        const VkImageViewCreateInfo image_view_create_info = {
+            .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = VK_FLAGS_NONE,
+            .image = presentInfo.images[i],
+            .viewType = VK_IMAGE_VIEW_TYPE_2D,
+            .format = presentInfo.view_format,
+            .components = {.r = VK_COMPONENT_SWIZZLE_IDENTITY,
+                           .g = VK_COMPONENT_SWIZZLE_IDENTITY,
+                           .b = VK_COMPONENT_SWIZZLE_IDENTITY,
+                           .a = VK_COMPONENT_SWIZZLE_IDENTITY},
+            .subresourceRange = {.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                                 .baseMipLevel = 0,
+                                 .levelCount = 1,
+                                 .baseArrayLayer = 0,
+                                 .layerCount = 1},
+        };
 
         Assert(vkCreateImageView(backend.device, &image_view_create_info, nullptr, &presentInfo.imageViews[i])
                == VK_SUCCESS);

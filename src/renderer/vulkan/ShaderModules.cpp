@@ -24,9 +24,12 @@ namespace
         std::string       filename_with_root = "build/shader/" + fileName;
         std::vector<char> fileContents = readWholeFile(filename_with_root);
 
-        VkShaderModuleCreateInfo shader_module_create_info = {VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO, nullptr, 0,
-                                                              fileContents.size(),
-                                                              reinterpret_cast<const uint32_t*>(&fileContents[0])};
+        const VkShaderModuleCreateInfo shader_module_create_info = {
+            .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = VK_FLAGS_NONE,
+            .codeSize = fileContents.size(),
+            .pCode = reinterpret_cast<const uint32_t*>(&fileContents[0])};
 
         VkShaderModule shaderModule = VK_NULL_HANDLE;
         Assert(vkCreateShaderModule(device, &shader_module_create_info, nullptr, &shaderModule) == VK_SUCCESS);

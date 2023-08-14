@@ -18,8 +18,13 @@ namespace
     template <typename HandleType>
     void SetDebugName(VkDevice device, VkObjectType handleType, HandleType handle, const char* name)
     {
-        const VkDebugUtilsObjectNameInfoEXT debugNameInfo = {VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT,
-                                                             nullptr, handleType, reinterpret_cast<u64>(handle), name};
+        const VkDebugUtilsObjectNameInfoEXT debugNameInfo = {
+            .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT,
+            .pNext = nullptr,
+            .objectType = handleType,
+            .objectHandle = reinterpret_cast<u64>(handle),
+            .pObjectName = name,
+        };
 
 #if REAPER_VULKAN_DEBUG
         Assert(vkSetDebugUtilsObjectNameEXT(device, &debugNameInfo) == VK_SUCCESS);

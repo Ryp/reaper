@@ -17,7 +17,11 @@ FrameSyncResources create_frame_sync_resources(ReaperRoot& root, VulkanBackend& 
 {
     // Create fence signaled by default, so we don't have to make it a special case when waiting for the last frame at
     // the first frame
-    VkFenceCreateInfo fenceInfo = {VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, nullptr, VK_FENCE_CREATE_SIGNALED_BIT};
+    const VkFenceCreateInfo fenceInfo = {
+        .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+        .pNext = nullptr,
+        .flags = VK_FENCE_CREATE_SIGNALED_BIT,
+    };
 
     VkFence drawFence = VK_NULL_HANDLE;
     vkCreateFence(backend.device, &fenceInfo, nullptr, &drawFence);

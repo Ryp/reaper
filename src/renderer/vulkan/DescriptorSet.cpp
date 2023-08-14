@@ -184,7 +184,6 @@ void DescriptorWriteHelper::append(VkDescriptorSet descriptor_set, u32 binding, 
         new_image_info(create_descriptor_image_info(image_view, layout));
 
     writes.push_back(create_image_descriptor_write(descriptor_set, binding, type, &image_descriptor_info));
-    Assert(writes.back().sType == VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET);
 }
 
 void DescriptorWriteHelper::append(VkDescriptorSet descriptor_set, u32 binding, VkSampler sampler)
@@ -193,7 +192,6 @@ void DescriptorWriteHelper::append(VkDescriptorSet descriptor_set, u32 binding, 
 
     writes.push_back(
         create_image_descriptor_write(descriptor_set, binding, VK_DESCRIPTOR_TYPE_SAMPLER, &sampler_descriptor_info));
-    Assert(writes.back().sType == VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET);
 }
 
 void DescriptorWriteHelper::append(VkDescriptorSet descriptor_set, u32 binding, VkDescriptorType type, VkBuffer buffer,
@@ -206,7 +204,6 @@ void DescriptorWriteHelper::append(VkDescriptorSet descriptor_set, u32 binding, 
         new_buffer_info(create_descriptor_buffer_info(buffer, offset_bytes, size_bytes));
 
     writes.push_back(create_buffer_descriptor_write(descriptor_set, binding, type, &buffer_info));
-    Assert(writes.back().sType == VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET);
 }
 
 void DescriptorWriteHelper::append(VkDescriptorSet descriptor_set, u32 binding, VkDescriptorType type, VkBuffer buffer)
@@ -220,8 +217,6 @@ void DescriptorWriteHelper::append(VkDescriptorSet descriptor_set, u32 binding, 
     const VkBufferView& texel_buffer_info = new_texel_buffer_view(texel_buffer_view);
 
     writes.push_back(create_texel_buffer_view_descriptor_write(descriptor_set, binding, type, &texel_buffer_info));
-
-    Assert(writes.back().sType == VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET);
 }
 
 void DescriptorWriteHelper::flush_descriptor_write_helper(VkDevice device)

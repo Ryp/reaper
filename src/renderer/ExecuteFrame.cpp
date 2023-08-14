@@ -33,11 +33,10 @@ void renderer_start(ReaperRoot& root, VulkanBackend& backend, IWindow* window)
     CommandBuffer& cmdBuffer = backend.resources->gfxCmdBuffer;
     Assert(vkResetCommandBuffer(cmdBuffer.handle, 0) == VK_SUCCESS);
 
-    VkCommandBufferBeginInfo cmdBufferBeginInfo = {
-        VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, nullptr,
-        0,      // Not caring yet
-        nullptr // No inheritance yet
-    };
+    const VkCommandBufferBeginInfo cmdBufferBeginInfo = {.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+                                                         .pNext = nullptr,
+                                                         .flags = VK_FLAGS_NONE,
+                                                         .pInheritanceInfo = nullptr};
 
     Assert(vkBeginCommandBuffer(cmdBuffer.handle, &cmdBufferBeginInfo) == VK_SUCCESS);
 

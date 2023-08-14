@@ -59,14 +59,14 @@ BufferInfo create_buffer(ReaperRoot& root, VkDevice device, const char* debug_st
         properties.stride = properties.element_size_bytes;
     }
 
-    const VkBufferCreateInfo bufferInfo = {VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-                                           nullptr,
-                                           VK_FLAGS_NONE,
-                                           properties.element_count * properties.stride,
-                                           BufferUsageToVulkan(properties.usage_flags),
-                                           VK_SHARING_MODE_EXCLUSIVE,
-                                           0,
-                                           nullptr};
+    const VkBufferCreateInfo bufferInfo = {.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+                                           .pNext = nullptr,
+                                           .flags = VK_FLAGS_NONE,
+                                           .size = properties.element_count * properties.stride,
+                                           .usage = BufferUsageToVulkan(properties.usage_flags),
+                                           .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+                                           .queueFamilyIndexCount = 0,
+                                           .pQueueFamilyIndices = nullptr};
 
     VmaAllocationCreateInfo allocInfo = {};
 

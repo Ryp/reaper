@@ -27,9 +27,9 @@ FrameGraphResources create_framegraph_resources(ReaperRoot& /*root*/, VulkanBack
     FrameGraphResources resources = {};
 
     const VkEventCreateInfo event_info = {
-        VK_STRUCTURE_TYPE_EVENT_CREATE_INFO,
-        nullptr,
-        VK_EVENT_CREATE_DEVICE_ONLY_BIT,
+        .sType = VK_STRUCTURE_TYPE_EVENT_CREATE_INFO,
+        .pNext = nullptr,
+        .flags = VK_EVENT_CREATE_DEVICE_ONLY_BIT,
     };
 
     for (auto& event : resources.events)

@@ -18,9 +18,13 @@ void allocate_descriptor_sets(VkDevice device, VkDescriptorPool descriptor_pool,
 {
     Assert(descriptor_set_layouts.size() == output_descriptor_sets.size());
 
-    VkDescriptorSetAllocateInfo descriptorSetAllocInfo = {
-        VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr, descriptor_pool,
-        static_cast<u32>(descriptor_set_layouts.size()), descriptor_set_layouts.data()};
+    const VkDescriptorSetAllocateInfo descriptorSetAllocInfo = {
+        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+        .pNext = nullptr,
+        .descriptorPool = descriptor_pool,
+        .descriptorSetCount = static_cast<u32>(descriptor_set_layouts.size()),
+        .pSetLayouts = descriptor_set_layouts.data(),
+    };
 
     Assert(vkAllocateDescriptorSets(device, &descriptorSetAllocInfo, output_descriptor_sets.data()) == VK_SUCCESS);
 }
@@ -37,15 +41,20 @@ VkDescriptorSetLayoutBindingFlagsCreateInfo
 descriptor_set_layout_binding_flags_create_info(nonstd::span<const VkDescriptorBindingFlags> binding_flags)
 {
     return VkDescriptorSetLayoutBindingFlagsCreateInfo{
-        VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO, nullptr,
-        static_cast<u32>(binding_flags.size()), binding_flags.data()};
+        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO,
+        .pNext = nullptr,
+        .bindingCount = static_cast<u32>(binding_flags.size()),
+        .pBindingFlags = binding_flags.data()};
 }
 
 VkDescriptorSetLayoutCreateInfo
 descriptor_set_layout_create_info(nonstd::span<const VkDescriptorSetLayoutBinding> layout_bindings)
 {
-    return VkDescriptorSetLayoutCreateInfo{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, nullptr, 0,
-                                           static_cast<u32>(layout_bindings.size()), layout_bindings.data()};
+    return VkDescriptorSetLayoutCreateInfo{.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+                                           .pNext = nullptr,
+                                           .flags = VK_FLAGS_NONE,
+                                           .bindingCount = static_cast<u32>(layout_bindings.size()),
+                                           .pBindings = layout_bindings.data()};
 }
 
 VkDescriptorSetLayout create_descriptor_set_layout(VkDevice device,
@@ -78,13 +87,14 @@ VkPipelineLayout create_pipeline_layout(VkDevice device,
                                         nonstd::span<const VkPushConstantRange>
                                             push_constant_ranges)
 {
-    VkPipelineLayoutCreateInfo pipelineLayoutInfo = {VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-                                                     nullptr,
-                                                     VK_FLAGS_NONE,
-                                                     static_cast<u32>(descriptor_set_layouts.size()),
-                                                     descriptor_set_layouts.data(),
-                                                     static_cast<u32>(push_constant_ranges.size()),
-                                                     push_constant_ranges.data()};
+    VkPipelineLayoutCreateInfo pipelineLayoutInfo = {.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+                                                     .pNext = nullptr,
+                                                     .flags = VK_FLAGS_NONE,
+                                                     .setLayoutCount = static_cast<u32>(descriptor_set_layouts.size()),
+                                                     .pSetLayouts = descriptor_set_layouts.data(),
+                                                     .pushConstantRangeCount =
+                                                         static_cast<u32>(push_constant_ranges.size()),
+                                                     .pPushConstantRanges = push_constant_ranges.data()};
 
     VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
     Assert(vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &pipelineLayout) == VK_SUCCESS);
@@ -103,7 +113,7 @@ VkPipeline create_compute_pipeline(VkDevice device, VkPipelineLayout pipeline_la
     VkComputePipelineCreateInfo pipelineCreateInfo = {
         .sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
         .pNext = nullptr,
-        .flags = 0,
+        .flags = VK_FLAGS_NONE,
         .stage = shader_stage_create_info,
         .layout = pipeline_layout,
         .basePipelineHandle = VK_NULL_HANDLE, // do not care about pipeline derivatives
@@ -161,13 +171,13 @@ VkPipelineColorBlendAttachmentState default_pipeline_color_blend_attachment_stat
 VkPipelineRenderingCreateInfo default_pipeline_rendering_create_info()
 {
     return VkPipelineRenderingCreateInfo{
-        VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
-        nullptr,
-        0, // viewMask
-        0,
-        nullptr,
-        VK_FORMAT_UNDEFINED,
-        VK_FORMAT_UNDEFINED,
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
+        .pNext = nullptr,
+        .viewMask = VK_FLAGS_NONE,
+        .colorAttachmentCount = 0,
+        .pColorAttachmentFormats = nullptr,
+        .depthAttachmentFormat = VK_FORMAT_UNDEFINED,
+        .stencilAttachmentFormat = VK_FORMAT_UNDEFINED,
     };
 }
 
@@ -338,16 +348,16 @@ VkPipeline create_graphics_pipeline(VkDevice device,
 VkRenderingAttachmentInfo default_rendering_attachment_info(VkImageView image_view, VkImageLayout layout)
 {
     return VkRenderingAttachmentInfo{
-        VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-        nullptr,
-        image_view,
-        layout,
-        VK_RESOLVE_MODE_NONE,
-        VK_NULL_HANDLE,
-        VK_IMAGE_LAYOUT_UNDEFINED,
-        VK_ATTACHMENT_LOAD_OP_LOAD,
-        VK_ATTACHMENT_STORE_OP_STORE,
-        VkClearValue{},
+        .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+        .pNext = nullptr,
+        .imageView = image_view,
+        .imageLayout = layout,
+        .resolveMode = VK_RESOLVE_MODE_NONE,
+        .resolveImageView = VK_NULL_HANDLE,
+        .resolveImageLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+        .loadOp = VK_ATTACHMENT_LOAD_OP_LOAD,
+        .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+        .clearValue = VkClearValue{},
     };
 }
 
@@ -366,16 +376,16 @@ VkRenderingInfo default_rendering_info(VkRect2D render_rect,
                                        const VkRenderingAttachmentInfo* depth_attachment)
 {
     return VkRenderingInfo{
-        VK_STRUCTURE_TYPE_RENDERING_INFO,
-        nullptr,
-        VK_FLAGS_NONE,
-        render_rect,
-        1, // layerCount
-        0, // viewMask
-        static_cast<u32>(color_attachments.size()),
-        color_attachments.data(),
-        depth_attachment,
-        nullptr,
+        .sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
+        .pNext = nullptr,
+        .flags = VK_FLAGS_NONE,
+        .renderArea = render_rect,
+        .layerCount = 1,
+        .viewMask = 0,
+        .colorAttachmentCount = static_cast<u32>(color_attachments.size()),
+        .pColorAttachments = color_attachments.data(),
+        .pDepthAttachment = depth_attachment,
+        .pStencilAttachment = nullptr,
     };
 }
 } // namespace Reaper

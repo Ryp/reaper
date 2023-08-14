@@ -71,12 +71,12 @@ namespace
                                                                  {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 32},
                                                                  {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 32}};
 
-        VkDescriptorPoolCreateInfo poolInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-                                               nullptr,
-                                               VK_FLAGS_NONE,
-                                               MaxDescriptorSets,
-                                               static_cast<uint32_t>(descriptorPoolSizes.size()),
-                                               descriptorPoolSizes.data()};
+        const VkDescriptorPoolCreateInfo poolInfo = {.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+                                                     .pNext = nullptr,
+                                                     .flags = VK_FLAGS_NONE,
+                                                     .maxSets = MaxDescriptorSets,
+                                                     .poolSizeCount = static_cast<uint32_t>(descriptorPoolSizes.size()),
+                                                     .pPoolSizes = descriptorPoolSizes.data()};
 
         VkDescriptorPool pool = VK_NULL_HANDLE;
         Assert(vkCreateDescriptorPool(backend.device, &poolInfo, nullptr, &pool) == VK_SUCCESS);
@@ -154,25 +154,25 @@ void create_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& backend)
     const u32 engineVersion = appVersion;
     const u32 vulkanVersion = REAPER_VK_API_VERSION;
 
-    VkApplicationInfo application_info = {
-        VK_STRUCTURE_TYPE_APPLICATION_INFO, // VkStructureType  sType
-        nullptr,                            // const void*      pNext
-        "MyGame",                           // const char*      pApplicationName
-        appVersion,                         // uint32_t         applicationVersion
-        "Reaper",                           // const char*      pEngineName
-        engineVersion,                      // uint32_t         engineVersion
-        vulkanVersion                       // uint32_t         apiVersion
+    const VkApplicationInfo application_info = {
+        .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
+        .pNext = nullptr,
+        .pApplicationName = "MyGame",
+        .applicationVersion = appVersion,
+        .pEngineName = "Reaper",
+        .engineVersion = engineVersion,
+        .apiVersion = vulkanVersion,
     };
 
-    VkInstanceCreateInfo instance_create_info = {
-        VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,       // VkStructureType            sType
-        nullptr,                                      // const void*                pNext
-        0,                                            // VkInstanceCreateFlags      flags
-        &application_info,                            // const VkApplicationInfo   *pApplicationInfo
-        static_cast<u32>(instanceLayers.size()),      // uint32_t                   enabledLayerCount
-        instanceLayers.data(),                        // const char * const        *ppEnabledLayerNames
-        static_cast<u32>(instance_extensions.size()), // uint32_t                   enabledExtensionCount
-        instance_extensions.data(),                   // const char * const        *ppEnabledExtensionNames
+    const VkInstanceCreateInfo instance_create_info = {
+        .sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
+        .pNext = nullptr,
+        .flags = VK_FLAGS_NONE,
+        .pApplicationInfo = &application_info,
+        .enabledLayerCount = static_cast<u32>(instanceLayers.size()),
+        .ppEnabledLayerNames = instanceLayers.data(),
+        .enabledExtensionCount = static_cast<u32>(instance_extensions.size()),
+        .ppEnabledExtensionNames = instance_extensions.data(),
     };
 
     Assert(vkCreateInstance(&instance_create_info, nullptr, &backend.instance) == VK_SUCCESS,
@@ -436,15 +436,16 @@ namespace
 void vulkan_setup_debug_callback(ReaperRoot& root, VulkanBackend& backend)
 {
     VkDebugUtilsMessengerCreateInfoEXT callbackCreateInfo = {
-        VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
-        nullptr,
-        0,
-        VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT
+        .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
+        .pNext = nullptr,
+        .flags = VK_FLAGS_NONE,
+        .messageSeverity =
+            VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT
             | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,
-        VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT
-            | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT,
-        &debugReportCallback,
-        &root};
+        .messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT
+                       | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT,
+        .pfnUserCallback = &debugReportCallback,
+        .pUserData = &root};
 
 #if REAPER_DEBUG
     Assert(vkCreateDebugUtilsMessengerEXT(backend.instance, &callbackCreateInfo, nullptr, &backend.debugMessenger)
@@ -732,24 +733,24 @@ void vulkan_create_logical_device(ReaperRoot&                     root,
     std::vector<VkDeviceQueueCreateInfo> queue_create_infos;
     std::vector<float>                   queue_priorities = {1.0f};
 
-    queue_create_infos.push_back({
-        VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,          // VkStructureType              sType
-        nullptr,                                             // const void                  *pNext
-        0,                                                   // VkDeviceQueueCreateFlags     flags
-        backend.physicalDeviceInfo.graphicsQueueFamilyIndex, // uint32_t                     queueFamilyIndex
-        static_cast<uint32_t>(queue_priorities.size()),      // uint32_t                     queueCount
-        &queue_priorities[0]                                 // const float                 *pQueuePriorities
+    queue_create_infos.push_back(VkDeviceQueueCreateInfo{
+        .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+        .pNext = nullptr,
+        .flags = VK_FLAGS_NONE,
+        .queueFamilyIndex = backend.physicalDeviceInfo.graphicsQueueFamilyIndex,
+        .queueCount = static_cast<uint32_t>(queue_priorities.size()),
+        .pQueuePriorities = queue_priorities.data(),
     });
 
     if (backend.physicalDeviceInfo.graphicsQueueFamilyIndex != backend.physicalDeviceInfo.presentQueueFamilyIndex)
     {
-        queue_create_infos.push_back({
-            VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,         // VkStructureType              sType
-            nullptr,                                            // const void                  *pNext
-            0,                                                  // VkDeviceQueueCreateFlags     flags
-            backend.physicalDeviceInfo.presentQueueFamilyIndex, // uint32_t                     queueFamilyIndex
-            static_cast<uint32_t>(queue_priorities.size()),     // uint32_t                     queueCount
-            &queue_priorities[0]                                // const float                 *pQueuePriorities
+        queue_create_infos.push_back(VkDeviceQueueCreateInfo{
+            .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = VK_FLAGS_NONE,
+            .queueFamilyIndex = backend.physicalDeviceInfo.presentQueueFamilyIndex,
+            .queueCount = static_cast<uint32_t>(queue_priorities.size()),
+            .pQueuePriorities = queue_priorities.data(),
         });
     }
 
@@ -803,17 +804,17 @@ void vulkan_create_logical_device(ReaperRoot&                     root,
     deviceFeatures2.pNext = &device_features_1_2;
     deviceFeatures2.features = deviceFeatures;
 
-    VkDeviceCreateInfo device_create_info = {
-        VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,       // VkStructureType                    sType
-        &deviceFeatures2,                           // const void                        *pNext
-        0,                                          // VkDeviceCreateFlags                flags
-        queueCreateCount,                           // uint32_t                           queueCreateInfoCount
-        &queue_create_infos[0],                     // const VkDeviceQueueCreateInfo     *pQueueCreateInfos
-        0,                                          // uint32_t                           enabledLayerCount
-        nullptr,                                    // const char * const                *ppEnabledLayerNames
-        static_cast<u32>(device_extensions.size()), // uint32_t                           enabledExtensionCount
-        device_extensions.data(),                   // const char * const *ppEnabledExtensionNames
-        nullptr                                     // const VkPhysicalDeviceFeatures    *pEnabledFeatures
+    const VkDeviceCreateInfo device_create_info = {
+        .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+        .pNext = &deviceFeatures2,
+        .flags = VK_FLAGS_NONE,
+        .queueCreateInfoCount = queueCreateCount,
+        .pQueueCreateInfos = &queue_create_infos[0],
+        .enabledLayerCount = 0,
+        .ppEnabledLayerNames = nullptr,
+        .enabledExtensionCount = static_cast<u32>(device_extensions.size()),
+        .ppEnabledExtensionNames = device_extensions.data(),
+        .pEnabledFeatures = nullptr,
     };
 
     Assert(vkCreateDevice(backend.physicalDevice, &device_create_info, nullptr, &backend.device) == VK_SUCCESS,

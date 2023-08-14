@@ -27,39 +27,33 @@ void vulkan_create_presentation_surface(VkInstance instance, VkSurfaceKHR& vkPre
     Win32Window* win32Window = dynamic_cast<Win32Window*>(window);
     Assert(win32Window != nullptr);
 
-    VkWin32SurfaceCreateInfoKHR surface_create_info = {
-        VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR, // VkStructureType                  sType
-        nullptr,                                         // const void                      *pNext
-        0,                                               // VkWin32SurfaceCreateFlagsKHR     flags
-        win32Window->m_instance,                         // HINSTANCE                        hinstance
-        win32Window->m_handle                            // HWND                             hwnd
-    };
+    VkWin32SurfaceCreateInfoKHR surface_create_info = {.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR,
+                                                       .pNext = nullptr,
+                                                       .flags = VK_FLAGS_NONE,
+                                                       .hinstance = win32Window->m_instance,
+                                                       .hwnd = win32Window->m_handle};
 
     Assert(vkCreateWin32SurfaceKHR(instance, &surface_create_info, nullptr, &vkPresentationSurface) == VK_SUCCESS);
 #elif defined(VK_USE_PLATFORM_XCB_KHR)
     XCBWindow* xcbWindow = dynamic_cast<XCBWindow*>(window);
     Assert(xcbWindow != nullptr);
 
-    VkXcbSurfaceCreateInfoKHR surface_create_info = {
-        VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR, // VkStructureType                  sType
-        nullptr,                                       // const void                      *pNext
-        0,                                             // VkXcbSurfaceCreateFlagsKHR       flags
-        xcbWindow->m_connection,                       // xcb_connection_t*                connection
-        xcbWindow->m_handle                            // xcb_window_t                     window
-    };
+    VkXcbSurfaceCreateInfoKHR surface_create_info = {.sType = VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR,
+                                                     .pNext = nullptr,
+                                                     .flags = VK_FLAGS_NONE,
+                                                     .connection = xcbWindow->m_connection,
+                                                     .window = xcbWindow->m_handle};
 
     Assert(vkCreateXcbSurfaceKHR(instance, &surface_create_info, nullptr, &vkPresentationSurface) == VK_SUCCESS);
 #elif defined(VK_USE_PLATFORM_XLIB_KHR)
     XLibWindow* xlibWindow = dynamic_cast<XLibWindow*>(window);
     Assert(xlibWindow != nullptr);
 
-    VkXlibSurfaceCreateInfoKHR surface_create_info = {
-        VK_STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR, // VkStructureType                sType
-        nullptr,                                        // const void                    *pNext
-        0,                                              // VkXlibSurfaceCreateFlagsKHR    flags
-        xlibWindow->DisplayPtr,                         // Display                       *dpy
-        xlibWindow->Handle                              // Window                         window
-    };
+    VkXlibSurfaceCreateInfoKHR surface_create_info = {.sType = VK_STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR,
+                                                      .pNext = nullptr,
+                                                      .flags = VK_FLAGS_NONE,
+                                                      .dpy = xlibWindow->DisplayPtr,
+                                                      .window = xlibWindow->Handle};
 
     Assert(vkCreateXlibSurfaceKHR(instance, &surface_create_info, nullptr, &vkPresentationSurface) == VK_SUCCESS);
 #else

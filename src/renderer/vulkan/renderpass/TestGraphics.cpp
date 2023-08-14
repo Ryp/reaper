@@ -1063,10 +1063,11 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     log_debug(root, "vulkan: record command buffer");
     Assert(vkResetCommandBuffer(cmdBuffer.handle, 0) == VK_SUCCESS);
 
-    VkCommandBufferBeginInfo cmdBufferBeginInfo = {
-        VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, nullptr,
-        0,      // Not caring yet
-        nullptr // No inheritance yet
+    const VkCommandBufferBeginInfo cmdBufferBeginInfo = {
+        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+        .pNext = nullptr,
+        .flags = VK_FLAGS_NONE,
+        .pInheritanceInfo = nullptr,
     };
 
     Assert(vkBeginCommandBuffer(cmdBuffer.handle, &cmdBufferBeginInfo) == VK_SUCCESS);
@@ -1382,19 +1383,19 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     // Stop recording
     Assert(vkEndCommandBuffer(cmdBuffer.handle) == VK_SUCCESS);
 
-    VkPipelineStageFlags waitDstMask = VK_PIPELINE_STAGE_TRANSFER_BIT;
+    const VkPipelineStageFlags waitDstMask = VK_PIPELINE_STAGE_TRANSFER_BIT;
 
-    std::array<VkSemaphore, 1> semaphores_to_signal = {backend.semaphore_rendering_finished};
-
-    VkSubmitInfo submitInfo = {VK_STRUCTURE_TYPE_SUBMIT_INFO,
-                               nullptr,
-                               1,
-                               &backend.semaphore_image_available,
-                               &waitDstMask,
-                               1,
-                               &cmdBuffer.handle,
-                               semaphores_to_signal.size(),
-                               semaphores_to_signal.data()};
+    const VkSubmitInfo submitInfo = {
+        .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+        .pNext = nullptr,
+        .waitSemaphoreCount = 1,
+        .pWaitSemaphores = &backend.semaphore_image_available,
+        .pWaitDstStageMask = &waitDstMask,
+        .commandBufferCount = 1,
+        .pCommandBuffers = &cmdBuffer.handle,
+        .signalSemaphoreCount = 1,
+        .pSignalSemaphores = &backend.semaphore_rendering_finished,
+    };
 
     log_debug(root, "vulkan: submit drawing commands");
     Assert(vkQueueSubmit(backend.deviceInfo.graphicsQueue, 1, &submitInfo, resources.frame_sync_resources.drawFence)

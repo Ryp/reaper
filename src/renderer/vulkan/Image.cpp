@@ -1012,21 +1012,23 @@ ImageInfo create_image(ReaperRoot& root, VkDevice device, const char* debug_stri
     const VkImageTiling tilingMode = VK_IMAGE_TILING_OPTIMAL;
     const VkFormat      vulkan_format = PixelFormatToVulkan(properties.format);
 
-    const VkImageCreateInfo imageInfo = {VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
-                                         nullptr,
-                                         GetVulkanCreateFlags(properties),
-                                         VK_IMAGE_TYPE_2D,
-                                         vulkan_format,
-                                         extent,
-                                         properties.mipCount,
-                                         properties.layerCount,
-                                         SampleCountToVulkan(properties.sampleCount),
-                                         tilingMode,
-                                         GetVulkanUsageFlags(properties.usage_flags),
-                                         VK_SHARING_MODE_EXCLUSIVE,
-                                         0,
-                                         nullptr,
-                                         VK_IMAGE_LAYOUT_UNDEFINED};
+    const VkImageCreateInfo imageInfo = {
+        .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+        .pNext = nullptr,
+        .flags = GetVulkanCreateFlags(properties),
+        .imageType = VK_IMAGE_TYPE_2D,
+        .format = vulkan_format,
+        .extent = extent,
+        .mipLevels = properties.mipCount,
+        .arrayLayers = properties.layerCount,
+        .samples = SampleCountToVulkan(properties.sampleCount),
+        .tiling = tilingMode,
+        .usage = GetVulkanUsageFlags(properties.usage_flags),
+        .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+        .queueFamilyIndexCount = 0,
+        .pQueueFamilyIndices = nullptr,
+        .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+    };
 
     VmaAllocationCreateInfo allocInfo = {};
     allocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
@@ -1056,16 +1058,19 @@ VkImageView create_image_view(ReaperRoot& root, VkDevice device, const ImageInfo
 
     const VkImageSubresourceRange viewRange = GetVulkanImageSubresourceRange(view);
 
-    VkImageViewCreateInfo imageViewInfo = {
-        VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-        nullptr,
-        VK_FLAGS_NONE,
-        image.handle,
-        VK_IMAGE_VIEW_TYPE_2D,
-        PixelFormatToVulkan(view.format),
-        VkComponentMapping{VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
-                           VK_COMPONENT_SWIZZLE_IDENTITY},
-        viewRange};
+    const VkImageViewCreateInfo imageViewInfo = {
+        .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+        .pNext = nullptr,
+        .flags = VK_FLAGS_NONE,
+        .image = image.handle,
+        .viewType = VK_IMAGE_VIEW_TYPE_2D,
+        .format = PixelFormatToVulkan(view.format),
+        .components = {.r = VK_COMPONENT_SWIZZLE_IDENTITY,
+                       .g = VK_COMPONENT_SWIZZLE_IDENTITY,
+                       .b = VK_COMPONENT_SWIZZLE_IDENTITY,
+                       .a = VK_COMPONENT_SWIZZLE_IDENTITY},
+        .subresourceRange = viewRange,
+    };
 
     VkImageView imageView = VK_NULL_HANDLE;
     Assert(vkCreateImageView(device, &imageViewInfo, nullptr, &imageView) == VK_SUCCESS);

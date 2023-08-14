@@ -59,11 +59,11 @@ namespace
         VkPipelineCreationFeedback              feedback = {};
         std::vector<VkPipelineCreationFeedback> feedback_stages(shader_stages.size());
         VkPipelineCreationFeedbackCreateInfo    feedback_info = {
-            VK_STRUCTURE_TYPE_PIPELINE_CREATION_FEEDBACK_CREATE_INFO,
-            nullptr,
-            &feedback,
-            static_cast<u32>(feedback_stages.size()),
-            feedback_stages.data(),
+               .sType = VK_STRUCTURE_TYPE_PIPELINE_CREATION_FEEDBACK_CREATE_INFO,
+               .pNext = nullptr,
+               .pPipelineCreationFeedback = &feedback,
+               .pipelineStageCreationFeedbackCount = static_cast<u32>(feedback_stages.size()),
+               .pPipelineStageCreationFeedbacks = feedback_stages.data(),
         };
 
         GraphicsPipelineProperties pipeline_properties = default_graphics_pipeline_properties(&feedback_info);

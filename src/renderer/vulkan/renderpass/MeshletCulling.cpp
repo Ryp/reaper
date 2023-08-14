@@ -182,10 +182,11 @@ MeshletCullingResources create_meshlet_culling_resources(ReaperRoot& root, Vulka
                              resources.cull_triangles_pipe.descSetLayout, resources.cull_triangles_descriptor_sets);
 
     const VkEventCreateInfo event_info = {
-        VK_STRUCTURE_TYPE_EVENT_CREATE_INFO,
-        nullptr,
-        VK_FLAGS_NONE,
+        .sType = VK_STRUCTURE_TYPE_EVENT_CREATE_INFO,
+        .pNext = nullptr,
+        .flags = VK_FLAGS_NONE,
     };
+
     Assert(vkCreateEvent(backend.device, &event_info, nullptr, &resources.countersReadyEvent) == VK_SUCCESS);
     VulkanSetDebugName(backend.device, resources.countersReadyEvent, "Counters ready event");
 
@@ -426,16 +427,23 @@ void record_meshlet_culling_command_buffer(ReaperRoot& root, CommandBuffer& cmdB
     {
         REAPER_GPU_SCOPE(cmdBuffer, "Copy counters");
 
-        VkBufferCopy2 region = {};
-        region.sType = VK_STRUCTURE_TYPE_BUFFER_COPY_2;
-        region.pNext = nullptr;
-        region.srcOffset = 0;
-        region.dstOffset = 0;
-        region.size = resources.counters_buffer.properties.element_count
-                      * resources.counters_buffer.properties.element_size_bytes;
+        const VkBufferCopy2 region = {
+            .sType = VK_STRUCTURE_TYPE_BUFFER_COPY_2,
+            .pNext = nullptr,
+            .srcOffset = 0,
+            .dstOffset = 0,
+            .size = resources.counters_buffer.properties.element_count
+                    * resources.counters_buffer.properties.element_size_bytes,
+        };
 
-        const VkCopyBufferInfo2 copy = {VK_STRUCTURE_TYPE_COPY_BUFFER_INFO_2, nullptr, resources.counters_buffer.handle,
-                                        resources.counters_cpu_buffer.handle, 1,       &region};
+        const VkCopyBufferInfo2 copy = {
+            .sType = VK_STRUCTURE_TYPE_COPY_BUFFER_INFO_2,
+            .pNext = nullptr,
+            .srcBuffer = resources.counters_buffer.handle,
+            .dstBuffer = resources.counters_cpu_buffer.handle,
+            .regionCount = 1,
+            .pRegions = &region,
+        };
 
         vkCmdCopyBuffer2(cmdBuffer.handle, &copy);
 
@@ -449,7 +457,16 @@ void record_meshlet_culling_command_buffer(ReaperRoot& root, CommandBuffer& cmdB
             get_vk_buffer_barrier(resources.counters_cpu_buffer.handle, view, src, dst);
 
         const VkDependencyInfo dependencies = VkDependencyInfo{
-            VK_STRUCTURE_TYPE_DEPENDENCY_INFO, nullptr, VK_FLAGS_NONE, 0, nullptr, 1, &bufferBarrier, 0, nullptr};
+            .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+            .pNext = nullptr,
+            .dependencyFlags = VK_FLAGS_NONE,
+            .memoryBarrierCount = 0,
+            .pMemoryBarriers = nullptr,
+            .bufferMemoryBarrierCount = 1,
+            .pBufferMemoryBarriers = &bufferBarrier,
+            .imageMemoryBarrierCount = 0,
+            .pImageMemoryBarriers = nullptr,
+        };
 
         vkCmdSetEvent2(cmdBuffer.handle, resources.countersReadyEvent, &dependencies);
     }
@@ -478,11 +495,14 @@ std::vector<MeshletCullingStats> get_meshlet_culling_gpu_stats(VulkanBackend& ba
                        &mapped_data_ptr)
            == VK_SUCCESS);
 
-    VkMappedMemoryRange staging_range = {};
-    staging_range.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
-    staging_range.memory = allocation_info.deviceMemory;
-    staging_range.offset = allocation_info.offset;
-    staging_range.size = mappped_data_size_bytes;
+    const VkMappedMemoryRange staging_range = {
+        .sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE,
+        .pNext = nullptr,
+        .memory = allocation_info.deviceMemory,
+        .offset = allocation_info.offset,
+        .size = mappped_data_size_bytes,
+    };
+
     vkInvalidateMappedMemoryRanges(backend.device, 1, &staging_range);
 
     Assert(mapped_data_ptr);

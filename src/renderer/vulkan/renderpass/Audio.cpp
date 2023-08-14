@@ -76,16 +76,18 @@ AudioResources create_audio_resources(ReaperRoot& root, VulkanBackend& backend, 
                                                  GPUBufferUsage::TransferDst),
                       backend.vma_instance, MemUsage::GPU_To_CPU);
 
-    VkSemaphoreTypeCreateInfo timelineCreateInfo;
-    timelineCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO;
-    timelineCreateInfo.pNext = NULL;
-    timelineCreateInfo.semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE;
-    timelineCreateInfo.initialValue = 0;
+    const VkSemaphoreTypeCreateInfo timelineCreateInfo = {
+        .sType = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO,
+        .pNext = NULL,
+        .semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE,
+        .initialValue = 0,
+    };
 
-    VkSemaphoreCreateInfo createInfo;
-    createInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-    createInfo.pNext = &timelineCreateInfo;
-    createInfo.flags = 0;
+    const VkSemaphoreCreateInfo createInfo = {
+        .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
+        .pNext = &timelineCreateInfo,
+        .flags = VK_FLAGS_NONE,
+    };
 
     vkCreateSemaphore(backend.device, &createInfo, NULL, &resources.semaphore);
 
@@ -188,15 +190,22 @@ void record_audio_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& p
         vkCmdPipelineBarrier2(cmdBuffer.handle, &dependencies);
     }
 
-    VkBufferCopy2 region = {};
-    region.sType = VK_STRUCTURE_TYPE_BUFFER_COPY_2;
-    region.pNext = nullptr;
-    region.srcOffset = 0;
-    region.dstOffset = 0;
-    region.size = FrameCountPerGroup * FrameCountPerDispatch * sizeof(RawSample);
+    const VkBufferCopy2 region = {
+        .sType = VK_STRUCTURE_TYPE_BUFFER_COPY_2,
+        .pNext = nullptr,
+        .srcOffset = 0,
+        .dstOffset = 0,
+        .size = FrameCountPerGroup * FrameCountPerDispatch * sizeof(RawSample),
+    };
 
-    const VkCopyBufferInfo2 copy = {VK_STRUCTURE_TYPE_COPY_BUFFER_INFO_2, nullptr, resources.outputBuffer.handle,
-                                    resources.outputBufferStaging.handle, 1,       &region};
+    const VkCopyBufferInfo2 copy = {
+        .sType = VK_STRUCTURE_TYPE_COPY_BUFFER_INFO_2,
+        .pNext = nullptr,
+        .srcBuffer = resources.outputBuffer.handle,
+        .dstBuffer = resources.outputBufferStaging.handle,
+        .regionCount = 1,
+        .pRegions = &region,
+    };
 
     vkCmdCopyBuffer2(cmdBuffer.handle, &copy);
 
@@ -241,11 +250,14 @@ void read_gpu_audio_data(VulkanBackend& backend, AudioResources& resources)
                        &mapped_data_ptr)
            == VK_SUCCESS);
 
-    VkMappedMemoryRange staging_range = {};
-    staging_range.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
-    staging_range.memory = allocation_info.deviceMemory;
-    staging_range.offset = allocation_info.offset;
-    staging_range.size = VK_WHOLE_SIZE;
+    const VkMappedMemoryRange staging_range = {
+        .sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE,
+        .pNext = nullptr,
+        .memory = allocation_info.deviceMemory,
+        .offset = allocation_info.offset,
+        .size = VK_WHOLE_SIZE,
+    };
+
     vkInvalidateMappedMemoryRanges(backend.device, 1, &staging_range);
 
     Assert(mapped_data_ptr);

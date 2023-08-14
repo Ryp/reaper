@@ -51,15 +51,17 @@ void record_framegraph_barriers(CommandBuffer& cmdBuffer, const FrameGraph::Fram
                 get_vk_buffer_barrier(buffer, dst_usage.usage.buffer_view, barrier.src.access, barrier.dst.access));
         }
 
-        const VkDependencyInfo dependencies = VkDependencyInfo{VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
-                                                               nullptr,
-                                                               VK_FLAGS_NONE,
-                                                               0,
-                                                               nullptr,
-                                                               static_cast<u32>(bufferBarriers.size()),
-                                                               bufferBarriers.data(),
-                                                               static_cast<u32>(imageBarriers.size()),
-                                                               imageBarriers.data()};
+        const VkDependencyInfo dependencies = {
+            .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+            .pNext = nullptr,
+            .dependencyFlags = VK_FLAGS_NONE,
+            .memoryBarrierCount = 0,
+            .pMemoryBarriers = nullptr,
+            .bufferMemoryBarrierCount = static_cast<u32>(bufferBarriers.size()),
+            .pBufferMemoryBarriers = bufferBarriers.data(),
+            .imageMemoryBarrierCount = static_cast<u32>(imageBarriers.size()),
+            .pImageMemoryBarriers = imageBarriers.data(),
+        };
 
         if ((barrier_event.barrier_type & BarrierType::Immediate) != 0)
         {

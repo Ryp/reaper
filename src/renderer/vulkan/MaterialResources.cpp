@@ -92,17 +92,19 @@ namespace
                                    size_bytes, staging.offset_bytes);
 
                 // Setup a buffer image copy structure for the current mip level
-                VkBufferImageCopy2& bufferCopyRegion = staging.bufferCopyRegions.emplace_back();
-                bufferCopyRegion.sType = VK_STRUCTURE_TYPE_BUFFER_IMAGE_COPY_2;
-                bufferCopyRegion.pNext = nullptr;
-                bufferCopyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-                bufferCopyRegion.imageSubresource.mipLevel = mipIdx;
-                bufferCopyRegion.imageSubresource.baseArrayLayer = arrayIdx;
-                bufferCopyRegion.imageSubresource.layerCount = 1;
-                bufferCopyRegion.imageExtent.width = imageData->m_width;
-                bufferCopyRegion.imageExtent.height = imageData->m_height;
-                bufferCopyRegion.imageExtent.depth = imageData->m_depth;
-                bufferCopyRegion.bufferOffset = staging.offset_bytes;
+                staging.bufferCopyRegions.emplace_back(VkBufferImageCopy2{
+                    .sType = VK_STRUCTURE_TYPE_BUFFER_IMAGE_COPY_2,
+                    .pNext = nullptr,
+                    .bufferOffset = staging.offset_bytes,
+                    .bufferRowLength = 0,   // FIXME
+                    .bufferImageHeight = 0, // FIXME
+                    .imageSubresource = {.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                                         .mipLevel = mipIdx,
+                                         .baseArrayLayer = arrayIdx,
+                                         .layerCount = 1},
+                    .imageOffset = {0, 0, 0},
+                    .imageExtent = {
+                        .width = imageData->m_width, .height = imageData->m_height, .depth = imageData->m_depth}});
 
                 // Keep track of offset
                 staging.offset_bytes += size_bytes;
@@ -146,13 +148,13 @@ namespace
 
         // Copy mip levels from staging buffer
         const VkCopyBufferToImageInfo2 copy = {
-            VK_STRUCTURE_TYPE_COPY_BUFFER_TO_IMAGE_INFO_2,
-            nullptr,
-            staging.staging_buffer.handle,
-            entry.target,
-            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-            static_cast<u32>(copy_regions.size()),
-            copy_regions.data(),
+            .sType = VK_STRUCTURE_TYPE_COPY_BUFFER_TO_IMAGE_INFO_2,
+            .pNext = nullptr,
+            .srcBuffer = staging.staging_buffer.handle,
+            .dstImage = entry.target,
+            .dstImageLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            .regionCount = static_cast<u32>(copy_regions.size()),
+            .pRegions = copy_regions.data(),
         };
 
         vkCmdCopyBufferToImage2(cmdBuffer.handle, &copy);
