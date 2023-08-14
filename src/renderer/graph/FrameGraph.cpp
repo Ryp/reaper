@@ -190,7 +190,7 @@ namespace
                     const GPUResourceAccess new_access = resourceUsage.usage.access;
 
                     Assert(!resourceHandle.is_texture || old_access.image_layout == new_access.image_layout,
-                           "Using the same image layout is not supported for now");
+                           "Using a different image layout is not supported");
 
                     // Patch access to accomodate both readers
                     previous_resource_event.access = {old_access.stage_mask | new_access.stage_mask,

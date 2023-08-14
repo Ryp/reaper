@@ -140,7 +140,11 @@ void destroy_framegraph_volatile_resources(VulkanBackend& backend, FrameGraphRes
 VkImage get_frame_graph_texture_handle(FrameGraphResources& resources, FrameGraph::ResourceHandle resource_handle)
 {
     Assert(resource_handle.is_texture, "Wrong handle");
-    return resources.textures[resource_handle.index].handle;
+
+    const ImageInfo& texture = resources.textures[resource_handle.index];
+    Assert(texture.handle != VK_NULL_HANDLE);
+
+    return texture.handle;
 }
 
 FrameGraphTexture get_frame_graph_texture(FrameGraphResources& resources, const FrameGraph::FrameGraph& framegraph,
@@ -158,15 +162,20 @@ FrameGraphTexture get_frame_graph_texture(FrameGraphResources& resources, const 
     Assert(texture.handle != VK_NULL_HANDLE);
     Assert(view_handle != VK_NULL_HANDLE);
 
-    return FrameGraphTexture{texture.properties, usage.usage.texture_view, texture.handle, view_handle,
-                             usage.usage.access.image_layout};
+    return FrameGraphTexture{
+        .properties = texture.properties,
+        .view = usage.usage.texture_view,
+        .handle = texture.handle,
+        .view_handle = view_handle,
+        .image_layout = usage.usage.access.image_layout,
+    };
 }
 
 VkBuffer get_frame_graph_buffer_handle(FrameGraphResources& resources, FrameGraph::ResourceHandle resource_handle)
 {
     Assert(!resource_handle.is_texture, "Wrong handle");
 
-    BufferInfo buffer = resources.buffers[resource_handle.index];
+    const BufferInfo& buffer = resources.buffers[resource_handle.index];
     Assert(buffer.handle != VK_NULL_HANDLE);
 
     return buffer.handle;
@@ -183,7 +192,11 @@ FrameGraphBuffer get_frame_graph_buffer(FrameGraphResources& resources, const Fr
 
     const BufferInfo& buffer = resources.buffers[usage.resource_handle.index];
 
-    return FrameGraphBuffer{buffer.properties, usage.usage.buffer_view, buffer.handle};
+    return FrameGraphBuffer{
+        .properties = buffer.properties,
+        .view = usage.usage.buffer_view,
+        .handle = buffer.handle,
+    };
 }
 
 } // namespace Reaper
