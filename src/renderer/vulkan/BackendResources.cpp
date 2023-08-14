@@ -43,13 +43,6 @@ void create_backend_resources(ReaperRoot& root, VulkanBackend& backend)
     log_debug(root, "vulkan: created command buffer with handle: {}",
               static_cast<void*>(resources.gfxCmdBuffer.handle));
 
-    const VkEventCreateInfo event_info = {
-        .sType = VK_STRUCTURE_TYPE_EVENT_CREATE_INFO,
-        .pNext = nullptr,
-        .flags = VK_EVENT_CREATE_DEVICE_ONLY_BIT,
-    };
-    Assert(vkCreateEvent(backend.device, &event_info, nullptr, &resources.event) == VK_SUCCESS);
-
 #if defined(REAPER_USE_TRACY)
     resources.gfxCmdBuffer.tracy_ctx = TracyVkContextCalibrated(
         backend.physicalDevice, backend.device, backend.deviceInfo.graphicsQueue, resources.gfxCmdBuffer.handle,
@@ -104,7 +97,6 @@ void destroy_backend_resources(VulkanBackend& backend)
     TracyVkDestroy(resources.gfxCmdBuffer.tracy_ctx);
 #endif
 
-    vkDestroyEvent(backend.device, resources.event, nullptr);
     vkFreeCommandBuffers(backend.device, resources.gfxCommandPool, 1, &resources.gfxCmdBuffer.handle);
     vkDestroyCommandPool(backend.device, resources.gfxCommandPool, nullptr);
 
