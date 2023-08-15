@@ -1001,7 +1001,7 @@ VkImageAspectFlags GetVulkanImageAspectFlags(u32 aspect)
 VkImageSubresourceRange GetVulkanImageSubresourceRange(const GPUTextureView& view)
 {
     return VkImageSubresourceRange{
-        GetVulkanImageAspectFlags(view.aspect), view.mipOffset, view.mipCount, view.layerOffset, view.layerCount,
+        GetVulkanImageAspectFlags(view.aspect), view.mip_offset, view.mip_count, view.layer_offset, view.layer_count,
     };
 }
 
@@ -1019,9 +1019,9 @@ GPUTexture create_image(ReaperRoot& root, VkDevice device, const char* debug_str
         .imageType = VK_IMAGE_TYPE_2D,
         .format = vulkan_format,
         .extent = extent,
-        .mipLevels = properties.mipCount,
-        .arrayLayers = properties.layerCount,
-        .samples = SampleCountToVulkan(properties.sampleCount),
+        .mipLevels = properties.mip_count,
+        .arrayLayers = properties.layer_count,
+        .samples = SampleCountToVulkan(properties.sample_count),
         .tiling = tilingMode,
         .usage = GetVulkanUsageFlags(properties.usage_flags),
         .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
@@ -1035,8 +1035,8 @@ GPUTexture create_image(ReaperRoot& root, VkDevice device, const char* debug_str
 
     log_debug(root, "vulkan: creating new image: extent = {}x{}x{}, format = {}", properties.width, properties.height,
               properties.depth, GetFormatToString(vulkan_format));
-    log_debug(root, "- mips = {}, layers = {}, samples = {}", properties.mipCount, properties.layerCount,
-              properties.sampleCount);
+    log_debug(root, "- mips = {}, layers = {}, samples = {}", properties.mip_count, properties.layer_count,
+              properties.sample_count);
 
     VkImage       image;
     VmaAllocation allocation;
@@ -1054,8 +1054,8 @@ GPUTexture create_image(ReaperRoot& root, VkDevice device, const char* debug_str
 
 VkImageView create_image_view(ReaperRoot& root, VkDevice device, const GPUTexture& image, const GPUTextureView& view)
 {
-    Assert(view.mipCount > 0);
-    Assert(view.layerCount > 0);
+    Assert(view.mip_count > 0);
+    Assert(view.layer_count > 0);
 
     const VkImageSubresourceRange viewRange = GetVulkanImageSubresourceRange(view);
 

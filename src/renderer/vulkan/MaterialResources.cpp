@@ -115,11 +115,11 @@ namespace
 
         const PixelFormat pixel_format = get_dds_pixel_format(dds.GetFormat());
 
-        GPUTextureProperties properties = DefaultGPUTextureProperties(
+        GPUTextureProperties properties = default_texture_properties(
             dds.GetWidth(), dds.GetHeight(), pixel_format, GPUTextureUsage::Sampled | GPUTextureUsage::TransferDst);
         properties.depth = dds.GetDepth();
-        properties.mipCount = dds.GetMipCount();
-        properties.layerCount = dds.GetArraySize();
+        properties.mip_count = dds.GetMipCount();
+        properties.layer_count = dds.GetArraySize();
 
         const u32 command_count = staging.bufferCopyRegions.size() - command_offset;
 
@@ -136,7 +136,7 @@ namespace
         const GPUTextureAccess dst = {VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT,
                                       VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL};
 
-        const GPUTextureView        default_view = DefaultGPUTextureView(entry.texture_properties);
+        const GPUTextureView        default_view = default_texture_view(entry.texture_properties);
         const VkImageMemoryBarrier2 barrier = get_vk_image_barrier(entry.target, default_view, src, dst);
 
         const VkDependencyInfo dependencies = get_vk_image_barrier_depency_info(1, &barrier);
@@ -183,7 +183,7 @@ namespace
 
         new_texture.texture = image_info;
 
-        const GPUTextureView default_view = DefaultGPUTextureView(staging_entry.texture_properties);
+        const GPUTextureView default_view = default_texture_view(staging_entry.texture_properties);
         new_texture.default_view = create_image_view(root, backend.device, image_info, default_view);
 
         return resource_index;
@@ -260,7 +260,7 @@ void record_material_upload_command_buffer(ResourceStagingArea& staging, Command
             const GPUTextureAccess dst = {VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
                                           VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL};
 
-            const GPUTextureView        default_view = DefaultGPUTextureView(entry.texture_properties);
+            const GPUTextureView        default_view = default_texture_view(entry.texture_properties);
             const VkImageMemoryBarrier2 barrier = get_vk_image_barrier(entry.target, default_view, src, dst);
 
             prerender_barriers.emplace_back(barrier);

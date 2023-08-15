@@ -31,15 +31,15 @@ namespace
     }
 } // namespace
 
-GPUTextureView DefaultGPUTextureView(const GPUTextureProperties& properties)
+GPUTextureView default_texture_view(const GPUTextureProperties& properties)
 {
     return GPUTextureView{
         .format = properties.format,
         .aspect = get_default_view_aspect(properties.format),
-        .mipOffset = 0,
-        .mipCount = properties.mipCount,
-        .layerOffset = 0,
-        .layerCount = properties.layerCount,
+        .mip_offset = 0,
+        .mip_count = properties.mip_count,
+        .layer_offset = 0,
+        .layer_count = properties.layer_count,
     };
 }
 } // namespace Reaper

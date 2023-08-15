@@ -49,7 +49,7 @@ namespace FrameGraph
             // Outputs
             {
                 GPUTextureProperties shadowRTDesc =
-                    DefaultGPUTextureProperties(512, 512, PixelFormat::R16G16B16A16_UNORM, dummy_usage_flags);
+                    default_texture_properties(512, 512, PixelFormat::R16G16B16A16_UNORM, dummy_usage_flags);
 
                 GPUTextureAccess shadowRTAccess = {};
 
@@ -66,7 +66,7 @@ namespace FrameGraph
             // Outputs
             {
                 GPUTextureProperties gbufferRTDesc =
-                    DefaultGPUTextureProperties(1280, 720, PixelFormat::R16G16B16A16_UNORM, dummy_usage_flags);
+                    default_texture_properties(1280, 720, PixelFormat::R16G16B16A16_UNORM, dummy_usage_flags);
 
                 GPUTextureAccess gbufferAccess = {};
 
@@ -90,8 +90,8 @@ namespace FrameGraph
             // Outputs
             {
                 GPUTextureProperties uselessRTDesc =
-                    DefaultGPUTextureProperties(4096, 4096, PixelFormat::R16G16_SFLOAT, dummy_usage_flags);
-                uselessRTDesc.sampleCount = 4;
+                    default_texture_properties(4096, 4096, PixelFormat::R16G16_SFLOAT, dummy_usage_flags);
+                uselessRTDesc.sample_count = 4;
 
                 GPUTextureAccess uselessRTAccess = {};
 
@@ -120,7 +120,7 @@ namespace FrameGraph
             // Outputs
             {
                 GPUTextureProperties opaqueRTDesc =
-                    DefaultGPUTextureProperties(1280, 720, PixelFormat::R16G16B16A16_SFLOAT, dummy_usage_flags);
+                    default_texture_properties(1280, 720, PixelFormat::R16G16B16A16_SFLOAT, dummy_usage_flags);
 
                 GPUTextureAccess opaqueRTAccess = {};
 
@@ -144,7 +144,7 @@ namespace FrameGraph
             // Outputs
             {
                 GPUTextureProperties backBufferRTDesc =
-                    DefaultGPUTextureProperties(1280, 720, PixelFormat::R8G8B8_SRGB, dummy_usage_flags);
+                    default_texture_properties(1280, 720, PixelFormat::R8G8B8_SRGB, dummy_usage_flags);
 
                 GPUTextureAccess backBufferRTAccess = {};
 

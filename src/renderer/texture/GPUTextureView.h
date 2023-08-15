@@ -25,12 +25,12 @@ struct GPUTextureView
 {
     PixelFormat format;
     u32         aspect;
-    u32         mipOffset;
-    u32         mipCount;
-    u32         layerOffset;
-    u32         layerCount;
+    u32         mip_offset;
+    u32         mip_count;
+    u32         layer_offset;
+    u32         layer_count;
 };
 
 REAPER_RENDERER_API
-GPUTextureView DefaultGPUTextureView(const GPUTextureProperties& properties);
+GPUTextureView default_texture_view(const GPUTextureProperties& properties);
 } // namespace Reaper

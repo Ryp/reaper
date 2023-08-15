@@ -131,7 +131,7 @@ ResourceUsageHandle Builder::create_texture(RenderPassHandle            renderPa
     resource_properties.texture = texture_properties;
 
     return create_resource_generic(renderPassHandle, name, resource_properties, to_resource_access(texture_access),
-                                   {.texture = DefaultGPUTextureView(texture_properties)}, true);
+                                   {.texture = default_texture_view(texture_properties)}, true);
 }
 
 ResourceUsageHandle Builder::create_texture(RenderPassHandle            renderPassHandle,
@@ -184,7 +184,7 @@ ResourceUsageHandle Builder::read_texture(RenderPassHandle    renderPassHandle,
     const Resource& resource = m_Graph.TextureResources[resource_handle.index];
 
     return read_resource_generic(renderPassHandle, inputUsage, inputUsageHandle, to_resource_access(texture_access),
-                                 {.texture = DefaultGPUTextureView(resource.properties.texture)});
+                                 {.texture = default_texture_view(resource.properties.texture)});
 }
 
 ResourceUsageHandle Builder::read_texture(RenderPassHandle renderPassHandle, ResourceUsageHandle inputUsageHandle,
@@ -228,7 +228,7 @@ ResourceUsageHandle Builder::write_texture(RenderPassHandle renderPassHandle, Re
     const Resource& resource = m_Graph.TextureResources[resource_handle.index];
 
     return write_resource_generic(renderPassHandle, inputUsage, inputUsageHandle, to_resource_access(texture_access),
-                                  {.texture = DefaultGPUTextureView(resource.properties.texture)});
+                                  {.texture = default_texture_view(resource.properties.texture)});
 }
 
 ResourceUsageHandle Builder::write_texture(RenderPassHandle    renderPassHandle,

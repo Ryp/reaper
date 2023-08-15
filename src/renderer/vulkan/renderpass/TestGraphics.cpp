@@ -278,14 +278,14 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     visibility.vis_buffer = builder.create_texture(
         visibility.pass_handle, "Visibility Buffer",
-        DefaultGPUTextureProperties(backbufferExtent.width, backbufferExtent.height, VisibilityBufferFormat,
-                                    GPUTextureUsage::ColorAttachment | GPUTextureUsage::Sampled),
+        default_texture_properties(backbufferExtent.width, backbufferExtent.height, VisibilityBufferFormat,
+                                   GPUTextureUsage::ColorAttachment | GPUTextureUsage::Sampled),
         GPUTextureAccess{VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
                          VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL});
 
     const GPUTextureProperties scene_depth_properties =
-        DefaultGPUTextureProperties(backbufferExtent.width, backbufferExtent.height, MainPassDepthFormat,
-                                    GPUTextureUsage::DepthStencilAttachment | GPUTextureUsage::Sampled);
+        default_texture_properties(backbufferExtent.width, backbufferExtent.height, MainPassDepthFormat,
+                                   GPUTextureUsage::DepthStencilAttachment | GPUTextureUsage::Sampled);
 
     visibility.depth = builder.create_texture(visibility.pass_handle, "Main Depth", scene_depth_properties,
                                               GPUTextureAccess{VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT,
@@ -310,17 +310,17 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     visibility_gbuffer.gbuffer_rt0 = builder.create_texture(
         visibility_gbuffer.pass_handle, "GBuffer RT0",
-        DefaultGPUTextureProperties(backbufferExtent.width, backbufferExtent.height, GBufferRT0Format,
-                                    GPUTextureUsage::ColorAttachment | GPUTextureUsage::Sampled
-                                        | GPUTextureUsage::Storage),
+        default_texture_properties(backbufferExtent.width, backbufferExtent.height, GBufferRT0Format,
+                                   GPUTextureUsage::ColorAttachment | GPUTextureUsage::Sampled
+                                       | GPUTextureUsage::Storage),
         GPUTextureAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT,
                          VK_IMAGE_LAYOUT_GENERAL});
 
     visibility_gbuffer.gbuffer_rt1 = builder.create_texture(
         visibility_gbuffer.pass_handle, "GBuffer RT1",
-        DefaultGPUTextureProperties(backbufferExtent.width, backbufferExtent.height, GBufferRT1Format,
-                                    GPUTextureUsage::ColorAttachment | GPUTextureUsage::Sampled
-                                        | GPUTextureUsage::Storage),
+        default_texture_properties(backbufferExtent.width, backbufferExtent.height, GBufferRT1Format,
+                                   GPUTextureUsage::ColorAttachment | GPUTextureUsage::Sampled
+                                       | GPUTextureUsage::Storage),
         GPUTextureAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT,
                          VK_IMAGE_LAYOUT_GENERAL});
 
@@ -340,9 +340,9 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
                                               VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL});
 
     GPUTextureProperties hzb_properties =
-        DefaultGPUTextureProperties(scene_depth_properties.width / 2, scene_depth_properties.height / 2,
-                                    PixelFormat::R16G16_UNORM, GPUTextureUsage::Storage | GPUTextureUsage::Sampled);
-    hzb_properties.mipCount = 4; // FIXME
+        default_texture_properties(scene_depth_properties.width / 2, scene_depth_properties.height / 2,
+                                   PixelFormat::R16G16_UNORM, GPUTextureUsage::Storage | GPUTextureUsage::Sampled);
+    hzb_properties.mip_count = 4; // FIXME
 
     hzb_reduce.hzb_texture =
         builder.create_texture(hzb_reduce.pass_handle, "HZB Texture", hzb_properties,
@@ -366,8 +366,8 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
                                               VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL});
 
     const GPUTextureProperties tile_depth_storage_properties =
-        DefaultGPUTextureProperties(tiled_lighting_frame.tile_count_x, tiled_lighting_frame.tile_count_y,
-                                    PixelFormat::R16_UNORM, GPUTextureUsage::Storage | GPUTextureUsage::Sampled);
+        default_texture_properties(tiled_lighting_frame.tile_count_x, tiled_lighting_frame.tile_count_y,
+                                   PixelFormat::R16_UNORM, GPUTextureUsage::Storage | GPUTextureUsage::Sampled);
 
     GPUTextureAccess tile_depth_create_access = {VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT,
                                                  VK_IMAGE_LAYOUT_GENERAL};
@@ -416,9 +416,9 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     // FIXME
     {
-        GPUTextureView hzb_view = DefaultGPUTextureView(hzb_properties);
-        hzb_view.mipCount = 1;
-        hzb_view.mipOffset = 3;
+        GPUTextureView hzb_view = default_texture_view(hzb_properties);
+        hzb_view.mip_count = 1;
+        hzb_view.mip_offset = 3;
 
         tile_depth_copy.hzb_texture = builder.read_texture(
             tile_depth_copy.pass_handle, hzb_reduce.hzb_texture,
@@ -557,7 +557,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     tiled_lighting.lighting = builder.create_texture(
         tiled_lighting.pass_handle, "Lighting",
-        DefaultGPUTextureProperties(
+        default_texture_properties(
             backbufferExtent.width, backbufferExtent.height, PixelFormat::B10G11R11_UFLOAT_PACK32,
             GPUTextureUsage::Storage | GPUTextureUsage::Sampled | GPUTextureUsage::ColorAttachment),
         GPUTextureAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT,
@@ -587,8 +587,8 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     tiled_lighting_debug.output = builder.create_texture(
         tiled_lighting_debug.pass_handle, "Tiled Lighting Debug Texture",
-        DefaultGPUTextureProperties(backbufferExtent.width, backbufferExtent.height, PixelFormat::R8G8B8A8_UNORM,
-                                    GPUTextureUsage::Storage | GPUTextureUsage::Sampled),
+        default_texture_properties(backbufferExtent.width, backbufferExtent.height, PixelFormat::R8G8B8A8_UNORM,
+                                   GPUTextureUsage::Storage | GPUTextureUsage::Sampled),
         GPUTextureAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT,
                          VK_IMAGE_LAYOUT_GENERAL});
 
@@ -605,8 +605,8 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     forward.scene_hdr = builder.create_texture(
         forward.pass_handle, "Scene HDR",
-        DefaultGPUTextureProperties(backbufferExtent.width, backbufferExtent.height, ForwardHDRColorFormat,
-                                    GPUTextureUsage::ColorAttachment | GPUTextureUsage::Sampled),
+        default_texture_properties(backbufferExtent.width, backbufferExtent.height, ForwardHDRColorFormat,
+                                   GPUTextureUsage::ColorAttachment | GPUTextureUsage::Sampled),
         GPUTextureAccess{VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
                          VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL});
 
@@ -634,8 +634,8 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     gui.output = builder.create_texture(
         gui.pass_handle, "GUI SDR",
-        DefaultGPUTextureProperties(backbufferExtent.width, backbufferExtent.height, GUIFormat,
-                                    GPUTextureUsage::ColorAttachment | GPUTextureUsage::Sampled),
+        default_texture_properties(backbufferExtent.width, backbufferExtent.height, GUIFormat,
+                                   GPUTextureUsage::ColorAttachment | GPUTextureUsage::Sampled),
         GPUTextureAccess{VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
                          VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL});
 
@@ -934,8 +934,8 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
                 GPUTextureView view = {};
                 // view.format;
                 view.aspect = ViewAspect::Color;
-                view.mipCount = 1;
-                view.layerCount = 1;
+                view.mip_count = 1;
+                view.layer_count = 1;
 
                 imageBarriers.emplace_back(get_vk_image_barrier(backend.presentInfo.images[swapchainImageIndex], view,
                                                                 src_undefined, dst_access));

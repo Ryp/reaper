@@ -128,7 +128,7 @@ std::vector<GPUTextureProperties> fill_shadow_map_properties(const PreparedData&
 
     for (const ShadowPassData& shadow_pass : prepared.shadow_passes)
     {
-        const GPUTextureProperties properties = DefaultGPUTextureProperties(
+        const GPUTextureProperties properties = default_texture_properties(
             shadow_pass.shadow_map_size.x, shadow_pass.shadow_map_size.y, ShadowMapFormat,
             GPUTextureUsage::DepthStencilAttachment | GPUTextureUsage::InputAttachment | GPUTextureUsage::Sampled);
 

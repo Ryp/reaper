@@ -31,28 +31,18 @@ namespace GPUTextureUsage
     };
 }
 
-namespace GPUMiscFlags
-{
-    enum
-    {
-        None = 0,
-        Cubemap = bit(0),
-    };
-}
-
 struct GPUTextureProperties
 {
     u32         width;
     u32         height;
     u32         depth;
     PixelFormat format;
-    u32         mipCount;
-    u32         layerCount;
-    u32         sampleCount;
+    u32         mip_count;
+    u32         layer_count;
+    u32         sample_count;
     u32         usage_flags;
-    u32         miscFlags;
 };
 
 REAPER_RENDERER_API
-GPUTextureProperties DefaultGPUTextureProperties(u32 width, u32 height, PixelFormat format, u32 usage_flags);
+GPUTextureProperties default_texture_properties(u32 width, u32 height, PixelFormat format, u32 usage_flags);
 } // namespace Reaper

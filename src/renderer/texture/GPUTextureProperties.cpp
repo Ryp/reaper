@@ -9,17 +9,17 @@
 
 namespace Reaper
 {
-GPUTextureProperties DefaultGPUTextureProperties(u32 width, u32 height, PixelFormat format, u32 usage_flags)
+GPUTextureProperties default_texture_properties(u32 width, u32 height, PixelFormat format, u32 usage_flags)
 {
-    return {
-        width,       height,
-        1, // depth
-        format,
-        1,           // mipCount
-        1,           // layerCount
-        1,           // sampleCount
-        usage_flags, // usage_flags
-        0,           // misc_flags
+    return GPUTextureProperties{
+        .width = width,
+        .height = height,
+        .depth = 1,
+        .format = format,
+        .mip_count = 1,
+        .layer_count = 1,
+        .sample_count = 1,
+        .usage_flags = usage_flags,
     };
 }
 } // namespace Reaper
