@@ -46,10 +46,10 @@ struct FrameGraphResources
     std::array<VkEvent, EventCount> events;
 
     // Volatile
-    std::vector<BufferInfo> buffers;
+    std::vector<GPUBuffer> buffers;
 
-    std::vector<ImageInfo> textures;
-    std::vector<ImageInfo> textures_b;
+    std::vector<GPUTexture> textures;
+    std::vector<GPUTexture> textures_b;
 
     std::vector<VkImageView> texture_views;
     std::vector<VkImageView> texture_views_b;

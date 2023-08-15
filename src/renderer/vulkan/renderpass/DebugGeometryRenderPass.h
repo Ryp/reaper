@@ -37,13 +37,13 @@ struct DebugGeometryPassResources
 
     VkDescriptorSet draw_descriptor_set;
 
-    BufferInfo build_cmds_constants;
+    GPUBuffer build_cmds_constants;
 
     std::vector<DebugMeshAlloc> proxy_mesh_allocs;
     u32                         index_buffer_offset;
-    BufferInfo                  index_buffer;
+    GPUBuffer                   index_buffer;
     u32                         vertex_buffer_offset;
-    BufferInfo                  vertex_buffer_position;
+    GPUBuffer                   vertex_buffer_position;
 };
 
 struct ReaperRoot;

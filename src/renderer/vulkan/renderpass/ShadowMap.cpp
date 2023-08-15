@@ -95,7 +95,7 @@ void destroy_shadow_map_resources(VulkanBackend& backend, ShadowMapResources& re
 }
 
 void update_shadow_map_pass_descriptor_sets(DescriptorWriteHelper& write_helper, const PreparedData& prepared,
-                                            ShadowMapResources& resources, BufferInfo& vertex_position_buffer)
+                                            ShadowMapResources& resources, GPUBuffer& vertex_position_buffer)
 {
     for (const ShadowPassData& shadow_pass : prepared.shadow_passes)
     {

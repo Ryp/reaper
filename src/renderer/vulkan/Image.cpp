@@ -1005,8 +1005,8 @@ VkImageSubresourceRange GetVulkanImageSubresourceRange(const GPUTextureView& vie
     };
 }
 
-ImageInfo create_image(ReaperRoot& root, VkDevice device, const char* debug_string,
-                       const GPUTextureProperties& properties, VmaAllocator& allocator)
+GPUTexture create_image(ReaperRoot& root, VkDevice device, const char* debug_string,
+                        const GPUTextureProperties& properties, VmaAllocator& allocator)
 {
     const VkExtent3D    extent = {properties.width, properties.height, properties.depth};
     const VkImageTiling tilingMode = VK_IMAGE_TILING_OPTIMAL;
@@ -1046,13 +1046,13 @@ ImageInfo create_image(ReaperRoot& root, VkDevice device, const char* debug_stri
 
     VulkanSetDebugName(device, image, debug_string);
 
-    return ImageInfo{
+    return GPUTexture{
         .handle = image,
         .allocation = allocation,
     };
 }
 
-VkImageView create_image_view(ReaperRoot& root, VkDevice device, const ImageInfo& image, const GPUTextureView& view)
+VkImageView create_image_view(ReaperRoot& root, VkDevice device, const GPUTexture& image, const GPUTextureView& view)
 {
     Assert(view.mipCount > 0);
     Assert(view.layerCount > 0);

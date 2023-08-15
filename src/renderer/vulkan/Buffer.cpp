@@ -36,8 +36,8 @@ namespace
     }
 } // namespace
 
-BufferInfo create_buffer(ReaperRoot& root, VkDevice device, const char* debug_string,
-                         const GPUBufferProperties& input_properties, VmaAllocator& allocator, MemUsage mem_usage)
+GPUBuffer create_buffer(ReaperRoot& root, VkDevice device, const char* debug_string,
+                        const GPUBufferProperties& input_properties, VmaAllocator& allocator, MemUsage mem_usage)
 {
     GPUBufferProperties properties = input_properties;
 
@@ -97,14 +97,14 @@ BufferInfo create_buffer(ReaperRoot& root, VkDevice device, const char* debug_st
 
     VulkanSetDebugName(device, buffer, debug_string);
 
-    return BufferInfo{
+    return GPUBuffer{
         .handle = buffer,
         .allocation = allocation,
         .properties_deprecated = properties,
     };
 }
 
-void upload_buffer_data(VkDevice device, const VmaAllocator& allocator, const BufferInfo& buffer,
+void upload_buffer_data(VkDevice device, const VmaAllocator& allocator, const GPUBuffer& buffer,
                         const GPUBufferProperties& buffer_properties, const void* data, std::size_t size,
                         u32 offset_elements)
 {
@@ -141,7 +141,7 @@ void upload_buffer_data(VkDevice device, const VmaAllocator& allocator, const Bu
     vkUnmapMemory(device, allocation_info.deviceMemory);
 }
 
-void upload_buffer_data_deprecated(VkDevice device, const VmaAllocator& allocator, const BufferInfo& buffer,
+void upload_buffer_data_deprecated(VkDevice device, const VmaAllocator& allocator, const GPUBuffer& buffer,
                                    const void* data, std::size_t size, u32 offset_elements)
 {
     return upload_buffer_data(device, allocator, buffer, buffer.properties_deprecated, data, size, offset_elements);

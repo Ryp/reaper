@@ -32,14 +32,14 @@ struct MeshletCullingResources
     std::vector<VkDescriptorSet> cull_triangles_descriptor_sets;
     VkDescriptorSet              cull_prepare_descriptor_set;
 
-    BufferInfo mesh_instance_buffer;
-    BufferInfo counters_buffer;
-    BufferInfo counters_cpu_buffer;
-    BufferInfo visible_meshlet_offsets_buffer;
-    BufferInfo triangle_culling_indirect_dispatch_buffer;
-    BufferInfo visible_index_buffer;
-    BufferInfo visible_indirect_draw_commands_buffer;
-    BufferInfo visible_meshlet_buffer;
+    GPUBuffer mesh_instance_buffer;
+    GPUBuffer counters_buffer;
+    GPUBuffer counters_cpu_buffer;
+    GPUBuffer visible_meshlet_offsets_buffer;
+    GPUBuffer triangle_culling_indirect_dispatch_buffer;
+    GPUBuffer visible_index_buffer;
+    GPUBuffer visible_indirect_draw_commands_buffer;
+    GPUBuffer visible_meshlet_buffer;
 
     VkEvent countersReadyEvent;
 };

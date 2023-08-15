@@ -50,10 +50,10 @@ struct TiledRasterResources
 
     std::vector<ProxyMeshAlloc> proxy_mesh_allocs;
     u32                         vertex_buffer_offset;
-    BufferInfo                  vertex_buffer_position;
-    BufferInfo                  light_volume_buffer;
-    BufferInfo                  light_list_buffer;
-    BufferInfo                  proxy_volume_buffer;
+    GPUBuffer                   vertex_buffer_position;
+    GPUBuffer                   light_volume_buffer;
+    GPUBuffer                   light_list_buffer;
+    GPUBuffer                   proxy_volume_buffer;
 };
 
 struct ReaperRoot;

@@ -30,7 +30,7 @@ struct ResourceStagingArea
 {
     u32                 offset_bytes; // FIXME u32 enough?
     GPUBufferProperties buffer_properties;
-    BufferInfo          staging_buffer;
+    GPUBuffer           staging_buffer;
     // Setup buffer copy regions for each mip level
     std::vector<VkBufferImageCopy2> bufferCopyRegions;
 
@@ -39,7 +39,7 @@ struct ResourceStagingArea
 
 struct TextureResource
 {
-    ImageInfo   texture;
+    GPUTexture  texture;
     VkImageView default_view;
 };
 

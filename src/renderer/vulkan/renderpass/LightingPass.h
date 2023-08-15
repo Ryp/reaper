@@ -13,7 +13,7 @@ namespace Reaper
 {
 struct LightingPassResources
 {
-    BufferInfo pointLightBuffer;
+    GPUBuffer pointLightBuffer;
 };
 
 struct ReaperRoot;

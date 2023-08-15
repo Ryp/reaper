@@ -34,7 +34,7 @@ struct ShaderModules;
 
 struct GBufferPassResources
 {
-    BufferInfo instancesConstantBuffer;
+    GPUBuffer instancesConstantBuffer;
 
     GBufferPipelineInfo pipe;
 

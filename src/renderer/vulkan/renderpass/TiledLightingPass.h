@@ -21,7 +21,7 @@ struct TiledLightingPassResources
 
     VkDescriptorSet tiled_lighting_descriptor_set;
 
-    BufferInfo tiled_lighting_constant_buffer;
+    GPUBuffer tiled_lighting_constant_buffer;
 
     // Debug
     VkDescriptorSetLayout tiled_lighting_debug_descriptor_set_layout;

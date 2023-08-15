@@ -20,7 +20,7 @@ namespace Reaper
 struct ReaperRoot;
 struct BufferSubresource;
 
-struct BufferInfo
+struct GPUBuffer
 {
     VkBuffer            handle;
     VmaAllocation       allocation;
@@ -35,13 +35,13 @@ enum class MemUsage
     CPU_Only, // FIXME
 };
 
-BufferInfo create_buffer(ReaperRoot& root, VkDevice device, const char* debug_string,
-                         const GPUBufferProperties& properties, VmaAllocator& allocator,
-                         MemUsage mem_usage = MemUsage::GPU_Only);
+GPUBuffer create_buffer(ReaperRoot& root, VkDevice device, const char* debug_string,
+                        const GPUBufferProperties& properties, VmaAllocator& allocator,
+                        MemUsage mem_usage = MemUsage::GPU_Only);
 
-void upload_buffer_data(VkDevice device, const VmaAllocator& allocator, const BufferInfo& buffer,
+void upload_buffer_data(VkDevice device, const VmaAllocator& allocator, const GPUBuffer& buffer,
                         const GPUBufferProperties& buffer_properties, const void* data, std::size_t size,
                         u32 offset_elements = 0);
-void upload_buffer_data_deprecated(VkDevice device, const VmaAllocator& allocator, const BufferInfo& buffer,
+void upload_buffer_data_deprecated(VkDevice device, const VmaAllocator& allocator, const GPUBuffer& buffer,
                                    const void* data, std::size_t size, u32 offset_elements = 0);
 } // namespace Reaper

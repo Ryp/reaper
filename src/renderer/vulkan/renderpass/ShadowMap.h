@@ -37,8 +37,8 @@ struct ShadowMapResources
 {
     ShadowMapPipelineInfo pipe;
 
-    BufferInfo passConstantBuffer;
-    BufferInfo instanceConstantBuffer;
+    GPUBuffer passConstantBuffer;
+    GPUBuffer instanceConstantBuffer;
 
     std::vector<VkDescriptorSet> descriptor_sets;
 };
@@ -54,7 +54,7 @@ void upload_shadow_map_resources(VulkanBackend& backend, const PreparedData& pre
 class DescriptorWriteHelper;
 
 void update_shadow_map_pass_descriptor_sets(DescriptorWriteHelper& write_helper, const PreparedData& prepared,
-                                            ShadowMapResources& resources, BufferInfo& vertex_position_buffer);
+                                            ShadowMapResources& resources, GPUBuffer& vertex_position_buffer);
 
 std::vector<GPUTextureProperties> fill_shadow_map_properties(const PreparedData& prepared);
 

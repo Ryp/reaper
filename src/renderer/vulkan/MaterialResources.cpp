@@ -175,7 +175,7 @@ namespace
 
         StagingEntry staging_entry = copy_texture_to_staging_area(root, backend, resources.staging, filename);
 
-        ImageInfo image_info =
+        GPUTexture image_info =
             create_image(root, backend.device, filename, staging_entry.texture_properties, backend.vma_instance);
 
         staging_entry.target = image_info.handle;
@@ -197,7 +197,7 @@ MaterialResources create_material_resources(ReaperRoot& root, VulkanBackend& bac
     const GPUBufferProperties properties =
         DefaultGPUBufferProperties(StagingBufferSizeBytes, sizeof(u8), GPUBufferUsage::TransferSrc);
 
-    BufferInfo staging_buffer =
+    GPUBuffer staging_buffer =
         create_buffer(root, backend.device, "Staging Buffer", properties, backend.vma_instance, MemUsage::CPU_Only);
 
     ResourceStagingArea staging = {};

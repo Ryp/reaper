@@ -104,9 +104,9 @@ void allocate_framegraph_volatile_resources(ReaperRoot& root, VulkanBackend& bac
 
         if (resource_handle.is_texture && usage.is_used)
         {
-            const ImageInfo& image = resources.textures[usage.resource_handle.index];
+            const GPUTexture& texture = resources.textures[usage.resource_handle.index];
 
-            resources.texture_views[index] = create_image_view(root, backend.device, image, usage.view.texture);
+            resources.texture_views[index] = create_image_view(root, backend.device, texture, usage.view.texture);
         }
         else
         {
@@ -117,13 +117,13 @@ void allocate_framegraph_volatile_resources(ReaperRoot& root, VulkanBackend& bac
 
 void destroy_framegraph_volatile_resources(VulkanBackend& backend, FrameGraphResources& resources)
 {
-    for (BufferInfo& buffer : resources.buffers)
+    for (GPUBuffer& buffer : resources.buffers)
     {
         vmaDestroyBuffer(backend.vma_instance, buffer.handle, buffer.allocation);
         buffer = {};
     }
 
-    for (ImageInfo& texture : resources.textures)
+    for (GPUTexture& texture : resources.textures)
     {
         vmaDestroyImage(backend.vma_instance, texture.handle, texture.allocation);
         texture = {};
@@ -140,7 +140,7 @@ VkImage get_frame_graph_texture_handle(FrameGraphResources& resources, FrameGrap
 {
     Assert(resource_handle.is_texture, "Wrong handle");
 
-    const ImageInfo& texture = resources.textures[resource_handle.index];
+    const GPUTexture& texture = resources.textures[resource_handle.index];
     Assert(texture.handle != VK_NULL_HANDLE);
 
     return texture.handle;
@@ -156,7 +156,7 @@ FrameGraphTexture get_frame_graph_texture(FrameGraphResources& resources, const 
     const Resource&      resource = GetResource(framegraph, resource_handle);
     Assert(resource_handle.is_texture, "Wrong handle");
 
-    const ImageInfo&   texture = resources.textures[resource_handle.index];
+    const GPUTexture&  texture = resources.textures[resource_handle.index];
     const VkImageView& view_handle = resources.texture_views[usage_handle];
 
     Assert(texture.handle != VK_NULL_HANDLE);
@@ -175,7 +175,7 @@ VkBuffer get_frame_graph_buffer_handle(FrameGraphResources& resources, FrameGrap
 {
     Assert(!resource_handle.is_texture, "Wrong handle");
 
-    const BufferInfo& buffer = resources.buffers[resource_handle.index];
+    const GPUBuffer& buffer = resources.buffers[resource_handle.index];
     Assert(buffer.handle != VK_NULL_HANDLE);
 
     return buffer.handle;
@@ -191,7 +191,7 @@ FrameGraphBuffer get_frame_graph_buffer(FrameGraphResources& resources, const Fr
     const Resource&      resource = GetResource(framegraph, resource_handle);
     Assert(!resource_handle.is_texture, "Wrong handle");
 
-    const BufferInfo& buffer = resources.buffers[usage.resource_handle.index];
+    const GPUBuffer& buffer = resources.buffers[usage.resource_handle.index];
 
     return FrameGraphBuffer{
         .properties = resource.properties.buffer,

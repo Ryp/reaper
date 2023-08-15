@@ -19,7 +19,7 @@ namespace Reaper
 {
 struct ReaperRoot;
 
-struct ImageInfo
+struct GPUTexture
 {
     VkImage       handle;
     VmaAllocation allocation;
@@ -35,8 +35,8 @@ u32                     GetUsageFlags(VkImageUsageFlags usageFlags);
 VkImageAspectFlags      GetVulkanImageAspectFlags(u32 aspect);
 VkImageSubresourceRange GetVulkanImageSubresourceRange(const GPUTextureView& view);
 
-ImageInfo   create_image(ReaperRoot& root, VkDevice device, const char* debug_string,
+GPUTexture  create_image(ReaperRoot& root, VkDevice device, const char* debug_string,
                          const GPUTextureProperties& properties, VmaAllocator& allocator);
-VkImageView create_image_view(ReaperRoot& root, VkDevice device, const ImageInfo& image, const GPUTextureView& view);
+VkImageView create_image_view(ReaperRoot& root, VkDevice device, const GPUTexture& image, const GPUTextureView& view);
 
 } // namespace Reaper
