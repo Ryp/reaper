@@ -35,21 +35,24 @@ union GPUResourceProperties
     GPUBufferProperties  buffer;
 };
 
+union GPUResourceView
+{
+    GPUTextureView texture;
+    GPUBufferView  buffer;
+};
+
+struct GPUResourceAccess
+{
+    VkPipelineStageFlags2 stage_mask;
+    VkAccessFlags2        access_mask;
+    VkImageLayout         image_layout;
+};
+
 struct Resource
 {
     const char*           debug_name;
     GPUResourceProperties properties;
     bool                  is_used;
-};
-
-struct GPUResourceUsage
-{
-    GPUResourceAccess access;
-    union
-    {
-        GPUTextureView texture_view;
-        GPUBufferView  buffer_view;
-    };
 };
 
 struct ResourceUsage
@@ -58,7 +61,8 @@ struct ResourceUsage
     ResourceHandle      resource_handle;
     RenderPassHandle    render_pass;
     ResourceUsageHandle parent_usage_handle;
-    GPUResourceUsage    usage;
+    GPUResourceAccess   access;
+    GPUResourceView     view;
     bool                is_used;
 };
 
@@ -143,4 +147,39 @@ FrameGraphSchedule compute_schedule(const FrameGraph& framegraph);
 
 nonstd::span<const BarrierEvent> get_barriers_to_execute(const FrameGraphSchedule& schedule,
                                                          RenderPassHandle render_pass_handle, bool execute_before_pass);
+
+inline GPUTextureAccess to_texture_access(GPUResourceAccess texture_access)
+{
+    return GPUTextureAccess{
+        .stage_mask = texture_access.stage_mask,
+        .access_mask = texture_access.access_mask,
+        .image_layout = texture_access.image_layout,
+    };
+}
+
+inline GPUBufferAccess to_buffer_access(GPUResourceAccess buffer_access)
+{
+    return GPUBufferAccess{
+        .stage_mask = buffer_access.stage_mask,
+        .access_mask = buffer_access.access_mask,
+    };
+}
+
+inline GPUResourceAccess to_resource_access(GPUTextureAccess texture_access)
+{
+    return GPUResourceAccess{
+        .stage_mask = texture_access.stage_mask,
+        .access_mask = texture_access.access_mask,
+        .image_layout = texture_access.image_layout,
+    };
+}
+
+inline GPUResourceAccess to_resource_access(GPUBufferAccess buffer_access)
+{
+    return GPUResourceAccess{
+        .stage_mask = buffer_access.stage_mask,
+        .access_mask = buffer_access.access_mask,
+        .image_layout = VK_IMAGE_LAYOUT_UNDEFINED,
+    };
+}
 } // namespace Reaper::FrameGraph

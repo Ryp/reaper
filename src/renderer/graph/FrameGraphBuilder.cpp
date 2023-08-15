@@ -40,7 +40,8 @@ ResourceHandle Builder::create_resource(const char* debug_name, const GPUResourc
 ResourceUsageHandle Builder::create_resource_usage(u32                 usageType,
                                                    RenderPassHandle    renderPassHandle,
                                                    ResourceHandle      resourceHandle,
-                                                   GPUResourceUsage    resourceUsage,
+                                                   GPUResourceAccess   resource_access,
+                                                   GPUResourceView     resource_view,
                                                    ResourceUsageHandle parentUsageHandle)
 {
     ResourceUsage& newResourceUsage = m_Graph.ResourceUsages.emplace_back();
@@ -50,20 +51,23 @@ ResourceUsageHandle Builder::create_resource_usage(u32                 usageType
     newResourceUsage.resource_handle = resourceHandle;
     newResourceUsage.render_pass = renderPassHandle;
     newResourceUsage.parent_usage_handle = parentUsageHandle;
-    newResourceUsage.usage = resourceUsage;
+    newResourceUsage.access = resource_access;
+    newResourceUsage.view = resource_view;
 
     return ResourceUsageHandle(m_Graph.ResourceUsages.size() - 1);
 }
 
 ResourceUsageHandle Builder::create_resource_generic(RenderPassHandle renderPassHandle, const char* name,
                                                      const GPUResourceProperties& properties,
-                                                     GPUResourceUsage resource_usage, bool is_texture)
+                                                     GPUResourceAccess resource_access, GPUResourceView resource_view,
+                                                     bool is_texture)
 {
     const ResourceHandle resourceHandle = create_resource(name, properties, is_texture);
     Assert(is_valid(resourceHandle), "Invalid resource handle");
 
-    const ResourceUsageHandle resourceUsageHandle = create_resource_usage(
-        UsageType::Output, renderPassHandle, resourceHandle, resource_usage, InvalidResourceUsageHandle);
+    const ResourceUsageHandle resourceUsageHandle =
+        create_resource_usage(UsageType::Output, renderPassHandle, resourceHandle, resource_access, resource_view,
+                              InvalidResourceUsageHandle);
 
     RenderPass& renderPass = m_Graph.RenderPasses[renderPassHandle];
     renderPass.ResourceUsageHandles.push_back(resourceUsageHandle);
@@ -74,13 +78,14 @@ ResourceUsageHandle Builder::create_resource_generic(RenderPassHandle renderPass
 ResourceUsageHandle Builder::read_resource_generic(RenderPassHandle     renderPassHandle,
                                                    const ResourceUsage& inputUsage,
                                                    ResourceUsageHandle  inputUsageHandle,
-                                                   GPUResourceUsage     resource_usage)
+                                                   GPUResourceAccess    resource_access,
+                                                   GPUResourceView      resource_view)
 {
     const ResourceHandle resourceHandle = inputUsage.resource_handle;
     Assert(is_valid(resourceHandle), "Invalid resource handle");
 
-    const ResourceUsageHandle resourceUsageHandle =
-        create_resource_usage(UsageType::Input, renderPassHandle, resourceHandle, resource_usage, inputUsageHandle);
+    const ResourceUsageHandle resourceUsageHandle = create_resource_usage(
+        UsageType::Input, renderPassHandle, resourceHandle, resource_access, resource_view, inputUsageHandle);
 
     RenderPass& renderPass = m_Graph.RenderPasses[renderPassHandle];
     renderPass.ResourceUsageHandles.push_back(resourceUsageHandle);
@@ -91,13 +96,15 @@ ResourceUsageHandle Builder::read_resource_generic(RenderPassHandle     renderPa
 ResourceUsageHandle Builder::write_resource_generic(RenderPassHandle     renderPassHandle,
                                                     const ResourceUsage& inputUsage,
                                                     ResourceUsageHandle  inputUsageHandle,
-                                                    GPUResourceUsage     resource_usage)
+                                                    GPUResourceAccess    resource_access,
+                                                    GPUResourceView      resource_view)
 {
     const ResourceHandle resourceHandle = inputUsage.resource_handle;
     Assert(is_valid(resourceHandle), "Invalid resource handle");
 
-    const ResourceUsageHandle resourceUsageHandle = create_resource_usage(
-        UsageType::Input | UsageType::Output, renderPassHandle, resourceHandle, resource_usage, inputUsageHandle);
+    const ResourceUsageHandle resourceUsageHandle =
+        create_resource_usage(UsageType::Input | UsageType::Output, renderPassHandle, resourceHandle, resource_access,
+                              resource_view, inputUsageHandle);
 
     RenderPass& renderPass = m_Graph.RenderPasses[renderPassHandle];
     renderPass.ResourceUsageHandles.push_back(resourceUsageHandle);
@@ -118,60 +125,56 @@ RenderPassHandle Builder::create_render_pass(const char* debug_name, bool hasSid
 ResourceUsageHandle Builder::create_texture(RenderPassHandle            renderPassHandle,
                                             const char*                 name,
                                             const GPUTextureProperties& texture_properties,
-                                            GPUResourceAccess           texture_access)
+                                            GPUTextureAccess            texture_access)
 {
-    GPUResourceUsage texture_usage = {
-        .access = texture_access,
-        .texture_view = DefaultGPUTextureView(texture_properties),
-    };
-
     GPUResourceProperties resource_properties;
     resource_properties.texture = texture_properties;
 
-    return create_resource_generic(renderPassHandle, name, resource_properties, texture_usage, true);
+    return create_resource_generic(renderPassHandle, name, resource_properties, to_resource_access(texture_access),
+                                   {.texture = DefaultGPUTextureView(texture_properties)}, true);
 }
 
 ResourceUsageHandle Builder::create_texture(RenderPassHandle            renderPassHandle,
                                             const char*                 name,
                                             const GPUTextureProperties& texture_properties,
-                                            GPUResourceUsage            texture_usage)
+                                            GPUTextureAccess            texture_access,
+                                            GPUTextureView              texture_view)
 {
     GPUResourceProperties resource_properties;
     resource_properties.texture = texture_properties;
 
-    return create_resource_generic(renderPassHandle, name, resource_properties, texture_usage, true);
+    return create_resource_generic(renderPassHandle, name, resource_properties, to_resource_access(texture_access),
+                                   {.texture = texture_view}, true);
 }
 
 ResourceUsageHandle Builder::create_buffer(RenderPassHandle           renderPassHandle,
                                            const char*                name,
                                            const GPUBufferProperties& buffer_properties,
-                                           GPUResourceAccess          buffer_access)
+                                           GPUBufferAccess            buffer_access)
 {
-    GPUResourceUsage buffer_usage = {
-        .access = buffer_access,
-        .buffer_view = default_buffer_view(buffer_properties),
-    };
-
     GPUResourceProperties resource_properties;
     resource_properties.buffer = buffer_properties;
 
-    return create_resource_generic(renderPassHandle, name, resource_properties, buffer_usage, false);
+    return create_resource_generic(renderPassHandle, name, resource_properties, to_resource_access(buffer_access),
+                                   {.buffer = default_buffer_view(buffer_properties)}, false);
 }
 
 ResourceUsageHandle Builder::create_buffer(RenderPassHandle           renderPassHandle,
                                            const char*                name,
                                            const GPUBufferProperties& buffer_properties,
-                                           GPUResourceUsage           buffer_usage)
+                                           GPUBufferAccess            buffer_access,
+                                           GPUBufferView              buffer_view)
 {
     GPUResourceProperties resource_properties;
     resource_properties.buffer = buffer_properties;
 
-    return create_resource_generic(renderPassHandle, name, resource_properties, buffer_usage, false);
+    return create_resource_generic(renderPassHandle, name, resource_properties, to_resource_access(buffer_access),
+                                   {.buffer = buffer_view}, false);
 }
 
 ResourceUsageHandle Builder::read_texture(RenderPassHandle    renderPassHandle,
                                           ResourceUsageHandle inputUsageHandle,
-                                          GPUResourceAccess   texture_access)
+                                          GPUTextureAccess    texture_access)
 {
     const ResourceUsage& inputUsage = GetResourceUsage(m_Graph, inputUsageHandle);
     const ResourceHandle resource_handle = inputUsage.resource_handle;
@@ -180,24 +183,20 @@ ResourceUsageHandle Builder::read_texture(RenderPassHandle    renderPassHandle,
 
     const Resource& resource = m_Graph.TextureResources[resource_handle.index];
 
-    GPUResourceUsage texture_usage = {
-        .access = texture_access,
-        .texture_view = DefaultGPUTextureView(resource.properties.texture),
-    };
-
-    return read_resource_generic(renderPassHandle, inputUsage, inputUsageHandle, texture_usage);
+    return read_resource_generic(renderPassHandle, inputUsage, inputUsageHandle, to_resource_access(texture_access),
+                                 {.texture = DefaultGPUTextureView(resource.properties.texture)});
 }
 
-ResourceUsageHandle Builder::read_texture(RenderPassHandle    renderPassHandle,
-                                          ResourceUsageHandle inputUsageHandle,
-                                          GPUResourceUsage    texture_usage)
+ResourceUsageHandle Builder::read_texture(RenderPassHandle renderPassHandle, ResourceUsageHandle inputUsageHandle,
+                                          GPUTextureAccess texture_access, GPUTextureView texture_view)
 {
     const ResourceUsage& inputUsage = GetResourceUsage(m_Graph, inputUsageHandle);
-    return read_resource_generic(renderPassHandle, inputUsage, inputUsageHandle, texture_usage);
+    return read_resource_generic(renderPassHandle, inputUsage, inputUsageHandle, to_resource_access(texture_access),
+                                 {.texture = texture_view});
 }
 
 ResourceUsageHandle Builder::read_buffer(RenderPassHandle renderPassHandle, ResourceUsageHandle inputUsageHandle,
-                                         GPUResourceAccess buffer_access)
+                                         GPUBufferAccess buffer_access)
 {
     const ResourceUsage& inputUsage = GetResourceUsage(m_Graph, inputUsageHandle);
     const ResourceHandle resource_handle = inputUsage.resource_handle;
@@ -206,23 +205,20 @@ ResourceUsageHandle Builder::read_buffer(RenderPassHandle renderPassHandle, Reso
 
     const Resource& resource = m_Graph.BufferResources[resource_handle.index];
 
-    GPUResourceUsage buffer_usage = {
-        .access = buffer_access,
-        .buffer_view = default_buffer_view(resource.properties.buffer),
-    };
-
-    return read_resource_generic(renderPassHandle, inputUsage, inputUsageHandle, buffer_usage);
+    return read_resource_generic(renderPassHandle, inputUsage, inputUsageHandle, to_resource_access(buffer_access),
+                                 {.buffer = default_buffer_view(resource.properties.buffer)});
 }
 
 ResourceUsageHandle Builder::read_buffer(RenderPassHandle renderPassHandle, ResourceUsageHandle inputUsageHandle,
-                                         GPUResourceUsage buffer_usage)
+                                         GPUBufferAccess buffer_access, GPUBufferView buffer_view)
 {
     const ResourceUsage& inputUsage = GetResourceUsage(m_Graph, inputUsageHandle);
-    return read_resource_generic(renderPassHandle, inputUsage, inputUsageHandle, buffer_usage);
+    return read_resource_generic(renderPassHandle, inputUsage, inputUsageHandle, to_resource_access(buffer_access),
+                                 {.buffer = buffer_view});
 }
 
 ResourceUsageHandle Builder::write_texture(RenderPassHandle renderPassHandle, ResourceUsageHandle inputUsageHandle,
-                                           GPUResourceAccess texture_access)
+                                           GPUTextureAccess texture_access)
 {
     const ResourceUsage& inputUsage = GetResourceUsage(m_Graph, inputUsageHandle);
     const ResourceHandle resource_handle = inputUsage.resource_handle;
@@ -231,31 +227,22 @@ ResourceUsageHandle Builder::write_texture(RenderPassHandle renderPassHandle, Re
 
     const Resource& resource = m_Graph.TextureResources[resource_handle.index];
 
-    GPUResourceUsage texture_usage = {
-        .access = texture_access,
-        .texture_view = DefaultGPUTextureView(resource.properties.texture),
-    };
-
-    return write_resource_generic(renderPassHandle, inputUsage, inputUsageHandle, texture_usage);
+    return write_resource_generic(renderPassHandle, inputUsage, inputUsageHandle, to_resource_access(texture_access),
+                                  {.texture = DefaultGPUTextureView(resource.properties.texture)});
 }
 
 ResourceUsageHandle Builder::write_texture(RenderPassHandle    renderPassHandle,
                                            ResourceUsageHandle inputUsageHandle,
-                                           GPUResourceUsage    texture_usage)
+                                           GPUTextureAccess    texture_access,
+                                           GPUTextureView      texture_view)
 {
     const ResourceUsage& inputUsage = GetResourceUsage(m_Graph, inputUsageHandle);
-    return write_resource_generic(renderPassHandle, inputUsage, inputUsageHandle, texture_usage);
+    return write_resource_generic(renderPassHandle, inputUsage, inputUsageHandle, to_resource_access(texture_access),
+                                  {.texture = texture_view});
 }
 
 ResourceUsageHandle Builder::write_buffer(RenderPassHandle renderPassHandle, ResourceUsageHandle inputUsageHandle,
-                                          GPUResourceUsage buffer_usage)
-{
-    const ResourceUsage& inputUsage = GetResourceUsage(m_Graph, inputUsageHandle);
-    return write_resource_generic(renderPassHandle, inputUsage, inputUsageHandle, buffer_usage);
-}
-
-ResourceUsageHandle Builder::write_buffer(RenderPassHandle renderPassHandle, ResourceUsageHandle inputUsageHandle,
-                                          GPUResourceAccess buffer_access)
+                                          GPUBufferAccess buffer_access)
 {
     const ResourceUsage& inputUsage = GetResourceUsage(m_Graph, inputUsageHandle);
     const ResourceHandle resource_handle = inputUsage.resource_handle;
@@ -264,12 +251,16 @@ ResourceUsageHandle Builder::write_buffer(RenderPassHandle renderPassHandle, Res
 
     const Resource& resource = m_Graph.BufferResources[resource_handle.index];
 
-    GPUResourceUsage buffer_usage = {
-        .access = buffer_access,
-        .buffer_view = default_buffer_view(resource.properties.buffer),
-    };
+    return write_resource_generic(renderPassHandle, inputUsage, inputUsageHandle, to_resource_access(buffer_access),
+                                  {.buffer = default_buffer_view(resource.properties.buffer)});
+}
 
-    return write_resource_generic(renderPassHandle, inputUsage, inputUsageHandle, buffer_usage);
+ResourceUsageHandle Builder::write_buffer(RenderPassHandle renderPassHandle, ResourceUsageHandle inputUsageHandle,
+                                          GPUBufferAccess buffer_access, GPUBufferView buffer_view)
+{
+    const ResourceUsage& inputUsage = GetResourceUsage(m_Graph, inputUsageHandle);
+    return write_resource_generic(renderPassHandle, inputUsage, inputUsageHandle, to_resource_access(buffer_access),
+                                  {.buffer = buffer_view});
 }
 
 namespace

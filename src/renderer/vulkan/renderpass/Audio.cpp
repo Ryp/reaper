@@ -143,9 +143,9 @@ void update_audio_pass_descriptor_set(DescriptorWriteHelper& write_helper, Audio
 void record_audio_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& prepared, AudioResources& resources)
 {
     {
-        const GPUResourceAccess src = {VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_READ_BIT};
-        const GPUResourceAccess dst = {VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT};
-        const GPUBufferView     view = default_buffer_view(resources.outputBuffer.properties);
+        const GPUBufferAccess src = {VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_READ_BIT};
+        const GPUBufferAccess dst = {VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT};
+        const GPUBufferView   view = default_buffer_view(resources.outputBuffer.properties);
 
         const VkBufferMemoryBarrier2 buffer_barrier =
             get_vk_buffer_barrier(resources.outputBuffer.handle, view, src, dst);
@@ -169,17 +169,17 @@ void record_audio_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& p
         std::vector<VkBufferMemoryBarrier2> buffer_barriers;
 
         {
-            const GPUResourceAccess src = {VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT};
-            const GPUResourceAccess dst = {VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_READ_BIT};
-            const GPUBufferView     view = default_buffer_view(resources.outputBuffer.properties);
+            const GPUBufferAccess src = {VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT};
+            const GPUBufferAccess dst = {VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_READ_BIT};
+            const GPUBufferView   view = default_buffer_view(resources.outputBuffer.properties);
 
             buffer_barriers.emplace_back(get_vk_buffer_barrier(resources.outputBuffer.handle, view, src, dst));
         }
 
         {
-            const GPUResourceAccess src = {VK_PIPELINE_STAGE_2_HOST_BIT, VK_ACCESS_2_HOST_READ_BIT};
-            const GPUResourceAccess dst = {VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT};
-            const GPUBufferView     view = default_buffer_view(resources.outputBufferStaging.properties);
+            const GPUBufferAccess src = {VK_PIPELINE_STAGE_2_HOST_BIT, VK_ACCESS_2_HOST_READ_BIT};
+            const GPUBufferAccess dst = {VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT};
+            const GPUBufferView   view = default_buffer_view(resources.outputBufferStaging.properties);
 
             buffer_barriers.emplace_back(get_vk_buffer_barrier(resources.outputBufferStaging.handle, view, src, dst));
         }
@@ -210,9 +210,9 @@ void record_audio_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& p
     vkCmdCopyBuffer2(cmdBuffer.handle, &copy);
 
     {
-        const GPUResourceAccess src = {VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT};
-        const GPUResourceAccess dst = {VK_PIPELINE_STAGE_2_HOST_BIT, VK_ACCESS_2_HOST_READ_BIT};
-        const GPUBufferView     view = default_buffer_view(resources.outputBufferStaging.properties);
+        const GPUBufferAccess src = {VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT};
+        const GPUBufferAccess dst = {VK_PIPELINE_STAGE_2_HOST_BIT, VK_ACCESS_2_HOST_READ_BIT};
+        const GPUBufferView   view = default_buffer_view(resources.outputBufferStaging.properties);
 
         const VkBufferMemoryBarrier2 buffer_barrier =
             get_vk_buffer_barrier(resources.outputBufferStaging.handle, view, src, dst);

@@ -447,9 +447,9 @@ void record_meshlet_culling_command_buffer(ReaperRoot& root, CommandBuffer& cmdB
 
         vkCmdResetEvent2(cmdBuffer.handle, resources.countersReadyEvent, VK_PIPELINE_STAGE_2_TRANSFER_BIT);
 
-        const GPUResourceAccess src = {VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT};
-        const GPUResourceAccess dst = {VK_PIPELINE_STAGE_2_HOST_BIT, VK_ACCESS_2_HOST_READ_BIT};
-        const GPUBufferView     view = default_buffer_view(resources.counters_cpu_buffer.properties);
+        const GPUBufferAccess src = {VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT};
+        const GPUBufferAccess dst = {VK_PIPELINE_STAGE_2_HOST_BIT, VK_ACCESS_2_HOST_READ_BIT};
+        const GPUBufferView   view = default_buffer_view(resources.counters_cpu_buffer.properties);
 
         VkBufferMemoryBarrier2 bufferBarrier =
             get_vk_buffer_barrier(resources.counters_cpu_buffer.handle, view, src, dst);

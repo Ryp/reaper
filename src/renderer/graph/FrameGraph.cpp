@@ -186,8 +186,8 @@ namespace
                 // If we are in a multiple-reader situation, merge both accesses at earliest time
                 if (previous_resource_usage.type == UsageType::Input && resourceUsage.type == UsageType::Input)
                 {
-                    const GPUResourceAccess old_access = previous_resource_usage.usage.access;
-                    const GPUResourceAccess new_access = resourceUsage.usage.access;
+                    const GPUResourceAccess old_access = previous_resource_usage.access;
+                    const GPUResourceAccess new_access = resourceUsage.access;
 
                     Assert(!resourceHandle.is_texture || old_access.image_layout == new_access.image_layout,
                            "Using a different image layout is not supported");
@@ -202,7 +202,7 @@ namespace
                     ResourceUsageEvent& resource_event = resource_events.emplace_back();
                     resource_event.render_pass = renderPassHandle;
                     resource_event.usage_handle = resourceUsageHandle;
-                    resource_event.access = resourceUsage.usage.access;
+                    resource_event.access = resourceUsage.access;
                 }
             }
         }

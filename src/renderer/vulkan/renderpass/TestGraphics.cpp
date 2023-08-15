@@ -236,7 +236,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     debug_geometry_clear.draw_counter = builder.create_buffer(
         debug_geometry_clear.pass_handle, "Debug Indirect draw counter buffer", debug_geometry_counter_properties,
-        GPUResourceAccess{VK_PIPELINE_STAGE_2_CLEAR_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT});
+        GPUBufferAccess{VK_PIPELINE_STAGE_2_CLEAR_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT});
 
     const GPUBufferProperties debug_geometry_user_commands_properties = DefaultGPUBufferProperties(
         DebugGeometryCountMax, sizeof(DebugGeometryUserCommand), GPUBufferUsage::StorageBuffer);
@@ -246,7 +246,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     // the trade-off and paying for an extra useless barrier.
     debug_geometry_clear.user_commands_buffer = builder.create_buffer(
         debug_geometry_clear.pass_handle, "Debug geometry user command buffer", debug_geometry_user_commands_properties,
-        GPUResourceAccess{VK_PIPELINE_STAGE_2_CLEAR_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT});
+        GPUBufferAccess{VK_PIPELINE_STAGE_2_CLEAR_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT});
 
     // Shadow
     struct ShadowFrameGraphData
@@ -262,8 +262,8 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     {
         shadow.shadow_maps.push_back(builder.create_texture(
             shadow.pass_handle, "Shadow map", properties,
-            GPUResourceAccess{VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT,
-                              VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL}));
+            GPUTextureAccess{VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT,
+                             VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL}));
     }
 
     // Visibility
@@ -280,17 +280,17 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         visibility.pass_handle, "Visibility Buffer",
         DefaultGPUTextureProperties(backbufferExtent.width, backbufferExtent.height, VisibilityBufferFormat,
                                     GPUTextureUsage::ColorAttachment | GPUTextureUsage::Sampled),
-        GPUResourceAccess{VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-                          VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL});
+        GPUTextureAccess{VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+                         VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL});
 
     const GPUTextureProperties scene_depth_properties =
         DefaultGPUTextureProperties(backbufferExtent.width, backbufferExtent.height, MainPassDepthFormat,
                                     GPUTextureUsage::DepthStencilAttachment | GPUTextureUsage::Sampled);
 
     visibility.depth = builder.create_texture(visibility.pass_handle, "Main Depth", scene_depth_properties,
-                                              GPUResourceAccess{VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT,
-                                                                VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
-                                                                VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL});
+                                              GPUTextureAccess{VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT,
+                                                               VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+                                                               VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL});
 
     // Fill GBuffer from visibility
     struct VisibilityGBufferFrameGraphData
@@ -305,24 +305,24 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     visibility_gbuffer.vis_buffer =
         builder.read_texture(visibility_gbuffer.pass_handle, visibility.vis_buffer,
-                             GPUResourceAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
-                                               VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL});
+                             GPUTextureAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
+                                              VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL});
 
     visibility_gbuffer.gbuffer_rt0 = builder.create_texture(
         visibility_gbuffer.pass_handle, "GBuffer RT0",
         DefaultGPUTextureProperties(backbufferExtent.width, backbufferExtent.height, GBufferRT0Format,
                                     GPUTextureUsage::ColorAttachment | GPUTextureUsage::Sampled
                                         | GPUTextureUsage::Storage),
-        GPUResourceAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT,
-                          VK_IMAGE_LAYOUT_GENERAL});
+        GPUTextureAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT,
+                         VK_IMAGE_LAYOUT_GENERAL});
 
     visibility_gbuffer.gbuffer_rt1 = builder.create_texture(
         visibility_gbuffer.pass_handle, "GBuffer RT1",
         DefaultGPUTextureProperties(backbufferExtent.width, backbufferExtent.height, GBufferRT1Format,
                                     GPUTextureUsage::ColorAttachment | GPUTextureUsage::Sampled
                                         | GPUTextureUsage::Storage),
-        GPUResourceAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT,
-                          VK_IMAGE_LAYOUT_GENERAL});
+        GPUTextureAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT,
+                         VK_IMAGE_LAYOUT_GENERAL});
 
     // HZB
     struct HZBReduceFrameGraphData
@@ -336,8 +336,8 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     hzb_reduce.depth =
         builder.read_texture(hzb_reduce.pass_handle, visibility.depth,
-                             GPUResourceAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
-                                               VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL});
+                             GPUTextureAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
+                                              VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL});
 
     GPUTextureProperties hzb_properties =
         DefaultGPUTextureProperties(scene_depth_properties.width / 2, scene_depth_properties.height / 2,
@@ -346,8 +346,8 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     hzb_reduce.hzb_texture =
         builder.create_texture(hzb_reduce.pass_handle, "HZB Texture", hzb_properties,
-                               GPUResourceAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT,
-                                                 VK_IMAGE_LAYOUT_GENERAL});
+                               GPUTextureAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT,
+                                                VK_IMAGE_LAYOUT_GENERAL});
 
     // Depth Downsample
     struct TileDepthFrameGraphData
@@ -362,15 +362,15 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     tile_depth.scene_depth =
         builder.read_texture(tile_depth.pass_handle, visibility.depth,
-                             GPUResourceAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
-                                               VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL});
+                             GPUTextureAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
+                                              VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL});
 
     const GPUTextureProperties tile_depth_storage_properties =
         DefaultGPUTextureProperties(tiled_lighting_frame.tile_count_x, tiled_lighting_frame.tile_count_y,
                                     PixelFormat::R16_UNORM, GPUTextureUsage::Storage | GPUTextureUsage::Sampled);
 
-    GPUResourceAccess tile_depth_create_access = {VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT,
-                                                  VK_IMAGE_LAYOUT_GENERAL};
+    GPUTextureAccess tile_depth_create_access = {VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT,
+                                                 VK_IMAGE_LAYOUT_GENERAL};
 
     tile_depth.depth_min_storage = builder.create_texture(tile_depth.pass_handle, "Tile Depth Min Storage",
                                                           tile_depth_storage_properties, tile_depth_create_access);
@@ -393,7 +393,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     tile_depth_copy.pass_handle = builder.create_render_pass("Tile Depth Copy");
 
-    const GPUResourceAccess tile_depth_copy_src_access = {
+    const GPUTextureAccess tile_depth_copy_src_access = {
         VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT, VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL};
 
     tile_depth_copy.depth_min_src =
@@ -405,7 +405,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     tile_depth_copy_properties.usage_flags = GPUTextureUsage::DepthStencilAttachment | GPUTextureUsage::Sampled;
     tile_depth_copy_properties.format = MainPassDepthFormat;
 
-    const GPUResourceAccess tile_depth_copy_dst_access = {
+    const GPUTextureAccess tile_depth_copy_dst_access = {
         VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
         VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL};
 
@@ -422,25 +422,23 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
         tile_depth_copy.hzb_texture = builder.read_texture(
             tile_depth_copy.pass_handle, hzb_reduce.hzb_texture,
-            GPUResourceUsage{.access{VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
-                                     VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL},
-                             .texture_view = hzb_view});
+            {VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT, VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL},
+            hzb_view);
     }
 
-    const GPUBufferProperties light_list_properties = DefaultGPUBufferProperties(
-        ElementsPerTile * tile_depth_storage_properties.width * tile_depth_storage_properties.height, sizeof(u32),
-        GPUBufferUsage::StorageBuffer | GPUBufferUsage::TransferDst);
-
-    tile_depth_copy.light_list_clear =
-        builder.create_buffer(tile_depth_copy.pass_handle, "Light lists", light_list_properties,
-                              GPUResourceAccess{VK_PIPELINE_STAGE_2_CLEAR_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT});
+    tile_depth_copy.light_list_clear = builder.create_buffer(
+        tile_depth_copy.pass_handle, "Light lists",
+        DefaultGPUBufferProperties(ElementsPerTile * tile_depth_storage_properties.width
+                                       * tile_depth_storage_properties.height,
+                                   sizeof(u32), GPUBufferUsage::StorageBuffer | GPUBufferUsage::TransferDst),
+        GPUBufferAccess{VK_PIPELINE_STAGE_2_CLEAR_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT});
 
     const GPUBufferProperties classification_counters_properties = DefaultGPUBufferProperties(
         2, sizeof(u32), GPUBufferUsage::StorageBuffer | GPUBufferUsage::TransferDst | GPUBufferUsage::IndirectBuffer);
 
     tile_depth_copy.classification_counters_clear = builder.create_buffer(
         tile_depth_copy.pass_handle, "Classification counters", classification_counters_properties,
-        GPUResourceAccess{VK_PIPELINE_STAGE_2_CLEAR_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT});
+        GPUBufferAccess{VK_PIPELINE_STAGE_2_CLEAR_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT});
 
     // Light raster classify
     struct LightClassifyFrameGraphData
@@ -455,14 +453,14 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     light_classify.classification_counters =
         builder.write_buffer(light_classify.pass_handle, tile_depth_copy.classification_counters_clear,
-                             GPUResourceAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT});
+                             GPUBufferAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT});
 
     const GPUBufferProperties draw_command_classify_properties =
         DefaultGPUBufferProperties(TiledRasterMaxIndirectCommandCount, 4 * sizeof(u32), // FIXME
                                    GPUBufferUsage::StorageBuffer | GPUBufferUsage::IndirectBuffer);
 
-    const GPUResourceAccess draw_command_classify_access = {VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-                                                            VK_ACCESS_2_SHADER_WRITE_BIT};
+    const GPUBufferAccess draw_command_classify_access = {VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+                                                          VK_ACCESS_2_SHADER_WRITE_BIT};
 
     light_classify.draw_commands_inner =
         builder.create_buffer(light_classify.pass_handle, "Draw Commands Inner", draw_command_classify_properties,
@@ -487,11 +485,11 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     light_raster.command_counters = builder.read_buffer(
         light_raster.pass_handle, light_classify.classification_counters,
-        GPUResourceAccess{VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT, VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT});
+        GPUBufferAccess{VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT, VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT});
 
     {
-        const GPUResourceAccess draw_command_raster_read_access = {VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT,
-                                                                   VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT};
+        const GPUBufferAccess draw_command_raster_read_access = {VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT,
+                                                                 VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT};
 
         light_raster.draw_commands_inner = builder.read_buffer(
             light_raster.pass_handle, light_classify.draw_commands_inner, draw_command_raster_read_access);
@@ -500,7 +498,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     }
 
     {
-        GPUResourceAccess tile_depth_access = {
+        GPUTextureAccess tile_depth_access = {
             VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
             VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT, VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL};
 
@@ -513,7 +511,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     light_raster.light_list =
         builder.write_buffer(light_raster.pass_handle,
                              tile_depth_copy.light_list_clear,
-                             GPUResourceAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT});
+                             GPUBufferAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT});
 
     // Tiled Lighting
     struct TiledLightingFrameGraphData
@@ -534,36 +532,36 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     {
         tiled_lighting.shadow_maps.push_back(
             builder.read_texture(tiled_lighting.pass_handle, shadow.shadow_maps[shadow_map_index],
-                                 GPUResourceAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
-                                                   VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL}));
+                                 GPUTextureAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
+                                                  VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL}));
     }
 
     tiled_lighting.light_list =
         builder.read_buffer(tiled_lighting.pass_handle, light_raster.light_list,
-                            GPUResourceAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT});
+                            GPUBufferAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT});
 
     tiled_lighting.gbuffer_rt0 =
         builder.read_texture(tiled_lighting.pass_handle, visibility_gbuffer.gbuffer_rt0,
-                             GPUResourceAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
-                                               VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL});
+                             GPUTextureAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
+                                              VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL});
 
     tiled_lighting.gbuffer_rt1 =
         builder.read_texture(tiled_lighting.pass_handle, visibility_gbuffer.gbuffer_rt1,
-                             GPUResourceAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
-                                               VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL});
+                             GPUTextureAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
+                                              VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL});
 
     tiled_lighting.depth =
         builder.read_texture(tiled_lighting.pass_handle, visibility.depth,
-                             GPUResourceAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
-                                               VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL});
+                             GPUTextureAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
+                                              VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL});
 
     tiled_lighting.lighting = builder.create_texture(
         tiled_lighting.pass_handle, "Lighting",
         DefaultGPUTextureProperties(
             backbufferExtent.width, backbufferExtent.height, PixelFormat::B10G11R11_UFLOAT_PACK32,
             GPUTextureUsage::Storage | GPUTextureUsage::Sampled | GPUTextureUsage::ColorAttachment),
-        GPUResourceAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT,
-                          VK_IMAGE_LAYOUT_GENERAL});
+        GPUTextureAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT,
+                         VK_IMAGE_LAYOUT_GENERAL});
 
     const GPUBufferProperties tile_debug_properties =
         DefaultGPUBufferProperties(tile_depth_storage_properties.width * tile_depth_storage_properties.height,
@@ -571,7 +569,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     tiled_lighting.tile_debug_texture =
         builder.create_buffer(tiled_lighting.pass_handle, "Tile debug", tile_debug_properties,
-                              GPUResourceAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT});
+                              GPUBufferAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT});
 
     // Tiled Lighting debug
     struct TiledLightingDebugFrameGraphData
@@ -585,14 +583,14 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     tiled_lighting_debug.tile_debug =
         builder.read_buffer(tiled_lighting_debug.pass_handle, tiled_lighting.tile_debug_texture,
-                            GPUResourceAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT});
+                            GPUBufferAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT});
 
     tiled_lighting_debug.output = builder.create_texture(
         tiled_lighting_debug.pass_handle, "Tiled Lighting Debug Texture",
         DefaultGPUTextureProperties(backbufferExtent.width, backbufferExtent.height, PixelFormat::R8G8B8A8_UNORM,
                                     GPUTextureUsage::Storage | GPUTextureUsage::Sampled),
-        GPUResourceAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT,
-                          VK_IMAGE_LAYOUT_GENERAL});
+        GPUTextureAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT,
+                         VK_IMAGE_LAYOUT_GENERAL});
 
     // Forward
     struct ForwardFrameGraphData
@@ -609,20 +607,20 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         forward.pass_handle, "Scene HDR",
         DefaultGPUTextureProperties(backbufferExtent.width, backbufferExtent.height, ForwardHDRColorFormat,
                                     GPUTextureUsage::ColorAttachment | GPUTextureUsage::Sampled),
-        GPUResourceAccess{VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-                          VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL});
+        GPUTextureAccess{VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+                         VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL});
 
     forward.depth = builder.write_texture(forward.pass_handle, visibility.depth,
-                                          GPUResourceAccess{VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT,
-                                                            VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
-                                                            VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL});
+                                          GPUTextureAccess{VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT,
+                                                           VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+                                                           VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL});
 
     for (u32 shadow_map_index = 0; shadow_map_index < shadow_map_properties.size(); shadow_map_index++)
     {
         forward.shadow_maps.push_back(
             builder.read_texture(forward.pass_handle, shadow.shadow_maps[shadow_map_index],
-                                 GPUResourceAccess{VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
-                                                   VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL}));
+                                 GPUTextureAccess{VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
+                                                  VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL}));
     }
 
     // GUI
@@ -638,8 +636,8 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         gui.pass_handle, "GUI SDR",
         DefaultGPUTextureProperties(backbufferExtent.width, backbufferExtent.height, GUIFormat,
                                     GPUTextureUsage::ColorAttachment | GPUTextureUsage::Sampled),
-        GPUResourceAccess{VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-                          VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL});
+        GPUTextureAccess{VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+                         VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL});
 
     // Histogram Clear
     struct HistogramClearFrameGraphData
@@ -655,7 +653,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     histogram_clear.histogram_buffer =
         builder.create_buffer(histogram_clear.pass_handle, "Histogram Buffer", histogram_buffer_properties,
-                              GPUResourceAccess{VK_PIPELINE_STAGE_2_CLEAR_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT});
+                              GPUBufferAccess{VK_PIPELINE_STAGE_2_CLEAR_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT});
 
     // Histogram
     struct HistogramFrameGraphData
@@ -669,12 +667,12 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     histogram.scene_hdr =
         builder.read_texture(histogram.pass_handle, forward.scene_hdr,
-                             GPUResourceAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
-                                               VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL});
+                             GPUTextureAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
+                                              VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL});
 
     histogram.histogram_buffer =
         builder.write_buffer(histogram.pass_handle, histogram_clear.histogram_buffer,
-                             GPUResourceAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT});
+                             GPUBufferAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT});
 
     // Debug geometry create command buffer
     struct DebugGeometryComputeFrameGraphData
@@ -690,11 +688,11 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     debug_geometry_build_cmds.draw_counter =
         builder.read_buffer(debug_geometry_build_cmds.pass_handle, debug_geometry_clear.draw_counter,
-                            GPUResourceAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT});
+                            GPUBufferAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT});
 
     debug_geometry_build_cmds.user_commands_buffer =
         builder.read_buffer(debug_geometry_build_cmds.pass_handle, debug_geometry_clear.user_commands_buffer,
-                            GPUResourceAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT});
+                            GPUBufferAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT});
 
     const GPUBufferProperties debug_geometry_command_properties =
         DefaultGPUBufferProperties(DebugGeometryCountMax, sizeof(VkDrawIndexedIndirectCommand),
@@ -702,14 +700,14 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     debug_geometry_build_cmds.draw_commands = builder.create_buffer(
         debug_geometry_build_cmds.pass_handle, "Debug Indirect draw command buffer", debug_geometry_command_properties,
-        GPUResourceAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT});
+        GPUBufferAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT});
 
     const GPUBufferProperties debug_geometry_instance_properties =
         DefaultGPUBufferProperties(DebugGeometryCountMax, sizeof(DebugGeometryInstance), GPUBufferUsage::StorageBuffer);
 
     debug_geometry_build_cmds.instance_buffer = builder.create_buffer(
         debug_geometry_build_cmds.pass_handle, "Debug geometry instance buffer", debug_geometry_instance_properties,
-        GPUResourceAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT});
+        GPUBufferAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT});
 
     // Debug geometry draw
     struct DebugGeometryDrawFrameGraphData
@@ -727,25 +725,25 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     debug_geometry_draw.scene_hdr = builder.write_texture(
         debug_geometry_draw.pass_handle,
         tiled_lighting.lighting,
-        GPUResourceAccess{VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-                          VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL});
+        GPUTextureAccess{VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+                         VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL});
 
     debug_geometry_draw.scene_depth = builder.read_texture(
         debug_geometry_draw.pass_handle, forward.depth,
-        GPUResourceAccess{VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
-                          VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT, VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL});
+        GPUTextureAccess{VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
+                         VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT, VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL});
 
     debug_geometry_draw.draw_counter = builder.read_buffer(
         debug_geometry_draw.pass_handle, debug_geometry_clear.draw_counter,
-        GPUResourceAccess{VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT, VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT});
+        GPUBufferAccess{VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT, VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT});
 
     debug_geometry_draw.draw_commands = builder.read_buffer(
         debug_geometry_draw.pass_handle, debug_geometry_build_cmds.draw_commands,
-        GPUResourceAccess{VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT, VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT});
+        GPUBufferAccess{VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT, VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT});
 
     debug_geometry_draw.instance_buffer =
         builder.read_buffer(debug_geometry_draw.pass_handle, debug_geometry_build_cmds.instance_buffer,
-                            GPUResourceAccess{VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT});
+                            GPUBufferAccess{VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT});
 
     // Swapchain
     struct SwapchainFrameGraphData
@@ -760,29 +758,29 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     swapchain.pass_handle = builder.create_render_pass("Swapchain", true);
 
-    swapchain.scene_hdr =
-        builder.read_texture(swapchain.pass_handle, forward.scene_hdr,
-                             GPUResourceAccess{VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
-                                               VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL});
+    swapchain.scene_hdr = builder.read_texture(swapchain.pass_handle, forward.scene_hdr,
+                                               GPUTextureAccess{.stage_mask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+                                                                .access_mask = VK_ACCESS_2_SHADER_READ_BIT,
+                                                                .image_layout = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL});
 
     swapchain.lighting_result =
         builder.read_texture(swapchain.pass_handle, debug_geometry_draw.scene_hdr,
-                             GPUResourceAccess{VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
-                                               VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL});
+                             GPUTextureAccess{VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
+                                              VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL});
 
     swapchain.gui =
         builder.read_texture(swapchain.pass_handle, gui.output,
-                             GPUResourceAccess{VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
-                                               VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL});
+                             GPUTextureAccess{VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
+                                              VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL});
 
     swapchain.histogram =
         builder.read_buffer(swapchain.pass_handle, histogram.histogram_buffer,
-                            GPUResourceAccess{VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT});
+                            GPUBufferAccess{VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT});
 
     swapchain.tile_debug =
         builder.read_texture(swapchain.pass_handle, tiled_lighting_debug.output,
-                             GPUResourceAccess{VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
-                                               VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL});
+                             GPUTextureAccess{VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
+                                              VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL});
 
     builder.build();
 
@@ -928,10 +926,10 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
             for (u32 swapchainImageIndex = 0; swapchainImageIndex < static_cast<u32>(backend.presentInfo.images.size());
                  swapchainImageIndex++)
             {
-                const GPUResourceAccess src_undefined = {VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT, VK_ACCESS_2_NONE,
-                                                         VK_IMAGE_LAYOUT_UNDEFINED};
-                const GPUResourceAccess dst_access = {VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT,
-                                                      VK_ACCESS_2_MEMORY_READ_BIT, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR};
+                const GPUTextureAccess src_undefined = {VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT, VK_ACCESS_2_NONE,
+                                                        VK_IMAGE_LAYOUT_UNDEFINED};
+                const GPUTextureAccess dst_access = {VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT,
+                                                     VK_ACCESS_2_MEMORY_READ_BIT, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR};
 
                 GPUTextureView view = {};
                 // view.format;

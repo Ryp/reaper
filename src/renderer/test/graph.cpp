@@ -51,7 +51,7 @@ namespace FrameGraph
                 GPUTextureProperties shadowRTDesc =
                     DefaultGPUTextureProperties(512, 512, PixelFormat::R16G16B16A16_UNORM, dummy_usage_flags);
 
-                GPUResourceAccess shadowRTAccess = {};
+                GPUTextureAccess shadowRTAccess = {};
 
                 const ResourceUsageHandle shadowRTHandle =
                     builder.create_texture(shadowPass, "VSM", shadowRTDesc, shadowRTAccess);
@@ -68,7 +68,7 @@ namespace FrameGraph
                 GPUTextureProperties gbufferRTDesc =
                     DefaultGPUTextureProperties(1280, 720, PixelFormat::R16G16B16A16_UNORM, dummy_usage_flags);
 
-                GPUResourceAccess gbufferAccess = {};
+                GPUTextureAccess gbufferAccess = {};
 
                 const ResourceUsageHandle gbufferRTHandle =
                     builder.create_texture(gbufferPass, "GBuffer", gbufferRTDesc, gbufferAccess);
@@ -82,7 +82,7 @@ namespace FrameGraph
 
             // Inputs
             {
-                GPUResourceAccess gbufferRTAccess = {};
+                GPUTextureAccess gbufferRTAccess = {};
 
                 builder.read_texture(uselessPass, gBufferInput.GBufferRT, gbufferRTAccess);
             }
@@ -93,7 +93,7 @@ namespace FrameGraph
                     DefaultGPUTextureProperties(4096, 4096, PixelFormat::R16G16_SFLOAT, dummy_usage_flags);
                 uselessRTDesc.sampleCount = 4;
 
-                GPUResourceAccess uselessRTAccess = {};
+                GPUTextureAccess uselessRTAccess = {};
 
                 const ResourceUsageHandle uselessRTHandle =
                     builder.create_texture(uselessPass, "UselessTexture", uselessRTDesc, uselessRTAccess);
@@ -109,9 +109,9 @@ namespace FrameGraph
 
             // Inputs
             {
-                GPUResourceAccess gbufferRTAccess = {};
+                GPUTextureAccess gbufferRTAccess = {};
 
-                GPUResourceAccess shadowRTAccess = {};
+                GPUTextureAccess shadowRTAccess = {};
 
                 builder.read_texture(lightingPass, gBufferInput.GBufferRT, gbufferRTAccess);
                 builder.read_texture(lightingPass, shadowOutput.ShadowRT, shadowRTAccess);
@@ -122,7 +122,7 @@ namespace FrameGraph
                 GPUTextureProperties opaqueRTDesc =
                     DefaultGPUTextureProperties(1280, 720, PixelFormat::R16G16B16A16_SFLOAT, dummy_usage_flags);
 
-                GPUResourceAccess opaqueRTAccess = {};
+                GPUTextureAccess opaqueRTAccess = {};
 
                 const ResourceUsageHandle opaqueRTHandle =
                     builder.create_texture(lightingPass, "Opaque", opaqueRTDesc, opaqueRTAccess);
@@ -136,7 +136,7 @@ namespace FrameGraph
 
             // Inputs
             {
-                GPUResourceAccess opaqueRTAccess = {};
+                GPUTextureAccess opaqueRTAccess = {};
 
                 builder.read_texture(compositePass, lightingOutput.OpaqueRT, opaqueRTAccess);
             }
@@ -146,7 +146,7 @@ namespace FrameGraph
                 GPUTextureProperties backBufferRTDesc =
                     DefaultGPUTextureProperties(1280, 720, PixelFormat::R8G8B8_SRGB, dummy_usage_flags);
 
-                GPUResourceAccess backBufferRTAccess = {};
+                GPUTextureAccess backBufferRTAccess = {};
 
                 const ResourceUsageHandle backBufferRTHandle =
                     builder.create_texture(compositePass, "BackBuffer", backBufferRTDesc, backBufferRTAccess);
@@ -161,7 +161,7 @@ namespace FrameGraph
 
             // Inputs
             {
-                GPUResourceAccess backBufferRTAccess = {};
+                GPUTextureAccess backBufferRTAccess = {};
 
                 builder.read_texture(presentPass, compositeOutput.BackBufferRT, backBufferRTAccess);
             }
