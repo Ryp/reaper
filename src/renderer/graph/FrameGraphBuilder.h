@@ -35,7 +35,17 @@ public:
     ResourceUsageHandle create_texture(RenderPassHandle            renderPass,
                                        const char*                 name,
                                        const GPUTextureProperties& texture_properties,
+                                       GPUResourceAccess           texture_usage);
+
+    ResourceUsageHandle create_texture(RenderPassHandle            renderPass,
+                                       const char*                 name,
+                                       const GPUTextureProperties& texture_properties,
                                        GPUResourceUsage            texture_usage);
+
+    ResourceUsageHandle create_buffer(RenderPassHandle           renderPass,
+                                      const char*                name,
+                                      const GPUBufferProperties& buffer_properties,
+                                      GPUResourceAccess          buffer_access);
 
     ResourceUsageHandle create_buffer(RenderPassHandle           renderPass,
                                       const char*                name,
@@ -43,13 +53,25 @@ public:
                                       GPUResourceUsage           buffer_usage);
 
     ResourceUsageHandle read_texture(RenderPassHandle renderPass, ResourceUsageHandle inputUsageHandle,
+                                     GPUResourceAccess texture_access);
+
+    ResourceUsageHandle read_texture(RenderPassHandle renderPass, ResourceUsageHandle inputUsageHandle,
                                      GPUResourceUsage texture_usage);
+
+    ResourceUsageHandle read_buffer(RenderPassHandle renderPassHandle, ResourceUsageHandle inputUsageHandle,
+                                    GPUResourceAccess buffer_access);
 
     ResourceUsageHandle read_buffer(RenderPassHandle renderPassHandle, ResourceUsageHandle inputUsageHandle,
                                     GPUResourceUsage buffer_usage);
 
     ResourceUsageHandle write_texture(RenderPassHandle renderPassHandle, ResourceUsageHandle inputUsageHandle,
+                                      GPUResourceAccess texture_access);
+
+    ResourceUsageHandle write_texture(RenderPassHandle renderPassHandle, ResourceUsageHandle inputUsageHandle,
                                       GPUResourceUsage texture_usage);
+
+    ResourceUsageHandle write_buffer(RenderPassHandle renderPassHandle, ResourceUsageHandle inputUsageHandle,
+                                     GPUResourceAccess buffer_access);
 
     ResourceUsageHandle write_buffer(RenderPassHandle renderPassHandle, ResourceUsageHandle inputUsageHandle,
                                      GPUResourceUsage buffer_usage);
@@ -70,12 +92,15 @@ private:
                                                 const GPUResourceProperties& properties, GPUResourceUsage usage,
                                                 bool is_texture);
 
-    ResourceUsageHandle read_resource_generic(RenderPassHandle    renderPassHandle,
-                                              ResourceUsageHandle inputUsageHandle,
-                                              GPUResourceUsage    usage);
+    ResourceUsageHandle read_resource_generic(RenderPassHandle     renderPassHandle,
+                                              const ResourceUsage& inputUsage,
+                                              ResourceUsageHandle  inputUsageHandle,
+                                              GPUResourceUsage     usage);
 
-    ResourceUsageHandle write_resource_generic(RenderPassHandle renderPassHandle, ResourceUsageHandle inputUsageHandle,
-                                               GPUResourceUsage usage);
+    ResourceUsageHandle write_resource_generic(RenderPassHandle     renderPassHandle,
+                                               const ResourceUsage& inputUsage,
+                                               ResourceUsageHandle  inputUsageHandle,
+                                               GPUResourceUsage     usage);
 
 private:
     FrameGraph& m_Graph;

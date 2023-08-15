@@ -51,10 +51,10 @@ namespace FrameGraph
                 GPUTextureProperties shadowRTDesc =
                     DefaultGPUTextureProperties(512, 512, PixelFormat::R16G16B16A16_UNORM, dummy_usage_flags);
 
-                GPUResourceUsage shadowRTUsage = {};
+                GPUResourceAccess shadowRTAccess = {};
 
                 const ResourceUsageHandle shadowRTHandle =
-                    builder.create_texture(shadowPass, "VSM", shadowRTDesc, shadowRTUsage);
+                    builder.create_texture(shadowPass, "VSM", shadowRTDesc, shadowRTAccess);
                 output.ShadowRT = shadowRTHandle;
             }
         }
@@ -68,10 +68,10 @@ namespace FrameGraph
                 GPUTextureProperties gbufferRTDesc =
                     DefaultGPUTextureProperties(1280, 720, PixelFormat::R16G16B16A16_UNORM, dummy_usage_flags);
 
-                GPUResourceUsage gbufferUsage = {};
+                GPUResourceAccess gbufferAccess = {};
 
                 const ResourceUsageHandle gbufferRTHandle =
-                    builder.create_texture(gbufferPass, "GBuffer", gbufferRTDesc, gbufferUsage);
+                    builder.create_texture(gbufferPass, "GBuffer", gbufferRTDesc, gbufferAccess);
                 output.GBufferRT = gbufferRTHandle;
             }
         }
@@ -82,9 +82,9 @@ namespace FrameGraph
 
             // Inputs
             {
-                GPUResourceUsage gbufferRTUsage = {};
+                GPUResourceAccess gbufferRTAccess = {};
 
-                builder.read_texture(uselessPass, gBufferInput.GBufferRT, gbufferRTUsage);
+                builder.read_texture(uselessPass, gBufferInput.GBufferRT, gbufferRTAccess);
             }
 
             // Outputs
@@ -93,10 +93,10 @@ namespace FrameGraph
                     DefaultGPUTextureProperties(4096, 4096, PixelFormat::R16G16_SFLOAT, dummy_usage_flags);
                 uselessRTDesc.sampleCount = 4;
 
-                GPUResourceUsage uselessRTUsage = {};
+                GPUResourceAccess uselessRTAccess = {};
 
                 const ResourceUsageHandle uselessRTHandle =
-                    builder.create_texture(uselessPass, "UselessTexture", uselessRTDesc, uselessRTUsage);
+                    builder.create_texture(uselessPass, "UselessTexture", uselessRTDesc, uselessRTAccess);
 
                 static_cast<void>(uselessRTHandle);
             };
@@ -109,12 +109,12 @@ namespace FrameGraph
 
             // Inputs
             {
-                GPUResourceUsage gbufferRTUsage = {};
+                GPUResourceAccess gbufferRTAccess = {};
 
-                GPUResourceUsage shadowRTUsage = {};
+                GPUResourceAccess shadowRTAccess = {};
 
-                builder.read_texture(lightingPass, gBufferInput.GBufferRT, gbufferRTUsage);
-                builder.read_texture(lightingPass, shadowOutput.ShadowRT, shadowRTUsage);
+                builder.read_texture(lightingPass, gBufferInput.GBufferRT, gbufferRTAccess);
+                builder.read_texture(lightingPass, shadowOutput.ShadowRT, shadowRTAccess);
             }
 
             // Outputs
@@ -122,10 +122,10 @@ namespace FrameGraph
                 GPUTextureProperties opaqueRTDesc =
                     DefaultGPUTextureProperties(1280, 720, PixelFormat::R16G16B16A16_SFLOAT, dummy_usage_flags);
 
-                GPUResourceUsage opaqueRTUsage = {};
+                GPUResourceAccess opaqueRTAccess = {};
 
                 const ResourceUsageHandle opaqueRTHandle =
-                    builder.create_texture(lightingPass, "Opaque", opaqueRTDesc, opaqueRTUsage);
+                    builder.create_texture(lightingPass, "Opaque", opaqueRTDesc, opaqueRTAccess);
                 output.OpaqueRT = opaqueRTHandle;
             }
         }
@@ -136,9 +136,9 @@ namespace FrameGraph
 
             // Inputs
             {
-                GPUResourceUsage opaqueRTUsage = {};
+                GPUResourceAccess opaqueRTAccess = {};
 
-                builder.read_texture(compositePass, lightingOutput.OpaqueRT, opaqueRTUsage);
+                builder.read_texture(compositePass, lightingOutput.OpaqueRT, opaqueRTAccess);
             }
 
             // Outputs
@@ -146,10 +146,10 @@ namespace FrameGraph
                 GPUTextureProperties backBufferRTDesc =
                     DefaultGPUTextureProperties(1280, 720, PixelFormat::R8G8B8_SRGB, dummy_usage_flags);
 
-                GPUResourceUsage backBufferRTUsage = {};
+                GPUResourceAccess backBufferRTAccess = {};
 
                 const ResourceUsageHandle backBufferRTHandle =
-                    builder.create_texture(compositePass, "BackBuffer", backBufferRTDesc, backBufferRTUsage);
+                    builder.create_texture(compositePass, "BackBuffer", backBufferRTDesc, backBufferRTAccess);
                 output.BackBufferRT = backBufferRTHandle;
             }
         }
@@ -161,9 +161,9 @@ namespace FrameGraph
 
             // Inputs
             {
-                GPUResourceUsage backBufferRTUsage = {};
+                GPUResourceAccess backBufferRTAccess = {};
 
-                builder.read_texture(presentPass, compositeOutput.BackBufferRT, backBufferRTUsage);
+                builder.read_texture(presentPass, compositeOutput.BackBufferRT, backBufferRTAccess);
             }
         }
 

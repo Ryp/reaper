@@ -45,14 +45,13 @@ struct FrameGraphResources
     // For the first implem we can just have as many events as barriers.
     std::array<VkEvent, EventCount> events;
 
-    // Buffer
+    // Volatile
     std::vector<BufferInfo> buffers;
 
-    // Volatile stuff
-    std::vector<ImageInfo>   textures;
-    std::vector<VkImageView> texture_views;
+    std::vector<ImageInfo> textures;
+    std::vector<ImageInfo> textures_b;
 
-    std::vector<ImageInfo>   textures_b;
+    std::vector<VkImageView> texture_views;
     std::vector<VkImageView> texture_views_b;
 };
 
