@@ -10,6 +10,8 @@
 #include "FrameGraph.h"
 #include "FrameGraphBasicTypes.h"
 
+#include <nonstd/span.hpp>
+
 namespace Reaper
 {
 struct GPUTextureProperties;
@@ -32,51 +34,39 @@ public:
     RenderPassHandle create_render_pass(const char* debug_name, bool hasSideEffects = false);
 
 public:
-    ResourceUsageHandle create_texture(RenderPassHandle            renderPass,
-                                       const char*                 name,
-                                       const GPUTextureProperties& texture_properties,
-                                       GPUTextureAccess            texture_usage);
+    ResourceUsageHandle
+    create_texture(RenderPassHandle                   render_pass_handle,
+                   const char*                        name,
+                   const GPUTextureProperties&        texture_properties,
+                   GPUTextureAccess                   texture_access,
+                   nonstd::span<const GPUTextureView> additional_texture_views = nonstd::span<const GPUTextureView>());
 
-    ResourceUsageHandle create_texture(RenderPassHandle            renderPass,
-                                       const char*                 name,
-                                       const GPUTextureProperties& texture_properties,
-                                       GPUTextureAccess            texture_access,
-                                       GPUTextureView              texture_view);
+    ResourceUsageHandle
+    create_buffer(RenderPassHandle                  render_pass_handle,
+                  const char*                       name,
+                  const GPUBufferProperties&        buffer_properties,
+                  GPUBufferAccess                   buffer_access,
+                  nonstd::span<const GPUBufferView> additional_buffer_views = nonstd::span<const GPUBufferView>());
 
-    ResourceUsageHandle create_buffer(RenderPassHandle           renderPass,
-                                      const char*                name,
-                                      const GPUBufferProperties& buffer_properties,
-                                      GPUBufferAccess            buffer_access);
+    ResourceUsageHandle
+    read_texture(RenderPassHandle render_pass_handle, ResourceUsageHandle input_usage_handle,
+                 GPUTextureAccess                   texture_access,
+                 nonstd::span<const GPUTextureView> additional_texture_views = nonstd::span<const GPUTextureView>());
 
-    ResourceUsageHandle create_buffer(RenderPassHandle           renderPass,
-                                      const char*                name,
-                                      const GPUBufferProperties& buffer_properties,
-                                      GPUBufferAccess            buffer_access,
-                                      GPUBufferView              buffer_view);
+    ResourceUsageHandle
+    read_buffer(RenderPassHandle render_pass_handle, ResourceUsageHandle input_usage_handle,
+                GPUBufferAccess                   buffer_access,
+                nonstd::span<const GPUBufferView> additional_buffer_views = nonstd::span<const GPUBufferView>());
 
-    ResourceUsageHandle read_texture(RenderPassHandle renderPass, ResourceUsageHandle inputUsageHandle,
-                                     GPUTextureAccess texture_access);
+    ResourceUsageHandle
+    write_texture(RenderPassHandle render_pass_handle, ResourceUsageHandle input_usage_handle,
+                  GPUTextureAccess                   texture_access,
+                  nonstd::span<const GPUTextureView> additional_texture_views = nonstd::span<const GPUTextureView>());
 
-    ResourceUsageHandle read_texture(RenderPassHandle renderPass, ResourceUsageHandle inputUsageHandle,
-                                     GPUTextureAccess texture_access, GPUTextureView texture_view);
-
-    ResourceUsageHandle read_buffer(RenderPassHandle renderPassHandle, ResourceUsageHandle inputUsageHandle,
-                                    GPUBufferAccess buffer_access);
-
-    ResourceUsageHandle read_buffer(RenderPassHandle renderPassHandle, ResourceUsageHandle inputUsageHandle,
-                                    GPUBufferAccess buffer_access, GPUBufferView buffer_view);
-
-    ResourceUsageHandle write_texture(RenderPassHandle renderPassHandle, ResourceUsageHandle inputUsageHandle,
-                                      GPUTextureAccess texture_access);
-
-    ResourceUsageHandle write_texture(RenderPassHandle renderPassHandle, ResourceUsageHandle inputUsageHandle,
-                                      GPUTextureAccess texture_access, GPUTextureView texture_view);
-
-    ResourceUsageHandle write_buffer(RenderPassHandle renderPassHandle, ResourceUsageHandle inputUsageHandle,
-                                     GPUBufferAccess buffer_access);
-
-    ResourceUsageHandle write_buffer(RenderPassHandle renderPassHandle, ResourceUsageHandle inputUsageHandle,
-                                     GPUBufferAccess buffer_access, GPUBufferView buffer_view);
+    ResourceUsageHandle
+    write_buffer(RenderPassHandle render_pass_handle, ResourceUsageHandle input_usage_handle,
+                 GPUBufferAccess                   buffer_access,
+                 nonstd::span<const GPUBufferView> additional_buffer_views = nonstd::span<const GPUBufferView>());
 
 public:
     void build();
@@ -84,29 +74,29 @@ public:
 private:
     ResourceHandle create_resource(const char* debug_name, const GPUResourceProperties& properties, bool is_texture);
 
-    ResourceUsageHandle create_resource_usage(u32                 usageType,
-                                              RenderPassHandle    renderPassHandle,
-                                              ResourceHandle      resourceHandle,
+    ResourceUsageHandle create_resource_usage(u32                 usage_type,
+                                              RenderPassHandle    render_pass_handle,
+                                              ResourceHandle      resource_handle,
                                               GPUResourceAccess   resource_access,
                                               GPUResourceView     resource_view,
                                               ResourceUsageHandle parentUsageHandle);
 
-    ResourceUsageHandle create_resource_generic(RenderPassHandle             renderPassHandle,
+    ResourceUsageHandle create_resource_generic(RenderPassHandle             render_pass_handle,
                                                 const char*                  name,
                                                 const GPUResourceProperties& properties,
                                                 GPUResourceAccess            resource_access,
                                                 GPUResourceView              resource_view,
                                                 bool                         is_texture);
 
-    ResourceUsageHandle read_resource_generic(RenderPassHandle     renderPassHandle,
+    ResourceUsageHandle read_resource_generic(RenderPassHandle     render_pass_handle,
                                               const ResourceUsage& inputUsage,
-                                              ResourceUsageHandle  inputUsageHandle,
+                                              ResourceUsageHandle  input_usage_handle,
                                               GPUResourceAccess    resource_access,
                                               GPUResourceView      resource_view);
 
-    ResourceUsageHandle write_resource_generic(RenderPassHandle     renderPassHandle,
+    ResourceUsageHandle write_resource_generic(RenderPassHandle     render_pass_handle,
                                                const ResourceUsage& inputUsage,
-                                               ResourceUsageHandle  inputUsageHandle,
+                                               ResourceUsageHandle  input_usage_handle,
                                                GPUResourceAccess    resource_access,
                                                GPUResourceView      resource_view);
 

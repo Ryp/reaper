@@ -344,10 +344,20 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
                                    PixelFormat::R16G16_UNORM, GPUTextureUsage::Storage | GPUTextureUsage::Sampled);
     hzb_properties.mip_count = 4; // FIXME
 
-    hzb_reduce.hzb_texture =
-        builder.create_texture(hzb_reduce.pass_handle, "HZB Texture", hzb_properties,
-                               GPUTextureAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT,
-                                                VK_IMAGE_LAYOUT_GENERAL});
+    GPUTextureView hzb_mip_view = default_texture_view(hzb_properties);
+    hzb_mip_view.mip_count = 1;
+
+    std::vector<GPUTextureView> hzb_mip_views(hzb_properties.mip_count, hzb_mip_view);
+
+    for (u32 i = 0; i < hzb_mip_views.size(); i++)
+    {
+        hzb_mip_views[i].mip_offset = i;
+    }
+
+    hzb_reduce.hzb_texture = builder.create_texture(
+        hzb_reduce.pass_handle, "HZB Texture", hzb_properties,
+        GPUTextureAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT, VK_IMAGE_LAYOUT_GENERAL},
+        hzb_mip_views);
 
     // Depth Downsample
     struct TileDepthFrameGraphData
@@ -423,7 +433,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         tile_depth_copy.hzb_texture = builder.read_texture(
             tile_depth_copy.pass_handle, hzb_reduce.hzb_texture,
             {VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT, VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL},
-            hzb_view);
+            nonstd::make_span(&hzb_view, 1));
     }
 
     tile_depth_copy.light_list_clear = builder.create_buffer(
