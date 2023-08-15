@@ -122,16 +122,18 @@ namespace
     void upload_mesh_to_mesh_cache(MeshCache& mesh_cache, const Mesh& mesh, const MeshAlloc& mesh_alloc,
                                    nonstd::span<const Meshlet> meshlets, VulkanBackend& backend)
     {
-        upload_buffer_data(backend.device, backend.vma_instance, mesh_cache.indexBuffer, mesh.indexes.data(),
-                           mesh.indexes.size() * sizeof(mesh.indexes[0]), mesh_alloc.index_offset);
-        upload_buffer_data(backend.device, backend.vma_instance, mesh_cache.vertexBufferPosition, mesh.positions.data(),
-                           mesh.positions.size() * sizeof(mesh.positions[0]), mesh_alloc.position_offset);
-        upload_buffer_data(backend.device, backend.vma_instance, mesh_cache.vertexBufferNormal, mesh.normals.data(),
-                           mesh.normals.size() * sizeof(mesh.normals[0]), mesh_alloc.normal_offset);
-        upload_buffer_data(backend.device, backend.vma_instance, mesh_cache.vertexBufferUV, mesh.uvs.data(),
-                           mesh.uvs.size() * sizeof(mesh.uvs[0]), mesh_alloc.uv_offset);
-        upload_buffer_data(backend.device, backend.vma_instance, mesh_cache.meshletBuffer, meshlets.data(),
-                           meshlets.size() * sizeof(meshlets[0]), mesh_alloc.meshlet_offset);
+        upload_buffer_data_deprecated(backend.device, backend.vma_instance, mesh_cache.indexBuffer, mesh.indexes.data(),
+                                      mesh.indexes.size() * sizeof(mesh.indexes[0]), mesh_alloc.index_offset);
+        upload_buffer_data_deprecated(backend.device, backend.vma_instance, mesh_cache.vertexBufferPosition,
+                                      mesh.positions.data(), mesh.positions.size() * sizeof(mesh.positions[0]),
+                                      mesh_alloc.position_offset);
+        upload_buffer_data_deprecated(backend.device, backend.vma_instance, mesh_cache.vertexBufferNormal,
+                                      mesh.normals.data(), mesh.normals.size() * sizeof(mesh.normals[0]),
+                                      mesh_alloc.normal_offset);
+        upload_buffer_data_deprecated(backend.device, backend.vma_instance, mesh_cache.vertexBufferUV, mesh.uvs.data(),
+                                      mesh.uvs.size() * sizeof(mesh.uvs[0]), mesh_alloc.uv_offset);
+        upload_buffer_data_deprecated(backend.device, backend.vma_instance, mesh_cache.meshletBuffer, meshlets.data(),
+                                      meshlets.size() * sizeof(meshlets[0]), mesh_alloc.meshlet_offset);
     }
 } // namespace
 

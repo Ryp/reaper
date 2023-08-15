@@ -121,14 +121,9 @@ void upload_audio_frame_resources(VulkanBackend& backend, const PreparedData& pr
 {
     REAPER_PROFILE_SCOPE_FUNC();
 
-    // FIXME
-    // upload_buffer_data(backend.device, backend.vma_instance, resources.passConstantBuffer,
-    //                    prepared.audio_pass_params.data(),
-    //                    prepared.audio_pass_params.size() * sizeof(AudioPassParams));
-
-    upload_buffer_data(backend.device, backend.vma_instance, resources.instanceParamsBuffer,
-                       prepared.audio_instance_params.data(),
-                       prepared.audio_instance_params.size() * sizeof(OscillatorInstance));
+    upload_buffer_data_deprecated(backend.device, backend.vma_instance, resources.instanceParamsBuffer,
+                                  prepared.audio_instance_params.data(),
+                                  prepared.audio_instance_params.size() * sizeof(OscillatorInstance));
 }
 
 void update_audio_pass_descriptor_set(DescriptorWriteHelper& write_helper, AudioResources& resources)
@@ -145,7 +140,7 @@ void record_audio_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& p
     {
         const GPUBufferAccess src = {VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_READ_BIT};
         const GPUBufferAccess dst = {VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT};
-        const GPUBufferView   view = default_buffer_view(resources.outputBuffer.properties);
+        const GPUBufferView   view = default_buffer_view(resources.outputBuffer.properties_deprecated);
 
         const VkBufferMemoryBarrier2 buffer_barrier =
             get_vk_buffer_barrier(resources.outputBuffer.handle, view, src, dst);
@@ -171,7 +166,7 @@ void record_audio_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& p
         {
             const GPUBufferAccess src = {VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT};
             const GPUBufferAccess dst = {VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_READ_BIT};
-            const GPUBufferView   view = default_buffer_view(resources.outputBuffer.properties);
+            const GPUBufferView   view = default_buffer_view(resources.outputBuffer.properties_deprecated);
 
             buffer_barriers.emplace_back(get_vk_buffer_barrier(resources.outputBuffer.handle, view, src, dst));
         }
@@ -179,7 +174,7 @@ void record_audio_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& p
         {
             const GPUBufferAccess src = {VK_PIPELINE_STAGE_2_HOST_BIT, VK_ACCESS_2_HOST_READ_BIT};
             const GPUBufferAccess dst = {VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT};
-            const GPUBufferView   view = default_buffer_view(resources.outputBufferStaging.properties);
+            const GPUBufferView   view = default_buffer_view(resources.outputBufferStaging.properties_deprecated);
 
             buffer_barriers.emplace_back(get_vk_buffer_barrier(resources.outputBufferStaging.handle, view, src, dst));
         }
@@ -212,7 +207,7 @@ void record_audio_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& p
     {
         const GPUBufferAccess src = {VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT};
         const GPUBufferAccess dst = {VK_PIPELINE_STAGE_2_HOST_BIT, VK_ACCESS_2_HOST_READ_BIT};
-        const GPUBufferView   view = default_buffer_view(resources.outputBufferStaging.properties);
+        const GPUBufferView   view = default_buffer_view(resources.outputBufferStaging.properties_deprecated);
 
         const VkBufferMemoryBarrier2 buffer_barrier =
             get_vk_buffer_barrier(resources.outputBufferStaging.handle, view, src, dst);

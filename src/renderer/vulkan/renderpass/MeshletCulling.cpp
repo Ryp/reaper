@@ -234,9 +234,9 @@ void upload_meshlet_culling_resources(VulkanBackend& backend, const PreparedData
     if (prepared.cull_mesh_instance_params.empty())
         return;
 
-    upload_buffer_data(backend.device, backend.vma_instance, resources.mesh_instance_buffer,
-                       prepared.cull_mesh_instance_params.data(),
-                       prepared.cull_mesh_instance_params.size() * sizeof(CullMeshInstanceParams));
+    upload_buffer_data_deprecated(backend.device, backend.vma_instance, resources.mesh_instance_buffer,
+                                  prepared.cull_mesh_instance_params.data(),
+                                  prepared.cull_mesh_instance_params.size() * sizeof(CullMeshInstanceParams));
 }
 
 void update_meshlet_culling_pass_descriptor_sets(DescriptorWriteHelper& write_helper, const PreparedData& prepared,
@@ -252,10 +252,11 @@ void update_meshlet_culling_pass_descriptor_sets(DescriptorWriteHelper& write_he
         const u32 pass_index = cull_pass.pass_index;
         Assert(pass_index < MaxMeshletCullingPassCount);
 
-        const GPUBufferView counter_buffer_view = get_buffer_view(
-            resources.counters_buffer.properties, BufferSubresource{pass_index * CountersCount, CountersCount});
+        const GPUBufferView counter_buffer_view =
+            get_buffer_view(resources.counters_buffer.properties_deprecated,
+                            BufferSubresource{pass_index * CountersCount, CountersCount});
         const GPUBufferView visible_meshlet_offsets_view =
-            get_buffer_view(resources.visible_meshlet_offsets_buffer.properties,
+            get_buffer_view(resources.visible_meshlet_offsets_buffer.properties_deprecated,
                             BufferSubresource{pass_index * MaxVisibleMeshletsPerPass, MaxVisibleMeshletsPerPass});
 
         {
@@ -271,10 +272,11 @@ void update_meshlet_culling_pass_descriptor_sets(DescriptorWriteHelper& write_he
         }
 
         {
-            const GPUBufferView visible_indices_view = get_buffer_view(
-                resources.visible_index_buffer.properties, get_meshlet_visible_index_buffer_pass(pass_index));
+            const GPUBufferView visible_indices_view =
+                get_buffer_view(resources.visible_index_buffer.properties_deprecated,
+                                get_meshlet_visible_index_buffer_pass(pass_index));
             const GPUBufferView indirect_draw_view = get_buffer_view(
-                resources.visible_indirect_draw_commands_buffer.properties,
+                resources.visible_indirect_draw_commands_buffer.properties_deprecated,
                 BufferSubresource{pass_index * MaxIndirectDrawCountPerPass, MaxIndirectDrawCountPerPass});
 
             VkDescriptorSet descriptor_set = resources.cull_triangles_descriptor_sets[pass_index];
@@ -430,8 +432,8 @@ void record_meshlet_culling_command_buffer(ReaperRoot& root, CommandBuffer& cmdB
             .pNext = nullptr,
             .srcOffset = 0,
             .dstOffset = 0,
-            .size = resources.counters_buffer.properties.element_count
-                    * resources.counters_buffer.properties.element_size_bytes,
+            .size = resources.counters_buffer.properties_deprecated.element_count
+                    * resources.counters_buffer.properties_deprecated.element_size_bytes,
         };
 
         const VkCopyBufferInfo2 copy = {
@@ -449,7 +451,7 @@ void record_meshlet_culling_command_buffer(ReaperRoot& root, CommandBuffer& cmdB
 
         const GPUBufferAccess src = {VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT};
         const GPUBufferAccess dst = {VK_PIPELINE_STAGE_2_HOST_BIT, VK_ACCESS_2_HOST_READ_BIT};
-        const GPUBufferView   view = default_buffer_view(resources.counters_cpu_buffer.properties);
+        const GPUBufferView   view = default_buffer_view(resources.counters_cpu_buffer.properties_deprecated);
 
         VkBufferMemoryBarrier2 bufferBarrier =
             get_vk_buffer_barrier(resources.counters_cpu_buffer.handle, view, src, dst);

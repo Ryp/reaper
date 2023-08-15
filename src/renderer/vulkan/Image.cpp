@@ -1046,15 +1046,16 @@ ImageInfo create_image(ReaperRoot& root, VkDevice device, const char* debug_stri
 
     VulkanSetDebugName(device, image, debug_string);
 
-    return {image, allocation, properties};
+    return ImageInfo{
+        .handle = image,
+        .allocation = allocation,
+    };
 }
 
 VkImageView create_image_view(ReaperRoot& root, VkDevice device, const ImageInfo& image, const GPUTextureView& view)
 {
     Assert(view.mipCount > 0);
-    Assert(view.mipCount + view.mipOffset <= image.properties.mipCount);
     Assert(view.layerCount > 0);
-    Assert(view.layerCount + view.layerOffset <= image.properties.layerCount);
 
     const VkImageSubresourceRange viewRange = GetVulkanImageSubresourceRange(view);
 

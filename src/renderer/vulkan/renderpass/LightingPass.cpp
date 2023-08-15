@@ -43,7 +43,8 @@ void upload_lighting_pass_frame_resources(VulkanBackend& backend, const Prepared
     if (prepared.point_lights.empty())
         return;
 
-    upload_buffer_data(backend.device, backend.vma_instance, resources.pointLightBuffer, prepared.point_lights.data(),
-                       prepared.point_lights.size() * sizeof(PointLightProperties));
+    upload_buffer_data_deprecated(backend.device, backend.vma_instance, resources.pointLightBuffer,
+                                  prepared.point_lights.data(),
+                                  prepared.point_lights.size() * sizeof(PointLightProperties));
 }
 } // namespace Reaper

@@ -172,9 +172,9 @@ void upload_gbuffer_pass_frame_resources(VulkanBackend& backend, const PreparedD
     if (prepared.forward_instances.empty())
         return;
 
-    upload_buffer_data(backend.device, backend.vma_instance, pass_resources.instancesConstantBuffer,
-                       prepared.forward_instances.data(),
-                       prepared.forward_instances.size() * sizeof(ForwardInstanceParams));
+    upload_buffer_data_deprecated(backend.device, backend.vma_instance, pass_resources.instancesConstantBuffer,
+                                  prepared.forward_instances.data(),
+                                  prepared.forward_instances.size() * sizeof(ForwardInstanceParams));
 }
 
 void record_gbuffer_pass_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& prepared,
@@ -226,7 +226,7 @@ void record_gbuffer_pass_command_buffer(CommandBuffer& cmdBuffer, const Prepared
         cmdBuffer.handle, meshlet_culling_resources.visible_indirect_draw_commands_buffer.handle,
         draw_params.command_buffer_offset, meshlet_culling_resources.counters_buffer.handle,
         draw_params.counter_buffer_offset, draw_params.command_buffer_max_count,
-        meshlet_culling_resources.visible_indirect_draw_commands_buffer.properties.element_size_bytes);
+        meshlet_culling_resources.visible_indirect_draw_commands_buffer.properties_deprecated.element_size_bytes);
 
     vkCmdEndRendering(cmdBuffer.handle);
 }

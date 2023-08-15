@@ -184,8 +184,8 @@ void upload_tiled_lighting_pass_frame_resources(VulkanBackend& backend, const Pr
     if (prepared.point_lights.empty())
         return;
 
-    upload_buffer_data(backend.device, backend.vma_instance, resources.tiled_lighting_constant_buffer,
-                       &prepared.tiled_light_constants, sizeof(TiledLightingConstants));
+    upload_buffer_data_deprecated(backend.device, backend.vma_instance, resources.tiled_lighting_constant_buffer,
+                                  &prepared.tiled_light_constants, sizeof(TiledLightingConstants));
 }
 
 void record_tiled_lighting_command_buffer(CommandBuffer& cmdBuffer, const TiledLightingPassResources& resources,

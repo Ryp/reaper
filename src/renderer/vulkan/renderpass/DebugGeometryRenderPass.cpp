@@ -131,16 +131,17 @@ DebugGeometryPassResources create_debug_geometry_pass_resources(ReaperRoot& root
         resources.index_buffer_offset = 0;
         resources.vertex_buffer_offset = 0;
 
-        resources.index_buffer =
-            create_buffer(root, backend.device, "Debug geometry index buffer",
-                          DefaultGPUBufferProperties(MaxIndexCount, sizeof(hlsl_uint),
-                                                     GPUBufferUsage::StorageBuffer | GPUBufferUsage::IndexBuffer),
-                          backend.vma_instance, MemUsage::CPU_To_GPU);
+        const GPUBufferProperties index_properties = DefaultGPUBufferProperties(
+            MaxIndexCount, sizeof(hlsl_uint), GPUBufferUsage::StorageBuffer | GPUBufferUsage::IndexBuffer);
 
-        resources.vertex_buffer_position = create_buffer(
-            root, backend.device, "Debug geometry vertex buffer",
-            DefaultGPUBufferProperties(MaxVertexCount, sizeof(hlsl_float3), GPUBufferUsage::StorageBuffer),
-            backend.vma_instance, MemUsage::CPU_To_GPU);
+        const GPUBufferProperties vertex_properties =
+            DefaultGPUBufferProperties(MaxVertexCount, sizeof(hlsl_float3), GPUBufferUsage::StorageBuffer);
+
+        resources.index_buffer = create_buffer(root, backend.device, "Debug geometry index buffer", index_properties,
+                                               backend.vma_instance, MemUsage::CPU_To_GPU);
+
+        resources.vertex_buffer_position = create_buffer(root, backend.device, "Debug geometry vertex buffer",
+                                                         vertex_properties, backend.vma_instance, MemUsage::CPU_To_GPU);
 
         std::vector<Mesh> meshes;
         const Mesh&       icosahedron = meshes.emplace_back(ModelLoader::loadOBJ("res/model/icosahedron.obj"));
@@ -154,12 +155,14 @@ DebugGeometryPassResources create_debug_geometry_pass_resources(ReaperRoot& root
         resources.vertex_buffer_offset += icosahedron_alloc.vertex_count;
         resources.index_buffer_offset += icosahedron_alloc.index_count;
 
-        upload_buffer_data(
-            backend.device, backend.vma_instance, resources.vertex_buffer_position, icosahedron.positions.data(),
-            icosahedron.positions.size() * sizeof(icosahedron.positions[0]), icosahedron_alloc.vertex_offset);
+        upload_buffer_data(backend.device, backend.vma_instance, resources.vertex_buffer_position, vertex_properties,
+                           icosahedron.positions.data(),
+                           icosahedron.positions.size() * sizeof(icosahedron.positions.data()[0]),
+                           icosahedron_alloc.vertex_offset);
 
-        upload_buffer_data(backend.device, backend.vma_instance, resources.index_buffer, icosahedron.indexes.data(),
-                           icosahedron.indexes.size() * sizeof(icosahedron.indexes[0]), icosahedron_alloc.index_offset);
+        upload_buffer_data(backend.device, backend.vma_instance, resources.index_buffer, index_properties,
+                           icosahedron.indexes.data(), icosahedron.indexes.size() * sizeof(icosahedron.indexes[0]),
+                           icosahedron_alloc.index_offset);
     }
 
     return resources;
@@ -200,8 +203,8 @@ void upload_debug_geometry_build_cmds_pass_frame_resources(VulkanBackend& backen
         out_alloc.vertex_offset = in_alloc.vertex_offset;
     }
 
-    upload_buffer_data(backend.device, backend.vma_instance, resources.build_cmds_constants, &constants,
-                       sizeof(constants));
+    upload_buffer_data_deprecated(backend.device, backend.vma_instance, resources.build_cmds_constants, &constants,
+                                  sizeof(constants));
 }
 
 void update_debug_geometry_build_cmds_pass_descriptor_sets(DescriptorWriteHelper&            write_helper,

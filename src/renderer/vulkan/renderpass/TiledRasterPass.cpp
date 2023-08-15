@@ -200,12 +200,12 @@ TiledRasterResources create_tiled_raster_pass_resources(ReaperRoot& root, Vulkan
     resources.light_raster_descriptor_sets[1] = dsets[5];
 
     {
+        const GPUBufferProperties properties = DefaultGPUBufferProperties(
+            MaxVertexCount, sizeof(hlsl_float3), GPUBufferUsage::StorageBuffer | GPUBufferUsage::VertexBuffer);
+
         resources.vertex_buffer_offset = 0;
-        resources.vertex_buffer_position =
-            create_buffer(root, backend.device, "Lighting vertex buffer",
-                          DefaultGPUBufferProperties(MaxVertexCount, sizeof(hlsl_float3),
-                                                     GPUBufferUsage::StorageBuffer | GPUBufferUsage::VertexBuffer),
-                          backend.vma_instance, MemUsage::CPU_To_GPU);
+        resources.vertex_buffer_position = create_buffer(root, backend.device, "Lighting vertex buffer", properties,
+                                                         backend.vma_instance, MemUsage::CPU_To_GPU);
 
         std::vector<Mesh> meshes;
         const Mesh&       icosahedron = meshes.emplace_back(ModelLoader::loadOBJ("res/model/icosahedron.obj"));
@@ -217,9 +217,10 @@ TiledRasterResources create_tiled_raster_pass_resources(ReaperRoot& root, Vulkan
         resources.vertex_buffer_offset += icosahedron_alloc.vertex_count;
 
         // FIXME It's assumed here that the mesh indices are flat
-        upload_buffer_data(
-            backend.device, backend.vma_instance, resources.vertex_buffer_position, icosahedron.positions.data(),
-            icosahedron.positions.size() * sizeof(icosahedron.positions[0]), icosahedron_alloc.vertex_offset);
+        upload_buffer_data(backend.device, backend.vma_instance, resources.vertex_buffer_position, properties,
+                           icosahedron.positions.data(),
+                           icosahedron.positions.size() * sizeof(icosahedron.positions[0]),
+                           icosahedron_alloc.vertex_offset);
     }
 
     resources.light_volume_buffer = create_buffer(
@@ -339,13 +340,13 @@ void upload_tiled_raster_pass_frame_resources(VulkanBackend&            backend,
     if (tiled_lighting_frame.light_volumes.empty())
         return;
 
-    upload_buffer_data(backend.device, backend.vma_instance, resources.light_volume_buffer,
-                       tiled_lighting_frame.light_volumes.data(),
-                       tiled_lighting_frame.light_volumes.size() * sizeof(LightVolumeInstance));
+    upload_buffer_data_deprecated(backend.device, backend.vma_instance, resources.light_volume_buffer,
+                                  tiled_lighting_frame.light_volumes.data(),
+                                  tiled_lighting_frame.light_volumes.size() * sizeof(LightVolumeInstance));
 
-    upload_buffer_data(backend.device, backend.vma_instance, resources.proxy_volume_buffer,
-                       tiled_lighting_frame.proxy_volumes.data(),
-                       tiled_lighting_frame.proxy_volumes.size() * sizeof(ProxyVolumeInstance));
+    upload_buffer_data_deprecated(backend.device, backend.vma_instance, resources.proxy_volume_buffer,
+                                  tiled_lighting_frame.proxy_volumes.data(),
+                                  tiled_lighting_frame.proxy_volumes.size() * sizeof(ProxyVolumeInstance));
 }
 
 void record_tile_depth_pass_command_buffer(CommandBuffer& cmdBuffer, const TiledRasterResources& resources,

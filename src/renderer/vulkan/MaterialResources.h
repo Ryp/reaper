@@ -28,8 +28,9 @@ struct StagingEntry
 
 struct ResourceStagingArea
 {
-    u32        offset_bytes; // FIXME u32 enough?
-    BufferInfo staging_buffer;
+    u32                 offset_bytes; // FIXME u32 enough?
+    GPUBufferProperties buffer_properties;
+    BufferInfo          staging_buffer;
     // Setup buffer copy regions for each mip level
     std::vector<VkBufferImageCopy2> bufferCopyRegions;
 

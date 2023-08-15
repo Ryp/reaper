@@ -105,10 +105,10 @@ void update_shadow_map_pass_descriptor_sets(DescriptorWriteHelper& write_helper,
 
             VkDescriptorSet descriptor_set = resources.descriptor_sets[shadow_pass.pass_index];
 
-            const GPUBufferView constant_view =
-                get_buffer_view(resources.passConstantBuffer.properties, BufferSubresource{shadow_pass.pass_index, 1});
+            const GPUBufferView constant_view = get_buffer_view(resources.passConstantBuffer.properties_deprecated,
+                                                                BufferSubresource{shadow_pass.pass_index, 1});
             const GPUBufferView instances_view =
-                get_buffer_view(resources.instanceConstantBuffer.properties,
+                get_buffer_view(resources.instanceConstantBuffer.properties_deprecated,
                                 BufferSubresource{shadow_pass.instance_offset, shadow_pass.instance_count});
 
             write_helper.append(descriptor_set, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
@@ -145,13 +145,13 @@ void upload_shadow_map_resources(VulkanBackend& backend, const PreparedData& pre
     if (prepared.shadow_instance_params.empty())
         return;
 
-    upload_buffer_data(backend.device, backend.vma_instance, resources.passConstantBuffer,
-                       prepared.shadow_pass_params.data(),
-                       prepared.shadow_pass_params.size() * sizeof(ShadowMapPassParams));
+    upload_buffer_data_deprecated(backend.device, backend.vma_instance, resources.passConstantBuffer,
+                                  prepared.shadow_pass_params.data(),
+                                  prepared.shadow_pass_params.size() * sizeof(ShadowMapPassParams));
 
-    upload_buffer_data(backend.device, backend.vma_instance, resources.instanceConstantBuffer,
-                       prepared.shadow_instance_params.data(),
-                       prepared.shadow_instance_params.size() * sizeof(ShadowMapInstanceParams));
+    upload_buffer_data_deprecated(backend.device, backend.vma_instance, resources.instanceConstantBuffer,
+                                  prepared.shadow_instance_params.data(),
+                                  prepared.shadow_instance_params.size() * sizeof(ShadowMapInstanceParams));
 }
 
 void record_shadow_map_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& prepared,
@@ -201,7 +201,7 @@ void record_shadow_map_command_buffer(CommandBuffer& cmdBuffer, const PreparedDa
             cmdBuffer.handle, meshlet_culling_resources.visible_indirect_draw_commands_buffer.handle,
             draw_params.command_buffer_offset, meshlet_culling_resources.counters_buffer.handle,
             draw_params.counter_buffer_offset, draw_params.command_buffer_max_count,
-            meshlet_culling_resources.visible_indirect_draw_commands_buffer.properties.element_size_bytes);
+            meshlet_culling_resources.visible_indirect_draw_commands_buffer.properties_deprecated.element_size_bytes);
 
         vkCmdEndRendering(cmdBuffer.handle);
     }

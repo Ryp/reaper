@@ -190,7 +190,7 @@ void update_vis_buffer_pass_descriptor_sets(DescriptorWriteHelper&              
                                             const FrameGraphTexture&             gbuffer_rt1)
 {
     const GPUBufferView visible_index_buffer_view =
-        get_buffer_view(meshlet_culling_resources.visible_index_buffer.properties,
+        get_buffer_view(meshlet_culling_resources.visible_index_buffer.properties_deprecated,
                         get_meshlet_visible_index_buffer_pass(prepared.main_culling_pass_index));
 
     write_helper.append(resources.descriptor_set, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
@@ -246,9 +246,9 @@ void upload_vis_buffer_pass_frame_resources(VulkanBackend& backend, const Prepar
     if (prepared.forward_instances.empty())
         return;
 
-    upload_buffer_data(backend.device, backend.vma_instance, pass_resources.instancesConstantBuffer,
-                       prepared.forward_instances.data(),
-                       prepared.forward_instances.size() * sizeof(ForwardInstanceParams));
+    upload_buffer_data_deprecated(backend.device, backend.vma_instance, pass_resources.instancesConstantBuffer,
+                                  prepared.forward_instances.data(),
+                                  prepared.forward_instances.size() * sizeof(ForwardInstanceParams));
 }
 
 void record_vis_buffer_pass_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& prepared,
@@ -300,7 +300,7 @@ void record_vis_buffer_pass_command_buffer(CommandBuffer& cmdBuffer, const Prepa
         cmdBuffer.handle, meshlet_culling_resources.visible_indirect_draw_commands_buffer.handle,
         draw_params.command_buffer_offset, meshlet_culling_resources.counters_buffer.handle,
         draw_params.counter_buffer_offset, draw_params.command_buffer_max_count,
-        meshlet_culling_resources.visible_indirect_draw_commands_buffer.properties.element_size_bytes);
+        meshlet_culling_resources.visible_indirect_draw_commands_buffer.properties_deprecated.element_size_bytes);
 
     vkCmdEndRendering(cmdBuffer.handle);
 }

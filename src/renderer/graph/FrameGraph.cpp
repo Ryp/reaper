@@ -41,9 +41,8 @@ const ResourceUsage& GetResourceUsage(const FrameGraph& framegraph, ResourceUsag
     return framegraph.ResourceUsages[resourceUsageHandle];
 }
 
-const Resource& GetResource(const FrameGraph& framegraph, const ResourceUsage& resourceUsage)
+const Resource& GetResource(const FrameGraph& framegraph, ResourceHandle resource_handle)
 {
-    const ResourceHandle resource_handle = resourceUsage.resource_handle;
     Assert(is_valid(resource_handle), "Invalid resource handle");
 
     if (resource_handle.is_texture)
@@ -52,15 +51,24 @@ const Resource& GetResource(const FrameGraph& framegraph, const ResourceUsage& r
         return framegraph.BufferResources[resource_handle.index];
 }
 
-Resource& GetResource(FrameGraph& framegraph, const ResourceUsage& resourceUsage)
+Resource& GetResource(FrameGraph& framegraph, ResourceHandle resource_handle)
 {
-    const ResourceHandle resource_handle = resourceUsage.resource_handle;
     Assert(is_valid(resource_handle), "Invalid resource handle");
 
     if (resource_handle.is_texture)
         return framegraph.TextureResources[resource_handle.index];
     else
         return framegraph.BufferResources[resource_handle.index];
+}
+
+const Resource& GetResource(const FrameGraph& framegraph, const ResourceUsage& resourceUsage)
+{
+    return GetResource(framegraph, resourceUsage.resource_handle);
+}
+
+Resource& GetResource(FrameGraph& framegraph, const ResourceUsage& resourceUsage)
+{
+    return GetResource(framegraph, resourceUsage.resource_handle);
 }
 
 namespace

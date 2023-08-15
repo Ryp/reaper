@@ -153,6 +153,7 @@ FrameGraphTexture get_frame_graph_texture(FrameGraphResources& resources, const 
 
     const ResourceUsage& usage = GetResourceUsage(framegraph, usage_handle);
     const ResourceHandle resource_handle = usage.resource_handle;
+    const Resource&      resource = GetResource(framegraph, resource_handle);
     Assert(resource_handle.is_texture, "Wrong handle");
 
     const ImageInfo&   texture = resources.textures[resource_handle.index];
@@ -162,7 +163,7 @@ FrameGraphTexture get_frame_graph_texture(FrameGraphResources& resources, const 
     Assert(view_handle != VK_NULL_HANDLE);
 
     return FrameGraphTexture{
-        .properties = texture.properties,
+        .properties = resource.properties.texture,
         .view = usage.view.texture,
         .handle = texture.handle,
         .view_handle = view_handle,
@@ -187,12 +188,13 @@ FrameGraphBuffer get_frame_graph_buffer(FrameGraphResources& resources, const Fr
 
     const ResourceUsage& usage = GetResourceUsage(framegraph, usage_handle);
     const ResourceHandle resource_handle = usage.resource_handle;
+    const Resource&      resource = GetResource(framegraph, resource_handle);
     Assert(!resource_handle.is_texture, "Wrong handle");
 
     const BufferInfo& buffer = resources.buffers[usage.resource_handle.index];
 
     return FrameGraphBuffer{
-        .properties = buffer.properties,
+        .properties = resource.properties.buffer,
         .view = usage.view.buffer,
         .handle = buffer.handle,
     };

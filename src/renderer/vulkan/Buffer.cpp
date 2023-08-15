@@ -97,11 +97,16 @@ BufferInfo create_buffer(ReaperRoot& root, VkDevice device, const char* debug_st
 
     VulkanSetDebugName(device, buffer, debug_string);
 
-    return {buffer, properties, allocation};
+    return BufferInfo{
+        .handle = buffer,
+        .allocation = allocation,
+        .properties_deprecated = properties,
+    };
 }
 
-void upload_buffer_data(VkDevice device, const VmaAllocator& allocator, const BufferInfo& buffer, const void* data,
-                        std::size_t size, u32 offset_elements)
+void upload_buffer_data(VkDevice device, const VmaAllocator& allocator, const BufferInfo& buffer,
+                        const GPUBufferProperties& buffer_properties, const void* data, std::size_t size,
+                        u32 offset_elements)
 {
     u8* writePtr = nullptr;
 
@@ -110,7 +115,7 @@ void upload_buffer_data(VkDevice device, const VmaAllocator& allocator, const Bu
     VmaAllocationInfo allocation_info;
     vmaGetAllocationInfo(allocator, buffer.allocation, &allocation_info);
 
-    const u64 offset_bytes = buffer.properties.stride * offset_elements;
+    const u64 offset_bytes = buffer_properties.stride * offset_elements;
 
     Assert(vkMapMemory(device, allocation_info.deviceMemory, allocation_info.offset + offset_bytes, size, VK_FLAGS_NONE,
                        reinterpret_cast<void**>(&writePtr))
@@ -119,20 +124,26 @@ void upload_buffer_data(VkDevice device, const VmaAllocator& allocator, const Bu
     Assert(size <= allocation_info.size,
            fmt::format("copy src of size {} on dst of size {}", size, allocation_info.size));
 
-    if (buffer.properties.element_size_bytes == buffer.properties.stride)
+    if (buffer_properties.element_size_bytes == buffer_properties.stride)
     {
         memcpy(writePtr, data, size);
     }
     else
     {
-        for (u32 i = 0; i < buffer.properties.element_count; i++)
+        for (u32 i = 0; i < buffer_properties.element_count; i++)
         {
             const char* data_char = static_cast<const char*>(data);
-            memcpy(writePtr + i * buffer.properties.stride, data_char + i * buffer.properties.element_size_bytes,
-                   buffer.properties.element_size_bytes);
+            memcpy(writePtr + i * buffer_properties.stride, data_char + i * buffer_properties.element_size_bytes,
+                   buffer_properties.element_size_bytes);
         }
     }
 
     vkUnmapMemory(device, allocation_info.deviceMemory);
+}
+
+void upload_buffer_data_deprecated(VkDevice device, const VmaAllocator& allocator, const BufferInfo& buffer,
+                                   const void* data, std::size_t size, u32 offset_elements)
+{
+    return upload_buffer_data(device, allocator, buffer, buffer.properties_deprecated, data, size, offset_elements);
 }
 } // namespace Reaper

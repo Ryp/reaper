@@ -88,8 +88,8 @@ namespace
                 log_debug(root, "vulkan: cpu texture upload: mip = {}, array = {}, size = {}, offset = {}", mipIdx,
                           arrayIdx, size_bytes, staging.offset_bytes);
 
-                upload_buffer_data(backend.device, backend.vma_instance, staging.staging_buffer, input_data_ptr,
-                                   size_bytes, staging.offset_bytes);
+                upload_buffer_data(backend.device, backend.vma_instance, staging.staging_buffer,
+                                   staging.buffer_properties, input_data_ptr, size_bytes, staging.offset_bytes);
 
                 // Setup a buffer image copy structure for the current mip level
                 staging.bufferCopyRegions.emplace_back(VkBufferImageCopy2{
@@ -109,7 +109,7 @@ namespace
                 // Keep track of offset
                 staging.offset_bytes += size_bytes;
 
-                Assert(staging.offset_bytes < staging.staging_buffer.properties.element_count, "OOB");
+                Assert(staging.offset_bytes < staging.buffer_properties.element_count, "OOB");
             }
         }
 
@@ -183,7 +183,7 @@ namespace
 
         new_texture.texture = image_info;
 
-        const GPUTextureView default_view = DefaultGPUTextureView(image_info.properties);
+        const GPUTextureView default_view = DefaultGPUTextureView(staging_entry.texture_properties);
         new_texture.default_view = create_image_view(root, backend.device, image_info, default_view);
 
         return resource_index;
@@ -194,14 +194,16 @@ MaterialResources create_material_resources(ReaperRoot& root, VulkanBackend& bac
 {
     constexpr u32 StagingBufferSizeBytes = 8_MiB;
 
+    const GPUBufferProperties properties =
+        DefaultGPUBufferProperties(StagingBufferSizeBytes, sizeof(u8), GPUBufferUsage::TransferSrc);
+
     BufferInfo staging_buffer =
-        create_buffer(root, backend.device, "Staging Buffer",
-                      DefaultGPUBufferProperties(StagingBufferSizeBytes, sizeof(u8), GPUBufferUsage::TransferSrc),
-                      backend.vma_instance, MemUsage::CPU_Only);
+        create_buffer(root, backend.device, "Staging Buffer", properties, backend.vma_instance, MemUsage::CPU_Only);
 
     ResourceStagingArea staging = {};
     staging.offset_bytes = 0;
     staging.staging_buffer = staging_buffer;
+    staging.buffer_properties = properties;
 
     log_debug(root, "vulkan: copy texture to staging texture");
 

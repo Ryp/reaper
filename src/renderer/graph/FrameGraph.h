@@ -86,6 +86,8 @@ struct DirectedAcyclicGraph
 };
 
 const ResourceUsage& GetResourceUsage(const FrameGraph& framegraph, ResourceUsageHandle resourceUsageHandle);
+const Resource&      GetResource(const FrameGraph& framegraph, ResourceHandle resource_handle);
+Resource&            GetResource(FrameGraph& framegraph, ResourceHandle resource_handle);
 const Resource&      GetResource(const FrameGraph& framegraph, const ResourceUsage& resourceUsage);
 Resource&            GetResource(FrameGraph& framegraph, const ResourceUsage& resourceUsage);
 

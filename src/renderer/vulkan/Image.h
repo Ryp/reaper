@@ -21,9 +21,8 @@ struct ReaperRoot;
 
 struct ImageInfo
 {
-    VkImage              handle;
-    VmaAllocation        allocation;
-    GPUTextureProperties properties;
+    VkImage       handle;
+    VmaAllocation allocation;
 };
 
 PixelFormat VulkanToPixelFormat(VkFormat format);
