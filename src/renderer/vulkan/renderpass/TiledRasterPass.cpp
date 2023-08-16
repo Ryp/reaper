@@ -29,6 +29,7 @@
 #include "mesh/ModelLoader.h"
 #include "profiling/Scope.h"
 
+#include "copy_to_depth_from_hzb.share.hlsl"
 #include "tiled_lighting/classify_volume.share.hlsl"
 #include "tiled_lighting/tile_depth_downsample.share.hlsl"
 
@@ -84,7 +85,8 @@ TiledRasterResources create_tiled_raster_pass_resources(ReaperRoot& root, Vulkan
         std::vector<VkPipelineShaderStageCreateInfo> shader_stages = {
             default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_VERTEX_BIT,
                                                       shader_modules.fullscreen_triangle_vs),
-            default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_FRAGMENT_BIT, shader_modules.copy_to_depth_fs),
+            default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_FRAGMENT_BIT,
+                                                      shader_modules.copy_to_depth_from_hzb_fs),
         };
 
         std::vector<VkDescriptorSetLayoutBinding> descriptorSetLayoutBinding = {
@@ -94,8 +96,11 @@ TiledRasterResources create_tiled_raster_pass_resources(ReaperRoot& root, Vulkan
         VkDescriptorSetLayout descriptor_set_layout =
             create_descriptor_set_layout(backend.device, descriptorSetLayoutBinding);
 
-        VkPipelineLayout pipeline_layout =
-            create_pipeline_layout(backend.device, std::span(&descriptor_set_layout, 1));
+        const VkPushConstantRange constant_range = {VK_SHADER_STAGE_FRAGMENT_BIT, 0,
+                                                    sizeof(CopyDepthFromHZBPushConstants)};
+
+        VkPipelineLayout pipeline_layout = create_pipeline_layout(
+            backend.device, std::span(&descriptor_set_layout, 1), std::span(&constant_range, 1));
 
         GraphicsPipelineProperties pipeline_properties = default_graphics_pipeline_properties();
         pipeline_properties.depth_stencil.depthTestEnable = VK_TRUE;
@@ -185,19 +190,18 @@ TiledRasterResources create_tiled_raster_pass_resources(ReaperRoot& root, Vulkan
     }
 
     std::vector<VkDescriptorSetLayout> dset_layouts = {
-        resources.tile_depth_descriptor_set_layout,   resources.depth_copy_descriptor_set_layout,
-        resources.depth_copy_descriptor_set_layout,   resources.classify_descriptor_set_layout,
-        resources.light_raster_descriptor_set_layout, resources.light_raster_descriptor_set_layout};
+        resources.tile_depth_descriptor_set_layout, resources.depth_copy_descriptor_set_layout,
+        resources.classify_descriptor_set_layout, resources.light_raster_descriptor_set_layout,
+        resources.light_raster_descriptor_set_layout};
     std::vector<VkDescriptorSet> dsets(dset_layouts.size());
 
     allocate_descriptor_sets(backend.device, backend.global_descriptor_pool, dset_layouts, dsets);
 
     resources.tile_depth_descriptor_set = dsets[0];
-    resources.depth_copy_descriptor_sets[0] = dsets[1];
-    resources.depth_copy_descriptor_sets[1] = dsets[2];
-    resources.classify_descriptor_set = dsets[3];
-    resources.light_raster_descriptor_sets[0] = dsets[4];
-    resources.light_raster_descriptor_sets[1] = dsets[5];
+    resources.depth_copy_descriptor_set = dsets[1];
+    resources.classify_descriptor_set = dsets[2];
+    resources.light_raster_descriptor_sets[0] = dsets[3];
+    resources.light_raster_descriptor_sets[1] = dsets[4];
 
     {
         const GPUBufferProperties properties = DefaultGPUBufferProperties(
@@ -280,13 +284,10 @@ void update_lighting_depth_downsample_descriptor_set(DescriptorWriteHelper&     
 
 void update_depth_copy_pass_descriptor_set(DescriptorWriteHelper&      write_helper,
                                            const TiledRasterResources& resources,
-                                           const FrameGraphTexture&    depth_min_src,
-                                           const FrameGraphTexture&    depth_max_src)
+                                           const FrameGraphTexture&    hzb_texture)
 {
-    write_helper.append(resources.depth_copy_descriptor_sets[0], 0, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-                        depth_min_src.default_view_handle, depth_min_src.image_layout);
-    write_helper.append(resources.depth_copy_descriptor_sets[1], 0, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-                        depth_max_src.default_view_handle, depth_max_src.image_layout);
+    write_helper.append(resources.depth_copy_descriptor_set, 0, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+                        hzb_texture.additional_views[0], hzb_texture.image_layout);
 }
 
 void update_classify_descriptor_set(DescriptorWriteHelper& write_helper, const TiledRasterResources& resources,
@@ -384,6 +385,9 @@ void record_depth_copy(CommandBuffer& cmdBuffer, const TiledRasterResources& res
     vkCmdSetViewport(cmdBuffer.handle, 0, 1, &viewport);
     vkCmdSetScissor(cmdBuffer.handle, 0, 1, &pass_rect);
 
+    vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, resources.depth_copy_pipeline_layout, 0,
+                            1, &resources.depth_copy_descriptor_set, 0, nullptr);
+
     for (u32 depth_index = 0; depth_index < 2; depth_index++)
     {
         const FrameGraphTexture   depth_dst = depth_dsts[depth_index];
@@ -395,8 +399,11 @@ void record_depth_copy(CommandBuffer& cmdBuffer, const TiledRasterResources& res
 
         vkCmdBeginRendering(cmdBuffer.handle, &rendering_info);
 
-        vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, resources.depth_copy_pipeline_layout,
-                                0, 1, &resources.depth_copy_descriptor_sets[depth_index], 0, nullptr);
+        CopyDepthFromHZBPushConstants consts;
+        consts.copy_min = (depth_index == 0) ? 1 : 0;
+
+        vkCmdPushConstants(cmdBuffer.handle, resources.depth_copy_pipeline_layout, VK_SHADER_STAGE_FRAGMENT_BIT, 0,
+                           sizeof(consts), &consts);
 
         vkCmdDraw(cmdBuffer.handle, 3, 1, 0, 0);
 

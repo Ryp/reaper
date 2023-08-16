@@ -44,6 +44,7 @@ ShaderModules create_shader_modules(ReaperRoot& /*root*/, VulkanBackend& backend
     ShaderModules modules = {};
 
     modules.copy_to_depth_fs = create_shader_module(backend.device, "copy_to_depth.frag.spv");
+    modules.copy_to_depth_from_hzb_fs = create_shader_module(backend.device, "copy_to_depth_from_hzb.frag.spv");
     modules.cull_meshlet_cs = create_shader_module(backend.device, "meshlet/cull_meshlet.comp.spv");
     modules.cull_triangle_batch_cs = create_shader_module(backend.device, "meshlet/cull_triangle_batch.comp.spv");
     modules.debug_geometry_build_cmds_cs = create_shader_module(backend.device, "debug_geometry/build_cmds.comp.spv");
@@ -82,6 +83,7 @@ ShaderModules create_shader_modules(ReaperRoot& /*root*/, VulkanBackend& backend
 void destroy_shader_modules(VulkanBackend& backend, ShaderModules& shader_modules)
 {
     vkDestroyShaderModule(backend.device, shader_modules.copy_to_depth_fs, nullptr);
+    vkDestroyShaderModule(backend.device, shader_modules.copy_to_depth_from_hzb_fs, nullptr);
     vkDestroyShaderModule(backend.device, shader_modules.cull_meshlet_cs, nullptr);
     vkDestroyShaderModule(backend.device, shader_modules.cull_triangle_batch_cs, nullptr);
     vkDestroyShaderModule(backend.device, shader_modules.debug_geometry_build_cmds_cs, nullptr);

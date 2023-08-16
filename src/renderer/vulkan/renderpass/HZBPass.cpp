@@ -81,12 +81,14 @@ void update_hzb_pass_descriptor_set(DescriptorWriteHelper& write_helper, const H
     write_helper.append(resources.descriptor_set, Slot_SceneDepth, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
                         scene_depth.default_view_handle, scene_depth.image_layout);
 
-    const u32                           hzb_mip_count = 4; // FIXME
+    const u32                        hzb_mip_count = hzb_texture.properties.mip_count;
     std::span<VkDescriptorImageInfo> hzb_mips = write_helper.new_image_infos(hzb_mip_count);
+
+    Assert(hzb_texture.additional_views.size() == hzb_mip_count);
 
     for (u32 index = 0; index < hzb_mips.size(); index += 1)
     {
-        hzb_mips[index] = create_descriptor_image_info(hzb_texture.default_view_handle, hzb_texture.image_layout);
+        hzb_mips[index] = create_descriptor_image_info(hzb_texture.additional_views[index], hzb_texture.image_layout);
     }
 
     write_helper.writes.push_back(create_image_descriptor_write(resources.descriptor_set, Slot_HZB_mips,
@@ -94,13 +96,12 @@ void update_hzb_pass_descriptor_set(DescriptorWriteHelper& write_helper, const H
 }
 
 void record_hzb_command_buffer(CommandBuffer& cmdBuffer, const HZBPassResources& pass_resources,
-                               VkExtent2D depth_extent)
+                               VkExtent2D depth_extent, VkExtent2D hzb_extent)
 {
     vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE, pass_resources.hzb_pipe.handle);
 
     HZBReducePushConstants push_constants;
-    push_constants.extent_ts = glm::uvec2(depth_extent.width, depth_extent.height);
-    push_constants.extent_ts_inv =
+    push_constants.depth_extent_ts_inv =
         glm::fvec2(1.f / static_cast<float>(depth_extent.width), 1.f / static_cast<float>(depth_extent.height));
 
     vkCmdPushConstants(cmdBuffer.handle, pass_resources.hzb_pipe.layout, VK_SHADER_STAGE_COMPUTE_BIT, 0,
@@ -109,10 +110,9 @@ void record_hzb_command_buffer(CommandBuffer& cmdBuffer, const HZBPassResources&
     vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE, pass_resources.hzb_pipe.layout, 0, 1,
                             &pass_resources.descriptor_set, 0, nullptr);
 
-    // Assert(HZBRes % (HZBReduceThreadCountX * HZBReduceThreadCountY) == 0);
     vkCmdDispatch(cmdBuffer.handle,
-                  div_round_up(depth_extent.width, HZBReduceThreadCountX * 2),
-                  div_round_up(depth_extent.height, HZBReduceThreadCountY * 2),
+                  div_round_up(hzb_extent.width, HZBReduceThreadCountX),
+                  div_round_up(hzb_extent.height, HZBReduceThreadCountY),
                   1);
 }
 } // namespace Reaper

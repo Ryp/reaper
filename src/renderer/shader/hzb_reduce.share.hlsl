@@ -14,6 +14,8 @@
 #define Slot_SceneDepth         1
 #define Slot_HZB_mips           2
 
+static const hlsl_uint MinWaveLaneCount = 8; // FIXME
+
 static const hlsl_uint HZBMaxMipCount = 10;
 
 static const hlsl_uint HZBReduceThreadCountX = 8;
@@ -21,8 +23,7 @@ static const hlsl_uint HZBReduceThreadCountY = 8;
 
 struct HZBReducePushConstants
 {
-    hlsl_uint2  extent_ts;
-    hlsl_float2 extent_ts_inv;
+    hlsl_float2 depth_extent_ts_inv;
 };
 
 #endif

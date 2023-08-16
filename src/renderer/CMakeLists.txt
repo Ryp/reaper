@@ -145,6 +145,7 @@ endif()
 set(REAPER_SHADER_DIR ${CMAKE_CURRENT_SOURCE_DIR}/shader)
 set(REAPER_SHADER_SRCS
     ${REAPER_SHADER_DIR}/copy_to_depth.frag.hlsl
+    ${REAPER_SHADER_DIR}/copy_to_depth_from_hzb.frag.hlsl
     ${REAPER_SHADER_DIR}/debug_geometry/build_cmds.comp.hlsl
     ${REAPER_SHADER_DIR}/debug_geometry/draw.frag.hlsl
     ${REAPER_SHADER_DIR}/debug_geometry/draw.vert.hlsl

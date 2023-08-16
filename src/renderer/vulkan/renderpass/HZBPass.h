@@ -53,6 +53,6 @@ void update_hzb_pass_descriptor_set(DescriptorWriteHelper& write_helper, const H
 struct CommandBuffer;
 
 void record_hzb_command_buffer(CommandBuffer& cmdBuffer, const HZBPassResources& pass_resources,
-                               VkExtent2D depth_extent);
+                               VkExtent2D depth_extent, VkExtent2D hzb_extent);
 
 } // namespace Reaper

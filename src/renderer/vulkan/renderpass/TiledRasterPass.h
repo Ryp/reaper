@@ -34,7 +34,7 @@ struct TiledRasterResources
     VkPipelineLayout      depth_copy_pipeline_layout;
     VkPipeline            depth_copy_pipeline;
 
-    std::array<VkDescriptorSet, 2> depth_copy_descriptor_sets;
+    VkDescriptorSet depth_copy_descriptor_set;
 
     VkDescriptorSetLayout light_raster_descriptor_set_layout;
     VkPipelineLayout      light_raster_pipeline_layout;
@@ -80,8 +80,7 @@ void update_lighting_depth_downsample_descriptor_set(DescriptorWriteHelper&     
 
 void update_depth_copy_pass_descriptor_set(DescriptorWriteHelper&      write_helper,
                                            const TiledRasterResources& resources,
-                                           const FrameGraphTexture&    depth_min_src,
-                                           const FrameGraphTexture&    depth_max_src);
+                                           const FrameGraphTexture&    hzb_texture);
 
 void update_classify_descriptor_set(DescriptorWriteHelper& write_helper, const TiledRasterResources& resources,
                                     const FrameGraphBuffer& classification_counters,

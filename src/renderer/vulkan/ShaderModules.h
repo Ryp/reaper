@@ -17,6 +17,7 @@ struct VulkanBackend;
 struct ShaderModules
 {
     VkShaderModule copy_to_depth_fs;
+    VkShaderModule copy_to_depth_from_hzb_fs;
     VkShaderModule cull_meshlet_cs;
     VkShaderModule cull_triangle_batch_cs;
     VkShaderModule debug_geometry_build_cmds_cs;
