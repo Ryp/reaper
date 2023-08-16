@@ -25,7 +25,7 @@ struct FrameGraphTexture
     GPUTextureView       view;
 
     VkImage                         handle;
-    VkImageView                     view_handle;
+    VkImageView                     default_view_handle;
     nonstd::span<const VkImageView> additional_views;
     VkImageLayout                   image_layout;
 };
@@ -33,7 +33,7 @@ struct FrameGraphTexture
 struct FrameGraphBuffer
 {
     GPUBufferProperties properties;
-    GPUBufferView       view;
+    GPUBufferView       default_view;
 
     VkBuffer handle;
 };

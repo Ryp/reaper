@@ -181,7 +181,7 @@ void record_shadow_map_command_buffer(CommandBuffer& cmdBuffer, const PreparedDa
         vkCmdSetScissor(cmdBuffer.handle, 0, 1, &pass_rect);
 
         VkRenderingAttachmentInfo depth_attachment =
-            default_rendering_attachment_info(shadow_map.view_handle, shadow_map.image_layout);
+            default_rendering_attachment_info(shadow_map.default_view_handle, shadow_map.image_layout);
         depth_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
         depth_attachment.clearValue = VkClearDepthStencil(ShadowUseReverseZ ? 0.f : 1.f, 0);
 

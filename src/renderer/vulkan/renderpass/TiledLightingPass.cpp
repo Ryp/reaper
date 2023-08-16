@@ -150,13 +150,15 @@ void update_tiled_lighting_pass_descriptor_sets(DescriptorWriteHelper&          
     VkDescriptorSet dset = resources.tiled_lighting_descriptor_set;
     write_helper.append(dset, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, resources.tiled_lighting_constant_buffer.handle);
     write_helper.append(dset, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, light_list_buffer.handle);
-    write_helper.append(dset, 2, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, gbuffer_rt0.view_handle, gbuffer_rt0.image_layout);
-    write_helper.append(dset, 3, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, gbuffer_rt1.view_handle, gbuffer_rt1.image_layout);
-    write_helper.append(dset, 4, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, main_view_depth.view_handle,
+    write_helper.append(dset, 2, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, gbuffer_rt0.default_view_handle,
+                        gbuffer_rt0.image_layout);
+    write_helper.append(dset, 3, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, gbuffer_rt1.default_view_handle,
+                        gbuffer_rt1.image_layout);
+    write_helper.append(dset, 4, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, main_view_depth.default_view_handle,
                         main_view_depth.image_layout);
     write_helper.append(dset, 5, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, lighting_resources.pointLightBuffer.handle);
     write_helper.append(dset, 6, sampler_resources.shadow_map_sampler);
-    write_helper.append(dset, 7, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, lighting_output.view_handle,
+    write_helper.append(dset, 7, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, lighting_output.default_view_handle,
                         lighting_output.image_layout);
     write_helper.append(dset, 8, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, tile_debug_buffer.handle);
 
@@ -168,7 +170,7 @@ void update_tiled_lighting_pass_descriptor_sets(DescriptorWriteHelper&          
         {
             const auto& shadow_map = shadow_maps[index];
             shadow_map_image_infos[index] =
-                create_descriptor_image_info(shadow_map.view_handle, shadow_map.image_layout);
+                create_descriptor_image_info(shadow_map.default_view_handle, shadow_map.image_layout);
         }
 
         write_helper.writes.push_back(
@@ -218,7 +220,7 @@ void update_tiled_lighting_debug_pass_descriptor_sets(DescriptorWriteHelper&    
 {
     VkDescriptorSet dset = resources.tiled_lighting_debug_descriptor_set;
     write_helper.append(dset, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, tile_debug_buffer.handle);
-    write_helper.append(dset, 1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, tile_debug_texture.view_handle,
+    write_helper.append(dset, 1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, tile_debug_texture.default_view_handle,
                         tile_debug_texture.image_layout);
 }
 

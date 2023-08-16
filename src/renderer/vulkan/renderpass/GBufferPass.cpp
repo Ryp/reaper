@@ -196,15 +196,15 @@ void record_gbuffer_pass_command_buffer(CommandBuffer& cmdBuffer, const Prepared
     vkCmdSetScissor(cmdBuffer.handle, 0, 1, &pass_rect);
 
     VkRenderingAttachmentInfo rt0_attachment =
-        default_rendering_attachment_info(gbuffer_rt0.view_handle, gbuffer_rt0.image_layout);
+        default_rendering_attachment_info(gbuffer_rt0.default_view_handle, gbuffer_rt0.image_layout);
 
     VkRenderingAttachmentInfo rt1_attachment =
-        default_rendering_attachment_info(gbuffer_rt1.view_handle, gbuffer_rt1.image_layout);
+        default_rendering_attachment_info(gbuffer_rt1.default_view_handle, gbuffer_rt1.image_layout);
 
     std::vector<VkRenderingAttachmentInfo> color_attachments = {rt0_attachment, rt1_attachment};
 
     VkRenderingAttachmentInfo depth_attachment =
-        default_rendering_attachment_info(depth_buffer.view_handle, depth_buffer.image_layout);
+        default_rendering_attachment_info(depth_buffer.default_view_handle, depth_buffer.image_layout);
 
     const VkRenderingInfo rendering_info = default_rendering_info(pass_rect, color_attachments, &depth_attachment);
 

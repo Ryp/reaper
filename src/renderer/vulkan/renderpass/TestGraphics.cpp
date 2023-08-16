@@ -982,8 +982,8 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
             FrameGraphBuffer draw_counter =
                 get_frame_graph_buffer(resources.framegraph_resources, framegraph, debug_geometry_clear.draw_counter);
 
-            vkCmdFillBuffer(cmdBuffer.handle, draw_counter.handle, draw_counter.view.offset_bytes,
-                            draw_counter.view.size_bytes, clear_value);
+            vkCmdFillBuffer(cmdBuffer.handle, draw_counter.handle, draw_counter.default_view.offset_bytes,
+                            draw_counter.default_view.size_bytes, clear_value);
 
             record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
                                        debug_geometry_clear.pass_handle, false);
@@ -1071,8 +1071,8 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
             FrameGraphBuffer light_lists =
                 get_frame_graph_buffer(resources.framegraph_resources, framegraph, tile_depth_copy.light_list_clear);
 
-            vkCmdFillBuffer(cmdBuffer.handle, light_lists.handle, light_lists.view.offset_bytes,
-                            light_lists.view.size_bytes, clear_value);
+            vkCmdFillBuffer(cmdBuffer.handle, light_lists.handle, light_lists.default_view.offset_bytes,
+                            light_lists.default_view.size_bytes, clear_value);
 
             record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
                                        tile_depth_copy.pass_handle, false);
@@ -1087,8 +1087,8 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
             FrameGraphBuffer counters = get_frame_graph_buffer(resources.framegraph_resources, framegraph,
                                                                light_classify.classification_counters);
 
-            vkCmdFillBuffer(cmdBuffer.handle, counters.handle, counters.view.offset_bytes, counters.view.size_bytes,
-                            clear_value);
+            vkCmdFillBuffer(cmdBuffer.handle, counters.handle, counters.default_view.offset_bytes,
+                            counters.default_view.size_bytes, clear_value);
 
             record_light_classify_command_buffer(cmdBuffer, tiled_lighting_frame, resources.tiled_raster_resources);
 
@@ -1175,8 +1175,8 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
             FrameGraphBuffer histogram_buffer =
                 get_frame_graph_buffer(resources.framegraph_resources, framegraph, histogram_clear.histogram_buffer);
 
-            vkCmdFillBuffer(cmdBuffer.handle, histogram_buffer.handle, histogram_buffer.view.offset_bytes,
-                            histogram_buffer.view.size_bytes, clear_value);
+            vkCmdFillBuffer(cmdBuffer.handle, histogram_buffer.handle, histogram_buffer.default_view.offset_bytes,
+                            histogram_buffer.default_view.size_bytes, clear_value);
 
             record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
                                        histogram_clear.pass_handle, false);

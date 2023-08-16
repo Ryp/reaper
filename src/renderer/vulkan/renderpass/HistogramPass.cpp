@@ -70,10 +70,9 @@ void update_histogram_pass_descriptor_set(DescriptorWriteHelper& write_helper, c
                                           const FrameGraphBuffer& histogram_buffer)
 {
     write_helper.append(resources.descriptor_set, 0, sampler_resources.linear_clamp);
-    write_helper.append(resources.descriptor_set, 1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, scene_hdr.view_handle,
+    write_helper.append(resources.descriptor_set, 1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, scene_hdr.default_view_handle,
                         scene_hdr.image_layout);
-    write_helper.append(resources.descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, histogram_buffer.handle,
-                        histogram_buffer.view.offset_bytes, histogram_buffer.view.size_bytes);
+    write_helper.append(resources.descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, histogram_buffer.handle);
 }
 
 void record_histogram_command_buffer(CommandBuffer& cmdBuffer, const FrameData& frame_data,

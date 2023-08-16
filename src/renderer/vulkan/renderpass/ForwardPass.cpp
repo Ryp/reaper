@@ -179,7 +179,7 @@ void update_forward_pass_descriptor_sets(DescriptorWriteHelper& write_helper, co
         {
             const auto& shadow_map = shadow_maps[index];
             shadow_map_image_infos[index] =
-                create_descriptor_image_info(shadow_map.view_handle, shadow_map.image_layout);
+                create_descriptor_image_info(shadow_map.default_view_handle, shadow_map.image_layout);
         }
 
         write_helper.writes.push_back(create_image_descriptor_write(
@@ -239,12 +239,12 @@ void record_forward_pass_command_buffer(CommandBuffer& cmdBuffer, const Prepared
     vkCmdSetScissor(cmdBuffer.handle, 0, 1, &pass_rect);
 
     VkRenderingAttachmentInfo color_attachment =
-        default_rendering_attachment_info(hdr_buffer.view_handle, hdr_buffer.image_layout);
+        default_rendering_attachment_info(hdr_buffer.default_view_handle, hdr_buffer.image_layout);
     color_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
     color_attachment.clearValue = VkClearColor({0.1f, 0.1f, 0.1f, 0.0f});
 
     VkRenderingAttachmentInfo depth_attachment =
-        default_rendering_attachment_info(depth_buffer.view_handle, depth_buffer.image_layout);
+        default_rendering_attachment_info(depth_buffer.default_view_handle, depth_buffer.image_layout);
     depth_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
     depth_attachment.clearValue = VkClearDepthStencil(MainPassUseReverseZ ? 0.f : 1.f, 0);
 

@@ -88,7 +88,7 @@ void record_gui_command_buffer(CommandBuffer& cmdBuffer, const GuiPassResources&
     vkCmdSetScissor(cmdBuffer.handle, 0, 1, &pass_rect);
 
     VkRenderingAttachmentInfo color_attachment =
-        default_rendering_attachment_info(gui_buffer.view_handle, gui_buffer.image_layout);
+        default_rendering_attachment_info(gui_buffer.default_view_handle, gui_buffer.image_layout);
     color_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
     color_attachment.clearValue = VkClearColor({0.f, 0.f, 0.f, 0.f});
 

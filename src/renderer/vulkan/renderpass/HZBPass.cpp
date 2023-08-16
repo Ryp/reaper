@@ -80,14 +80,14 @@ void update_hzb_pass_descriptor_set(DescriptorWriteHelper& write_helper, const H
 {
     write_helper.append(resources.descriptor_set, Slot_LinearClampSampler, sampler_resources.linear_clamp);
     write_helper.append(resources.descriptor_set, Slot_SceneDepth, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-                        scene_depth.view_handle, scene_depth.image_layout);
+                        scene_depth.default_view_handle, scene_depth.image_layout);
 
     const u32                           hzb_mip_count = 4; // FIXME
     nonstd::span<VkDescriptorImageInfo> hzb_mips = write_helper.new_image_infos(hzb_mip_count);
 
     for (u32 index = 0; index < hzb_mips.size(); index += 1)
     {
-        hzb_mips[index] = create_descriptor_image_info(hzb_texture.view_handle, hzb_texture.image_layout);
+        hzb_mips[index] = create_descriptor_image_info(hzb_texture.default_view_handle, hzb_texture.image_layout);
     }
 
     write_helper.writes.push_back(create_image_descriptor_write(resources.descriptor_set, Slot_HZB_mips,

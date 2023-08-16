@@ -271,11 +271,11 @@ void update_lighting_depth_downsample_descriptor_set(DescriptorWriteHelper&     
 {
     write_helper.append(resources.tile_depth_descriptor_set, 0, sampler_resources.linear_clamp);
     write_helper.append(resources.tile_depth_descriptor_set, 1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-                        scene_depth.view_handle, scene_depth.image_layout);
+                        scene_depth.default_view_handle, scene_depth.image_layout);
     write_helper.append(resources.tile_depth_descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
-                        tile_depth_min.view_handle, tile_depth_min.image_layout);
+                        tile_depth_min.default_view_handle, tile_depth_min.image_layout);
     write_helper.append(resources.tile_depth_descriptor_set, 3, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
-                        tile_depth_max.view_handle, tile_depth_max.image_layout);
+                        tile_depth_max.default_view_handle, tile_depth_max.image_layout);
 }
 
 void update_depth_copy_pass_descriptor_set(DescriptorWriteHelper&      write_helper,
@@ -284,9 +284,9 @@ void update_depth_copy_pass_descriptor_set(DescriptorWriteHelper&      write_hel
                                            const FrameGraphTexture&    depth_max_src)
 {
     write_helper.append(resources.depth_copy_descriptor_sets[0], 0, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-                        depth_min_src.view_handle, depth_min_src.image_layout);
+                        depth_min_src.default_view_handle, depth_min_src.image_layout);
     write_helper.append(resources.depth_copy_descriptor_sets[1], 0, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-                        depth_max_src.view_handle, depth_max_src.image_layout);
+                        depth_max_src.default_view_handle, depth_max_src.image_layout);
 }
 
 void update_classify_descriptor_set(DescriptorWriteHelper& write_helper, const TiledRasterResources& resources,
@@ -315,7 +315,7 @@ void update_light_raster_pass_descriptor_sets(DescriptorWriteHelper&      write_
     write_helper.append(resources.light_raster_descriptor_sets[RasterPass::Inner], 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
                         resources.light_volume_buffer.handle);
     write_helper.append(resources.light_raster_descriptor_sets[RasterPass::Inner], 1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-                        depth_min.view_handle, depth_min.image_layout);
+                        depth_min.default_view_handle, depth_min.image_layout);
     write_helper.append(resources.light_raster_descriptor_sets[RasterPass::Inner], 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                         light_list_buffer.handle);
     write_helper.append(resources.light_raster_descriptor_sets[RasterPass::Inner], 3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
@@ -324,7 +324,7 @@ void update_light_raster_pass_descriptor_sets(DescriptorWriteHelper&      write_
     write_helper.append(resources.light_raster_descriptor_sets[RasterPass::Outer], 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
                         resources.light_volume_buffer.handle);
     write_helper.append(resources.light_raster_descriptor_sets[RasterPass::Outer], 1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-                        depth_max.view_handle, depth_max.image_layout);
+                        depth_max.default_view_handle, depth_max.image_layout);
     write_helper.append(resources.light_raster_descriptor_sets[RasterPass::Outer], 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                         light_list_buffer.handle);
     write_helper.append(resources.light_raster_descriptor_sets[RasterPass::Outer], 3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
@@ -388,7 +388,7 @@ void record_depth_copy(CommandBuffer& cmdBuffer, const TiledRasterResources& res
     {
         const FrameGraphTexture   depth_dst = depth_dsts[depth_index];
         VkRenderingAttachmentInfo depth_attachment =
-            default_rendering_attachment_info(depth_dst.view_handle, depth_dst.image_layout);
+            default_rendering_attachment_info(depth_dst.default_view_handle, depth_dst.image_layout);
         depth_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 
         const VkRenderingInfo rendering_info = default_rendering_info(pass_rect, nullptr, &depth_attachment);
@@ -455,7 +455,7 @@ void record_light_raster_command_buffer(CommandBuffer& cmdBuffer, const TiledRas
 
         const FrameGraphTexture   depth_buffer = depth_buffers[pass_index];
         VkRenderingAttachmentInfo depth_attachment =
-            default_rendering_attachment_info(depth_buffer.view_handle, depth_buffer.image_layout);
+            default_rendering_attachment_info(depth_buffer.default_view_handle, depth_buffer.image_layout);
         depth_attachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 
         const VkRenderingInfo rendering_info = default_rendering_info(pass_rect, nullptr, &depth_attachment);

@@ -198,7 +198,7 @@ FrameGraphTexture get_frame_graph_texture(FrameGraphResources& resources, const 
         .properties = resource.properties.texture,
         .view = resource.default_view.texture, // FIXME
         .handle = texture.handle,
-        .view_handle = default_view_handle, // FIXME
+        .default_view_handle = default_view_handle,
         .additional_views = additional_views,
         .image_layout = usage.access.image_layout,
     };
@@ -229,7 +229,7 @@ FrameGraphBuffer get_frame_graph_buffer(FrameGraphResources& resources, const Fr
     return FrameGraphBuffer{
         // FIXME
         .properties = resource.properties.buffer,
-        .view = resource.default_view.buffer,
+        .default_view = resource.default_view.buffer,
         .handle = buffer.handle,
     };
 }

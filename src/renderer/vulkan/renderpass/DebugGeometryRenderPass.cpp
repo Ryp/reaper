@@ -263,9 +263,9 @@ void record_debug_geometry_draw_command_buffer(CommandBuffer& cmdBuffer, const D
     vkCmdSetScissor(cmdBuffer.handle, 0, 1, &pass_rect);
 
     VkRenderingAttachmentInfo color_attachment =
-        default_rendering_attachment_info(hdr_buffer.view_handle, hdr_buffer.image_layout);
+        default_rendering_attachment_info(hdr_buffer.default_view_handle, hdr_buffer.image_layout);
     VkRenderingAttachmentInfo depth_attachment =
-        default_rendering_attachment_info(depth_texture.view_handle, depth_texture.image_layout);
+        default_rendering_attachment_info(depth_texture.default_view_handle, depth_texture.image_layout);
 
     const VkRenderingInfo rendering_info = default_rendering_info(pass_rect, &color_attachment, &depth_attachment);
 

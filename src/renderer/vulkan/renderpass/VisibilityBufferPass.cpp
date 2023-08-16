@@ -201,11 +201,11 @@ void update_vis_buffer_pass_descriptor_sets(DescriptorWriteHelper&              
                         mesh_cache.vertexBufferPosition.handle);
 
     write_helper.append(resources.descriptor_set_fill, Slot_VisBuffer, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-                        vis_buffer.view_handle, vis_buffer.image_layout);
+                        vis_buffer.default_view_handle, vis_buffer.image_layout);
     write_helper.append(resources.descriptor_set_fill, Slot_GBuffer0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
-                        gbuffer_rt0.view_handle, gbuffer_rt0.image_layout);
+                        gbuffer_rt0.default_view_handle, gbuffer_rt0.image_layout);
     write_helper.append(resources.descriptor_set_fill, Slot_GBuffer1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
-                        gbuffer_rt1.view_handle, gbuffer_rt1.image_layout);
+                        gbuffer_rt1.default_view_handle, gbuffer_rt1.image_layout);
     write_helper.append(resources.descriptor_set_fill, Slot_instance_params, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                         resources.instancesConstantBuffer.handle);
     write_helper.append(resources.descriptor_set_fill, Slot_visible_index_buffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
@@ -269,14 +269,14 @@ void record_vis_buffer_pass_command_buffer(CommandBuffer& cmdBuffer, const Prepa
     vkCmdSetScissor(cmdBuffer.handle, 0, 1, &pass_rect);
 
     VkRenderingAttachmentInfo vis_buffer_attachment =
-        default_rendering_attachment_info(vis_buffer.view_handle, vis_buffer.image_layout);
+        default_rendering_attachment_info(vis_buffer.default_view_handle, vis_buffer.image_layout);
     vis_buffer_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
     vis_buffer_attachment.clearValue = VkClearValue{.color{.uint32 = {0, 0}}};
 
     std::vector<VkRenderingAttachmentInfo> color_attachments = {vis_buffer_attachment};
 
     VkRenderingAttachmentInfo depth_attachment =
-        default_rendering_attachment_info(depth_buffer.view_handle, depth_buffer.image_layout);
+        default_rendering_attachment_info(depth_buffer.default_view_handle, depth_buffer.image_layout);
     depth_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
     depth_attachment.clearValue = VkClearDepthStencil(MainPassUseReverseZ ? 0.f : 1.f, 0);
 
