@@ -18,7 +18,8 @@ namespace
     void swap_resources(FrameGraphResources& resources)
     {
         std::swap(resources.textures, resources.textures_b);
-        std::swap(resources.texture_views, resources.texture_views_b);
+        std::swap(resources.default_texture_views, resources.default_texture_views_b);
+        std::swap(resources.additional_texture_views, resources.additional_texture_views_b);
     }
 } // namespace
 
@@ -61,10 +62,9 @@ void allocate_framegraph_volatile_resources(ReaperRoot& root, VulkanBackend& bac
 
     using namespace FrameGraph;
 
-    resources.textures.resize(framegraph.TextureResources.size());
+    // Create buffers
     resources.buffers.resize(framegraph.BufferResources.size());
 
-    // Create buffers
     for (u32 index = 0; index < framegraph.BufferResources.size(); index++)
     {
         const Resource& resource = framegraph.BufferResources[index];
@@ -81,36 +81,59 @@ void allocate_framegraph_volatile_resources(ReaperRoot& root, VulkanBackend& bac
     }
 
     // Create textures
+    resources.textures.resize(framegraph.TextureResources.size());
+    resources.default_texture_views.resize(framegraph.TextureResources.size());
+
     for (u32 index = 0; index < framegraph.TextureResources.size(); index++)
     {
         const Resource& resource = framegraph.TextureResources[index];
 
         if (resource.is_used)
         {
-            resources.textures[index] = create_image(root, backend.device, resource.debug_name,
-                                                     resource.properties.texture, backend.vma_instance);
+            GPUTexture& new_texture = resources.textures[index];
+            new_texture = create_image(root, backend.device, resource.debug_name, resource.properties.texture,
+                                       backend.vma_instance);
+
+            resources.default_texture_views[index] =
+                create_image_view(root, backend.device, new_texture, resource.default_view.texture);
         }
         else
         {
-            resources.textures[index] = {};
+            resources.textures[index] = {.handle = VK_NULL_HANDLE, .allocation = {}};
+            resources.default_texture_views[index] = VK_NULL_HANDLE;
         }
     }
 
-    resources.texture_views.resize(framegraph.ResourceUsages.size());
+    // Create additional texture views
+    resources.additional_texture_views.resize(framegraph.TextureViews.size());
+
     for (u32 index = 0; index < framegraph.ResourceUsages.size(); index++)
     {
-        const ResourceUsage& usage = framegraph.ResourceUsages[index];
-        const ResourceHandle resource_handle = usage.resource_handle;
+        const ResourceUsage&      usage = framegraph.ResourceUsages[index];
+        const ResourceHandle      resource_handle = usage.resource_handle;
+        const ResourceViewHandles view_handles = usage.additional_views;
+
+        nonstd::span<const GPUTextureView> texture_views_info =
+            nonstd::make_span(framegraph.TextureViews.data() + view_handles.offset, view_handles.count);
+
+        nonstd::span<VkImageView> texture_views =
+            nonstd::make_span(resources.additional_texture_views.data() + view_handles.offset, view_handles.count);
 
         if (resource_handle.is_texture && usage.is_used)
         {
             const GPUTexture& texture = resources.textures[usage.resource_handle.index];
 
-            resources.texture_views[index] = create_image_view(root, backend.device, texture, usage.view.texture);
+            for (u32 i = 0; i < texture_views.size(); i++)
+            {
+                texture_views[i] = create_image_view(root, backend.device, texture, texture_views_info[i]);
+            }
         }
         else
         {
-            resources.texture_views[index] = VK_NULL_HANDLE;
+            for (u32 i = 0; i < texture_views.size(); i++)
+            {
+                texture_views[i] = VK_NULL_HANDLE;
+            }
         }
     }
 }
@@ -129,7 +152,13 @@ void destroy_framegraph_volatile_resources(VulkanBackend& backend, FrameGraphRes
         texture = {};
     }
 
-    for (VkImageView& view : resources.texture_views)
+    for (VkImageView& view : resources.default_texture_views)
+    {
+        vkDestroyImageView(backend.device, view, nullptr);
+        view = VK_NULL_HANDLE;
+    }
+
+    for (VkImageView& view : resources.additional_texture_views)
     {
         vkDestroyImageView(backend.device, view, nullptr);
         view = VK_NULL_HANDLE;
@@ -157,16 +186,20 @@ FrameGraphTexture get_frame_graph_texture(FrameGraphResources& resources, const 
     Assert(resource_handle.is_texture, "Wrong handle");
 
     const GPUTexture&  texture = resources.textures[resource_handle.index];
-    const VkImageView& view_handle = resources.texture_views[usage_handle];
+    const VkImageView& default_view_handle = resources.default_texture_views[resource_handle.index];
 
     Assert(texture.handle != VK_NULL_HANDLE);
-    Assert(view_handle != VK_NULL_HANDLE);
+    Assert(default_view_handle != VK_NULL_HANDLE);
+
+    nonstd::span<const VkImageView> additional_views = nonstd::make_span(
+        resources.additional_texture_views.data() + usage.additional_views.offset, usage.additional_views.count);
 
     return FrameGraphTexture{
         .properties = resource.properties.texture,
-        .view = usage.view.texture,
+        .view = resource.default_view.texture, // FIXME
         .handle = texture.handle,
-        .view_handle = view_handle,
+        .view_handle = default_view_handle, // FIXME
+        .additional_views = additional_views,
         .image_layout = usage.access.image_layout,
     };
 }
@@ -194,8 +227,9 @@ FrameGraphBuffer get_frame_graph_buffer(FrameGraphResources& resources, const Fr
     const GPUBuffer& buffer = resources.buffers[usage.resource_handle.index];
 
     return FrameGraphBuffer{
+        // FIXME
         .properties = resource.properties.buffer,
-        .view = usage.view.buffer,
+        .view = resource.default_view.buffer,
         .handle = buffer.handle,
     };
 }

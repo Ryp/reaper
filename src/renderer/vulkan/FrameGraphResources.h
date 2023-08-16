@@ -24,9 +24,10 @@ struct FrameGraphTexture
     GPUTextureProperties properties;
     GPUTextureView       view;
 
-    VkImage       handle;
-    VkImageView   view_handle;
-    VkImageLayout image_layout;
+    VkImage                         handle;
+    VkImageView                     view_handle;
+    nonstd::span<const VkImageView> additional_views;
+    VkImageLayout                   image_layout;
 };
 
 struct FrameGraphBuffer
@@ -51,8 +52,11 @@ struct FrameGraphResources
     std::vector<GPUTexture> textures;
     std::vector<GPUTexture> textures_b;
 
-    std::vector<VkImageView> texture_views;
-    std::vector<VkImageView> texture_views_b;
+    std::vector<VkImageView> default_texture_views;
+    std::vector<VkImageView> default_texture_views_b;
+
+    std::vector<VkImageView> additional_texture_views;
+    std::vector<VkImageView> additional_texture_views_b;
 };
 
 FrameGraphResources create_framegraph_resources(ReaperRoot& root, VulkanBackend& backend);

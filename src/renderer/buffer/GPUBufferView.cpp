@@ -14,16 +14,16 @@ namespace Reaper
 GPUBufferView default_buffer_view(const GPUBufferProperties& properties)
 {
     return GPUBufferView{
-        0, // offset_bytes
-        properties.stride * properties.element_count,
+        .offset_bytes = 0,
+        .size_bytes = properties.stride * properties.element_count,
     };
 }
 
 GPUBufferView get_buffer_view(const GPUBufferProperties& properties, const BufferSubresource& subresource)
 {
-    return {
-        properties.stride * subresource.element_offset,
-        properties.stride * subresource.element_count,
+    return GPUBufferView{
+        .offset_bytes = properties.stride * subresource.element_offset,
+        .size_bytes = properties.stride * subresource.element_count,
     };
 }
 } // namespace Reaper

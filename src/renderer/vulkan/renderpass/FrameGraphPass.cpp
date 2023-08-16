@@ -37,18 +37,19 @@ void record_framegraph_barriers(CommandBuffer& cmdBuffer, const FrameGraph::Fram
 
         const ResourceUsage& dst_usage = GetResourceUsage(framegraph, barrier.dst.usage_handle);
         const ResourceHandle resource_handle = dst_usage.resource_handle;
+        const Resource&      resource = GetResource(framegraph, resource_handle);
 
         if (resource_handle.is_texture)
         {
-            VkImage texture = get_frame_graph_texture_handle(resources, dst_usage.resource_handle);
-            imageBarriers.emplace_back(get_vk_image_barrier(texture, dst_usage.view.texture,
+            VkImage texture = get_frame_graph_texture_handle(resources, resource_handle);
+            imageBarriers.emplace_back(get_vk_image_barrier(texture, resource.default_view.texture,
                                                             to_texture_access(barrier.src.access),
                                                             to_texture_access(barrier.dst.access)));
         }
         else
         {
-            VkBuffer buffer = get_frame_graph_buffer_handle(resources, dst_usage.resource_handle);
-            bufferBarriers.emplace_back(get_vk_buffer_barrier(buffer, dst_usage.view.buffer,
+            VkBuffer buffer = get_frame_graph_buffer_handle(resources, resource_handle);
+            bufferBarriers.emplace_back(get_vk_buffer_barrier(buffer, resource.default_view.buffer,
                                                               to_buffer_access(barrier.src.access),
                                                               to_buffer_access(barrier.dst.access)));
         }

@@ -31,7 +31,7 @@ public:
     Builder(FrameGraph& frameGraph);
 
 public:
-    RenderPassHandle create_render_pass(const char* debug_name, bool hasSideEffects = false);
+    RenderPassHandle create_render_pass(const char* debug_name, bool has_side_effects = false);
 
 public:
     ResourceUsageHandle
@@ -72,33 +72,34 @@ public:
     void build();
 
 private:
+    ResourceViewHandles allocate_texture_views(nonstd::span<const GPUTextureView> texture_views);
+    ResourceViewHandles allocate_buffer_views(nonstd::span<const GPUBufferView> buffer_views);
+
     ResourceHandle create_resource(const char* debug_name, const GPUResourceProperties& properties, bool is_texture);
 
-    ResourceUsageHandle create_resource_usage(u32                 usage_type,
-                                              RenderPassHandle    render_pass_handle,
-                                              ResourceHandle      resource_handle,
-                                              GPUResourceAccess   resource_access,
-                                              GPUResourceView     resource_view,
-                                              ResourceUsageHandle parentUsageHandle);
+    ResourceUsageHandle create_resource_usage(u32                        usage_type,
+                                              RenderPassHandle           render_pass_handle,
+                                              ResourceHandle             resource_handle,
+                                              GPUResourceAccess          resource_access,
+                                              ResourceUsageHandle        parentUsageHandle,
+                                              const ResourceViewHandles& view_handles);
 
     ResourceUsageHandle create_resource_generic(RenderPassHandle             render_pass_handle,
                                                 const char*                  name,
                                                 const GPUResourceProperties& properties,
                                                 GPUResourceAccess            resource_access,
-                                                GPUResourceView              resource_view,
-                                                bool                         is_texture);
+                                                bool                         is_texture,
+                                                const ResourceViewHandles&   view_handles);
 
-    ResourceUsageHandle read_resource_generic(RenderPassHandle     render_pass_handle,
-                                              const ResourceUsage& inputUsage,
-                                              ResourceUsageHandle  input_usage_handle,
-                                              GPUResourceAccess    resource_access,
-                                              GPUResourceView      resource_view);
+    ResourceUsageHandle read_resource_generic(RenderPassHandle           render_pass_handle,
+                                              ResourceUsageHandle        input_usage_handle,
+                                              GPUResourceAccess          resource_access,
+                                              const ResourceViewHandles& view_handles);
 
-    ResourceUsageHandle write_resource_generic(RenderPassHandle     render_pass_handle,
-                                               const ResourceUsage& inputUsage,
-                                               ResourceUsageHandle  input_usage_handle,
-                                               GPUResourceAccess    resource_access,
-                                               GPUResourceView      resource_view);
+    ResourceUsageHandle write_resource_generic(RenderPassHandle           render_pass_handle,
+                                               ResourceUsageHandle        input_usage_handle,
+                                               GPUResourceAccess          resource_access,
+                                               const ResourceViewHandles& view_handles);
 
 private:
     FrameGraph& m_Graph;

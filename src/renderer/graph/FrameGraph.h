@@ -52,7 +52,14 @@ struct Resource
 {
     const char*           debug_name;
     GPUResourceProperties properties;
+    GPUResourceView       default_view;
     bool                  is_used;
+};
+
+struct ResourceViewHandles
+{
+    u32 offset;
+    u32 count;
 };
 
 struct ResourceUsage
@@ -62,7 +69,7 @@ struct ResourceUsage
     RenderPassHandle    render_pass;
     ResourceUsageHandle parent_usage_handle;
     GPUResourceAccess   access;
-    GPUResourceView     view;
+    ResourceViewHandles additional_views;
     bool                is_used;
 };
 
@@ -70,8 +77,12 @@ struct REAPER_RENDERER_API FrameGraph
 {
     std::vector<RenderPass>    RenderPasses;
     std::vector<ResourceUsage> ResourceUsages;
-    std::vector<Resource>      BufferResources;
-    std::vector<Resource>      TextureResources;
+
+    std::vector<Resource> TextureResources;
+    std::vector<Resource> BufferResources;
+
+    std::vector<GPUTextureView> TextureViews;
+    std::vector<GPUBufferView>  BufferViews;
 };
 
 struct DirectedAcyclicGraph
