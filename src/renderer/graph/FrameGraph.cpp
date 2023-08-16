@@ -71,6 +71,34 @@ Resource& GetResource(FrameGraph& framegraph, const ResourceUsage& resourceUsage
     return GetResource(framegraph, resourceUsage.resource_handle);
 }
 
+ResourceViewHandles allocate_texture_views(FrameGraph& framegraph, nonstd::span<const GPUTextureView> texture_views)
+{
+    const u32 view_offset = framegraph.TextureViews.size();
+    const u32 view_count = texture_views.size();
+
+    // NOTE: I hate C++
+    framegraph.TextureViews.insert(framegraph.TextureViews.end(), texture_views.begin(), texture_views.end());
+
+    return ResourceViewHandles{
+        .offset = view_offset,
+        .count = view_count,
+    };
+}
+
+ResourceViewHandles allocate_buffer_views(FrameGraph& framegraph, nonstd::span<const GPUBufferView> buffer_views)
+{
+    const u32 view_offset = framegraph.BufferViews.size();
+    const u32 view_count = buffer_views.size();
+
+    // NOTE: I hate C++
+    framegraph.BufferViews.insert(framegraph.BufferViews.end(), buffer_views.begin(), buffer_views.end());
+
+    return ResourceViewHandles{
+        .offset = view_offset,
+        .count = view_count,
+    };
+}
+
 namespace
 {
     // Thibault S. (29/11/2017) Yep it's recursive.

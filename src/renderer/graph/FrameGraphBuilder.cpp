@@ -7,6 +7,7 @@
 
 #include "FrameGraphBuilder.h"
 
+#include "FrameGraph.h"
 #include "GraphDebug.h"
 
 #include <core/Assert.h>
@@ -19,34 +20,6 @@ namespace Reaper::FrameGraph
 Builder::Builder(FrameGraph& frameGraph)
     : m_Graph(frameGraph)
 {}
-
-ResourceViewHandles Builder::allocate_texture_views(nonstd::span<const GPUTextureView> texture_views)
-{
-    const u32 view_offset = m_Graph.TextureViews.size();
-    const u32 view_count = texture_views.size();
-
-    // NOTE: I hate C++
-    m_Graph.TextureViews.insert(m_Graph.TextureViews.end(), texture_views.begin(), texture_views.end());
-
-    return ResourceViewHandles{
-        .offset = view_offset,
-        .count = view_count,
-    };
-}
-
-ResourceViewHandles Builder::allocate_buffer_views(nonstd::span<const GPUBufferView> buffer_views)
-{
-    const u32 view_offset = m_Graph.BufferViews.size();
-    const u32 view_count = buffer_views.size();
-
-    // NOTE: I hate C++
-    m_Graph.BufferViews.insert(m_Graph.BufferViews.end(), buffer_views.begin(), buffer_views.end());
-
-    return ResourceViewHandles{
-        .offset = view_offset,
-        .count = view_count,
-    };
-}
 
 ResourceHandle Builder::create_resource(const char* debug_name, const GPUResourceProperties& properties,
                                         bool is_texture)
@@ -164,7 +137,7 @@ ResourceUsageHandle Builder::create_texture(RenderPassHandle            render_p
     GPUResourceProperties resource_properties;
     resource_properties.texture = texture_properties;
 
-    const ResourceViewHandles view_handles = allocate_texture_views(additional_texture_views);
+    const ResourceViewHandles view_handles = allocate_texture_views(m_Graph, additional_texture_views);
 
     return create_resource_generic(render_pass_handle, name, resource_properties, to_resource_access(texture_access),
                                    true, view_handles);
@@ -180,7 +153,7 @@ ResourceUsageHandle Builder::create_buffer(RenderPassHandle           render_pas
     GPUResourceProperties resource_properties;
     resource_properties.buffer = buffer_properties;
 
-    const ResourceViewHandles view_handles = allocate_buffer_views(additional_buffer_views);
+    const ResourceViewHandles view_handles = allocate_buffer_views(m_Graph, additional_buffer_views);
 
     return create_resource_generic(render_pass_handle, name, resource_properties, to_resource_access(buffer_access),
                                    false, view_handles);
@@ -192,7 +165,7 @@ ResourceUsageHandle Builder::read_texture(RenderPassHandle    render_pass_handle
                                           nonstd::span<const GPUTextureView>
                                               additional_texture_views)
 {
-    const ResourceViewHandles view_handles = allocate_texture_views(additional_texture_views);
+    const ResourceViewHandles view_handles = allocate_texture_views(m_Graph, additional_texture_views);
 
     return read_resource_generic(render_pass_handle, input_usage_handle, to_resource_access(texture_access),
                                  view_handles);
@@ -202,7 +175,7 @@ ResourceUsageHandle Builder::read_buffer(RenderPassHandle render_pass_handle, Re
                                          GPUBufferAccess                   buffer_access,
                                          nonstd::span<const GPUBufferView> additional_buffer_views)
 {
-    const ResourceViewHandles view_handles = allocate_buffer_views(additional_buffer_views);
+    const ResourceViewHandles view_handles = allocate_buffer_views(m_Graph, additional_buffer_views);
 
     return read_resource_generic(render_pass_handle, input_usage_handle, to_resource_access(buffer_access),
                                  view_handles);
@@ -212,7 +185,7 @@ ResourceUsageHandle Builder::write_texture(RenderPassHandle render_pass_handle, 
                                            GPUTextureAccess                   texture_access,
                                            nonstd::span<const GPUTextureView> additional_texture_views)
 {
-    const ResourceViewHandles view_handles = allocate_texture_views(additional_texture_views);
+    const ResourceViewHandles view_handles = allocate_texture_views(m_Graph, additional_texture_views);
 
     return write_resource_generic(render_pass_handle, input_usage_handle, to_resource_access(texture_access),
                                   view_handles);
@@ -222,7 +195,7 @@ ResourceUsageHandle Builder::write_buffer(RenderPassHandle render_pass_handle, R
                                           GPUBufferAccess                   buffer_access,
                                           nonstd::span<const GPUBufferView> additional_buffer_views)
 {
-    const ResourceViewHandles view_handles = allocate_buffer_views(additional_buffer_views);
+    const ResourceViewHandles view_handles = allocate_buffer_views(m_Graph, additional_buffer_views);
 
     return write_resource_generic(render_pass_handle, input_usage_handle, to_resource_access(buffer_access),
                                   view_handles);

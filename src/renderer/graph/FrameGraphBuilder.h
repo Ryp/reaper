@@ -7,7 +7,8 @@
 
 #pragma once
 
-#include "FrameGraph.h"
+#include "renderer/RendererExport.h"
+
 #include "FrameGraphBasicTypes.h"
 
 #include <nonstd/span.hpp>
@@ -15,11 +16,21 @@
 namespace Reaper
 {
 struct GPUTextureProperties;
+struct GPUTextureView;
+struct GPUTextureAccess;
+struct GPUBufferProperties;
+struct GPUBufferView;
+struct GPUBufferAccess;
+
 } // namespace Reaper
 
 namespace Reaper::FrameGraph
 {
 struct FrameGraph;
+struct ResourceViewHandles;
+
+union GPUResourceProperties;
+struct GPUResourceAccess;
 
 // Retained mode API frame graph builder
 //
@@ -72,9 +83,6 @@ public:
     void build();
 
 private:
-    ResourceViewHandles allocate_texture_views(nonstd::span<const GPUTextureView> texture_views);
-    ResourceViewHandles allocate_buffer_views(nonstd::span<const GPUBufferView> buffer_views);
-
     ResourceHandle create_resource(const char* debug_name, const GPUResourceProperties& properties, bool is_texture);
 
     ResourceUsageHandle create_resource_usage(u32                        usage_type,

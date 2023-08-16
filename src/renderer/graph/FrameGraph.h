@@ -102,6 +102,9 @@ Resource&            GetResource(FrameGraph& framegraph, ResourceHandle resource
 const Resource&      GetResource(const FrameGraph& framegraph, const ResourceUsage& resourceUsage);
 Resource&            GetResource(FrameGraph& framegraph, const ResourceUsage& resourceUsage);
 
+ResourceViewHandles allocate_texture_views(FrameGraph& framegraph, nonstd::span<const GPUTextureView> texture_views);
+ResourceViewHandles allocate_buffer_views(FrameGraph& framegraph, nonstd::span<const GPUBufferView> buffer_views);
+
 // Uses depth-first traversal
 bool HasCycles(const DirectedAcyclicGraph& graph, nonstd::span<const DirectedAcyclicGraph::index_type> rootNodes);
 
