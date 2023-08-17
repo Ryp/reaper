@@ -70,6 +70,13 @@ CullMeshletsFrameGraphData create_cull_meshlet_frame_graph_data(FrameGraph::Buil
                              GPUBufferAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
                                              VK_ACCESS_2_SHADER_WRITE_BIT | VK_ACCESS_2_SHADER_READ_BIT});
 
+    cull_meshlets.visible_meshlet_offsets =
+        builder.create_buffer(cull_meshlets.pass_handle,
+                              "Visible meshlet offsets buffer",
+                              DefaultGPUBufferProperties(MaxVisibleMeshletsPerPass * MaxMeshletCullingPassCount,
+                                                         sizeof(MeshletOffsets), GPUBufferUsage::StorageBuffer),
+                              GPUBufferAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT});
+
     CullMeshletsFrameGraphData::CullTriangles cull_triangles;
 
     cull_triangles.pass_handle = builder.create_render_pass("Cull Triangles");
@@ -78,6 +85,10 @@ CullMeshletsFrameGraphData create_cull_meshlet_frame_graph_data(FrameGraph::Buil
         builder.write_buffer(cull_triangles.pass_handle, cull_meshlets.meshlet_counters,
                              GPUBufferAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
                                              VK_ACCESS_2_SHADER_WRITE_BIT | VK_ACCESS_2_SHADER_READ_BIT});
+
+    cull_triangles.visible_meshlet_offsets =
+        builder.read_buffer(cull_triangles.pass_handle, cull_meshlets.visible_meshlet_offsets,
+                            GPUBufferAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT});
 
     cull_triangles.meshlet_indirect_draw_commands = builder.create_buffer(
         cull_triangles.pass_handle, "Meshlet Indirect draw commands buffer",
@@ -197,12 +208,6 @@ MeshletCullingResources create_meshlet_culling_resources(ReaperRoot& root, Vulka
                                                                              sizeof(u32), GPUBufferUsage::TransferDst),
                                                   backend.vma_instance, MemUsage::CPU_Only);
 
-    resources.visible_meshlet_offsets_buffer =
-        create_buffer(root, backend.device, "Visible meshlet offsets buffer",
-                      DefaultGPUBufferProperties(MaxVisibleMeshletsPerPass * MaxMeshletCullingPassCount,
-                                                 sizeof(MeshletOffsets), GPUBufferUsage::StorageBuffer),
-                      backend.vma_instance);
-
     resources.triangle_culling_indirect_dispatch_buffer =
         create_buffer(root, backend.device, "Indirect dispatch buffer",
                       DefaultGPUBufferProperties(MaxMeshletCullingPassCount, sizeof(VkDispatchIndirectCommand),
@@ -252,8 +257,6 @@ void destroy_meshlet_culling_resources(VulkanBackend& backend, MeshletCullingRes
                      resources.mesh_instance_buffer.allocation);
     vmaDestroyBuffer(backend.vma_instance, resources.triangle_culling_indirect_dispatch_buffer.handle,
                      resources.triangle_culling_indirect_dispatch_buffer.allocation);
-    vmaDestroyBuffer(backend.vma_instance, resources.visible_meshlet_offsets_buffer.handle,
-                     resources.visible_meshlet_offsets_buffer.allocation);
 
     destroy_simple_pipeline(backend.device, resources.cull_meshlets_pipe);
     destroy_simple_pipeline(backend.device, resources.cull_meshlets_prep_indirect_pipe);
@@ -278,6 +281,7 @@ void upload_meshlet_culling_resources(VulkanBackend& backend, const PreparedData
 void update_meshlet_culling_pass_descriptor_sets(DescriptorWriteHelper& write_helper, const PreparedData& prepared,
                                                  MeshletCullingResources& resources, const MeshCache& mesh_cache,
                                                  const FrameGraphBuffer& meshlet_counters,
+                                                 const FrameGraphBuffer& visible_meshlet_offsets,
                                                  const FrameGraphBuffer& meshlet_indirect_draw_commands,
                                                  const FrameGraphBuffer& meshlet_visible_index_buffer,
                                                  const FrameGraphBuffer& visible_meshlet_buffer)
@@ -295,7 +299,7 @@ void update_meshlet_culling_pass_descriptor_sets(DescriptorWriteHelper& write_he
         const GPUBufferView counter_buffer_view =
             get_buffer_view(meshlet_counters.properties, BufferSubresource{pass_index * CountersCount, CountersCount});
         const GPUBufferView visible_meshlet_offsets_view =
-            get_buffer_view(resources.visible_meshlet_offsets_buffer.properties_deprecated,
+            get_buffer_view(visible_meshlet_offsets.properties,
                             BufferSubresource{pass_index * MaxVisibleMeshletsPerPass, MaxVisibleMeshletsPerPass});
 
         {
@@ -305,8 +309,7 @@ void update_meshlet_culling_pass_descriptor_sets(DescriptorWriteHelper& write_he
                                 resources.mesh_instance_buffer.handle);
             write_helper.append(descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, meshlet_counters.handle,
                                 counter_buffer_view.offset_bytes, counter_buffer_view.size_bytes);
-            write_helper.append(descriptor_set, 3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                                resources.visible_meshlet_offsets_buffer.handle,
+            write_helper.append(descriptor_set, 3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, visible_meshlet_offsets.handle,
                                 visible_meshlet_offsets_view.offset_bytes, visible_meshlet_offsets_view.size_bytes);
         }
 
@@ -318,8 +321,7 @@ void update_meshlet_culling_pass_descriptor_sets(DescriptorWriteHelper& write_he
                 BufferSubresource{pass_index * MaxIndirectDrawCountPerPass, MaxIndirectDrawCountPerPass});
 
             VkDescriptorSet descriptor_set = resources.cull_triangles_descriptor_sets[pass_index];
-            write_helper.append(descriptor_set, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                                resources.visible_meshlet_offsets_buffer.handle,
+            write_helper.append(descriptor_set, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, visible_meshlet_offsets.handle,
                                 visible_meshlet_offsets_view.offset_bytes, visible_meshlet_offsets_view.size_bytes);
             write_helper.append(descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, mesh_cache.indexBuffer.handle);
             write_helper.append(descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
