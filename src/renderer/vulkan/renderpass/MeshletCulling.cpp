@@ -382,34 +382,29 @@ void record_meshlet_culling_command_buffer(ReaperRoot& root, CommandBuffer& cmdB
     u64              total_meshlet_count = 0;
     std::vector<u64> meshlet_count_per_pass;
 
+    vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE, resources.cull_meshlets_pipe.pipeline);
+
+    for (const CullPassData& cull_pass : prepared.cull_passes)
     {
-        VulkanDebugLabelCmdBufferScope s(cmdBuffer.handle, "Cull Meshes");
+        u64& pass_meshlet_count = meshlet_count_per_pass.emplace_back();
+        pass_meshlet_count = 0;
 
-        vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE, resources.cull_meshlets_pipe.pipeline);
+        vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE,
+                                resources.cull_meshlets_pipe.pipelineLayout, 0, 1,
+                                &resources.cull_meshlet_descriptor_sets[cull_pass.pass_index], 0, nullptr);
 
-        for (const CullPassData& cull_pass : prepared.cull_passes)
+        for (const CullCmd& command : cull_pass.cull_commands)
         {
-            u64& pass_meshlet_count = meshlet_count_per_pass.emplace_back();
-            pass_meshlet_count = 0;
+            vkCmdPushConstants(cmdBuffer.handle, resources.cull_meshlets_pipe.pipelineLayout,
+                               VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(command.push_constants), &command.push_constants);
 
-            vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE,
-                                    resources.cull_meshlets_pipe.pipelineLayout, 0, 1,
-                                    &resources.cull_meshlet_descriptor_sets[cull_pass.pass_index], 0, nullptr);
+            const u32 group_count_x = div_round_up(command.push_constants.meshlet_count, MeshletCullThreadCount);
+            vkCmdDispatch(cmdBuffer.handle, group_count_x, command.instance_count, 1);
 
-            for (const CullCmd& command : cull_pass.cull_commands)
-            {
-                vkCmdPushConstants(cmdBuffer.handle, resources.cull_meshlets_pipe.pipelineLayout,
-                                   VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(command.push_constants),
-                                   &command.push_constants);
-
-                const u32 group_count_x = div_round_up(command.push_constants.meshlet_count, MeshletCullThreadCount);
-                vkCmdDispatch(cmdBuffer.handle, group_count_x, command.instance_count, 1);
-
-                pass_meshlet_count += command.push_constants.meshlet_count;
-            }
-
-            total_meshlet_count += pass_meshlet_count;
+            pass_meshlet_count += command.push_constants.meshlet_count;
         }
+
+        total_meshlet_count += pass_meshlet_count;
     }
 
     log_debug(root, "CPU mesh stats:");
@@ -420,24 +415,11 @@ void record_meshlet_culling_command_buffer(ReaperRoot& root, CommandBuffer& cmdB
     }
     log_debug(root, "- total submitted meshlets = {}, approx. triangles = {}", total_meshlet_count,
               total_meshlet_count * MeshletMaxTriangleCount);
-
-    {
-        REAPER_GPU_SCOPE_COLOR(cmdBuffer, "Barrier", Color::Red);
-
-        const GPUMemoryAccess  src = {VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT};
-        const GPUMemoryAccess  dst = {VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT};
-        const VkMemoryBarrier2 memoryBarrier = get_vk_memory_barrier(src, dst);
-        const VkDependencyInfo dependencies = get_vk_memory_barrier_depency_info(1, &memoryBarrier);
-
-        vkCmdPipelineBarrier2(cmdBuffer.handle, &dependencies);
-    }
 }
 
 void record_triangle_culling_prepare_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& prepared,
                                                     MeshletCullingResources& resources)
 {
-    VulkanDebugLabelCmdBufferScope s(cmdBuffer.handle, "Indirect Prepare");
-
     vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE,
                       resources.cull_meshlets_prep_indirect_pipe.pipeline);
 
@@ -453,50 +435,23 @@ void record_triangle_culling_command_buffer(CommandBuffer& cmdBuffer, const Prep
                                             MeshletCullingResources& resources,
                                             const FrameGraphBuffer&  indirect_dispatch_buffer)
 {
+    vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE, resources.cull_triangles_pipe.pipeline);
+
+    for (const CullPassData& cull_pass : prepared.cull_passes)
     {
-        REAPER_GPU_SCOPE_COLOR(cmdBuffer, "Barrier", Color::Red);
+        vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE,
+                                resources.cull_triangles_pipe.pipelineLayout, 0, 1,
+                                &resources.cull_triangles_descriptor_sets[cull_pass.pass_index], 0, nullptr);
 
-        const GPUMemoryAccess  src = {VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT};
-        const GPUMemoryAccess  dst = {VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT};
-        const VkMemoryBarrier2 memoryBarrier = get_vk_memory_barrier(src, dst);
-        const VkDependencyInfo dependencies = get_vk_memory_barrier_depency_info(1, &memoryBarrier);
+        CullPushConstants consts;
+        consts.output_size_ts = cull_pass.output_size_ts;
+        consts.main_pass = cull_pass.main_pass ? 1 : 0;
 
-        vkCmdPipelineBarrier2(cmdBuffer.handle, &dependencies);
-    }
+        vkCmdPushConstants(cmdBuffer.handle, resources.cull_triangles_pipe.pipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT,
+                           0, sizeof(consts), &consts);
 
-    {
-        VulkanDebugLabelCmdBufferScope s(cmdBuffer.handle, "Cull Triangles");
-
-        vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE, resources.cull_triangles_pipe.pipeline);
-
-        for (const CullPassData& cull_pass : prepared.cull_passes)
-        {
-            vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE,
-                                    resources.cull_triangles_pipe.pipelineLayout, 0, 1,
-                                    &resources.cull_triangles_descriptor_sets[cull_pass.pass_index], 0, nullptr);
-
-            CullPushConstants consts;
-            consts.output_size_ts = cull_pass.output_size_ts;
-            consts.main_pass = cull_pass.main_pass ? 1 : 0;
-
-            vkCmdPushConstants(cmdBuffer.handle, resources.cull_triangles_pipe.pipelineLayout,
-                               VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(consts), &consts);
-
-            vkCmdDispatchIndirect(cmdBuffer.handle, indirect_dispatch_buffer.handle,
-                                  cull_pass.pass_index * sizeof(VkDispatchIndirectCommand));
-        }
-    }
-
-    {
-        REAPER_GPU_SCOPE_COLOR(cmdBuffer, "Barrier", Color::Red);
-
-        const GPUMemoryAccess  src = {VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT};
-        const GPUMemoryAccess  dst = {VK_PIPELINE_STAGE_2_VERTEX_INPUT_BIT | VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT,
-                                      VK_ACCESS_2_INDEX_READ_BIT | VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT};
-        const VkMemoryBarrier2 memoryBarrier = get_vk_memory_barrier(src, dst);
-        const VkDependencyInfo dependencies = get_vk_memory_barrier_depency_info(1, &memoryBarrier);
-
-        vkCmdPipelineBarrier2(cmdBuffer.handle, &dependencies);
+        vkCmdDispatchIndirect(cmdBuffer.handle, indirect_dispatch_buffer.handle,
+                              cull_pass.pass_index * sizeof(VkDispatchIndirectCommand));
     }
 }
 
