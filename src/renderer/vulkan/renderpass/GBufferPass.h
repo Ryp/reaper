@@ -45,15 +45,15 @@ GBufferPassResources create_gbuffer_pass_resources(ReaperRoot& root, VulkanBacke
                                                    const ShaderModules& shader_modules);
 void                 destroy_gbuffer_pass_resources(VulkanBackend& backend, GBufferPassResources& resources);
 
-struct MeshletCullingResources;
+class DescriptorWriteHelper;
 struct MaterialResources;
 struct MeshCache;
 struct SamplerResources;
-class DescriptorWriteHelper;
+struct FrameGraphBuffer;
 
 void update_gbuffer_pass_descriptor_sets(DescriptorWriteHelper& write_helper, const GBufferPassResources& resources,
-                                         const MeshletCullingResources meshlet_culling_resources,
-                                         const SamplerResources&       sampler_resources,
+                                         const FrameGraphBuffer&  visible_meshlet_buffer,
+                                         const SamplerResources&  sampler_resources,
                                          const MaterialResources& material_resources, const MeshCache& mesh_cache);
 
 struct PreparedData;
@@ -62,7 +62,6 @@ void upload_gbuffer_pass_frame_resources(VulkanBackend& backend, const PreparedD
                                          GBufferPassResources& pass_resources);
 
 struct CommandBuffer;
-struct FrameGraphBuffer;
 struct FrameGraphTexture;
 
 void record_gbuffer_pass_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& prepared,

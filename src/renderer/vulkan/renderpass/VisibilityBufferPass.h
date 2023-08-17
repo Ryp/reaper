@@ -48,7 +48,6 @@ VisibilityBufferPassResources create_vis_buffer_pass_resources(ReaperRoot& root,
 void destroy_vis_buffer_pass_resources(VulkanBackend& backend, VisibilityBufferPassResources& resources);
 
 struct MaterialResources;
-struct MeshletCullingResources;
 struct MeshCache;
 struct SamplerResources;
 class DescriptorWriteHelper;
@@ -62,9 +61,9 @@ void update_vis_buffer_pass_descriptor_sets(DescriptorWriteHelper&              
                                             const PreparedData&                  prepared,
                                             const SamplerResources&              sampler_resources,
                                             const MaterialResources&             material_resources,
-                                            const MeshletCullingResources&       meshlet_culling_resources,
                                             const MeshCache&                     mesh_cache,
                                             const FrameGraphBuffer&              meshlet_visible_index_buffer,
+                                            const FrameGraphBuffer&              visible_meshlet_buffer,
                                             const FrameGraphTexture&             vis_buffer,
                                             const FrameGraphTexture&             gbuffer_rt0,
                                             const FrameGraphTexture&             gbuffer_rt1);
@@ -73,7 +72,6 @@ void upload_vis_buffer_pass_frame_resources(VulkanBackend& backend, const Prepar
                                             VisibilityBufferPassResources& pass_resources);
 
 struct CommandBuffer;
-struct MeshletCullingResources;
 struct FrameGraphTexture;
 struct FrameGraphBuffer;
 

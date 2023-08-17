@@ -331,6 +331,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         ResourceUsageHandle gbuffer_rt0;
         ResourceUsageHandle gbuffer_rt1;
         ResourceUsageHandle meshlet_visible_index_buffer;
+        ResourceUsageHandle visible_meshlet_buffer;
     } visibility_gbuffer;
 
     visibility_gbuffer.pass_handle = builder.create_render_pass("Visibility Fill GBuffer");
@@ -358,6 +359,10 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     visibility_gbuffer.meshlet_visible_index_buffer =
         builder.read_buffer(visibility_gbuffer.pass_handle, meshlet_pass.cull_triangles.meshlet_visible_index_buffer,
+                            GPUBufferAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT});
+
+    visibility_gbuffer.visible_meshlet_buffer =
+        builder.read_buffer(visibility_gbuffer.pass_handle, meshlet_pass.cull_triangles.visible_meshlet_buffer,
                             GPUBufferAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT});
 
     // HZB
@@ -648,6 +653,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         ResourceUsageHandle              meshlet_counters;
         ResourceUsageHandle              meshlet_indirect_draw_commands;
         ResourceUsageHandle              meshlet_visible_index_buffer;
+        ResourceUsageHandle              visible_meshlet_buffer;
     } forward;
 
     forward.pass_handle = builder.create_render_pass("Forward");
@@ -683,6 +689,10 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     forward.meshlet_visible_index_buffer =
         builder.read_buffer(forward.pass_handle, meshlet_pass.cull_triangles.meshlet_visible_index_buffer,
                             GPUBufferAccess{VK_PIPELINE_STAGE_2_INDEX_INPUT_BIT, VK_ACCESS_2_INDEX_READ_BIT});
+
+    forward.visible_meshlet_buffer =
+        builder.read_buffer(forward.pass_handle, meshlet_pass.cull_triangles.visible_meshlet_buffer,
+                            GPUBufferAccess{VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT});
 
     // GUI
     struct GUIFrameGraphData
@@ -862,17 +872,12 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         get_frame_graph_buffer(resources.framegraph_resources, framegraph,
                                meshlet_pass.cull_triangles.meshlet_indirect_draw_commands),
         get_frame_graph_buffer(resources.framegraph_resources, framegraph,
-                               meshlet_pass.cull_triangles.meshlet_visible_index_buffer));
+                               meshlet_pass.cull_triangles.meshlet_visible_index_buffer),
+        get_frame_graph_buffer(resources.framegraph_resources, framegraph,
+                               meshlet_pass.cull_triangles.visible_meshlet_buffer));
 
     update_shadow_map_pass_descriptor_sets(descriptor_write_helper, prepared, resources.shadow_map_resources,
                                            resources.mesh_cache.vertexBufferPosition);
-
-    std::vector<FrameGraphTexture> forward_shadow_map_views;
-    for (auto handle : forward.shadow_maps)
-    {
-        forward_shadow_map_views.emplace_back(
-            get_frame_graph_texture(resources.framegraph_resources, framegraph, handle));
-    }
 
     update_vis_buffer_pass_descriptor_sets(
         descriptor_write_helper,
@@ -880,10 +885,10 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         prepared,
         resources.samplers_resources,
         resources.material_resources,
-        resources.meshlet_culling_resources,
         resources.mesh_cache,
         get_frame_graph_buffer(resources.framegraph_resources, framegraph,
                                visibility_gbuffer.meshlet_visible_index_buffer),
+        get_frame_graph_buffer(resources.framegraph_resources, framegraph, visibility_gbuffer.visible_meshlet_buffer),
         get_frame_graph_texture(resources.framegraph_resources, framegraph, visibility_gbuffer.vis_buffer),
         get_frame_graph_texture(resources.framegraph_resources, framegraph, visibility_gbuffer.gbuffer_rt0),
         get_frame_graph_texture(resources.framegraph_resources, framegraph, visibility_gbuffer.gbuffer_rt1));
@@ -893,10 +898,18 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         get_frame_graph_texture(resources.framegraph_resources, framegraph, hzb_reduce.depth),
         get_frame_graph_texture(resources.framegraph_resources, framegraph, hzb_reduce.hzb_texture));
 
-    update_forward_pass_descriptor_sets(descriptor_write_helper, resources.forward_pass_resources,
-                                        resources.meshlet_culling_resources, resources.samplers_resources,
-                                        resources.material_resources, resources.mesh_cache,
-                                        resources.lighting_resources, forward_shadow_map_views);
+    std::vector<FrameGraphTexture> forward_shadow_map_views;
+    for (auto handle : forward.shadow_maps)
+    {
+        forward_shadow_map_views.emplace_back(
+            get_frame_graph_texture(resources.framegraph_resources, framegraph, handle));
+    }
+
+    update_forward_pass_descriptor_sets(
+        descriptor_write_helper, resources.forward_pass_resources,
+        get_frame_graph_buffer(resources.framegraph_resources, framegraph, forward.visible_meshlet_buffer),
+        resources.samplers_resources, resources.material_resources, resources.mesh_cache, resources.lighting_resources,
+        forward_shadow_map_views);
 
     update_lighting_depth_downsample_descriptor_set(
         descriptor_write_helper, resources.tiled_raster_resources, resources.samplers_resources,

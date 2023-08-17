@@ -149,8 +149,8 @@ void destroy_forward_pass_resources(VulkanBackend& backend, ForwardPassResources
 }
 
 void update_forward_pass_descriptor_sets(DescriptorWriteHelper& write_helper, const ForwardPassResources& resources,
-                                         const MeshletCullingResources& meshlet_culling_resources,
-                                         const SamplerResources&        sampler_resources,
+                                         const FrameGraphBuffer&  visible_meshlet_buffer,
+                                         const SamplerResources&  sampler_resources,
                                          const MaterialResources& material_resources, const MeshCache& mesh_cache,
                                          const LightingPassResources&          lighting_resources,
                                          nonstd::span<const FrameGraphTexture> shadow_maps)
@@ -159,8 +159,7 @@ void update_forward_pass_descriptor_sets(DescriptorWriteHelper& write_helper, co
                         resources.passConstantBuffer.handle);
     write_helper.append(resources.descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                         resources.instancesConstantBuffer.handle);
-    write_helper.append(resources.descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                        meshlet_culling_resources.visible_meshlet_buffer.handle);
+    write_helper.append(resources.descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, visible_meshlet_buffer.handle);
     write_helper.append(resources.descriptor_set, 3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                         mesh_cache.vertexBufferPosition.handle);
     write_helper.append(resources.descriptor_set, 4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,

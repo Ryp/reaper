@@ -92,6 +92,12 @@ CullMeshletsFrameGraphData create_cull_meshlet_frame_graph_data(FrameGraph::Buil
                                                          GPUBufferUsage::IndexBuffer | GPUBufferUsage::StorageBuffer),
                               GPUBufferAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT});
 
+    // NOTE: This buffer should only be used in the main pass.
+    cull_triangles.visible_meshlet_buffer = builder.create_buffer(
+        cull_triangles.pass_handle, "Visible meshlet buffer",
+        DefaultGPUBufferProperties(MaxIndirectDrawCountPerPass, sizeof(VisibleMeshlet), GPUBufferUsage::StorageBuffer),
+        GPUBufferAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT});
+
     CullMeshletsFrameGraphData::Debug debug;
 
     debug.pass_handle = builder.create_render_pass("Debug", true);
@@ -203,12 +209,6 @@ MeshletCullingResources create_meshlet_culling_resources(ReaperRoot& root, Vulka
                                                  GPUBufferUsage::IndirectBuffer | GPUBufferUsage::StorageBuffer),
                       backend.vma_instance);
 
-    // NOTE: This buffer should only be used in the main pass.
-    resources.visible_meshlet_buffer = create_buffer(
-        root, backend.device, "Visible meshlet buffer",
-        DefaultGPUBufferProperties(MaxIndirectDrawCountPerPass, sizeof(VisibleMeshlet), GPUBufferUsage::StorageBuffer),
-        backend.vma_instance);
-
     Assert(MaxIndirectDrawCountPerPass < backend.physicalDeviceProperties.limits.maxDrawIndirectCount);
 
     resources.cull_meshlet_descriptor_sets.resize(4);
@@ -254,8 +254,6 @@ void destroy_meshlet_culling_resources(VulkanBackend& backend, MeshletCullingRes
                      resources.triangle_culling_indirect_dispatch_buffer.allocation);
     vmaDestroyBuffer(backend.vma_instance, resources.visible_meshlet_offsets_buffer.handle,
                      resources.visible_meshlet_offsets_buffer.allocation);
-    vmaDestroyBuffer(backend.vma_instance, resources.visible_meshlet_buffer.handle,
-                     resources.visible_meshlet_buffer.allocation);
 
     destroy_simple_pipeline(backend.device, resources.cull_meshlets_pipe);
     destroy_simple_pipeline(backend.device, resources.cull_meshlets_prep_indirect_pipe);
@@ -281,7 +279,8 @@ void update_meshlet_culling_pass_descriptor_sets(DescriptorWriteHelper& write_he
                                                  MeshletCullingResources& resources, const MeshCache& mesh_cache,
                                                  const FrameGraphBuffer& meshlet_counters,
                                                  const FrameGraphBuffer& meshlet_indirect_draw_commands,
-                                                 const FrameGraphBuffer& meshlet_visible_index_buffer)
+                                                 const FrameGraphBuffer& meshlet_visible_index_buffer,
+                                                 const FrameGraphBuffer& visible_meshlet_buffer)
 {
     write_helper.append(resources.cull_prepare_descriptor_set, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                         meshlet_counters.handle);
@@ -335,8 +334,7 @@ void update_meshlet_culling_pass_descriptor_sets(DescriptorWriteHelper& write_he
                                 indirect_draw_view.size_bytes);
             write_helper.append(descriptor_set, 6, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, meshlet_counters.handle,
                                 counter_buffer_view.offset_bytes, counter_buffer_view.size_bytes);
-            write_helper.append(descriptor_set, 7, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                                resources.visible_meshlet_buffer.handle);
+            write_helper.append(descriptor_set, 7, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, visible_meshlet_buffer.handle);
         }
     }
 }

@@ -183,17 +183,16 @@ void update_vis_buffer_pass_descriptor_sets(DescriptorWriteHelper&              
                                             const PreparedData&                  prepared,
                                             const SamplerResources&              sampler_resources,
                                             const MaterialResources&             material_resources,
-                                            const MeshletCullingResources&       meshlet_culling_resources,
                                             const MeshCache&                     mesh_cache,
                                             const FrameGraphBuffer&              meshlet_visible_index_buffer,
+                                            const FrameGraphBuffer&              visible_meshlet_buffer,
                                             const FrameGraphTexture&             vis_buffer,
                                             const FrameGraphTexture&             gbuffer_rt0,
                                             const FrameGraphTexture&             gbuffer_rt1)
 {
     write_helper.append(resources.descriptor_set, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                         resources.instancesConstantBuffer.handle);
-    write_helper.append(resources.descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                        meshlet_culling_resources.visible_meshlet_buffer.handle);
+    write_helper.append(resources.descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, visible_meshlet_buffer.handle);
     write_helper.append(resources.descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                         mesh_cache.vertexBufferPosition.handle);
 
@@ -219,7 +218,7 @@ void update_vis_buffer_pass_descriptor_sets(DescriptorWriteHelper&              
     write_helper.append(resources.descriptor_set_fill, Slot_buffer_uv, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                         mesh_cache.vertexBufferUV.handle);
     write_helper.append(resources.descriptor_set_fill, Slot_visible_meshlets, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                        meshlet_culling_resources.visible_meshlet_buffer.handle);
+                        visible_meshlet_buffer.handle);
     write_helper.append(resources.descriptor_set_fill, Slot_diffuse_map_sampler, sampler_resources.diffuse_map_sampler);
 
     if (!material_resources.texture_handles.empty())

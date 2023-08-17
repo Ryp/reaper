@@ -29,6 +29,9 @@ struct VS_OUTPUT
 
 void main(in VS_INPUT input, out VS_OUTPUT output)
 {
+    // NOTE: If we cared enough to split meshlet culling for forward passes,
+    // we could remove the need for this buffer (brought by visibility rendering)
+    // and directly write the indirect draw commands in the right format.
     VisibleMeshlet visible_meshlet = visible_meshlets[input.visible_meshlet_index];
 
     uint vertex_id = input.vertex_id + visible_meshlet.vertex_offset;

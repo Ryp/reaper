@@ -59,7 +59,6 @@ void update_shadow_map_pass_descriptor_sets(DescriptorWriteHelper& write_helper,
 std::vector<GPUTextureProperties> fill_shadow_map_properties(const PreparedData& prepared);
 
 struct CommandBuffer;
-struct MeshletCullingResources;
 struct FrameGraphTexture;
 struct FrameGraphBuffer;
 

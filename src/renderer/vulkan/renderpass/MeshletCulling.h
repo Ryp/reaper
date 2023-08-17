@@ -38,7 +38,6 @@ struct MeshletCullingResources
     GPUBuffer counters_cpu_buffer;
     GPUBuffer visible_meshlet_offsets_buffer;
     GPUBuffer triangle_culling_indirect_dispatch_buffer;
-    GPUBuffer visible_meshlet_buffer;
 
     VkEvent countersReadyEvent;
 };
@@ -63,6 +62,7 @@ struct CullMeshletsFrameGraphData
         FrameGraph::ResourceUsageHandle meshlet_counters;
         FrameGraph::ResourceUsageHandle meshlet_indirect_draw_commands;
         FrameGraph::ResourceUsageHandle meshlet_visible_index_buffer;
+        FrameGraph::ResourceUsageHandle visible_meshlet_buffer;
     } cull_triangles;
 
     struct Debug
@@ -96,11 +96,13 @@ struct MeshCache;
 class DescriptorWriteHelper;
 struct FrameGraphBuffer;
 
+// FIXME Split this
 void update_meshlet_culling_pass_descriptor_sets(DescriptorWriteHelper& write_helper, const PreparedData& prepared,
                                                  MeshletCullingResources& resources, const MeshCache& mesh_cache,
                                                  const FrameGraphBuffer& meshlet_counters,
                                                  const FrameGraphBuffer& meshlet_indirect_draw_commands,
-                                                 const FrameGraphBuffer& meshlet_visible_index_buffer);
+                                                 const FrameGraphBuffer& meshlet_visible_index_buffer,
+                                                 const FrameGraphBuffer& visible_meshlet_buffer);
 
 struct CommandBuffer;
 
