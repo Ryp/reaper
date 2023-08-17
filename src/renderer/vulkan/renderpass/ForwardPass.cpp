@@ -222,10 +222,11 @@ void upload_forward_pass_frame_resources(VulkanBackend& backend, const PreparedD
 }
 
 void record_forward_pass_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& prepared,
-                                        const ForwardPassResources&    pass_resources,
-                                        const MeshletCullingResources& meshlet_culling_resources,
-                                        const FrameGraphBuffer& meshlet_counters, const FrameGraphTexture& hdr_buffer,
-                                        const FrameGraphTexture& depth_buffer)
+                                        const ForwardPassResources& pass_resources,
+                                        const FrameGraphBuffer&     meshlet_counters,
+                                        const FrameGraphBuffer&     meshlet_indirect_draw_commands,
+                                        const FrameGraphBuffer&     meshlet_visible_index_buffer,
+                                        const FrameGraphTexture& hdr_buffer, const FrameGraphTexture& depth_buffer)
 {
     if (prepared.forward_instances.empty())
         return;
@@ -255,8 +256,8 @@ void record_forward_pass_command_buffer(CommandBuffer& cmdBuffer, const Prepared
 
     const MeshletDrawParams meshlet_draw = get_meshlet_draw_params(prepared.main_culling_pass_index);
 
-    vkCmdBindIndexBuffer(cmdBuffer.handle, meshlet_culling_resources.visible_index_buffer.handle,
-                         meshlet_draw.index_buffer_offset, meshlet_draw.index_type);
+    vkCmdBindIndexBuffer(cmdBuffer.handle, meshlet_visible_index_buffer.handle, meshlet_draw.index_buffer_offset,
+                         meshlet_draw.index_type);
 
     std::array<VkDescriptorSet, 2> pass_descriptors = {
         pass_resources.descriptor_set,
@@ -266,11 +267,10 @@ void record_forward_pass_command_buffer(CommandBuffer& cmdBuffer, const Prepared
     vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, pass_resources.pipe.pipelineLayout, 0,
                             static_cast<u32>(pass_descriptors.size()), pass_descriptors.data(), 0, nullptr);
 
-    vkCmdDrawIndexedIndirectCount(
-        cmdBuffer.handle, meshlet_culling_resources.visible_indirect_draw_commands_buffer.handle,
-        meshlet_draw.command_buffer_offset, meshlet_counters.handle, meshlet_draw.counter_buffer_offset,
-        meshlet_draw.command_buffer_max_count,
-        meshlet_culling_resources.visible_indirect_draw_commands_buffer.properties_deprecated.element_size_bytes);
+    vkCmdDrawIndexedIndirectCount(cmdBuffer.handle, meshlet_indirect_draw_commands.handle,
+                                  meshlet_draw.command_buffer_offset, meshlet_counters.handle,
+                                  meshlet_draw.counter_buffer_offset, meshlet_draw.command_buffer_max_count,
+                                  meshlet_indirect_draw_commands.properties.element_size_bytes);
 
     vkCmdEndRendering(cmdBuffer.handle);
 }

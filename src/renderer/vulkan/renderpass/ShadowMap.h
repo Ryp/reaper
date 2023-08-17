@@ -65,6 +65,7 @@ struct FrameGraphBuffer;
 
 void record_shadow_map_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& prepared,
                                       ShadowMapResources& resources, nonstd::span<const FrameGraphTexture> shadow_maps,
-                                      const MeshletCullingResources& meshlet_culling_resources,
-                                      const FrameGraphBuffer&        meshlet_counters);
+                                      const FrameGraphBuffer& meshlet_counters,
+                                      const FrameGraphBuffer& meshlet_indirect_draw_commands,
+                                      const FrameGraphBuffer& meshlet_visible_index_buffer);
 } // namespace Reaper

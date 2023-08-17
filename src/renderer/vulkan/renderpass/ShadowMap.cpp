@@ -156,8 +156,9 @@ void upload_shadow_map_resources(VulkanBackend& backend, const PreparedData& pre
 
 void record_shadow_map_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& prepared,
                                       ShadowMapResources& resources, nonstd::span<const FrameGraphTexture> shadow_maps,
-                                      const MeshletCullingResources& meshlet_culling_resources,
-                                      const FrameGraphBuffer&        meshlet_counters)
+                                      const FrameGraphBuffer& meshlet_counters,
+                                      const FrameGraphBuffer& meshlet_indirect_draw_commands,
+                                      const FrameGraphBuffer& meshlet_visible_index_buffer)
 {
     vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, resources.pipe.pipeline);
 
@@ -192,17 +193,16 @@ void record_shadow_map_command_buffer(CommandBuffer& cmdBuffer, const PreparedDa
 
         const MeshletDrawParams meshlet_draw = get_meshlet_draw_params(shadow_pass.pass_index);
 
-        vkCmdBindIndexBuffer(cmdBuffer.handle, meshlet_culling_resources.visible_index_buffer.handle,
-                             meshlet_draw.index_buffer_offset, meshlet_draw.index_type);
+        vkCmdBindIndexBuffer(cmdBuffer.handle, meshlet_visible_index_buffer.handle, meshlet_draw.index_buffer_offset,
+                             meshlet_draw.index_type);
 
         vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, resources.pipe.pipelineLayout, 0, 1,
                                 &resources.descriptor_sets[shadow_pass.pass_index], 0, nullptr);
 
-        vkCmdDrawIndexedIndirectCount(
-            cmdBuffer.handle, meshlet_culling_resources.visible_indirect_draw_commands_buffer.handle,
-            meshlet_draw.command_buffer_offset, meshlet_counters.handle, meshlet_draw.counter_buffer_offset,
-            meshlet_draw.command_buffer_max_count,
-            meshlet_culling_resources.visible_indirect_draw_commands_buffer.properties_deprecated.element_size_bytes);
+        vkCmdDrawIndexedIndirectCount(cmdBuffer.handle, meshlet_indirect_draw_commands.handle,
+                                      meshlet_draw.command_buffer_offset, meshlet_counters.handle,
+                                      meshlet_draw.counter_buffer_offset, meshlet_draw.command_buffer_max_count,
+                                      meshlet_indirect_draw_commands.properties.element_size_bytes);
 
         vkCmdEndRendering(cmdBuffer.handle);
     }

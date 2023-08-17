@@ -256,6 +256,8 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         RenderPassHandle                 pass_handle;
         std::vector<ResourceUsageHandle> shadow_maps;
         ResourceUsageHandle              meshlet_counters;
+        ResourceUsageHandle              meshlet_indirect_draw_commands;
+        ResourceUsageHandle              meshlet_visible_index_buffer;
     } shadow;
 
     shadow.pass_handle = builder.create_render_pass("Shadow");
@@ -273,13 +275,22 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         shadow.pass_handle, meshlet_pass.cull_triangles.meshlet_counters,
         GPUBufferAccess{VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT, VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT});
 
-    // Visibility
+    shadow.meshlet_indirect_draw_commands = builder.read_buffer(
+        shadow.pass_handle, meshlet_pass.cull_triangles.meshlet_indirect_draw_commands,
+        GPUBufferAccess{VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT, VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT});
+
+    shadow.meshlet_visible_index_buffer =
+        builder.read_buffer(shadow.pass_handle, meshlet_pass.cull_triangles.meshlet_visible_index_buffer,
+                            GPUBufferAccess{VK_PIPELINE_STAGE_2_INDEX_INPUT_BIT, VK_ACCESS_2_INDEX_READ_BIT});
+
     struct VisibilityFrameGraphData
     {
         RenderPassHandle    pass_handle;
         ResourceUsageHandle vis_buffer;
         ResourceUsageHandle depth;
         ResourceUsageHandle meshlet_counters;
+        ResourceUsageHandle meshlet_indirect_draw_commands;
+        ResourceUsageHandle meshlet_visible_index_buffer;
     } visibility;
 
     visibility.pass_handle = builder.create_render_pass("Visibility");
@@ -304,6 +315,14 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         visibility.pass_handle, meshlet_pass.cull_triangles.meshlet_counters,
         GPUBufferAccess{VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT, VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT});
 
+    visibility.meshlet_indirect_draw_commands = builder.read_buffer(
+        visibility.pass_handle, meshlet_pass.cull_triangles.meshlet_indirect_draw_commands,
+        GPUBufferAccess{VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT, VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT});
+
+    visibility.meshlet_visible_index_buffer =
+        builder.read_buffer(visibility.pass_handle, meshlet_pass.cull_triangles.meshlet_visible_index_buffer,
+                            GPUBufferAccess{VK_PIPELINE_STAGE_2_INDEX_INPUT_BIT, VK_ACCESS_2_INDEX_READ_BIT});
+
     // Fill GBuffer from visibility
     struct VisibilityGBufferFrameGraphData
     {
@@ -311,6 +330,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         ResourceUsageHandle vis_buffer;
         ResourceUsageHandle gbuffer_rt0;
         ResourceUsageHandle gbuffer_rt1;
+        ResourceUsageHandle meshlet_visible_index_buffer;
     } visibility_gbuffer;
 
     visibility_gbuffer.pass_handle = builder.create_render_pass("Visibility Fill GBuffer");
@@ -335,6 +355,10 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
                                        | GPUTextureUsage::Storage),
         GPUTextureAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT,
                          VK_IMAGE_LAYOUT_GENERAL});
+
+    visibility_gbuffer.meshlet_visible_index_buffer =
+        builder.read_buffer(visibility_gbuffer.pass_handle, meshlet_pass.cull_triangles.meshlet_visible_index_buffer,
+                            GPUBufferAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT});
 
     // HZB
     struct HZBReduceFrameGraphData
@@ -622,6 +646,8 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         ResourceUsageHandle              depth;
         std::vector<ResourceUsageHandle> shadow_maps;
         ResourceUsageHandle              meshlet_counters;
+        ResourceUsageHandle              meshlet_indirect_draw_commands;
+        ResourceUsageHandle              meshlet_visible_index_buffer;
     } forward;
 
     forward.pass_handle = builder.create_render_pass("Forward");
@@ -649,6 +675,14 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     forward.meshlet_counters = builder.read_buffer(
         forward.pass_handle, meshlet_pass.cull_triangles.meshlet_counters,
         GPUBufferAccess{VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT, VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT});
+
+    forward.meshlet_indirect_draw_commands = builder.read_buffer(
+        forward.pass_handle, meshlet_pass.cull_triangles.meshlet_indirect_draw_commands,
+        GPUBufferAccess{VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT, VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT});
+
+    forward.meshlet_visible_index_buffer =
+        builder.read_buffer(forward.pass_handle, meshlet_pass.cull_triangles.meshlet_visible_index_buffer,
+                            GPUBufferAccess{VK_PIPELINE_STAGE_2_INDEX_INPUT_BIT, VK_ACCESS_2_INDEX_READ_BIT});
 
     // GUI
     struct GUIFrameGraphData
@@ -821,10 +855,14 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     DescriptorWriteHelper descriptor_write_helper(200, 200);
 
-    update_meshlet_culling_pass_descriptor_sets(descriptor_write_helper, prepared, resources.meshlet_culling_resources,
-                                                resources.mesh_cache,
-                                                get_frame_graph_buffer(resources.framegraph_resources, framegraph,
-                                                                       meshlet_pass.cull_triangles.meshlet_counters));
+    update_meshlet_culling_pass_descriptor_sets(
+        descriptor_write_helper, prepared, resources.meshlet_culling_resources, resources.mesh_cache,
+        get_frame_graph_buffer(resources.framegraph_resources, framegraph,
+                               meshlet_pass.cull_triangles.meshlet_counters), // FIXME Split this function for each pass
+        get_frame_graph_buffer(resources.framegraph_resources, framegraph,
+                               meshlet_pass.cull_triangles.meshlet_indirect_draw_commands),
+        get_frame_graph_buffer(resources.framegraph_resources, framegraph,
+                               meshlet_pass.cull_triangles.meshlet_visible_index_buffer));
 
     update_shadow_map_pass_descriptor_sets(descriptor_write_helper, prepared, resources.shadow_map_resources,
                                            resources.mesh_cache.vertexBufferPosition);
@@ -844,6 +882,8 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         resources.material_resources,
         resources.meshlet_culling_resources,
         resources.mesh_cache,
+        get_frame_graph_buffer(resources.framegraph_resources, framegraph,
+                               visibility_gbuffer.meshlet_visible_index_buffer),
         get_frame_graph_texture(resources.framegraph_resources, framegraph, visibility_gbuffer.vis_buffer),
         get_frame_graph_texture(resources.framegraph_resources, framegraph, visibility_gbuffer.gbuffer_rt0),
         get_frame_graph_texture(resources.framegraph_resources, framegraph, visibility_gbuffer.gbuffer_rt1));
@@ -1072,8 +1112,12 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
             }
 
             record_shadow_map_command_buffer(
-                cmdBuffer, prepared, resources.shadow_map_resources, shadow_maps, resources.meshlet_culling_resources,
-                get_frame_graph_buffer(resources.framegraph_resources, framegraph, shadow.meshlet_counters));
+                cmdBuffer, prepared, resources.shadow_map_resources, shadow_maps,
+                get_frame_graph_buffer(resources.framegraph_resources, framegraph, shadow.meshlet_counters),
+                get_frame_graph_buffer(resources.framegraph_resources, framegraph,
+                                       shadow.meshlet_indirect_draw_commands),
+                get_frame_graph_buffer(resources.framegraph_resources, framegraph,
+                                       shadow.meshlet_visible_index_buffer));
 
             record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
                                        shadow.pass_handle, false);
@@ -1085,8 +1129,12 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
                                        visibility.pass_handle, true);
 
             record_vis_buffer_pass_command_buffer(
-                cmdBuffer, prepared, resources.vis_buffer_pass_resources, resources.meshlet_culling_resources,
+                cmdBuffer, prepared, resources.vis_buffer_pass_resources,
                 get_frame_graph_buffer(resources.framegraph_resources, framegraph, visibility.meshlet_counters),
+                get_frame_graph_buffer(resources.framegraph_resources, framegraph,
+                                       visibility.meshlet_indirect_draw_commands),
+                get_frame_graph_buffer(resources.framegraph_resources, framegraph,
+                                       visibility.meshlet_visible_index_buffer),
                 get_frame_graph_texture(resources.framegraph_resources, framegraph, visibility.vis_buffer),
                 get_frame_graph_texture(resources.framegraph_resources, framegraph, visibility.depth));
 
@@ -1218,8 +1266,12 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
                                        forward.pass_handle, true);
 
             record_forward_pass_command_buffer(
-                cmdBuffer, prepared, resources.forward_pass_resources, resources.meshlet_culling_resources,
+                cmdBuffer, prepared, resources.forward_pass_resources,
                 get_frame_graph_buffer(resources.framegraph_resources, framegraph, forward.meshlet_counters),
+                get_frame_graph_buffer(resources.framegraph_resources, framegraph,
+                                       forward.meshlet_indirect_draw_commands),
+                get_frame_graph_buffer(resources.framegraph_resources, framegraph,
+                                       forward.meshlet_visible_index_buffer),
                 get_frame_graph_texture(resources.framegraph_resources, framegraph, forward.scene_hdr),
                 get_frame_graph_texture(resources.framegraph_resources, framegraph, forward.depth));
 

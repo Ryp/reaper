@@ -66,8 +66,10 @@ struct FrameGraphBuffer;
 struct FrameGraphTexture;
 
 void record_gbuffer_pass_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& prepared,
-                                        const GBufferPassResources&    pass_resources,
-                                        const MeshletCullingResources& meshlet_culling_resources,
-                                        const FrameGraphBuffer& meshlet_counters, const FrameGraphTexture& gbuffer_rt0,
-                                        const FrameGraphTexture& gbuffer_rt1, const FrameGraphTexture& depth_buffer);
+                                        const GBufferPassResources& pass_resources,
+                                        const FrameGraphBuffer&     meshlet_counters,
+                                        const FrameGraphBuffer&     meshlet_indirect_draw_commands,
+                                        const FrameGraphBuffer&     meshlet_visible_index_buffer,
+                                        const FrameGraphTexture& gbuffer_rt0, const FrameGraphTexture& gbuffer_rt1,
+                                        const FrameGraphTexture& depth_buffer);
 } // namespace Reaper

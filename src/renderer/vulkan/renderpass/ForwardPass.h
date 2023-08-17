@@ -73,8 +73,9 @@ struct CommandBuffer;
 struct FrameGraphBuffer;
 
 void record_forward_pass_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& prepared,
-                                        const ForwardPassResources&    pass_resources,
-                                        const MeshletCullingResources& meshlet_culling_resources,
-                                        const FrameGraphBuffer& meshlet_counters, const FrameGraphTexture& hdr_buffer,
-                                        const FrameGraphTexture& depth_buffer);
+                                        const ForwardPassResources& pass_resources,
+                                        const FrameGraphBuffer&     meshlet_counters,
+                                        const FrameGraphBuffer&     meshlet_indirect_draw_commands,
+                                        const FrameGraphBuffer&     meshlet_visible_index_buffer,
+                                        const FrameGraphTexture& hdr_buffer, const FrameGraphTexture& depth_buffer);
 } // namespace Reaper
