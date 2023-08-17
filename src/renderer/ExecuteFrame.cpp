@@ -31,7 +31,8 @@ void renderer_start(ReaperRoot& root, VulkanBackend& backend, IWindow* window)
     log_debug(root, "imgui: upload fonts");
 
     CommandBuffer& cmdBuffer = backend.resources->gfxCmdBuffer;
-    Assert(vkResetCommandBuffer(cmdBuffer.handle, 0) == VK_SUCCESS);
+
+    Assert(vkResetCommandPool(backend.device, backend.resources->gfxCommandPool, VK_FLAGS_NONE) == VK_SUCCESS);
 
     const VkCommandBufferBeginInfo cmdBufferBeginInfo = {.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
                                                          .pNext = nullptr,

@@ -24,7 +24,7 @@ void create_backend_resources(ReaperRoot& root, VulkanBackend& backend)
     const VkCommandPoolCreateInfo poolCreateInfo = {
         .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
         .pNext = nullptr,
-        .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+        .flags = VK_FLAGS_NONE,
         .queueFamilyIndex = backend.physicalDeviceInfo.graphicsQueueFamilyIndex,
     };
 

@@ -913,7 +913,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     descriptor_write_helper.flush_descriptor_write_helper(backend.device);
 
     log_debug(root, "vulkan: record command buffer");
-    Assert(vkResetCommandBuffer(cmdBuffer.handle, 0) == VK_SUCCESS);
+    Assert(vkResetCommandPool(backend.device, backend.resources->gfxCommandPool, VK_FLAGS_NONE) == VK_SUCCESS);
 
     const VkCommandBufferBeginInfo cmdBufferBeginInfo = {
         .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
@@ -938,8 +938,9 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
             {
                 const GPUTextureAccess src_undefined = {VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT, VK_ACCESS_2_NONE,
                                                         VK_IMAGE_LAYOUT_UNDEFINED};
-                const GPUTextureAccess dst_access = {VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT,
-                                                     VK_ACCESS_2_MEMORY_READ_BIT, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR};
+                const GPUTextureAccess dst_access = {.stage_mask = VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT,
+                                                     .access_mask = VK_ACCESS_2_NONE,
+                                                     .image_layout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR};
 
                 GPUTextureView view = {};
                 // view.format;
