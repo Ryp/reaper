@@ -32,8 +32,9 @@ struct GPUMemoryAccess
     VkAccessFlags2        access_mask;
 };
 
-VkImageMemoryBarrier2 get_vk_image_barrier(VkImage handle, const GPUTextureView& view, GPUTextureAccess src,
-                                           GPUTextureAccess dst, u32 src_queue_family_index = VK_QUEUE_FAMILY_IGNORED,
+VkImageMemoryBarrier2 get_vk_image_barrier(VkImage handle, const GPUTextureSubresource& subresource,
+                                           GPUTextureAccess src, GPUTextureAccess dst,
+                                           u32 src_queue_family_index = VK_QUEUE_FAMILY_IGNORED,
                                            u32 dst_queue_family_index = VK_QUEUE_FAMILY_IGNORED);
 
 VkBufferMemoryBarrier2 get_vk_buffer_barrier(VkBuffer handle, const GPUBufferView& view, GPUBufferAccess src,

@@ -998,10 +998,14 @@ VkImageAspectFlags GetVulkanImageAspectFlags(u32 aspect)
     return flags;
 }
 
-VkImageSubresourceRange GetVulkanImageSubresourceRange(const GPUTextureView& view)
+VkImageSubresourceRange GetVulkanImageSubresourceRange(const GPUTextureSubresource& subresource)
 {
     return VkImageSubresourceRange{
-        GetVulkanImageAspectFlags(view.aspect), view.mip_offset, view.mip_count, view.layer_offset, view.layer_count,
+        .aspectMask = GetVulkanImageAspectFlags(subresource.aspect),
+        .baseMipLevel = subresource.mip_offset,
+        .levelCount = subresource.mip_count,
+        .baseArrayLayer = subresource.layer_offset,
+        .layerCount = subresource.layer_count,
     };
 }
 
@@ -1054,10 +1058,8 @@ GPUTexture create_image(ReaperRoot& root, VkDevice device, const char* debug_str
 
 VkImageView create_image_view(ReaperRoot& root, VkDevice device, const GPUTexture& image, const GPUTextureView& view)
 {
-    Assert(view.mip_count > 0);
-    Assert(view.layer_count > 0);
-
-    const VkImageSubresourceRange viewRange = GetVulkanImageSubresourceRange(view);
+    Assert(view.subresource.mip_count > 0);
+    Assert(view.subresource.layer_count > 0);
 
     const VkImageViewCreateInfo imageViewInfo = {
         .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
@@ -1070,7 +1072,7 @@ VkImageView create_image_view(ReaperRoot& root, VkDevice device, const GPUTextur
                        .g = VK_COMPONENT_SWIZZLE_IDENTITY,
                        .b = VK_COMPONENT_SWIZZLE_IDENTITY,
                        .a = VK_COMPONENT_SWIZZLE_IDENTITY},
-        .subresourceRange = viewRange,
+        .subresourceRange = GetVulkanImageSubresourceRange(view.subresource),
     };
 
     VkImageView imageView = VK_NULL_HANDLE;

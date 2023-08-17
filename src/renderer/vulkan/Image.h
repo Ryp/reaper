@@ -33,7 +33,7 @@ VkImageCreateFlags      GetVulkanCreateFlags(const GPUTextureProperties& propert
 VkImageUsageFlags       GetVulkanUsageFlags(u32 usageFlags);
 u32                     GetUsageFlags(VkImageUsageFlags usageFlags);
 VkImageAspectFlags      GetVulkanImageAspectFlags(u32 aspect);
-VkImageSubresourceRange GetVulkanImageSubresourceRange(const GPUTextureView& view);
+VkImageSubresourceRange GetVulkanImageSubresourceRange(const GPUTextureSubresource& subresource);
 
 GPUTexture  create_image(ReaperRoot& root, VkDevice device, const char* debug_string,
                          const GPUTextureProperties& properties, VmaAllocator& allocator);

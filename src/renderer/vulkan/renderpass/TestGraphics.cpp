@@ -386,13 +386,13 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     hzb_properties.mip_count = 4; // FIXME
 
     GPUTextureView hzb_mip_view = default_texture_view(hzb_properties);
-    hzb_mip_view.mip_count = 1;
 
     std::vector<GPUTextureView> hzb_mip_views(hzb_properties.mip_count, hzb_mip_view);
 
     for (u32 i = 0; i < hzb_mip_views.size(); i++)
     {
-        hzb_mip_views[i].mip_offset = i;
+        hzb_mip_views[i].subresource.mip_count = 1;
+        hzb_mip_views[i].subresource.mip_offset = i;
     }
 
     hzb_reduce.hzb_texture = builder.create_texture(
@@ -468,8 +468,8 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     // FIXME
     {
         GPUTextureView hzb_view = default_texture_view(hzb_properties);
-        hzb_view.mip_count = 1;
-        hzb_view.mip_offset = 3;
+        hzb_view.subresource.mip_count = 1;
+        hzb_view.subresource.mip_offset = 3;
 
         tile_depth_copy.hzb_texture = builder.read_texture(
             tile_depth_copy.pass_handle, hzb_reduce.hzb_texture,
@@ -1029,14 +1029,16 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
                                                      .access_mask = VK_ACCESS_2_NONE,
                                                      .image_layout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR};
 
-                GPUTextureView view = {};
-                // view.format;
-                view.aspect = ViewAspect::Color;
-                view.mip_count = 1;
-                view.layer_count = 1;
+                const GPUTextureSubresource subresource = {
+                    .aspect = ViewAspect::Color,
+                    .mip_offset = 0,
+                    .mip_count = 1,
+                    .layer_offset = 0,
+                    .layer_count = 1,
+                };
 
-                imageBarriers.emplace_back(get_vk_image_barrier(backend.presentInfo.images[swapchainImageIndex], view,
-                                                                src_undefined, dst_access));
+                imageBarriers.emplace_back(get_vk_image_barrier(backend.presentInfo.images[swapchainImageIndex],
+                                                                subresource, src_undefined, dst_access));
             }
 
             const VkDependencyInfo dependencies =

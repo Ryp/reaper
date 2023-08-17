@@ -42,7 +42,7 @@ void record_framegraph_barriers(CommandBuffer& cmdBuffer, const FrameGraph::Fram
         if (resource_handle.is_texture)
         {
             VkImage texture = get_frame_graph_texture_handle(resources, resource_handle);
-            imageBarriers.emplace_back(get_vk_image_barrier(texture, resource.default_view.texture,
+            imageBarriers.emplace_back(get_vk_image_barrier(texture, resource.default_view.texture.subresource,
                                                             to_texture_access(barrier.src.access),
                                                             to_texture_access(barrier.dst.access)));
         }

@@ -21,14 +21,22 @@ namespace ViewAspect
     };
 }
 
+struct GPUTextureSubresource
+{
+    u32 aspect;
+    u32 mip_offset;
+    u32 mip_count;
+    u32 layer_offset;
+    u32 layer_count;
+};
+
+REAPER_RENDERER_API
+GPUTextureSubresource default_texture_subresource(const GPUTextureProperties& properties);
+
 struct GPUTextureView
 {
-    PixelFormat format;
-    u32         aspect;
-    u32         mip_offset;
-    u32         mip_count;
-    u32         layer_offset;
-    u32         layer_count;
+    PixelFormat           format;
+    GPUTextureSubresource subresource;
 };
 
 REAPER_RENDERER_API

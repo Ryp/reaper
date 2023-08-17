@@ -136,8 +136,8 @@ namespace
         const GPUTextureAccess dst = {VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT,
                                       VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL};
 
-        const GPUTextureView        default_view = default_texture_view(entry.texture_properties);
-        const VkImageMemoryBarrier2 barrier = get_vk_image_barrier(entry.target, default_view, src, dst);
+        const GPUTextureSubresource default_subresource = default_texture_subresource(entry.texture_properties);
+        const VkImageMemoryBarrier2 barrier = get_vk_image_barrier(entry.target, default_subresource, src, dst);
 
         const VkDependencyInfo dependencies = get_vk_image_barrier_depency_info(1, &barrier);
 
@@ -260,8 +260,8 @@ void record_material_upload_command_buffer(ResourceStagingArea& staging, Command
             const GPUTextureAccess dst = {VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
                                           VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL};
 
-            const GPUTextureView        default_view = default_texture_view(entry.texture_properties);
-            const VkImageMemoryBarrier2 barrier = get_vk_image_barrier(entry.target, default_view, src, dst);
+            const GPUTextureSubresource default_subresource = default_texture_subresource(entry.texture_properties);
+            const VkImageMemoryBarrier2 barrier = get_vk_image_barrier(entry.target, default_subresource, src, dst);
 
             prerender_barriers.emplace_back(barrier);
         }

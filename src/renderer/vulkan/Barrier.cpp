@@ -13,10 +13,11 @@
 
 namespace Reaper
 {
-VkImageMemoryBarrier2 get_vk_image_barrier(VkImage handle, const GPUTextureView& view, GPUTextureAccess src,
-                                           GPUTextureAccess dst, u32 src_queue_family_index, u32 dst_queue_family_index)
+VkImageMemoryBarrier2 get_vk_image_barrier(VkImage handle, const GPUTextureSubresource& subresource,
+                                           GPUTextureAccess src, GPUTextureAccess dst, u32 src_queue_family_index,
+                                           u32 dst_queue_family_index)
 {
-    const VkImageSubresourceRange view_range = GetVulkanImageSubresourceRange(view);
+    const VkImageSubresourceRange view_range = GetVulkanImageSubresourceRange(subresource);
 
     return VkImageMemoryBarrier2{.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
                                  .pNext = nullptr,
