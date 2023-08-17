@@ -865,7 +865,18 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     DescriptorWriteHelper descriptor_write_helper(200, 200);
 
-    update_meshlet_culling_pass_descriptor_sets(
+    update_meshlet_culling_descriptor_sets(
+        descriptor_write_helper, prepared, resources.meshlet_culling_resources, resources.mesh_cache,
+        get_frame_graph_buffer(resources.framegraph_resources, framegraph, meshlet_pass.cull_meshlets.meshlet_counters),
+        get_frame_graph_buffer(resources.framegraph_resources, framegraph,
+                               meshlet_pass.cull_meshlets.visible_meshlet_offsets));
+
+    update_triangle_culling_prepare_descriptor_sets(
+        descriptor_write_helper, resources.meshlet_culling_resources,
+        get_frame_graph_buffer(resources.framegraph_resources, framegraph,
+                               meshlet_pass.cull_meshlets.meshlet_counters)); // FIXME
+
+    update_triangle_culling_descriptor_sets(
         descriptor_write_helper, prepared, resources.meshlet_culling_resources, resources.mesh_cache,
         get_frame_graph_buffer(resources.framegraph_resources, framegraph,
                                meshlet_pass.cull_triangles.meshlet_counters),

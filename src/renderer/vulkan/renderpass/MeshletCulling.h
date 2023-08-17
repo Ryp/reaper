@@ -97,14 +97,22 @@ struct MeshCache;
 class DescriptorWriteHelper;
 struct FrameGraphBuffer;
 
-// FIXME Split this
-void update_meshlet_culling_pass_descriptor_sets(DescriptorWriteHelper& write_helper, const PreparedData& prepared,
-                                                 MeshletCullingResources& resources, const MeshCache& mesh_cache,
-                                                 const FrameGraphBuffer& meshlet_counters,
-                                                 const FrameGraphBuffer& visible_meshlet_offsets,
-                                                 const FrameGraphBuffer& meshlet_indirect_draw_commands,
-                                                 const FrameGraphBuffer& meshlet_visible_index_buffer,
-                                                 const FrameGraphBuffer& visible_meshlet_buffer);
+void update_meshlet_culling_descriptor_sets(DescriptorWriteHelper& write_helper, const PreparedData& prepared,
+                                            MeshletCullingResources& resources, const MeshCache& mesh_cache,
+                                            const FrameGraphBuffer& meshlet_counters,
+                                            const FrameGraphBuffer& visible_meshlet_offsets);
+
+void update_triangle_culling_prepare_descriptor_sets(DescriptorWriteHelper&   write_helper,
+                                                     MeshletCullingResources& resources,
+                                                     const FrameGraphBuffer&  meshlet_counters);
+
+void update_triangle_culling_descriptor_sets(DescriptorWriteHelper& write_helper, const PreparedData& prepared,
+                                             MeshletCullingResources& resources, const MeshCache& mesh_cache,
+                                             const FrameGraphBuffer& meshlet_counters,
+                                             const FrameGraphBuffer& visible_meshlet_offsets,
+                                             const FrameGraphBuffer& meshlet_indirect_draw_commands,
+                                             const FrameGraphBuffer& meshlet_visible_index_buffer,
+                                             const FrameGraphBuffer& visible_meshlet_buffer);
 
 struct CommandBuffer;
 

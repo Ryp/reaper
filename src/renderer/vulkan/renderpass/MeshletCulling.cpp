@@ -278,19 +278,11 @@ void upload_meshlet_culling_resources(VulkanBackend& backend, const PreparedData
                                   prepared.cull_mesh_instance_params.size() * sizeof(CullMeshInstanceParams));
 }
 
-void update_meshlet_culling_pass_descriptor_sets(DescriptorWriteHelper& write_helper, const PreparedData& prepared,
-                                                 MeshletCullingResources& resources, const MeshCache& mesh_cache,
-                                                 const FrameGraphBuffer& meshlet_counters,
-                                                 const FrameGraphBuffer& visible_meshlet_offsets,
-                                                 const FrameGraphBuffer& meshlet_indirect_draw_commands,
-                                                 const FrameGraphBuffer& meshlet_visible_index_buffer,
-                                                 const FrameGraphBuffer& visible_meshlet_buffer)
+void update_meshlet_culling_descriptor_sets(DescriptorWriteHelper& write_helper, const PreparedData& prepared,
+                                            MeshletCullingResources& resources, const MeshCache& mesh_cache,
+                                            const FrameGraphBuffer& meshlet_counters,
+                                            const FrameGraphBuffer& visible_meshlet_offsets)
 {
-    write_helper.append(resources.cull_prepare_descriptor_set, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                        meshlet_counters.handle);
-    write_helper.append(resources.cull_prepare_descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                        resources.triangle_culling_indirect_dispatch_buffer.handle);
-
     for (const CullPassData& cull_pass : prepared.cull_passes)
     {
         const u32 pass_index = cull_pass.pass_index;
@@ -298,46 +290,76 @@ void update_meshlet_culling_pass_descriptor_sets(DescriptorWriteHelper& write_he
 
         const GPUBufferView counter_buffer_view =
             get_buffer_view(meshlet_counters.properties, BufferSubresource{pass_index * CountersCount, CountersCount});
+
         const GPUBufferView visible_meshlet_offsets_view =
             get_buffer_view(visible_meshlet_offsets.properties,
                             BufferSubresource{pass_index * MaxVisibleMeshletsPerPass, MaxVisibleMeshletsPerPass});
 
-        {
-            VkDescriptorSet descriptor_set = resources.cull_meshlet_descriptor_sets[pass_index];
-            write_helper.append(descriptor_set, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, mesh_cache.meshletBuffer.handle);
-            write_helper.append(descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                                resources.mesh_instance_buffer.handle);
-            write_helper.append(descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, meshlet_counters.handle,
-                                counter_buffer_view.offset_bytes, counter_buffer_view.size_bytes);
-            write_helper.append(descriptor_set, 3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, visible_meshlet_offsets.handle,
-                                visible_meshlet_offsets_view.offset_bytes, visible_meshlet_offsets_view.size_bytes);
-        }
+        VkDescriptorSet descriptor_set = resources.cull_meshlet_descriptor_sets[pass_index];
 
-        {
-            const GPUBufferView visible_indices_view = get_buffer_view(
-                meshlet_visible_index_buffer.properties, get_meshlet_visible_index_buffer_pass(pass_index));
-            const GPUBufferView indirect_draw_view = get_buffer_view(
-                meshlet_indirect_draw_commands.properties,
-                BufferSubresource{pass_index * MaxIndirectDrawCountPerPass, MaxIndirectDrawCountPerPass});
+        write_helper.append(descriptor_set, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, mesh_cache.meshletBuffer.handle);
+        write_helper.append(descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                            resources.mesh_instance_buffer.handle);
+        write_helper.append(descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, meshlet_counters.handle,
+                            counter_buffer_view.offset_bytes, counter_buffer_view.size_bytes);
+        write_helper.append(descriptor_set, 3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, visible_meshlet_offsets.handle,
+                            visible_meshlet_offsets_view.offset_bytes, visible_meshlet_offsets_view.size_bytes);
+    }
+}
 
-            VkDescriptorSet descriptor_set = resources.cull_triangles_descriptor_sets[pass_index];
-            write_helper.append(descriptor_set, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, visible_meshlet_offsets.handle,
-                                visible_meshlet_offsets_view.offset_bytes, visible_meshlet_offsets_view.size_bytes);
-            write_helper.append(descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, mesh_cache.indexBuffer.handle);
-            write_helper.append(descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                                mesh_cache.vertexBufferPosition.handle);
-            write_helper.append(descriptor_set, 3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                                resources.mesh_instance_buffer.handle);
-            write_helper.append(descriptor_set, 4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                                meshlet_visible_index_buffer.handle, visible_indices_view.offset_bytes,
-                                visible_indices_view.size_bytes);
-            write_helper.append(descriptor_set, 5, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                                meshlet_indirect_draw_commands.handle, indirect_draw_view.offset_bytes,
-                                indirect_draw_view.size_bytes);
-            write_helper.append(descriptor_set, 6, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, meshlet_counters.handle,
-                                counter_buffer_view.offset_bytes, counter_buffer_view.size_bytes);
-            write_helper.append(descriptor_set, 7, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, visible_meshlet_buffer.handle);
-        }
+void update_triangle_culling_prepare_descriptor_sets(DescriptorWriteHelper&   write_helper,
+                                                     MeshletCullingResources& resources,
+                                                     const FrameGraphBuffer&  meshlet_counters)
+{
+    write_helper.append(resources.cull_prepare_descriptor_set, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                        meshlet_counters.handle);
+    write_helper.append(resources.cull_prepare_descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                        resources.triangle_culling_indirect_dispatch_buffer.handle);
+}
+
+void update_triangle_culling_descriptor_sets(DescriptorWriteHelper& write_helper, const PreparedData& prepared,
+                                             MeshletCullingResources& resources, const MeshCache& mesh_cache,
+                                             const FrameGraphBuffer& meshlet_counters,
+                                             const FrameGraphBuffer& visible_meshlet_offsets,
+                                             const FrameGraphBuffer& meshlet_indirect_draw_commands,
+                                             const FrameGraphBuffer& meshlet_visible_index_buffer,
+                                             const FrameGraphBuffer& visible_meshlet_buffer)
+{
+    for (const CullPassData& cull_pass : prepared.cull_passes)
+    {
+        const u32 pass_index = cull_pass.pass_index;
+        Assert(pass_index < MaxMeshletCullingPassCount);
+
+        const GPUBufferView counter_buffer_view =
+            get_buffer_view(meshlet_counters.properties, BufferSubresource{pass_index * CountersCount, CountersCount});
+
+        const GPUBufferView visible_meshlet_offsets_view =
+            get_buffer_view(visible_meshlet_offsets.properties,
+                            BufferSubresource{pass_index * MaxVisibleMeshletsPerPass, MaxVisibleMeshletsPerPass});
+
+        const GPUBufferView visible_indices_view =
+            get_buffer_view(meshlet_visible_index_buffer.properties, get_meshlet_visible_index_buffer_pass(pass_index));
+
+        const GPUBufferView indirect_draw_view =
+            get_buffer_view(meshlet_indirect_draw_commands.properties,
+                            BufferSubresource{pass_index * MaxIndirectDrawCountPerPass, MaxIndirectDrawCountPerPass});
+
+        VkDescriptorSet descriptor_set = resources.cull_triangles_descriptor_sets[pass_index];
+
+        write_helper.append(descriptor_set, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, visible_meshlet_offsets.handle,
+                            visible_meshlet_offsets_view.offset_bytes, visible_meshlet_offsets_view.size_bytes);
+        write_helper.append(descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, mesh_cache.indexBuffer.handle);
+        write_helper.append(descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                            mesh_cache.vertexBufferPosition.handle);
+        write_helper.append(descriptor_set, 3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                            resources.mesh_instance_buffer.handle);
+        write_helper.append(descriptor_set, 4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, meshlet_visible_index_buffer.handle,
+                            visible_indices_view.offset_bytes, visible_indices_view.size_bytes);
+        write_helper.append(descriptor_set, 5, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, meshlet_indirect_draw_commands.handle,
+                            indirect_draw_view.offset_bytes, indirect_draw_view.size_bytes);
+        write_helper.append(descriptor_set, 6, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, meshlet_counters.handle,
+                            counter_buffer_view.offset_bytes, counter_buffer_view.size_bytes);
+        write_helper.append(descriptor_set, 7, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, visible_meshlet_buffer.handle);
     }
 }
 
