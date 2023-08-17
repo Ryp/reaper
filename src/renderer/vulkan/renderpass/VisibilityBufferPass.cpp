@@ -254,6 +254,7 @@ void upload_vis_buffer_pass_frame_resources(VulkanBackend& backend, const Prepar
 void record_vis_buffer_pass_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& prepared,
                                            const VisibilityBufferPassResources& pass_resources,
                                            const MeshletCullingResources&       meshlet_culling_resources,
+                                           const FrameGraphBuffer&              meshlet_counters,
                                            const FrameGraphTexture& vis_buffer, const FrameGraphTexture& depth_buffer)
 {
     if (prepared.forward_instances.empty())
@@ -284,22 +285,22 @@ void record_vis_buffer_pass_command_buffer(CommandBuffer& cmdBuffer, const Prepa
 
     vkCmdBeginRendering(cmdBuffer.handle, &rendering_info);
 
-    const MeshletDrawParams draw_params = get_meshlet_draw_params(prepared.main_culling_pass_index);
+    const MeshletDrawParams meshlet_draw = get_meshlet_draw_params(prepared.main_culling_pass_index);
 
     std::vector<VkDescriptorSet> pass_descriptors = {
         pass_resources.descriptor_set,
     };
 
     vkCmdBindIndexBuffer(cmdBuffer.handle, meshlet_culling_resources.visible_index_buffer.handle,
-                         draw_params.index_buffer_offset, draw_params.index_type);
+                         meshlet_draw.index_buffer_offset, meshlet_draw.index_type);
 
     vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, pass_resources.pipe.pipelineLayout, 0,
                             static_cast<u32>(pass_descriptors.size()), pass_descriptors.data(), 0, nullptr);
 
     vkCmdDrawIndexedIndirectCount(
         cmdBuffer.handle, meshlet_culling_resources.visible_indirect_draw_commands_buffer.handle,
-        draw_params.command_buffer_offset, meshlet_culling_resources.counters_buffer.handle,
-        draw_params.counter_buffer_offset, draw_params.command_buffer_max_count,
+        meshlet_draw.command_buffer_offset, meshlet_counters.handle, meshlet_draw.counter_buffer_offset,
+        meshlet_draw.command_buffer_max_count,
         meshlet_culling_resources.visible_indirect_draw_commands_buffer.properties_deprecated.element_size_bytes);
 
     vkCmdEndRendering(cmdBuffer.handle);

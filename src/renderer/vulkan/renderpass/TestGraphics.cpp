@@ -221,6 +221,8 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     Builder builder(framegraph);
 
+    const CullMeshletsFrameGraphData meshlet_pass = create_cull_meshlet_frame_graph_data(builder);
+
     // Debug geometry clear
     struct DebugGeometryClearFrameGraphData
     {
@@ -253,6 +255,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     {
         RenderPassHandle                 pass_handle;
         std::vector<ResourceUsageHandle> shadow_maps;
+        ResourceUsageHandle              meshlet_counters;
     } shadow;
 
     shadow.pass_handle = builder.create_render_pass("Shadow");
@@ -266,12 +269,17 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
                              VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL}));
     }
 
+    shadow.meshlet_counters = builder.read_buffer(
+        shadow.pass_handle, meshlet_pass.cull_triangles.meshlet_counters,
+        GPUBufferAccess{VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT, VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT});
+
     // Visibility
     struct VisibilityFrameGraphData
     {
         RenderPassHandle    pass_handle;
         ResourceUsageHandle vis_buffer;
         ResourceUsageHandle depth;
+        ResourceUsageHandle meshlet_counters;
     } visibility;
 
     visibility.pass_handle = builder.create_render_pass("Visibility");
@@ -291,6 +299,10 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
                                               GPUTextureAccess{VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT,
                                                                VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
                                                                VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL});
+
+    visibility.meshlet_counters = builder.read_buffer(
+        visibility.pass_handle, meshlet_pass.cull_triangles.meshlet_counters,
+        GPUBufferAccess{VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT, VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT});
 
     // Fill GBuffer from visibility
     struct VisibilityGBufferFrameGraphData
@@ -609,6 +621,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         ResourceUsageHandle              scene_hdr;
         ResourceUsageHandle              depth;
         std::vector<ResourceUsageHandle> shadow_maps;
+        ResourceUsageHandle              meshlet_counters;
     } forward;
 
     forward.pass_handle = builder.create_render_pass("Forward");
@@ -632,6 +645,10 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
                                  GPUTextureAccess{VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
                                                   VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL}));
     }
+
+    forward.meshlet_counters = builder.read_buffer(
+        forward.pass_handle, meshlet_pass.cull_triangles.meshlet_counters,
+        GPUBufferAccess{VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT, VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT});
 
     // GUI
     struct GUIFrameGraphData
@@ -805,7 +822,9 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     DescriptorWriteHelper descriptor_write_helper(200, 200);
 
     update_meshlet_culling_pass_descriptor_sets(descriptor_write_helper, prepared, resources.meshlet_culling_resources,
-                                                resources.mesh_cache);
+                                                resources.mesh_cache,
+                                                get_frame_graph_buffer(resources.framegraph_resources, framegraph,
+                                                                       meshlet_pass.cull_triangles.meshlet_counters));
 
     update_shadow_map_pass_descriptor_sets(descriptor_write_helper, prepared, resources.shadow_map_resources,
                                            resources.mesh_cache.vertexBufferPosition);
@@ -966,12 +985,63 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         }
 
         {
-            REAPER_GPU_SCOPE(cmdBuffer, "Meshlet Culling");
+            REAPER_GPU_SCOPE(cmdBuffer, "Meshlet Culling Clear");
+            record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
+                                       meshlet_pass.clear.pass_handle, true);
+
+            if (!backend.options.freeze_meshlet_culling)
+            {
+                FrameGraphBuffer meshlet_counters = get_frame_graph_buffer(resources.framegraph_resources, framegraph,
+                                                                           meshlet_pass.clear.meshlet_counters);
+
+                const u32 clear_value = 0;
+                vkCmdFillBuffer(cmdBuffer.handle, meshlet_counters.handle, 0, VK_WHOLE_SIZE, clear_value);
+            }
+
+            record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
+                                       meshlet_pass.clear.pass_handle, false);
+        }
+
+        {
+            REAPER_GPU_SCOPE(cmdBuffer, "Cull Meshlets");
+            record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
+                                       meshlet_pass.cull_meshlets.pass_handle, true);
 
             if (!backend.options.freeze_meshlet_culling)
             {
                 record_meshlet_culling_command_buffer(root, cmdBuffer, prepared, resources.meshlet_culling_resources);
             }
+
+            record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
+                                       meshlet_pass.cull_meshlets.pass_handle, false);
+        }
+
+        {
+            REAPER_GPU_SCOPE(cmdBuffer, "Cull Meshlet Triangles");
+            record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
+                                       meshlet_pass.cull_triangles.pass_handle, true);
+
+            if (!backend.options.freeze_meshlet_culling)
+            {
+                record_triangle_culling_command_buffer(cmdBuffer, prepared, resources.meshlet_culling_resources);
+            }
+
+            record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
+                                       meshlet_pass.cull_triangles.pass_handle, false);
+        }
+
+        {
+            REAPER_GPU_SCOPE(cmdBuffer, "Meshlet Debug");
+            record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
+                                       meshlet_pass.debug.pass_handle, true);
+
+            record_meshlet_culling_debug_command_buffer(cmdBuffer, resources.meshlet_culling_resources,
+                                                        get_frame_graph_buffer(resources.framegraph_resources,
+                                                                               framegraph,
+                                                                               meshlet_pass.debug.meshlet_counters));
+
+            record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
+                                       meshlet_pass.debug.pass_handle, false);
         }
 
         {
@@ -1001,8 +1071,9 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
                 shadow_maps.emplace_back(get_frame_graph_texture(resources.framegraph_resources, framegraph, handle));
             }
 
-            record_shadow_map_command_buffer(cmdBuffer, prepared, resources.shadow_map_resources, shadow_maps,
-                                             resources.meshlet_culling_resources);
+            record_shadow_map_command_buffer(
+                cmdBuffer, prepared, resources.shadow_map_resources, shadow_maps, resources.meshlet_culling_resources,
+                get_frame_graph_buffer(resources.framegraph_resources, framegraph, shadow.meshlet_counters));
 
             record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
                                        shadow.pass_handle, false);
@@ -1015,6 +1086,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
             record_vis_buffer_pass_command_buffer(
                 cmdBuffer, prepared, resources.vis_buffer_pass_resources, resources.meshlet_culling_resources,
+                get_frame_graph_buffer(resources.framegraph_resources, framegraph, visibility.meshlet_counters),
                 get_frame_graph_texture(resources.framegraph_resources, framegraph, visibility.vis_buffer),
                 get_frame_graph_texture(resources.framegraph_resources, framegraph, visibility.depth));
 
@@ -1147,6 +1219,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
             record_forward_pass_command_buffer(
                 cmdBuffer, prepared, resources.forward_pass_resources, resources.meshlet_culling_resources,
+                get_frame_graph_buffer(resources.framegraph_resources, framegraph, forward.meshlet_counters),
                 get_frame_graph_texture(resources.framegraph_resources, framegraph, forward.scene_hdr),
                 get_frame_graph_texture(resources.framegraph_resources, framegraph, forward.depth));
 

@@ -70,9 +70,11 @@ void upload_forward_pass_frame_resources(VulkanBackend& backend, const PreparedD
                                          ForwardPassResources& pass_resources);
 
 struct CommandBuffer;
+struct FrameGraphBuffer;
 
 void record_forward_pass_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& prepared,
                                         const ForwardPassResources&    pass_resources,
                                         const MeshletCullingResources& meshlet_culling_resources,
-                                        const FrameGraphTexture& hdr_buffer, const FrameGraphTexture& depth_buffer);
+                                        const FrameGraphBuffer& meshlet_counters, const FrameGraphTexture& hdr_buffer,
+                                        const FrameGraphTexture& depth_buffer);
 } // namespace Reaper

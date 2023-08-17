@@ -15,10 +15,13 @@
 #include "renderer/vulkan/ComputeHelper.h"
 #include "renderer/vulkan/Debug.h"
 #include "renderer/vulkan/DescriptorSet.h"
+#include "renderer/vulkan/FrameGraphResources.h"
 #include "renderer/vulkan/GpuProfile.h"
 #include "renderer/vulkan/MeshCache.h"
 #include "renderer/vulkan/Pipeline.h"
 #include "renderer/vulkan/ShaderModules.h"
+
+#include "renderer/graph/FrameGraphBuilder.h"
 
 #include "common/Log.h"
 #include "common/ReaperRoot.h"
@@ -44,6 +47,53 @@ constexpr u32 MaxVisibleMeshletsPerPass = 4096;
 constexpr u64 VisibleIndexBufferSizeBytes =
     MaxVisibleMeshletsPerPass * MaxMeshletCullingPassCount * MeshletMaxTriangleCount * TriangleIndicesSizeBytes;
 constexpr u32 MaxIndirectDrawCountPerPass = MaxVisibleMeshletsPerPass;
+
+CullMeshletsFrameGraphData create_cull_meshlet_frame_graph_data(FrameGraph::Builder& builder)
+{
+    CullMeshletsFrameGraphData::Clear clear;
+
+    clear.pass_handle = builder.create_render_pass("Meshlet Culling Clear");
+
+    clear.meshlet_counters = builder.create_buffer(
+        clear.pass_handle, "Meshlet counters",
+        DefaultGPUBufferProperties(CountersCount * MaxMeshletCullingPassCount, sizeof(u32),
+                                   GPUBufferUsage::IndirectBuffer | GPUBufferUsage::TransferSrc
+                                       | GPUBufferUsage::TransferDst | GPUBufferUsage::StorageBuffer),
+        GPUBufferAccess{VK_PIPELINE_STAGE_2_CLEAR_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT});
+
+    CullMeshletsFrameGraphData::CullMeshlets cull_meshlets;
+
+    cull_meshlets.pass_handle = builder.create_render_pass("Cull Meshlets");
+
+    cull_meshlets.meshlet_counters =
+        builder.write_buffer(cull_meshlets.pass_handle, clear.meshlet_counters,
+                             GPUBufferAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+                                             VK_ACCESS_2_SHADER_WRITE_BIT | VK_ACCESS_2_SHADER_READ_BIT});
+
+    CullMeshletsFrameGraphData::CullTriangles cull_triangles;
+
+    cull_triangles.pass_handle = builder.create_render_pass("Cull Triangles");
+
+    cull_triangles.meshlet_counters =
+        builder.write_buffer(cull_triangles.pass_handle, cull_meshlets.meshlet_counters,
+                             GPUBufferAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+                                             VK_ACCESS_2_SHADER_WRITE_BIT | VK_ACCESS_2_SHADER_READ_BIT});
+
+    CullMeshletsFrameGraphData::Debug debug;
+
+    debug.pass_handle = builder.create_render_pass("Debug", true);
+
+    debug.meshlet_counters =
+        builder.read_buffer(debug.pass_handle, cull_triangles.meshlet_counters,
+                            GPUBufferAccess{VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_READ_BIT});
+
+    return CullMeshletsFrameGraphData{
+        .clear = clear,
+        .cull_meshlets = cull_meshlets,
+        .cull_triangles = cull_triangles,
+        .debug = debug,
+    };
+}
 
 MeshletCullingResources create_meshlet_culling_resources(ReaperRoot& root, VulkanBackend& backend,
                                                          const ShaderModules& shader_modules)
@@ -123,13 +173,6 @@ MeshletCullingResources create_meshlet_culling_resources(ReaperRoot& root, Vulka
                                                  sizeof(CullMeshInstanceParams), GPUBufferUsage::StorageBuffer),
                       backend.vma_instance, MemUsage::CPU_To_GPU);
 
-    resources.counters_buffer =
-        create_buffer(root, backend.device, "Meshlet counters",
-                      DefaultGPUBufferProperties(CountersCount * MaxMeshletCullingPassCount, sizeof(u32),
-                                                 GPUBufferUsage::IndirectBuffer | GPUBufferUsage::TransferSrc
-                                                     | GPUBufferUsage::TransferDst | GPUBufferUsage::StorageBuffer),
-                      backend.vma_instance);
-
     resources.counters_cpu_buffer = create_buffer(root, backend.device, "Meshlet counters CPU",
                                                   DefaultGPUBufferProperties(CountersCount * MaxMeshletCullingPassCount,
                                                                              sizeof(u32), GPUBufferUsage::TransferDst),
@@ -203,7 +246,6 @@ namespace
 
 void destroy_meshlet_culling_resources(VulkanBackend& backend, MeshletCullingResources& resources)
 {
-    vmaDestroyBuffer(backend.vma_instance, resources.counters_buffer.handle, resources.counters_buffer.allocation);
     vmaDestroyBuffer(backend.vma_instance, resources.counters_cpu_buffer.handle,
                      resources.counters_cpu_buffer.allocation);
     vmaDestroyBuffer(backend.vma_instance, resources.mesh_instance_buffer.handle,
@@ -240,10 +282,11 @@ void upload_meshlet_culling_resources(VulkanBackend& backend, const PreparedData
 }
 
 void update_meshlet_culling_pass_descriptor_sets(DescriptorWriteHelper& write_helper, const PreparedData& prepared,
-                                                 MeshletCullingResources& resources, const MeshCache& mesh_cache)
+                                                 MeshletCullingResources& resources, const MeshCache& mesh_cache,
+                                                 const FrameGraphBuffer& meshlet_counters)
 {
     write_helper.append(resources.cull_prepare_descriptor_set, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                        resources.counters_buffer.handle);
+                        meshlet_counters.handle);
     write_helper.append(resources.cull_prepare_descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                         resources.triangle_culling_indirect_dispatch_buffer.handle);
 
@@ -253,8 +296,7 @@ void update_meshlet_culling_pass_descriptor_sets(DescriptorWriteHelper& write_he
         Assert(pass_index < MaxMeshletCullingPassCount);
 
         const GPUBufferView counter_buffer_view =
-            get_buffer_view(resources.counters_buffer.properties_deprecated,
-                            BufferSubresource{pass_index * CountersCount, CountersCount});
+            get_buffer_view(meshlet_counters.properties, BufferSubresource{pass_index * CountersCount, CountersCount});
         const GPUBufferView visible_meshlet_offsets_view =
             get_buffer_view(resources.visible_meshlet_offsets_buffer.properties_deprecated,
                             BufferSubresource{pass_index * MaxVisibleMeshletsPerPass, MaxVisibleMeshletsPerPass});
@@ -264,7 +306,7 @@ void update_meshlet_culling_pass_descriptor_sets(DescriptorWriteHelper& write_he
             write_helper.append(descriptor_set, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, mesh_cache.meshletBuffer.handle);
             write_helper.append(descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                                 resources.mesh_instance_buffer.handle);
-            write_helper.append(descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, resources.counters_buffer.handle,
+            write_helper.append(descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, meshlet_counters.handle,
                                 counter_buffer_view.offset_bytes, counter_buffer_view.size_bytes);
             write_helper.append(descriptor_set, 3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                                 resources.visible_meshlet_offsets_buffer.handle,
@@ -294,7 +336,7 @@ void update_meshlet_culling_pass_descriptor_sets(DescriptorWriteHelper& write_he
             write_helper.append(descriptor_set, 5, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                                 resources.visible_indirect_draw_commands_buffer.handle, indirect_draw_view.offset_bytes,
                                 indirect_draw_view.size_bytes);
-            write_helper.append(descriptor_set, 6, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, resources.counters_buffer.handle,
+            write_helper.append(descriptor_set, 6, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, meshlet_counters.handle,
                                 counter_buffer_view.offset_bytes, counter_buffer_view.size_bytes);
             write_helper.append(descriptor_set, 7, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                                 resources.visible_meshlet_buffer.handle);
@@ -307,21 +349,6 @@ void record_meshlet_culling_command_buffer(ReaperRoot& root, CommandBuffer& cmdB
 {
     u64              total_meshlet_count = 0;
     std::vector<u64> meshlet_count_per_pass;
-
-    const u32 clear_value = 0;
-    vkCmdFillBuffer(cmdBuffer.handle, resources.counters_buffer.handle, 0, VK_WHOLE_SIZE, clear_value);
-
-    {
-        REAPER_GPU_SCOPE_COLOR(cmdBuffer, "Barrier", Color::Red);
-
-        const GPUMemoryAccess  src = {VK_PIPELINE_STAGE_2_CLEAR_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT};
-        const GPUMemoryAccess  dst = {VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-                                      VK_ACCESS_2_SHADER_WRITE_BIT | VK_ACCESS_2_SHADER_READ_BIT};
-        const VkMemoryBarrier2 memoryBarrier = get_vk_memory_barrier(src, dst);
-        const VkDependencyInfo dependencies = get_vk_memory_barrier_depency_info(1, &memoryBarrier);
-
-        vkCmdPipelineBarrier2(cmdBuffer.handle, &dependencies);
-    }
 
     {
         VulkanDebugLabelCmdBufferScope s(cmdBuffer.handle, "Cull Meshes");
@@ -353,6 +380,15 @@ void record_meshlet_culling_command_buffer(ReaperRoot& root, CommandBuffer& cmdB
         }
     }
 
+    log_debug(root, "CPU mesh stats:");
+    for (auto meshlet_count : meshlet_count_per_pass)
+    {
+        log_debug(root, "- pass total submitted meshlets = {}, approx. triangles = {}", meshlet_count,
+                  meshlet_count * MeshletMaxTriangleCount);
+    }
+    log_debug(root, "- total submitted meshlets = {}, approx. triangles = {}", total_meshlet_count,
+              total_meshlet_count * MeshletMaxTriangleCount);
+
     {
         REAPER_GPU_SCOPE_COLOR(cmdBuffer, "Barrier", Color::Red);
 
@@ -363,7 +399,11 @@ void record_meshlet_culling_command_buffer(ReaperRoot& root, CommandBuffer& cmdB
 
         vkCmdPipelineBarrier2(cmdBuffer.handle, &dependencies);
     }
+}
 
+void record_triangle_culling_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& prepared,
+                                            MeshletCullingResources& resources)
+{
     {
         VulkanDebugLabelCmdBufferScope s(cmdBuffer.handle, "Indirect Prepare");
 
@@ -423,62 +463,52 @@ void record_meshlet_culling_command_buffer(ReaperRoot& root, CommandBuffer& cmdB
 
         vkCmdPipelineBarrier2(cmdBuffer.handle, &dependencies);
     }
+}
 
-    {
-        REAPER_GPU_SCOPE(cmdBuffer, "Copy counters");
+void record_meshlet_culling_debug_command_buffer(CommandBuffer&           cmdBuffer,
+                                                 MeshletCullingResources& resources,
+                                                 const FrameGraphBuffer&  meshlet_counters)
+{
+    const VkBufferCopy2 region = {
+        .sType = VK_STRUCTURE_TYPE_BUFFER_COPY_2,
+        .pNext = nullptr,
+        .srcOffset = 0,
+        .dstOffset = 0,
+        .size = meshlet_counters.properties.element_count * meshlet_counters.properties.element_size_bytes,
+    };
 
-        const VkBufferCopy2 region = {
-            .sType = VK_STRUCTURE_TYPE_BUFFER_COPY_2,
-            .pNext = nullptr,
-            .srcOffset = 0,
-            .dstOffset = 0,
-            .size = resources.counters_buffer.properties_deprecated.element_count
-                    * resources.counters_buffer.properties_deprecated.element_size_bytes,
-        };
+    const VkCopyBufferInfo2 copy = {
+        .sType = VK_STRUCTURE_TYPE_COPY_BUFFER_INFO_2,
+        .pNext = nullptr,
+        .srcBuffer = meshlet_counters.handle,
+        .dstBuffer = resources.counters_cpu_buffer.handle,
+        .regionCount = 1,
+        .pRegions = &region,
+    };
 
-        const VkCopyBufferInfo2 copy = {
-            .sType = VK_STRUCTURE_TYPE_COPY_BUFFER_INFO_2,
-            .pNext = nullptr,
-            .srcBuffer = resources.counters_buffer.handle,
-            .dstBuffer = resources.counters_cpu_buffer.handle,
-            .regionCount = 1,
-            .pRegions = &region,
-        };
+    vkCmdCopyBuffer2(cmdBuffer.handle, &copy);
 
-        vkCmdCopyBuffer2(cmdBuffer.handle, &copy);
+    vkCmdResetEvent2(cmdBuffer.handle, resources.countersReadyEvent, VK_PIPELINE_STAGE_2_TRANSFER_BIT);
 
-        vkCmdResetEvent2(cmdBuffer.handle, resources.countersReadyEvent, VK_PIPELINE_STAGE_2_TRANSFER_BIT);
+    const GPUBufferAccess src = {VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT};
+    const GPUBufferAccess dst = {VK_PIPELINE_STAGE_2_HOST_BIT, VK_ACCESS_2_HOST_READ_BIT};
+    const GPUBufferView   view = default_buffer_view(resources.counters_cpu_buffer.properties_deprecated);
 
-        const GPUBufferAccess src = {VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT};
-        const GPUBufferAccess dst = {VK_PIPELINE_STAGE_2_HOST_BIT, VK_ACCESS_2_HOST_READ_BIT};
-        const GPUBufferView   view = default_buffer_view(resources.counters_cpu_buffer.properties_deprecated);
+    VkBufferMemoryBarrier2 bufferBarrier = get_vk_buffer_barrier(resources.counters_cpu_buffer.handle, view, src, dst);
 
-        VkBufferMemoryBarrier2 bufferBarrier =
-            get_vk_buffer_barrier(resources.counters_cpu_buffer.handle, view, src, dst);
+    const VkDependencyInfo dependencies = VkDependencyInfo{
+        .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+        .pNext = nullptr,
+        .dependencyFlags = VK_FLAGS_NONE,
+        .memoryBarrierCount = 0,
+        .pMemoryBarriers = nullptr,
+        .bufferMemoryBarrierCount = 1,
+        .pBufferMemoryBarriers = &bufferBarrier,
+        .imageMemoryBarrierCount = 0,
+        .pImageMemoryBarriers = nullptr,
+    };
 
-        const VkDependencyInfo dependencies = VkDependencyInfo{
-            .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
-            .pNext = nullptr,
-            .dependencyFlags = VK_FLAGS_NONE,
-            .memoryBarrierCount = 0,
-            .pMemoryBarriers = nullptr,
-            .bufferMemoryBarrierCount = 1,
-            .pBufferMemoryBarriers = &bufferBarrier,
-            .imageMemoryBarrierCount = 0,
-            .pImageMemoryBarriers = nullptr,
-        };
-
-        vkCmdSetEvent2(cmdBuffer.handle, resources.countersReadyEvent, &dependencies);
-    }
-
-    log_debug(root, "CPU mesh stats:");
-    for (auto meshlet_count : meshlet_count_per_pass)
-    {
-        log_debug(root, "- pass total submitted meshlets = {}, approx. triangles = {}", meshlet_count,
-                  meshlet_count * MeshletMaxTriangleCount);
-    }
-    log_debug(root, "- total submitted meshlets = {}, approx. triangles = {}", total_meshlet_count,
-              total_meshlet_count * MeshletMaxTriangleCount);
+    vkCmdSetEvent2(cmdBuffer.handle, resources.countersReadyEvent, &dependencies);
 }
 
 std::vector<MeshletCullingStats> get_meshlet_culling_gpu_stats(VulkanBackend& backend, const PreparedData& prepared,

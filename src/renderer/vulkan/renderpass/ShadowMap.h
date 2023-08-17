@@ -61,8 +61,10 @@ std::vector<GPUTextureProperties> fill_shadow_map_properties(const PreparedData&
 struct CommandBuffer;
 struct MeshletCullingResources;
 struct FrameGraphTexture;
+struct FrameGraphBuffer;
 
 void record_shadow_map_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& prepared,
                                       ShadowMapResources& resources, nonstd::span<const FrameGraphTexture> shadow_maps,
-                                      const MeshletCullingResources& meshlet_culling_resources);
+                                      const MeshletCullingResources& meshlet_culling_resources,
+                                      const FrameGraphBuffer&        meshlet_counters);
 } // namespace Reaper

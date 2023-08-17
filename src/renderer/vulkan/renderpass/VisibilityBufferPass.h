@@ -73,10 +73,12 @@ void upload_vis_buffer_pass_frame_resources(VulkanBackend& backend, const Prepar
 struct CommandBuffer;
 struct MeshletCullingResources;
 struct FrameGraphTexture;
+struct FrameGraphBuffer;
 
 void record_vis_buffer_pass_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& prepared,
                                            const VisibilityBufferPassResources& pass_resources,
                                            const MeshletCullingResources&       meshlet_culling_resources,
+                                           const FrameGraphBuffer&              meshlet_counters,
                                            const FrameGraphTexture& vis_buffer, const FrameGraphTexture& depth_buffer);
 
 void record_fill_gbuffer_pass_command_buffer(CommandBuffer& cmdBuffer, const VisibilityBufferPassResources& resources,
