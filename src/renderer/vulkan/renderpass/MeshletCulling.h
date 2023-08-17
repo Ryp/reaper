@@ -36,7 +36,6 @@ struct MeshletCullingResources
 
     GPUBuffer mesh_instance_buffer;
     GPUBuffer counters_cpu_buffer;
-    GPUBuffer triangle_culling_indirect_dispatch_buffer;
 
     VkEvent countersReadyEvent;
 };
@@ -56,9 +55,17 @@ struct CullMeshletsFrameGraphData
         FrameGraph::ResourceUsageHandle visible_meshlet_offsets;
     } cull_meshlets;
 
+    struct CullTrianglesPrepare
+    {
+        FrameGraph::RenderPassHandle    pass_handle;
+        FrameGraph::ResourceUsageHandle meshlet_counters;
+        FrameGraph::ResourceUsageHandle indirect_dispatch_buffer;
+    } cull_triangles_prepare;
+
     struct CullTriangles
     {
         FrameGraph::RenderPassHandle    pass_handle;
+        FrameGraph::ResourceUsageHandle indirect_dispatch_buffer;
         FrameGraph::ResourceUsageHandle meshlet_counters;
         FrameGraph::ResourceUsageHandle visible_meshlet_offsets;
         FrameGraph::ResourceUsageHandle meshlet_indirect_draw_commands;
@@ -104,7 +111,8 @@ void update_meshlet_culling_descriptor_sets(DescriptorWriteHelper& write_helper,
 
 void update_triangle_culling_prepare_descriptor_sets(DescriptorWriteHelper&   write_helper,
                                                      MeshletCullingResources& resources,
-                                                     const FrameGraphBuffer&  meshlet_counters);
+                                                     const FrameGraphBuffer&  meshlet_counters,
+                                                     const FrameGraphBuffer&  indirect_dispatch_buffer);
 
 void update_triangle_culling_descriptor_sets(DescriptorWriteHelper& write_helper, const PreparedData& prepared,
                                              MeshletCullingResources& resources, const MeshCache& mesh_cache,
@@ -119,8 +127,12 @@ struct CommandBuffer;
 void record_meshlet_culling_command_buffer(ReaperRoot& root, CommandBuffer& cmdBuffer, const PreparedData& prepared,
                                            MeshletCullingResources& resources);
 
+void record_triangle_culling_prepare_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& prepared,
+                                                    MeshletCullingResources& resources);
+
 void record_triangle_culling_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& prepared,
-                                            MeshletCullingResources& resources);
+                                            MeshletCullingResources& resources,
+                                            const FrameGraphBuffer&  indirect_dispatch_buffer);
 
 void record_meshlet_culling_debug_command_buffer(CommandBuffer&           cmdBuffer,
                                                  MeshletCullingResources& resources,

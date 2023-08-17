@@ -77,9 +77,28 @@ CullMeshletsFrameGraphData create_cull_meshlet_frame_graph_data(FrameGraph::Buil
                                                          sizeof(MeshletOffsets), GPUBufferUsage::StorageBuffer),
                               GPUBufferAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT});
 
+    CullMeshletsFrameGraphData::CullTrianglesPrepare cull_triangles_prepare;
+
+    cull_triangles_prepare.pass_handle = builder.create_render_pass("Cull Triangles Prepare");
+
+    cull_triangles_prepare.meshlet_counters =
+        builder.read_buffer(cull_triangles_prepare.pass_handle, cull_meshlets.meshlet_counters,
+                            GPUBufferAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT});
+
+    cull_triangles_prepare.indirect_dispatch_buffer = builder.create_buffer(
+        cull_triangles_prepare.pass_handle,
+        "Meshlet indirect dispatch buffer",
+        DefaultGPUBufferProperties(MaxMeshletCullingPassCount, sizeof(VkDispatchIndirectCommand),
+                                   GPUBufferUsage::IndirectBuffer | GPUBufferUsage::StorageBuffer),
+        GPUBufferAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT});
+
     CullMeshletsFrameGraphData::CullTriangles cull_triangles;
 
     cull_triangles.pass_handle = builder.create_render_pass("Cull Triangles");
+
+    cull_triangles.indirect_dispatch_buffer = builder.read_buffer(
+        cull_triangles.pass_handle, cull_triangles_prepare.indirect_dispatch_buffer,
+        GPUBufferAccess{VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT, VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT});
 
     cull_triangles.meshlet_counters =
         builder.write_buffer(cull_triangles.pass_handle, cull_meshlets.meshlet_counters,
@@ -120,6 +139,7 @@ CullMeshletsFrameGraphData create_cull_meshlet_frame_graph_data(FrameGraph::Buil
     return CullMeshletsFrameGraphData{
         .clear = clear,
         .cull_meshlets = cull_meshlets,
+        .cull_triangles_prepare = cull_triangles_prepare,
         .cull_triangles = cull_triangles,
         .debug = debug,
     };
@@ -208,12 +228,6 @@ MeshletCullingResources create_meshlet_culling_resources(ReaperRoot& root, Vulka
                                                                              sizeof(u32), GPUBufferUsage::TransferDst),
                                                   backend.vma_instance, MemUsage::CPU_Only);
 
-    resources.triangle_culling_indirect_dispatch_buffer =
-        create_buffer(root, backend.device, "Indirect dispatch buffer",
-                      DefaultGPUBufferProperties(MaxMeshletCullingPassCount, sizeof(VkDispatchIndirectCommand),
-                                                 GPUBufferUsage::IndirectBuffer | GPUBufferUsage::StorageBuffer),
-                      backend.vma_instance);
-
     Assert(MaxIndirectDrawCountPerPass < backend.physicalDeviceProperties.limits.maxDrawIndirectCount);
 
     resources.cull_meshlet_descriptor_sets.resize(4);
@@ -255,8 +269,6 @@ void destroy_meshlet_culling_resources(VulkanBackend& backend, MeshletCullingRes
                      resources.counters_cpu_buffer.allocation);
     vmaDestroyBuffer(backend.vma_instance, resources.mesh_instance_buffer.handle,
                      resources.mesh_instance_buffer.allocation);
-    vmaDestroyBuffer(backend.vma_instance, resources.triangle_culling_indirect_dispatch_buffer.handle,
-                     resources.triangle_culling_indirect_dispatch_buffer.allocation);
 
     destroy_simple_pipeline(backend.device, resources.cull_meshlets_pipe);
     destroy_simple_pipeline(backend.device, resources.cull_meshlets_prep_indirect_pipe);
@@ -309,12 +321,13 @@ void update_meshlet_culling_descriptor_sets(DescriptorWriteHelper& write_helper,
 
 void update_triangle_culling_prepare_descriptor_sets(DescriptorWriteHelper&   write_helper,
                                                      MeshletCullingResources& resources,
-                                                     const FrameGraphBuffer&  meshlet_counters)
+                                                     const FrameGraphBuffer&  meshlet_counters,
+                                                     const FrameGraphBuffer&  indirect_dispatch_buffer)
 {
     write_helper.append(resources.cull_prepare_descriptor_set, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                         meshlet_counters.handle);
     write_helper.append(resources.cull_prepare_descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                        resources.triangle_culling_indirect_dispatch_buffer.handle);
+                        indirect_dispatch_buffer.handle);
 }
 
 void update_triangle_culling_descriptor_sets(DescriptorWriteHelper& write_helper, const PreparedData& prepared,
@@ -420,23 +433,26 @@ void record_meshlet_culling_command_buffer(ReaperRoot& root, CommandBuffer& cmdB
     }
 }
 
-void record_triangle_culling_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& prepared,
-                                            MeshletCullingResources& resources)
+void record_triangle_culling_prepare_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& prepared,
+                                                    MeshletCullingResources& resources)
 {
-    {
-        VulkanDebugLabelCmdBufferScope s(cmdBuffer.handle, "Indirect Prepare");
+    VulkanDebugLabelCmdBufferScope s(cmdBuffer.handle, "Indirect Prepare");
 
-        vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE,
-                          resources.cull_meshlets_prep_indirect_pipe.pipeline);
+    vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE,
+                      resources.cull_meshlets_prep_indirect_pipe.pipeline);
 
-        vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE,
-                                resources.cull_meshlets_prep_indirect_pipe.pipelineLayout, 0, 1,
-                                &resources.cull_prepare_descriptor_set, 0, nullptr);
+    vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE,
+                            resources.cull_meshlets_prep_indirect_pipe.pipelineLayout, 0, 1,
+                            &resources.cull_prepare_descriptor_set, 0, nullptr);
 
-        const u32 group_count_x = div_round_up(prepared.cull_passes.size(), PrepareIndirectDispatchThreadCount);
-        vkCmdDispatch(cmdBuffer.handle, group_count_x, 1, 1);
-    }
+    const u32 group_count_x = div_round_up(prepared.cull_passes.size(), PrepareIndirectDispatchThreadCount);
+    vkCmdDispatch(cmdBuffer.handle, group_count_x, 1, 1);
+}
 
+void record_triangle_culling_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& prepared,
+                                            MeshletCullingResources& resources,
+                                            const FrameGraphBuffer&  indirect_dispatch_buffer)
+{
     {
         REAPER_GPU_SCOPE_COLOR(cmdBuffer, "Barrier", Color::Red);
 
@@ -466,7 +482,7 @@ void record_triangle_culling_command_buffer(CommandBuffer& cmdBuffer, const Prep
             vkCmdPushConstants(cmdBuffer.handle, resources.cull_triangles_pipe.pipelineLayout,
                                VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(consts), &consts);
 
-            vkCmdDispatchIndirect(cmdBuffer.handle, resources.triangle_culling_indirect_dispatch_buffer.handle,
+            vkCmdDispatchIndirect(cmdBuffer.handle, indirect_dispatch_buffer.handle,
                                   cull_pass.pass_index * sizeof(VkDispatchIndirectCommand));
         }
     }

@@ -123,7 +123,7 @@ void backend_debug_ui(VulkanBackend& backend)
     ImGui::SetNextWindowBgAlpha(0.35f); // Transparent background
     if (ImGui::Begin("Example: Simple overlay", &show_app_simple_overlay, window_flags))
     {
-        ImGui::Checkbox("Freeze culling", &backend.options.freeze_meshlet_culling);
+        ImGui::Checkbox("Freeze culling [BROKEN]", &backend.options.freeze_meshlet_culling); // FIXME
         ImGui::Checkbox("Enable debug tile culling", &backend.options.enable_debug_tile_lighting);
     }
     ImGui::End();
@@ -874,7 +874,9 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     update_triangle_culling_prepare_descriptor_sets(
         descriptor_write_helper, resources.meshlet_culling_resources,
         get_frame_graph_buffer(resources.framegraph_resources, framegraph,
-                               meshlet_pass.cull_meshlets.meshlet_counters)); // FIXME
+                               meshlet_pass.cull_triangles_prepare.meshlet_counters),
+        get_frame_graph_buffer(resources.framegraph_resources, framegraph,
+                               meshlet_pass.cull_triangles_prepare.indirect_dispatch_buffer));
 
     update_triangle_culling_descriptor_sets(
         descriptor_write_helper, prepared, resources.meshlet_culling_resources, resources.mesh_cache,
@@ -1055,14 +1057,11 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
             record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
                                        meshlet_pass.clear.pass_handle, true);
 
-            if (!backend.options.freeze_meshlet_culling)
-            {
-                FrameGraphBuffer meshlet_counters = get_frame_graph_buffer(resources.framegraph_resources, framegraph,
-                                                                           meshlet_pass.clear.meshlet_counters);
+            FrameGraphBuffer meshlet_counters =
+                get_frame_graph_buffer(resources.framegraph_resources, framegraph, meshlet_pass.clear.meshlet_counters);
 
-                const u32 clear_value = 0;
-                vkCmdFillBuffer(cmdBuffer.handle, meshlet_counters.handle, 0, VK_WHOLE_SIZE, clear_value);
-            }
+            const u32 clear_value = 0;
+            vkCmdFillBuffer(cmdBuffer.handle, meshlet_counters.handle, 0, VK_WHOLE_SIZE, clear_value);
 
             record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
                                        meshlet_pass.clear.pass_handle, false);
@@ -1073,13 +1072,21 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
             record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
                                        meshlet_pass.cull_meshlets.pass_handle, true);
 
-            if (!backend.options.freeze_meshlet_culling)
-            {
-                record_meshlet_culling_command_buffer(root, cmdBuffer, prepared, resources.meshlet_culling_resources);
-            }
+            record_meshlet_culling_command_buffer(root, cmdBuffer, prepared, resources.meshlet_culling_resources);
 
             record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
                                        meshlet_pass.cull_meshlets.pass_handle, false);
+        }
+
+        {
+            REAPER_GPU_SCOPE(cmdBuffer, "Cull Meshlet Triangles Prepare");
+            record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
+                                       meshlet_pass.cull_triangles_prepare.pass_handle, true);
+
+            record_triangle_culling_prepare_command_buffer(cmdBuffer, prepared, resources.meshlet_culling_resources);
+
+            record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
+                                       meshlet_pass.cull_triangles_prepare.pass_handle, false);
         }
 
         {
@@ -1087,10 +1094,10 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
             record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
                                        meshlet_pass.cull_triangles.pass_handle, true);
 
-            if (!backend.options.freeze_meshlet_culling)
-            {
-                record_triangle_culling_command_buffer(cmdBuffer, prepared, resources.meshlet_culling_resources);
-            }
+            record_triangle_culling_command_buffer(
+                cmdBuffer, prepared, resources.meshlet_culling_resources,
+                get_frame_graph_buffer(resources.framegraph_resources, framegraph,
+                                       meshlet_pass.cull_triangles.indirect_dispatch_buffer));
 
             record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
                                        meshlet_pass.cull_triangles.pass_handle, false);

@@ -86,7 +86,7 @@ struct REAPER_RENDERER_API VulkanBackend
 
     struct Options
     {
-        bool freeze_meshlet_culling = false;
+        bool freeze_meshlet_culling = false; // FIXME using the framegraph we can't have persistent resources yet
         bool enable_debug_tile_lighting = true;
     } options;
 
