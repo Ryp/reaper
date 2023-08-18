@@ -114,12 +114,12 @@ ForwardPassResources create_forward_pass_resources(ReaperRoot& root, VulkanBacke
 
     resources.pipe.pipeline = create_forward_pipeline(root, backend, resources.pipe.pipelineLayout, shader_modules);
 
-    resources.passConstantBuffer =
+    resources.pass_constant_buffer =
         create_buffer(root, backend.device, "Forward Pass Constant buffer",
                       DefaultGPUBufferProperties(1, sizeof(ForwardPassParams), GPUBufferUsage::UniformBuffer),
                       backend.vma_instance, MemUsage::CPU_To_GPU);
 
-    resources.instancesConstantBuffer =
+    resources.instance_buffer =
         create_buffer(root, backend.device, "Forward Instance buffer",
                       DefaultGPUBufferProperties(ForwardInstanceCountMax, sizeof(ForwardInstanceParams),
                                                  GPUBufferUsage::StorageBuffer),
@@ -142,10 +142,9 @@ void destroy_forward_pass_resources(VulkanBackend& backend, ForwardPassResources
     vkDestroyDescriptorSetLayout(backend.device, resources.pipe.desc_set_layout, nullptr);
     vkDestroyDescriptorSetLayout(backend.device, resources.pipe.desc_set_layout_material, nullptr);
 
-    vmaDestroyBuffer(backend.vma_instance, resources.passConstantBuffer.handle,
-                     resources.passConstantBuffer.allocation);
-    vmaDestroyBuffer(backend.vma_instance, resources.instancesConstantBuffer.handle,
-                     resources.instancesConstantBuffer.allocation);
+    vmaDestroyBuffer(backend.vma_instance, resources.pass_constant_buffer.handle,
+                     resources.pass_constant_buffer.allocation);
+    vmaDestroyBuffer(backend.vma_instance, resources.instance_buffer.handle, resources.instance_buffer.allocation);
 }
 
 void update_forward_pass_descriptor_sets(DescriptorWriteHelper& write_helper, const ForwardPassResources& resources,
@@ -156,9 +155,9 @@ void update_forward_pass_descriptor_sets(DescriptorWriteHelper& write_helper, co
                                          nonstd::span<const FrameGraphTexture> shadow_maps)
 {
     write_helper.append(resources.descriptor_set, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                        resources.passConstantBuffer.handle);
+                        resources.pass_constant_buffer.handle);
     write_helper.append(resources.descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                        resources.instancesConstantBuffer.handle);
+                        resources.instance_buffer.handle);
     write_helper.append(resources.descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, visible_meshlet_buffer.handle);
     write_helper.append(resources.descriptor_set, 3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                         mesh_cache.vertexBufferPosition.handle);
@@ -212,10 +211,10 @@ void upload_forward_pass_frame_resources(VulkanBackend& backend, const PreparedD
     if (prepared.forward_instances.empty())
         return;
 
-    upload_buffer_data_deprecated(backend.device, backend.vma_instance, pass_resources.passConstantBuffer,
+    upload_buffer_data_deprecated(backend.device, backend.vma_instance, pass_resources.pass_constant_buffer,
                                   &prepared.forward_pass_constants, sizeof(ForwardPassParams));
 
-    upload_buffer_data_deprecated(backend.device, backend.vma_instance, pass_resources.instancesConstantBuffer,
+    upload_buffer_data_deprecated(backend.device, backend.vma_instance, pass_resources.instance_buffer,
                                   prepared.forward_instances.data(),
                                   prepared.forward_instances.size() * sizeof(ForwardInstanceParams));
 }

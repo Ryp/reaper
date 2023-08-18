@@ -36,8 +36,8 @@ struct ShaderModules;
 
 struct ForwardPassResources
 {
-    GPUBuffer passConstantBuffer;
-    GPUBuffer instancesConstantBuffer;
+    GPUBuffer pass_constant_buffer;
+    GPUBuffer instance_buffer;
 
     ForwardPipelineInfo pipe;
 

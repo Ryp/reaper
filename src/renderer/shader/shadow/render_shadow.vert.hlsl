@@ -3,10 +3,8 @@
 
 #include "shadow_map_pass.share.hlsl"
 
-VK_BINDING(0, 0) ConstantBuffer<ShadowMapPassParams> pass_params;
-VK_BINDING(0, 1) StructuredBuffer<ShadowMapInstanceParams> instance_params;
-
-VK_BINDING(0, 2) ByteAddressBuffer buffer_position_ms;
+VK_BINDING(0, 0) StructuredBuffer<ShadowMapInstanceParams> instance_params;
+VK_BINDING(0, 1) ByteAddressBuffer buffer_position_ms;
 
 struct VS_INPUT
 {

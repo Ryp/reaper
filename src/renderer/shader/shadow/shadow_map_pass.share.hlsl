@@ -10,11 +10,6 @@
 
 #include "shared_types.hlsl"
 
-struct ShadowMapPassParams
-{
-    hlsl_float4x4 dummy;
-};
-
 struct ShadowMapInstanceParams
 {
     hlsl_float4x4 ms_to_cs_matrix;

@@ -45,9 +45,9 @@ struct AudioResources
 {
     AudioPipelineInfo audioPipe;
 
-    GPUBuffer passConstantBuffer;
-    GPUBuffer instanceParamsBuffer;
-    GPUBuffer audio_buffer_staging;
+    GPUBuffer           instance_buffer;
+    GPUBuffer           audio_staging_buffer;
+    GPUBufferProperties audio_staging_properties;
 
     VkDescriptorSet descriptor_set;
 

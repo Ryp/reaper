@@ -103,7 +103,6 @@ struct PreparedData
     TiledLightingConstants            tiled_light_constants;
 
     std::vector<ShadowPassData>          shadow_passes;
-    std::vector<ShadowMapPassParams>     shadow_pass_params;
     std::vector<ShadowMapInstanceParams> shadow_instance_params;
 
     SoundPushConstants              audio_push_constants;

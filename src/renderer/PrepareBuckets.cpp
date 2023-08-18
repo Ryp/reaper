@@ -140,9 +140,6 @@ void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCa
         shadow_pass.culling_pass_index = cull_pass.pass_index;
         shadow_pass.shadow_map_size = light.shadow_map_size;
 
-        ShadowMapPassParams& shadow_pass_params = prepared.shadow_pass_params.emplace_back();
-        shadow_pass_params.dummy = glm::mat4(1.f);
-
         const glm::fmat4x3 light_transform = get_scene_node_transform_slow(light.scene_node);
         const glm::fmat4x3 light_transform_inv = glm::inverse(glm::fmat4(light_transform));
         const glm::fmat4   light_projection_matrix = default_light_projection_matrix();

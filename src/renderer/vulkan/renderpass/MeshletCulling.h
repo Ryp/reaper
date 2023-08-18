@@ -34,8 +34,9 @@ struct MeshletCullingResources
     std::vector<VkDescriptorSet> cull_triangles_descriptor_sets;
     VkDescriptorSet              cull_prepare_descriptor_set;
 
-    GPUBuffer mesh_instance_buffer;
-    GPUBuffer counters_cpu_buffer;
+    GPUBuffer           mesh_instance_buffer;
+    GPUBuffer           counters_cpu_buffer;
+    GPUBufferProperties counters_cpu_properties;
 
     VkEvent countersReadyEvent;
 };

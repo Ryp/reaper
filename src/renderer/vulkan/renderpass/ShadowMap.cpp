@@ -44,9 +44,8 @@ ShadowMapResources create_shadow_map_resources(ReaperRoot& root, VulkanBackend& 
         default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_VERTEX_BIT, shader_modules.render_shadow_vs)};
 
     std::vector<VkDescriptorSetLayoutBinding> descriptorSetLayoutBinding = {
-        {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
+        {0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
         {1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
-        {2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
     };
 
     resources.pipe.descSetLayout = create_descriptor_set_layout(backend.device, descriptorSetLayoutBinding);
@@ -63,15 +62,11 @@ ShadowMapResources create_shadow_map_resources(ReaperRoot& root, VulkanBackend& 
 
     resources.pipe.pipeline = create_graphics_pipeline(backend.device, shader_stages, pipeline_properties);
 
-    resources.passConstantBuffer = create_buffer(
-        root, backend.device, "Shadow Map Pass Constant buffer",
-        DefaultGPUBufferProperties(MaxShadowPassCount, sizeof(ShadowMapPassParams), GPUBufferUsage::UniformBuffer),
-        backend.vma_instance, MemUsage::CPU_To_GPU);
+    resources.instance_buffer_properties = DefaultGPUBufferProperties(
+        ShadowInstanceCountMax, sizeof(ShadowMapInstanceParams), GPUBufferUsage::StorageBuffer);
 
-    resources.instanceConstantBuffer =
-        create_buffer(root, backend.device, "Shadow Map Instance Constant buffer",
-                      DefaultGPUBufferProperties(ShadowInstanceCountMax, sizeof(ShadowMapInstanceParams),
-                                                 GPUBufferUsage::StorageBuffer),
+    resources.instance_buffer =
+        create_buffer(root, backend.device, "Shadow Map Instance buffer", resources.instance_buffer_properties,
                       backend.vma_instance, MemUsage::CPU_To_GPU);
 
     resources.descriptor_sets.resize(3); // FIXME
@@ -84,10 +79,7 @@ ShadowMapResources create_shadow_map_resources(ReaperRoot& root, VulkanBackend& 
 
 void destroy_shadow_map_resources(VulkanBackend& backend, ShadowMapResources& resources)
 {
-    vmaDestroyBuffer(backend.vma_instance, resources.passConstantBuffer.handle,
-                     resources.passConstantBuffer.allocation);
-    vmaDestroyBuffer(backend.vma_instance, resources.instanceConstantBuffer.handle,
-                     resources.instanceConstantBuffer.allocation);
+    vmaDestroyBuffer(backend.vma_instance, resources.instance_buffer.handle, resources.instance_buffer.allocation);
 
     vkDestroyPipeline(backend.device, resources.pipe.pipeline, nullptr);
     vkDestroyPipelineLayout(backend.device, resources.pipe.pipelineLayout, nullptr);
@@ -105,19 +97,13 @@ void update_shadow_map_pass_descriptor_sets(DescriptorWriteHelper& write_helper,
 
             VkDescriptorSet descriptor_set = resources.descriptor_sets[shadow_pass.pass_index];
 
-            const GPUBufferView constant_view = get_buffer_view(resources.passConstantBuffer.properties_deprecated,
-                                                                BufferSubresource{shadow_pass.pass_index, 1});
             const GPUBufferView instances_view =
-                get_buffer_view(resources.instanceConstantBuffer.properties_deprecated,
+                get_buffer_view(resources.instance_buffer_properties,
                                 BufferSubresource{shadow_pass.instance_offset, shadow_pass.instance_count});
 
-            write_helper.append(descriptor_set, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                                resources.passConstantBuffer.handle, constant_view.offset_bytes,
-                                constant_view.size_bytes);
-            write_helper.append(descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                                resources.instanceConstantBuffer.handle, instances_view.offset_bytes,
-                                instances_view.size_bytes);
-            write_helper.append(descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, vertex_position_buffer.handle);
+            write_helper.append(descriptor_set, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, resources.instance_buffer.handle,
+                                instances_view.offset_bytes, instances_view.size_bytes);
+            write_helper.append(descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, vertex_position_buffer.handle);
         }
     }
 }
@@ -145,11 +131,7 @@ void upload_shadow_map_resources(VulkanBackend& backend, const PreparedData& pre
     if (prepared.shadow_instance_params.empty())
         return;
 
-    upload_buffer_data_deprecated(backend.device, backend.vma_instance, resources.passConstantBuffer,
-                                  prepared.shadow_pass_params.data(),
-                                  prepared.shadow_pass_params.size() * sizeof(ShadowMapPassParams));
-
-    upload_buffer_data_deprecated(backend.device, backend.vma_instance, resources.instanceConstantBuffer,
+    upload_buffer_data_deprecated(backend.device, backend.vma_instance, resources.instance_buffer,
                                   prepared.shadow_instance_params.data(),
                                   prepared.shadow_instance_params.size() * sizeof(ShadowMapInstanceParams));
 }

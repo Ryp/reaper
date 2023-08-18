@@ -26,11 +26,6 @@ struct SoundPushConstants
     hlsl_float _pad2;
 };
 
-struct AudioPassParams
-{
-    hlsl_float4 _pad;
-};
-
 struct OscillatorInstance
 {
     hlsl_float frequency;
