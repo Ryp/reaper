@@ -71,7 +71,7 @@ Resource& GetResource(FrameGraph& framegraph, const ResourceUsage& resourceUsage
     return GetResource(framegraph, resourceUsage.resource_handle);
 }
 
-ResourceViewHandles allocate_texture_views(FrameGraph& framegraph, nonstd::span<const GPUTextureView> texture_views)
+ResourceViewHandles allocate_texture_views(FrameGraph& framegraph, std::span<const GPUTextureView> texture_views)
 {
     const u32 view_offset = framegraph.TextureViews.size();
     const u32 view_count = texture_views.size();
@@ -85,7 +85,7 @@ ResourceViewHandles allocate_texture_views(FrameGraph& framegraph, nonstd::span<
     };
 }
 
-ResourceViewHandles allocate_buffer_views(FrameGraph& framegraph, nonstd::span<const GPUBufferView> buffer_views)
+ResourceViewHandles allocate_buffer_views(FrameGraph& framegraph, std::span<const GPUBufferView> buffer_views)
 {
     const u32 view_offset = framegraph.BufferViews.size();
     const u32 view_count = buffer_views.size();
@@ -121,7 +121,7 @@ namespace
 } // namespace
 
 // Uses depth-first traversal
-bool HasCycles(const DirectedAcyclicGraph& graph, nonstd::span<const DirectedAcyclicGraph::index_type> rootNodes)
+bool HasCycles(const DirectedAcyclicGraph& graph, std::span<const DirectedAcyclicGraph::index_type> rootNodes)
 {
     Assert(!rootNodes.empty(), "No root nodes were specified");
     std::vector<DirectedAcyclicGraph::index_type> ancestorStack;
@@ -136,7 +136,7 @@ bool HasCycles(const DirectedAcyclicGraph& graph, nonstd::span<const DirectedAcy
 
 // Uses breadth-first traversal
 void ComputeTransitiveClosure(const DirectedAcyclicGraph& graph,
-                              nonstd::span<const DirectedAcyclicGraph::index_type>
+                              std::span<const DirectedAcyclicGraph::index_type>
                                                                              rootNodes,
                               std::vector<DirectedAcyclicGraph::index_type>& outClosure)
 {
@@ -337,8 +337,8 @@ FrameGraphSchedule compute_schedule(const FrameGraph& framegraph)
 }
 
 // This assumes the events are sorted by render pass
-nonstd::span<const BarrierEvent> get_barriers_to_execute(const FrameGraphSchedule& schedule,
-                                                         RenderPassHandle render_pass_handle, bool execute_before_pass)
+std::span<const BarrierEvent> get_barriers_to_execute(const FrameGraphSchedule& schedule,
+                                                      RenderPassHandle render_pass_handle, bool execute_before_pass)
 {
     const BarrierEvent* begin = nullptr;
     const BarrierEvent* end = nullptr;
@@ -360,6 +360,6 @@ nonstd::span<const BarrierEvent> get_barriers_to_execute(const FrameGraphSchedul
         }
     }
 
-    return nonstd::span(begin, end);
+    return std::span(begin, end);
 }
 } // namespace Reaper::FrameGraph

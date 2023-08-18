@@ -12,7 +12,7 @@
 #include <core/Types.h>
 #include <profiling/Scope.h>
 
-#include <nonstd/span.hpp>
+#include <span>
 #include <vector>
 
 #include <glm/glm.hpp>
@@ -66,17 +66,16 @@ struct TrackSkinning
 };
 
 NEPTUNE_TRACKGEN_API
-void generate_track_skeleton(const GenerationInfo& genInfo, nonstd::span<TrackSkeletonNode> skeleton_nodes);
+void generate_track_skeleton(const GenerationInfo& genInfo, std::span<TrackSkeletonNode> skeleton_nodes);
 
 NEPTUNE_TRACKGEN_API
-void generate_track_splines(
-    nonstd::span<const TrackSkeletonNode> skeleton_nodes, nonstd::span<Reaper::Math::Spline> splines);
+void generate_track_splines(std::span<const TrackSkeletonNode> skeleton_nodes, std::span<Reaper::Math::Spline> splines);
 
 NEPTUNE_TRACKGEN_API
-void generate_track_skinning(nonstd::span<const TrackSkeletonNode> skeleton_nodes,
-                             nonstd::span<const Reaper::Math::Spline>
+void generate_track_skinning(std::span<const TrackSkeletonNode> skeleton_nodes,
+                             std::span<const Reaper::Math::Spline>
                                  splines,
-                             nonstd::span<TrackSkinning>
+                             std::span<TrackSkinning>
                                  skinning);
 
 NEPTUNE_TRACKGEN_API

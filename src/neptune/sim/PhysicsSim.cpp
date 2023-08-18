@@ -149,10 +149,9 @@ glm::fmat4x3 get_player_transform(PhysicsSim& sim)
 #endif
 }
 
-void sim_create_static_collision_meshes(nonstd::span<StaticMeshColliderHandle> handles, PhysicsSim& sim,
-                                        nonstd::span<const Mesh>         meshes,
-                                        nonstd::span<const glm::fmat4x3> transforms_no_scale,
-                                        nonstd::span<const glm::fvec3>   scales)
+void sim_create_static_collision_meshes(std::span<StaticMeshColliderHandle> handles, PhysicsSim& sim,
+                                        std::span<const Mesh> meshes, std::span<const glm::fmat4x3> transforms_no_scale,
+                                        std::span<const glm::fvec3> scales)
 {
     // FIXME Assert scale values
 #if defined(REAPER_USE_BULLET_PHYSICS)
@@ -217,7 +216,7 @@ void sim_create_static_collision_meshes(nonstd::span<StaticMeshColliderHandle> h
 #endif
 }
 
-void sim_destroy_static_collision_meshes(nonstd::span<const StaticMeshColliderHandle> handles, PhysicsSim& sim)
+void sim_destroy_static_collision_meshes(std::span<const StaticMeshColliderHandle> handles, PhysicsSim& sim)
 {
 #if defined(REAPER_USE_BULLET_PHYSICS)
     for (auto handle : handles)

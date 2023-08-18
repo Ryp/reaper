@@ -13,7 +13,7 @@
 
 #include <vulkan_loader/Vulkan.h>
 
-#include <nonstd/span.hpp>
+#include <span>
 #include <vector>
 
 namespace Reaper
@@ -58,8 +58,8 @@ MaterialResources create_material_resources(ReaperRoot& root, VulkanBackend& bac
 void              destroy_material_resources(VulkanBackend& backend, MaterialResources& resources);
 
 REAPER_RENDERER_API void load_textures(ReaperRoot& root, VulkanBackend& backend, MaterialResources& resources,
-                                       nonstd::span<const char*>   texture_filenames,
-                                       nonstd::span<TextureHandle> output_handles);
+                                       std::span<const char*>   texture_filenames,
+                                       std::span<TextureHandle> output_handles);
 
 struct CommandBuffer;
 

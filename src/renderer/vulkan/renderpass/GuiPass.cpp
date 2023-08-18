@@ -42,7 +42,7 @@ GuiPassResources create_gui_pass_resources(ReaperRoot& /*root*/, VulkanBackend& 
     VkDescriptorSetLayout descriptor_set_layout =
         create_descriptor_set_layout(backend.device, descriptorSetLayoutBinding);
 
-    VkPipelineLayout pipelineLayout = create_pipeline_layout(backend.device, nonstd::span(&descriptor_set_layout, 1));
+    VkPipelineLayout pipelineLayout = create_pipeline_layout(backend.device, std::span(&descriptor_set_layout, 1));
 
     VkPipelineColorBlendAttachmentState blend_attachment_state = default_pipeline_color_blend_attachment_state();
 
@@ -62,8 +62,7 @@ GuiPassResources create_gui_pass_resources(ReaperRoot& /*root*/, VulkanBackend& 
     resources.guiPipe = GuiPipelineInfo{pipeline, pipelineLayout, descriptor_set_layout};
 
     allocate_descriptor_sets(backend.device, backend.global_descriptor_pool,
-                             nonstd::span(&resources.guiPipe.descSetLayout, 1),
-                             nonstd::span(&resources.descriptor_set, 1));
+                             std::span(&resources.guiPipe.descSetLayout, 1), std::span(&resources.descriptor_set, 1));
 
     return resources;
 }

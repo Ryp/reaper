@@ -24,10 +24,10 @@ struct FrameGraphTexture
     GPUTextureProperties properties;
     GPUTextureView       default_view;
 
-    VkImage                         handle;
-    VkImageView                     default_view_handle;
-    nonstd::span<const VkImageView> additional_views;
-    VkImageLayout                   image_layout;
+    VkImage                      handle;
+    VkImageView                  default_view_handle;
+    std::span<const VkImageView> additional_views;
+    VkImageLayout                image_layout;
 };
 
 struct FrameGraphBuffer

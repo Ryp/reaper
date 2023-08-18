@@ -75,7 +75,7 @@ namespace
         return glm::toMat4(rollFixup * deviation);
     }
 
-    bool is_node_self_colliding(nonstd::span<const TrackSkeletonNode> nodes, const TrackSkeletonNode& current_node,
+    bool is_node_self_colliding(std::span<const TrackSkeletonNode> nodes, const TrackSkeletonNode& current_node,
                                 u32& outputNodeIdx)
     {
         for (u32 i = 0; (i + 1) < nodes.size(); i++)
@@ -93,8 +93,8 @@ namespace
         return false;
     }
 
-    TrackSkeletonNode generate_node(const GenerationInfo&                 gen_info,
-                                    nonstd::span<const TrackSkeletonNode> previous_nodes, RNG& rng)
+    TrackSkeletonNode generate_node(const GenerationInfo& gen_info, std::span<const TrackSkeletonNode> previous_nodes,
+                                    RNG& rng)
     {
         std::uniform_real_distribution<float> widthDistribution(WidthMin, WidthMax);
         std::uniform_real_distribution<float> radiusDistribution(RadiusMin, RadiusMax);
@@ -137,7 +137,7 @@ namespace
     }
 } // namespace
 
-void generate_track_skeleton(const GenerationInfo& gen_info, nonstd::span<TrackSkeletonNode> skeleton_nodes)
+void generate_track_skeleton(const GenerationInfo& gen_info, std::span<TrackSkeletonNode> skeleton_nodes)
 {
     Assert(gen_info.length >= MinLength);
     Assert(gen_info.length <= MaxLength);
@@ -152,8 +152,7 @@ void generate_track_skeleton(const GenerationInfo& gen_info, nonstd::span<TrackS
     while (current_node_index < gen_info.length && tryCount < MaxTryCount)
     {
         // Make span on generated nodes so far
-        nonstd::span<const TrackSkeletonNode> generated_nodes =
-            nonstd::make_span(skeleton_nodes.data(), current_node_index);
+        std::span<const TrackSkeletonNode> generated_nodes = std::span(skeleton_nodes.data(), current_node_index);
 
         const TrackSkeletonNode new_node = generate_node(gen_info, generated_nodes, rng);
 
@@ -175,8 +174,7 @@ void generate_track_skeleton(const GenerationInfo& gen_info, nonstd::span<TrackS
     Assert(tryCount < MaxTryCount, "something is majorly FUBAR");
 }
 
-void generate_track_splines(nonstd::span<const TrackSkeletonNode> skeleton_nodes,
-                            nonstd::span<Reaper::Math::Spline>    splines)
+void generate_track_splines(std::span<const TrackSkeletonNode> skeleton_nodes, std::span<Reaper::Math::Spline> splines)
 {
     Assert(skeleton_nodes.size() == splines.size());
 
@@ -264,10 +262,10 @@ namespace
     }
 } // namespace
 
-void generate_track_skinning(nonstd::span<const TrackSkeletonNode> skeleton_nodes,
-                             nonstd::span<const Reaper::Math::Spline>
+void generate_track_skinning(std::span<const TrackSkeletonNode> skeleton_nodes,
+                             std::span<const Reaper::Math::Spline>
                                  splines,
-                             nonstd::span<TrackSkinning>
+                             std::span<TrackSkinning>
                                  skinning)
 {
     Assert(skeleton_nodes.size() == splines.size());

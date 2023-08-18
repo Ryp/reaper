@@ -17,7 +17,7 @@
 
 #include <vector>
 
-#include <nonstd/span.hpp>
+#include <span>
 
 namespace Reaper::FrameGraph
 {
@@ -102,15 +102,15 @@ Resource&            GetResource(FrameGraph& framegraph, ResourceHandle resource
 const Resource&      GetResource(const FrameGraph& framegraph, const ResourceUsage& resourceUsage);
 Resource&            GetResource(FrameGraph& framegraph, const ResourceUsage& resourceUsage);
 
-ResourceViewHandles allocate_texture_views(FrameGraph& framegraph, nonstd::span<const GPUTextureView> texture_views);
-ResourceViewHandles allocate_buffer_views(FrameGraph& framegraph, nonstd::span<const GPUBufferView> buffer_views);
+ResourceViewHandles allocate_texture_views(FrameGraph& framegraph, std::span<const GPUTextureView> texture_views);
+ResourceViewHandles allocate_buffer_views(FrameGraph& framegraph, std::span<const GPUBufferView> buffer_views);
 
 // Uses depth-first traversal
-bool HasCycles(const DirectedAcyclicGraph& graph, nonstd::span<const DirectedAcyclicGraph::index_type> rootNodes);
+bool HasCycles(const DirectedAcyclicGraph& graph, std::span<const DirectedAcyclicGraph::index_type> rootNodes);
 
 // Uses breadth-first traversal
 void ComputeTransitiveClosure(const DirectedAcyclicGraph& graph,
-                              nonstd::span<const DirectedAcyclicGraph::index_type>
+                              std::span<const DirectedAcyclicGraph::index_type>
                                                                              rootNodes,
                               std::vector<DirectedAcyclicGraph::index_type>& outClosure);
 
@@ -161,8 +161,8 @@ struct FrameGraphSchedule
 
 FrameGraphSchedule compute_schedule(const FrameGraph& framegraph);
 
-nonstd::span<const BarrierEvent> get_barriers_to_execute(const FrameGraphSchedule& schedule,
-                                                         RenderPassHandle render_pass_handle, bool execute_before_pass);
+std::span<const BarrierEvent> get_barriers_to_execute(const FrameGraphSchedule& schedule,
+                                                      RenderPassHandle render_pass_handle, bool execute_before_pass);
 
 inline GPUTextureAccess to_texture_access(GPUResourceAccess texture_access)
 {

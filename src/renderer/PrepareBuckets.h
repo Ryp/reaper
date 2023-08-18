@@ -13,7 +13,7 @@
 #include "renderer/RendererExport.h"
 #include "renderer/ResourceHandle.h"
 
-#include <nonstd/span.hpp>
+#include <span>
 #include <vector>
 
 #include "renderer/shader/forward.share.hlsl"

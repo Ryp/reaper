@@ -61,7 +61,7 @@ TiledLightingPassResources create_tiled_lighting_pass_resources(ReaperRoot& root
                                                        sizeof(TiledLightingPushConstants)};
 
         VkPipelineLayout pipeline_layout =
-            create_pipeline_layout(backend.device, descriptor_set_layouts, nonstd::span(&pushConstantRange, 1));
+            create_pipeline_layout(backend.device, descriptor_set_layouts, std::span(&pushConstantRange, 1));
 
         VkPipeline pipeline =
             create_compute_pipeline(backend.device, pipeline_layout, shader_modules.tiled_lighting_cs);
@@ -97,8 +97,8 @@ TiledLightingPassResources create_tiled_lighting_pass_resources(ReaperRoot& root
         const VkPushConstantRange pushConstantRange = {VK_SHADER_STAGE_COMPUTE_BIT, 0,
                                                        sizeof(TiledLightingDebugPushConstants)};
 
-        VkPipelineLayout pipeline_layout = create_pipeline_layout(
-            backend.device, nonstd::span(&descriptor_set_layout, 1), nonstd::span(&pushConstantRange, 1));
+        VkPipelineLayout pipeline_layout = create_pipeline_layout(backend.device, std::span(&descriptor_set_layout, 1),
+                                                                  std::span(&pushConstantRange, 1));
 
         VkPipeline pipeline =
             create_compute_pipeline(backend.device, pipeline_layout, shader_modules.tiled_lighting_debug_cs);
@@ -144,7 +144,7 @@ void update_tiled_lighting_pass_descriptor_sets(DescriptorWriteHelper&          
                                                 const FrameGraphTexture&          main_view_depth,
                                                 const FrameGraphTexture&          lighting_output,
                                                 const FrameGraphBuffer&           tile_debug_buffer,
-                                                nonstd::span<const FrameGraphTexture>
+                                                std::span<const FrameGraphTexture>
                                                     shadow_maps)
 {
     VkDescriptorSet dset = resources.tiled_lighting_descriptor_set;
@@ -164,7 +164,7 @@ void update_tiled_lighting_pass_descriptor_sets(DescriptorWriteHelper&          
 
     if (!shadow_maps.empty())
     {
-        nonstd::span<VkDescriptorImageInfo> shadow_map_image_infos = write_helper.new_image_infos(shadow_maps.size());
+        std::span<VkDescriptorImageInfo> shadow_map_image_infos = write_helper.new_image_infos(shadow_maps.size());
 
         for (u32 index = 0; index < shadow_maps.size(); index += 1)
         {

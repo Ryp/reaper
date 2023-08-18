@@ -20,7 +20,6 @@ target_link_libraries(${target} PUBLIC
     reaper_math
     reaper_mesh
     glm
-    span
 )
 
 set_target_properties(${target} PROPERTIES FOLDER Neptune)

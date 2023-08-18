@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include <nonstd/span.hpp>
+#include <span>
 
 #include "renderer/graph/FrameGraph.h"
 

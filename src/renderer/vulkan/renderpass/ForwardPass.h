@@ -15,7 +15,7 @@
 
 #include <glm/vec2.hpp>
 
-#include <nonstd/span.hpp>
+#include <span>
 
 #include <vector>
 
@@ -61,8 +61,8 @@ void update_forward_pass_descriptor_sets(DescriptorWriteHelper& write_helper, co
                                          const FrameGraphBuffer&  visible_meshlet_buffer,
                                          const SamplerResources&  sampler_resources,
                                          const MaterialResources& material_resources, const MeshCache& mesh_cache,
-                                         const LightingPassResources&          lighting_resources,
-                                         nonstd::span<const FrameGraphTexture> shadow_maps);
+                                         const LightingPassResources&       lighting_resources,
+                                         std::span<const FrameGraphTexture> shadow_maps);
 
 struct PreparedData;
 

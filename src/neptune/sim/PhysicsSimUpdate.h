@@ -11,7 +11,7 @@
 
 #include <core/Types.h>
 
-#include <nonstd/span.hpp>
+#include <span>
 
 #include <glm/fwd.hpp>
 
@@ -24,6 +24,6 @@ NEPTUNE_SIM_API void sim_start(PhysicsSim* sim);
 struct TrackSkeletonNode;
 struct ShipInput;
 
-NEPTUNE_SIM_API void sim_update(PhysicsSim& sim, nonstd::span<const TrackSkeletonNode> skeleton_nodes,
+NEPTUNE_SIM_API void sim_update(PhysicsSim& sim, std::span<const TrackSkeletonNode> skeleton_nodes,
                                 const ShipInput& input, float dt);
 } // namespace Neptune

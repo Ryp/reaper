@@ -9,7 +9,7 @@
 
 #include <vulkan_loader/Vulkan.h>
 
-#include <nonstd/span.hpp>
+#include <span>
 #include <vector>
 
 namespace Reaper
@@ -19,24 +19,24 @@ VkDescriptorImageInfo  create_descriptor_image_info(VkSampler sampler);
 VkDescriptorBufferInfo create_descriptor_buffer_info(VkBuffer handle, u64 offset_bytes, u64 size_bytes);
 
 VkWriteDescriptorSet create_image_descriptor_write(VkDescriptorSet descriptor_set, u32 binding,
-                                                   VkDescriptorType                          descriptor_type,
-                                                   nonstd::span<const VkDescriptorImageInfo> image_infos);
+                                                   VkDescriptorType                       descriptor_type,
+                                                   std::span<const VkDescriptorImageInfo> image_infos);
 
 VkWriteDescriptorSet create_image_descriptor_write(VkDescriptorSet descriptor_set, u32 binding,
                                                    VkDescriptorType             descriptor_type,
                                                    const VkDescriptorImageInfo* image_info);
 
 VkWriteDescriptorSet create_buffer_descriptor_write(VkDescriptorSet descriptor_set, u32 binding,
-                                                    VkDescriptorType                           descriptor_type,
-                                                    nonstd::span<const VkDescriptorBufferInfo> buffer_infos);
+                                                    VkDescriptorType                        descriptor_type,
+                                                    std::span<const VkDescriptorBufferInfo> buffer_infos);
 
 VkWriteDescriptorSet create_buffer_descriptor_write(VkDescriptorSet descriptor_set, u32 binding,
                                                     VkDescriptorType              descriptor_type,
                                                     const VkDescriptorBufferInfo* buffer_info);
 
 VkWriteDescriptorSet create_texel_buffer_view_descriptor_write(VkDescriptorSet descriptor_set, u32 binding,
-                                                               VkDescriptorType                 descriptor_type,
-                                                               nonstd::span<const VkBufferView> texel_buffer_views);
+                                                               VkDescriptorType              descriptor_type,
+                                                               std::span<const VkBufferView> texel_buffer_views);
 
 VkWriteDescriptorSet create_texel_buffer_view_descriptor_write(VkDescriptorSet descriptor_set, u32 binding,
                                                                VkDescriptorType    descriptor_type,
@@ -51,10 +51,10 @@ public:
                           u32 texel_buffer_descriptor_count = 1);
     ~DescriptorWriteHelper();
 
-    VkDescriptorImageInfo&              new_image_info(VkDescriptorImageInfo image_info);
-    nonstd::span<VkDescriptorImageInfo> new_image_infos(u32 count);
-    VkDescriptorBufferInfo&             new_buffer_info(VkDescriptorBufferInfo buffer_info);
-    VkBufferView&                       new_texel_buffer_view(VkBufferView texel_buffer_view);
+    VkDescriptorImageInfo&           new_image_info(VkDescriptorImageInfo image_info);
+    std::span<VkDescriptorImageInfo> new_image_infos(u32 count);
+    VkDescriptorBufferInfo&          new_buffer_info(VkDescriptorBufferInfo buffer_info);
+    VkBufferView&                    new_texel_buffer_view(VkBufferView texel_buffer_view);
 
     void append(VkDescriptorSet descriptor_set, u32 binding, VkDescriptorType type, VkImageView image_view,
                 VkImageLayout layout);
@@ -67,9 +67,9 @@ public:
     void flush_descriptor_write_helper(VkDevice device);
 
 private:
-    nonstd::span<VkDescriptorImageInfo>  image_infos;
-    nonstd::span<VkDescriptorBufferInfo> buffer_infos;
-    nonstd::span<VkBufferView>           texel_buffer_views;
+    std::span<VkDescriptorImageInfo>  image_infos;
+    std::span<VkDescriptorBufferInfo> buffer_infos;
+    std::span<VkBufferView>           texel_buffer_views;
 
     u64 image_info_size;
     u64 buffer_info_size;

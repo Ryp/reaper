@@ -9,7 +9,7 @@
 
 #include "renderer/vulkan/Buffer.h"
 
-#include <nonstd/span.hpp>
+#include <span>
 
 namespace Reaper
 {
@@ -56,7 +56,7 @@ void update_tiled_lighting_pass_descriptor_sets(DescriptorWriteHelper&          
                                                 const FrameGraphTexture&          main_view_depth,
                                                 const FrameGraphTexture&          lighting_output,
                                                 const FrameGraphBuffer&           tile_debug_buffer,
-                                                nonstd::span<const FrameGraphTexture>
+                                                std::span<const FrameGraphTexture>
                                                     shadow_maps);
 
 struct PreparedData;

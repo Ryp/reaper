@@ -148,7 +148,7 @@ void update_gbuffer_pass_descriptor_sets(DescriptorWriteHelper& write_helper, co
 
     if (!material_resources.texture_handles.empty())
     {
-        nonstd::span<VkDescriptorImageInfo> albedo_image_infos =
+        std::span<VkDescriptorImageInfo> albedo_image_infos =
             write_helper.new_image_infos(material_resources.texture_handles.size());
 
         for (u32 index = 0; index < albedo_image_infos.size(); index += 1)

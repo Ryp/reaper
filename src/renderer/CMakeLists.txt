@@ -307,7 +307,6 @@ target_link_libraries(${target} PUBLIC
     reaper_vulkan_loader
     fmt
     glm
-    span
     amd-vma
     meshoptimizer
     tinyddsloader

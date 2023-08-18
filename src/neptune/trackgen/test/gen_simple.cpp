@@ -8,7 +8,7 @@
 #include <doctest/doctest.h>
 
 #include <fstream>
-#include <nonstd/span.hpp>
+#include <span>
 
 #include "math/Spline.h"
 

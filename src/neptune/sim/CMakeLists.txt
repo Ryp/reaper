@@ -22,7 +22,6 @@ target_link_libraries(${target} PUBLIC
     reaper_core
     reaper_common
     glm
-    span
     fmt
 )
 

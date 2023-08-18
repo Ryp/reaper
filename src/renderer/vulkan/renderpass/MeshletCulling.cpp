@@ -163,8 +163,8 @@ MeshletCullingResources create_meshlet_culling_resources(ReaperRoot& root, Vulka
         const VkPushConstantRange cullPushConstantRange = {VK_SHADER_STAGE_COMPUTE_BIT, 0,
                                                            sizeof(CullMeshletPushConstants)};
 
-        VkPipelineLayout pipelineLayout = create_pipeline_layout(backend.device, nonstd::span(&descriptorSetLayout, 1),
-                                                                 nonstd::span(&cullPushConstantRange, 1));
+        VkPipelineLayout pipelineLayout = create_pipeline_layout(backend.device, std::span(&descriptorSetLayout, 1),
+                                                                 std::span(&cullPushConstantRange, 1));
 
         VkPipeline pipeline = create_compute_pipeline(backend.device, pipelineLayout, shader_modules.cull_meshlet_cs);
 
@@ -182,8 +182,8 @@ MeshletCullingResources create_meshlet_culling_resources(ReaperRoot& root, Vulka
         const VkPushConstantRange cullPushConstantRange = {VK_SHADER_STAGE_COMPUTE_BIT, 0,
                                                            sizeof(CullMeshletPushConstants)};
 
-        VkPipelineLayout pipelineLayout = create_pipeline_layout(backend.device, nonstd::span(&descriptorSetLayout, 1),
-                                                                 nonstd::span(&cullPushConstantRange, 1));
+        VkPipelineLayout pipelineLayout = create_pipeline_layout(backend.device, std::span(&descriptorSetLayout, 1),
+                                                                 std::span(&cullPushConstantRange, 1));
 
         VkPipeline pipeline =
             create_compute_pipeline(backend.device, pipelineLayout, shader_modules.prepare_fine_culling_indirect_cs);
@@ -208,8 +208,8 @@ MeshletCullingResources create_meshlet_culling_resources(ReaperRoot& root, Vulka
 
         const VkPushConstantRange cullPushConstantRange = {VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(CullPushConstants)};
 
-        VkPipelineLayout pipelineLayout = create_pipeline_layout(backend.device, nonstd::span(&descriptorSetLayout, 1),
-                                                                 nonstd::span(&cullPushConstantRange, 1));
+        VkPipelineLayout pipelineLayout = create_pipeline_layout(backend.device, std::span(&descriptorSetLayout, 1),
+                                                                 std::span(&cullPushConstantRange, 1));
 
         VkPipeline pipeline =
             create_compute_pipeline(backend.device, pipelineLayout, shader_modules.cull_triangle_batch_cs);
@@ -239,7 +239,7 @@ MeshletCullingResources create_meshlet_culling_resources(ReaperRoot& root, Vulka
                              resources.cull_meshlet_descriptor_sets);
     allocate_descriptor_sets(backend.device, backend.global_descriptor_pool,
                              resources.cull_meshlets_prep_indirect_pipe.descSetLayout,
-                             nonstd::span(&resources.cull_prepare_descriptor_set, 1));
+                             std::span(&resources.cull_prepare_descriptor_set, 1));
     allocate_descriptor_sets(backend.device, backend.global_descriptor_pool,
                              resources.cull_triangles_pipe.descSetLayout, resources.cull_triangles_descriptor_sets);
 

@@ -474,7 +474,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         tile_depth_copy.hzb_texture = builder.read_texture(
             tile_depth_copy.pass_handle, hzb_reduce.hzb_texture,
             {VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT, VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL},
-            nonstd::make_span(&hzb_view, 1));
+            std::span(&hzb_view, 1));
     }
 
     tile_depth_copy.light_list_clear = builder.create_buffer(

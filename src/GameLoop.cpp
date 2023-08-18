@@ -332,7 +332,7 @@ void execute_game_loop(ReaperRoot& root)
     ship_meshes.push_back(ModelLoader::loadOBJ(ship_obj_file));
 
     MeshHandle ship_mesh_handle;
-    load_meshes(backend, backend.resources->mesh_cache, ship_meshes, nonstd::make_span(&ship_mesh_handle, 1));
+    load_meshes(backend, backend.resources->mesh_cache, ship_meshes, std::span(&ship_mesh_handle, 1));
 
     // Build scene
     SceneNode* player_scene_node = nullptr;
@@ -608,8 +608,7 @@ void execute_game_loop(ReaperRoot& root)
                                                             backend.resources->material_resources.texture_handles[0]);
 
                     // We kill the ship mesh as well, so let's rebuild it
-                    load_meshes(backend, backend.resources->mesh_cache, ship_meshes,
-                                nonstd::make_span(&ship_mesh_handle, 1));
+                    load_meshes(backend, backend.resources->mesh_cache, ship_meshes, std::span(&ship_mesh_handle, 1));
 
                     // Patch the scene to use the right mesh handle, otherwise we might crash!
                     player_scene_mesh.mesh_handle = ship_mesh_handle;

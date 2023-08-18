@@ -11,7 +11,7 @@
 
 namespace Reaper::Math
 {
-Spline create_spline(u32 order, nonstd::span<const glm::vec4> controlPoints)
+Spline create_spline(u32 order, std::span<const glm::vec4> controlPoints)
 {
     const u32 controlPointCount = static_cast<u32>(controlPoints.size()); // cast
     const u32 knotCount = order + controlPointCount + 1;

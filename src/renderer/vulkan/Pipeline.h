@@ -9,34 +9,34 @@
 
 #include "vulkan_loader/Vulkan.h"
 
-#include <nonstd/span.hpp>
+#include <span>
 
 namespace Reaper
 {
 void allocate_descriptor_sets(VkDevice device, VkDescriptorPool descriptor_pool,
-                              nonstd::span<const VkDescriptorSetLayout> descriptor_set_layouts,
-                              nonstd::span<VkDescriptorSet>             output_descriptor_sets);
+                              std::span<const VkDescriptorSetLayout> descriptor_set_layouts,
+                              std::span<VkDescriptorSet>             output_descriptor_sets);
 
 void allocate_descriptor_sets(VkDevice device, VkDescriptorPool descriptor_pool, VkDescriptorSetLayout set_layout,
-                              nonstd::span<VkDescriptorSet> output_descriptor_sets);
+                              std::span<VkDescriptorSet> output_descriptor_sets);
 
 VkDescriptorSetLayoutBindingFlagsCreateInfo
-descriptor_set_layout_binding_flags_create_info(nonstd::span<const VkDescriptorBindingFlags> binding_flags);
+descriptor_set_layout_binding_flags_create_info(std::span<const VkDescriptorBindingFlags> binding_flags);
 
 VkDescriptorSetLayoutCreateInfo
-descriptor_set_layout_create_info(nonstd::span<const VkDescriptorSetLayoutBinding> layout_bindings);
+descriptor_set_layout_create_info(std::span<const VkDescriptorSetLayoutBinding> layout_bindings);
 
 VkDescriptorSetLayout create_descriptor_set_layout(
     VkDevice device,
-    nonstd::span<const VkDescriptorSetLayoutBinding>
-                                                 layout_bindings,
-    nonstd::span<const VkDescriptorBindingFlags> binding_flags = nonstd::span<const VkDescriptorBindingFlags>());
+    std::span<const VkDescriptorSetLayoutBinding>
+                                              layout_bindings,
+    std::span<const VkDescriptorBindingFlags> binding_flags = std::span<const VkDescriptorBindingFlags>());
 
 const char* default_entry_point();
 
 VkPipelineLayout create_pipeline_layout(
-    VkDevice device, nonstd::span<const VkDescriptorSetLayout> descriptor_set_layouts,
-    nonstd::span<const VkPushConstantRange> push_constant_ranges = nonstd::span<const VkPushConstantRange>());
+    VkDevice device, std::span<const VkDescriptorSetLayout> descriptor_set_layouts,
+    std::span<const VkPushConstantRange> push_constant_ranges = std::span<const VkPushConstantRange>());
 
 VkPipeline create_compute_pipeline(VkDevice device, VkPipelineLayout pipeline_layout,
                                    const VkPipelineShaderStageCreateInfo& shader_stage_create_info);
@@ -62,7 +62,7 @@ VkPipelineDepthStencilStateCreateInfo  default_pipeline_depth_stencil_state_crea
 VkPipelineColorBlendStateCreateInfo    default_pipeline_color_blend_state_create_info();
 
 VkPipelineDynamicStateCreateInfo
-create_pipeline_dynamic_state_create_info(nonstd::span<const VkDynamicState> dynamic_states);
+create_pipeline_dynamic_state_create_info(std::span<const VkDynamicState> dynamic_states);
 
 // Helper with the mandatory structures you need to have to create a graphics pipeline.
 struct GraphicsPipelineProperties
@@ -80,12 +80,11 @@ struct GraphicsPipelineProperties
 
 GraphicsPipelineProperties default_graphics_pipeline_properties(void* pNext = nullptr);
 
-VkPipeline
-create_graphics_pipeline(VkDevice device,
-                         nonstd::span<const VkPipelineShaderStageCreateInfo>
-                                                            shader_stages,
-                         const GraphicsPipelineProperties&  properties,
-                         nonstd::span<const VkDynamicState> dynamic_states = nonstd::span<const VkDynamicState>());
+VkPipeline create_graphics_pipeline(VkDevice device,
+                                    std::span<const VkPipelineShaderStageCreateInfo>
+                                                                      shader_stages,
+                                    const GraphicsPipelineProperties& properties,
+                                    std::span<const VkDynamicState> dynamic_states = std::span<const VkDynamicState>());
 
 VkRenderingAttachmentInfo default_rendering_attachment_info(VkImageView image_view, VkImageLayout layout);
 
@@ -93,7 +92,7 @@ VkRenderingInfo default_rendering_info(VkRect2D render_rect, const VkRenderingAt
                                        const VkRenderingAttachmentInfo* depth_attachment = nullptr);
 
 VkRenderingInfo default_rendering_info(VkRect2D render_rect,
-                                       nonstd::span<const VkRenderingAttachmentInfo>
+                                       std::span<const VkRenderingAttachmentInfo>
                                                                         color_attachments,
                                        const VkRenderingAttachmentInfo* depth_attachment = nullptr);
 } // namespace Reaper

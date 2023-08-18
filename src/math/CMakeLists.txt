@@ -21,7 +21,6 @@ target_sources(${target} PRIVATE
 target_link_libraries(${target} PUBLIC
     reaper_core
     glm
-    span
 )
 
 reaper_configure_library(${target} "Math")

@@ -15,7 +15,7 @@
 #include "ShadowConstants.h"
 
 #include <glm/vec2.hpp>
-#include <nonstd/span.hpp>
+#include <span>
 
 #include <vector>
 
@@ -63,7 +63,7 @@ struct FrameGraphTexture;
 struct FrameGraphBuffer;
 
 void record_shadow_map_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& prepared,
-                                      ShadowMapResources& resources, nonstd::span<const FrameGraphTexture> shadow_maps,
+                                      ShadowMapResources& resources, std::span<const FrameGraphTexture> shadow_maps,
                                       const FrameGraphBuffer& meshlet_counters,
                                       const FrameGraphBuffer& meshlet_indirect_draw_commands,
                                       const FrameGraphBuffer& meshlet_visible_index_buffer);

@@ -328,7 +328,7 @@ void sim_start(PhysicsSim* sim)
 #endif
 }
 
-void sim_update(PhysicsSim& sim, nonstd::span<const TrackSkeletonNode> skeleton_nodes, const ShipInput& input, float dt)
+void sim_update(PhysicsSim& sim, std::span<const TrackSkeletonNode> skeleton_nodes, const ShipInput& input, float dt)
 {
     REAPER_PROFILE_SCOPE_FUNC();
 

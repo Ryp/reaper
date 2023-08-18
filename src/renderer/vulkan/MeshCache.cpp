@@ -80,7 +80,7 @@ void clear_meshes(MeshCache& mesh_cache)
 
 namespace
 {
-    MeshAlloc mesh_cache_allocate_mesh(MeshCache& mesh_cache, const Mesh& mesh, nonstd::span<const Meshlet> meshlets)
+    MeshAlloc mesh_cache_allocate_mesh(MeshCache& mesh_cache, const Mesh& mesh, std::span<const Meshlet> meshlets)
     {
         MeshAlloc alloc = {};
 
@@ -120,7 +120,7 @@ namespace
     }
 
     void upload_mesh_to_mesh_cache(MeshCache& mesh_cache, const Mesh& mesh, const MeshAlloc& mesh_alloc,
-                                   nonstd::span<const Meshlet> meshlets, VulkanBackend& backend)
+                                   std::span<const Meshlet> meshlets, VulkanBackend& backend)
     {
         upload_buffer_data_deprecated(backend.device, backend.vma_instance, mesh_cache.indexBuffer, mesh.indexes.data(),
                                       mesh.indexes.size() * sizeof(mesh.indexes[0]), mesh_alloc.index_offset);
@@ -137,8 +137,8 @@ namespace
     }
 } // namespace
 
-void load_meshes(VulkanBackend& backend, MeshCache& mesh_cache, nonstd::span<const Mesh> meshes,
-                 nonstd::span<MeshHandle> output_handles)
+void load_meshes(VulkanBackend& backend, MeshCache& mesh_cache, std::span<const Mesh> meshes,
+                 std::span<MeshHandle> output_handles)
 {
     Assert(output_handles.size() >= meshes.size());
 

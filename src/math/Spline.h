@@ -14,7 +14,7 @@
 #include <glm/vec4.hpp>
 
 #include <list>
-#include <nonstd/span.hpp>
+#include <span>
 #include <vector>
 
 namespace Reaper::Math
@@ -26,7 +26,7 @@ struct Spline
     u32                    order;
 };
 
-REAPER_MATH_API Spline create_spline(u32 order, nonstd::span<const glm::vec4> controlPoints);
+REAPER_MATH_API Spline create_spline(u32 order, std::span<const glm::vec4> controlPoints);
 
 REAPER_MATH_API glm::vec3 spline_eval(const Spline& spline, float t);
 } // namespace Reaper::Math

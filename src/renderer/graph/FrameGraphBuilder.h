@@ -11,7 +11,7 @@
 
 #include "FrameGraphBasicTypes.h"
 
-#include <nonstd/span.hpp>
+#include <span>
 
 namespace Reaper
 {
@@ -46,38 +46,38 @@ public:
 
 public:
     ResourceUsageHandle
-    create_texture(RenderPassHandle                   render_pass_handle,
-                   const char*                        name,
-                   const GPUTextureProperties&        texture_properties,
-                   GPUTextureAccess                   texture_access,
-                   nonstd::span<const GPUTextureView> additional_texture_views = nonstd::span<const GPUTextureView>());
+    create_texture(RenderPassHandle                render_pass_handle,
+                   const char*                     name,
+                   const GPUTextureProperties&     texture_properties,
+                   GPUTextureAccess                texture_access,
+                   std::span<const GPUTextureView> additional_texture_views = std::span<const GPUTextureView>());
 
     ResourceUsageHandle
-    create_buffer(RenderPassHandle                  render_pass_handle,
-                  const char*                       name,
-                  const GPUBufferProperties&        buffer_properties,
-                  GPUBufferAccess                   buffer_access,
-                  nonstd::span<const GPUBufferView> additional_buffer_views = nonstd::span<const GPUBufferView>());
+    create_buffer(RenderPassHandle               render_pass_handle,
+                  const char*                    name,
+                  const GPUBufferProperties&     buffer_properties,
+                  GPUBufferAccess                buffer_access,
+                  std::span<const GPUBufferView> additional_buffer_views = std::span<const GPUBufferView>());
 
     ResourceUsageHandle
     read_texture(RenderPassHandle render_pass_handle, ResourceUsageHandle input_usage_handle,
-                 GPUTextureAccess                   texture_access,
-                 nonstd::span<const GPUTextureView> additional_texture_views = nonstd::span<const GPUTextureView>());
+                 GPUTextureAccess                texture_access,
+                 std::span<const GPUTextureView> additional_texture_views = std::span<const GPUTextureView>());
 
     ResourceUsageHandle
     read_buffer(RenderPassHandle render_pass_handle, ResourceUsageHandle input_usage_handle,
-                GPUBufferAccess                   buffer_access,
-                nonstd::span<const GPUBufferView> additional_buffer_views = nonstd::span<const GPUBufferView>());
+                GPUBufferAccess                buffer_access,
+                std::span<const GPUBufferView> additional_buffer_views = std::span<const GPUBufferView>());
 
     ResourceUsageHandle
     write_texture(RenderPassHandle render_pass_handle, ResourceUsageHandle input_usage_handle,
-                  GPUTextureAccess                   texture_access,
-                  nonstd::span<const GPUTextureView> additional_texture_views = nonstd::span<const GPUTextureView>());
+                  GPUTextureAccess                texture_access,
+                  std::span<const GPUTextureView> additional_texture_views = std::span<const GPUTextureView>());
 
     ResourceUsageHandle
     write_buffer(RenderPassHandle render_pass_handle, ResourceUsageHandle input_usage_handle,
-                 GPUBufferAccess                   buffer_access,
-                 nonstd::span<const GPUBufferView> additional_buffer_views = nonstd::span<const GPUBufferView>());
+                 GPUBufferAccess                buffer_access,
+                 std::span<const GPUBufferView> additional_buffer_views = std::span<const GPUBufferView>());
 
 public:
     void build();

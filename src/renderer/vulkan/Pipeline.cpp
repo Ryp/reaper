@@ -13,8 +13,8 @@
 namespace Reaper
 {
 void allocate_descriptor_sets(VkDevice device, VkDescriptorPool descriptor_pool,
-                              nonstd::span<const VkDescriptorSetLayout> descriptor_set_layouts,
-                              nonstd::span<VkDescriptorSet>             output_descriptor_sets)
+                              std::span<const VkDescriptorSetLayout> descriptor_set_layouts,
+                              std::span<VkDescriptorSet>             output_descriptor_sets)
 {
     Assert(descriptor_set_layouts.size() == output_descriptor_sets.size());
 
@@ -30,7 +30,7 @@ void allocate_descriptor_sets(VkDevice device, VkDescriptorPool descriptor_pool,
 }
 
 void allocate_descriptor_sets(VkDevice device, VkDescriptorPool descriptor_pool, VkDescriptorSetLayout set_layout,
-                              nonstd::span<VkDescriptorSet> output_descriptor_sets)
+                              std::span<VkDescriptorSet> output_descriptor_sets)
 {
     std::vector<VkDescriptorSetLayout> layouts(output_descriptor_sets.size(), set_layout);
 
@@ -38,7 +38,7 @@ void allocate_descriptor_sets(VkDevice device, VkDescriptorPool descriptor_pool,
 }
 
 VkDescriptorSetLayoutBindingFlagsCreateInfo
-descriptor_set_layout_binding_flags_create_info(nonstd::span<const VkDescriptorBindingFlags> binding_flags)
+descriptor_set_layout_binding_flags_create_info(std::span<const VkDescriptorBindingFlags> binding_flags)
 {
     return VkDescriptorSetLayoutBindingFlagsCreateInfo{
         .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO,
@@ -48,7 +48,7 @@ descriptor_set_layout_binding_flags_create_info(nonstd::span<const VkDescriptorB
 }
 
 VkDescriptorSetLayoutCreateInfo
-descriptor_set_layout_create_info(nonstd::span<const VkDescriptorSetLayoutBinding> layout_bindings)
+descriptor_set_layout_create_info(std::span<const VkDescriptorSetLayoutBinding> layout_bindings)
 {
     return VkDescriptorSetLayoutCreateInfo{.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
                                            .pNext = nullptr,
@@ -58,9 +58,9 @@ descriptor_set_layout_create_info(nonstd::span<const VkDescriptorSetLayoutBindin
 }
 
 VkDescriptorSetLayout create_descriptor_set_layout(VkDevice device,
-                                                   nonstd::span<const VkDescriptorSetLayoutBinding>
+                                                   std::span<const VkDescriptorSetLayoutBinding>
                                                        layout_bindings,
-                                                   nonstd::span<const VkDescriptorBindingFlags>
+                                                   std::span<const VkDescriptorBindingFlags>
                                                        binding_flags)
 {
     VkDescriptorSetLayoutCreateInfo descriptorSetLayoutInfo = descriptor_set_layout_create_info(layout_bindings);
@@ -82,9 +82,9 @@ VkDescriptorSetLayout create_descriptor_set_layout(VkDevice device,
 }
 
 VkPipelineLayout create_pipeline_layout(VkDevice device,
-                                        nonstd::span<const VkDescriptorSetLayout>
+                                        std::span<const VkDescriptorSetLayout>
                                             descriptor_set_layouts,
-                                        nonstd::span<const VkPushConstantRange>
+                                        std::span<const VkPushConstantRange>
                                             push_constant_ranges)
 {
     VkPipelineLayoutCreateInfo pipelineLayoutInfo = {.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
@@ -295,7 +295,7 @@ GraphicsPipelineProperties default_graphics_pipeline_properties(void* pNext)
 }
 
 VkPipelineDynamicStateCreateInfo
-create_pipeline_dynamic_state_create_info(nonstd::span<const VkDynamicState> dynamic_states)
+create_pipeline_dynamic_state_create_info(std::span<const VkDynamicState> dynamic_states)
 {
     return VkPipelineDynamicStateCreateInfo{
         .sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
@@ -307,10 +307,10 @@ create_pipeline_dynamic_state_create_info(nonstd::span<const VkDynamicState> dyn
 }
 
 VkPipeline create_graphics_pipeline(VkDevice device,
-                                    nonstd::span<const VkPipelineShaderStageCreateInfo>
+                                    std::span<const VkPipelineShaderStageCreateInfo>
                                                                       shader_stages,
                                     const GraphicsPipelineProperties& properties,
-                                    nonstd::span<const VkDynamicState>
+                                    std::span<const VkDynamicState>
                                         dynamic_states)
 {
     const std::vector<VkDynamicState> default_dynamic_states = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
@@ -365,13 +365,13 @@ VkRenderingInfo default_rendering_info(VkRect2D render_rect, const VkRenderingAt
                                        const VkRenderingAttachmentInfo* depth_attachment)
 {
     auto color_attachments =
-        color_attachment ? nonstd::make_span(color_attachment, 1) : nonstd::span<const VkRenderingAttachmentInfo>();
+        color_attachment ? std::span(color_attachment, 1) : std::span<const VkRenderingAttachmentInfo>();
 
     return default_rendering_info(render_rect, color_attachments, depth_attachment);
 }
 
 VkRenderingInfo default_rendering_info(VkRect2D render_rect,
-                                       nonstd::span<const VkRenderingAttachmentInfo>
+                                       std::span<const VkRenderingAttachmentInfo>
                                                                         color_attachments,
                                        const VkRenderingAttachmentInfo* depth_attachment)
 {

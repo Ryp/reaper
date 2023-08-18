@@ -219,7 +219,7 @@ Mesh ModelLoader::loadOBJCustom(std::ifstream& src)
     return mesh;
 }
 
-void SaveMeshesAsObj(std::ostream& output, nonstd::span<const Mesh> meshes)
+void SaveMeshesAsObj(std::ostream& output, std::span<const Mesh> meshes)
 {
     u32 vertexOffset = 0;
     u32 uvOffset = 0;

@@ -48,9 +48,8 @@ HZBPassResources create_hzb_pass_resources(ReaperRoot& /*root*/, VulkanBackend& 
         const VkPushConstantRange push_constant_range = {VK_SHADER_STAGE_COMPUTE_BIT, 0,
                                                          sizeof(HZBReducePushConstants)};
 
-        VkPipelineLayout pipeline_layout =
-            create_pipeline_layout(backend.device, nonstd::span(&resources.hzb_pipe.desc_set_layout, 1),
-                                   nonstd::span(&push_constant_range, 1));
+        VkPipelineLayout pipeline_layout = create_pipeline_layout(
+            backend.device, std::span(&resources.hzb_pipe.desc_set_layout, 1), std::span(&push_constant_range, 1));
 
         const VkPipelineShaderStageCreateInfo shader_stage = default_pipeline_shader_stage_create_info(
             VK_SHADER_STAGE_COMPUTE_BIT, shader_modules.hzb_reduce_cs, nullptr,
@@ -61,8 +60,8 @@ HZBPassResources create_hzb_pass_resources(ReaperRoot& /*root*/, VulkanBackend& 
     }
 
     allocate_descriptor_sets(backend.device, backend.global_descriptor_pool,
-                             nonstd::span(&resources.hzb_pipe.desc_set_layout, 1),
-                             nonstd::span(&resources.descriptor_set, 1));
+                             std::span(&resources.hzb_pipe.desc_set_layout, 1),
+                             std::span(&resources.descriptor_set, 1));
 
     return resources;
 }
@@ -83,7 +82,7 @@ void update_hzb_pass_descriptor_set(DescriptorWriteHelper& write_helper, const H
                         scene_depth.default_view_handle, scene_depth.image_layout);
 
     const u32                           hzb_mip_count = 4; // FIXME
-    nonstd::span<VkDescriptorImageInfo> hzb_mips = write_helper.new_image_infos(hzb_mip_count);
+    std::span<VkDescriptorImageInfo> hzb_mips = write_helper.new_image_infos(hzb_mip_count);
 
     for (u32 index = 0; index < hzb_mips.size(); index += 1)
     {

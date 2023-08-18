@@ -72,8 +72,8 @@ AudioResources create_audio_resources(ReaperRoot& root, VulkanBackend& backend, 
 
         const VkPushConstantRange audioPushConstantRange = {VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(SoundPushConstants)};
 
-        VkPipelineLayout pipelineLayout = create_pipeline_layout(backend.device, nonstd::span(&descriptorSetLayout, 1),
-                                                                 nonstd::span(&audioPushConstantRange, 1));
+        VkPipelineLayout pipelineLayout = create_pipeline_layout(backend.device, std::span(&descriptorSetLayout, 1),
+                                                                 std::span(&audioPushConstantRange, 1));
 
         VkPipeline pipeline = create_compute_pipeline(backend.device, pipelineLayout, shader_modules.oscillator_cs);
 
@@ -110,8 +110,7 @@ AudioResources create_audio_resources(ReaperRoot& root, VulkanBackend& backend, 
     vkCreateSemaphore(backend.device, &createInfo, NULL, &resources.semaphore);
 
     allocate_descriptor_sets(backend.device, backend.global_descriptor_pool,
-                             nonstd::span(&resources.audioPipe.descSetLayout, 1),
-                             nonstd::span(&resources.descriptor_set, 1));
+                             std::span(&resources.audioPipe.descSetLayout, 1), std::span(&resources.descriptor_set, 1));
 
     resources.current_frame = 0;
 

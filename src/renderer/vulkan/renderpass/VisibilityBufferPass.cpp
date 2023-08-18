@@ -108,7 +108,7 @@ VisibilityBufferPassResources create_vis_buffer_pass_resources(ReaperRoot& root,
 
         resources.pipe.desc_set_layout = descriptor_set_layout;
 
-        resources.pipe.pipelineLayout = create_pipeline_layout(backend.device, nonstd::span(&descriptor_set_layout, 1));
+        resources.pipe.pipelineLayout = create_pipeline_layout(backend.device, std::span(&descriptor_set_layout, 1));
 
         resources.pipe.pipeline =
             create_vis_buffer_pipeline(root, backend, resources.pipe.pipelineLayout, shader_modules);
@@ -139,8 +139,8 @@ VisibilityBufferPassResources create_vis_buffer_pass_resources(ReaperRoot& root,
         const VkPushConstantRange pushConstantRange = {VK_SHADER_STAGE_COMPUTE_BIT, 0,
                                                        sizeof(FillGBufferPushConstants)};
 
-        VkPipelineLayout pipelineLayout = create_pipeline_layout(
-            backend.device, nonstd::span(&descriptor_set_layout, 1), nonstd::span(&pushConstantRange, 1));
+        VkPipelineLayout pipelineLayout = create_pipeline_layout(backend.device, std::span(&descriptor_set_layout, 1),
+                                                                 std::span(&pushConstantRange, 1));
 
         VkPipeline pipeline =
             create_compute_pipeline(backend.device, pipelineLayout, shader_modules.vis_fill_gbuffer_cs);
@@ -157,10 +157,10 @@ VisibilityBufferPassResources create_vis_buffer_pass_resources(ReaperRoot& root,
                       backend.vma_instance, MemUsage::CPU_To_GPU);
 
     allocate_descriptor_sets(backend.device, backend.global_descriptor_pool, resources.pipe.desc_set_layout,
-                             nonstd::span(&resources.descriptor_set, 1));
+                             std::span(&resources.descriptor_set, 1));
 
     allocate_descriptor_sets(backend.device, backend.global_descriptor_pool, resources.fill_pipe.desc_set_layout,
-                             nonstd::span(&resources.descriptor_set_fill, 1));
+                             std::span(&resources.descriptor_set_fill, 1));
     return resources;
 }
 
@@ -223,7 +223,7 @@ void update_vis_buffer_pass_descriptor_sets(DescriptorWriteHelper&              
 
     if (!material_resources.texture_handles.empty())
     {
-        nonstd::span<VkDescriptorImageInfo> albedo_image_infos =
+        std::span<VkDescriptorImageInfo> albedo_image_infos =
             write_helper.new_image_infos(material_resources.texture_handles.size());
 
         for (u32 index = 0; index < albedo_image_infos.size(); index += 1)

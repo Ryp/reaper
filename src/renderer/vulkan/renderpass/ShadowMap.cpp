@@ -49,8 +49,7 @@ ShadowMapResources create_shadow_map_resources(ReaperRoot& root, VulkanBackend& 
     };
 
     resources.pipe.descSetLayout = create_descriptor_set_layout(backend.device, descriptorSetLayoutBinding);
-    resources.pipe.pipelineLayout =
-        create_pipeline_layout(backend.device, nonstd::span(&resources.pipe.descSetLayout, 1));
+    resources.pipe.pipelineLayout = create_pipeline_layout(backend.device, std::span(&resources.pipe.descSetLayout, 1));
 
     GraphicsPipelineProperties pipeline_properties = default_graphics_pipeline_properties();
     pipeline_properties.input_assembly.primitiveRestartEnable = VK_TRUE;
@@ -137,7 +136,7 @@ void upload_shadow_map_resources(VulkanBackend& backend, const PreparedData& pre
 }
 
 void record_shadow_map_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& prepared,
-                                      ShadowMapResources& resources, nonstd::span<const FrameGraphTexture> shadow_maps,
+                                      ShadowMapResources& resources, std::span<const FrameGraphTexture> shadow_maps,
                                       const FrameGraphBuffer& meshlet_counters,
                                       const FrameGraphBuffer& meshlet_indirect_draw_commands,
                                       const FrameGraphBuffer& meshlet_visible_index_buffer)

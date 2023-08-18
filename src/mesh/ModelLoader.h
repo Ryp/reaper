@@ -13,7 +13,7 @@
 #include <map>
 #include <string>
 
-#include <nonstd/span.hpp>
+#include <span>
 
 #include "Mesh.h"
 
@@ -40,4 +40,4 @@ private:
 };
 
 REAPER_MESH_API
-void SaveMeshesAsObj(std::ostream& output, nonstd::span<const Mesh> meshes);
+void SaveMeshesAsObj(std::ostream& output, std::span<const Mesh> meshes);

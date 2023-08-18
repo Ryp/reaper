@@ -21,7 +21,6 @@ include(tinyobjloader)
 target_link_libraries(${target} PUBLIC
     reaper_core
     glm
-    span
     tinyobjloader
 )
 

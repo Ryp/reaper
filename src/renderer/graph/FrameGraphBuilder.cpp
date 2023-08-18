@@ -131,7 +131,7 @@ ResourceUsageHandle Builder::create_texture(RenderPassHandle            render_p
                                             const char*                 name,
                                             const GPUTextureProperties& texture_properties,
                                             GPUTextureAccess            texture_access,
-                                            nonstd::span<const GPUTextureView>
+                                            std::span<const GPUTextureView>
                                                 additional_texture_views)
 {
     GPUResourceProperties resource_properties;
@@ -147,7 +147,7 @@ ResourceUsageHandle Builder::create_buffer(RenderPassHandle           render_pas
                                            const char*                name,
                                            const GPUBufferProperties& buffer_properties,
                                            GPUBufferAccess            buffer_access,
-                                           nonstd::span<const GPUBufferView>
+                                           std::span<const GPUBufferView>
                                                additional_buffer_views)
 {
     GPUResourceProperties resource_properties;
@@ -162,7 +162,7 @@ ResourceUsageHandle Builder::create_buffer(RenderPassHandle           render_pas
 ResourceUsageHandle Builder::read_texture(RenderPassHandle    render_pass_handle,
                                           ResourceUsageHandle input_usage_handle,
                                           GPUTextureAccess    texture_access,
-                                          nonstd::span<const GPUTextureView>
+                                          std::span<const GPUTextureView>
                                               additional_texture_views)
 {
     const ResourceViewHandles view_handles = allocate_texture_views(m_Graph, additional_texture_views);
@@ -172,8 +172,8 @@ ResourceUsageHandle Builder::read_texture(RenderPassHandle    render_pass_handle
 }
 
 ResourceUsageHandle Builder::read_buffer(RenderPassHandle render_pass_handle, ResourceUsageHandle input_usage_handle,
-                                         GPUBufferAccess                   buffer_access,
-                                         nonstd::span<const GPUBufferView> additional_buffer_views)
+                                         GPUBufferAccess                buffer_access,
+                                         std::span<const GPUBufferView> additional_buffer_views)
 {
     const ResourceViewHandles view_handles = allocate_buffer_views(m_Graph, additional_buffer_views);
 
@@ -182,8 +182,8 @@ ResourceUsageHandle Builder::read_buffer(RenderPassHandle render_pass_handle, Re
 }
 
 ResourceUsageHandle Builder::write_texture(RenderPassHandle render_pass_handle, ResourceUsageHandle input_usage_handle,
-                                           GPUTextureAccess                   texture_access,
-                                           nonstd::span<const GPUTextureView> additional_texture_views)
+                                           GPUTextureAccess                texture_access,
+                                           std::span<const GPUTextureView> additional_texture_views)
 {
     const ResourceViewHandles view_handles = allocate_texture_views(m_Graph, additional_texture_views);
 
@@ -192,8 +192,8 @@ ResourceUsageHandle Builder::write_texture(RenderPassHandle render_pass_handle, 
 }
 
 ResourceUsageHandle Builder::write_buffer(RenderPassHandle render_pass_handle, ResourceUsageHandle input_usage_handle,
-                                          GPUBufferAccess                   buffer_access,
-                                          nonstd::span<const GPUBufferView> additional_buffer_views)
+                                          GPUBufferAccess                buffer_access,
+                                          std::span<const GPUBufferView> additional_buffer_views)
 {
     const ResourceViewHandles view_handles = allocate_buffer_views(m_Graph, additional_buffer_views);
 
@@ -281,7 +281,7 @@ namespace
     // Thibault S. (08/02/2018)
     // This one is relatively simple, we recover infos from the DAG
     // to fill is_used fields.
-    void FillFrameGraphUsedNodes(nonstd::span<const DirectedAcyclicGraph::index_type> usedNodes, FrameGraph& frameGraph)
+    void FillFrameGraphUsedNodes(std::span<const DirectedAcyclicGraph::index_type> usedNodes, FrameGraph& frameGraph)
     {
         // Reset the is_used flag
         for (auto& resourceUsage : frameGraph.ResourceUsages)

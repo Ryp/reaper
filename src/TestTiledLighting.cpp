@@ -19,7 +19,7 @@
 
 namespace Reaper
 {
-void allocate_scene_resources(ReaperRoot& root, VulkanBackend& backend, nonstd::span<ReaperGeometry> geometries)
+void allocate_scene_resources(ReaperRoot& root, VulkanBackend& backend, std::span<ReaperGeometry> geometries)
 {
     std::vector<Mesh>        meshes; // They don't need to persist any longer that that.
     std::vector<const char*> texture_filenames;

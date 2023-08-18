@@ -151,8 +151,8 @@ void update_forward_pass_descriptor_sets(DescriptorWriteHelper& write_helper, co
                                          const FrameGraphBuffer&  visible_meshlet_buffer,
                                          const SamplerResources&  sampler_resources,
                                          const MaterialResources& material_resources, const MeshCache& mesh_cache,
-                                         const LightingPassResources&          lighting_resources,
-                                         nonstd::span<const FrameGraphTexture> shadow_maps)
+                                         const LightingPassResources&       lighting_resources,
+                                         std::span<const FrameGraphTexture> shadow_maps)
 {
     write_helper.append(resources.descriptor_set, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
                         resources.pass_constant_buffer.handle);
@@ -171,7 +171,7 @@ void update_forward_pass_descriptor_sets(DescriptorWriteHelper& write_helper, co
 
     if (!shadow_maps.empty())
     {
-        nonstd::span<VkDescriptorImageInfo> shadow_map_image_infos = write_helper.new_image_infos(shadow_maps.size());
+        std::span<VkDescriptorImageInfo> shadow_map_image_infos = write_helper.new_image_infos(shadow_maps.size());
 
         for (u32 index = 0; index < shadow_maps.size(); index += 1)
         {
@@ -188,7 +188,7 @@ void update_forward_pass_descriptor_sets(DescriptorWriteHelper& write_helper, co
     {
         write_helper.append(resources.material_descriptor_set, 0, sampler_resources.diffuse_map_sampler);
 
-        nonstd::span<VkDescriptorImageInfo> albedo_image_infos =
+        std::span<VkDescriptorImageInfo> albedo_image_infos =
             write_helper.new_image_infos(material_resources.texture_handles.size());
 
         for (u32 index = 0; index < albedo_image_infos.size(); index += 1)

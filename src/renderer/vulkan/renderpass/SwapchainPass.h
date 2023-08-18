@@ -13,7 +13,7 @@
 
 #include <glm/vec2.hpp>
 
-#include <nonstd/span.hpp>
+#include <span>
 
 #include <vector>
 

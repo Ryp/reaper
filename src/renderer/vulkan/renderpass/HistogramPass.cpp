@@ -45,15 +45,15 @@ HistogramPassResources create_histogram_pass_resources(ReaperRoot& /*root*/, Vul
         const VkPushConstantRange push_constant_range = {VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(ReduceHDRPassParams)};
 
         VkPipelineLayout pipeline_layout = create_pipeline_layout(
-            backend.device, nonstd::span(&resources.descSetLayout, 1), nonstd::span(&push_constant_range, 1));
+            backend.device, std::span(&resources.descSetLayout, 1), std::span(&push_constant_range, 1));
 
         resources.histogramPipe.pipeline =
             create_compute_pipeline(backend.device, pipeline_layout, shader_modules.histogram_cs);
         resources.histogramPipe.pipelineLayout = pipeline_layout;
     }
 
-    allocate_descriptor_sets(backend.device, backend.global_descriptor_pool, nonstd::span(&resources.descSetLayout, 1),
-                             nonstd::span(&resources.descriptor_set, 1));
+    allocate_descriptor_sets(backend.device, backend.global_descriptor_pool, std::span(&resources.descSetLayout, 1),
+                             std::span(&resources.descriptor_set, 1));
 
     return resources;
 }

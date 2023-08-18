@@ -33,12 +33,6 @@ endif()
 
 #///////////////////////////////////////////////////////////////////////////////
 
-add_library(span INTERFACE)
-target_include_directories(span SYSTEM INTERFACE ${CMAKE_SOURCE_DIR}/external/span-lite/include)
-target_compile_definitions(span INTERFACE span_FEATURE_MAKE_SPAN)
-
-#///////////////////////////////////////////////////////////////////////////////
-
 add_library(amd-vma INTERFACE)
 
 set(VMA_PATH ${CMAKE_SOURCE_DIR}/external/amd-vma)

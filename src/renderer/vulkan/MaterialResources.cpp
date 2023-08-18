@@ -22,7 +22,7 @@
 #define TINYDDSLOADER_IMPLEMENTATION
 #include <tinyddsloader.h>
 
-#include <nonstd/span.hpp>
+#include <span>
 
 #include <cfloat> // FIXME
 
@@ -143,8 +143,8 @@ namespace
 
         vkCmdPipelineBarrier2(cmdBuffer.handle, &dependencies);
 
-        nonstd::span<const VkBufferImageCopy2> copy_regions(&staging.bufferCopyRegions[entry.copy_command_offset],
-                                                            entry.copy_command_count);
+        std::span<const VkBufferImageCopy2> copy_regions(&staging.bufferCopyRegions[entry.copy_command_offset],
+                                                         entry.copy_command_count);
 
         // Copy mip levels from staging buffer
         const VkCopyBufferToImageInfo2 copy = {
@@ -228,7 +228,7 @@ void destroy_material_resources(VulkanBackend& backend, MaterialResources& resou
 }
 
 void load_textures(ReaperRoot& root, VulkanBackend& backend, MaterialResources& resources,
-                   nonstd::span<const char*> texture_filenames, nonstd::span<TextureHandle> output_handles)
+                   std::span<const char*> texture_filenames, std::span<TextureHandle> output_handles)
 {
     Assert(output_handles.size() >= texture_filenames.size());
 

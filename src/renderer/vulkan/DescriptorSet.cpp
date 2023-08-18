@@ -40,8 +40,8 @@ VkDescriptorBufferInfo create_descriptor_buffer_info(VkBuffer handle, u64 offset
 }
 
 VkWriteDescriptorSet create_image_descriptor_write(VkDescriptorSet descriptor_set, u32 binding,
-                                                   VkDescriptorType                          descriptor_type,
-                                                   nonstd::span<const VkDescriptorImageInfo> image_infos)
+                                                   VkDescriptorType                       descriptor_type,
+                                                   std::span<const VkDescriptorImageInfo> image_infos)
 {
     return VkWriteDescriptorSet{
         .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
@@ -60,12 +60,12 @@ VkWriteDescriptorSet create_image_descriptor_write(VkDescriptorSet descriptor_se
 VkWriteDescriptorSet create_image_descriptor_write(VkDescriptorSet descriptor_set, u32 binding, VkDescriptorType type,
                                                    const VkDescriptorImageInfo* image_info)
 {
-    return create_image_descriptor_write(descriptor_set, binding, type, nonstd::span(image_info, 1));
+    return create_image_descriptor_write(descriptor_set, binding, type, std::span(image_info, 1));
 }
 
 VkWriteDescriptorSet create_buffer_descriptor_write(VkDescriptorSet descriptor_set, u32 binding,
-                                                    VkDescriptorType                           descriptor_type,
-                                                    nonstd::span<const VkDescriptorBufferInfo> buffer_infos)
+                                                    VkDescriptorType                        descriptor_type,
+                                                    std::span<const VkDescriptorBufferInfo> buffer_infos)
 {
     return VkWriteDescriptorSet{
         .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
@@ -85,12 +85,12 @@ VkWriteDescriptorSet create_buffer_descriptor_write(VkDescriptorSet descriptor_s
                                                     VkDescriptorType              descriptor_type,
                                                     const VkDescriptorBufferInfo* buffer_info)
 {
-    return create_buffer_descriptor_write(descriptor_set, binding, descriptor_type, nonstd::span(buffer_info, 1));
+    return create_buffer_descriptor_write(descriptor_set, binding, descriptor_type, std::span(buffer_info, 1));
 }
 
 VkWriteDescriptorSet create_texel_buffer_view_descriptor_write(VkDescriptorSet descriptor_set, u32 binding,
-                                                               VkDescriptorType                 descriptor_type,
-                                                               nonstd::span<const VkBufferView> texel_buffer_views)
+                                                               VkDescriptorType              descriptor_type,
+                                                               std::span<const VkBufferView> texel_buffer_views)
 {
     return VkWriteDescriptorSet{
         .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
@@ -111,15 +111,15 @@ VkWriteDescriptorSet create_texel_buffer_view_descriptor_write(VkDescriptorSet d
                                                                const VkBufferView* texel_buffer_view)
 {
     return create_texel_buffer_view_descriptor_write(descriptor_set, binding, descriptor_type,
-                                                     nonstd::span(texel_buffer_view, 1));
+                                                     std::span(texel_buffer_view, 1));
 }
 
 DescriptorWriteHelper::DescriptorWriteHelper(u32 image_descriptor_count, u32 buffer_descriptor_count,
                                              u32 texel_buffer_descriptor_count)
 {
-    image_infos = nonstd::span(new VkDescriptorImageInfo[image_descriptor_count], image_descriptor_count);
-    buffer_infos = nonstd::span(new VkDescriptorBufferInfo[buffer_descriptor_count], buffer_descriptor_count);
-    texel_buffer_views = nonstd::span(new VkBufferView[texel_buffer_descriptor_count], texel_buffer_descriptor_count);
+    image_infos = std::span(new VkDescriptorImageInfo[image_descriptor_count], image_descriptor_count);
+    buffer_infos = std::span(new VkDescriptorBufferInfo[buffer_descriptor_count], buffer_descriptor_count);
+    texel_buffer_views = std::span(new VkBufferView[texel_buffer_descriptor_count], texel_buffer_descriptor_count);
 
     image_info_size = 0;
     buffer_info_size = 0;
@@ -145,9 +145,9 @@ VkDescriptorImageInfo& DescriptorWriteHelper::new_image_info(VkDescriptorImageIn
     return new_element;
 }
 
-nonstd::span<VkDescriptorImageInfo> DescriptorWriteHelper::new_image_infos(u32 count)
+std::span<VkDescriptorImageInfo> DescriptorWriteHelper::new_image_infos(u32 count)
 {
-    auto span = nonstd::span<VkDescriptorImageInfo>(image_infos.data() + image_info_size, count);
+    auto span = std::span<VkDescriptorImageInfo>(image_infos.data() + image_info_size, count);
 
     image_info_size += count;
 

@@ -113,11 +113,11 @@ void allocate_framegraph_volatile_resources(ReaperRoot& root, VulkanBackend& bac
         const ResourceHandle      resource_handle = usage.resource_handle;
         const ResourceViewHandles view_handles = usage.additional_views;
 
-        nonstd::span<const GPUTextureView> texture_views_info =
-            nonstd::make_span(framegraph.TextureViews.data() + view_handles.offset, view_handles.count);
+        std::span<const GPUTextureView> texture_views_info =
+            std::span(framegraph.TextureViews.data() + view_handles.offset, view_handles.count);
 
-        nonstd::span<VkImageView> texture_views =
-            nonstd::make_span(resources.additional_texture_views.data() + view_handles.offset, view_handles.count);
+        std::span<VkImageView> texture_views =
+            std::span(resources.additional_texture_views.data() + view_handles.offset, view_handles.count);
 
         if (resource_handle.is_texture && usage.is_used)
         {
@@ -191,7 +191,7 @@ FrameGraphTexture get_frame_graph_texture(FrameGraphResources& resources, const 
     Assert(texture.handle != VK_NULL_HANDLE);
     Assert(default_view_handle != VK_NULL_HANDLE);
 
-    nonstd::span<const VkImageView> additional_views = nonstd::make_span(
+    std::span<const VkImageView> additional_views = std::span(
         resources.additional_texture_views.data() + usage.additional_views.offset, usage.additional_views.count);
 
     return FrameGraphTexture{

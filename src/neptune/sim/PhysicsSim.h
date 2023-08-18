@@ -11,7 +11,7 @@
 
 #include <core/Types.h>
 
-#include <nonstd/span.hpp>
+#include <span>
 
 #include <glm/fwd.hpp>
 #include <glm/vec3.hpp>
@@ -99,8 +99,8 @@ struct PhysicsSim
     // This must always be set before calling any sim update
     struct FrameData
     {
-        ShipInput                             input;
-        nonstd::span<const TrackSkeletonNode> skeleton_nodes;
+        ShipInput                          input;
+        std::span<const TrackSkeletonNode> skeleton_nodes;
     } frame_data;
 
     std::vector<RaycastSuspension> raycast_suspensions;
@@ -124,13 +124,12 @@ NEPTUNE_SIM_API void       destroy_sim(PhysicsSim& sim);
 NEPTUNE_SIM_API glm::fmat4x3 get_player_transform(PhysicsSim& sim);
 
 NEPTUNE_SIM_API
-void sim_create_static_collision_meshes(nonstd::span<StaticMeshColliderHandle> handles, PhysicsSim& sim,
-                                        nonstd::span<const Mesh>         meshes,
-                                        nonstd::span<const glm::fmat4x3> transforms_no_scale,
-                                        nonstd::span<const glm::fvec3>   scales = nonstd::span<const glm::fvec3>());
+void sim_create_static_collision_meshes(std::span<StaticMeshColliderHandle> handles, PhysicsSim& sim,
+                                        std::span<const Mesh> meshes, std::span<const glm::fmat4x3> transforms_no_scale,
+                                        std::span<const glm::fvec3> scales = std::span<const glm::fvec3>());
 
 NEPTUNE_SIM_API
-void sim_destroy_static_collision_meshes(nonstd::span<const StaticMeshColliderHandle> handles, PhysicsSim& sim);
+void sim_destroy_static_collision_meshes(std::span<const StaticMeshColliderHandle> handles, PhysicsSim& sim);
 
 NEPTUNE_SIM_API void sim_create_player_rigid_body(PhysicsSim& sim, const glm::fmat4x3& player_transform,
                                                   const glm::fvec3& shape_half_extent);

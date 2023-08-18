@@ -56,8 +56,7 @@ DebugGeometryPassResources create_debug_geometry_pass_resources(ReaperRoot& root
 
         VkDescriptorSetLayout descriptor_set_layout = create_descriptor_set_layout(backend.device, layout_bindings);
 
-        VkPipelineLayout pipeline_layout =
-            create_pipeline_layout(backend.device, nonstd::span(&descriptor_set_layout, 1));
+        VkPipelineLayout pipeline_layout = create_pipeline_layout(backend.device, std::span(&descriptor_set_layout, 1));
 
         VkPipeline pipeline =
             create_compute_pipeline(backend.device, pipeline_layout, shader_modules.debug_geometry_build_cmds_cs);
@@ -83,8 +82,7 @@ DebugGeometryPassResources create_debug_geometry_pass_resources(ReaperRoot& root
         VkDescriptorSetLayout descriptor_set_layout =
             create_descriptor_set_layout(backend.device, descriptorSetLayoutBinding);
 
-        VkPipelineLayout pipeline_layout =
-            create_pipeline_layout(backend.device, nonstd::span(&descriptor_set_layout, 1));
+        VkPipelineLayout pipeline_layout = create_pipeline_layout(backend.device, std::span(&descriptor_set_layout, 1));
 
         VkPipelineColorBlendAttachmentState blend_attachment_state = default_pipeline_color_blend_attachment_state();
 

@@ -171,13 +171,12 @@ SwapchainPassResources create_swapchain_pass_resources(ReaperRoot& /*root*/, Vul
 
     resources.descriptorSetLayout = create_descriptor_set_layout(backend.device, descriptorSetLayoutBinding);
 
-    resources.pipelineLayout = create_pipeline_layout(backend.device, nonstd::span(&resources.descriptorSetLayout, 1));
+    resources.pipelineLayout = create_pipeline_layout(backend.device, std::span(&resources.descriptorSetLayout, 1));
     resources.pipeline =
         create_swapchain_pipeline(backend, shader_modules, resources.pipelineLayout, backend.presentInfo.view_format);
 
     allocate_descriptor_sets(backend.device, backend.global_descriptor_pool,
-                             nonstd::span(&resources.descriptorSetLayout, 1),
-                             nonstd::span(&resources.descriptor_set, 1));
+                             std::span(&resources.descriptorSetLayout, 1), std::span(&resources.descriptor_set, 1));
 
     return resources;
 }
