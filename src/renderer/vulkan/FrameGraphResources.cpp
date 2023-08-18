@@ -233,5 +233,4 @@ FrameGraphBuffer get_frame_graph_buffer(FrameGraphResources& resources, const Fr
         .handle = buffer.handle,
     };
 }
-
 } // namespace Reaper

@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include "renderer/graph/FrameGraphBasicTypes.h"
 #include "renderer/vulkan/Buffer.h"
 #include <vulkan_loader/Vulkan.h>
 
@@ -17,6 +18,21 @@ namespace Reaper
 struct ReaperRoot;
 struct VulkanBackend;
 struct ShaderModules;
+
+struct AudioFrameGraphData
+{
+    struct Render
+    {
+        FrameGraph::RenderPassHandle    pass_handle;
+        FrameGraph::ResourceUsageHandle audio_buffer;
+    } render;
+
+    struct StagingCopy
+    {
+        FrameGraph::RenderPassHandle    pass_handle;
+        FrameGraph::ResourceUsageHandle audio_buffer;
+    } staging_copy;
+};
 
 struct AudioPipelineInfo
 {
@@ -31,8 +47,7 @@ struct AudioResources
 
     GPUBuffer passConstantBuffer;
     GPUBuffer instanceParamsBuffer;
-    GPUBuffer outputBuffer;
-    GPUBuffer outputBufferStaging;
+    GPUBuffer audio_buffer_staging;
 
     VkDescriptorSet descriptor_set;
 
@@ -56,6 +71,13 @@ struct RawSample
 };
 #endif
 
+namespace FrameGraph
+{
+    class Builder;
+}
+
+AudioFrameGraphData create_audio_frame_graph_data(FrameGraph::Builder& builder);
+
 AudioResources create_audio_resources(ReaperRoot& root, VulkanBackend& backend, const ShaderModules& shader_modules);
 void           destroy_audio_resources(VulkanBackend& backend, AudioResources& resources);
 
@@ -64,12 +86,19 @@ struct PreparedData;
 void upload_audio_frame_resources(VulkanBackend& backend, const PreparedData& prepared, AudioResources& resources);
 
 class DescriptorWriteHelper;
+struct FrameGraphBuffer;
 
-void update_audio_pass_descriptor_set(DescriptorWriteHelper& write_helper, AudioResources& resources);
+void update_audio_render_descriptor_set(DescriptorWriteHelper& write_helper, AudioResources& resources,
+                                        const FrameGraphBuffer& audio_buffer);
 
 struct CommandBuffer;
 
-void record_audio_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& prepared, AudioResources& resources);
+void record_audio_render_command_buffer(CommandBuffer&      cmdBuffer,
+                                        const PreparedData& prepared,
+                                        AudioResources&     resources);
+
+void record_audio_copy_command_buffer(CommandBuffer& cmdBuffer, AudioResources& resources,
+                                      const FrameGraphBuffer& audio_buffer);
 
 void read_gpu_audio_data(VulkanBackend& backend, AudioResources& resources);
 } // namespace Reaper

@@ -14,8 +14,11 @@
 #include "renderer/vulkan/Barrier.h"
 #include "renderer/vulkan/CommandBuffer.h"
 #include "renderer/vulkan/DescriptorSet.h"
+#include "renderer/vulkan/FrameGraphResources.h"
 #include "renderer/vulkan/Pipeline.h"
 #include "renderer/vulkan/ShaderModules.h"
+
+#include "renderer/graph/FrameGraphBuilder.h"
 
 #include "common/Log.h"
 #include "common/ReaperRoot.h"
@@ -28,6 +31,32 @@
 
 namespace Reaper
 {
+AudioFrameGraphData create_audio_frame_graph_data(FrameGraph::Builder& builder)
+{
+    AudioFrameGraphData::Render render;
+
+    render.pass_handle = builder.create_render_pass("Audio render");
+
+    render.audio_buffer =
+        builder.create_buffer(render.pass_handle, "Output sample buffer",
+                              DefaultGPUBufferProperties(FrameCountPerGroup * FrameCountPerDispatch, sizeof(RawSample),
+                                                         GPUBufferUsage::TransferSrc | GPUBufferUsage::StorageBuffer),
+                              GPUBufferAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT});
+
+    AudioFrameGraphData::StagingCopy staging_copy;
+
+    staging_copy.pass_handle = builder.create_render_pass("Audio staging copy", true);
+
+    staging_copy.audio_buffer =
+        builder.read_buffer(staging_copy.pass_handle, render.audio_buffer,
+                            GPUBufferAccess{VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_READ_BIT});
+
+    return {
+        .render = render,
+        .staging_copy = staging_copy,
+    };
+}
+
 AudioResources create_audio_resources(ReaperRoot& root, VulkanBackend& backend, const ShaderModules& shader_modules)
 {
     AudioResources resources = {};
@@ -62,19 +91,13 @@ AudioResources create_audio_resources(ReaperRoot& root, VulkanBackend& backend, 
         DefaultGPUBufferProperties(OscillatorCount, sizeof(OscillatorInstance), GPUBufferUsage::StorageBuffer),
         backend.vma_instance, MemUsage::CPU_To_GPU);
 
-    Assert(SampleSizeInBytes == sizeof(RawSample));
-
-    resources.outputBuffer =
-        create_buffer(root, backend.device, "Output sample buffer",
-                      DefaultGPUBufferProperties(FrameCountPerGroup * FrameCountPerDispatch, sizeof(RawSample),
-                                                 GPUBufferUsage::TransferSrc | GPUBufferUsage::StorageBuffer),
-                      backend.vma_instance);
-
-    resources.outputBufferStaging =
+    resources.audio_buffer_staging =
         create_buffer(root, backend.device, "Output sample buffer staging",
                       DefaultGPUBufferProperties(FrameCountPerGroup * FrameCountPerDispatch, sizeof(RawSample),
                                                  GPUBufferUsage::TransferDst),
                       backend.vma_instance, MemUsage::GPU_To_CPU);
+
+    Assert(SampleSizeInBytes == sizeof(RawSample));
 
     const VkSemaphoreTypeCreateInfo timelineCreateInfo = {
         .sType = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO,
@@ -106,9 +129,8 @@ void destroy_audio_resources(VulkanBackend& backend, AudioResources& resources)
                      resources.passConstantBuffer.allocation);
     vmaDestroyBuffer(backend.vma_instance, resources.instanceParamsBuffer.handle,
                      resources.instanceParamsBuffer.allocation);
-    vmaDestroyBuffer(backend.vma_instance, resources.outputBuffer.handle, resources.outputBuffer.allocation);
-    vmaDestroyBuffer(backend.vma_instance, resources.outputBufferStaging.handle,
-                     resources.outputBufferStaging.allocation);
+    vmaDestroyBuffer(backend.vma_instance, resources.audio_buffer_staging.handle,
+                     resources.audio_buffer_staging.allocation);
 
     vkDestroyPipeline(backend.device, resources.audioPipe.pipeline, nullptr);
     vkDestroyPipelineLayout(backend.device, resources.audioPipe.pipelineLayout, nullptr);
@@ -126,30 +148,19 @@ void upload_audio_frame_resources(VulkanBackend& backend, const PreparedData& pr
                                   prepared.audio_instance_params.size() * sizeof(OscillatorInstance));
 }
 
-void update_audio_pass_descriptor_set(DescriptorWriteHelper& write_helper, AudioResources& resources)
+void update_audio_render_descriptor_set(DescriptorWriteHelper& write_helper, AudioResources& resources,
+                                        const FrameGraphBuffer& audio_buffer)
 {
     write_helper.append(resources.descriptor_set, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
                         resources.passConstantBuffer.handle);
     write_helper.append(resources.descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                         resources.instanceParamsBuffer.handle);
-    write_helper.append(resources.descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, resources.outputBuffer.handle);
+    write_helper.append(resources.descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, audio_buffer.handle);
 }
 
-void record_audio_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& prepared, AudioResources& resources)
+void record_audio_render_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& prepared,
+                                        AudioResources& resources)
 {
-    {
-        const GPUBufferAccess src = {VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_READ_BIT};
-        const GPUBufferAccess dst = {VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT};
-        const GPUBufferView   view = default_buffer_view(resources.outputBuffer.properties_deprecated);
-
-        const VkBufferMemoryBarrier2 buffer_barrier =
-            get_vk_buffer_barrier(resources.outputBuffer.handle, view, src, dst);
-
-        const VkDependencyInfo dependencies = get_vk_buffer_barrier_depency_info(1, &buffer_barrier);
-
-        vkCmdPipelineBarrier2(cmdBuffer.handle, &dependencies);
-    }
-
     vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE, resources.audioPipe.pipeline);
 
     vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE, resources.audioPipe.pipelineLayout, 0, 1,
@@ -161,30 +172,23 @@ void record_audio_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& p
     vkCmdDispatch(cmdBuffer.handle, FrameCountPerDispatch, 1, 1);
 
     {
-        std::vector<VkBufferMemoryBarrier2> buffer_barriers;
+        const GPUBufferAccess src = {VK_PIPELINE_STAGE_2_HOST_BIT, VK_ACCESS_2_HOST_READ_BIT};
+        const GPUBufferAccess dst = {VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT};
+        const GPUBufferView   view = default_buffer_view(resources.audio_buffer_staging.properties_deprecated);
 
-        {
-            const GPUBufferAccess src = {VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT};
-            const GPUBufferAccess dst = {VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_READ_BIT};
-            const GPUBufferView   view = default_buffer_view(resources.outputBuffer.properties_deprecated);
+        const VkBufferMemoryBarrier2 buffer_barrier =
+            get_vk_buffer_barrier(resources.audio_buffer_staging.handle, view, src, dst);
 
-            buffer_barriers.emplace_back(get_vk_buffer_barrier(resources.outputBuffer.handle, view, src, dst));
-        }
-
-        {
-            const GPUBufferAccess src = {VK_PIPELINE_STAGE_2_HOST_BIT, VK_ACCESS_2_HOST_READ_BIT};
-            const GPUBufferAccess dst = {VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT};
-            const GPUBufferView   view = default_buffer_view(resources.outputBufferStaging.properties_deprecated);
-
-            buffer_barriers.emplace_back(get_vk_buffer_barrier(resources.outputBufferStaging.handle, view, src, dst));
-        }
-
-        const VkDependencyInfo dependencies =
-            get_vk_buffer_barrier_depency_info(static_cast<uint32_t>(buffer_barriers.size()), buffer_barriers.data());
+        const VkDependencyInfo dependencies = get_vk_buffer_barrier_depency_info(1, &buffer_barrier);
 
         vkCmdPipelineBarrier2(cmdBuffer.handle, &dependencies);
     }
+}
 
+void record_audio_copy_command_buffer(CommandBuffer&          cmdBuffer,
+                                      AudioResources&         resources,
+                                      const FrameGraphBuffer& audio_buffer)
+{
     const VkBufferCopy2 region = {
         .sType = VK_STRUCTURE_TYPE_BUFFER_COPY_2,
         .pNext = nullptr,
@@ -196,8 +200,8 @@ void record_audio_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& p
     const VkCopyBufferInfo2 copy = {
         .sType = VK_STRUCTURE_TYPE_COPY_BUFFER_INFO_2,
         .pNext = nullptr,
-        .srcBuffer = resources.outputBuffer.handle,
-        .dstBuffer = resources.outputBufferStaging.handle,
+        .srcBuffer = audio_buffer.handle,
+        .dstBuffer = resources.audio_buffer_staging.handle,
         .regionCount = 1,
         .pRegions = &region,
     };
@@ -207,10 +211,10 @@ void record_audio_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& p
     {
         const GPUBufferAccess src = {VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT};
         const GPUBufferAccess dst = {VK_PIPELINE_STAGE_2_HOST_BIT, VK_ACCESS_2_HOST_READ_BIT};
-        const GPUBufferView   view = default_buffer_view(resources.outputBufferStaging.properties_deprecated);
+        const GPUBufferView   view = default_buffer_view(resources.audio_buffer_staging.properties_deprecated);
 
         const VkBufferMemoryBarrier2 buffer_barrier =
-            get_vk_buffer_barrier(resources.outputBufferStaging.handle, view, src, dst);
+            get_vk_buffer_barrier(resources.audio_buffer_staging.handle, view, src, dst);
 
         const VkDependencyInfo dependencies = get_vk_buffer_barrier_depency_info(1, &buffer_barrier);
 
@@ -233,7 +237,7 @@ void read_gpu_audio_data(VulkanBackend& backend, AudioResources& resources)
     // Assert(result == VK_SUCCESS);
 
     VmaAllocationInfo allocation_info;
-    vmaGetAllocationInfo(backend.vma_instance, resources.outputBufferStaging.allocation, &allocation_info);
+    vmaGetAllocationInfo(backend.vma_instance, resources.audio_buffer_staging.allocation, &allocation_info);
 
     const u32 audio_buffer_offset = allocation_info.offset;
     const u32 audio_buffer_size = FrameCountPerGroup * FrameCountPerDispatch * sizeof(RawSample);

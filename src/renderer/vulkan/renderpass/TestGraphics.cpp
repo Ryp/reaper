@@ -853,6 +853,8 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
                              GPUTextureAccess{VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
                                               VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL});
 
+    const AudioFrameGraphData audio_pass = create_audio_frame_graph_data(builder);
+
     builder.build();
 
     // DumpFrameGraph(framegraph);
@@ -995,7 +997,9 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         get_frame_graph_texture(resources.framegraph_resources, framegraph, swapchain.gui),
         get_frame_graph_texture(resources.framegraph_resources, framegraph, swapchain.tile_debug));
 
-    update_audio_pass_descriptor_set(descriptor_write_helper, resources.audio_resources);
+    update_audio_render_descriptor_set(
+        descriptor_write_helper, resources.audio_resources,
+        get_frame_graph_buffer(resources.framegraph_resources, framegraph, audio_pass.render.audio_buffer));
 
     descriptor_write_helper.flush_descriptor_write_helper(backend.device);
 
@@ -1395,8 +1399,27 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         }
 
         {
-            REAPER_GPU_SCOPE(cmdBuffer, "Audio");
-            record_audio_command_buffer(cmdBuffer, prepared, resources.audio_resources);
+            REAPER_GPU_SCOPE(cmdBuffer, "Audio Render");
+            record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
+                                       audio_pass.render.pass_handle, true);
+
+            record_audio_render_command_buffer(cmdBuffer, prepared, resources.audio_resources);
+
+            record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
+                                       audio_pass.render.pass_handle, false);
+        }
+
+        {
+            REAPER_GPU_SCOPE(cmdBuffer, "Audio Staging Copy");
+            record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
+                                       audio_pass.staging_copy.pass_handle, true);
+
+            record_audio_copy_command_buffer(cmdBuffer, resources.audio_resources,
+                                             get_frame_graph_buffer(resources.framegraph_resources, framegraph,
+                                                                    audio_pass.staging_copy.audio_buffer));
+
+            record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
+                                       audio_pass.staging_copy.pass_handle, false);
         }
     }
 
