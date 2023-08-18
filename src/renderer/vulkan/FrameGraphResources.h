@@ -22,7 +22,7 @@ struct VulkanBackend;
 struct FrameGraphTexture
 {
     GPUTextureProperties properties;
-    GPUTextureView       view;
+    GPUTextureView       default_view;
 
     VkImage                         handle;
     VkImageView                     default_view_handle;

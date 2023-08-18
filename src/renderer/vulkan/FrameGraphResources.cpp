@@ -196,7 +196,7 @@ FrameGraphTexture get_frame_graph_texture(FrameGraphResources& resources, const 
 
     return FrameGraphTexture{
         .properties = resource.properties.texture,
-        .view = resource.default_view.texture, // FIXME
+        .default_view = resource.default_view.texture,
         .handle = texture.handle,
         .default_view_handle = default_view_handle,
         .additional_views = additional_views,
@@ -227,7 +227,6 @@ FrameGraphBuffer get_frame_graph_buffer(FrameGraphResources& resources, const Fr
     const GPUBuffer& buffer = resources.buffers[usage.resource_handle.index];
 
     return FrameGraphBuffer{
-        // FIXME
         .properties = resource.properties.buffer,
         .default_view = resource.default_view.buffer,
         .handle = buffer.handle,
