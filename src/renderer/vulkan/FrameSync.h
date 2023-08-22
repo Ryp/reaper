@@ -13,7 +13,7 @@ namespace Reaper
 {
 struct FrameSyncResources
 {
-    VkFence drawFence;
+    VkFence draw_fence;
 };
 
 struct ReaperRoot;

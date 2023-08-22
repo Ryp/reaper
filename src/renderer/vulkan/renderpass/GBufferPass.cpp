@@ -105,7 +105,7 @@ GBufferPassResources create_gbuffer_pass_resources(ReaperRoot& root, VulkanBacke
 
     resources.pipe.pipeline = create_gbuffer_pipeline(root, backend, resources.pipe.pipelineLayout, shader_modules);
 
-    resources.instancesConstantBuffer =
+    resources.instance_buffer =
         create_buffer(root, backend.device, "GBuffer Instance buffer",
                       DefaultGPUBufferProperties(GBufferInstanceCountMax, sizeof(ForwardInstanceParams),
                                                  GPUBufferUsage::StorageBuffer),
@@ -126,8 +126,7 @@ void destroy_gbuffer_pass_resources(VulkanBackend& backend, GBufferPassResources
     vkDestroyPipelineLayout(backend.device, resources.pipe.pipelineLayout, nullptr);
     vkDestroyDescriptorSetLayout(backend.device, resources.pipe.desc_set_layout, nullptr);
 
-    vmaDestroyBuffer(backend.vma_instance, resources.instancesConstantBuffer.handle,
-                     resources.instancesConstantBuffer.allocation);
+    vmaDestroyBuffer(backend.vma_instance, resources.instance_buffer.handle, resources.instance_buffer.allocation);
 }
 
 void update_gbuffer_pass_descriptor_sets(DescriptorWriteHelper& write_helper, const GBufferPassResources& resources,
@@ -136,7 +135,7 @@ void update_gbuffer_pass_descriptor_sets(DescriptorWriteHelper& write_helper, co
                                          const MaterialResources& material_resources, const MeshCache& mesh_cache)
 {
     write_helper.append(resources.descriptor_set, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                        resources.instancesConstantBuffer.handle);
+                        resources.instance_buffer.handle);
     write_helper.append(resources.descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, visible_meshlet_buffer.handle);
     write_helper.append(resources.descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                         mesh_cache.vertexBufferPosition.handle);
@@ -171,7 +170,7 @@ void upload_gbuffer_pass_frame_resources(VulkanBackend& backend, const PreparedD
     if (prepared.forward_instances.empty())
         return;
 
-    upload_buffer_data_deprecated(backend.device, backend.vma_instance, pass_resources.instancesConstantBuffer,
+    upload_buffer_data_deprecated(backend.device, backend.vma_instance, pass_resources.instance_buffer,
                                   prepared.forward_instances.data(),
                                   prepared.forward_instances.size() * sizeof(ForwardInstanceParams));
 }

@@ -253,7 +253,8 @@ void create_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& backend)
         .flags = VK_FLAGS_NONE,
     };
 
-    backend.semaphore_image_available = create_semaphore(backend, "Semaphore image available", semaphore_create_info);
+    backend.semaphore_swapchain_image_available =
+        create_semaphore(backend, "Semaphore image available", semaphore_create_info);
     backend.semaphore_rendering_finished =
         create_semaphore(backend, "Semaphore rendering finished", semaphore_create_info);
 
@@ -294,7 +295,7 @@ void destroy_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& backend)
 
     ImGui_ImplVulkan_Shutdown();
 
-    vkDestroySemaphore(backend.device, backend.semaphore_image_available, nullptr);
+    vkDestroySemaphore(backend.device, backend.semaphore_swapchain_image_available, nullptr);
     vkDestroySemaphore(backend.device, backend.semaphore_rendering_finished, nullptr);
 
     destroy_vulkan_wm_swapchain(root, backend, backend.presentInfo);

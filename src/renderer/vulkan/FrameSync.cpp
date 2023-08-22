@@ -23,19 +23,19 @@ FrameSyncResources create_frame_sync_resources(ReaperRoot& root, VulkanBackend& 
         .flags = VK_FENCE_CREATE_SIGNALED_BIT,
     };
 
-    VkFence drawFence = VK_NULL_HANDLE;
-    vkCreateFence(backend.device, &fenceInfo, nullptr, &drawFence);
-    log_debug(root, "vulkan: created fence with handle: {}", static_cast<void*>(drawFence));
+    VkFence draw_fence = VK_NULL_HANDLE;
+    vkCreateFence(backend.device, &fenceInfo, nullptr, &draw_fence);
+    log_debug(root, "vulkan: created fence with handle: {}", static_cast<void*>(draw_fence));
 
     FrameSyncResources resources = {};
 
-    resources.drawFence = drawFence;
+    resources.draw_fence = draw_fence;
 
     return resources;
 }
 
 void destroy_frame_sync_resources(VulkanBackend& backend, const FrameSyncResources& resources)
 {
-    vkDestroyFence(backend.device, resources.drawFence, nullptr);
+    vkDestroyFence(backend.device, resources.draw_fence, nullptr);
 }
 } // namespace Reaper

@@ -34,7 +34,7 @@ struct ShaderModules;
 
 struct VisibilityBufferPassResources
 {
-    GPUBuffer instancesConstantBuffer;
+    GPUBuffer instance_buffer;
 
     VisibilityBufferPipelineInfo pipe;
     VkDescriptorSet              descriptor_set;

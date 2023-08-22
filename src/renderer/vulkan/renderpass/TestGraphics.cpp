@@ -142,9 +142,9 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     for (u32 acquireTryCount = 0; acquireTryCount < MaxAcquireTryCount; acquireTryCount++)
     {
         log_debug(root, "vulkan: acquiring frame try #{}", acquireTryCount);
-        acquireResult =
-            vkAcquireNextImageKHR(backend.device, backend.presentInfo.swapchain, acquireTimeoutUs,
-                                  backend.semaphore_image_available, VK_NULL_HANDLE, &current_swapchain_index);
+        acquireResult = vkAcquireNextImageKHR(backend.device, backend.presentInfo.swapchain, acquireTimeoutUs,
+                                              backend.semaphore_swapchain_image_available, VK_NULL_HANDLE,
+                                              &current_swapchain_index);
 
         if (acquireResult != VK_NOT_READY)
             break;
@@ -169,7 +169,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     log_debug(root, "vulkan: swapchain image index = {}", current_swapchain_index);
 
     {
-        VkFence drawFence = resources.frame_sync_resources.drawFence;
+        VkFence draw_fence = resources.frame_sync_resources.draw_fence;
 
         VkResult waitResult;
         log_debug(root, "vulkan: wait for fence");
@@ -179,7 +179,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
             REAPER_PROFILE_SCOPE_COLOR("Wait for fence", Color::Red);
 
             const u64 waitTimeoutNs = 1 * 1000 * 1000 * 1000;
-            waitResult = vkWaitForFences(backend.device, 1, &drawFence, VK_TRUE, waitTimeoutNs);
+            waitResult = vkWaitForFences(backend.device, 1, &draw_fence, VK_TRUE, waitTimeoutNs);
 
             if (waitResult != VK_SUCCESS)
             {
@@ -191,10 +191,10 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         FrameMark;
 #endif
 
-        Assert(vkGetFenceStatus(backend.device, drawFence) == VK_SUCCESS);
+        Assert(vkGetFenceStatus(backend.device, draw_fence) == VK_SUCCESS);
 
         log_debug(root, "vulkan: reset fence");
-        Assert(vkResetFences(backend.device, 1, &drawFence) == VK_SUCCESS);
+        Assert(vkResetFences(backend.device, 1, &draw_fence) == VK_SUCCESS);
     }
 
     const VkExtent2D backbufferExtent = backend.presentInfo.surface_extent;
@@ -1436,7 +1436,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
         .pNext = nullptr,
         .waitSemaphoreCount = 1,
-        .pWaitSemaphores = &backend.semaphore_image_available,
+        .pWaitSemaphores = &backend.semaphore_swapchain_image_available,
         .pWaitDstStageMask = &waitDstMask,
         .commandBufferCount = 1,
         .pCommandBuffers = &cmdBuffer.handle,
@@ -1445,7 +1445,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     };
 
     log_debug(root, "vulkan: submit drawing commands");
-    Assert(vkQueueSubmit(backend.deviceInfo.graphicsQueue, 1, &submitInfo, resources.frame_sync_resources.drawFence)
+    Assert(vkQueueSubmit(backend.deviceInfo.graphicsQueue, 1, &submitInfo, resources.frame_sync_resources.draw_fence)
            == VK_SUCCESS);
 
     log_debug(root, "vulkan: present");

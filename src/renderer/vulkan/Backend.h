@@ -77,7 +77,7 @@ struct REAPER_RENDERER_API VulkanBackend
     PresentationInfo presentInfo = {};
 
     // Timeline semaphores aren't supported for present operations at the time AFAIK.
-    VkSemaphore semaphore_image_available = VK_NULL_HANDLE;
+    VkSemaphore semaphore_swapchain_image_available = VK_NULL_HANDLE;
     VkSemaphore semaphore_rendering_finished = VK_NULL_HANDLE;
 
     VkDebugUtilsMessengerEXT debugMessenger = VK_NULL_HANDLE;
