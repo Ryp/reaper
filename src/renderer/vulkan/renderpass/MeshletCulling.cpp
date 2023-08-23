@@ -65,10 +65,10 @@ CullMeshletsFrameGraphData create_cull_meshlet_frame_graph_data(FrameGraph::Buil
 
     cull_meshlets.pass_handle = builder.create_render_pass("Cull Meshlets");
 
-    cull_meshlets.meshlet_counters =
-        builder.write_buffer(cull_meshlets.pass_handle, clear.meshlet_counters,
-                             GPUBufferAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-                                             VK_ACCESS_2_SHADER_WRITE_BIT | VK_ACCESS_2_SHADER_READ_BIT});
+    cull_meshlets.meshlet_counters = builder.write_buffer(
+        cull_meshlets.pass_handle, clear.meshlet_counters,
+        GPUBufferAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+                        VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT | VK_ACCESS_2_SHADER_STORAGE_READ_BIT});
 
     cull_meshlets.visible_meshlet_offsets =
         builder.create_buffer(cull_meshlets.pass_handle,
@@ -480,8 +480,6 @@ void record_meshlet_culling_debug_command_buffer(CommandBuffer&           cmdBuf
 
     vkCmdCopyBuffer2(cmdBuffer.handle, &copy);
 
-    vkCmdResetEvent2(cmdBuffer.handle, resources.countersReadyEvent, VK_PIPELINE_STAGE_2_TRANSFER_BIT);
-
     const GPUBufferAccess src = {VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT};
     const GPUBufferAccess dst = {VK_PIPELINE_STAGE_2_HOST_BIT, VK_ACCESS_2_HOST_READ_BIT};
     const GPUBufferView   view = default_buffer_view(resources.counters_cpu_properties);
@@ -501,6 +499,9 @@ void record_meshlet_culling_debug_command_buffer(CommandBuffer&           cmdBuf
     };
 
     vkCmdSetEvent2(cmdBuffer.handle, resources.countersReadyEvent, &dependencies);
+
+    vkCmdResetEvent2(cmdBuffer.handle, resources.countersReadyEvent,
+                     VK_PIPELINE_STAGE_2_TRANSFER_BIT | VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT); // FIXME
 }
 
 std::vector<MeshletCullingStats> get_meshlet_culling_gpu_stats(VulkanBackend& backend, const PreparedData& prepared,

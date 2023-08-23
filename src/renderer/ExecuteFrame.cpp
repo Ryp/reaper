@@ -47,7 +47,17 @@ void renderer_start(ReaperRoot& root, VulkanBackend& backend, IWindow* window)
     Assert(vkEndCommandBuffer(cmdBuffer.handle) == VK_SUCCESS);
 
     const VkSubmitInfo submitInfo = {
-        VK_STRUCTURE_TYPE_SUBMIT_INFO, nullptr, 0, nullptr, nullptr, 1, &cmdBuffer.handle, 0, nullptr};
+        .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+        .pNext = nullptr,
+        .waitSemaphoreCount = 0,
+        .pWaitSemaphores = nullptr,
+        .pWaitDstStageMask = nullptr,
+        .commandBufferCount = 1,
+        .pCommandBuffers = &cmdBuffer.handle,
+        .signalSemaphoreCount = 0,
+        .pSignalSemaphores = nullptr,
+    };
+
     log_debug(root, "vulkan: submit commands");
     Assert(vkQueueSubmit(backend.deviceInfo.graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE) == VK_SUCCESS);
 

@@ -79,7 +79,8 @@ void record_framegraph_barriers(CommandBuffer& cmdBuffer, const FrameGraph::Fram
         {
             Assert(barrier_handle < resources.events.size());
             vkCmdWaitEvents2(cmdBuffer.handle, 1, &resources.events[barrier_handle], &dependencies);
-            vkCmdResetEvent2(cmdBuffer.handle, resources.events[barrier_handle], barrier.dst.access.stage_mask);
+            vkCmdResetEvent2(cmdBuffer.handle, resources.events[barrier_handle],
+                             barrier.dst.access.stage_mask | VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT); // FIXME
         }
     }
 }
