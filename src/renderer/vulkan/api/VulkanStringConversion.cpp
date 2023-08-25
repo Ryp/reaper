@@ -11,7 +11,7 @@
 
 namespace vk
 {
-const char* GetResultToString(VkResult result)
+const char* vk_to_string(VkResult result)
 {
     // FIXME Incomplete
     switch (result)
@@ -32,7 +32,7 @@ const char* GetResultToString(VkResult result)
     return "Unknown";
 }
 
-const char* GetPresentModeKHRToString(VkPresentModeKHR presentMode)
+const char* vk_to_string(VkPresentModeKHR presentMode)
 {
     switch (presentMode)
     {
@@ -50,27 +50,7 @@ const char* GetPresentModeKHRToString(VkPresentModeKHR presentMode)
     return "Unknown";
 }
 
-const char* GetMemoryPropertyFlagBitToString(VkMemoryPropertyFlags memoryFlag)
-{
-    switch (memoryFlag)
-    {
-    case VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT:
-        return "VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT";
-    case VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT:
-        return "VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT";
-    case VK_MEMORY_PROPERTY_HOST_COHERENT_BIT:
-        return "VK_MEMORY_PROPERTY_HOST_COHERENT_BIT";
-    case VK_MEMORY_PROPERTY_HOST_CACHED_BIT:
-        return "VK_MEMORY_PROPERTY_HOST_CACHED_BIT";
-    case VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT:
-        return "VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT";
-    default:
-        AssertUnreachable();
-    }
-    return "Unknown";
-}
-
-const char* GetColorSpaceKHRToString(VkColorSpaceKHR colorSpace)
+const char* vk_to_string(VkColorSpaceKHR colorSpace)
 {
     switch (colorSpace)
     {
@@ -112,7 +92,7 @@ const char* GetColorSpaceKHRToString(VkColorSpaceKHR colorSpace)
     return "Unknown";
 }
 
-const char* GetFormatToString(VkFormat format)
+const char* vk_to_string(VkFormat format)
 {
     switch (format)
     {
@@ -576,7 +556,7 @@ const char* GetFormatToString(VkFormat format)
     return "Unknown";
 }
 
-const char* GetImageLayoutToString(VkImageLayout layout)
+const char* vk_to_string(VkImageLayout layout)
 {
     switch (layout)
     {
@@ -621,6 +601,98 @@ const char* GetImageLayoutToString(VkImageLayout layout)
     default:
         AssertUnreachable();
     }
+    return "Unknown";
+}
+
+const char* vk_to_string(VkObjectType type)
+{
+    switch (type)
+    {
+    case VK_OBJECT_TYPE_UNKNOWN:
+        return "VK_OBJECT_TYPE_UNKNOWN";
+    case VK_OBJECT_TYPE_INSTANCE:
+        return "VK_OBJECT_TYPE_INSTANCE";
+    case VK_OBJECT_TYPE_PHYSICAL_DEVICE:
+        return "VK_OBJECT_TYPE_PHYSICAL_DEVICE";
+    case VK_OBJECT_TYPE_DEVICE:
+        return "VK_OBJECT_TYPE_DEVICE";
+    case VK_OBJECT_TYPE_QUEUE:
+        return "VK_OBJECT_TYPE_QUEUE";
+    case VK_OBJECT_TYPE_SEMAPHORE:
+        return "VK_OBJECT_TYPE_SEMAPHORE";
+    case VK_OBJECT_TYPE_COMMAND_BUFFER:
+        return "VK_OBJECT_TYPE_COMMAND_BUFFER";
+    case VK_OBJECT_TYPE_FENCE:
+        return "VK_OBJECT_TYPE_FENCE";
+    case VK_OBJECT_TYPE_DEVICE_MEMORY:
+        return "VK_OBJECT_TYPE_DEVICE_MEMORY";
+    case VK_OBJECT_TYPE_BUFFER:
+        return "VK_OBJECT_TYPE_BUFFER";
+    case VK_OBJECT_TYPE_IMAGE:
+        return "VK_OBJECT_TYPE_IMAGE";
+    case VK_OBJECT_TYPE_EVENT:
+        return "VK_OBJECT_TYPE_EVENT";
+    case VK_OBJECT_TYPE_QUERY_POOL:
+        return "VK_OBJECT_TYPE_QUERY_POOL";
+    case VK_OBJECT_TYPE_BUFFER_VIEW:
+        return "VK_OBJECT_TYPE_BUFFER_VIEW";
+    case VK_OBJECT_TYPE_IMAGE_VIEW:
+        return "VK_OBJECT_TYPE_IMAGE_VIEW";
+    case VK_OBJECT_TYPE_SHADER_MODULE:
+        return "VK_OBJECT_TYPE_SHADER_MODULE";
+    case VK_OBJECT_TYPE_PIPELINE_CACHE:
+        return "VK_OBJECT_TYPE_PIPELINE_CACHE";
+    case VK_OBJECT_TYPE_PIPELINE_LAYOUT:
+        return "VK_OBJECT_TYPE_PIPELINE_LAYOUT";
+    case VK_OBJECT_TYPE_RENDER_PASS:
+        return "VK_OBJECT_TYPE_RENDER_PASS";
+    case VK_OBJECT_TYPE_PIPELINE:
+        return "VK_OBJECT_TYPE_PIPELINE";
+    case VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT:
+        return "VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT";
+    case VK_OBJECT_TYPE_SAMPLER:
+        return "VK_OBJECT_TYPE_SAMPLER";
+    case VK_OBJECT_TYPE_DESCRIPTOR_POOL:
+        return "VK_OBJECT_TYPE_DESCRIPTOR_POOL";
+    case VK_OBJECT_TYPE_DESCRIPTOR_SET:
+        return "VK_OBJECT_TYPE_DESCRIPTOR_SET";
+    case VK_OBJECT_TYPE_FRAMEBUFFER:
+        return "VK_OBJECT_TYPE_FRAMEBUFFER";
+    case VK_OBJECT_TYPE_COMMAND_POOL:
+        return "VK_OBJECT_TYPE_COMMAND_POOL";
+    default:
+        AssertUnreachable();
+    }
+
+    return "Unknown";
+}
+
+const char* vk_to_string(VkMemoryPropertyFlags memory_property_flags)
+{
+    switch (memory_property_flags)
+    {
+    case VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT:
+        return "VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT";
+    case VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT:
+        return "VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT";
+    case VK_MEMORY_PROPERTY_HOST_COHERENT_BIT:
+        return "VK_MEMORY_PROPERTY_HOST_COHERENT_BIT";
+    case VK_MEMORY_PROPERTY_HOST_CACHED_BIT:
+        return "VK_MEMORY_PROPERTY_HOST_CACHED_BIT";
+    case VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT:
+        return "VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT";
+    case VK_MEMORY_PROPERTY_PROTECTED_BIT:
+        return "VK_MEMORY_PROPERTY_PROTECTED_BIT";
+    case VK_MEMORY_PROPERTY_DEVICE_COHERENT_BIT_AMD:
+        return "VK_MEMORY_PROPERTY_DEVICE_COHERENT_BIT_AMD";
+    case VK_MEMORY_PROPERTY_DEVICE_UNCACHED_BIT_AMD:
+        return "VK_MEMORY_PROPERTY_DEVICE_UNCACHED_BIT_AMD";
+    case VK_MEMORY_PROPERTY_RDMA_CAPABLE_BIT_NV:
+        return "VK_MEMORY_PROPERTY_RDMA_CAPABLE_BIT_NV";
+    default:
+        AssertUnreachable();
+    }
+
     return "Unknown";
 }
 } // namespace vk

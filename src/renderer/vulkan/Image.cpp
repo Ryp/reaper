@@ -1038,7 +1038,7 @@ GPUTexture create_image(ReaperRoot& root, VkDevice device, const char* debug_str
     allocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
 
     log_debug(root, "vulkan: creating new image: extent = {}x{}x{}, format = {}", properties.width, properties.height,
-              properties.depth, GetFormatToString(vulkan_format));
+              properties.depth, vk_to_string(vulkan_format));
     log_debug(root, "- mips = {}, layers = {}, samples = {}", properties.mip_count, properties.layer_count,
               properties.sample_count);
 

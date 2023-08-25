@@ -23,6 +23,7 @@
 #include <iostream>
 
 #include "PresentationSurface.h"
+#include "api/VulkanStringConversion.h"
 #include "renderer/window/Window.h"
 
 #include "BackendResources.h"
@@ -371,63 +372,64 @@ void vulkan_instance_check_layers(const std::vector<const char*>& layers)
 
 namespace
 {
-    VkBool32 VKAPI_PTR debugReportCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-                                           VkDebugUtilsMessageTypeFlagsEXT /*messageTypes*/,
-                                           const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-                                           void*                                       pUserData)
+    void print_debug_message(ReaperRoot* root, const VkDebugUtilsMessengerCallbackDataEXT* callback_data)
     {
-        ReaperRoot* root = static_cast<ReaperRoot*>(pUserData);
+        const char* id_name = callback_data->pMessageIdName;
+        log_info(*root, "vulkan: debug message [id: {} ({:#010x})] {}", id_name ? id_name : "unnamed",
+                 callback_data->messageIdNumber, callback_data->pMessage);
+
+        for (auto& queue_label : std::span(callback_data->pQueueLabels, callback_data->queueLabelCount))
+        {
+            const char* label = queue_label.pLabelName;
+            log_info(*root, "- queue label: '{}'", label ? label : "unnamed");
+        }
+
+        for (auto& command_buffer_label : std::span(callback_data->pCmdBufLabels, callback_data->cmdBufLabelCount))
+        {
+            const char* label = command_buffer_label.pLabelName;
+            log_info(*root, "- command buffer label: '{}'", label ? label : "unnamed");
+        }
+
+        for (auto& object_name_info : std::span(callback_data->pObjects, callback_data->objectCount))
+        {
+            const char* label = object_name_info.pObjectName;
+            log_info(*root, "- object '{}', type = {}, handle = {:#018x}", label ? label : "unnamed",
+                     vk_to_string(object_name_info.objectType), object_name_info.objectHandle);
+        }
+    }
+
+    VkBool32 VKAPI_PTR debug_message_callback(VkDebugUtilsMessageSeverityFlagBitsEXT severity,
+                                              VkDebugUtilsMessageTypeFlagsEXT /*messageTypes*/,
+                                              const VkDebugUtilsMessengerCallbackDataEXT* callback_data,
+                                              void*                                       user_data)
+    {
+        ReaperRoot* root = static_cast<ReaperRoot*>(user_data);
         Assert(root != nullptr);
 
-        u32 queueCount = pCallbackData->queueLabelCount;
-        if (queueCount > 0)
-        {
-            log_debug(*root, "queues labels:");
-            for (u32 i = 0; i < queueCount; i++)
-            {
-                const VkDebugUtilsLabelEXT& queueInfo = pCallbackData->pQueueLabels[i];
-                const char*                 label = queueInfo.pLabelName;
-                log_debug(*root, "- {}", label ? label : "unnamed");
-            }
-        }
+        constexpr i32    ID_LoaderMessage = 0x0000000;
+        std::vector<i32> ignored_ids = {
+            ID_LoaderMessage,
+        };
 
-        u32 cmdBufferCount = pCallbackData->cmdBufLabelCount;
-        if (cmdBufferCount > 0)
-        {
-            log_debug(*root, "command buffer labels:");
-            for (u32 i = 0; i < cmdBufferCount; i++)
-            {
-                const VkDebugUtilsLabelEXT& cmdBufferInfo = pCallbackData->pCmdBufLabels[i];
-                const char*                 label = cmdBufferInfo.pLabelName;
-                log_debug(*root, "- {}", label ? label : "unnamed");
-            }
-        }
-
-        u32 objetCount = pCallbackData->objectCount;
-        if (objetCount > 0)
-        {
-            log_debug(*root, "oject info:");
-            for (u32 i = 0; i < objetCount; i++)
-            {
-                const VkDebugUtilsObjectNameInfoEXT& objectInfo = pCallbackData->pObjects[i];
-                const char*                          label = objectInfo.pObjectName;
-                log_debug(*root, "- {}, handle = {}", label ? label : "unnamed", objectInfo.objectHandle);
-            }
-        }
-
-        constexpr i32 UNASSIGNED_CoreValidation_Shader_OutputNotConsumed = 0x609a13b;
-
-        std::vector<i32> ignored_ids = {UNASSIGNED_CoreValidation_Shader_OutputNotConsumed};
-
-        bool ignore_assert = false;
+        bool ignore_message = false;
         for (auto ignored_id : ignored_ids)
         {
-            if (ignored_id == pCallbackData->messageIdNumber)
-                ignore_assert = true;
+            if (ignored_id == callback_data->messageIdNumber)
+                ignore_message = true;
         }
 
-        Assert(messageSeverity < VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT || ignore_assert,
-               pCallbackData->pMessage);
+        if (!ignore_message)
+        {
+            print_debug_message(root, callback_data);
+        }
+
+        const bool ignore_assert = ignore_message || severity < VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT;
+        Assert(ignore_assert, callback_data->pMessage);
+
+        if (!ignore_assert)
+        {
+            exit(EXIT_FAILURE);
+        }
 
         return VK_FALSE;
     }
@@ -444,8 +446,9 @@ void vulkan_setup_debug_callback(ReaperRoot& root, VulkanBackend& backend)
             | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,
         .messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT
                        | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT,
-        .pfnUserCallback = &debugReportCallback,
-        .pUserData = &root};
+        .pfnUserCallback = &debug_message_callback,
+        .pUserData = &root,
+    };
 
 #if REAPER_DEBUG
     Assert(vkCreateDebugUtilsMessengerEXT(backend.instance, &callbackCreateInfo, nullptr, &backend.debugMessenger)
@@ -719,10 +722,34 @@ void vulkan_choose_physical_device(ReaperRoot&                     root,
 
     log_debug(root, "- subgroup size = {}", physicalDeviceInfo.subgroup_size);
 
-    for (u32 i = 0; i < physicalDeviceInfo.memory.memoryHeapCount; ++i)
+    std::span<const VkMemoryHeap> memory_heaps(physicalDeviceInfo.memory.memoryHeaps,
+                                               physicalDeviceInfo.memory.memoryHeapCount);
+
+    for (u32 heap_index = 0; heap_index < memory_heaps.size(); heap_index++)
     {
-        VkMemoryHeap& heap = physicalDeviceInfo.memory.memoryHeaps[i];
-        log_debug(root, "- heap {}: available size = {}, flags = {}", i, heap.size, heap.flags);
+        const VkMemoryHeap& heap = memory_heaps[heap_index];
+        log_debug(root, "- heap_index {}: available size = {}, flags = {}", heap_index, heap.size, heap.flags);
+    }
+
+    std::span<const VkMemoryType> memory_types(physicalDeviceInfo.memory.memoryTypes,
+                                               physicalDeviceInfo.memory.memoryTypeCount);
+
+    for (auto memory_type : memory_types)
+    {
+        log_debug(root, "- memory type: heap_index = {}", memory_type.heapIndex);
+
+        VkMemoryPropertyFlags flags = memory_type.propertyFlags;
+
+        for (u32 i = 0; i < 32; i++)
+        {
+            VkMemoryPropertyFlags flag = 1 << i;
+
+            if (flags & flag)
+            {
+                log_debug(root, "   - {}", vk_to_string(flag));
+                flags ^= flag;
+            }
+        }
     }
 
     backend.physicalDevice = chosenPhysicalDevice;
@@ -823,6 +850,8 @@ void vulkan_create_logical_device(ReaperRoot&                     root,
 
     Assert(vkCreateDevice(backend.physicalDevice, &device_create_info, nullptr, &backend.device) == VK_SUCCESS,
            "could not create Vulkan device");
+
+    VulkanSetDebugName(backend.device, backend.device, "Device");
 
     vulkan_load_device_level_functions(backend.device);
 

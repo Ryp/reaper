@@ -190,10 +190,10 @@ void configure_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backen
                                                      surface_formats.data())
                == VK_SUCCESS);
 
-        log_info(root, "vulkan: swapchain supports {} formats", formats_count);
+        log_debug(root, "vulkan: swapchain supports {} formats", formats_count);
         for (auto& format : surface_formats)
-            log_info(root, "- format = {}, colorspace = {}", GetFormatToString(format.surfaceFormat.format),
-                     GetColorSpaceKHRToString(format.surfaceFormat.colorSpace));
+            log_debug(root, "- format = {}, colorspace = {}", vk_to_string(format.surfaceFormat.format),
+                      vk_to_string(format.surfaceFormat.colorSpace));
 
         surface_format = vulkan_swapchain_choose_surface_format(surface_formats, swapchainDesc.preferredFormat);
 
@@ -201,17 +201,15 @@ void configure_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backen
             || surface_format.colorSpace != swapchainDesc.preferredFormat.colorSpace)
         {
             log_warning(root, "vulkan: incompatible swapchain format: format = {}, colorspace = {}",
-                        GetFormatToString(swapchainDesc.preferredFormat.format),
-                        GetColorSpaceKHRToString(swapchainDesc.preferredFormat.colorSpace));
-            log_warning(root, "- falling back to: format = {}, colorspace = {}",
-                        GetFormatToString(surface_format.format), GetColorSpaceKHRToString(surface_format.colorSpace));
+                        vk_to_string(swapchainDesc.preferredFormat.format),
+                        vk_to_string(swapchainDesc.preferredFormat.colorSpace));
         }
 
         presentInfo.view_format = vulkan_swapchain_view_format_override(surface_format);
 
-        log_debug(root, "vulkan: selecting swapchain format = {}, colorspace = {}",
-                  GetFormatToString(surface_format.format), GetColorSpaceKHRToString(surface_format.colorSpace));
-        log_debug(root, "vulkan: selecting swapchain view format = {}", GetFormatToString(presentInfo.view_format));
+        log_debug(root, "vulkan: selecting swapchain format = {}, colorspace = {}", vk_to_string(surface_format.format),
+                  vk_to_string(surface_format.colorSpace));
+        log_debug(root, "vulkan: selecting swapchain view format = {}", vk_to_string(presentInfo.view_format));
     }
 
     // Image count
@@ -253,7 +251,7 @@ void configure_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backen
 
         log_debug(root, "vulkan: swapchain supports {} present modes", presentModeCount);
         for (auto& mode : availablePresentModes)
-            log_debug(root, "- {}", GetPresentModeKHRToString(mode));
+            log_debug(root, "- {}", vk_to_string(mode));
 
         presentInfo.present_mode = vulkan_swapchain_choose_present_mode(availablePresentModes);
     }
@@ -347,6 +345,9 @@ void create_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backend, 
 
     Assert(vkCreateSwapchainKHR(backend.device, &swap_chain_create_info, nullptr, &presentInfo.swapchain)
            == VK_SUCCESS);
+
+    log_info(root, "vulkan: swapchain created with format = {}, colorspace = {}",
+             vk_to_string(presentInfo.surface_format.format), vk_to_string(presentInfo.surface_format.colorSpace));
 
     u32 actualImageCount = 0;
     Assert(vkGetSwapchainImagesKHR(backend.device, presentInfo.swapchain, &actualImageCount, nullptr) == VK_SUCCESS);

@@ -42,7 +42,7 @@ void DumpFrameGraph(const FrameGraph& frameGraph)
             {
                 const GPUTextureProperties& desc = resource.properties.texture;
                 label = fmt::format("{0} ({1})\\n{2}x{3}\\n{4}\\n[{5}]", resource.debug_name, resource_handle.index,
-                                    desc.width, desc.height, GetFormatToString(PixelFormatToVulkan(desc.format)),
+                                    desc.width, desc.height, vk_to_string(PixelFormatToVulkan(desc.format)),
                                     resourceUsageIndex);
             }
             else

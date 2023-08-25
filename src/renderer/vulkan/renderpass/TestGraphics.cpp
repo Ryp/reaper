@@ -79,8 +79,7 @@ namespace
             if (resource_handle.is_texture)
             {
                 log_debug(root, "    - src layout = '{}', dst layout = '{}'",
-                          GetImageLayoutToString(barrier.src.access.image_layout),
-                          GetImageLayoutToString(barrier.dst.access.image_layout));
+                          vk_to_string(barrier.src.access.image_layout), vk_to_string(barrier.dst.access.image_layout));
             }
         }
     }
@@ -183,7 +182,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
             if (waitResult != VK_SUCCESS)
             {
-                log_debug(root, "- return result {}", GetResultToString(waitResult));
+                log_debug(root, "- return result {}", vk_to_string(waitResult));
             }
         } while (waitResult != VK_SUCCESS);
 
