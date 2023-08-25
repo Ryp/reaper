@@ -64,10 +64,9 @@ VkMemoryBarrier2 get_vk_memory_barrier(GPUMemoryAccess src, GPUMemoryAccess dst)
     };
 }
 
-VkDependencyInfo get_vk_image_barrier_depency_info(u32 barrier_count, const VkImageMemoryBarrier2* barriers)
+VkDependencyInfo get_vk_image_barrier_depency_info(std::span<const VkImageMemoryBarrier2> barriers)
 {
-    Assert(barrier_count > 0);
-    Assert(barriers != nullptr);
+    Assert(!barriers.empty());
 
     return VkDependencyInfo{.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
                             .pNext = nullptr,
@@ -76,36 +75,34 @@ VkDependencyInfo get_vk_image_barrier_depency_info(u32 barrier_count, const VkIm
                             .pMemoryBarriers = nullptr,
                             .bufferMemoryBarrierCount = 0,
                             .pBufferMemoryBarriers = nullptr,
-                            .imageMemoryBarrierCount = barrier_count,
-                            .pImageMemoryBarriers = barriers};
+                            .imageMemoryBarrierCount = static_cast<u32>(barriers.size()),
+                            .pImageMemoryBarriers = barriers.data()};
 }
 
-VkDependencyInfo get_vk_buffer_barrier_depency_info(u32 barrier_count, const VkBufferMemoryBarrier2* barriers)
+VkDependencyInfo get_vk_buffer_barrier_depency_info(std::span<const VkBufferMemoryBarrier2> barriers)
 {
-    Assert(barrier_count > 0);
-    Assert(barriers != nullptr);
+    Assert(!barriers.empty());
 
     return VkDependencyInfo{.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
                             .pNext = nullptr,
                             .dependencyFlags = VK_FLAGS_NONE,
                             .memoryBarrierCount = 0,
                             .pMemoryBarriers = nullptr,
-                            .bufferMemoryBarrierCount = barrier_count,
-                            .pBufferMemoryBarriers = barriers,
+                            .bufferMemoryBarrierCount = static_cast<u32>(barriers.size()),
+                            .pBufferMemoryBarriers = barriers.data(),
                             .imageMemoryBarrierCount = 0,
                             .pImageMemoryBarriers = nullptr};
 }
 
-VkDependencyInfo get_vk_memory_barrier_depency_info(u32 barrier_count, const VkMemoryBarrier2* barriers)
+VkDependencyInfo get_vk_memory_barrier_depency_info(std::span<const VkMemoryBarrier2> barriers)
 {
-    Assert(barrier_count > 0);
-    Assert(barriers != nullptr);
+    Assert(!barriers.empty());
 
     return VkDependencyInfo{.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
                             .pNext = nullptr,
                             .dependencyFlags = VK_FLAGS_NONE,
-                            .memoryBarrierCount = barrier_count,
-                            .pMemoryBarriers = barriers,
+                            .memoryBarrierCount = static_cast<u32>(barriers.size()),
+                            .pMemoryBarriers = barriers.data(),
                             .bufferMemoryBarrierCount = 0,
                             .pBufferMemoryBarriers = nullptr,
                             .imageMemoryBarrierCount = 0,

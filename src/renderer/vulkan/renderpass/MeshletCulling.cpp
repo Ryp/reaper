@@ -59,7 +59,7 @@ CullMeshletsFrameGraphData create_cull_meshlet_frame_graph_data(FrameGraph::Buil
         DefaultGPUBufferProperties(CountersCount * MaxMeshletCullingPassCount, sizeof(u32),
                                    GPUBufferUsage::IndirectBuffer | GPUBufferUsage::TransferSrc
                                        | GPUBufferUsage::TransferDst | GPUBufferUsage::StorageBuffer),
-        GPUBufferAccess{VK_PIPELINE_STAGE_2_CLEAR_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT});
+        GPUBufferAccess{VK_PIPELINE_STAGE_2_TRANSFER_BIT_KHR, VK_ACCESS_2_TRANSFER_WRITE_BIT});
 
     CullMeshletsFrameGraphData::CullMeshlets cull_meshlets;
 

@@ -134,7 +134,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 {
     VkResult acquireResult;
     u64      acquireTimeoutUs = 1000000000;
-    uint32_t current_swapchain_index = 0;
+    uint32_t current_swapchain_index;
 
     constexpr u32 MaxAcquireTryCount = 10;
 
@@ -237,7 +237,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     debug_geometry_clear.draw_counter = builder.create_buffer(
         debug_geometry_clear.pass_handle, "Debug Indirect draw counter buffer", debug_geometry_counter_properties,
-        GPUBufferAccess{VK_PIPELINE_STAGE_2_CLEAR_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT});
+        GPUBufferAccess{VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT});
 
     const GPUBufferProperties debug_geometry_user_commands_properties = DefaultGPUBufferProperties(
         DebugGeometryCountMax, sizeof(DebugGeometryUserCommand), GPUBufferUsage::StorageBuffer);
@@ -247,7 +247,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     // the trade-off and paying for an extra useless barrier.
     debug_geometry_clear.user_commands_buffer = builder.create_buffer(
         debug_geometry_clear.pass_handle, "Debug geometry user command buffer", debug_geometry_user_commands_properties,
-        GPUBufferAccess{VK_PIPELINE_STAGE_2_CLEAR_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT});
+        GPUBufferAccess{VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT});
 
     // Shadow
     struct ShadowFrameGraphData
@@ -481,14 +481,14 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         DefaultGPUBufferProperties(ElementsPerTile * tile_depth_storage_properties.width
                                        * tile_depth_storage_properties.height,
                                    sizeof(u32), GPUBufferUsage::StorageBuffer | GPUBufferUsage::TransferDst),
-        GPUBufferAccess{VK_PIPELINE_STAGE_2_CLEAR_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT});
+        GPUBufferAccess{VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT});
 
     const GPUBufferProperties classification_counters_properties = DefaultGPUBufferProperties(
         2, sizeof(u32), GPUBufferUsage::StorageBuffer | GPUBufferUsage::TransferDst | GPUBufferUsage::IndirectBuffer);
 
     tile_depth_copy.classification_counters_clear = builder.create_buffer(
         tile_depth_copy.pass_handle, "Classification counters", classification_counters_properties,
-        GPUBufferAccess{VK_PIPELINE_STAGE_2_CLEAR_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT});
+        GPUBufferAccess{VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT});
 
     // Light raster classify
     struct LightClassifyFrameGraphData
@@ -503,7 +503,8 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     light_classify.classification_counters =
         builder.write_buffer(light_classify.pass_handle, tile_depth_copy.classification_counters_clear,
-                             GPUBufferAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT});
+                             GPUBufferAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+                                             VK_ACCESS_2_SHADER_WRITE_BIT | VK_ACCESS_2_SHADER_READ_BIT});
 
     const GPUBufferProperties draw_command_classify_properties =
         DefaultGPUBufferProperties(TiledRasterMaxIndirectCommandCount, 4 * sizeof(u32), // FIXME
@@ -561,7 +562,8 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     light_raster.light_list =
         builder.write_buffer(light_raster.pass_handle,
                              tile_depth_copy.light_list_clear,
-                             GPUBufferAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT});
+                             GPUBufferAccess{VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+                                             VK_ACCESS_2_SHADER_WRITE_BIT | VK_ACCESS_2_SHADER_READ_BIT});
 
     // Tiled Lighting
     struct TiledLightingFrameGraphData
@@ -723,7 +725,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     histogram_clear.histogram_buffer =
         builder.create_buffer(histogram_clear.pass_handle, "Histogram Buffer", histogram_buffer_properties,
-                              GPUBufferAccess{VK_PIPELINE_STAGE_2_CLEAR_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT});
+                              GPUBufferAccess{VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT});
 
     // Histogram
     struct HistogramFrameGraphData
@@ -742,7 +744,8 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     histogram.histogram_buffer =
         builder.write_buffer(histogram.pass_handle, histogram_clear.histogram_buffer,
-                             GPUBufferAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT});
+                             GPUBufferAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+                                             VK_ACCESS_2_SHADER_WRITE_BIT | VK_ACCESS_2_SHADER_READ_BIT});
 
     // Debug geometry create command buffer
     struct DebugGeometryComputeFrameGraphData
@@ -1002,6 +1005,18 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     descriptor_write_helper.flush_descriptor_write_helper(backend.device);
 
+    const GPUTextureAccess swapchain_access_initial = {.stage_mask = VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT,
+                                                       .access_mask = VK_ACCESS_2_NONE,
+                                                       .image_layout = VK_IMAGE_LAYOUT_UNDEFINED};
+
+    const GPUTextureAccess swapchain_access_present = {.stage_mask = VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT,
+                                                       .access_mask = VK_ACCESS_2_NONE,
+                                                       .image_layout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR};
+
+    const GPUTextureAccess swapchain_access_render = {.stage_mask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                                                      .access_mask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+                                                      .image_layout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL};
+
     log_debug(root, "vulkan: record command buffer");
     Assert(vkResetCommandPool(backend.device, backend.resources->gfxCommandPool, VK_FLAGS_NONE) == VK_SUCCESS);
 
@@ -1026,30 +1041,32 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
             for (u32 swapchainImageIndex = 0; swapchainImageIndex < static_cast<u32>(backend.presentInfo.images.size());
                  swapchainImageIndex++)
             {
-                const GPUTextureAccess src_undefined = {VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT, VK_ACCESS_2_NONE,
-                                                        VK_IMAGE_LAYOUT_UNDEFINED};
-                const GPUTextureAccess dst_access = {.stage_mask = VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT,
-                                                     .access_mask = VK_ACCESS_2_NONE,
-                                                     .image_layout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR};
+                const GPUTextureAccess src = swapchain_access_initial;
+                const GPUTextureAccess dst = (swapchainImageIndex == current_swapchain_index)
+                                                 ? swapchain_access_render
+                                                 : swapchain_access_present;
 
-                const GPUTextureSubresource subresource = {
-                    .aspect = ViewAspect::Color,
-                    .mip_offset = 0,
-                    .mip_count = 1,
-                    .layer_offset = 0,
-                    .layer_count = 1,
-                };
+                const GPUTextureSubresource subresource = default_texture_subresource_one_color_mip();
 
-                imageBarriers.emplace_back(get_vk_image_barrier(backend.presentInfo.images[swapchainImageIndex],
-                                                                subresource, src_undefined, dst_access));
+                imageBarriers.emplace_back(
+                    get_vk_image_barrier(backend.presentInfo.images[swapchainImageIndex], subresource, src, dst));
             }
 
-            const VkDependencyInfo dependencies =
-                get_vk_image_barrier_depency_info(static_cast<u32>(imageBarriers.size()), imageBarriers.data());
+            const VkDependencyInfo dependencies = get_vk_image_barrier_depency_info(imageBarriers);
 
             vkCmdPipelineBarrier2(cmdBuffer.handle, &dependencies);
 
             backend.presentInfo.queue_swapchain_transition = false;
+        }
+        else
+        {
+            const VkImageMemoryBarrier2 barrier = get_vk_image_barrier(
+                backend.presentInfo.images[current_swapchain_index], default_texture_subresource_one_color_mip(),
+                swapchain_access_present, swapchain_access_render);
+
+            const VkDependencyInfo dependencies = get_vk_image_barrier_depency_info(std::span(&barrier, 1));
+
+            vkCmdPipelineBarrier2(cmdBuffer.handle, &dependencies);
         }
 
         {
@@ -1233,6 +1250,12 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
             vkCmdFillBuffer(cmdBuffer.handle, light_lists.handle, light_lists.default_view.offset_bytes,
                             light_lists.default_view.size_bytes, clear_value);
 
+            FrameGraphBuffer counters = get_frame_graph_buffer(resources.framegraph_resources, framegraph,
+                                                               tile_depth_copy.classification_counters_clear);
+
+            vkCmdFillBuffer(cmdBuffer.handle, counters.handle, counters.default_view.offset_bytes,
+                            counters.default_view.size_bytes, clear_value);
+
             record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
                                        tile_depth_copy.pass_handle, false);
         }
@@ -1241,13 +1264,6 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
             REAPER_GPU_SCOPE(cmdBuffer, "Classify Light Volumes");
             record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
                                        light_classify.pass_handle, true);
-
-            const u32        clear_value = 0;
-            FrameGraphBuffer counters = get_frame_graph_buffer(resources.framegraph_resources, framegraph,
-                                                               light_classify.classification_counters);
-
-            vkCmdFillBuffer(cmdBuffer.handle, counters.handle, counters.default_view.offset_bytes,
-                            counters.default_view.size_bytes, clear_value);
 
             record_light_classify_command_buffer(cmdBuffer, tiled_lighting_frame, resources.tiled_raster_resources);
 
@@ -1398,6 +1414,20 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         }
 
         {
+            const GPUTextureAccess src = swapchain_access_render;
+            const GPUTextureAccess dst = swapchain_access_present;
+
+            const GPUTextureSubresource subresource = default_texture_subresource_one_color_mip();
+
+            const VkImageMemoryBarrier2 barrier =
+                get_vk_image_barrier(backend.presentInfo.images[current_swapchain_index], subresource, src, dst);
+
+            const VkDependencyInfo dependencies = get_vk_image_barrier_depency_info(std::span(&barrier, 1));
+
+            vkCmdPipelineBarrier2(cmdBuffer.handle, &dependencies);
+        }
+
+        {
             REAPER_GPU_SCOPE(cmdBuffer, "Audio Render");
             record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
                                        audio_pass.render.pass_handle, true);
@@ -1429,7 +1459,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     // Stop recording
     Assert(vkEndCommandBuffer(cmdBuffer.handle) == VK_SUCCESS);
 
-    const VkPipelineStageFlags waitDstMask = VK_PIPELINE_STAGE_TRANSFER_BIT;
+    const VkPipelineStageFlags waitDstMask = swapchain_access_render.stage_mask;
 
     const VkSubmitInfo submitInfo = {
         .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,

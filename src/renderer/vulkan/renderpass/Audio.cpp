@@ -168,7 +168,7 @@ void record_audio_render_command_buffer(CommandBuffer& cmdBuffer, const Prepared
         const VkBufferMemoryBarrier2 buffer_barrier =
             get_vk_buffer_barrier(resources.audio_staging_buffer.handle, view, src, dst);
 
-        const VkDependencyInfo dependencies = get_vk_buffer_barrier_depency_info(1, &buffer_barrier);
+        const VkDependencyInfo dependencies = get_vk_buffer_barrier_depency_info(std::span(&buffer_barrier, 1));
 
         vkCmdPipelineBarrier2(cmdBuffer.handle, &dependencies);
     }
@@ -205,7 +205,7 @@ void record_audio_copy_command_buffer(CommandBuffer&          cmdBuffer,
         const VkBufferMemoryBarrier2 buffer_barrier =
             get_vk_buffer_barrier(resources.audio_staging_buffer.handle, view, src, dst);
 
-        const VkDependencyInfo dependencies = get_vk_buffer_barrier_depency_info(1, &buffer_barrier);
+        const VkDependencyInfo dependencies = get_vk_buffer_barrier_depency_info(std::span(&buffer_barrier, 1));
 
         vkCmdPipelineBarrier2(cmdBuffer.handle, &dependencies);
     }

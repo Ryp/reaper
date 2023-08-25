@@ -11,6 +11,8 @@
 #include "renderer/texture/GPUTextureView.h"
 #include <vulkan_loader/Vulkan.h>
 
+#include <span>
+
 namespace Reaper
 {
 struct GPUTextureAccess
@@ -43,7 +45,7 @@ VkBufferMemoryBarrier2 get_vk_buffer_barrier(VkBuffer handle, const GPUBufferVie
 
 VkMemoryBarrier2 get_vk_memory_barrier(GPUMemoryAccess src, GPUMemoryAccess dst);
 
-VkDependencyInfo get_vk_image_barrier_depency_info(u32 barrier_count, const VkImageMemoryBarrier2* barriers);
-VkDependencyInfo get_vk_buffer_barrier_depency_info(u32 barrier_count, const VkBufferMemoryBarrier2* barriers);
-VkDependencyInfo get_vk_memory_barrier_depency_info(u32 barrier_count, const VkMemoryBarrier2* barriers);
+VkDependencyInfo get_vk_image_barrier_depency_info(std::span<const VkImageMemoryBarrier2> barriers);
+VkDependencyInfo get_vk_buffer_barrier_depency_info(std::span<const VkBufferMemoryBarrier2> barriers);
+VkDependencyInfo get_vk_memory_barrier_depency_info(std::span<const VkMemoryBarrier2> barriers);
 } // namespace Reaper
