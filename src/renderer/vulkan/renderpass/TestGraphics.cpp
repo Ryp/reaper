@@ -343,16 +343,14 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     visibility_gbuffer.gbuffer_rt0 = builder.create_texture(
         visibility_gbuffer.pass_handle, "GBuffer RT0",
         default_texture_properties(backbufferExtent.width, backbufferExtent.height, GBufferRT0Format,
-                                   GPUTextureUsage::ColorAttachment | GPUTextureUsage::Sampled
-                                       | GPUTextureUsage::Storage),
+                                   GPUTextureUsage::Sampled | GPUTextureUsage::Storage),
         GPUTextureAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT,
                          VK_IMAGE_LAYOUT_GENERAL});
 
     visibility_gbuffer.gbuffer_rt1 = builder.create_texture(
         visibility_gbuffer.pass_handle, "GBuffer RT1",
         default_texture_properties(backbufferExtent.width, backbufferExtent.height, GBufferRT1Format,
-                                   GPUTextureUsage::ColorAttachment | GPUTextureUsage::Sampled
-                                       | GPUTextureUsage::Storage),
+                                   GPUTextureUsage::Sampled | GPUTextureUsage::Storage),
         GPUTextureAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT,
                          VK_IMAGE_LAYOUT_GENERAL});
 
