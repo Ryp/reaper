@@ -406,9 +406,68 @@ namespace
         ReaperRoot* root = static_cast<ReaperRoot*>(user_data);
         Assert(root != nullptr);
 
-        constexpr i32    ID_LoaderMessage = 0x0000000;
+        constexpr i32 ID_LoaderMessage = 0x0000000;
+        constexpr i32 ID_UNASSIGNED_BestPractices_vkCreateDevice_specialuse_extension_glemulation =
+            -0x703c3ecb; // CreateDevice(): Attempting to enable extension VK_EXT_primitive_topology_list_restart, but
+                         // this extension is intended to support OpenGL and/or OpenGL ES emulation layers, and
+                         // applications ported from those APIs, by adding functionality specific to those APIs and it
+                         // is strongly recommended that it be otherwise avoided.
+        constexpr i32 ID_UNASSIGNED_BestPractices_vkAllocateMemory_small_allocation =
+            -0x23e75295; // vkAllocateMemory(): Allocating a VkDeviceMemory of size 131072. This is a very small
+                         // allocation (current threshold is 262144 bytes). You should make large allocations and
+                         // sub-allocate from one large VkDeviceMemory.
+        constexpr i32 ID_UNASSIGNED_BestPractices_vkBindMemory_small_dedicated_allocation =
+            -0x4c2bcb95; // vkBindImageMemory(): Trying to bind VkImage 0xb9b24e0000000113[] to a memory block which is
+                         // fully consumed by the image. The required size of the allocation is 131072, but smaller
+                         // images like this should be sub-allocated from larger memory blocks. (Current threshold is
+                         // 1048576 bytes.)
+        constexpr i32 ID_UNASSIGNED_BestPractices_pipeline_stage_flags =
+            0x48a09f6c; // You are using VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT_KHR when vkCmdResetEvent2 is called
+        constexpr i32 ID_UNASSIGNED_BestPractices_CreatePipelines_AvoidPrimitiveRestart =
+            0x4d6711e7; // [AMD] Performance warning: Use of primitive restart is not recommended
+        constexpr i32 ID_UNASSIGNED_BestPractices_vkImage_DontUseStorageRenderTargets =
+            -0x33200141; // [AMD] Performance warning: image 'Lighting' is created as a render target with
+                         // VK_IMAGE_USAGE_STORAGE_BIT. Using a VK_IMAGE_USAGE_STORAGE_BIT is not recommended with color
+                         // and depth targets
+        constexpr i32 ID_UNASSIGNED_BestPractices_CreateDevice_PageableDeviceLocalMemory =
+            0x2e99adca; // [NVIDIA] vkCreateDevice() called without pageable device local memory. Use
+                        // pageableDeviceLocalMemory from VK_EXT_pageable_device_local_memory when it is available.
+        constexpr i32 ID_UNASSIGNED_BestPractices_AllocateMemory_SetPriority =
+            0x61f61757; // [NVIDIA] Use VkMemoryPriorityAllocateInfoEXT to provide the operating system information on
+                        // the allocations that should stay in video memory and which should be demoted first when video
+                        // memory is limited. The highest priority should be given to GPU-written resources like color
+                        // attachments, depth attachments, storage images, and buffers written from the GPU.
+        constexpr i32 ID_UNASSIGNED_BestPractices_CreatePipelineLayout_SeparateSampler =
+            0x362cd642; // [NVIDIA] Consider using combined image samplers instead of separate samplers for marginally
+                        // better performance.
+        constexpr i32 ID_UNASSIGNED_BestPractices_vkBeginCommandBuffer_one_time_submit =
+            -0x461324b6; // [NVIDIA] vkBeginCommandBuffer(): VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT was not set and
+                         // the command buffer has only been submitted once. For best performance on NVIDIA GPUs, use
+                         // ONE_TIME_SUBMIT.
+        constexpr i32 ID_UNASSIGNED_BestPractices_Zcull_LessGreaterRatio =
+            -0xa56a353; // [NVIDIA] Depth attachment VkImage 0xd22318000000014b[Tile Depth Max] is primarily rendered
+                        // with depth compare op LESS, but some draws use GREATER. Z-cull is disabled for the least used
+                        // direction, which harms depth testing performance. The Z-cull direction can be reset by
+                        // clearing the depth attachment, transitioning from VK_IMAGE_LAYOUT_UNDEFINED, using
+                        // VK_ATTACHMENT_LOAD_OP_DONT_CARE, or using VK_ATTACHMENT_STORE_OP_DONT_CARE.
+        constexpr i32 ID_UNASSIGNED_BestPractices_AllocateMemory_ReuseAllocations =
+            0x6e57f7a6; // [NVIDIA] Reuse memory allocations instead of releasing and reallocating. A memory allocation
+                        // has just been released, and it could have been reused in place of this allocation.
+
         std::vector<i32> ignored_ids = {
             ID_LoaderMessage,
+            ID_UNASSIGNED_BestPractices_vkCreateDevice_specialuse_extension_glemulation,
+            ID_UNASSIGNED_BestPractices_vkAllocateMemory_small_allocation,
+            ID_UNASSIGNED_BestPractices_vkBindMemory_small_dedicated_allocation,
+            ID_UNASSIGNED_BestPractices_pipeline_stage_flags,
+            ID_UNASSIGNED_BestPractices_CreatePipelines_AvoidPrimitiveRestart,
+            ID_UNASSIGNED_BestPractices_vkImage_DontUseStorageRenderTargets,
+            ID_UNASSIGNED_BestPractices_CreateDevice_PageableDeviceLocalMemory,
+            ID_UNASSIGNED_BestPractices_AllocateMemory_SetPriority,
+            ID_UNASSIGNED_BestPractices_CreatePipelineLayout_SeparateSampler,
+            ID_UNASSIGNED_BestPractices_vkBeginCommandBuffer_one_time_submit,
+            ID_UNASSIGNED_BestPractices_Zcull_LessGreaterRatio,
+            ID_UNASSIGNED_BestPractices_AllocateMemory_ReuseAllocations,
         };
 
         bool ignore_message = false;
@@ -426,7 +485,8 @@ namespace
         const bool ignore_assert = ignore_message || severity < VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT;
         Assert(ignore_assert, callback_data->pMessage);
 
-        if (!ignore_assert)
+        bool exit_on_assert = false;
+        if (!ignore_assert && exit_on_assert)
         {
             exit(EXIT_FAILURE);
         }
