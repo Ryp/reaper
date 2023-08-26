@@ -36,7 +36,7 @@ void renderer_start(ReaperRoot& root, VulkanBackend& backend, IWindow* window)
 
     const VkCommandBufferBeginInfo cmdBufferBeginInfo = {.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
                                                          .pNext = nullptr,
-                                                         .flags = VK_FLAGS_NONE,
+                                                         .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
                                                          .pInheritanceInfo = nullptr};
 
     Assert(vkBeginCommandBuffer(cmdBuffer.handle, &cmdBufferBeginInfo) == VK_SUCCESS);

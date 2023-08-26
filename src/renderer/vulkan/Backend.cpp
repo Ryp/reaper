@@ -440,10 +440,6 @@ namespace
         constexpr i32 ID_UNASSIGNED_BestPractices_CreatePipelineLayout_SeparateSampler =
             0x362cd642; // [NVIDIA] Consider using combined image samplers instead of separate samplers for marginally
                         // better performance.
-        constexpr i32 ID_UNASSIGNED_BestPractices_vkBeginCommandBuffer_one_time_submit =
-            -0x461324b6; // [NVIDIA] vkBeginCommandBuffer(): VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT was not set and
-                         // the command buffer has only been submitted once. For best performance on NVIDIA GPUs, use
-                         // ONE_TIME_SUBMIT.
         constexpr i32 ID_UNASSIGNED_BestPractices_Zcull_LessGreaterRatio =
             -0xa56a353; // [NVIDIA] Depth attachment VkImage 0xd22318000000014b[Tile Depth Max] is primarily rendered
                         // with depth compare op LESS, but some draws use GREATER. Z-cull is disabled for the least used
@@ -465,7 +461,6 @@ namespace
             ID_UNASSIGNED_BestPractices_CreateDevice_PageableDeviceLocalMemory,
             ID_UNASSIGNED_BestPractices_AllocateMemory_SetPriority,
             ID_UNASSIGNED_BestPractices_CreatePipelineLayout_SeparateSampler,
-            ID_UNASSIGNED_BestPractices_vkBeginCommandBuffer_one_time_submit,
             ID_UNASSIGNED_BestPractices_Zcull_LessGreaterRatio,
             ID_UNASSIGNED_BestPractices_AllocateMemory_ReuseAllocations,
         };

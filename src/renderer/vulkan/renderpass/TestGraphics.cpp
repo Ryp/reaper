@@ -974,7 +974,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     const VkCommandBufferBeginInfo cmdBufferBeginInfo = {
         .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
         .pNext = nullptr,
-        .flags = VK_FLAGS_NONE,
+        .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
         .pInheritanceInfo = nullptr,
     };
 
