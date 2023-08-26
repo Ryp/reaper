@@ -157,15 +157,17 @@ default_pipeline_shader_stage_create_info(VkShaderStageFlagBits stage_bit, VkSha
 
 VkPipelineColorBlendAttachmentState default_pipeline_color_blend_attachment_state()
 {
-    return VkPipelineColorBlendAttachmentState{VK_FALSE,
-                                               VK_BLEND_FACTOR_ONE,
-                                               VK_BLEND_FACTOR_ZERO,
-                                               VK_BLEND_OP_ADD,
-                                               VK_BLEND_FACTOR_ONE,
-                                               VK_BLEND_FACTOR_ZERO,
-                                               VK_BLEND_OP_ADD,
-                                               VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT
-                                                   | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT};
+    return VkPipelineColorBlendAttachmentState{
+        .blendEnable = VK_FALSE,
+        .srcColorBlendFactor = VK_BLEND_FACTOR_ONE,
+        .dstColorBlendFactor = VK_BLEND_FACTOR_ZERO,
+        .colorBlendOp = VK_BLEND_OP_ADD,
+        .srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE,
+        .dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO,
+        .alphaBlendOp = VK_BLEND_OP_ADD,
+        .colorWriteMask =
+            VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT,
+    };
 }
 
 VkPipelineRenderingCreateInfo default_pipeline_rendering_create_info()
