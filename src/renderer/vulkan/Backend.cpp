@@ -185,11 +185,12 @@ void create_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& backend)
     vulkan_setup_debug_callback(root, backend);
 #endif
 
-    WindowCreationDescriptor windowDescriptor;
-    windowDescriptor.title = "Vulkan";
-    windowDescriptor.width = 2560;
-    windowDescriptor.height = 1440;
-    windowDescriptor.fullscreen = false;
+    WindowCreationDescriptor windowDescriptor = {
+        .title = "Vulkan",
+        .width = 2560,
+        .height = 1440,
+        .fullscreen = false,
+    };
 
     log_info(root,
              "vulkan: creating window: size = {}x{}, title = '{}', fullscreen = {}",
@@ -571,17 +572,17 @@ bool vulkan_check_physical_device(IWindow*                        window,
     descriptor_indexing_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES;
     descriptor_indexing_features.pNext = &primitive_restart_feature;
 
-    VkPhysicalDeviceVulkan13Features device_vulkan13_features = {};
-    device_vulkan13_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
-    device_vulkan13_features.pNext = &descriptor_indexing_features;
+    VkPhysicalDeviceVulkan13Features vulkan1_3_features = {};
+    vulkan1_3_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
+    vulkan1_3_features.pNext = &descriptor_indexing_features;
 
-    VkPhysicalDeviceVulkan12Features device_vulkan12_features = {};
-    device_vulkan12_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
-    device_vulkan12_features.pNext = &device_vulkan13_features;
+    VkPhysicalDeviceVulkan12Features vulkan1_2_features = {};
+    vulkan1_2_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+    vulkan1_2_features.pNext = &vulkan1_3_features;
 
     VkPhysicalDeviceFeatures2 device_features2 = {};
     device_features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
-    device_features2.pNext = &device_vulkan12_features;
+    device_features2.pNext = &vulkan1_2_features;
 
     vkGetPhysicalDeviceFeatures2(physical_device, &device_features2);
 
@@ -594,10 +595,17 @@ bool vulkan_check_physical_device(IWindow*                        window,
     Assert(device_features2.features.fragmentStoresAndAtomics == VK_TRUE);
     Assert(device_features2.features.fillModeNonSolid == VK_TRUE);
     Assert(device_features2.features.geometryShader == VK_TRUE);
-    Assert(device_vulkan12_features.shaderSampledImageArrayNonUniformIndexing == VK_TRUE);
-    Assert(device_vulkan13_features.synchronization2 == VK_TRUE);
-    Assert(device_vulkan13_features.dynamicRendering == VK_TRUE);
-    Assert(device_vulkan13_features.computeFullSubgroups == VK_TRUE);
+    Assert(vulkan1_2_features.drawIndirectCount == VK_TRUE);
+    Assert(vulkan1_2_features.imagelessFramebuffer == VK_TRUE);
+    Assert(vulkan1_2_features.separateDepthStencilLayouts == VK_TRUE);
+    Assert(vulkan1_2_features.descriptorIndexing == VK_TRUE);
+    Assert(vulkan1_2_features.runtimeDescriptorArray == VK_TRUE);
+    Assert(vulkan1_2_features.descriptorBindingPartiallyBound == VK_TRUE);
+    Assert(vulkan1_2_features.timelineSemaphore == VK_TRUE);
+    Assert(vulkan1_2_features.shaderSampledImageArrayNonUniformIndexing == VK_TRUE);
+    Assert(vulkan1_3_features.synchronization2 == VK_TRUE);
+    Assert(vulkan1_3_features.dynamicRendering == VK_TRUE);
+    Assert(vulkan1_3_features.computeFullSubgroups == VK_TRUE);
     Assert(primitive_restart_feature.primitiveTopologyListRestart == VK_TRUE);
     Assert(index_uint8_feature.indexTypeUint8 == VK_TRUE);
 
@@ -846,14 +854,6 @@ void vulkan_create_logical_device(ReaperRoot&                     root,
     for (auto& e : device_extensions)
         log_debug(root, "- {}", e);
 
-    VkPhysicalDeviceFeatures deviceFeatures = {};
-    deviceFeatures.samplerAnisotropy = VK_TRUE;
-    deviceFeatures.multiDrawIndirect = VK_TRUE;
-    deviceFeatures.drawIndirectFirstInstance = VK_TRUE;
-    deviceFeatures.fragmentStoresAndAtomics = VK_TRUE;
-    deviceFeatures.fillModeNonSolid = VK_TRUE;
-    deviceFeatures.geometryShader = VK_TRUE;
-
     VkPhysicalDeviceIndexTypeUint8FeaturesEXT index_uint8_feature = {};
     index_uint8_feature.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INDEX_TYPE_UINT8_FEATURES_EXT;
     index_uint8_feature.indexTypeUint8 = VK_TRUE;
@@ -863,33 +863,38 @@ void vulkan_create_logical_device(ReaperRoot&                     root,
     primitive_restart_feature.pNext = &index_uint8_feature;
     primitive_restart_feature.primitiveTopologyListRestart = VK_TRUE;
 
-    VkPhysicalDeviceVulkan13Features device_vulkan13_features = {};
-    device_vulkan13_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
-    device_vulkan13_features.pNext = &primitive_restart_feature;
-    device_vulkan13_features.synchronization2 = VK_TRUE;
-    device_vulkan13_features.dynamicRendering = VK_TRUE;
-    device_vulkan13_features.computeFullSubgroups = VK_TRUE;
+    VkPhysicalDeviceVulkan13Features vulkan1_3_features = {};
+    vulkan1_3_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
+    vulkan1_3_features.pNext = &primitive_restart_feature;
+    vulkan1_3_features.synchronization2 = VK_TRUE;
+    vulkan1_3_features.dynamicRendering = VK_TRUE;
+    vulkan1_3_features.computeFullSubgroups = VK_TRUE;
 
-    VkPhysicalDeviceVulkan12Features device_features_1_2 = {};
-    device_features_1_2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
-    device_features_1_2.pNext = &device_vulkan13_features;
-    device_features_1_2.drawIndirectCount = VK_TRUE;
-    device_features_1_2.imagelessFramebuffer = VK_TRUE;
-    device_features_1_2.separateDepthStencilLayouts = VK_TRUE;
-    device_features_1_2.descriptorIndexing = VK_TRUE;
-    device_features_1_2.runtimeDescriptorArray = VK_TRUE;
-    device_features_1_2.descriptorBindingPartiallyBound = VK_TRUE;
-    device_features_1_2.timelineSemaphore = VK_TRUE;
-    device_features_1_2.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
+    VkPhysicalDeviceVulkan12Features vulkan1_2_features = {};
+    vulkan1_2_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+    vulkan1_2_features.pNext = &vulkan1_3_features;
+    vulkan1_2_features.drawIndirectCount = VK_TRUE;
+    vulkan1_2_features.imagelessFramebuffer = VK_TRUE;
+    vulkan1_2_features.separateDepthStencilLayouts = VK_TRUE;
+    vulkan1_2_features.descriptorIndexing = VK_TRUE;
+    vulkan1_2_features.runtimeDescriptorArray = VK_TRUE;
+    vulkan1_2_features.descriptorBindingPartiallyBound = VK_TRUE;
+    vulkan1_2_features.timelineSemaphore = VK_TRUE;
+    vulkan1_2_features.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
 
-    VkPhysicalDeviceFeatures2 deviceFeatures2 = {};
-    deviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
-    deviceFeatures2.pNext = &device_features_1_2;
-    deviceFeatures2.features = deviceFeatures;
+    VkPhysicalDeviceFeatures2 device_features2 = {};
+    device_features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+    device_features2.pNext = &vulkan1_2_features;
+    device_features2.features.samplerAnisotropy = VK_TRUE;
+    device_features2.features.multiDrawIndirect = VK_TRUE;
+    device_features2.features.drawIndirectFirstInstance = VK_TRUE;
+    device_features2.features.fragmentStoresAndAtomics = VK_TRUE;
+    device_features2.features.fillModeNonSolid = VK_TRUE;
+    device_features2.features.geometryShader = VK_TRUE;
 
     const VkDeviceCreateInfo device_create_info = {
         .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-        .pNext = &deviceFeatures2,
+        .pNext = &device_features2,
         .flags = VK_FLAGS_NONE,
         .queueCreateInfoCount = queueCreateCount,
         .pQueueCreateInfos = &queue_create_infos[0],
