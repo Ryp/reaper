@@ -18,8 +18,8 @@ struct MeshletOffsets
     hlsl_uint cull_instance_id;
 };
 
-static const hlsl_uint PrepareIndirectDispatchThreadCount = 16;
-static const hlsl_uint MeshletCullThreadCount = 32;
+static const hlsl_uint PrepareIndirectDispatchThreadCount = 64;
+static const hlsl_uint MeshletCullThreadCount = 64;
 
 static const hlsl_uint CountersCount = 4; // Align on 16 byte boundary
 
