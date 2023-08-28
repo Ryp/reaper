@@ -258,29 +258,26 @@ void create_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& backend)
     backend.semaphore_rendering_finished =
         create_semaphore(backend, "Semaphore rendering finished", semaphore_create_info);
 
-    {
-        // this initializes the core structures of imgui
-        ImGui::CreateContext();
+    ImGui::CreateContext();
 
-        // this initializes imgui for SDL
-        // ImGui_ImplSDL2_InitForVulkan(_window);
+    ImGui_ImplVulkan_InitInfo imgui_vulkan_init_info = {
+        .Instance = backend.instance,
+        .PhysicalDevice = backend.physicalDevice,
+        .Device = backend.device,
+        .QueueFamily = 0, // FIXME
+        .Queue = backend.deviceInfo.graphicsQueue,
+        .PipelineCache = nullptr,
+        .DescriptorPool = backend.global_descriptor_pool,
+        .Subpass = 0,
+        .MinImageCount = 3,                   // FIXME
+        .ImageCount = 3,                      // FIXME
+        .MSAASamples = VK_SAMPLE_COUNT_1_BIT, // FIXME
+        .Allocator = nullptr,
+        .CheckVkResultFn = nullptr,
+    };
 
-        // this initializes imgui for Vulkan
-        ImGui_ImplVulkan_InitInfo init_info = {};
-        init_info.Instance = backend.instance;
-        init_info.PhysicalDevice = backend.physicalDevice;
-        init_info.Device = backend.device;
-        init_info.Queue = backend.deviceInfo.graphicsQueue;
-        init_info.DescriptorPool = backend.global_descriptor_pool;
-        init_info.MinImageCount = 3;
-        init_info.ImageCount = 3;
-        init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
-
-        // constexpr PixelFormat GUIFormat = PixelFormat::R8G8B8A8_SRGB;// FIXME
-        // const VkFormat gui_format = PixelFormatToVulkan(GUIFormat);
-        ImGui_ImplVulkan_LoadFunctions(nullptr, nullptr);
-        ImGui_ImplVulkan_Init(&init_info, VK_FORMAT_R8G8B8A8_SRGB);
-    }
+    ImGui_ImplVulkan_LoadFunctions(nullptr, nullptr);
+    ImGui_ImplVulkan_Init(&imgui_vulkan_init_info, PixelFormatToVulkan(GUIFormat));
 
     log_info(root, "vulkan: ready");
 }
