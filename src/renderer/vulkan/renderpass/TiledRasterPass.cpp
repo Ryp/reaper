@@ -74,7 +74,7 @@ TiledRasterResources create_tiled_raster_pass_resources(ReaperRoot& root, Vulkan
 
         VkPipeline pipeline = create_compute_pipeline(backend.device, pipeline_layout, shader_stage);
 
-        Assert(backend.physicalDeviceInfo.subgroup_size >= MinWaveLaneCount);
+        Assert(backend.physical_device.subgroup_properties.subgroupSize >= MinWaveLaneCount);
 
         resources.tile_depth_descriptor_set_layout = descriptor_set_layout;
         resources.tile_depth_pipeline_layout = pipeline_layout;
@@ -99,8 +99,8 @@ TiledRasterResources create_tiled_raster_pass_resources(ReaperRoot& root, Vulkan
         const VkPushConstantRange constant_range = {VK_SHADER_STAGE_FRAGMENT_BIT, 0,
                                                     sizeof(CopyDepthFromHZBPushConstants)};
 
-        VkPipelineLayout pipeline_layout = create_pipeline_layout(
-            backend.device, std::span(&descriptor_set_layout, 1), std::span(&constant_range, 1));
+        VkPipelineLayout pipeline_layout =
+            create_pipeline_layout(backend.device, std::span(&descriptor_set_layout, 1), std::span(&constant_range, 1));
 
         GraphicsPipelineProperties pipeline_properties = default_graphics_pipeline_properties();
         pipeline_properties.depth_stencil.depthTestEnable = VK_TRUE;

@@ -11,6 +11,26 @@
 
 namespace vk
 {
+const char* vk_to_string(VkPhysicalDeviceType deviceType)
+{
+    switch (deviceType)
+    {
+    case VK_PHYSICAL_DEVICE_TYPE_OTHER:
+        return "VK_PHYSICAL_DEVICE_TYPE_OTHER";
+    case VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU:
+        return "VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU";
+    case VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU:
+        return "VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU";
+    case VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU:
+        return "VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU";
+    case VK_PHYSICAL_DEVICE_TYPE_CPU:
+        return "VK_PHYSICAL_DEVICE_TYPE_CPU";
+    default:
+        AssertUnreachable();
+    }
+    return "Unknown";
+}
+
 const char* vk_to_string(VkResult result)
 {
     // FIXME Incomplete

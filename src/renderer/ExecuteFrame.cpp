@@ -59,7 +59,7 @@ void renderer_start(ReaperRoot& root, VulkanBackend& backend, IWindow* window)
     };
 
     log_debug(root, "vulkan: submit commands");
-    Assert(vkQueueSubmit(backend.deviceInfo.graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE) == VK_SUCCESS);
+    Assert(vkQueueSubmit(backend.graphics_queue, 1, &submitInfo, VK_NULL_HANDLE) == VK_SUCCESS);
 
     Assert(vkDeviceWaitIdle(backend.device) == VK_SUCCESS);
 
@@ -71,7 +71,7 @@ void renderer_start(ReaperRoot& root, VulkanBackend& backend, IWindow* window)
 
 void renderer_stop(ReaperRoot& root, VulkanBackend& backend, IWindow* window)
 {
-    vkQueueWaitIdle(backend.deviceInfo.presentQueue);
+    vkQueueWaitIdle(backend.present_queue);
 
     log_info(root, "window: unmap window");
     window->unmap();

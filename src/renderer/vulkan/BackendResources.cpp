@@ -25,7 +25,7 @@ void create_backend_resources(ReaperRoot& root, VulkanBackend& backend)
         .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
         .pNext = nullptr,
         .flags = VK_FLAGS_NONE,
-        .queueFamilyIndex = backend.physicalDeviceInfo.graphicsQueueFamilyIndex,
+        .queueFamilyIndex = backend.physical_device.graphics_queue_family_index,
     };
 
     Assert(vkCreateCommandPool(backend.device, &poolCreateInfo, nullptr, &resources.gfxCommandPool) == VK_SUCCESS);
@@ -45,7 +45,7 @@ void create_backend_resources(ReaperRoot& root, VulkanBackend& backend)
 
 #if defined(REAPER_USE_TRACY)
     resources.gfxCmdBuffer.tracy_ctx = TracyVkContextCalibrated(
-        backend.physicalDevice, backend.device, backend.deviceInfo.graphicsQueue, resources.gfxCmdBuffer.handle,
+        backend.physical_device.handle, backend.device, backend.graphics_queue, resources.gfxCmdBuffer.handle,
         vkGetPhysicalDeviceCalibrateableTimeDomainsEXT, vkGetCalibratedTimestampsEXT);
     // TracyVkContextName(resources.gfxCmdBuffer.tracy_ctx, name, size);
 #endif

@@ -23,6 +23,7 @@
 #include <iostream>
 
 #include "PresentationSurface.h"
+#include "api/VulkanHook.h"
 #include "api/VulkanStringConversion.h"
 #include "renderer/window/Window.h"
 
@@ -48,326 +49,6 @@
 
 namespace Reaper
 {
-namespace
-{
-    VkSemaphore create_semaphore(VulkanBackend& backend, const char* debug_name,
-                                 const VkSemaphoreCreateInfo& create_info)
-    {
-        VkSemaphore semaphore;
-        Assert(vkCreateSemaphore(backend.device, &create_info, nullptr, &semaphore) == VK_SUCCESS);
-
-        VulkanSetDebugName(backend.device, semaphore, debug_name);
-
-        return semaphore;
-    }
-
-    VkDescriptorPool create_global_descriptor_pool(ReaperRoot& root, VulkanBackend& backend)
-    {
-        // Create descriptor pool
-        // FIXME Sizes are arbitrary for now, as long as everything fits
-        constexpr u32                     MaxDescriptorSets = 100;
-        std::vector<VkDescriptorPoolSize> descriptorPoolSizes = {
-            {VK_DESCRIPTOR_TYPE_SAMPLER, 16},        {VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 256},
-            {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 32}, {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 32},
-            {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 32},  {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 16}};
-
-        const VkDescriptorPoolCreateInfo poolInfo = {.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-                                                     .pNext = nullptr,
-                                                     .flags = VK_FLAGS_NONE,
-                                                     .maxSets = MaxDescriptorSets,
-                                                     .poolSizeCount = static_cast<uint32_t>(descriptorPoolSizes.size()),
-                                                     .pPoolSizes = descriptorPoolSizes.data()};
-
-        VkDescriptorPool pool = VK_NULL_HANDLE;
-        Assert(vkCreateDescriptorPool(backend.device, &poolInfo, nullptr, &pool) == VK_SUCCESS);
-        log_debug(root, "vulkan: created descriptor pool with handle: {}", static_cast<void*>(pool));
-
-        return pool;
-    }
-} // namespace
-
-void vulkan_instance_check_extensions(const std::vector<const char*>& extensions);
-void vulkan_instance_check_layers(const std::vector<const char*>& layers);
-
-void vulkan_device_check_extensions(const std::vector<const char*>& extensions, VkPhysicalDevice physicalDevice);
-
-void vulkan_setup_debug_callback(ReaperRoot& root, VulkanBackend& renderer);
-void vulkan_destroy_debug_callback(VulkanBackend& renderer);
-
-bool vulkan_check_physical_device(IWindow*                        window,
-                                  VkPhysicalDevice                physical_device,
-                                  VkSurfaceKHR                    presentationSurface,
-                                  const std::vector<const char*>& extensions,
-                                  uint32_t&                       queue_family_index,
-                                  uint32_t&                       selected_present_queue_family_index);
-
-void vulkan_choose_physical_device(ReaperRoot&                     root,
-                                   VulkanBackend&                  backend,
-                                   const std::vector<const char*>& device_extensions,
-                                   PhysicalDeviceInfo&             physicalDeviceInfo);
-
-void vulkan_create_logical_device(ReaperRoot&                     root,
-                                  VulkanBackend&                  backend,
-                                  const std::vector<const char*>& device_extensions);
-
-void create_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& backend)
-{
-    REAPER_PROFILE_SCOPE_FUNC();
-    log_info(root, "vulkan: creating backend");
-
-    log_debug(root, "vulkan: loading {}", REAPER_VK_LIB_NAME);
-    backend.vulkanLib = dynlib::load(REAPER_VK_LIB_NAME);
-
-    vulkan_load_exported_functions(backend.vulkanLib);
-    vulkan_load_global_level_functions();
-
-    std::vector<const char*> instance_extensions = {
-        VK_KHR_GET_SURFACE_CAPABILITIES_2_EXTENSION_NAME,
-        VK_KHR_SURFACE_EXTENSION_NAME,
-        REAPER_VK_SWAPCHAIN_EXTENSION_NAME,
-        VK_EXT_SWAPCHAIN_COLOR_SPACE_EXTENSION_NAME,
-    };
-
-#if REAPER_DEBUG
-    instance_extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-#endif
-
-    log_info(root, "vulkan: using {} instance level extensions", instance_extensions.size());
-    for (auto& e : instance_extensions)
-        log_debug(root, "- {}", e);
-
-    vulkan_instance_check_extensions(instance_extensions);
-
-    std::vector<const char*> instanceLayers;
-
-#if REAPER_DEBUG
-    instanceLayers.push_back("VK_LAYER_KHRONOS_validation");
-#endif
-
-    log_info(root, "vulkan: using {} instance level layers", instanceLayers.size());
-    for (auto& layer : instanceLayers)
-        log_debug(root, "- {}", layer);
-
-    vulkan_instance_check_layers(instanceLayers);
-
-    const u32 appVersion = VK_MAKE_VERSION(REAPER_VERSION_MAJOR, REAPER_VERSION_MINOR, REAPER_VERSION_PATCH);
-    const u32 engineVersion = appVersion;
-    const u32 vulkanVersion = REAPER_VK_API_VERSION;
-
-    const VkApplicationInfo application_info = {
-        .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
-        .pNext = nullptr,
-        .pApplicationName = "MyGame",
-        .applicationVersion = appVersion,
-        .pEngineName = "Reaper",
-        .engineVersion = engineVersion,
-        .apiVersion = vulkanVersion,
-    };
-
-    const VkInstanceCreateInfo instance_create_info = {
-        .sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
-        .pNext = nullptr,
-        .flags = VK_FLAGS_NONE,
-        .pApplicationInfo = &application_info,
-        .enabledLayerCount = static_cast<u32>(instanceLayers.size()),
-        .ppEnabledLayerNames = instanceLayers.data(),
-        .enabledExtensionCount = static_cast<u32>(instance_extensions.size()),
-        .ppEnabledExtensionNames = instance_extensions.data(),
-    };
-
-    Assert(vkCreateInstance(&instance_create_info, nullptr, &backend.instance) == VK_SUCCESS,
-           "cannot create Vulkan instance");
-
-    vulkan_load_instance_level_functions(backend.instance);
-
-#if REAPER_DEBUG
-    log_debug(root, "vulkan: attaching debug callback");
-    vulkan_setup_debug_callback(root, backend);
-#endif
-
-    WindowCreationDescriptor windowDescriptor = {
-        .title = "Vulkan",
-        .width = 2560,
-        .height = 1440,
-        .fullscreen = false,
-    };
-
-    log_info(root,
-             "vulkan: creating window: size = {}x{}, title = '{}', fullscreen = {}",
-             windowDescriptor.width,
-             windowDescriptor.height,
-             windowDescriptor.title,
-             windowDescriptor.fullscreen);
-    IWindow* window = createWindow(windowDescriptor);
-
-    root.renderer->window = window;
-
-    log_debug(root, "vulkan: creating presentation surface");
-    vulkan_create_presentation_surface(backend.instance, backend.presentInfo.surface, window);
-
-    std::vector<const char*> device_extensions = {
-        VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-#if REAPER_WINDOWS_HDR_TEST
-        VK_EXT_HDR_METADATA_EXTENSION_NAME,
-        VK_EXT_FULL_SCREEN_EXCLUSIVE_EXTENSION_NAME,
-        VK_AMD_DISPLAY_NATIVE_HDR_EXTENSION_NAME,
-#endif
-        VK_KHR_SWAPCHAIN_MUTABLE_FORMAT_EXTENSION_NAME,
-        VK_EXT_CALIBRATED_TIMESTAMPS_EXTENSION_NAME,
-        VK_EXT_INDEX_TYPE_UINT8_EXTENSION_NAME,
-        VK_EXT_PRIMITIVE_TOPOLOGY_LIST_RESTART_EXTENSION_NAME,
-    };
-
-    log_debug(root, "vulkan: choosing physical device");
-    vulkan_choose_physical_device(root, backend, device_extensions, backend.physicalDeviceInfo);
-
-    log_debug(root, "vulkan: creating logical device");
-    vulkan_create_logical_device(root, backend, device_extensions);
-
-    log_debug(root, "vulkan: create global descriptor pool");
-    backend.global_descriptor_pool = create_global_descriptor_pool(root, backend);
-
-    log_debug(root, "vulkan: create gpu memory allocator");
-
-    VmaAllocatorCreateInfo allocatorInfo = {};
-    allocatorInfo.physicalDevice = backend.physicalDevice;
-    allocatorInfo.device = backend.device;
-    allocatorInfo.instance = backend.instance;
-
-    vmaCreateAllocator(&allocatorInfo, &backend.vma_instance);
-
-    SwapchainDescriptor swapchainDesc;
-    swapchainDesc.preferredImageCount = 3;
-    swapchainDesc.preferredFormat = {VK_FORMAT_B8G8R8A8_SRGB, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR};
-    swapchainDesc.preferredFormat = {VK_FORMAT_A2R10G10B10_UNORM_PACK32, VK_COLOR_SPACE_HDR10_ST2084_EXT};
-
-    swapchainDesc.preferredExtent = {windowDescriptor.width, windowDescriptor.height};
-
-    configure_vulkan_wm_swapchain(root, backend, swapchainDesc, backend.presentInfo);
-    create_vulkan_wm_swapchain(root, backend, backend.presentInfo);
-
-    // create_vulkan_display_swapchain(root, backend);
-
-    VkSemaphoreCreateInfo semaphore_create_info = {
-        .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
-        .pNext = nullptr,
-        .flags = VK_FLAGS_NONE,
-    };
-
-    backend.semaphore_swapchain_image_available =
-        create_semaphore(backend, "Semaphore image available", semaphore_create_info);
-    backend.semaphore_rendering_finished =
-        create_semaphore(backend, "Semaphore rendering finished", semaphore_create_info);
-
-    ImGui::CreateContext();
-
-    ImGui_ImplVulkan_InitInfo imgui_vulkan_init_info = {
-        .Instance = backend.instance,
-        .PhysicalDevice = backend.physicalDevice,
-        .Device = backend.device,
-        .QueueFamily = 0, // FIXME
-        .Queue = backend.deviceInfo.graphicsQueue,
-        .PipelineCache = nullptr,
-        .DescriptorPool = backend.global_descriptor_pool,
-        .Subpass = 0,
-        .MinImageCount = 3,                   // FIXME
-        .ImageCount = 3,                      // FIXME
-        .MSAASamples = VK_SAMPLE_COUNT_1_BIT, // FIXME
-        .Allocator = nullptr,
-        .CheckVkResultFn = nullptr,
-    };
-
-    ImGui_ImplVulkan_LoadFunctions(nullptr, nullptr);
-    ImGui_ImplVulkan_Init(&imgui_vulkan_init_info, PixelFormatToVulkan(GUIFormat));
-
-    log_info(root, "vulkan: ready");
-}
-
-void destroy_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& backend)
-{
-    REAPER_PROFILE_SCOPE_FUNC();
-    log_info(root, "vulkan: destroying backend");
-
-    log_debug(root, "vulkan: waiting for current work to finish");
-    Assert(vkDeviceWaitIdle(backend.device) == VK_SUCCESS);
-
-    ImGui_ImplVulkan_Shutdown();
-
-    vkDestroySemaphore(backend.device, backend.semaphore_swapchain_image_available, nullptr);
-    vkDestroySemaphore(backend.device, backend.semaphore_rendering_finished, nullptr);
-
-    destroy_vulkan_wm_swapchain(root, backend, backend.presentInfo);
-
-    log_debug(root, "vulkan: destroy gpu memory allocator");
-    vmaDestroyAllocator(backend.vma_instance);
-
-    log_debug(root, "vulkan: destroy global descriptor pool");
-    vkDestroyDescriptorPool(backend.device, backend.global_descriptor_pool, nullptr);
-
-    log_debug(root, "vulkan: destroying logical device");
-    vkDestroyDevice(backend.device, nullptr);
-
-    log_debug(root, "vulkan: destroying presentation surface");
-    vkDestroySurfaceKHR(backend.instance, backend.presentInfo.surface, nullptr);
-
-    delete root.renderer->window;
-    root.renderer->window = nullptr;
-
-#if REAPER_DEBUG
-    log_debug(root, "vulkan: detaching debug callback");
-    vulkan_destroy_debug_callback(backend);
-#endif
-
-    vkDestroyInstance(backend.instance, nullptr);
-
-    log_debug(root, "vulkan: unloading {}", REAPER_VK_LIB_NAME);
-    Assert(backend.vulkanLib != nullptr);
-    dynlib::close(backend.vulkanLib);
-    backend.vulkanLib = nullptr;
-}
-
-void vulkan_instance_check_extensions(const std::vector<const char*>& extensions)
-{
-    uint32_t extensions_count = 0;
-    Assert(vkEnumerateInstanceExtensionProperties(nullptr, &extensions_count, nullptr) == VK_SUCCESS);
-    Assert(extensions_count > 0);
-
-    std::vector<VkExtensionProperties> available_extensions(extensions_count);
-    Assert(vkEnumerateInstanceExtensionProperties(nullptr, &extensions_count, &available_extensions[0]) == VK_SUCCESS);
-
-    for (size_t i = 0; i < extensions.size(); ++i)
-    {
-        bool found = false;
-        for (size_t j = 0; j < available_extensions.size(); ++j)
-        {
-            if (std::strcmp(available_extensions[j].extensionName, extensions[i]) == 0)
-                found = true;
-        }
-        Assert(found, fmt::format("vulkan: extension '{}' not supported by the instance", extensions[i]));
-    }
-}
-
-void vulkan_instance_check_layers(const std::vector<const char*>& layers)
-{
-    uint32_t layers_count = 0;
-    Assert(vkEnumerateInstanceLayerProperties(&layers_count, nullptr) == VK_SUCCESS);
-    Assert(layers_count > 0);
-
-    std::vector<VkLayerProperties> available_layers(layers_count);
-    Assert(vkEnumerateInstanceLayerProperties(&layers_count, &available_layers[0]) == VK_SUCCESS);
-
-    for (size_t i = 0; i < layers.size(); ++i)
-    {
-        bool found = false;
-        for (size_t j = 0; j < available_layers.size(); ++j)
-        {
-            if (std::strcmp(available_layers[j].layerName, layers[i]) == 0)
-                found = true;
-        }
-        Assert(found, fmt::format("vulkan: layer '{}' not supported by the instance", layers[i]));
-    }
-}
-
 namespace
 {
     void print_debug_message(ReaperRoot* root, const VkDebugUtilsMessengerCallbackDataEXT* callback_data)
@@ -486,435 +167,609 @@ namespace
 
         return VK_FALSE;
     }
-} // namespace
 
-void vulkan_setup_debug_callback(ReaperRoot& root, VulkanBackend& backend)
-{
-    VkDebugUtilsMessengerCreateInfoEXT callbackCreateInfo = {
-        .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
-        .pNext = nullptr,
-        .flags = VK_FLAGS_NONE,
-        .messageSeverity =
-            VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT
-            | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,
-        .messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT
-                       | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT,
-        .pfnUserCallback = &debug_message_callback,
-        .pUserData = &root,
-    };
-
-#if REAPER_DEBUG
-    Assert(vkCreateDebugUtilsMessengerEXT(backend.instance, &callbackCreateInfo, nullptr, &backend.debugMessenger)
-           == VK_SUCCESS);
-#endif
-} // namespace Reaper
-
-void vulkan_destroy_debug_callback(VulkanBackend& backend)
-{
-    Assert(backend.debugMessenger != nullptr);
-
-#if REAPER_DEBUG
-    vkDestroyDebugUtilsMessengerEXT(backend.instance, backend.debugMessenger, nullptr);
-#endif
-
-    backend.debugMessenger = nullptr;
-}
-
-// Move this up
-void vulkan_device_check_extensions(const std::vector<const char*>& extensions, VkPhysicalDevice physicalDevice)
-{
-    uint32_t extensions_count = 0;
-    Assert(vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extensions_count, nullptr) == VK_SUCCESS);
-    Assert(extensions_count > 0);
-
-    std::vector<VkExtensionProperties> available_extensions(extensions_count);
-    Assert(vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extensions_count,
-                                                (extensions_count > 0 ? &available_extensions[0] : nullptr))
-           == VK_SUCCESS);
-
-    for (size_t i = 0; i < extensions.size(); ++i)
+    void vulkan_instance_check_extensions(std::span<const char*> extensions)
     {
-        bool found = false;
-        for (size_t j = 0; j < available_extensions.size(); ++j)
-        {
-            if (std::strcmp(available_extensions[j].extensionName, extensions[i]) == 0)
-                found = true;
-        }
-        Assert(found, fmt::format("vulkan: extension '{}' not supported by the device", extensions[i]));
-    }
-}
+        uint32_t extensions_count = 0;
+        Assert(vkEnumerateInstanceExtensionProperties(nullptr, &extensions_count, nullptr) == VK_SUCCESS);
+        Assert(extensions_count > 0);
 
-bool vulkan_check_physical_device(IWindow*                        window,
-                                  VkPhysicalDevice                physical_device,
-                                  VkSurfaceKHR                    presentationSurface,
-                                  const std::vector<const char*>& extensions,
-                                  uint32_t&                       queue_family_index,
-                                  uint32_t&                       selected_present_queue_family_index)
-{
-    Assert(window != nullptr);
-
-    vulkan_device_check_extensions(extensions, physical_device);
-
-    VkPhysicalDeviceProperties2 device_properties2 = {};
-    device_properties2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
-
-    vkGetPhysicalDeviceProperties2(physical_device, &device_properties2);
-    VkPhysicalDeviceProperties& device_properties = device_properties2.properties;
-
-    VkPhysicalDeviceIndexTypeUint8FeaturesEXT index_uint8_feature = {};
-    index_uint8_feature.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INDEX_TYPE_UINT8_FEATURES_EXT;
-
-    VkPhysicalDevicePrimitiveTopologyListRestartFeaturesEXT primitive_restart_feature = {};
-    primitive_restart_feature.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRIMITIVE_TOPOLOGY_LIST_RESTART_FEATURES_EXT;
-    primitive_restart_feature.pNext = &index_uint8_feature;
-
-    VkPhysicalDeviceDescriptorIndexingFeatures descriptor_indexing_features = {};
-    descriptor_indexing_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES;
-    descriptor_indexing_features.pNext = &primitive_restart_feature;
-
-    VkPhysicalDeviceVulkan13Features vulkan1_3_features = {};
-    vulkan1_3_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
-    vulkan1_3_features.pNext = &descriptor_indexing_features;
-
-    VkPhysicalDeviceVulkan12Features vulkan1_2_features = {};
-    vulkan1_2_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
-    vulkan1_2_features.pNext = &vulkan1_3_features;
-
-    VkPhysicalDeviceFeatures2 device_features2 = {};
-    device_features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
-    device_features2.pNext = &vulkan1_2_features;
-
-    vkGetPhysicalDeviceFeatures2(physical_device, &device_features2);
-
-    Assert(device_properties.apiVersion >= REAPER_VK_API_VERSION,
-           "Unsupported Vulkan version. Is your GPU driver too old?");
-    Assert(device_properties.limits.maxImageDimension2D >= 4096);
-    Assert(device_features2.features.samplerAnisotropy == VK_TRUE);
-    Assert(device_features2.features.multiDrawIndirect == VK_TRUE);
-    Assert(device_features2.features.drawIndirectFirstInstance == VK_TRUE);
-    Assert(device_features2.features.fragmentStoresAndAtomics == VK_TRUE);
-    Assert(device_features2.features.fillModeNonSolid == VK_TRUE);
-    Assert(device_features2.features.geometryShader == VK_TRUE);
-    Assert(vulkan1_2_features.drawIndirectCount == VK_TRUE);
-    Assert(vulkan1_2_features.imagelessFramebuffer == VK_TRUE);
-    Assert(vulkan1_2_features.separateDepthStencilLayouts == VK_TRUE);
-    Assert(vulkan1_2_features.descriptorIndexing == VK_TRUE);
-    Assert(vulkan1_2_features.runtimeDescriptorArray == VK_TRUE);
-    Assert(vulkan1_2_features.descriptorBindingPartiallyBound == VK_TRUE);
-    Assert(vulkan1_2_features.timelineSemaphore == VK_TRUE);
-    Assert(vulkan1_2_features.shaderSampledImageArrayNonUniformIndexing == VK_TRUE);
-    Assert(vulkan1_3_features.synchronization2 == VK_TRUE);
-    Assert(vulkan1_3_features.dynamicRendering == VK_TRUE);
-    Assert(vulkan1_3_features.computeFullSubgroups == VK_TRUE);
-    Assert(primitive_restart_feature.primitiveTopologyListRestart == VK_TRUE);
-    Assert(index_uint8_feature.indexTypeUint8 == VK_TRUE);
-
-    uint32_t queue_families_count = 0;
-    vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_families_count, nullptr);
-
-    Assert(queue_families_count > 0, "device doesn't have any queue families");
-    if (queue_families_count == 0)
-        return false;
-
-    std::vector<VkQueueFamilyProperties> queue_family_properties(queue_families_count);
-    std::vector<VkBool32>                queue_present_support(queue_families_count);
-
-    vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_families_count, &queue_family_properties[0]);
-
-    uint32_t graphics_queue_family_index = UINT32_MAX;
-    uint32_t present_queue_family_index = UINT32_MAX;
-
-    for (uint32_t i = 0; i < queue_families_count; ++i)
-    {
-        Assert(vkGetPhysicalDeviceSurfaceSupportKHR(physical_device, i, presentationSurface, &queue_present_support[i])
+        std::vector<VkExtensionProperties> available_extensions(extensions_count);
+        Assert(vkEnumerateInstanceExtensionProperties(nullptr, &extensions_count, &available_extensions[0])
                == VK_SUCCESS);
 
-        if ((queue_family_properties[i].queueCount > 0)
-            && (queue_family_properties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT))
+        for (auto extension : extensions)
         {
-            // Select first queue that supports graphics
-            if (graphics_queue_family_index == UINT32_MAX)
-                graphics_queue_family_index = i;
-
-            Assert(vulkan_queue_family_has_presentation_support(physical_device, i, window)
-                       == (queue_present_support[i] == VK_TRUE),
-                   "Queue family presentation support mismatch.");
-
-            // If there is queue that supports both graphics and present - prefer it
-            if (queue_present_support[i])
+            bool found = false;
+            for (size_t j = 0; j < available_extensions.size(); ++j)
             {
-                queue_family_index = i;
-                selected_present_queue_family_index = i;
-                return true;
+                if (std::strcmp(available_extensions[j].extensionName, extension) == 0)
+                    found = true;
             }
+            Assert(found, fmt::format("vulkan: extension '{}' not supported by the instance", extension));
         }
     }
 
-    // We don't have queue that supports both graphics and present so we have to use separate queues
-    for (uint32_t i = 0; i < queue_families_count; ++i)
+    void vulkan_instance_check_layers(std::span<const char*> layer_names)
     {
-        if (queue_present_support[i] == VK_TRUE)
+        uint32_t layers_count = 0;
+        Assert(vkEnumerateInstanceLayerProperties(&layers_count, nullptr) == VK_SUCCESS);
+        Assert(layers_count > 0);
+
+        std::vector<VkLayerProperties> available_layers(layers_count);
+        Assert(vkEnumerateInstanceLayerProperties(&layers_count, &available_layers[0]) == VK_SUCCESS);
+
+        for (auto layer_name : layer_names)
         {
-            present_queue_family_index = i;
-            break;
-        }
-    }
-
-    Assert(graphics_queue_family_index != UINT32_MAX);
-    Assert(present_queue_family_index != UINT32_MAX);
-
-    queue_family_index = graphics_queue_family_index;
-    selected_present_queue_family_index = present_queue_family_index;
-    return true;
-}
-
-namespace
-{
-    const char* vulkan_physical_device_type_name(VkPhysicalDeviceType deviceType)
-    {
-        switch (deviceType)
-        {
-        case VK_PHYSICAL_DEVICE_TYPE_OTHER:
-            return "other";
-        case VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU:
-            return "integrated";
-        case VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU:
-            return "discrete";
-        case VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU:
-            return "virtual";
-        case VK_PHYSICAL_DEVICE_TYPE_CPU:
-            return "other";
-        default:
-            AssertUnreachable();
-            break;
-        }
-        return "unknown";
-    }
-} // namespace
-
-void vulkan_choose_physical_device(ReaperRoot&                     root,
-                                   VulkanBackend&                  backend,
-                                   const std::vector<const char*>& device_extensions,
-                                   PhysicalDeviceInfo&             physicalDeviceInfo)
-{
-    uint32_t deviceCount = 0;
-
-    Assert(vkEnumeratePhysicalDevices(backend.instance, &deviceCount, nullptr) == VK_SUCCESS);
-    Assert(deviceCount > 0);
-
-    log_debug(root, "vulkan: enumerating {} physical devices", deviceCount);
-
-    std::vector<VkPhysicalDevice> availableDevices(deviceCount);
-    Assert(vkEnumeratePhysicalDevices(backend.instance, &deviceCount, &availableDevices[0]) == VK_SUCCESS,
-           "error occurred during physical devices enumeration");
-
-    uint32_t selected_queue_family_index = UINT32_MAX;
-    uint32_t selected_present_queue_family_index = UINT32_MAX;
-
-    VkPhysicalDevice chosenPhysicalDevice = VK_NULL_HANDLE;
-    for (auto& device : availableDevices)
-    {
-        if (vulkan_check_physical_device(root.renderer->window,
-                                         device,
-                                         backend.presentInfo.surface,
-                                         device_extensions,
-                                         selected_queue_family_index,
-                                         selected_present_queue_family_index))
-        {
-            chosenPhysicalDevice = device;
-            break;
-        }
-    }
-
-    Assert(chosenPhysicalDevice != VK_NULL_HANDLE, "could not select physical device based on the chosen properties");
-
-    physicalDeviceInfo.graphicsQueueFamilyIndex = selected_queue_family_index;
-    physicalDeviceInfo.presentQueueFamilyIndex = selected_present_queue_family_index;
-
-    vkGetPhysicalDeviceMemoryProperties(chosenPhysicalDevice, &physicalDeviceInfo.memory);
-
-    // re-fetch device infos TODO avoid
-    VkPhysicalDeviceDriverProperties deviceDriverProperties;
-    deviceDriverProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRIVER_PROPERTIES;
-    deviceDriverProperties.pNext = nullptr;
-
-    VkPhysicalDeviceSubgroupProperties subgroupProperties;
-    subgroupProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SUBGROUP_PROPERTIES;
-    subgroupProperties.pNext = &deviceDriverProperties;
-
-    VkPhysicalDeviceProperties2 physicalDeviceProperties2;
-    physicalDeviceProperties2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
-    physicalDeviceProperties2.pNext = &subgroupProperties;
-
-    vkGetPhysicalDeviceProperties2(chosenPhysicalDevice, &physicalDeviceProperties2);
-
-    physicalDeviceInfo.subgroup_size = subgroupProperties.subgroupSize;
-
-    Assert(subgroupProperties.supportedOperations & VK_SUBGROUP_FEATURE_BASIC_BIT);
-    Assert(subgroupProperties.supportedOperations & VK_SUBGROUP_FEATURE_BALLOT_BIT);
-    Assert(subgroupProperties.supportedOperations & VK_SUBGROUP_FEATURE_VOTE_BIT);
-    Assert(subgroupProperties.supportedOperations & VK_SUBGROUP_FEATURE_SHUFFLE_BIT);
-
-    const VkPhysicalDeviceProperties physicalDeviceProperties = physicalDeviceProperties2.properties;
-
-    log_info(root, "vulkan: selecting device '{}'", physicalDeviceProperties.deviceName);
-    log_debug(root, "- type = {}", vulkan_physical_device_type_name(physicalDeviceProperties.deviceType));
-
-    uint32_t apiVersion = physicalDeviceProperties.apiVersion;
-    uint32_t driverVersion = physicalDeviceProperties.driverVersion;
-    log_debug(root,
-              "- api version = {}.{}.{}",
-              VK_VERSION_MAJOR(apiVersion),
-              VK_VERSION_MINOR(apiVersion),
-              VK_VERSION_PATCH(apiVersion));
-
-    log_debug(root, "- driver '{}' version = {}.{}.{}", deviceDriverProperties.driverName,
-              VK_VERSION_MAJOR(driverVersion), VK_VERSION_MINOR(driverVersion), VK_VERSION_PATCH(driverVersion));
-
-    log_debug(root, "- driver info '{}' conformance version = {}.{}.{}.{}", deviceDriverProperties.driverInfo,
-              deviceDriverProperties.conformanceVersion.major, deviceDriverProperties.conformanceVersion.minor,
-              deviceDriverProperties.conformanceVersion.subminor, deviceDriverProperties.conformanceVersion.patch);
-
-    log_debug(root,
-              "- memory type count = {}, memory heap count = {}",
-              physicalDeviceInfo.memory.memoryTypeCount,
-              physicalDeviceInfo.memory.memoryHeapCount);
-
-    log_debug(root, "- subgroup size = {}", physicalDeviceInfo.subgroup_size);
-
-    std::span<const VkMemoryHeap> memory_heaps(physicalDeviceInfo.memory.memoryHeaps,
-                                               physicalDeviceInfo.memory.memoryHeapCount);
-
-    for (u32 heap_index = 0; heap_index < memory_heaps.size(); heap_index++)
-    {
-        const VkMemoryHeap& heap = memory_heaps[heap_index];
-        log_debug(root, "- heap_index {}: available size = {}, flags = {}", heap_index, heap.size, heap.flags);
-    }
-
-    std::span<const VkMemoryType> memory_types(physicalDeviceInfo.memory.memoryTypes,
-                                               physicalDeviceInfo.memory.memoryTypeCount);
-
-    for (auto memory_type : memory_types)
-    {
-        log_debug(root, "- memory type: heap_index = {}", memory_type.heapIndex);
-
-        VkMemoryPropertyFlags flags = memory_type.propertyFlags;
-
-        for (u32 i = 0; i < 32; i++)
-        {
-            VkMemoryPropertyFlags flag = 1 << i;
-
-            if (flags & flag)
+            bool found = false;
+            for (size_t j = 0; j < available_layers.size(); ++j)
             {
-                log_debug(root, "   - {}", vk_to_string(flag));
-                flags ^= flag;
+                if (std::strcmp(available_layers[j].layerName, layer_name) == 0)
+                    found = true;
             }
+            Assert(found, fmt::format("vulkan: layer '{}' not supported by the instance", layer_name));
         }
     }
 
-    backend.physicalDevice = chosenPhysicalDevice;
-    backend.physicalDeviceProperties = physicalDeviceProperties;
-}
-
-void vulkan_create_logical_device(ReaperRoot&                     root,
-                                  VulkanBackend&                  backend,
-                                  const std::vector<const char*>& device_extensions)
-{
-    std::vector<VkDeviceQueueCreateInfo> queue_create_infos;
-    std::vector<float>                   queue_priorities = {1.0f};
-
-    queue_create_infos.push_back(VkDeviceQueueCreateInfo{
-        .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
-        .pNext = nullptr,
-        .flags = VK_FLAGS_NONE,
-        .queueFamilyIndex = backend.physicalDeviceInfo.graphicsQueueFamilyIndex,
-        .queueCount = static_cast<uint32_t>(queue_priorities.size()),
-        .pQueuePriorities = queue_priorities.data(),
-    });
-
-    if (backend.physicalDeviceInfo.graphicsQueueFamilyIndex != backend.physicalDeviceInfo.presentQueueFamilyIndex)
+    void vulkan_create_logical_device(ReaperRoot& root, VulkanBackend& backend,
+                                      std::span<const char*> device_extension_names)
     {
+        std::vector<VkDeviceQueueCreateInfo> queue_create_infos;
+        std::vector<float>                   queue_priorities = {1.0f};
+
         queue_create_infos.push_back(VkDeviceQueueCreateInfo{
             .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
             .pNext = nullptr,
             .flags = VK_FLAGS_NONE,
-            .queueFamilyIndex = backend.physicalDeviceInfo.presentQueueFamilyIndex,
+            .queueFamilyIndex = backend.physical_device.graphics_queue_family_index,
             .queueCount = static_cast<uint32_t>(queue_priorities.size()),
             .pQueuePriorities = queue_priorities.data(),
         });
+
+        if (backend.physical_device.graphics_queue_family_index != backend.physical_device.present_queue_family_index)
+        {
+            queue_create_infos.push_back(VkDeviceQueueCreateInfo{
+                .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+                .pNext = nullptr,
+                .flags = VK_FLAGS_NONE,
+                .queueFamilyIndex = backend.physical_device.present_queue_family_index,
+                .queueCount = static_cast<uint32_t>(queue_priorities.size()),
+                .pQueuePriorities = queue_priorities.data(),
+            });
+        }
+
+        Assert(!queue_create_infos.empty());
+        Assert(!queue_priorities.empty());
+        Assert(queue_priorities.size() == queue_create_infos.size());
+
+        uint32_t queueCreateCount = static_cast<uint32_t>(queue_create_infos.size());
+
+        log_info(root, "vulkan: using {} device level extensions", device_extension_names.size());
+        for (auto& e : device_extension_names)
+            log_debug(root, "- {}", e);
+
+        VkPhysicalDeviceFeatures2 device_features2 = {};
+        device_features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+        device_features2.features.samplerAnisotropy = VK_TRUE;
+        device_features2.features.multiDrawIndirect = VK_TRUE;
+        device_features2.features.drawIndirectFirstInstance = VK_TRUE;
+        device_features2.features.fragmentStoresAndAtomics = VK_TRUE;
+        device_features2.features.fillModeNonSolid = VK_TRUE;
+        device_features2.features.geometryShader = VK_TRUE;
+
+        VkPhysicalDeviceVulkan12Features vulkan1_2_features = {};
+        vulkan1_2_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+        vulkan1_2_features.drawIndirectCount = VK_TRUE;
+        vulkan1_2_features.imagelessFramebuffer = VK_TRUE;
+        vulkan1_2_features.separateDepthStencilLayouts = VK_TRUE;
+        vulkan1_2_features.descriptorIndexing = VK_TRUE;
+        vulkan1_2_features.runtimeDescriptorArray = VK_TRUE;
+        vulkan1_2_features.descriptorBindingPartiallyBound = VK_TRUE;
+        vulkan1_2_features.timelineSemaphore = VK_TRUE;
+        vulkan1_2_features.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
+
+        VkPhysicalDeviceVulkan13Features vulkan1_3_features = {};
+        vulkan1_3_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
+        vulkan1_3_features.synchronization2 = VK_TRUE;
+        vulkan1_3_features.dynamicRendering = VK_TRUE;
+        vulkan1_3_features.computeFullSubgroups = VK_TRUE;
+
+        VkPhysicalDeviceIndexTypeUint8FeaturesEXT index_uint8_features = {};
+        index_uint8_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INDEX_TYPE_UINT8_FEATURES_EXT;
+        index_uint8_features.indexTypeUint8 = VK_TRUE;
+
+        VkPhysicalDevicePrimitiveTopologyListRestartFeaturesEXT primitive_restart_features = {};
+        primitive_restart_features.sType =
+            VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRIMITIVE_TOPOLOGY_LIST_RESTART_FEATURES_EXT;
+        primitive_restart_features.primitiveTopologyListRestart = VK_TRUE;
+
+        vk_hook(
+            device_features2,
+            vk_hook(vulkan1_2_features,
+                    vk_hook(vulkan1_3_features, vk_hook(index_uint8_features, vk_hook(primitive_restart_features)))));
+
+        const VkDeviceCreateInfo device_create_info = {
+            .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+            .pNext = &device_features2,
+            .flags = VK_FLAGS_NONE,
+            .queueCreateInfoCount = queueCreateCount,
+            .pQueueCreateInfos = &queue_create_infos[0],
+            .enabledLayerCount = 0,
+            .ppEnabledLayerNames = nullptr,
+            .enabledExtensionCount = static_cast<u32>(device_extension_names.size()),
+            .ppEnabledExtensionNames = device_extension_names.data(),
+            .pEnabledFeatures = nullptr,
+        };
+
+        Assert(vkCreateDevice(backend.physical_device.handle, &device_create_info, nullptr, &backend.device)
+                   == VK_SUCCESS,
+               "could not create Vulkan device");
+
+        VulkanSetDebugName(backend.device, backend.device, "Device");
+
+        vulkan_load_device_level_functions(backend.device);
+
+        vkGetDeviceQueue(backend.device, backend.physical_device.graphics_queue_family_index, 0,
+                         &backend.graphics_queue);
+        vkGetDeviceQueue(backend.device, backend.physical_device.present_queue_family_index, 0, &backend.present_queue);
     }
 
-    Assert(!queue_create_infos.empty());
-    Assert(!queue_priorities.empty());
-    Assert(queue_priorities.size() == queue_create_infos.size());
+    void vulkan_setup_debug_callback(ReaperRoot& root, VulkanBackend& backend)
+    {
+        VkDebugUtilsMessengerCreateInfoEXT callbackCreateInfo = {
+            .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
+            .pNext = nullptr,
+            .flags = VK_FLAGS_NONE,
+            .messageSeverity =
+                VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT
+                | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,
+            .messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT
+                           | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT,
+            .pfnUserCallback = &debug_message_callback,
+            .pUserData = &root,
+        };
 
-    uint32_t queueCreateCount = static_cast<uint32_t>(queue_create_infos.size());
+#if REAPER_DEBUG
+        Assert(vkCreateDebugUtilsMessengerEXT(backend.instance, &callbackCreateInfo, nullptr, &backend.debugMessenger)
+               == VK_SUCCESS);
+#endif
+    } // namespace Reaper
 
-    log_info(root, "vulkan: using {} device level extensions", device_extensions.size());
-    for (auto& e : device_extensions)
-        log_debug(root, "- {}", e);
+    void vulkan_destroy_debug_callback(VulkanBackend& backend)
+    {
+        Assert(backend.debugMessenger != nullptr);
 
-    VkPhysicalDeviceIndexTypeUint8FeaturesEXT index_uint8_feature = {};
-    index_uint8_feature.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INDEX_TYPE_UINT8_FEATURES_EXT;
-    index_uint8_feature.indexTypeUint8 = VK_TRUE;
+#if REAPER_DEBUG
+        vkDestroyDebugUtilsMessengerEXT(backend.instance, backend.debugMessenger, nullptr);
+#endif
 
-    VkPhysicalDevicePrimitiveTopologyListRestartFeaturesEXT primitive_restart_feature = {};
-    primitive_restart_feature.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRIMITIVE_TOPOLOGY_LIST_RESTART_FEATURES_EXT;
-    primitive_restart_feature.pNext = &index_uint8_feature;
-    primitive_restart_feature.primitiveTopologyListRestart = VK_TRUE;
+        backend.debugMessenger = nullptr;
+    }
 
-    VkPhysicalDeviceVulkan13Features vulkan1_3_features = {};
-    vulkan1_3_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
-    vulkan1_3_features.pNext = &primitive_restart_feature;
-    vulkan1_3_features.synchronization2 = VK_TRUE;
-    vulkan1_3_features.dynamicRendering = VK_TRUE;
-    vulkan1_3_features.computeFullSubgroups = VK_TRUE;
+    void vulkan_check_physical_device_supported_extensions(VkPhysicalDevice       physical_device,
+                                                           std::span<const char*> extensions)
+    {
+        uint32_t extensions_count = 0;
+        Assert(vkEnumerateDeviceExtensionProperties(physical_device, nullptr, &extensions_count, nullptr)
+               == VK_SUCCESS);
+        Assert(extensions_count > 0);
 
-    VkPhysicalDeviceVulkan12Features vulkan1_2_features = {};
-    vulkan1_2_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
-    vulkan1_2_features.pNext = &vulkan1_3_features;
-    vulkan1_2_features.drawIndirectCount = VK_TRUE;
-    vulkan1_2_features.imagelessFramebuffer = VK_TRUE;
-    vulkan1_2_features.separateDepthStencilLayouts = VK_TRUE;
-    vulkan1_2_features.descriptorIndexing = VK_TRUE;
-    vulkan1_2_features.runtimeDescriptorArray = VK_TRUE;
-    vulkan1_2_features.descriptorBindingPartiallyBound = VK_TRUE;
-    vulkan1_2_features.timelineSemaphore = VK_TRUE;
-    vulkan1_2_features.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
+        std::vector<VkExtensionProperties> supported_extensions(extensions_count);
+        Assert(vkEnumerateDeviceExtensionProperties(physical_device, nullptr, &extensions_count,
+                                                    (extensions_count > 0 ? &supported_extensions[0] : nullptr))
+               == VK_SUCCESS);
 
-    VkPhysicalDeviceFeatures2 device_features2 = {};
-    device_features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
-    device_features2.pNext = &vulkan1_2_features;
-    device_features2.features.samplerAnisotropy = VK_TRUE;
-    device_features2.features.multiDrawIndirect = VK_TRUE;
-    device_features2.features.drawIndirectFirstInstance = VK_TRUE;
-    device_features2.features.fragmentStoresAndAtomics = VK_TRUE;
-    device_features2.features.fillModeNonSolid = VK_TRUE;
-    device_features2.features.geometryShader = VK_TRUE;
+        for (auto extension : extensions)
+        {
+            bool found = false;
 
-    const VkDeviceCreateInfo device_create_info = {
-        .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-        .pNext = &device_features2,
-        .flags = VK_FLAGS_NONE,
-        .queueCreateInfoCount = queueCreateCount,
-        .pQueueCreateInfos = &queue_create_infos[0],
-        .enabledLayerCount = 0,
-        .ppEnabledLayerNames = nullptr,
-        .enabledExtensionCount = static_cast<u32>(device_extensions.size()),
-        .ppEnabledExtensionNames = device_extensions.data(),
-        .pEnabledFeatures = nullptr,
+            for (auto supported_extension : supported_extensions)
+            {
+                if (std::strcmp(supported_extension.extensionName, extension) == 0)
+                    found = true;
+            }
+
+            Assert(found, fmt::format("vulkan: extension '{}' not supported by the device", extension));
+        }
+    }
+
+    bool vulkan_check_physical_device(const PhysicalDeviceInfo& physical_device,
+                                      VkPhysicalDevice physical_device_handle, std::span<const char*> extensions)
+    {
+        // Properties
+        Assert(physical_device.properties.apiVersion >= REAPER_VK_API_VERSION, "Unsupported Vulkan version");
+        Assert(physical_device.subgroup_properties.supportedOperations & VK_SUBGROUP_FEATURE_BASIC_BIT);
+        Assert(physical_device.subgroup_properties.supportedOperations & VK_SUBGROUP_FEATURE_BALLOT_BIT);
+        Assert(physical_device.subgroup_properties.supportedOperations & VK_SUBGROUP_FEATURE_VOTE_BIT);
+        Assert(physical_device.subgroup_properties.supportedOperations & VK_SUBGROUP_FEATURE_SHUFFLE_BIT);
+
+        // Supported Features
+        Assert(physical_device.features.samplerAnisotropy == VK_TRUE);
+        Assert(physical_device.features.multiDrawIndirect == VK_TRUE);
+        Assert(physical_device.features.drawIndirectFirstInstance == VK_TRUE);
+        Assert(physical_device.features.fragmentStoresAndAtomics == VK_TRUE);
+        Assert(physical_device.features.fillModeNonSolid == VK_TRUE);
+        Assert(physical_device.features.geometryShader == VK_TRUE);
+        Assert(physical_device.vulkan1_2_features.drawIndirectCount == VK_TRUE);
+        Assert(physical_device.vulkan1_2_features.imagelessFramebuffer == VK_TRUE);
+        Assert(physical_device.vulkan1_2_features.separateDepthStencilLayouts == VK_TRUE);
+        Assert(physical_device.vulkan1_2_features.descriptorIndexing == VK_TRUE);
+        Assert(physical_device.vulkan1_2_features.runtimeDescriptorArray == VK_TRUE);
+        Assert(physical_device.vulkan1_2_features.descriptorBindingPartiallyBound == VK_TRUE);
+        Assert(physical_device.vulkan1_2_features.timelineSemaphore == VK_TRUE);
+        Assert(physical_device.vulkan1_2_features.shaderSampledImageArrayNonUniformIndexing == VK_TRUE);
+        Assert(physical_device.vulkan1_3_features.synchronization2 == VK_TRUE);
+        Assert(physical_device.vulkan1_3_features.dynamicRendering == VK_TRUE);
+        Assert(physical_device.vulkan1_3_features.computeFullSubgroups == VK_TRUE);
+        Assert(physical_device.index_uint8_features.indexTypeUint8 == VK_TRUE);
+        Assert(physical_device.primitive_restart_features.primitiveTopologyListRestart == VK_TRUE);
+
+        // Supported Queues
+        Assert(physical_device.graphics_queue_family_index != UINT32_MAX);
+        Assert(physical_device.present_queue_family_index != UINT32_MAX);
+
+        // Supported Extensions
+        vulkan_check_physical_device_supported_extensions(physical_device_handle, extensions);
+
+        return true;
+    }
+
+    struct Version
+    {
+        u32 major;
+        u32 minor;
+        u32 patch;
     };
 
-    Assert(vkCreateDevice(backend.physicalDevice, &device_create_info, nullptr, &backend.device) == VK_SUCCESS,
-           "could not create Vulkan device");
+    Version vulkan_extract_version(u32 packed_version)
+    {
+        return Version{
+            .major = VK_VERSION_MAJOR(packed_version),
+            .minor = VK_VERSION_MINOR(packed_version),
+            .patch = VK_VERSION_PATCH(packed_version),
+        };
+    }
 
-    VulkanSetDebugName(backend.device, backend.device, "Device");
+    void vulkan_print_physical_device_debug(ReaperRoot& root, const PhysicalDeviceInfo& physical_device)
+    {
+        log_info(root, "vulkan: selecting device '{}'", physical_device.properties.deviceName);
+        log_debug(root, "- type = {}", vk_to_string(physical_device.properties.deviceType));
 
-    vulkan_load_device_level_functions(backend.device);
+        const Version api_version = vulkan_extract_version(physical_device.properties.apiVersion);
 
-    vkGetDeviceQueue(backend.device, backend.physicalDeviceInfo.graphicsQueueFamilyIndex, 0,
-                     &backend.deviceInfo.graphicsQueue);
-    vkGetDeviceQueue(backend.device, backend.physicalDeviceInfo.presentQueueFamilyIndex, 0,
-                     &backend.deviceInfo.presentQueue);
+        log_debug(root, "- api version = {}.{}.{}", api_version.major, api_version.minor, api_version.patch);
+
+        const VkPhysicalDeviceDriverProperties& driver_properties = physical_device.driver_properties;
+        const Version driver_version = vulkan_extract_version(physical_device.properties.driverVersion);
+
+        log_debug(root, "- driver '{}' version = {}.{}.{}", driver_properties.driverName, driver_version.major,
+                  driver_version.minor, driver_version.patch);
+
+        log_debug(root, "- driver info '{}' conformance version = {}.{}.{}.{}", driver_properties.driverInfo,
+                  driver_properties.conformanceVersion.major, driver_properties.conformanceVersion.minor,
+                  driver_properties.conformanceVersion.subminor, driver_properties.conformanceVersion.patch);
+
+        log_debug(root,
+                  "- memory type count = {}, memory heap count = {}",
+                  physical_device.memory_properties.memoryTypeCount,
+                  physical_device.memory_properties.memoryHeapCount);
+
+        log_debug(root, "- subgroup size = {}", physical_device.subgroup_properties.subgroupSize);
+
+        std::span<const VkMemoryHeap> memory_heaps(physical_device.memory_properties.memoryHeaps,
+                                                   physical_device.memory_properties.memoryHeapCount);
+
+        for (u32 heap_index = 0; heap_index < memory_heaps.size(); heap_index++)
+        {
+            const VkMemoryHeap& heap = memory_heaps[heap_index];
+            log_debug(root, "- heap_index {}: available size = {}, flags = {}", heap_index, heap.size, heap.flags);
+        }
+
+        std::span<const VkMemoryType> memory_types(physical_device.memory_properties.memoryTypes,
+                                                   physical_device.memory_properties.memoryTypeCount);
+
+        for (auto memory_type : memory_types)
+        {
+            log_debug(root, "- memory type: heap_index = {}", memory_type.heapIndex);
+
+            VkMemoryPropertyFlags flags = memory_type.propertyFlags;
+
+            for (u32 i = 0; i < 32; i++)
+            {
+                VkMemoryPropertyFlags flag = 1 << i;
+
+                if (flags & flag)
+                {
+                    log_debug(root, "   - {}", vk_to_string(flag));
+                    flags ^= flag;
+                }
+            }
+        }
+    }
+
+    void vulkan_choose_physical_device(ReaperRoot& root, VulkanBackend& backend,
+                                       std::span<const char*> device_extensions)
+    {
+        uint32_t deviceCount = 0;
+
+        Assert(vkEnumeratePhysicalDevices(backend.instance, &deviceCount, nullptr) == VK_SUCCESS);
+        Assert(deviceCount > 0);
+
+        log_debug(root, "vulkan: enumerating {} physical devices", deviceCount);
+
+        std::vector<VkPhysicalDevice> available_physical_devices(deviceCount);
+        Assert(vkEnumeratePhysicalDevices(backend.instance, &deviceCount, &available_physical_devices[0]) == VK_SUCCESS,
+               "error occurred during physical devices enumeration");
+
+        bool found_physical_device = false;
+
+        for (auto& physical_device_handle : available_physical_devices)
+        {
+            backend.physical_device =
+                create_physical_device_info(physical_device_handle, root.renderer->window, backend.presentInfo.surface);
+
+            if (vulkan_check_physical_device(backend.physical_device, physical_device_handle, device_extensions))
+            {
+                found_physical_device = true;
+                break;
+            }
+        }
+
+        Assert(found_physical_device, "could not select physical device based on the chosen properties");
+
+        vulkan_print_physical_device_debug(root, backend.physical_device);
+    }
+
+    VkSemaphore create_semaphore(VulkanBackend& backend, const char* debug_name,
+                                 const VkSemaphoreCreateInfo& create_info)
+    {
+        VkSemaphore semaphore;
+        Assert(vkCreateSemaphore(backend.device, &create_info, nullptr, &semaphore) == VK_SUCCESS);
+
+        VulkanSetDebugName(backend.device, semaphore, debug_name);
+
+        return semaphore;
+    }
+
+    VkDescriptorPool create_global_descriptor_pool(ReaperRoot& root, VulkanBackend& backend)
+    {
+        // Create descriptor pool
+        // FIXME Sizes are arbitrary for now, as long as everything fits
+        constexpr u32                     MaxDescriptorSets = 100;
+        std::vector<VkDescriptorPoolSize> descriptorPoolSizes = {
+            {VK_DESCRIPTOR_TYPE_SAMPLER, 16},        {VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 256},
+            {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 32}, {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 32},
+            {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 32},  {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 16}};
+
+        const VkDescriptorPoolCreateInfo poolInfo = {.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+                                                     .pNext = nullptr,
+                                                     .flags = VK_FLAGS_NONE,
+                                                     .maxSets = MaxDescriptorSets,
+                                                     .poolSizeCount = static_cast<uint32_t>(descriptorPoolSizes.size()),
+                                                     .pPoolSizes = descriptorPoolSizes.data()};
+
+        VkDescriptorPool pool = VK_NULL_HANDLE;
+        Assert(vkCreateDescriptorPool(backend.device, &poolInfo, nullptr, &pool) == VK_SUCCESS);
+        log_debug(root, "vulkan: created descriptor pool with handle: {}", static_cast<void*>(pool));
+
+        return pool;
+    }
+
+} // namespace
+
+void create_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& backend)
+{
+    REAPER_PROFILE_SCOPE_FUNC();
+    log_info(root, "vulkan: creating backend");
+
+    log_debug(root, "vulkan: loading {}", REAPER_VK_LIB_NAME);
+    backend.vulkanLib = dynlib::load(REAPER_VK_LIB_NAME);
+
+    vulkan_load_exported_functions(backend.vulkanLib);
+    vulkan_load_global_level_functions();
+
+    std::vector<const char*> instance_extensions = {
+        VK_KHR_GET_SURFACE_CAPABILITIES_2_EXTENSION_NAME,
+        VK_KHR_SURFACE_EXTENSION_NAME,
+        REAPER_VK_SWAPCHAIN_EXTENSION_NAME,
+        VK_EXT_SWAPCHAIN_COLOR_SPACE_EXTENSION_NAME,
+    };
+
+#if REAPER_DEBUG
+    instance_extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+#endif
+
+    log_info(root, "vulkan: using {} instance level extensions", instance_extensions.size());
+    for (auto& e : instance_extensions)
+        log_debug(root, "- {}", e);
+
+    vulkan_instance_check_extensions(instance_extensions);
+
+    std::vector<const char*> instanceLayers;
+
+#if REAPER_DEBUG
+    instanceLayers.push_back("VK_LAYER_KHRONOS_validation");
+#endif
+
+    log_info(root, "vulkan: using {} instance level layers", instanceLayers.size());
+    for (auto& layer : instanceLayers)
+        log_debug(root, "- {}", layer);
+
+    vulkan_instance_check_layers(instanceLayers);
+
+    const u32 appVersion = VK_MAKE_VERSION(REAPER_VERSION_MAJOR, REAPER_VERSION_MINOR, REAPER_VERSION_PATCH);
+    const u32 engineVersion = appVersion;
+    const u32 vulkanVersion = REAPER_VK_API_VERSION;
+
+    const VkApplicationInfo application_info = {
+        .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
+        .pNext = nullptr,
+        .pApplicationName = "MyGame",
+        .applicationVersion = appVersion,
+        .pEngineName = "Reaper",
+        .engineVersion = engineVersion,
+        .apiVersion = vulkanVersion,
+    };
+
+    const VkInstanceCreateInfo instance_create_info = {
+        .sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
+        .pNext = nullptr,
+        .flags = VK_FLAGS_NONE,
+        .pApplicationInfo = &application_info,
+        .enabledLayerCount = static_cast<u32>(instanceLayers.size()),
+        .ppEnabledLayerNames = instanceLayers.data(),
+        .enabledExtensionCount = static_cast<u32>(instance_extensions.size()),
+        .ppEnabledExtensionNames = instance_extensions.data(),
+    };
+
+    Assert(vkCreateInstance(&instance_create_info, nullptr, &backend.instance) == VK_SUCCESS,
+           "cannot create Vulkan instance");
+
+    vulkan_load_instance_level_functions(backend.instance);
+
+#if REAPER_DEBUG
+    log_debug(root, "vulkan: attaching debug callback");
+    vulkan_setup_debug_callback(root, backend);
+#endif
+
+    WindowCreationDescriptor windowDescriptor = {
+        .title = "Vulkan",
+        .width = 2560,
+        .height = 1440,
+        .fullscreen = false,
+    };
+
+    log_info(root,
+             "vulkan: creating window: size = {}x{}, title = '{}', fullscreen = {}",
+             windowDescriptor.width,
+             windowDescriptor.height,
+             windowDescriptor.title,
+             windowDescriptor.fullscreen);
+    IWindow* window = createWindow(windowDescriptor);
+
+    root.renderer->window = window;
+
+    log_debug(root, "vulkan: creating presentation surface");
+    vulkan_create_presentation_surface(backend.instance, backend.presentInfo.surface, window);
+
+    std::vector<const char*> device_extensions = {
+        VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+#if REAPER_WINDOWS_HDR_TEST
+        VK_EXT_HDR_METADATA_EXTENSION_NAME,
+        VK_EXT_FULL_SCREEN_EXCLUSIVE_EXTENSION_NAME,
+        VK_AMD_DISPLAY_NATIVE_HDR_EXTENSION_NAME,
+#endif
+        VK_KHR_SWAPCHAIN_MUTABLE_FORMAT_EXTENSION_NAME,
+        VK_EXT_CALIBRATED_TIMESTAMPS_EXTENSION_NAME,
+        VK_EXT_INDEX_TYPE_UINT8_EXTENSION_NAME,
+        VK_EXT_PRIMITIVE_TOPOLOGY_LIST_RESTART_EXTENSION_NAME,
+    };
+
+    log_debug(root, "vulkan: choosing physical device");
+    vulkan_choose_physical_device(root, backend, device_extensions);
+
+    log_debug(root, "vulkan: creating logical device");
+    vulkan_create_logical_device(root, backend, device_extensions);
+
+    log_debug(root, "vulkan: create global descriptor pool");
+    backend.global_descriptor_pool = create_global_descriptor_pool(root, backend);
+
+    log_debug(root, "vulkan: create gpu memory allocator");
+
+    VmaAllocatorCreateInfo allocatorInfo = {};
+    allocatorInfo.physicalDevice = backend.physical_device.handle;
+    allocatorInfo.device = backend.device;
+    allocatorInfo.instance = backend.instance;
+
+    vmaCreateAllocator(&allocatorInfo, &backend.vma_instance);
+
+    SwapchainDescriptor swapchainDesc;
+    swapchainDesc.preferredImageCount = 3;
+    swapchainDesc.preferredFormat = {VK_FORMAT_B8G8R8A8_SRGB, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR};
+    swapchainDesc.preferredFormat = {VK_FORMAT_A2R10G10B10_UNORM_PACK32, VK_COLOR_SPACE_HDR10_ST2084_EXT};
+
+    swapchainDesc.preferredExtent = {windowDescriptor.width, windowDescriptor.height};
+
+    configure_vulkan_wm_swapchain(root, backend, swapchainDesc, backend.presentInfo);
+    create_vulkan_wm_swapchain(root, backend, backend.presentInfo);
+
+    // create_vulkan_display_swapchain(root, backend);
+
+    VkSemaphoreCreateInfo semaphore_create_info = {
+        .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
+        .pNext = nullptr,
+        .flags = VK_FLAGS_NONE,
+    };
+
+    backend.semaphore_swapchain_image_available =
+        create_semaphore(backend, "Semaphore image available", semaphore_create_info);
+    backend.semaphore_rendering_finished =
+        create_semaphore(backend, "Semaphore rendering finished", semaphore_create_info);
+
+    ImGui::CreateContext();
+
+    ImGui_ImplVulkan_InitInfo imgui_vulkan_init_info = {
+        .Instance = backend.instance,
+        .PhysicalDevice = backend.physical_device.handle,
+        .Device = backend.device,
+        .QueueFamily = 0, // FIXME
+        .Queue = backend.graphics_queue,
+        .PipelineCache = nullptr,
+        .DescriptorPool = backend.global_descriptor_pool,
+        .Subpass = 0,
+        .MinImageCount = 3,                   // FIXME
+        .ImageCount = 3,                      // FIXME
+        .MSAASamples = VK_SAMPLE_COUNT_1_BIT, // FIXME
+        .Allocator = nullptr,
+        .CheckVkResultFn = nullptr,
+    };
+
+    ImGui_ImplVulkan_LoadFunctions(nullptr, nullptr);
+    ImGui_ImplVulkan_Init(&imgui_vulkan_init_info, PixelFormatToVulkan(GUIFormat));
+
+    log_info(root, "vulkan: ready");
+}
+
+void destroy_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& backend)
+{
+    REAPER_PROFILE_SCOPE_FUNC();
+    log_info(root, "vulkan: destroying backend");
+
+    log_debug(root, "vulkan: waiting for current work to finish");
+    Assert(vkDeviceWaitIdle(backend.device) == VK_SUCCESS);
+
+    ImGui_ImplVulkan_Shutdown();
+
+    vkDestroySemaphore(backend.device, backend.semaphore_swapchain_image_available, nullptr);
+    vkDestroySemaphore(backend.device, backend.semaphore_rendering_finished, nullptr);
+
+    destroy_vulkan_wm_swapchain(root, backend, backend.presentInfo);
+
+    log_debug(root, "vulkan: destroy gpu memory allocator");
+    vmaDestroyAllocator(backend.vma_instance);
+
+    log_debug(root, "vulkan: destroy global descriptor pool");
+    vkDestroyDescriptorPool(backend.device, backend.global_descriptor_pool, nullptr);
+
+    log_debug(root, "vulkan: destroying logical device");
+    vkDestroyDevice(backend.device, nullptr);
+
+    log_debug(root, "vulkan: destroying presentation surface");
+    vkDestroySurfaceKHR(backend.instance, backend.presentInfo.surface, nullptr);
+
+    delete root.renderer->window;
+    root.renderer->window = nullptr;
+
+#if REAPER_DEBUG
+    log_debug(root, "vulkan: detaching debug callback");
+    vulkan_destroy_debug_callback(backend);
+#endif
+
+    vkDestroyInstance(backend.instance, nullptr);
+
+    log_debug(root, "vulkan: unloading {}", REAPER_VK_LIB_NAME);
+    Assert(backend.vulkanLib != nullptr);
+    dynlib::close(backend.vulkanLib);
+    backend.vulkanLib = nullptr;
 }
 } // namespace Reaper

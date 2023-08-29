@@ -57,8 +57,6 @@ GuiPassResources create_gui_pass_resources(ReaperRoot& /*root*/, VulkanBackend& 
 
     VkPipeline pipeline = create_graphics_pipeline(backend.device, shader_stages, pipeline_properties);
 
-    Assert(backend.physicalDeviceInfo.graphicsQueueFamilyIndex == backend.physicalDeviceInfo.presentQueueFamilyIndex);
-
     resources.guiPipe = GuiPipelineInfo{pipeline, pipelineLayout, descriptor_set_layout};
 
     allocate_descriptor_sets(backend.device, backend.global_descriptor_pool,

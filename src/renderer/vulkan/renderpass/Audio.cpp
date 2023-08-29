@@ -232,8 +232,8 @@ void read_gpu_audio_data(VulkanBackend& backend, AudioResources& resources)
     const u32 audio_buffer_size = FrameCountPerGroup * FrameCountPerDispatch * sizeof(RawSample);
     void*     mapped_data_ptr = nullptr;
 
-    Assert(audio_buffer_offset % backend.physicalDeviceProperties.limits.nonCoherentAtomSize == 0);
-    Assert(audio_buffer_size % backend.physicalDeviceProperties.limits.nonCoherentAtomSize == 0);
+    Assert(audio_buffer_offset % backend.physical_device.properties.limits.nonCoherentAtomSize == 0);
+    Assert(audio_buffer_size % backend.physical_device.properties.limits.nonCoherentAtomSize == 0);
     Assert(vkMapMemory(backend.device, allocation_info.deviceMemory, audio_buffer_offset, audio_buffer_size, 0,
                        &mapped_data_ptr)
            == VK_SUCCESS);

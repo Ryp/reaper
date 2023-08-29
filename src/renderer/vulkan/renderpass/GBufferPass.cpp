@@ -69,8 +69,6 @@ namespace
 
         VkPipeline pipeline = create_graphics_pipeline(backend.device, shader_stages, pipeline_properties);
 
-        Assert(backend.physicalDeviceInfo.graphicsQueueFamilyIndex
-               == backend.physicalDeviceInfo.presentQueueFamilyIndex);
         log_debug(root, "vulkan: created blit pipeline with handle: {}", static_cast<void*>(pipeline));
 
         return pipeline;

@@ -7,15 +7,17 @@
 
 #pragma once
 
-#include <vector>
-
-#include "allocator/AMDVulkanMemoryAllocator.h"
-
-#include <vulkan_loader/Vulkan.h>
+#include "PhysicalDevice.h"
 
 #include "core/DynamicLibrary.h"
 #include "renderer/Renderer.h"
 #include "renderer/texture/GPUTextureProperties.h"
+
+#include "vulkan_loader/Vulkan.h"
+
+#include "allocator/AMDVulkanMemoryAllocator.h"
+
+#include <vector>
 
 namespace Reaper
 {
@@ -41,21 +43,6 @@ struct PresentationInfo
     std::vector<VkImageView> imageViews;
 };
 
-struct PhysicalDeviceInfo
-{
-    uint32_t                         graphicsQueueFamilyIndex;
-    uint32_t                         presentQueueFamilyIndex;
-    VkPhysicalDeviceMemoryProperties memory;
-    u32                              subgroup_size;
-};
-
-struct DeviceInfo
-{
-    // These can point to the same object!
-    VkQueue graphicsQueue;
-    VkQueue presentQueue;
-};
-
 struct BackendResources;
 
 struct REAPER_RENDERER_API VulkanBackend
@@ -63,12 +50,13 @@ struct REAPER_RENDERER_API VulkanBackend
     LibHandle  vulkanLib = nullptr;
     VkInstance instance = VK_NULL_HANDLE;
 
-    VkPhysicalDevice           physicalDevice = VK_NULL_HANDLE;
-    VkPhysicalDeviceProperties physicalDeviceProperties;
-    PhysicalDeviceInfo         physicalDeviceInfo = {0, 0, {}, 0};
+    PhysicalDeviceInfo physical_device;
 
-    VkDevice   device = VK_NULL_HANDLE;
-    DeviceInfo deviceInfo = {VK_NULL_HANDLE, VK_NULL_HANDLE};
+    VkDevice device = VK_NULL_HANDLE;
+
+    // NOTE: These can point to the same object!
+    VkQueue graphics_queue = VK_NULL_HANDLE;
+    VkQueue present_queue = VK_NULL_HANDLE;
 
     VkDescriptorPool global_descriptor_pool = VK_NULL_HANDLE;
 

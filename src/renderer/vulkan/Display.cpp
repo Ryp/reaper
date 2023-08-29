@@ -25,13 +25,13 @@ void create_vulkan_display_swapchain(ReaperRoot& root, const VulkanBackend& back
 
     uint32_t displayCount = 0;
 
-    Assert(vkGetPhysicalDeviceDisplayPropertiesKHR(backend.physicalDevice, &displayCount, nullptr) == VK_SUCCESS);
+    Assert(vkGetPhysicalDeviceDisplayPropertiesKHR(backend.physical_device, &displayCount, nullptr) == VK_SUCCESS);
     Assert(displayCount > 0);
 
     log_debug(root, "vulkan: enumerating {} displays", displayCount);
 
     std::vector<VkDisplayPropertiesKHR> availableDisplayProperties(displayCount);
-    Assert(vkGetPhysicalDeviceDisplayPropertiesKHR(backend.physicalDevice, &displayCount,
+    Assert(vkGetPhysicalDeviceDisplayPropertiesKHR(backend.physical_device, &displayCount,
                                                    availableDisplayProperties.data())
            == VK_SUCCESS);
 
@@ -46,15 +46,15 @@ void create_vulkan_display_swapchain(ReaperRoot& root, const VulkanBackend& back
 
     uint32_t planeCount = 0;
 
-    Assert(vkGetPhysicalDeviceDisplayPlanePropertiesKHR(backend.physicalDevice, &planeCount, nullptr) == VK_SUCCESS);
+    Assert(vkGetPhysicalDeviceDisplayPlanePropertiesKHR(backend.physical_device, &planeCount, nullptr) == VK_SUCCESS);
     Assert(planeCount > 0);
 
     log_debug(root, "vulkan: enumerating {} display planes", planeCount);
 
     std::vector<VkDisplayPlanePropertiesKHR> displayPlaneProperties(planeCount);
-    Assert(
-        vkGetPhysicalDeviceDisplayPlanePropertiesKHR(backend.physicalDevice, &planeCount, displayPlaneProperties.data())
-        == VK_SUCCESS);
+    Assert(vkGetPhysicalDeviceDisplayPlanePropertiesKHR(backend.physical_device, &planeCount,
+                                                        displayPlaneProperties.data())
+           == VK_SUCCESS);
 
     for (size_t i = 0; i < planeCount; i++)
     {

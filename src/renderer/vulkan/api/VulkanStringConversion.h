@@ -11,6 +11,7 @@
 
 namespace vk
 {
+const char* vk_to_string(VkPhysicalDeviceType deviceType);
 const char* vk_to_string(VkResult result);
 const char* vk_to_string(VkPresentModeKHR presentMode);
 const char* vk_to_string(VkColorSpaceKHR colorSpace);

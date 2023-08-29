@@ -164,7 +164,7 @@ void configure_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backen
     surface_caps_2.pNext = &native_hdr_amd;
 #endif
 
-    Assert(vkGetPhysicalDeviceSurfaceCapabilities2KHR(backend.physicalDevice, &surface_info_2, &surface_caps_2)
+    Assert(vkGetPhysicalDeviceSurfaceCapabilities2KHR(backend.physical_device.handle, &surface_info_2, &surface_caps_2)
            == VK_SUCCESS);
 
 #if REAPER_WINDOWS_HDR_TEST
@@ -179,14 +179,15 @@ void configure_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backen
     VkSurfaceFormatKHR& surface_format = presentInfo.surface_format;
     {
         uint32_t formats_count;
-        Assert(vkGetPhysicalDeviceSurfaceFormats2KHR(backend.physicalDevice, &surface_info_2, &formats_count, nullptr)
+        Assert(vkGetPhysicalDeviceSurfaceFormats2KHR(backend.physical_device.handle, &surface_info_2, &formats_count,
+                                                     nullptr)
                == VK_SUCCESS);
         Assert(formats_count > 0);
 
         std::vector<VkSurfaceFormat2KHR> surface_formats(
             formats_count, VkSurfaceFormat2KHR{
                                .sType = VK_STRUCTURE_TYPE_SURFACE_FORMAT_2_KHR, .pNext = nullptr, .surfaceFormat = {}});
-        Assert(vkGetPhysicalDeviceSurfaceFormats2KHR(backend.physicalDevice, &surface_info_2, &formats_count,
+        Assert(vkGetPhysicalDeviceSurfaceFormats2KHR(backend.physical_device.handle, &surface_info_2, &formats_count,
                                                      surface_formats.data())
                == VK_SUCCESS);
 
@@ -239,14 +240,14 @@ void configure_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backen
 
     {
         uint32_t presentModeCount;
-        Assert(vkGetPhysicalDeviceSurfacePresentModesKHR(backend.physicalDevice, presentInfo.surface, &presentModeCount,
-                                                         nullptr)
+        Assert(vkGetPhysicalDeviceSurfacePresentModesKHR(backend.physical_device.handle, presentInfo.surface,
+                                                         &presentModeCount, nullptr)
                == VK_SUCCESS);
         Assert(presentModeCount > 0);
 
         std::vector<VkPresentModeKHR> availablePresentModes(presentModeCount);
-        Assert(vkGetPhysicalDeviceSurfacePresentModesKHR(backend.physicalDevice, presentInfo.surface, &presentModeCount,
-                                                         availablePresentModes.data())
+        Assert(vkGetPhysicalDeviceSurfacePresentModesKHR(backend.physical_device.handle, presentInfo.surface,
+                                                         &presentModeCount, availablePresentModes.data())
                == VK_SUCCESS);
 
         log_debug(root, "vulkan: swapchain supports {} present modes", presentModeCount);

@@ -230,7 +230,7 @@ MeshletCullingResources create_meshlet_culling_resources(ReaperRoot& root, Vulka
         create_buffer(root, backend.device, "Meshlet counters CPU", resources.counters_cpu_properties,
                       backend.vma_instance, MemUsage::CPU_Only);
 
-    Assert(MaxIndirectDrawCountPerPass < backend.physicalDeviceProperties.limits.maxDrawIndirectCount);
+    Assert(MaxIndirectDrawCountPerPass < backend.physical_device.properties.limits.maxDrawIndirectCount);
 
     resources.cull_meshlet_descriptor_sets.resize(4);
     resources.cull_triangles_descriptor_sets.resize(4);
@@ -512,7 +512,7 @@ std::vector<MeshletCullingStats> get_meshlet_culling_gpu_stats(VulkanBackend& ba
 
     void* mapped_data_ptr = nullptr;
     u64   mappped_data_size_bytes =
-        alignOffset(allocation_info.size, backend.physicalDeviceProperties.limits.nonCoherentAtomSize);
+        alignOffset(allocation_info.size, backend.physical_device.properties.limits.nonCoherentAtomSize);
 
     Assert(vkMapMemory(backend.device, allocation_info.deviceMemory, allocation_info.offset, mappped_data_size_bytes, 0,
                        &mapped_data_ptr)

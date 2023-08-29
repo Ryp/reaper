@@ -16,7 +16,6 @@
 #include "renderer/vulkan/FrameSync.h"
 #include "renderer/vulkan/GpuProfile.h"
 #include "renderer/vulkan/MaterialResources.h"
-#include "renderer/vulkan/Memory.h"
 #include "renderer/vulkan/MeshCache.h"
 #include "renderer/vulkan/Swapchain.h"
 #include "renderer/vulkan/api/VulkanStringConversion.h"
@@ -92,7 +91,7 @@ void resize_swapchain(ReaperRoot& root, VulkanBackend& backend)
     // Resize swapchain if necessary
     if (backend.new_swapchain_extent.width != 0 || backend.new_swapchain_extent.height != 0)
     {
-        vkQueueWaitIdle(backend.deviceInfo.presentQueue); // FIXME
+        vkQueueWaitIdle(backend.present_queue); // FIXME
 
         Assert(backend.new_swapchain_extent.height > 0);
         resize_vulkan_wm_swapchain(root, backend, backend.presentInfo, backend.new_swapchain_extent);
@@ -1414,7 +1413,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     };
 
     log_debug(root, "vulkan: submit drawing commands");
-    Assert(vkQueueSubmit(backend.deviceInfo.graphicsQueue, 1, &submitInfo, resources.frame_sync_resources.draw_fence)
+    Assert(vkQueueSubmit(backend.graphics_queue, 1, &submitInfo, resources.frame_sync_resources.draw_fence)
            == VK_SUCCESS);
 
     log_debug(root, "vulkan: present");
@@ -1432,7 +1431,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     Assert(!backend.presentInfo.queue_swapchain_transition);
 
-    VkResult presentResult = vkQueuePresentKHR(backend.deviceInfo.presentQueue, &presentInfo);
+    VkResult presentResult = vkQueuePresentKHR(backend.present_queue, &presentInfo);
 
     if (presentResult == VK_SUBOPTIMAL_KHR)
     {

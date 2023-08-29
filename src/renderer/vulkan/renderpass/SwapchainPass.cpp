@@ -149,8 +149,8 @@ namespace
 
         VkPipeline pipeline = create_graphics_pipeline(backend.device, shader_stages, pipeline_properties);
 
-        Assert(backend.physicalDeviceInfo.graphicsQueueFamilyIndex
-               == backend.physicalDeviceInfo.presentQueueFamilyIndex);
+        Assert(backend.physical_device.graphics_queue_family_index
+               == backend.physical_device.present_queue_family_index);
 
         return pipeline;
     }
