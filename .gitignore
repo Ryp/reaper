@@ -11,4 +11,3 @@ __pycache__/
 # user
 .vscode/
 compile_commands.json
-misc
