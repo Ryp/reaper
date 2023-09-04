@@ -78,6 +78,15 @@ SceneGraph create_static_test_scene(ReaperRoot& root, VulkanBackend& backend)
     SceneGraph scene;
     scene.camera_node = create_scene_node(scene, glm::translate(glm::mat4(1.0f), glm::vec3(-10.f, 3.f, 3.f)));
 
+    // FIXME
+    const SceneMaterialHandle material_handle = static_cast<SceneMaterialHandle>(scene.scene_materials.size());
+
+    scene.scene_materials.emplace_back(SceneMaterial{
+        .base_color_texture = asteroid_geometry.material.albedo.handle,
+        .metal_roughness_texture = InvalidTextureHandle,
+        .normal_map_texture = InvalidTextureHandle,
+    });
+
     constexpr i32 asteroid_count = 4;
 
     // Place static track
@@ -93,7 +102,7 @@ SceneGraph create_static_test_scene(ReaperRoot& root, VulkanBackend& backend)
                 Reaper::SceneMesh& scene_mesh = scene.scene_meshes.emplace_back();
                 scene_mesh.scene_node = create_scene_node(scene, transform);
                 scene_mesh.mesh_handle = asteroid_geometry.mesh.handle;
-                scene_mesh.texture_handle = asteroid_geometry.material.albedo.handle;
+                scene_mesh.material_handle = material_handle;
             }
         }
     }
@@ -124,6 +133,15 @@ SceneGraph create_test_scene_tiled_lighting(ReaperRoot& root, VulkanBackend& bac
 
     SceneGraph scene;
 
+    // FIXME
+    const SceneMaterialHandle material_handle = static_cast<SceneMaterialHandle>(scene.scene_materials.size());
+
+    scene.scene_materials.emplace_back(SceneMaterial{
+        .base_color_texture = asteroid_geometry.material.albedo.handle,
+        .metal_roughness_texture = InvalidTextureHandle,
+        .normal_map_texture = InvalidTextureHandle,
+    });
+
     const glm::vec3    up_ws = glm::vec3(0.f, 1.f, 0.f);
     const glm::fvec3   camera_position = glm::vec3(5.f, 5.f, 5.f);
     const glm::fvec3   camera_local_target = glm::vec3(0.f, 0.f, 0.f);
@@ -140,7 +158,7 @@ SceneGraph create_test_scene_tiled_lighting(ReaperRoot& root, VulkanBackend& bac
     SceneMesh& scene_mesh = scene.scene_meshes.emplace_back();
     scene_mesh.scene_node = create_scene_node(scene, transform);
     scene_mesh.mesh_handle = asteroid_geometry.mesh.handle;
-    scene_mesh.texture_handle = asteroid_geometry.material.albedo.handle;
+    scene_mesh.material_handle = material_handle;
 
     SceneLight& light = scene.scene_lights.emplace_back();
     light.color = glm::fvec3(1.f, 0.f, 1.f);

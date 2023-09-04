@@ -14,7 +14,10 @@ namespace Reaper
 enum MeshHandle : u32
 {
 };
+static constexpr MeshHandle InvalidMeshHandle = MeshHandle(0xFFFFFFFF);
+
 enum TextureHandle : u32
 {
 };
+static constexpr TextureHandle InvalidTextureHandle = TextureHandle(0xFFFFFFFF);
 } // namespace Reaper

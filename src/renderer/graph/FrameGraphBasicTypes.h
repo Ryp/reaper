@@ -37,7 +37,7 @@ struct ResourceHandle
 
 static constexpr RenderPassHandle    InvalidRenderPassHandle = RenderPassHandle(0xFFFFFFFF);
 static constexpr ResourceUsageHandle InvalidResourceUsageHandle = ResourceUsageHandle(0xFFFFFFFF);
-static constexpr ResourceHandle      InvalidResourceHandle = ResourceHandle({0x7FFFFFFF, 1});
+static constexpr ResourceHandle      InvalidResourceHandle = {.index = 0x7FFFFFFF, .is_texture = 1};
 
 inline bool is_valid(RenderPassHandle handle)
 {

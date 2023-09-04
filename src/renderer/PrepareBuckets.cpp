@@ -220,8 +220,9 @@ void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCa
 
         for (u32 i = 0; i < scene.scene_meshes.size(); i++)
         {
-            const SceneMesh&   scene_mesh = scene.scene_meshes[i];
-            const glm::fmat4x3 mesh_transform = get_scene_node_transform_slow(scene_mesh.scene_node);
+            const SceneMesh&     scene_mesh = scene.scene_meshes[i];
+            const SceneMaterial& scene_material = scene.scene_materials[scene_mesh.material_handle];
+            const glm::fmat4x3   mesh_transform = get_scene_node_transform_slow(scene_mesh.scene_node);
 
             // Assumption that our 3x3 submatrix is orthonormal (no skew/non-uniform scaling)
             // FIXME use 4x3 matrices directly
@@ -231,7 +232,7 @@ void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCa
             forward_instance.ms_to_cs_matrix = main_camera.ws_to_cs_matrix * glm::mat4(mesh_transform);
             forward_instance.ms_to_ws_matrix = mesh_transform;
             forward_instance.normal_ms_to_vs_matrix = glm::mat3(ms_to_vs_matrix);
-            forward_instance.texture_index = scene_mesh.texture_handle;
+            forward_instance.texture_index = scene_material.base_color_texture;
 
             const u32               cull_instance_index = prepared.cull_mesh_instance_params.size();
             CullMeshInstanceParams& cull_instance = prepared.cull_mesh_instance_params.emplace_back();

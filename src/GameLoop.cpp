@@ -61,7 +61,7 @@ struct Track
 namespace
 {
     Track create_game_track(const GenerationInfo& gen_info, Reaper::VulkanBackend& backend, PhysicsSim& sim,
-                            Reaper::SceneGraph& scene, Reaper::TextureHandle texture_handle)
+                            Reaper::SceneGraph& scene, Reaper::SceneMaterialHandle material_handle)
     {
         Track track;
 
@@ -107,7 +107,7 @@ namespace
             Reaper::SceneMesh& scene_mesh = track.scene_meshes.emplace_back();
             scene_mesh.scene_node = create_scene_node(scene, chunk_transforms[chunk_index]);
             scene_mesh.mesh_handle = chunk_mesh_handles[chunk_index];
-            scene_mesh.texture_handle = texture_handle;
+            scene_mesh.material_handle = material_handle;
         }
 
         return track;
@@ -319,8 +319,14 @@ void execute_game_loop(ReaperRoot& root)
     track_gen_info.width = 12.0f;
     track_gen_info.chaos = 0.0f;
 
-    Neptune::Track game_track = Neptune::create_game_track(track_gen_info, backend, sim, scene,
-                                                           backend.resources->material_resources.texture_handles[0]);
+    const SceneMaterialHandle track_material_handle = SceneMaterialHandle(scene.scene_materials.size()); // FIXME
+    scene.scene_materials.emplace_back(SceneMaterial{
+        .base_color_texture = backend.resources->material_resources.texture_handles[0],
+        .metal_roughness_texture = InvalidTextureHandle,
+        .normal_map_texture = InvalidTextureHandle,
+    });
+
+    Neptune::Track game_track = Neptune::create_game_track(track_gen_info, backend, sim, scene, track_material_handle);
 
     const glm::fmat4x3 player_initial_transform = glm::translate(glm::mat4(1.0f), glm::vec3(0.4f, 0.8f, 0.f));
     const glm::fvec3   player_shape_half_extent(0.4f, 0.3f, 0.3f);
@@ -333,6 +339,13 @@ void execute_game_loop(ReaperRoot& root)
 
     MeshHandle ship_mesh_handle;
     load_meshes(backend, backend.resources->mesh_cache, ship_meshes, std::span(&ship_mesh_handle, 1));
+
+    const SceneMaterialHandle player_material_handle = SceneMaterialHandle(scene.scene_materials.size()); // FIXME
+    scene.scene_materials.emplace_back(SceneMaterial{
+        .base_color_texture = backend.resources->material_resources.texture_handles[1],
+        .metal_roughness_texture = InvalidTextureHandle,
+        .normal_map_texture = InvalidTextureHandle,
+    });
 
     // Build scene
     SceneNode* player_scene_node = nullptr;
@@ -365,7 +378,7 @@ void execute_game_loop(ReaperRoot& root)
 
             player_scene_mesh.scene_node = create_scene_node(scene, mesh_local_transform, player_scene_node);
             player_scene_mesh.mesh_handle = ship_mesh_handle;
-            player_scene_mesh.texture_handle = backend.resources->material_resources.texture_handles[1];
+            player_scene_mesh.material_handle = player_material_handle;
         }
 
         // Add lights
@@ -604,8 +617,7 @@ void execute_game_loop(ReaperRoot& root)
                     // We don't handle fragmentation yet, so we recreate ALL renderer meshes
                     clear_meshes(backend.resources->mesh_cache);
 
-                    game_track = Neptune::create_game_track(track_gen_info, backend, sim, scene,
-                                                            backend.resources->material_resources.texture_handles[0]);
+                    game_track = Neptune::create_game_track(track_gen_info, backend, sim, scene, track_material_handle);
 
                     // We kill the ship mesh as well, so let's rebuild it
                     load_meshes(backend, backend.resources->mesh_cache, ship_meshes, std::span(&ship_mesh_handle, 1));

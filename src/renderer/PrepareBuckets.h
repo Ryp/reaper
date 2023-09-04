@@ -33,11 +33,24 @@ struct SceneNode
     SceneNode*   parent = nullptr; // If no parent, parent space is world space
 };
 
+struct SceneMaterial
+{
+    TextureHandle base_color_texture;
+    TextureHandle metal_roughness_texture;
+    TextureHandle normal_map_texture;
+};
+
+enum SceneMaterialHandle : u32
+{
+};
+
+static constexpr SceneMaterialHandle InvalidSceneMaterialHandle = SceneMaterialHandle(0xFFFFFFFF);
+
 struct SceneMesh
 {
-    SceneNode*    scene_node;
-    MeshHandle    mesh_handle;
-    TextureHandle texture_handle;
+    SceneNode*          scene_node;
+    MeshHandle          mesh_handle;
+    SceneMaterialHandle material_handle;
 };
 
 struct SceneLight
@@ -52,10 +65,20 @@ struct SceneLight
 
 struct SceneGraph
 {
-    SceneNode*              camera_node;
-    std::vector<SceneMesh>  scene_meshes;
-    std::vector<SceneLight> scene_lights;
+    SceneNode*                 camera_node;
+    std::vector<SceneMesh>     scene_meshes;
+    std::vector<SceneMaterial> scene_materials;
+    std::vector<SceneLight>    scene_lights;
 };
+
+inline std::span<SceneMaterial> alloc_scene_materials(SceneGraph& scene, u32 count)
+{
+    const u64 old_size = scene.scene_materials.size();
+
+    scene.scene_materials.resize(old_size + count);
+
+    return std::span(scene.scene_materials.data() + old_size, count);
+}
 
 REAPER_RENDERER_API SceneNode* create_scene_node(SceneGraph& scene, glm::mat4x3 transform_matrix,
                                                  SceneNode* parent_node = nullptr);
