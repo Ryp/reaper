@@ -8,6 +8,7 @@
 #include "Swapchain.h"
 
 #include "Backend.h"
+#include "Image.h"
 
 #include "api/VulkanStringConversion.h"
 #include <vulkan_loader/Vulkan.h>
@@ -427,26 +428,12 @@ void create_swapchain_views(const VulkanBackend& backend, PresentationInfo& pres
 
     for (size_t i = 0; i < image_count; ++i)
     {
-        const VkImageViewCreateInfo image_view_create_info = {
-            .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-            .pNext = nullptr,
-            .flags = VK_FLAGS_NONE,
-            .image = presentInfo.images[i],
-            .viewType = VK_IMAGE_VIEW_TYPE_2D,
-            .format = presentInfo.view_format,
-            .components = {.r = VK_COMPONENT_SWIZZLE_IDENTITY,
-                           .g = VK_COMPONENT_SWIZZLE_IDENTITY,
-                           .b = VK_COMPONENT_SWIZZLE_IDENTITY,
-                           .a = VK_COMPONENT_SWIZZLE_IDENTITY},
-            .subresourceRange = {.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-                                 .baseMipLevel = 0,
-                                 .levelCount = 1,
-                                 .baseArrayLayer = 0,
-                                 .layerCount = 1},
+        const GPUTextureView view = {
+            .format = VulkanToPixelFormat(presentInfo.view_format),
+            .subresource = default_texture_subresource_one_color_mip(),
         };
 
-        Assert(vkCreateImageView(backend.device, &image_view_create_info, nullptr, &presentInfo.imageViews[i])
-               == VK_SUCCESS);
+        presentInfo.imageViews[i] = create_image_view(backend.device, presentInfo.images[i], view);
     }
 }
 

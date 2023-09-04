@@ -37,6 +37,6 @@ VkImageSubresourceRange GetVulkanImageSubresourceRange(const GPUTextureSubresour
 
 GPUTexture  create_image(ReaperRoot& root, VkDevice device, const char* debug_string,
                          const GPUTextureProperties& properties, VmaAllocator& allocator);
-VkImageView create_image_view(ReaperRoot& root, VkDevice device, const GPUTexture& image, const GPUTextureView& view);
+VkImageView create_image_view(VkDevice device, VkImage image, const GPUTextureView& view);
 
 } // namespace Reaper

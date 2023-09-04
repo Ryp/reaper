@@ -1056,7 +1056,7 @@ GPUTexture create_image(ReaperRoot& root, VkDevice device, const char* debug_str
     };
 }
 
-VkImageView create_image_view(ReaperRoot& root, VkDevice device, const GPUTexture& image, const GPUTextureView& view)
+VkImageView create_image_view(VkDevice device, VkImage image, const GPUTextureView& view)
 {
     Assert(view.subresource.mip_count > 0);
     Assert(view.subresource.layer_count > 0);
@@ -1065,7 +1065,7 @@ VkImageView create_image_view(ReaperRoot& root, VkDevice device, const GPUTextur
         .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
         .pNext = nullptr,
         .flags = VK_FLAGS_NONE,
-        .image = image.handle,
+        .image = image,
         .viewType = VK_IMAGE_VIEW_TYPE_2D,
         .format = PixelFormatToVulkan(view.format),
         .components = {.r = VK_COMPONENT_SWIZZLE_IDENTITY,
@@ -1077,8 +1077,6 @@ VkImageView create_image_view(ReaperRoot& root, VkDevice device, const GPUTextur
 
     VkImageView imageView = VK_NULL_HANDLE;
     Assert(vkCreateImageView(device, &imageViewInfo, nullptr, &imageView) == VK_SUCCESS);
-
-    log_debug(root, "vulkan: created image view with handle: {}", static_cast<void*>(imageView));
 
     return imageView;
 }

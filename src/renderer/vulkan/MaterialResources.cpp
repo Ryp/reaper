@@ -184,7 +184,7 @@ namespace
         new_texture.texture = image_info;
 
         const GPUTextureView default_view = default_texture_view(staging_entry.texture_properties);
-        new_texture.default_view = create_image_view(root, backend.device, image_info, default_view);
+        new_texture.default_view = create_image_view(backend.device, image_info.handle, default_view);
 
         return resource_index;
     }

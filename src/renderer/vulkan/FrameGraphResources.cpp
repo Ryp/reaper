@@ -95,7 +95,7 @@ void allocate_framegraph_volatile_resources(ReaperRoot& root, VulkanBackend& bac
                                        backend.vma_instance);
 
             resources.default_texture_views[index] =
-                create_image_view(root, backend.device, new_texture, resource.default_view.texture);
+                create_image_view(backend.device, new_texture.handle, resource.default_view.texture);
         }
         else
         {
@@ -125,7 +125,7 @@ void allocate_framegraph_volatile_resources(ReaperRoot& root, VulkanBackend& bac
 
             for (u32 i = 0; i < texture_views.size(); i++)
             {
-                texture_views[i] = create_image_view(root, backend.device, texture, texture_views_info[i]);
+                texture_views[i] = create_image_view(backend.device, texture.handle, texture_views_info[i]);
             }
         }
         else
