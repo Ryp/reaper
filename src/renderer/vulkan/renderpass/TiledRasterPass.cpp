@@ -351,14 +351,14 @@ void upload_tiled_raster_pass_frame_resources(VulkanBackend&            backend,
 }
 
 void record_tile_depth_pass_command_buffer(CommandBuffer& cmdBuffer, const TiledRasterResources& resources,
-                                           VkExtent2D backbufferExtent)
+                                           VkExtent2D render_extent)
 {
     vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE, resources.tile_depth_pipeline);
 
     TileDepthConstants push_constants;
-    push_constants.extent_ts = glm::uvec2(backbufferExtent.width, backbufferExtent.height);
+    push_constants.extent_ts = glm::uvec2(render_extent.width, render_extent.height);
     push_constants.extent_ts_inv =
-        glm::fvec2(1.f / static_cast<float>(backbufferExtent.width), 1.f / static_cast<float>(backbufferExtent.height));
+        glm::fvec2(1.f / static_cast<float>(render_extent.width), 1.f / static_cast<float>(render_extent.height));
 
     vkCmdPushConstants(cmdBuffer.handle, resources.tile_depth_pipeline_layout, VK_SHADER_STAGE_COMPUTE_BIT, 0,
                        sizeof(push_constants), &push_constants);
@@ -367,8 +367,8 @@ void record_tile_depth_pass_command_buffer(CommandBuffer& cmdBuffer, const Tiled
                             1, &resources.tile_depth_descriptor_set, 0, nullptr);
 
     vkCmdDispatch(cmdBuffer.handle,
-                  div_round_up(backbufferExtent.width, TileDepthThreadCountX * 2),
-                  div_round_up(backbufferExtent.height, TileDepthThreadCountY * 2),
+                  div_round_up(render_extent.width, TileDepthThreadCountX * 2),
+                  div_round_up(render_extent.height, TileDepthThreadCountY * 2),
                   1);
 }
 

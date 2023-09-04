@@ -7,7 +7,6 @@
 
 #include "GuiPass.h"
 
-#include "Frame.h"
 #include "ShadowConstants.h"
 
 #include "renderer/PrepareBuckets.h"

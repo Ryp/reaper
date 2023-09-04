@@ -106,14 +106,12 @@ void renderer_execute_frame(ReaperRoot& root, const SceneGraph& scene, std::vect
 
     resize_swapchain(root, backend);
 
-    const VkExtent2D backbufferExtent = backend.presentInfo.surface_extent;
-    const glm::uvec2 backbuffer_viewport_extent(backbufferExtent.width, backbufferExtent.height);
-
     const float near_plane_distance = 0.1f;
     const float far_plane_distance = 100.f;
     const float half_fov_horizontal_radian = glm::pi<float>() * 0.25f;
 
-    const RendererViewport viewport = build_renderer_viewport(backbuffer_viewport_extent);
+    const RendererViewport viewport =
+        build_renderer_viewport({backend.render_extent.width, backend.render_extent.height});
 
     const RendererPerspectiveProjection perspective_projection =
         build_renderer_perspective_projection(viewport.aspect_ratio, near_plane_distance, far_plane_distance,

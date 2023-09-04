@@ -545,6 +545,8 @@ void create_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& backend)
     configure_vulkan_wm_swapchain(root, backend, swapchainDesc, backend.presentInfo);
     create_vulkan_wm_swapchain(root, backend, backend.presentInfo);
 
+    set_backend_render_resolution(backend);
+
     // create_vulkan_display_swapchain(root, backend);
 
     VkSemaphoreCreateInfo semaphore_create_info = {
@@ -623,5 +625,14 @@ void destroy_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& backend)
     Assert(backend.vulkanLib != nullptr);
     dynlib::close(backend.vulkanLib);
     backend.vulkanLib = nullptr;
+}
+
+void set_backend_render_resolution(VulkanBackend& backend)
+{
+    // NOTE: We can change the render resolution scaling here
+    backend.render_extent = {
+        .width = backend.presentInfo.surface_extent.width,
+        .height = backend.presentInfo.surface_extent.height,
+    };
 }
 } // namespace Reaper

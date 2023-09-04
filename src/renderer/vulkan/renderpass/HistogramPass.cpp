@@ -7,8 +7,6 @@
 
 #include "HistogramPass.h"
 
-#include "Frame.h"
-
 #include "renderer/vulkan/Backend.h"
 #include "renderer/vulkan/CommandBuffer.h"
 #include "renderer/vulkan/ComputeHelper.h"
@@ -75,15 +73,15 @@ void update_histogram_pass_descriptor_set(DescriptorWriteHelper& write_helper, c
     write_helper.append(resources.descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, histogram_buffer.handle);
 }
 
-void record_histogram_command_buffer(CommandBuffer& cmdBuffer, const FrameData& frame_data,
-                                     const HistogramPassResources& pass_resources, VkExtent2D backbufferExtent)
+void record_histogram_command_buffer(CommandBuffer& cmdBuffer, const HistogramPassResources& pass_resources,
+                                     VkExtent2D render_extent)
 {
     vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE, pass_resources.histogramPipe.pipeline);
 
     ReduceHDRPassParams push_constants;
-    push_constants.extent_ts = glm::uvec2(backbufferExtent.width, backbufferExtent.height);
+    push_constants.extent_ts = glm::uvec2(render_extent.width, render_extent.height);
     push_constants.extent_ts_inv =
-        glm::fvec2(1.f / static_cast<float>(backbufferExtent.width), 1.f / static_cast<float>(backbufferExtent.height));
+        glm::fvec2(1.f / static_cast<float>(render_extent.width), 1.f / static_cast<float>(render_extent.height));
 
     vkCmdPushConstants(cmdBuffer.handle, pass_resources.histogramPipe.pipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0,
                        sizeof(push_constants), &push_constants);
@@ -94,8 +92,8 @@ void record_histogram_command_buffer(CommandBuffer& cmdBuffer, const FrameData& 
 
     Assert(HistogramRes % (HistogramThreadCountX * HistogramThreadCountY) == 0);
     vkCmdDispatch(cmdBuffer.handle,
-                  div_round_up(frame_data.backbufferExtent.width, HistogramThreadCountX * 2),
-                  div_round_up(frame_data.backbufferExtent.height, HistogramThreadCountY * 2),
+                  div_round_up(render_extent.width, HistogramThreadCountX * 2),
+                  div_round_up(render_extent.height, HistogramThreadCountY * 2),
                   1);
 }
 } // namespace Reaper

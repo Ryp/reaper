@@ -107,7 +107,7 @@ void upload_tiled_raster_pass_frame_resources(VulkanBackend&            backend,
 struct CommandBuffer;
 
 void record_tile_depth_pass_command_buffer(CommandBuffer& cmdBuffer, const TiledRasterResources& pass_resources,
-                                           VkExtent2D backbufferExtent);
+                                           VkExtent2D render_extent);
 
 void record_depth_copy(CommandBuffer& cmdBuffer, const TiledRasterResources& pass_resources,
                        const FrameGraphTexture& depth_min_dst, const FrameGraphTexture& depth_max_dst);

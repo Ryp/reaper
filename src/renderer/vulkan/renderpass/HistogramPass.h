@@ -51,8 +51,7 @@ void update_histogram_pass_descriptor_set(DescriptorWriteHelper& write_helper, c
                                           const FrameGraphBuffer& histogram_buffer);
 
 struct CommandBuffer;
-struct FrameData;
 
-void record_histogram_command_buffer(CommandBuffer& cmdBuffer, const FrameData& frame_data,
-                                     const HistogramPassResources& pass_resources, VkExtent2D backbufferExtent);
+void record_histogram_command_buffer(CommandBuffer& cmdBuffer, const HistogramPassResources& pass_resources,
+                                     VkExtent2D render_extent);
 } // namespace Reaper

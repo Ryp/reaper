@@ -7,8 +7,6 @@
 
 #include "HZBPass.h"
 
-#include "Frame.h"
-
 #include "renderer/vulkan/Backend.h"
 #include "renderer/vulkan/CommandBuffer.h"
 #include "renderer/vulkan/ComputeHelper.h"

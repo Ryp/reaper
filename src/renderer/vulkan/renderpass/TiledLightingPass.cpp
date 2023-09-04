@@ -191,14 +191,14 @@ void upload_tiled_lighting_pass_frame_resources(VulkanBackend& backend, const Pr
 }
 
 void record_tiled_lighting_command_buffer(CommandBuffer& cmdBuffer, const TiledLightingPassResources& resources,
-                                          VkExtent2D backbufferExtent, VkExtent2D tile_extent)
+                                          VkExtent2D render_extent, VkExtent2D tile_extent)
 {
     vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE, resources.tiled_lighting_pipeline);
 
     TiledLightingPushConstants push_constants;
-    push_constants.extent_ts = glm::uvec2(backbufferExtent.width, backbufferExtent.height);
+    push_constants.extent_ts = glm::uvec2(render_extent.width, render_extent.height);
     push_constants.extent_ts_inv =
-        glm::fvec2(1.f / static_cast<float>(backbufferExtent.width), 1.f / static_cast<float>(backbufferExtent.height));
+        glm::fvec2(1.f / static_cast<float>(render_extent.width), 1.f / static_cast<float>(render_extent.height));
     push_constants.tile_count_x = tile_extent.width;
 
     vkCmdPushConstants(cmdBuffer.handle, resources.tiled_lighting_pipeline_layout, VK_SHADER_STAGE_COMPUTE_BIT, 0,
@@ -208,8 +208,8 @@ void record_tiled_lighting_command_buffer(CommandBuffer& cmdBuffer, const TiledL
                             0, 1, &resources.tiled_lighting_descriptor_set, 0, nullptr);
 
     vkCmdDispatch(cmdBuffer.handle,
-                  div_round_up(backbufferExtent.width, TiledLightingThreadCountX),
-                  div_round_up(backbufferExtent.height, TiledLightingThreadCountY),
+                  div_round_up(render_extent.width, TiledLightingThreadCountX),
+                  div_round_up(render_extent.height, TiledLightingThreadCountY),
                   1);
 }
 
@@ -225,12 +225,12 @@ void update_tiled_lighting_debug_pass_descriptor_sets(DescriptorWriteHelper&    
 }
 
 void record_tiled_lighting_debug_command_buffer(CommandBuffer& cmdBuffer, const TiledLightingPassResources& resources,
-                                                VkExtent2D backbufferExtent, VkExtent2D tile_extent)
+                                                VkExtent2D render_extent, VkExtent2D tile_extent)
 {
     vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE, resources.tiled_lighting_debug_pipeline);
 
     TiledLightingDebugPushConstants push_constants;
-    push_constants.extent_ts = glm::uvec2(backbufferExtent.width, backbufferExtent.height);
+    push_constants.extent_ts = glm::uvec2(render_extent.width, render_extent.height);
     push_constants.tile_count_x = tile_extent.width;
 
     vkCmdPushConstants(cmdBuffer.handle, resources.tiled_lighting_debug_pipeline_layout, VK_SHADER_STAGE_COMPUTE_BIT, 0,
@@ -241,8 +241,8 @@ void record_tiled_lighting_debug_command_buffer(CommandBuffer& cmdBuffer, const 
                             &resources.tiled_lighting_debug_descriptor_set, 0, nullptr);
 
     vkCmdDispatch(cmdBuffer.handle,
-                  div_round_up(backbufferExtent.width, TiledLightingThreadCountX),
-                  div_round_up(backbufferExtent.height, TiledLightingThreadCountY),
+                  div_round_up(render_extent.width, TiledLightingThreadCountX),
+                  div_round_up(render_extent.height, TiledLightingThreadCountY),
                   1);
 }
 } // namespace Reaper

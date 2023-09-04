@@ -18,7 +18,6 @@
 #include "renderpass/Audio.h"
 #include "renderpass/DebugGeometryRenderPass.h"
 #include "renderpass/ForwardPass.h"
-#include "renderpass/Frame.h"
 #include "renderpass/GuiPass.h"
 #include "renderpass/HZBPass.h"
 #include "renderpass/HistogramPass.h"

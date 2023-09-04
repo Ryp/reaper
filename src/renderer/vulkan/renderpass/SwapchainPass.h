@@ -51,8 +51,7 @@ void update_swapchain_pass_descriptor_set(DescriptorWriteHelper& write_helper, c
                                           const FrameGraphTexture& tile_lighting_debug_texture);
 
 struct CommandBuffer;
-struct FrameData;
 
-void record_swapchain_command_buffer(CommandBuffer& cmdBuffer, const FrameData& frame_data,
-                                     const SwapchainPassResources& pass_resources, VkImageView swapchain_buffer_view);
+void record_swapchain_command_buffer(CommandBuffer& cmdBuffer, const SwapchainPassResources& pass_resources,
+                                     VkImageView swapchain_buffer_view, VkExtent2D swapchain_extent);
 } // namespace Reaper

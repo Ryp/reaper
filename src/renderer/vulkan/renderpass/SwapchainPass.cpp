@@ -7,7 +7,6 @@
 
 #include "SwapchainPass.h"
 
-#include "Frame.h"
 #include "ShadowConstants.h"
 
 #include "renderer/vulkan/Backend.h"
@@ -217,10 +216,10 @@ void update_swapchain_pass_descriptor_set(DescriptorWriteHelper& write_helper, c
                         tile_lighting_debug_texture.default_view_handle, tile_lighting_debug_texture.image_layout);
 }
 
-void record_swapchain_command_buffer(CommandBuffer& cmdBuffer, const FrameData& frame_data,
-                                     const SwapchainPassResources& pass_resources, VkImageView swapchain_buffer_view)
+void record_swapchain_command_buffer(CommandBuffer& cmdBuffer, const SwapchainPassResources& pass_resources,
+                                     VkImageView swapchain_buffer_view, VkExtent2D swapchain_extent)
 {
-    const VkRect2D   pass_rect = default_vk_rect(frame_data.backbufferExtent);
+    const VkRect2D   pass_rect = default_vk_rect(swapchain_extent);
     const VkViewport viewport = default_vk_viewport(pass_rect);
 
     vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, pass_resources.pipeline);

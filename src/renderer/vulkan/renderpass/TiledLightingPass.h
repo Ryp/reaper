@@ -67,7 +67,7 @@ void upload_tiled_lighting_pass_frame_resources(VulkanBackend& backend, const Pr
 struct CommandBuffer;
 
 void record_tiled_lighting_command_buffer(CommandBuffer& cmdBuffer, const TiledLightingPassResources& resources,
-                                          VkExtent2D backbufferExtent, VkExtent2D tile_extent);
+                                          VkExtent2D render_extent, VkExtent2D tile_extent);
 
 // Debug
 void update_tiled_lighting_debug_pass_descriptor_sets(DescriptorWriteHelper&            write_helper,
@@ -76,5 +76,5 @@ void update_tiled_lighting_debug_pass_descriptor_sets(DescriptorWriteHelper&    
                                                       const FrameGraphTexture&          tile_debug_texture);
 
 void record_tiled_lighting_debug_command_buffer(CommandBuffer& cmdBuffer, const TiledLightingPassResources& resources,
-                                                VkExtent2D backbufferExtent, VkExtent2D tile_extent);
+                                                VkExtent2D render_extent, VkExtent2D tile_extent);
 } // namespace Reaper

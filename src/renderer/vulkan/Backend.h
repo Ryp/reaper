@@ -64,6 +64,8 @@ struct REAPER_RENDERER_API VulkanBackend
 
     PresentationInfo presentInfo = {};
 
+    VkExtent2D render_extent;
+
     // Timeline semaphores aren't supported for present operations at the time AFAIK.
     VkSemaphore semaphore_swapchain_image_available = VK_NULL_HANDLE;
     VkSemaphore semaphore_rendering_finished = VK_NULL_HANDLE;
@@ -81,6 +83,8 @@ struct REAPER_RENDERER_API VulkanBackend
     BackendResources* resources = nullptr;
 };
 
-void create_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& renderer);
-void destroy_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& renderer);
+void create_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& backend);
+void destroy_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& backend);
+
+void set_backend_render_resolution(VulkanBackend& backend);
 } // namespace Reaper

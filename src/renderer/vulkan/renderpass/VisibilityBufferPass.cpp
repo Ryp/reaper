@@ -307,14 +307,14 @@ void record_vis_buffer_pass_command_buffer(CommandBuffer& cmdBuffer, const Prepa
 
 void record_fill_gbuffer_pass_command_buffer(CommandBuffer&                       cmdBuffer,
                                              const VisibilityBufferPassResources& resources,
-                                             VkExtent2D                           backbufferExtent)
+                                             VkExtent2D                           render_extent)
 {
     vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE, resources.fill_pipe.pipeline);
 
     FillGBufferPushConstants push_constants;
-    push_constants.extent_ts = glm::uvec2(backbufferExtent.width, backbufferExtent.height);
+    push_constants.extent_ts = glm::uvec2(render_extent.width, render_extent.height);
     push_constants.extent_ts_inv =
-        glm::fvec2(1.f / static_cast<float>(backbufferExtent.width), 1.f / static_cast<float>(backbufferExtent.height));
+        glm::fvec2(1.f / static_cast<float>(render_extent.width), 1.f / static_cast<float>(render_extent.height));
 
     vkCmdPushConstants(cmdBuffer.handle, resources.fill_pipe.pipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0,
                        sizeof(push_constants), &push_constants);
@@ -323,8 +323,8 @@ void record_fill_gbuffer_pass_command_buffer(CommandBuffer&                     
                             &resources.descriptor_set_fill, 0, nullptr);
 
     vkCmdDispatch(cmdBuffer.handle,
-                  div_round_up(backbufferExtent.width, GBufferFillThreadCountX),
-                  div_round_up(backbufferExtent.height, GBufferFillThreadCountY),
+                  div_round_up(render_extent.width, GBufferFillThreadCountX),
+                  div_round_up(render_extent.height, GBufferFillThreadCountY),
                   1);
 }
 } // namespace Reaper

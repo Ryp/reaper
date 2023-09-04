@@ -83,5 +83,5 @@ void record_vis_buffer_pass_command_buffer(CommandBuffer& cmdBuffer, const Prepa
                                            const FrameGraphTexture& vis_buffer, const FrameGraphTexture& depth_buffer);
 
 void record_fill_gbuffer_pass_command_buffer(CommandBuffer& cmdBuffer, const VisibilityBufferPassResources& resources,
-                                             VkExtent2D backbufferExtent);
+                                             VkExtent2D render_extent);
 } // namespace Reaper

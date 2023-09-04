@@ -48,7 +48,6 @@ GuiPassResources create_gui_pass_resources(ReaperRoot& root, VulkanBackend& back
 void             destroy_gui_pass_resources(VulkanBackend& backend, GuiPassResources& resources);
 
 struct CommandBuffer;
-struct FrameData;
 struct FrameGraphTexture;
 
 void record_gui_command_buffer(CommandBuffer& cmdBuffer, const GuiPassResources& pass_resources,
