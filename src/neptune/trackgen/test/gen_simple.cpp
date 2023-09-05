@@ -84,7 +84,7 @@ TEST_CASE("Track mesh generation")
     for (u32 i = 0; i < gen_info.length; i++)
     {
         std::ifstream file(assetFile);
-        Mesh&         mesh = meshes.emplace_back(ModelLoader::loadOBJ(file));
+        Mesh&         mesh = meshes.emplace_back(load_obj(file));
 
         skin_track_chunk_mesh(skeletonNodes[i], skinning[i], mesh, 10.0f);
     }

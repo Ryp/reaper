@@ -210,7 +210,7 @@ TiledRasterResources create_tiled_raster_pass_resources(VulkanBackend& backend, 
                                                          backend.vma_instance, MemUsage::CPU_To_GPU);
 
         std::vector<Mesh> meshes;
-        const Mesh&       icosahedron = meshes.emplace_back(ModelLoader::loadOBJ("res/model/icosahedron.obj"));
+        const Mesh&       icosahedron = meshes.emplace_back(load_obj("res/model/icosahedron.obj"));
 
         ProxyMeshAlloc& icosahedron_alloc = resources.proxy_mesh_allocs.emplace_back();
         icosahedron_alloc.vertex_offset = resources.vertex_buffer_offset;

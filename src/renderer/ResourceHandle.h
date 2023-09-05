@@ -11,6 +11,13 @@
 
 namespace Reaper
 {
+template <typename HandleType>
+struct HandleSpan
+{
+    u32 offset;
+    u32 count;
+};
+
 enum MeshHandle : u32
 {
 };

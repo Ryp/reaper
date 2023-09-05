@@ -47,16 +47,9 @@ float LightingFuncGGX_REF(float3 N, float3 V, float3 L, float roughness, float F
     return specular;
 }
 
-struct StandardMaterial
+float specular_brdf(float3 n, float3 v, float3 l, float roughness, float f0)
 {
-    float3 albedo;
-    float roughness;
-    float f0;
-};
-
-float specular_brdf(StandardMaterial material, float3 n, float3 v, float3 l)
-{
-    return LightingFuncGGX_REF(n, v, l, material.roughness, material.f0);
+    return LightingFuncGGX_REF(n, v, l, roughness, f0);
 }
 
 float diffuse_brdf(float n_dot_l_clamped)

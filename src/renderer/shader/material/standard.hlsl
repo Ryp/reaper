@@ -5,12 +5,16 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#pragma once
+#ifndef MATERIAL_STANDARD_INCLUDED
+#define MATERIAL_STANDARD_INCLUDED
 
-#include "MaterialResources.h"
-
-namespace Reaper
+struct StandardMaterial
 {
-StagingEntry copy_texture_to_staging_area_png(VulkanBackend& backend, ResourceStagingArea& staging,
-                                              const char* file_path, bool is_srgb);
-}
+    float3 albedo;
+    float3 normal_vs;
+    float roughness;
+    float f0;
+    float ao;
+};
+
+#endif

@@ -19,6 +19,11 @@ float3 pull_normal(ByteAddressBuffer buffer_normal, uint vertex_id)
     return asfloat(buffer_normal.Load3(vertex_id * 3 * 4));
 }
 
+float4 pull_tangent(ByteAddressBuffer buffer_tangent, uint vertex_id)
+{
+    return asfloat(buffer_tangent.Load4(vertex_id * 4 * 4));
+}
+
 float2 pull_uv(ByteAddressBuffer buffer_uv, uint vertex_id)
 {
     return asfloat(buffer_uv.Load2(vertex_id * 2 * 4));

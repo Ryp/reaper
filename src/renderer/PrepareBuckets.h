@@ -18,6 +18,7 @@
 
 #include "renderer/shader/forward.share.hlsl"
 #include "renderer/shader/lighting.share.hlsl"
+#include "renderer/shader/mesh_instance.share.hlsl"
 #include "renderer/shader/meshlet/meshlet_culling.share.hlsl"
 #include "renderer/shader/shadow/shadow_map_pass.share.hlsl"
 #include "renderer/shader/sound/sound.share.hlsl"
@@ -38,6 +39,7 @@ struct SceneMaterial
     TextureHandle base_color_texture;
     TextureHandle metal_roughness_texture;
     TextureHandle normal_map_texture;
+    TextureHandle ao_texture;
 };
 
 enum SceneMaterialHandle : u32
@@ -71,13 +73,24 @@ struct SceneGraph
     std::vector<SceneLight>    scene_lights;
 };
 
-inline std::span<SceneMaterial> alloc_scene_materials(SceneGraph& scene, u32 count)
+inline SceneMaterialHandle alloc_scene_material(SceneGraph& scene)
 {
-    const u64 old_size = scene.scene_materials.size();
+    const u32 old_size = scene.scene_materials.size();
+    scene.scene_materials.resize(old_size + 1);
+
+    return SceneMaterialHandle(old_size);
+}
+
+inline HandleSpan<SceneMaterialHandle> alloc_scene_materials(SceneGraph& scene, u32 count)
+{
+    const u32 old_size = scene.scene_materials.size();
 
     scene.scene_materials.resize(old_size + count);
 
-    return std::span(scene.scene_materials.data() + old_size, count);
+    return HandleSpan<SceneMaterialHandle>{
+        .offset = old_size,
+        .count = count,
+    };
 }
 
 REAPER_RENDERER_API SceneNode* create_scene_node(SceneGraph& scene, glm::mat4x3 transform_matrix,
@@ -118,9 +131,10 @@ struct PreparedData
     std::vector<CullPassData>           cull_passes;
     std::vector<CullMeshInstanceParams> cull_mesh_instance_params;
 
-    u32                                main_culling_pass_index;
-    ForwardPassParams                  forward_pass_constants;
-    std::vector<ForwardInstanceParams> forward_instances;
+    std::vector<MeshInstance> mesh_instances;
+
+    u32               main_culling_pass_index;
+    ForwardPassParams forward_pass_constants;
 
     std::vector<PointLightProperties> point_lights;
     TiledLightingConstants            tiled_light_constants;

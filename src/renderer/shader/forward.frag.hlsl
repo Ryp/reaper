@@ -1,14 +1,18 @@
 #include "lib/base.hlsl"
 
 #include "lib/lighting.hlsl"
+#include "lib/normal_mapping.hlsl"
 
 #include "forward.share.hlsl"
+#include "mesh_instance.share.hlsl"
 #include "lighting.share.hlsl"
 
 static const uint debug_mode_none = 0;
-static const uint debug_mode_normals = 1;
-static const uint debug_mode_uv = 2;
-static const uint debug_mode_pos_vs = 3;
+static const uint debug_mode_albedo = 1;
+static const uint debug_mode_normal = 2;
+static const uint debug_mode_roughness = 3;
+static const uint debug_mode_metallic = 4;
+static const uint debug_mode_ao = 5;
 
 // https://github.com/microsoft/DirectXShaderCompiler/issues/2957
 #if defined(_DXC)
@@ -17,26 +21,28 @@ VK_CONSTANT(0) const uint spec_debug_mode = 0;
 VK_CONSTANT(0) const uint spec_debug_mode = debug_mode_none;
 #endif
 VK_CONSTANT(1) const bool spec_debug_enable_shadows = true;
-VK_CONSTANT(2) const bool spec_debug_enable_lighting = true;
-VK_CONSTANT(3) const bool spec_debug_enable_albedo = false;
 
-VK_BINDING(0, 0) ConstantBuffer<ForwardPassParams> pass_params;
+VK_BINDING(0, Slot_fw_pass_params) ConstantBuffer<ForwardPassParams> pass_params;
+VK_BINDING(0, Slot_fw_point_lights) StructuredBuffer<PointLightProperties> point_lights;
+VK_BINDING(0, Slot_fw_shadow_map_sampler) SamplerComparisonState shadow_map_sampler;
+VK_BINDING(0, Slot_fw_shadow_maps) Texture2D<float> shadow_maps[ShadowMapMaxCount];
 
-VK_BINDING(0, 6) StructuredBuffer<PointLightProperties> point_lights;
-VK_BINDING(0, 7) SamplerComparisonState shadow_map_sampler;
-VK_BINDING(0, 8) Texture2D<float> t_shadow_map[ShadowMapMaxCount];
-
-VK_BINDING(1, 0) SamplerState diffuse_map_sampler;
-VK_BINDING(1, 1) Texture2D<float3> diffuse_maps[DiffuseMapMaxCount];
+VK_BINDING(1, Slot_fw_diffuse_map_sampler) SamplerState diffuse_map_sampler;
+VK_BINDING(1, Slot_fw_material_maps) Texture2D<float3> material_maps[MaterialTextureMaxCount];
 
 struct PS_INPUT
 {
     float4 PositionCS   : SV_Position;
     float3 PositionVS   : TEXCOORD0;
     float3 NormalVS     : TEXCOORD1;
-    float2 UV           : TEXCOORD2;
-    float3 PositionWS   : TEXCOORD3;
-    nointerpolation uint texture_index : TEXCOORD4;
+    float3 tangent_vs   : TEXCOORD2;
+    nointerpolation float bitangent_sign : TEXCOORD3;
+    float2 UV           : TEXCOORD4;
+    float3 PositionWS   : TEXCOORD5;
+    nointerpolation uint albedo_texture_index : TEXCOORD6;
+    nointerpolation uint roughness_texture_index : TEXCOORD7;
+    nointerpolation uint normal_texture_index : TEXCOORD8;
+    nointerpolation uint ao_texture_index : TEXCOORD9;
 };
 
 struct PS_OUTPUT
@@ -47,12 +53,19 @@ struct PS_OUTPUT
 void main(in PS_INPUT input, out PS_OUTPUT output)
 {
     const float3 view_direction_vs = -normalize(input.PositionVS);
-    const float3 normal_vs = normalize(input.NormalVS);
+    const float3 geometric_normal_vs = normalize(input.NormalVS);
+    const float3 tangent_vs = normalize(input.tangent_vs); // FIXME Normalize?
+
+    float3 normal_map_normal = decode_normal_map(material_maps[input.normal_texture_index].Sample(diffuse_map_sampler, input.UV).xyz);
+
+    float3 normal_vs = compute_tangent_space_normal_map(geometric_normal_vs, tangent_vs, input.bitangent_sign, normal_map_normal);
 
     StandardMaterial material;
-    material.albedo = spec_debug_enable_albedo ? 1.0 : diffuse_maps[input.texture_index].Sample(diffuse_map_sampler, input.UV);
-    material.roughness = 0.5;
-    material.f0 = 0.1;
+    material.albedo = material_maps[input.albedo_texture_index].Sample(diffuse_map_sampler, input.UV).rgb;
+    material.normal_vs = normal_vs;
+    material.roughness = material_maps[input.roughness_texture_index].Sample(diffuse_map_sampler, input.UV).z;
+    material.f0 = material_maps[input.roughness_texture_index].Sample(diffuse_map_sampler, input.UV).y;
+    material.ao = material_maps[input.ao_texture_index].Sample(diffuse_map_sampler, input.UV).x;
 
     LightOutput lighting_accum = (LightOutput)0;
 
@@ -60,34 +73,31 @@ void main(in PS_INPUT input, out PS_OUTPUT output)
     {
         const PointLightProperties point_light = point_lights[i];
 
-        const LightOutput lighting = shade_point_light(point_light, material, input.PositionVS, normal_vs, view_direction_vs);
+        const LightOutput lighting = shade_point_light(point_light, material, input.PositionVS, view_direction_vs);
 
         float shadow_term = 1.0;
         if (point_light.shadow_map_index != InvalidShadowMapIndex && spec_debug_enable_shadows)
         {
             // NOTE: shadow_map_index MUST be uniform
-            shadow_term = sample_shadow_map(t_shadow_map[point_light.shadow_map_index], shadow_map_sampler, point_light.light_ws_to_cs, input.PositionWS);
+            shadow_term = sample_shadow_map(shadow_maps[point_light.shadow_map_index], shadow_map_sampler, point_light.light_ws_to_cs, input.PositionWS);
         }
 
         lighting_accum.diffuse += lighting.diffuse * shadow_term;
         lighting_accum.specular += lighting.specular * shadow_term;
     }
 
-    float3 shaded_color = material.albedo;
+    float3 lighting_sum = material.albedo * (lighting_accum.diffuse + lighting_accum.specular);
 
-    if (spec_debug_enable_lighting)
-    {
-        shaded_color *= (lighting_accum.diffuse + lighting_accum.specular);
-    }
+    if (spec_debug_mode == debug_mode_albedo)
+        lighting_sum = material.albedo;
+    else if (spec_debug_mode == debug_mode_normal)
+        lighting_sum = material.normal_vs * 0.5 + 0.5;
+    else if (spec_debug_mode == debug_mode_roughness)
+        lighting_sum = material.roughness;
+    else if (spec_debug_mode == debug_mode_metallic)
+        lighting_sum = material.f0;
+    else if (spec_debug_mode == debug_mode_ao)
+        lighting_sum = material.ao;
 
-    if (spec_debug_mode == debug_mode_none)
-        output.color = shaded_color;
-    else if (spec_debug_mode == debug_mode_normals)
-        output.color = normal_vs * 0.5 + 0.5;
-    else if (spec_debug_mode == debug_mode_uv)
-        output.color = float3(input.UV, 0.0);
-    else if (spec_debug_mode == debug_mode_pos_vs)
-        output.color = input.PositionVS;
-    else
-        output.color = float3(0.42, 0.42, 0.42);
+    output.color = lighting_sum;
 }

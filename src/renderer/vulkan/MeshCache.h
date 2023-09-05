@@ -26,14 +26,16 @@ struct MeshCache
     static constexpr u32 MAX_VERTEX_COUNT = 2000000;
     static constexpr u32 MAX_MESHLET_COUNT = 4096;
 
-    GPUBuffer vertexBufferPosition;
-    GPUBuffer vertexBufferNormal;
-    GPUBuffer vertexBufferUV;
     GPUBuffer indexBuffer;
+    GPUBuffer vertexBufferPosition;
+    GPUBuffer vertexBufferUV;
+    GPUBuffer vertexBufferNormal;
+    GPUBuffer vertexBufferTangent;
     GPUBuffer meshletBuffer;
 
     u32 current_uv_offset;
     u32 current_normal_offset;
+    u32 current_tangent_offset;
     u32 current_position_offset;
     u32 current_index_offset;
     u32 current_meshlet_offset;

@@ -13,8 +13,8 @@ TEST_CASE("Mesh Loading")
 {
     SUBCASE("OBJ files")
     {
-        ModelLoader::loadOBJ("res/model/bunny.obj");
-        ModelLoader::loadOBJ("res/model/quad.obj");
-        ModelLoader::loadOBJ("res/model/ship.obj");
+        load_obj("res/model/bunny.obj");
+        load_obj("res/model/quad.obj");
+        load_obj("res/model/ship.obj");
     }
 }

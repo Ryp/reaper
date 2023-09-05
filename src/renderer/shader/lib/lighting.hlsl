@@ -10,6 +10,7 @@
 
 #include "lib/brdf.hlsl"
 #include "lighting.share.hlsl"
+#include "material/standard.hlsl"
 
 float sample_shadow_map(Texture2D<float> shadow_map, SamplerComparisonState cmp_sampler, float4x4 light_transform_ws_to_cs, float3 object_position_ws)
 {
@@ -34,9 +35,17 @@ float distance_falloff_point(float light_distance_sq)
     return rcp(1.0 + light_distance_sq);
 }
 
+// NOTE: see SIGGRAPH 2016 The Technical Art of Uncharted 4
+float uncharted_micro_shadow(float shadow, float n_dot_l, float ao)
+{
+    float aperture = 2.f * ao * ao;
+    float micro_shadow = saturate(abs(n_dot_l)) + aperture - 1.f;
+    return shadow * micro_shadow;
+}
+
 LightOutput shade_point_light(
     PointLightProperties point_light, StandardMaterial material,
-    float3 object_position_vs, float3 object_normal_vs, float3 view_direction_vs)
+    float3 object_position_vs, float3 view_direction_vs)
 {
     const float3 object_to_light_vs = point_light.position_vs - object_position_vs;
     const float light_distance_sq = dot(object_to_light_vs, object_to_light_vs);
@@ -44,9 +53,10 @@ LightOutput shade_point_light(
     const float light_distance_falloff = distance_falloff_point(light_distance_sq);
     const float3 light_direction_vs = object_to_light_vs * light_distance_inv;
 
-    const float dot_nl_sat = saturate(dot(object_normal_vs, light_direction_vs));
+    const float dot_nl_sat = saturate(dot(material.normal_vs, light_direction_vs));
 
-    float attenuation = point_light.intensity * light_distance_falloff;
+    float attenuation = point_light.intensity * light_distance_falloff * material.ao;
+
     if (light_distance_sq > point_light.radius_sq)
     {
         attenuation = 0.0;
@@ -54,7 +64,7 @@ LightOutput shade_point_light(
 
     LightOutput output;
     output.diffuse = point_light.color * attenuation * diffuse_brdf(dot_nl_sat);
-    output.specular = point_light.color * attenuation * specular_brdf(material, object_normal_vs, view_direction_vs, light_direction_vs);
+    output.specular = point_light.color * attenuation * specular_brdf(material.normal_vs, view_direction_vs, light_direction_vs, material.roughness, material.f0);
 
     return output;
 }

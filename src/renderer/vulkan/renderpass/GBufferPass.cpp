@@ -32,6 +32,8 @@
 
 #include <vector>
 
+#include "gbuffer/gbuffer_write_opaque.share.hlsl"
+
 namespace Reaper
 {
 constexpr u32 GBufferInstanceCountMax = 512;
@@ -81,13 +83,15 @@ GBufferPassResources create_gbuffer_pass_resources(ReaperRoot& root, VulkanBacke
     GBufferPassResources resources = {};
 
     std::vector<VkDescriptorSetLayoutBinding> bindings = {
-        {0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
-        {1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
-        {2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
-        {3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
-        {4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
-        {5, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
-        {6, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, DiffuseMapMaxCount, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+        {Slot_instance_params, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
+        {Slot_visible_meshlets, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
+        {Slot_buffer_position_ms, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
+        {Slot_buffer_normal_ms, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
+        {Slot_buffer_tangent_ms, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
+        {Slot_buffer_uv, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
+        {Slot_diffuse_map_sampler, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+        {Slot_material_maps, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, MaterialTextureMaxCount, VK_SHADER_STAGE_FRAGMENT_BIT,
+         nullptr},
     };
 
     std::vector<VkDescriptorBindingFlags> bindingFlags(bindings.size(), VK_FLAGS_NONE);
@@ -103,11 +107,10 @@ GBufferPassResources create_gbuffer_pass_resources(ReaperRoot& root, VulkanBacke
 
     resources.pipe.pipeline = create_gbuffer_pipeline(root, backend, resources.pipe.pipelineLayout, shader_modules);
 
-    resources.instance_buffer =
-        create_buffer(backend.device, "GBuffer Instance buffer",
-                      DefaultGPUBufferProperties(GBufferInstanceCountMax, sizeof(ForwardInstanceParams),
-                                                 GPUBufferUsage::StorageBuffer),
-                      backend.vma_instance, MemUsage::CPU_To_GPU);
+    resources.instance_buffer = create_buffer(
+        backend.device, "GBuffer Instance buffer",
+        DefaultGPUBufferProperties(GBufferInstanceCountMax, sizeof(MeshInstance), GPUBufferUsage::StorageBuffer),
+        backend.vma_instance, MemUsage::CPU_To_GPU);
 
     std::vector<VkDescriptorSet> dsets(descriptorSetLayouts.size());
 
@@ -132,21 +135,24 @@ void update_gbuffer_pass_descriptor_sets(DescriptorWriteHelper& write_helper, co
                                          const SamplerResources&  sampler_resources,
                                          const MaterialResources& material_resources, const MeshCache& mesh_cache)
 {
-    write_helper.append(resources.descriptor_set, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+    write_helper.append(resources.descriptor_set, Slot_instance_params, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                         resources.instance_buffer.handle);
-    write_helper.append(resources.descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, visible_meshlet_buffer.handle);
-    write_helper.append(resources.descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+    write_helper.append(resources.descriptor_set, Slot_visible_meshlets, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                        visible_meshlet_buffer.handle);
+    write_helper.append(resources.descriptor_set, Slot_buffer_position_ms, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                         mesh_cache.vertexBufferPosition.handle);
-    write_helper.append(resources.descriptor_set, 3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+    write_helper.append(resources.descriptor_set, Slot_buffer_normal_ms, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                         mesh_cache.vertexBufferNormal.handle);
-    write_helper.append(resources.descriptor_set, 4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+    write_helper.append(resources.descriptor_set, Slot_buffer_tangent_ms, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                        mesh_cache.vertexBufferTangent.handle);
+    write_helper.append(resources.descriptor_set, Slot_buffer_uv, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                         mesh_cache.vertexBufferUV.handle);
-    write_helper.append(resources.descriptor_set, 5, sampler_resources.diffuse_map_sampler);
+    write_helper.append(resources.descriptor_set, Slot_diffuse_map_sampler, sampler_resources.diffuse_map_sampler);
 
-    if (!material_resources.texture_handles.empty())
+    if (!material_resources.textures.empty())
     {
         std::span<VkDescriptorImageInfo> albedo_image_infos =
-            write_helper.new_image_infos(material_resources.texture_handles.size());
+            write_helper.new_image_infos(material_resources.textures.size());
 
         for (u32 index = 0; index < albedo_image_infos.size(); index += 1)
         {
@@ -156,7 +162,7 @@ void update_gbuffer_pass_descriptor_sets(DescriptorWriteHelper& write_helper, co
         }
 
         write_helper.writes.push_back(create_image_descriptor_write(
-            resources.descriptor_set, 6, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, albedo_image_infos));
+            resources.descriptor_set, Slot_material_maps, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, albedo_image_infos));
     }
 }
 
@@ -165,12 +171,12 @@ void upload_gbuffer_pass_frame_resources(VulkanBackend& backend, const PreparedD
 {
     REAPER_PROFILE_SCOPE_FUNC();
 
-    if (prepared.forward_instances.empty())
+    if (prepared.mesh_instances.empty())
         return;
 
     upload_buffer_data_deprecated(backend.device, backend.vma_instance, pass_resources.instance_buffer,
-                                  prepared.forward_instances.data(),
-                                  prepared.forward_instances.size() * sizeof(ForwardInstanceParams));
+                                  prepared.mesh_instances.data(),
+                                  prepared.mesh_instances.size() * sizeof(MeshInstance));
 }
 
 void record_gbuffer_pass_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& prepared,
@@ -181,7 +187,7 @@ void record_gbuffer_pass_command_buffer(CommandBuffer& cmdBuffer, const Prepared
                                         const FrameGraphTexture& gbuffer_rt0, const FrameGraphTexture& gbuffer_rt1,
                                         const FrameGraphTexture& depth_buffer)
 {
-    if (prepared.forward_instances.empty())
+    if (prepared.mesh_instances.empty())
         return;
 
     const VkExtent2D extent = {depth_buffer.properties.width, depth_buffer.properties.height};

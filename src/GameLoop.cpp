@@ -41,10 +41,13 @@
 #include "renderer/window/Event.h"
 #include "renderer/window/Window.h"
 
+#include <cgltf.h>
+
 #define ENABLE_TEST_SCENE 0
 #define ENABLE_LINUX_CONTROLLER 0
 #define ENABLE_GAME_SCENE 1
 #define ENABLE_FREE_CAM 0
+#define GLTF_TEST 1
 
 namespace Neptune
 {
@@ -85,7 +88,7 @@ namespace
         for (u32 i = 0; i < gen_info.length; i++)
         {
             std::ifstream file(assetFile);
-            Mesh&         track_mesh = track_meshes.emplace_back(ModelLoader::loadOBJ(file));
+            Mesh&         track_mesh = track_meshes.emplace_back(load_obj(file));
 
             const TrackSkeletonNode& track_node = track.skeleton_nodes[i];
 
@@ -287,6 +290,27 @@ namespace
             break;
         }
     }
+
+    // FIXME This is ugly and slow
+    template <typename T>
+    void load_gltf_mesh_attribute(const cgltf_accessor& accessor, std::vector<T>& attribute_output)
+    {
+        Assert(accessor.buffer_view);
+
+        const cgltf_buffer_view& buffer_view = *accessor.buffer_view;
+        const cgltf_buffer&      buffer = *buffer_view.buffer;
+
+        Assert(accessor.stride > 0);
+
+        attribute_output.resize(accessor.count);
+
+        u8* buffer_start = static_cast<u8*>(buffer.data) + buffer_view.offset + accessor.offset;
+
+        for (u32 i = 0; i < accessor.count; i++)
+        {
+            attribute_output[i] = *reinterpret_cast<T*>(buffer_start + i * accessor.stride);
+        }
+    }
 } // namespace
 
 void execute_game_loop(ReaperRoot& root)
@@ -297,30 +321,151 @@ void execute_game_loop(ReaperRoot& root)
 
     renderer_start(root, backend, window);
 
-    // FIXME load common textures used in all scenes
-    std::vector<const char*> dds_filenames = {
-        "res/texture/default.dds",
-        "res/texture/bricks_diffuse.dds",
-        "res/texture/bricks_specular.dds",
-    };
-
-    std::vector<const char*> png_filenames = {
-        "res/textures/body_metallicRoughness.png",
-    };
-
-    auto& material_texture_handles = backend.resources->material_resources.texture_handles;
-
-    material_texture_handles.resize(dds_filenames.size() + png_filenames.size());
-    load_textures(backend, backend.resources->material_resources, TextureFileFormat::DDS, dds_filenames,
-                  std::span(material_texture_handles.data(), dds_filenames.size()));
-
-    load_textures(backend, backend.resources->material_resources, TextureFileFormat::PNG, png_filenames,
-                  std::span(material_texture_handles.data() + dds_filenames.size(), png_filenames.size()));
-
     Neptune::PhysicsSim sim = Neptune::create_sim();
     Neptune::sim_start(&sim);
 
     SceneGraph scene;
+
+    // FIXME load common textures used in all scenes
+    std::vector<std::string> dds_filenames = {
+        "res/texture/default.dds",
+    };
+
+    const HandleSpan<TextureHandle> dds_handle_span =
+        alloc_material_textures(backend.resources->material_resources, dds_filenames.size());
+
+    load_dds_textures_to_staging(backend, backend.resources->material_resources, dds_filenames, dds_handle_span);
+
+#if GLTF_TEST
+    std::string   gltf_path = "res/gltf/scifihelmet/";
+    std::string   gltf_file = gltf_path + "SciFiHelmet.gltf";
+    cgltf_options options = {};
+    cgltf_data*   data = nullptr;
+
+    Assert(cgltf_parse_file(&options, gltf_file.c_str(), &data) == cgltf_result_success);
+    Assert(cgltf_load_buffers(&options, data, gltf_file.c_str()) == cgltf_result_success);
+    Assert(cgltf_validate(data) == cgltf_result_success);
+
+    std::span<cgltf_image>   gltf_images(data->images, data->images_count);
+    std::vector<std::string> png_filenames(gltf_images.size());
+    std::vector<u32>         png_srgb(gltf_images.size(), true);
+
+    for (u32 i = 0; i < gltf_images.size(); i++)
+    {
+        png_filenames[i] = gltf_path + gltf_images[i].uri;
+    }
+
+    const HandleSpan<TextureHandle> png_handle_span =
+        alloc_material_textures(backend.resources->material_resources, png_filenames.size());
+
+    std::span<cgltf_material> gltf_materials(data->materials, data->materials_count);
+
+    const HandleSpan<SceneMaterialHandle> scene_materials = alloc_scene_materials(scene, data->materials_count);
+
+    for (u32 i = 0; i < scene_materials.count; i++)
+    {
+        const cgltf_material& gltf_material = gltf_materials[i];
+
+        auto      base_color_image = gltf_material.pbr_metallic_roughness.base_color_texture.texture->image;
+        const u64 base_color_offset = base_color_image - data->images;
+        auto metallic_roughness_image = gltf_material.pbr_metallic_roughness.metallic_roughness_texture.texture->image;
+        const u64 metallic_roughness_offset = metallic_roughness_image - data->images;
+        auto      normal_image = gltf_material.normal_texture.texture->image;
+        const u64 normal_offset = normal_image - data->images;
+        auto      ao_image = gltf_material.occlusion_texture.texture->image;
+        const u64 ao_offset = ao_image - data->images;
+
+        png_srgb[base_color_offset] = true;
+        png_srgb[metallic_roughness_offset] = false;
+        png_srgb[normal_offset] = false;
+        png_srgb[ao_offset] = false;
+
+        scene.scene_materials[scene_materials.offset + i] = SceneMaterial{
+            .base_color_texture = TextureHandle(png_handle_span.offset + base_color_offset),
+            .metal_roughness_texture = TextureHandle(png_handle_span.offset + metallic_roughness_offset),
+            .normal_map_texture = TextureHandle(png_handle_span.offset + normal_offset),
+            .ao_texture = TextureHandle(png_handle_span.offset + ao_offset),
+        };
+    }
+
+    std::span<cgltf_mesh> gltf_meshes(data->meshes, data->meshes_count);
+    std::vector<Mesh>     meshes(data->meshes_count);
+    std::vector<u32>      mesh_gltf_material_handles(
+        data->meshes_count); // FIXME Should be per primitive but we assume 1 prim per mesh
+
+    for (u32 i = 0; i < meshes.size(); i++)
+    {
+        const cgltf_mesh& gltf_mesh = gltf_meshes[i];
+
+        // FIXME Assume meshes only contain one primitive
+        Assert(gltf_mesh.primitives_count == 1);
+        const cgltf_primitive& gltf_primitive = *gltf_mesh.primitives;
+        Assert(gltf_primitive.type == cgltf_primitive_type_triangles);
+        Assert(gltf_primitive.indices != nullptr);
+        Assert(gltf_primitive.attributes_count >= 4); // Need pos, uv, normals, tangents at minimum
+        Assert(!gltf_primitive.has_draco_mesh_compression);
+
+        // Record material handle local to the GLTF file
+        const u64 material_index =
+            (gltf_primitive.material - data->materials); // FIXME ptr arithmetic is kinda sad here
+        mesh_gltf_material_handles[i] = material_index;
+
+        std::span<cgltf_attribute> attributes(gltf_primitive.attributes, gltf_primitive.attributes_count);
+
+        auto& mesh = meshes[i];
+
+        Assert(gltf_primitive.indices->type == cgltf_type_scalar);
+        Assert(gltf_primitive.indices->component_type == cgltf_component_type_r_32u);
+        load_gltf_mesh_attribute(*gltf_primitive.indices, mesh.indexes);
+
+        for (u32 j = 0; j < attributes.size(); j++)
+        {
+            const cgltf_attribute& gltf_attribute = attributes[j];
+            const cgltf_accessor&  attribute_data = *gltf_attribute.data;
+
+            if (gltf_attribute.index != 0)
+                continue; // FIXME
+
+            Assert(attribute_data.component_type == cgltf_component_type_r_32f);
+            switch (gltf_attribute.type)
+            {
+            case cgltf_attribute_type_position: {
+                Assert(attribute_data.type == cgltf_type_vec3);
+                load_gltf_mesh_attribute(attribute_data, mesh.positions);
+                break;
+            }
+            case cgltf_attribute_type_normal: {
+                Assert(attribute_data.type == cgltf_type_vec3);
+                // NOTE: Not necessary normalized;
+                load_gltf_mesh_attribute(attribute_data, mesh.normals);
+                break;
+            }
+            case cgltf_attribute_type_tangent: {
+                Assert(attribute_data.type == cgltf_type_vec4);
+                // NOTE: Not necessary normalized;
+                load_gltf_mesh_attribute(attribute_data, mesh.tangents);
+                break;
+            }
+            case cgltf_attribute_type_texcoord: {
+                Assert(attribute_data.type == cgltf_type_vec2);
+                load_gltf_mesh_attribute(attribute_data, mesh.uvs);
+                break;
+            }
+            default:
+                // FIXME Simply ignore the stream
+                break;
+            }
+        }
+    }
+
+    std::vector<MeshHandle> gltf_mesh_handles(data->meshes_count);
+    load_meshes(backend, backend.resources->mesh_cache, meshes, gltf_mesh_handles);
+
+    cgltf_free(data);
+#endif
+
+    load_png_textures_to_staging(backend, backend.resources->material_resources, png_filenames, png_handle_span,
+                                 png_srgb);
 
 #if ENABLE_TEST_SCENE
     // scene = create_test_scene_tiled_lighting(backend);
@@ -333,33 +478,19 @@ void execute_game_loop(ReaperRoot& root)
     track_gen_info.width = 12.0f;
     track_gen_info.chaos = 0.0f;
 
-    const SceneMaterialHandle track_material_handle = SceneMaterialHandle(scene.scene_materials.size()); // FIXME
-    scene.scene_materials.emplace_back(SceneMaterial{
-        .base_color_texture = backend.resources->material_resources.texture_handles[0],
+    const SceneMaterialHandle track_material_handle = alloc_scene_material(scene);
+    scene.scene_materials[track_material_handle] = SceneMaterial{
+        .base_color_texture = TextureHandle(dds_handle_span.offset + 0),
         .metal_roughness_texture = InvalidTextureHandle,
         .normal_map_texture = InvalidTextureHandle,
-    });
+        .ao_texture = InvalidTextureHandle,
+    };
 
     Neptune::Track game_track = Neptune::create_game_track(track_gen_info, backend, sim, scene, track_material_handle);
 
     const glm::fmat4x3 player_initial_transform = glm::translate(glm::mat4(1.0f), glm::vec3(0.4f, 0.8f, 0.f));
     const glm::fvec3   player_shape_half_extent(0.4f, 0.3f, 0.3f);
     Neptune::sim_create_player_rigid_body(sim, player_initial_transform, player_shape_half_extent);
-
-    std::vector<Mesh> ship_meshes;
-    std::ifstream     ship_obj_file("res/model/fighter.obj");
-
-    ship_meshes.push_back(ModelLoader::loadOBJ(ship_obj_file));
-
-    MeshHandle ship_mesh_handle;
-    load_meshes(backend, backend.resources->mesh_cache, ship_meshes, std::span(&ship_mesh_handle, 1));
-
-    const SceneMaterialHandle player_material_handle = SceneMaterialHandle(scene.scene_materials.size()); // FIXME
-    scene.scene_materials.emplace_back(SceneMaterial{
-        .base_color_texture = backend.resources->material_resources.texture_handles[1],
-        .metal_roughness_texture = InvalidTextureHandle,
-        .normal_map_texture = InvalidTextureHandle,
-    });
 
     // Build scene
     SceneNode* player_scene_node = nullptr;
@@ -388,11 +519,11 @@ void execute_game_loop(ReaperRoot& root)
             scene.camera_node = create_scene_node(scene, camera_local_transform, camera_parent_node);
 
             const glm::fmat4x3 mesh_local_transform =
-                glm::rotate(glm::scale(glm::identity<glm::fmat4>(), glm::vec3(0.05f)), glm::pi<float>() * -0.5f, up_ws);
+                glm::rotate(glm::scale(glm::identity<glm::fmat4>(), glm::vec3(0.4f)), glm::pi<float>() * -0.5f, up_ws);
 
             player_scene_mesh.scene_node = create_scene_node(scene, mesh_local_transform, player_scene_node);
-            player_scene_mesh.mesh_handle = ship_mesh_handle;
-            player_scene_mesh.material_handle = player_material_handle;
+            player_scene_mesh.mesh_handle = gltf_mesh_handles[0];
+            player_scene_mesh.material_handle = SceneMaterialHandle(scene_materials.offset + 0);
         }
 
         // Add lights
@@ -416,8 +547,8 @@ void execute_game_loop(ReaperRoot& root)
             const glm::fmat4x3 light_transform = glm::inverse(glm::lookAt(light_position_ws, light_target_ws, up_ws));
 
             SceneLight& light = scene.scene_lights.emplace_back();
-            light.color = glm::fvec3(0.61f, 0.21f, 0.03f);
-            light.intensity = 6.f;
+            light.color = glm::fvec3(1.f, 1.f, 1.f);
+            light.intensity = 16.f;
             light.radius = 42.f;
             light.scene_node = create_scene_node(scene, light_transform);
             light.shadow_map_size = glm::uvec2(512, 512);
@@ -629,15 +760,10 @@ void execute_game_loop(ReaperRoot& root)
                     Neptune::destroy_game_track(game_track, backend, sim, scene);
 
                     // We don't handle fragmentation yet, so we recreate ALL renderer meshes
+                    // FIXME since GLTF was added we don't do this properly anymore
                     clear_meshes(backend.resources->mesh_cache);
 
                     game_track = Neptune::create_game_track(track_gen_info, backend, sim, scene, track_material_handle);
-
-                    // We kill the ship mesh as well, so let's rebuild it
-                    load_meshes(backend, backend.resources->mesh_cache, ship_meshes, std::span(&ship_mesh_handle, 1));
-
-                    // Patch the scene to use the right mesh handle, otherwise we might crash!
-                    player_scene_mesh.mesh_handle = ship_mesh_handle;
                 }
 
                 ImGui::Separator();

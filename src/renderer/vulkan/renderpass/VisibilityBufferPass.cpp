@@ -122,10 +122,11 @@ VisibilityBufferPassResources create_vis_buffer_pass_resources(ReaperRoot& root,
             {Slot_visible_index_buffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
             {Slot_buffer_position_ms, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
             {Slot_buffer_normal_ms, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+            {Slot_buffer_tangent_ms, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
             {Slot_buffer_uv, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
             {Slot_visible_meshlets, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
             {Slot_diffuse_map_sampler, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-            {Slot_diffuse_maps, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, DiffuseMapMaxCount, VK_SHADER_STAGE_COMPUTE_BIT,
+            {Slot_material_maps, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, MaterialTextureMaxCount, VK_SHADER_STAGE_COMPUTE_BIT,
              nullptr},
         };
 
@@ -151,7 +152,7 @@ VisibilityBufferPassResources create_vis_buffer_pass_resources(ReaperRoot& root,
 
     resources.instance_buffer =
         create_buffer(backend.device, "VisibilityBuffer Instance buffer",
-                      DefaultGPUBufferProperties(VisibilityBufferInstanceCountMax, sizeof(ForwardInstanceParams),
+                      DefaultGPUBufferProperties(VisibilityBufferInstanceCountMax, sizeof(MeshInstance),
                                                  GPUBufferUsage::StorageBuffer),
                       backend.vma_instance, MemUsage::CPU_To_GPU);
 
@@ -213,16 +214,18 @@ void update_vis_buffer_pass_descriptor_sets(DescriptorWriteHelper&              
                         mesh_cache.vertexBufferPosition.handle);
     write_helper.append(resources.descriptor_set_fill, Slot_buffer_normal_ms, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                         mesh_cache.vertexBufferNormal.handle);
+    write_helper.append(resources.descriptor_set_fill, Slot_buffer_tangent_ms, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                        mesh_cache.vertexBufferTangent.handle);
     write_helper.append(resources.descriptor_set_fill, Slot_buffer_uv, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                         mesh_cache.vertexBufferUV.handle);
     write_helper.append(resources.descriptor_set_fill, Slot_visible_meshlets, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                         visible_meshlet_buffer.handle);
     write_helper.append(resources.descriptor_set_fill, Slot_diffuse_map_sampler, sampler_resources.diffuse_map_sampler);
 
-    if (!material_resources.texture_handles.empty())
+    if (!material_resources.textures.empty())
     {
         std::span<VkDescriptorImageInfo> albedo_image_infos =
-            write_helper.new_image_infos(material_resources.texture_handles.size());
+            write_helper.new_image_infos(material_resources.textures.size());
 
         for (u32 index = 0; index < albedo_image_infos.size(); index += 1)
         {
@@ -232,7 +235,7 @@ void update_vis_buffer_pass_descriptor_sets(DescriptorWriteHelper&              
         }
 
         write_helper.writes.push_back(create_image_descriptor_write(
-            resources.descriptor_set_fill, Slot_diffuse_maps, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, albedo_image_infos));
+            resources.descriptor_set_fill, Slot_material_maps, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, albedo_image_infos));
     }
 }
 
@@ -241,12 +244,12 @@ void upload_vis_buffer_pass_frame_resources(VulkanBackend& backend, const Prepar
 {
     REAPER_PROFILE_SCOPE_FUNC();
 
-    if (prepared.forward_instances.empty())
+    if (prepared.mesh_instances.empty())
         return;
 
     upload_buffer_data_deprecated(backend.device, backend.vma_instance, pass_resources.instance_buffer,
-                                  prepared.forward_instances.data(),
-                                  prepared.forward_instances.size() * sizeof(ForwardInstanceParams));
+                                  prepared.mesh_instances.data(),
+                                  prepared.mesh_instances.size() * sizeof(MeshInstance));
 }
 
 void record_vis_buffer_pass_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& prepared,
@@ -256,7 +259,7 @@ void record_vis_buffer_pass_command_buffer(CommandBuffer& cmdBuffer, const Prepa
                                            const FrameGraphBuffer&              meshlet_visible_index_buffer,
                                            const FrameGraphTexture& vis_buffer, const FrameGraphTexture& depth_buffer)
 {
-    if (prepared.forward_instances.empty())
+    if (prepared.mesh_instances.empty())
         return;
 
     const VkExtent2D extent = {depth_buffer.properties.width, depth_buffer.properties.height};

@@ -24,6 +24,7 @@ struct MeshAlloc
     u32 position_offset;
     u32 uv_offset;
     u32 normal_offset;
+    u32 tangent_offset;
     u32 meshlet_offset;
 };
 

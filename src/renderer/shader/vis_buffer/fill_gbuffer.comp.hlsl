@@ -1,12 +1,14 @@
 #include "lib/base.hlsl"
 
-#include "lib/brdf.hlsl"
 #include "lib/barycentrics.hlsl"
+#include "lib/brdf.hlsl"
+#include "lib/normal_mapping.hlsl"
 #include "lib/vertex_pull.hlsl"
 #include "lib/format/bitfield.hlsl"
 #include "gbuffer/gbuffer.hlsl"
 #include "meshlet/meshlet.share.hlsl"
-#include "forward.share.hlsl" // FIXME
+#include "material/standard.hlsl"
+#include "mesh_instance.share.hlsl"
 
 #include "vis_buffer.hlsl"
 #include "fill_gbuffer.share.hlsl"
@@ -16,19 +18,21 @@ VK_PUSH_CONSTANT_HELPER(FillGBufferPushConstants) push;
 VK_BINDING(0, Slot_VisBuffer) Texture2D<VisBufferRawType> VisBuffer;
 VK_BINDING(0, Slot_GBuffer0) RWTexture2D<GBuffer0Type> GBuffer0;
 VK_BINDING(0, Slot_GBuffer1) RWTexture2D<GBuffer1Type> GBuffer1;
-VK_BINDING(0, Slot_instance_params) StructuredBuffer<ForwardInstanceParams> instance_params;
+VK_BINDING(0, Slot_instance_params) StructuredBuffer<MeshInstance> instance_params;
 VK_BINDING(0, Slot_visible_index_buffer) ByteAddressBuffer visible_index_buffer;
 VK_BINDING(0, Slot_buffer_position_ms) ByteAddressBuffer buffer_position_ms;
 VK_BINDING(0, Slot_buffer_normal_ms) ByteAddressBuffer buffer_normal_ms;
+VK_BINDING(0, Slot_buffer_tangent_ms) ByteAddressBuffer buffer_tangent_ms;
 VK_BINDING(0, Slot_buffer_uv) ByteAddressBuffer buffer_uv;
 VK_BINDING(0, Slot_visible_meshlets) StructuredBuffer<VisibleMeshlet> visible_meshlets;
 VK_BINDING(0, Slot_diffuse_map_sampler) SamplerState diffuse_map_sampler;
-VK_BINDING(0, Slot_diffuse_maps) Texture2D<float3> diffuse_maps[DiffuseMapMaxCount];
+VK_BINDING(0, Slot_material_maps) Texture2D<float3> material_maps[MaterialTextureMaxCount];
 
 struct VertexData
 {
     float3 position_ms;
     float3 normal_ms;
+    float3 tangent_ms;
     float2 uv;
 };
 
@@ -76,11 +80,18 @@ void main(uint3 gtid : SV_GroupThreadID,
     p1.normal_ms = pull_normal(buffer_normal_ms, indices.y);
     p2.normal_ms = pull_normal(buffer_normal_ms, indices.z);
 
+    const float4 p0_tangent = pull_tangent(buffer_tangent_ms, indices.x);
+    const float p0_bitangent_sign = p0_tangent.w;
+
+    p0.tangent_ms = p0_tangent.xyz;
+    p1.tangent_ms = pull_tangent(buffer_tangent_ms, indices.y).xyz;
+    p2.tangent_ms = pull_tangent(buffer_tangent_ms, indices.z).xyz;
+
     p0.uv = pull_uv(buffer_uv, indices.x);
     p1.uv = pull_uv(buffer_uv, indices.y);
     p2.uv = pull_uv(buffer_uv, indices.z);
 
-    ForwardInstanceParams instance_data = instance_params[visible_meshlet.mesh_instance_id];
+    MeshInstance instance_data = instance_params[visible_meshlet.mesh_instance_id];
     float4 p0_cs = mul(instance_data.ms_to_cs_matrix, float4(p0.position_ms, 1.0));
     float4 p1_cs = mul(instance_data.ms_to_cs_matrix, float4(p1.position_ms, 1.0));
     float4 p2_cs = mul(instance_data.ms_to_cs_matrix, float4(p2.position_ms, 1.0));
@@ -99,27 +110,26 @@ void main(uint3 gtid : SV_GroupThreadID,
     float2 uv_ddx = float2(uvx.y, uvy.y);
     float2 uv_ddy = float2(uvx.z, uvy.z);
 
+    float3 geometric_normal_ms = interpolate_barycentrics_simple_float3(barycentrics.lambda, p0.normal_ms, p1.normal_ms, p2.normal_ms);
+    float3 geometric_normal_vs = normalize(mul(instance_data.normal_ms_to_vs_matrix, geometric_normal_ms));
+
+    float3 tangent_ms = interpolate_barycentrics_simple_float3(barycentrics.lambda, p0.tangent_ms, p1.tangent_ms, p2.tangent_ms);
+    float3 tangent_vs = normalize(mul(instance_data.normal_ms_to_vs_matrix, tangent_ms));
+
+    float3 normal_map_normal = decode_normal_map(material_maps[NonUniformResourceIndex(instance_data.normal_texture_index)].SampleGrad(diffuse_map_sampler, uv, uv_ddx, uv_ddy).xyz);
+
+    float3 normal_vs = compute_tangent_space_normal_map(geometric_normal_vs, tangent_vs, p0_bitangent_sign, normal_map_normal);
+
     StandardMaterial material;
-#if defined(_DXC)
-    material.albedo = diffuse_maps[NonUniformResourceIndex(instance_data.texture_index)].SampleGrad(diffuse_map_sampler, uv, uv_ddx, uv_ddy);
-#else
-    // FIXME This code is wrong but that's the best I can do right now.
-    // https://github.com/KhronosGroup/glslang/issues/1637
-    material.albedo = diffuse_maps[instance_data.texture_index].SampleGrad(diffuse_map_sampler, uv, uv_ddx, uv_ddy);
-#endif
-    material.roughness = 0.5;
-    material.f0 = 0.1;
+    material.albedo = material_maps[NonUniformResourceIndex(instance_data.albedo_texture_index)].SampleGrad(diffuse_map_sampler, uv, uv_ddx, uv_ddy).rgb;
+    material.normal_vs = normal_vs;
+    material.roughness = material_maps[NonUniformResourceIndex(instance_data.roughness_texture_index)].SampleGrad(diffuse_map_sampler, uv, uv_ddx, uv_ddy).z;
+    material.f0 = material_maps[NonUniformResourceIndex(instance_data.roughness_texture_index)].SampleGrad(diffuse_map_sampler, uv, uv_ddx, uv_ddy).y;
+    material.ao = material_maps[NonUniformResourceIndex(instance_data.ao_texture_index)].SampleGrad(diffuse_map_sampler, uv, uv_ddx, uv_ddy).x;
 
-    float3 normal_ms = interpolate_barycentrics_simple_float3(barycentrics.lambda, p0.normal_ms, p1.normal_ms, p2.normal_ms);
-    float3 normal_vs = mul(instance_data.normal_ms_to_vs_matrix, normal_ms);
+    const GBuffer gbuffer = gbuffer_from_standard_material(material);
+    const GBufferRaw gbuffer_raw = encode_gbuffer(gbuffer);
 
-    GBuffer gbuffer;
-    gbuffer.albedo = material.albedo;
-    gbuffer.roughness = material.roughness;
-    gbuffer.f0 = material.f0;
-    gbuffer.normal_vs = normalize(normal_vs);
-
-    GBufferRaw gbuffer_raw = encode_gbuffer(gbuffer);
     GBuffer0[position_ts] = gbuffer_raw.rt0;
     GBuffer1[position_ts] = gbuffer_raw.rt1;
 }

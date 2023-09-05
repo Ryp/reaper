@@ -19,8 +19,14 @@ target_include_directories(lodepng SYSTEM INTERFACE ${LODEPNG_PATH})
 
 #///////////////////////////////////////////////////////////////////////////////
 
-add_library(cgltf INTERFACE)
-target_include_directories(cgltf SYSTEM INTERFACE ${CMAKE_SOURCE_DIR}/external/cgltf)
+add_library(cgltf STATIC)
+
+target_sources(cgltf PRIVATE
+    ${CMAKE_SOURCE_DIR}/external/cgltf_impl.cpp
+)
+
+set_target_properties(cgltf PROPERTIES POSITION_INDEPENDENT_CODE ON)
+target_include_directories(cgltf SYSTEM PUBLIC ${CMAKE_SOURCE_DIR}/external/cgltf)
 
 #///////////////////////////////////////////////////////////////////////////////
 

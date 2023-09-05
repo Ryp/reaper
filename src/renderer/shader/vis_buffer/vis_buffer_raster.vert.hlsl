@@ -1,10 +1,10 @@
 #include "lib/base.hlsl"
 #include "lib/vertex_pull.hlsl"
 
-#include "forward.share.hlsl"
 #include "meshlet/meshlet.share.hlsl"
+#include "mesh_instance.share.hlsl"
 
-VK_BINDING(0, 0) StructuredBuffer<ForwardInstanceParams> instance_params;
+VK_BINDING(0, 0) StructuredBuffer<MeshInstance> instance_params;
 VK_BINDING(0, 1) StructuredBuffer<VisibleMeshlet> visible_meshlets;
 VK_BINDING(0, 2) ByteAddressBuffer buffer_position_ms;
 
@@ -26,7 +26,7 @@ void main(in VS_INPUT input, out VS_OUTPUT output)
 
     float3 position_ms = pull_position(buffer_position_ms, input.vertex_id + visible_meshlet.vertex_offset);
 
-    ForwardInstanceParams instance_data = instance_params[visible_meshlet.mesh_instance_id];
+    MeshInstance instance_data = instance_params[visible_meshlet.mesh_instance_id];
 
     output.position_cs = mul(instance_data.ms_to_cs_matrix, float4(position_ms, 1.0));
     output.visible_meshlet_index = input.visible_meshlet_index;

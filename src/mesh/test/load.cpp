@@ -13,9 +13,12 @@ TEST_CASE("Mesh Loading")
 {
     SUBCASE("Small OBJ files")
     {
-        ModelLoader::loadOBJ("res/model/quad.obj");
-        ModelLoader::loadOBJ("res/model/ship.obj");
+        load_obj("res/model/quad.obj");
+        load_obj("res/model/ship.obj");
     }
 
-    SUBCASE("Big OBJ files") { ModelLoader::loadOBJ("res/model/bunny.obj"); }
+    SUBCASE("Big OBJ files")
+    {
+        load_obj("res/model/bunny.obj");
+    }
 }

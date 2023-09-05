@@ -48,7 +48,6 @@ struct MaterialResources
     ResourceStagingArea staging;
 
     std::vector<TextureResource> textures;
-    std::vector<TextureHandle>   texture_handles;
 };
 
 struct VulkanBackend;
@@ -56,15 +55,25 @@ struct VulkanBackend;
 MaterialResources create_material_resources(VulkanBackend& backend);
 void              destroy_material_resources(VulkanBackend& backend, MaterialResources& resources);
 
-enum class TextureFileFormat
+inline HandleSpan<TextureHandle> alloc_material_textures(MaterialResources& resources, u32 count)
 {
-    DDS,
-    PNG,
-};
+    const u32 old_size = resources.textures.size();
 
-REAPER_RENDERER_API void load_textures(VulkanBackend& backend, MaterialResources& resources,
-                                       TextureFileFormat file_format, std::span<const char*> texture_filenames,
-                                       std::span<TextureHandle> output_handles);
+    resources.textures.resize(old_size + count);
+
+    return HandleSpan<TextureHandle>{
+        .offset = old_size,
+        .count = count,
+    };
+}
+
+REAPER_RENDERER_API void load_dds_textures_to_staging(VulkanBackend& backend, MaterialResources& resources,
+                                                      std::span<std::string>    texture_filenames,
+                                                      HandleSpan<TextureHandle> handle_span);
+
+REAPER_RENDERER_API void load_png_textures_to_staging(VulkanBackend& backend, MaterialResources& resources,
+                                                      std::span<std::string>    texture_filenames,
+                                                      HandleSpan<TextureHandle> handle_span, std::span<u32> is_srgb);
 
 struct CommandBuffer;
 

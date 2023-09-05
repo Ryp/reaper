@@ -142,7 +142,7 @@ DebugGeometryPassResources create_debug_geometry_pass_resources(VulkanBackend&  
                                                          vertex_properties, backend.vma_instance, MemUsage::CPU_To_GPU);
 
         std::vector<Mesh> meshes;
-        const Mesh&       icosahedron = meshes.emplace_back(ModelLoader::loadOBJ("res/model/icosahedron.obj"));
+        const Mesh&       icosahedron = meshes.emplace_back(load_obj("res/model/icosahedron.obj"));
 
         DebugMeshAlloc& icosahedron_alloc = resources.proxy_mesh_allocs.emplace_back();
         icosahedron_alloc.index_offset = resources.index_buffer_offset;

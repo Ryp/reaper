@@ -19,6 +19,7 @@ struct Mesh
     // Vertex data
     std::vector<glm::fvec3> positions;
     std::vector<glm::fvec3> normals;
+    std::vector<glm::fvec4> tangents; // GLTF uses w for the bitangent sign (-1.0 or 1.0)
     std::vector<glm::fvec2> uvs;
 };
 

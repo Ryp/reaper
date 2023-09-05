@@ -47,6 +47,7 @@ target_link_libraries(${REAPER_BIN} PRIVATE
     reaper_audio
     neptune_sim
     neptune_trackgen
+    cgltf
 )
 
 # Configure main VS projet

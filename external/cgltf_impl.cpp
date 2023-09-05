@@ -5,12 +5,5 @@
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
 
-#pragma once
-
-#include "MaterialResources.h"
-
-namespace Reaper
-{
-StagingEntry copy_texture_to_staging_area_png(VulkanBackend& backend, ResourceStagingArea& staging,
-                                              const char* file_path, bool is_srgb);
-}
+#define CGLTF_IMPLEMENTATION
+#include "cgltf.h"

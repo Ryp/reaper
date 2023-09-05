@@ -10,34 +10,14 @@
 #include "MeshExport.h"
 
 #include <fstream>
-#include <map>
 #include <string>
 
 #include <span>
 
 #include "Mesh.h"
 
-class REAPER_MESH_API ModelLoader
-{
-public:
-    ModelLoader();
-    ~ModelLoader() = default;
-
-public:
-    void load(std::string filename);
-
-    static Mesh loadOBJ(std::ifstream& src);
-    static Mesh loadOBJ(const std::string& filename);
-
-private:
-    static Mesh loadOBJTinyObjLoader(std::ifstream& src);
-    static Mesh loadOBJCustom(std::ifstream& src);
-
-private:
-    using LoaderFunc = Mesh (*)(std::ifstream&);
-
-    std::map<std::string, LoaderFunc> _loaders;
-};
+REAPER_MESH_API Mesh load_obj(std::ifstream& src);
+REAPER_MESH_API Mesh load_obj(const std::string& filename);
 
 REAPER_MESH_API
 void SaveMeshesAsObj(std::ostream& output, std::span<const Mesh> meshes);

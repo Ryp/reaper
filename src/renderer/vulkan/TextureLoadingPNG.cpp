@@ -27,11 +27,12 @@ enum class PNGMode
 // Opens a texture file on the CPU, copies all regions to a single staging buffer and record the copy commands for
 // the next steps.
 StagingEntry copy_texture_to_staging_area_png(VulkanBackend& backend, ResourceStagingArea& staging,
-                                              const char* file_path)
+                                              const char* file_path, bool is_srgb)
 {
     u32         error;
     u8*         png_image_ptr = 0;
-    u32         width, height;
+    u32         width;
+    u32         height;
     u32         size_bytes;
     PixelFormat pixel_format;
 
@@ -43,12 +44,12 @@ StagingEntry copy_texture_to_staging_area_png(VulkanBackend& backend, ResourceSt
     case PNGMode::RGB:
         error = lodepng_decode24_file(&png_image_ptr, &width, &height, file_path);
         size_bytes = width * height * 3;
-        pixel_format = PixelFormat::R8G8B8_SRGB;
+        pixel_format = is_srgb ? PixelFormat::R8G8B8_SRGB : PixelFormat::R8G8B8_UNORM;
         break;
     case PNGMode::RGBA:
         error = lodepng_decode32_file(&png_image_ptr, &width, &height, file_path);
         size_bytes = width * height * 4;
-        pixel_format = PixelFormat::R8G8B8A8_SRGB;
+        pixel_format = is_srgb ? PixelFormat::R8G8B8A8_SRGB : PixelFormat::R8G8B8A8_UNORM;
         break;
     }
 

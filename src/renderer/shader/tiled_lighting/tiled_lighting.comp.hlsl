@@ -3,9 +3,22 @@
 #include "lib/lighting.hlsl"
 #include "gbuffer/gbuffer.hlsl"
 #include "tiled_lighting/tiled_lighting.hlsl"
-#include "forward.share.hlsl" // FIXME
+#include "mesh_instance.share.hlsl"
 
-VK_CONSTANT(0) const bool spec_debug_enable_shadows = true;
+static const uint debug_mode_none = 0;
+static const uint debug_mode_albedo = 1;
+static const uint debug_mode_normal = 2;
+static const uint debug_mode_roughness = 3;
+static const uint debug_mode_metallic = 4;
+static const uint debug_mode_ao = 5;
+
+// https://github.com/microsoft/DirectXShaderCompiler/issues/2957
+#if defined(_DXC)
+VK_CONSTANT(0) const uint spec_debug_mode = 0;
+#else
+VK_CONSTANT(0) const uint spec_debug_mode = debug_mode_none;
+#endif
+VK_CONSTANT(1) const bool spec_debug_enable_shadows = true;
 
 VK_PUSH_CONSTANT_HELPER(TiledLightingPushConstants) push;
 
@@ -18,7 +31,7 @@ VK_BINDING(0, 5) StructuredBuffer<PointLightProperties> point_lights;
 VK_BINDING(0, 6) SamplerComparisonState shadow_map_sampler;
 VK_BINDING(0, 7) RWTexture2D<float4> LightingOutput; // FIXME should be float3 but would trigger validation error
 VK_BINDING(0, 8) RWStructuredBuffer<TileDebug> TileDebugOutput;
-VK_BINDING(0, 9) Texture2D<float> t_shadow_map[ShadowMapMaxCount];
+VK_BINDING(0, 9) Texture2D<float> shadow_maps[ShadowMapMaxCount];
 
 [numthreads(TiledLightingThreadCountX, TiledLightingThreadCountY, 1)]
 void main(uint3 gtid : SV_GroupThreadID,
@@ -51,11 +64,7 @@ void main(uint3 gtid : SV_GroupThreadID,
     gbuffer_raw.rt1 = GBuffer1.Load(uint3(position_ts, 0));
 
     const GBuffer gbuffer = decode_gbuffer(gbuffer_raw);
-
-    StandardMaterial material;
-    material.albedo = gbuffer.albedo;
-    material.roughness = gbuffer.roughness;
-    material.f0 = gbuffer.f0;
+    const StandardMaterial material = standard_material_from_gbuffer(gbuffer);
 
     LightOutput lighting_accum = (LightOutput)0;
 
@@ -66,22 +75,31 @@ void main(uint3 gtid : SV_GroupThreadID,
 
         const PointLightProperties point_light = point_lights[light_index];
 
-        const LightOutput lighting = shade_point_light(point_light, material, position_vs, gbuffer.normal_vs, view_direction_vs);
+        const LightOutput lighting = shade_point_light(point_light, material, position_vs, view_direction_vs);
 
         float shadow_term = 1.0;
         if (point_light.shadow_map_index != InvalidShadowMapIndex && spec_debug_enable_shadows)
         {
             // NOTE: shadow_map_index MUST be uniform
-            shadow_term = sample_shadow_map(t_shadow_map[point_light.shadow_map_index], shadow_map_sampler, point_light.light_ws_to_cs, position_ws);
+            shadow_term = sample_shadow_map(shadow_maps[point_light.shadow_map_index], shadow_map_sampler, point_light.light_ws_to_cs, position_ws);
         }
 
         lighting_accum.diffuse += lighting.diffuse * shadow_term;
         lighting_accum.specular += lighting.specular * shadow_term;
     }
 
-    float3 lighting_sum = lighting_accum.diffuse + lighting_accum.specular;
+    float3 lighting_sum = material.albedo * (lighting_accum.diffuse + lighting_accum.specular);
 
-    lighting_sum *= gbuffer.albedo;
+    if (spec_debug_mode == debug_mode_albedo)
+        lighting_sum = material.albedo;
+    else if (spec_debug_mode == debug_mode_normal)
+        lighting_sum = material.normal_vs * 0.5 + 0.5;
+    else if (spec_debug_mode == debug_mode_roughness)
+        lighting_sum = material.roughness;
+    else if (spec_debug_mode == debug_mode_metallic)
+        lighting_sum = material.f0;
+    else if (spec_debug_mode == debug_mode_ao)
+        lighting_sum = material.ao;
 
     if (all(position_ts < push.extent_ts))
     {

@@ -33,7 +33,7 @@ namespace
         {
             ReaperMesh& mesh = geometry.mesh;
             Assert(mesh.source != EmptySource);
-            meshes.push_back(ModelLoader::loadOBJ(mesh.source));
+            meshes.push_back(load_obj(mesh.source));
             mesh_indirections.push_back(&mesh.handle);
         }
 
@@ -66,9 +66,10 @@ SceneGraph create_static_test_scene(VulkanBackend& backend)
     const SceneMaterialHandle material_handle = static_cast<SceneMaterialHandle>(scene.scene_materials.size());
 
     scene.scene_materials.emplace_back(SceneMaterial{
-        .base_color_texture = backend.resources->material_resources.texture_handles[0],
+        .base_color_texture = TextureHandle(0),
         .metal_roughness_texture = InvalidTextureHandle,
         .normal_map_texture = InvalidTextureHandle,
+        .ao_texture = InvalidTextureHandle,
     });
 
     constexpr i32 asteroid_count = 4;
@@ -120,9 +121,10 @@ SceneGraph create_test_scene_tiled_lighting(VulkanBackend& backend)
     const SceneMaterialHandle material_handle = static_cast<SceneMaterialHandle>(scene.scene_materials.size());
 
     scene.scene_materials.emplace_back(SceneMaterial{
-        .base_color_texture = backend.resources->material_resources.texture_handles[0],
+        .base_color_texture = TextureHandle(0),
         .metal_roughness_texture = InvalidTextureHandle,
         .normal_map_texture = InvalidTextureHandle,
+        .ao_texture = InvalidTextureHandle,
     });
 
     const glm::vec3    up_ws = glm::vec3(0.f, 1.f, 0.f);

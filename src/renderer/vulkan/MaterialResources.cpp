@@ -63,11 +63,11 @@ namespace
         staging.staging_queue.clear();
     }
 
-    TextureResource load_texture_generic(VulkanBackend& backend, MaterialResources& resources, const char* filename,
-                                         StagingEntry& staging_entry)
+    TextureResource create_texture_resource(VulkanBackend& backend, MaterialResources& resources,
+                                            const char* debug_name, StagingEntry& staging_entry)
     {
         GPUTexture image_info =
-            create_image(backend.device, filename, staging_entry.texture_properties, backend.vma_instance);
+            create_image(backend.device, debug_name, staging_entry.texture_properties, backend.vma_instance);
 
         staging_entry.target = image_info.handle;
         resources.staging.staging_queue.push_back(staging_entry);
@@ -80,31 +80,26 @@ namespace
         };
     }
 
-    TextureHandle load_texture(VulkanBackend& backend, MaterialResources& resources, TextureFileFormat file_format,
-                               const char* filename)
+    TextureResource load_texture_to_staging_dds(VulkanBackend& backend, MaterialResources& resources,
+                                                const char* filename)
     {
-        StagingEntry staging_entry;
+        StagingEntry staging_entry = copy_texture_to_staging_area_dds(backend, resources.staging, filename);
 
-        switch (file_format)
-        {
-        case TextureFileFormat::DDS:
-            staging_entry = copy_texture_to_staging_area_dds(backend, resources.staging, filename);
-            break;
-        case TextureFileFormat::PNG:
-            staging_entry = copy_texture_to_staging_area_png(backend, resources.staging, filename);
-            break;
-        }
+        return create_texture_resource(backend, resources, filename, staging_entry);
+    }
 
-        const TextureHandle resource_index = static_cast<TextureHandle>(resources.textures.size());
-        resources.textures.emplace_back(load_texture_generic(backend, resources, filename, staging_entry));
+    TextureResource load_texture_to_staging_png(VulkanBackend& backend, MaterialResources& resources,
+                                                const char* filename, bool is_srgb)
+    {
+        StagingEntry staging_entry = copy_texture_to_staging_area_png(backend, resources.staging, filename, is_srgb);
 
-        return resource_index;
+        return create_texture_resource(backend, resources, filename, staging_entry);
     }
 } // namespace
 
 MaterialResources create_material_resources(VulkanBackend& backend)
 {
-    constexpr u32 StagingBufferSizeBytes = 128_MiB;
+    constexpr u32 StagingBufferSizeBytes = 512_MiB;
 
     const GPUBufferProperties properties =
         DefaultGPUBufferProperties(StagingBufferSizeBytes, sizeof(u8), GPUBufferUsage::TransferSrc);
@@ -122,7 +117,6 @@ MaterialResources create_material_resources(VulkanBackend& backend)
                 .staging_queue = {},
             },
         .textures = {},
-        .texture_handles = {},
     };
 }
 
@@ -139,14 +133,31 @@ void destroy_material_resources(VulkanBackend& backend, MaterialResources& resou
                      resources.staging.staging_buffer.allocation);
 }
 
-void load_textures(VulkanBackend& backend, MaterialResources& resources, TextureFileFormat file_format,
-                   std::span<const char*> texture_filenames, std::span<TextureHandle> output_handles)
+void load_dds_textures_to_staging(VulkanBackend& backend, MaterialResources& resources,
+                                  std::span<std::string> texture_filenames, HandleSpan<TextureHandle> handle_span)
 {
-    Assert(output_handles.size() >= texture_filenames.size());
+    Assert(handle_span.count == texture_filenames.size());
 
     for (u32 i = 0; i < texture_filenames.size(); i++)
     {
-        output_handles[i] = load_texture(backend, resources, file_format, texture_filenames[i]);
+        const TextureHandle handle = TextureHandle(handle_span.offset + i);
+
+        resources.textures[handle] = load_texture_to_staging_dds(backend, resources, texture_filenames[i].c_str());
+    }
+}
+
+void load_png_textures_to_staging(VulkanBackend& backend, MaterialResources& resources,
+                                  std::span<std::string> texture_filenames, HandleSpan<TextureHandle> handle_span,
+                                  std::span<u32> is_srgb)
+{
+    Assert(handle_span.count == texture_filenames.size());
+
+    for (u32 i = 0; i < texture_filenames.size(); i++)
+    {
+        const TextureHandle handle = TextureHandle(handle_span.offset + i);
+
+        resources.textures[handle] =
+            load_texture_to_staging_png(backend, resources, texture_filenames[i].c_str(), is_srgb[i] != 0);
     }
 }
 

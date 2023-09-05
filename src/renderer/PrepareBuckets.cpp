@@ -177,7 +177,6 @@ void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCa
 
     // Main + culling pass
     prepared.forward_pass_constants.ws_to_vs_matrix = main_camera.ws_to_vs_matrix;
-    prepared.forward_pass_constants.vs_to_cs_matrix = main_camera.perspective_projection.vs_to_cs_matrix;
     prepared.forward_pass_constants.ws_to_cs_matrix = main_camera.ws_to_cs_matrix;
     prepared.forward_pass_constants.point_light_count = scene.scene_lights.size();
 
@@ -228,16 +227,19 @@ void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCa
             // FIXME use 4x3 matrices directly
             const glm::mat4x3 ms_to_vs_matrix = glm::mat4(main_camera.ws_to_vs_matrix) * glm::mat4(mesh_transform);
 
-            ForwardInstanceParams& forward_instance = prepared.forward_instances.emplace_back();
-            forward_instance.ms_to_cs_matrix = main_camera.ws_to_cs_matrix * glm::mat4(mesh_transform);
-            forward_instance.ms_to_ws_matrix = mesh_transform;
-            forward_instance.normal_ms_to_vs_matrix = glm::mat3(ms_to_vs_matrix);
-            forward_instance.texture_index = scene_material.base_color_texture;
+            MeshInstance& mesh_instance = prepared.mesh_instances.emplace_back();
+            mesh_instance.ms_to_cs_matrix = main_camera.ws_to_cs_matrix * glm::mat4(mesh_transform);
+            mesh_instance.ms_to_ws_matrix = mesh_transform;
+            mesh_instance.normal_ms_to_vs_matrix = glm::mat3(ms_to_vs_matrix);
+            mesh_instance.albedo_texture_index = scene_material.base_color_texture;
+            mesh_instance.roughness_texture_index = scene_material.metal_roughness_texture;
+            mesh_instance.normal_texture_index = scene_material.normal_map_texture;
+            mesh_instance.ao_texture_index = scene_material.ao_texture;
 
             const u32               cull_instance_index = prepared.cull_mesh_instance_params.size();
             CullMeshInstanceParams& cull_instance = prepared.cull_mesh_instance_params.emplace_back();
 
-            cull_instance.ms_to_cs_matrix = forward_instance.ms_to_cs_matrix;
+            cull_instance.ms_to_cs_matrix = mesh_instance.ms_to_cs_matrix;
 
             const glm::mat4x3 vs_to_ms_matrix = glm::inverse(glm::mat4(ms_to_vs_matrix));
             cull_instance.vs_to_ms_matrix_translate = vs_to_ms_matrix * glm::vec4(0.f, 0.f, 0.f, 1.f);

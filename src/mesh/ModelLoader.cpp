@@ -12,32 +12,16 @@
 #include <algorithm>
 #include <cctype>
 #include <fstream>
-#include <sstream>
-#include <string.h>
 #include <vector>
 
 #include "tiny_obj_loader.h"
 
 #include <glm/geometric.hpp>
 
-ModelLoader::ModelLoader()
+namespace
 {
-    _loaders["obj"] = &ModelLoader::loadOBJTinyObjLoader;
-}
-
-Mesh ModelLoader::loadOBJ(std::ifstream& src)
-{
-    return loadOBJTinyObjLoader(src);
-}
-
-Mesh ModelLoader::loadOBJ(const std::string& filename)
-{
-    std::ifstream file(filename);
-    return loadOBJ(file);
-}
-
 // A lot of cache miss with this method.
-Mesh ModelLoader::loadOBJTinyObjLoader(std::ifstream& src)
+Mesh load_obj_tiny_obj_loader(std::ifstream& src)
 {
     tinyobj::attrib_t                attrib;
     std::vector<tinyobj::shape_t>    shapes;
@@ -104,119 +88,17 @@ Mesh ModelLoader::loadOBJTinyObjLoader(std::ifstream& src)
     }
     return mesh;
 }
+} // namespace
 
-Mesh ModelLoader::loadOBJCustom(std::ifstream& src)
+Mesh load_obj(std::ifstream& src)
 {
-    Mesh                    mesh;
-    std::string             line;
-    glm::vec3               tmpVec3;
-    glm::vec2               tmpVec2;
-    glm::uvec3              vIdx;
-    std::vector<glm::vec3>  positions;
-    std::vector<glm::vec3>  normals;
-    std::vector<glm::vec2>  uvs;
-    std::vector<glm::uvec3> indexes;
+    return load_obj_tiny_obj_loader(src);
+}
 
-    while (std::getline(src, line))
-    {
-        std::istringstream ss(line);
-        ss >> line;
-        if (line == "v")
-        {
-            ss >> tmpVec3[0] >> tmpVec3[1] >> tmpVec3[2];
-            positions.push_back(tmpVec3);
-        }
-        else if (line == "vn")
-        {
-            ss >> tmpVec3[0] >> tmpVec3[1] >> tmpVec3[2];
-            normals.push_back(tmpVec3);
-        }
-        else if (line == "vt")
-        {
-            ss >> tmpVec2[0] >> tmpVec2[1];
-            tmpVec2[1] = 1.f - tmpVec2[1]; // Revert V coordinate
-            uvs.push_back(tmpVec2);
-        }
-        else if (line == "f")
-        {
-            std::string val;
-            std::size_t pos;
-            for (int i = 0; i < 3; ++i)
-            {
-                ss >> line;
-                for (int j = 0; j < 3; ++j)
-                {
-                    val = line.substr(0, line.find_first_of('/'));
-                    if (!val.empty())
-                        vIdx[j] = std::abs(static_cast<long>(std::stoul(val))) - 1;
-                    else
-                        vIdx[j] = 0;
-                    if ((pos = line.find_first_of('/')) != std::string::npos)
-                        line = line.substr(pos + 1);
-                    else
-                        line = "";
-                }
-                indexes.push_back(vIdx);
-            }
-            ss >> line;
-            if (!line.empty())
-            {
-                for (int j = 0; j < 3; ++j)
-                {
-                    val = line.substr(0, line.find_first_of('/'));
-                    if (!val.empty())
-                        vIdx[j] = std::abs(static_cast<long>(std::stoul(val))) - 1;
-                    else
-                        vIdx[j] = 0;
-                    if ((pos = line.find_first_of('/')) != std::string::npos)
-                        line = line.substr(pos + 1);
-                    else
-                        line = "";
-                }
-                indexes.push_back(indexes[indexes.size() - 3]);
-                indexes.push_back(indexes[indexes.size() - 2]);
-                indexes.push_back(vIdx);
-            }
-        }
-    }
-
-    const bool hasUVs = !(uvs.empty());
-    const bool hasNormals = !(normals.empty());
-
-    Assert(!positions.empty() && !indexes.empty(), "Empty model");
-
-    // CW Winding test
-    if (hasNormals)
-    {
-        glm::vec3 a = positions[indexes[1][0]] - positions[indexes[0][0]];
-        glm::vec3 b = positions[indexes[2][0]] - positions[indexes[0][0]];
-        glm::vec3 n = normals[indexes[0][2]] + normals[indexes[1][2]] + normals[indexes[2][2]];
-        if (glm::dot(glm::cross(a, b), n) < 0.0f)
-        {
-            Assert(false, "model has been reverted");
-            glm::vec3 t;
-            for (unsigned i = 0; (i + 2) < indexes.size(); i += 3)
-            {
-                t = indexes[i + 1];
-                indexes[i + 1] = indexes[i + 2];
-                indexes[i + 2] = t;
-            }
-        }
-    }
-    for (unsigned i = 0; i < indexes.size(); ++i)
-    {
-        mesh.positions.push_back(positions[indexes[i][0]]);
-        if (hasUVs)
-            mesh.uvs.push_back(uvs[indexes[i][1]]);
-        if (hasNormals)
-            mesh.normals.push_back(normals[indexes[i][2]]);
-        mesh.indexes.push_back(i);
-    }
-
-    if (!hasNormals)
-        computeNormalsSimple(mesh);
-
-    return mesh;
+Mesh load_obj(const std::string& filename)
+{
+    std::ifstream file(filename);
+    return load_obj(file);
 }
 
 void SaveMeshesAsObj(std::ostream& output, std::span<const Mesh> meshes)

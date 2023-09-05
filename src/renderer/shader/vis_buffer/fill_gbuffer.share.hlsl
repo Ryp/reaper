@@ -17,10 +17,11 @@
 #define Slot_visible_index_buffer   4
 #define Slot_buffer_position_ms     5
 #define Slot_buffer_normal_ms       6
-#define Slot_buffer_uv              7
-#define Slot_visible_meshlets       8
-#define Slot_diffuse_map_sampler    9
-#define Slot_diffuse_maps           10
+#define Slot_buffer_tangent_ms      7
+#define Slot_buffer_uv              8
+#define Slot_visible_meshlets       9
+#define Slot_diffuse_map_sampler    10
+#define Slot_material_maps          11
 
 static const hlsl_uint GBufferFillThreadCountX = 16;
 static const hlsl_uint GBufferFillThreadCountY = 16;
