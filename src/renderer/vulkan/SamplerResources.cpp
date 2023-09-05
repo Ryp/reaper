@@ -11,9 +11,6 @@
 #include "renderer/vulkan/Debug.h"
 #include "renderer/vulkan/renderpass/ShadowConstants.h"
 
-#include <common/Log.h>
-#include <common/ReaperRoot.h>
-
 #include <cfloat>
 #include <core/Assert.h>
 
@@ -32,7 +29,7 @@ namespace
     }
 } // namespace
 
-SamplerResources create_sampler_resources(ReaperRoot& /*root*/, VulkanBackend& backend)
+SamplerResources create_sampler_resources(VulkanBackend& backend)
 {
     SamplerResources resources;
 

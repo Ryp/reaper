@@ -31,6 +31,15 @@ namespace GPUTextureUsage
     };
 }
 
+namespace GPUTextureMisc
+{
+    enum Type : u32
+    {
+        None = 0,
+        LinearTiling = bit(0),
+    };
+}
+
 struct GPUTextureProperties
 {
     u32         width;
@@ -41,6 +50,7 @@ struct GPUTextureProperties
     u32         layer_count;
     u32         sample_count;
     u32         usage_flags;
+    u32         misc_flags;
 };
 
 REAPER_RENDERER_API

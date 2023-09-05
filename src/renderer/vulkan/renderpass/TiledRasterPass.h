@@ -56,12 +56,10 @@ struct TiledRasterResources
     GPUBuffer                   proxy_volume_buffer;
 };
 
-struct ReaperRoot;
 struct VulkanBackend;
 struct ShaderModules;
 
-TiledRasterResources create_tiled_raster_pass_resources(ReaperRoot& root, VulkanBackend& backend,
-                                                        const ShaderModules& shader_modules);
+TiledRasterResources create_tiled_raster_pass_resources(VulkanBackend& backend, const ShaderModules& shader_modules);
 void                 destroy_tiled_raster_pass_resources(VulkanBackend& backend, TiledRasterResources& resources);
 
 struct SamplerResources;

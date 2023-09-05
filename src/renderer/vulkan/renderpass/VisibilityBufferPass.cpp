@@ -83,7 +83,6 @@ namespace
 
         Assert(backend.physical_device.graphics_queue_family_index
                == backend.physical_device.present_queue_family_index);
-        log_debug(root, "vulkan: created blit pipeline with handle: {}", static_cast<void*>(pipeline));
 
         log_debug(root, "- total time = {}ms, vs = {}ms, fs = {}ms", feedback.duration / 1000,
                   feedback_stages[0].duration / 1000, feedback_stages[1].duration / 1000);
@@ -151,7 +150,7 @@ VisibilityBufferPassResources create_vis_buffer_pass_resources(ReaperRoot& root,
     }
 
     resources.instance_buffer =
-        create_buffer(root, backend.device, "VisibilityBuffer Instance buffer",
+        create_buffer(backend.device, "VisibilityBuffer Instance buffer",
                       DefaultGPUBufferProperties(VisibilityBufferInstanceCountMax, sizeof(ForwardInstanceParams),
                                                  GPUBufferUsage::StorageBuffer),
                       backend.vma_instance, MemUsage::CPU_To_GPU);

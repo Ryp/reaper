@@ -818,7 +818,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     log_barriers(root, framegraph, schedule);
 
-    allocate_framegraph_volatile_resources(root, backend, resources.framegraph_resources, framegraph);
+    allocate_framegraph_volatile_resources(backend, resources.framegraph_resources, framegraph);
 
     DescriptorWriteHelper descriptor_write_helper(200, 200);
 

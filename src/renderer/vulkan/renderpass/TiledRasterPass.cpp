@@ -24,7 +24,6 @@
 #include "renderer/vulkan/SamplerResources.h"
 #include "renderer/vulkan/ShaderModules.h"
 
-#include "common/ReaperRoot.h"
 #include "mesh/Mesh.h"
 #include "mesh/ModelLoader.h"
 #include "profiling/Scope.h"
@@ -47,8 +46,7 @@ namespace RasterPass
     };
 }
 
-TiledRasterResources create_tiled_raster_pass_resources(ReaperRoot& root, VulkanBackend& backend,
-                                                        const ShaderModules& shader_modules)
+TiledRasterResources create_tiled_raster_pass_resources(VulkanBackend& backend, const ShaderModules& shader_modules)
 {
     TiledRasterResources resources = {};
 
@@ -208,7 +206,7 @@ TiledRasterResources create_tiled_raster_pass_resources(ReaperRoot& root, Vulkan
             MaxVertexCount, sizeof(hlsl_float3), GPUBufferUsage::StorageBuffer | GPUBufferUsage::VertexBuffer);
 
         resources.vertex_buffer_offset = 0;
-        resources.vertex_buffer_position = create_buffer(root, backend.device, "Lighting vertex buffer", properties,
+        resources.vertex_buffer_position = create_buffer(backend.device, "Lighting vertex buffer", properties,
                                                          backend.vma_instance, MemUsage::CPU_To_GPU);
 
         std::vector<Mesh> meshes;
@@ -228,12 +226,12 @@ TiledRasterResources create_tiled_raster_pass_resources(ReaperRoot& root, Vulkan
     }
 
     resources.light_volume_buffer = create_buffer(
-        root, backend.device, "Light volume buffer",
+        backend.device, "Light volume buffer",
         DefaultGPUBufferProperties(LightVolumeMax, sizeof(LightVolumeInstance), GPUBufferUsage::UniformBuffer),
         backend.vma_instance, MemUsage::CPU_To_GPU);
 
     resources.proxy_volume_buffer = create_buffer(
-        root, backend.device, "Proxy volume buffer",
+        backend.device, "Proxy volume buffer",
         DefaultGPUBufferProperties(LightVolumeMax, sizeof(ProxyVolumeInstance), GPUBufferUsage::StorageBuffer),
         backend.vma_instance, MemUsage::CPU_To_GPU);
 

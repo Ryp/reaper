@@ -33,13 +33,13 @@ struct GPUTextureSubresource
 REAPER_RENDERER_API
 GPUTextureSubresource default_texture_subresource(const GPUTextureProperties& properties);
 
-inline GPUTextureSubresource default_texture_subresource_one_color_mip()
+inline GPUTextureSubresource default_texture_subresource_one_color_mip(u32 mip_index = 0, u32 layer_index = 0)
 {
     return GPUTextureSubresource{
         .aspect = ViewAspect::Color,
-        .mip_offset = 0,
+        .mip_offset = mip_index,
         .mip_count = 1,
-        .layer_offset = 0,
+        .layer_offset = layer_index,
         .layer_count = 1,
     };
 }

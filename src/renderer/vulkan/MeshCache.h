@@ -41,10 +41,9 @@ struct MeshCache
     std::vector<Mesh2> mesh2_instances;
 };
 
-struct ReaperRoot;
 struct VulkanBackend;
 
-MeshCache create_mesh_cache(ReaperRoot& root, VulkanBackend& backend);
+MeshCache create_mesh_cache(VulkanBackend& backend);
 void      destroy_mesh_cache(VulkanBackend& backend, const MeshCache& mesh_cache);
 
 // This invalidates all current handles

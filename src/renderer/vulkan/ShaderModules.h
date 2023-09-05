@@ -11,9 +11,6 @@
 
 namespace Reaper
 {
-struct ReaperRoot;
-struct VulkanBackend;
-
 struct ShaderModules
 {
     VkShaderModule copy_to_depth_fs;
@@ -46,6 +43,8 @@ struct ShaderModules
     VkShaderModule vis_fill_gbuffer_cs;
 };
 
-ShaderModules create_shader_modules(ReaperRoot& root, VulkanBackend& backend);
+struct VulkanBackend;
+
+ShaderModules create_shader_modules(VulkanBackend& backend);
 void          destroy_shader_modules(VulkanBackend& backend, ShaderModules& shader_modules);
 } // namespace Reaper

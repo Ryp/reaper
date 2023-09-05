@@ -26,8 +26,7 @@
 
 namespace Reaper
 {
-HistogramPassResources create_histogram_pass_resources(ReaperRoot& /*root*/, VulkanBackend& backend,
-                                                       const ShaderModules& shader_modules)
+HistogramPassResources create_histogram_pass_resources(VulkanBackend& backend, const ShaderModules& shader_modules)
 {
     HistogramPassResources resources = {};
 

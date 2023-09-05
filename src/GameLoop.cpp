@@ -60,6 +60,7 @@ struct Track
 
 namespace
 {
+#if ENABLE_GAME_SCENE
     Track create_game_track(const GenerationInfo& gen_info, Reaper::VulkanBackend& backend, PhysicsSim& sim,
                             Reaper::SceneGraph& scene, Reaper::SceneMaterialHandle material_handle)
     {
@@ -126,6 +127,7 @@ namespace
         // FIXME Unload mesh data (cpu/render)
         static_cast<void>(backend);
     }
+#endif
 } // namespace
 } // namespace Neptune
 
@@ -220,6 +222,7 @@ namespace
         ImGui::End();
     }
 
+#if ENABLE_GAME_SCENE
     void imgui_sim_debug(Neptune::PhysicsSim& sim)
     {
         ImGui::SliderFloat("simulation_substep_duration", &sim.vars.simulation_substep_duration, 1.f / 200.f,
@@ -251,6 +254,7 @@ namespace
         ImGui::SliderFloat("default_ship_stats.braking", &sim.vars.default_ship_stats.braking, 0.f, 100.f);
         ImGui::SliderFloat("default_ship_stats.handling", &sim.vars.default_ship_stats.handling, 0.1f, 10.f);
     }
+#endif
 
     void imgui_process_button_press(ImGuiIO& io, Window::MouseButton::type button, bool is_pressed)
     {
@@ -293,27 +297,37 @@ void execute_game_loop(ReaperRoot& root)
 
     renderer_start(root, backend, window);
 
+    // FIXME load common textures used in all scenes
+    std::vector<const char*> dds_filenames = {
+        "res/texture/default.dds",
+        "res/texture/bricks_diffuse.dds",
+        "res/texture/bricks_specular.dds",
+    };
+
+    std::vector<const char*> png_filenames = {
+        "res/textures/body_metallicRoughness.png",
+    };
+
+    auto& material_texture_handles = backend.resources->material_resources.texture_handles;
+
+    material_texture_handles.resize(dds_filenames.size() + png_filenames.size());
+    load_textures(backend, backend.resources->material_resources, TextureFileFormat::DDS, dds_filenames,
+                  std::span(material_texture_handles.data(), dds_filenames.size()));
+
+    load_textures(backend, backend.resources->material_resources, TextureFileFormat::PNG, png_filenames,
+                  std::span(material_texture_handles.data() + dds_filenames.size(), png_filenames.size()));
+
     Neptune::PhysicsSim sim = Neptune::create_sim();
     Neptune::sim_start(&sim);
 
     SceneGraph scene;
 
 #if ENABLE_TEST_SCENE
-    // scene = create_test_scene_tiled_lighting(root, backend);
-    scene = create_static_test_scene(root, backend);
+    // scene = create_test_scene_tiled_lighting(backend);
+    scene = create_static_test_scene(backend);
 #endif
 
 #if ENABLE_GAME_SCENE
-    std::vector<const char*> texture_filenames = {
-        "res/texture/default.dds",
-        "res/texture/bricks_diffuse.dds",
-        "res/texture/bricks_specular.dds",
-    };
-
-    backend.resources->material_resources.texture_handles.resize(texture_filenames.size());
-    load_textures(root, backend, backend.resources->material_resources, texture_filenames,
-                  backend.resources->material_resources.texture_handles);
-
     Neptune::GenerationInfo track_gen_info = {};
     track_gen_info.length = 5;
     track_gen_info.width = 12.0f;

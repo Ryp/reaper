@@ -5,6 +5,20 @@
 #// This file is distributed under the MIT License
 #///////////////////////////////////////////////////////////////////////////////
 
+add_library(lodepng STATIC)
+
+set(LODEPNG_PATH ${CMAKE_SOURCE_DIR}/external/lodepng)
+
+target_sources(lodepng PRIVATE
+    ${LODEPNG_PATH}/lodepng.cpp
+    ${LODEPNG_PATH}/lodepng.h
+)
+
+set_target_properties(lodepng PROPERTIES POSITION_INDEPENDENT_CODE ON)
+target_include_directories(lodepng SYSTEM INTERFACE ${LODEPNG_PATH})
+
+#///////////////////////////////////////////////////////////////////////////////
+
 add_library(cgltf INTERFACE)
 target_include_directories(cgltf SYSTEM INTERFACE ${CMAKE_SOURCE_DIR}/external/cgltf)
 

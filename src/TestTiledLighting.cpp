@@ -19,61 +19,45 @@
 
 namespace Reaper
 {
-void allocate_scene_resources(ReaperRoot& root, VulkanBackend& backend, std::span<ReaperGeometry> geometries)
+namespace
 {
-    std::vector<Mesh>        meshes; // They don't need to persist any longer that that.
-    std::vector<const char*> texture_filenames;
-
-    // Used to write back the handles at the correct place
-    std::vector<MeshHandle*>    mesh_indirections;    // FIXME
-    std::vector<TextureHandle*> texture_indirections; // FIXME
-
-    for (auto& geometry : geometries)
+    void allocate_scene_resources(VulkanBackend& backend, std::span<ReaperGeometry> geometries)
     {
-        ReaperMaterial& material = geometry.material;
-        Assert(material.albedo.source != EmptySource);
-        texture_filenames.push_back(material.albedo.source);
-        texture_indirections.push_back(&material.albedo.handle);
+        std::vector<Mesh>        meshes; // They don't need to persist any longer that that.
+        std::vector<const char*> texture_filenames;
 
-        ReaperMesh& mesh = geometry.mesh;
-        Assert(mesh.source != EmptySource);
-        meshes.push_back(ModelLoader::loadOBJ(mesh.source));
-        mesh_indirections.push_back(&mesh.handle);
+        // Used to write back the handles at the correct place
+        std::vector<MeshHandle*> mesh_indirections; // FIXME
+
+        for (auto& geometry : geometries)
+        {
+            ReaperMesh& mesh = geometry.mesh;
+            Assert(mesh.source != EmptySource);
+            meshes.push_back(ModelLoader::loadOBJ(mesh.source));
+            mesh_indirections.push_back(&mesh.handle);
+        }
+
+        std::vector<MeshHandle> mesh_handles;
+        mesh_handles.resize(meshes.size());
+        load_meshes(backend, backend.resources->mesh_cache, meshes, mesh_handles);
+
+        // Fixup pointers
+        Assert(mesh_indirections.size() == meshes.size());
+        for (u32 i = 0; i < mesh_indirections.size(); i++)
+        {
+            MeshHandle* const target = mesh_indirections[i];
+            *target = mesh_handles[i];
+        }
     }
+} // namespace
 
-    std::vector<MeshHandle> mesh_handles;
-    mesh_handles.resize(meshes.size());
-    load_meshes(backend, backend.resources->mesh_cache, meshes, mesh_handles);
-
-    // Fixup pointers
-    Assert(mesh_indirections.size() == meshes.size());
-    for (u32 i = 0; i < mesh_indirections.size(); i++)
-    {
-        MeshHandle* const target = mesh_indirections[i];
-        *target = mesh_handles[i];
-    }
-
-    std::vector<TextureHandle>& texture_handles = backend.resources->material_resources.texture_handles;
-    texture_handles.resize(texture_filenames.size());
-    load_textures(root, backend, backend.resources->material_resources, texture_filenames, texture_handles);
-
-    // Fixup pointers
-    Assert(texture_indirections.size() == texture_handles.size());
-    for (u32 i = 0; i < texture_indirections.size(); i++)
-    {
-        TextureHandle* const target = texture_indirections[i];
-        *target = texture_handles[i];
-    }
-}
-
-SceneGraph create_static_test_scene(ReaperRoot& root, VulkanBackend& backend)
+SceneGraph create_static_test_scene(VulkanBackend& backend)
 {
     std::vector<ReaperGeometry> geometries;
     ReaperGeometry&             asteroid_geometry = geometries.emplace_back();
-    asteroid_geometry.material.albedo.source = "res/texture/default.dds";
     asteroid_geometry.mesh.source = "res/model/asteroid.obj";
 
-    allocate_scene_resources(root, backend, geometries);
+    allocate_scene_resources(backend, geometries);
 
     SceneGraph scene;
     scene.camera_node = create_scene_node(scene, glm::translate(glm::mat4(1.0f), glm::vec3(-10.f, 3.f, 3.f)));
@@ -82,7 +66,7 @@ SceneGraph create_static_test_scene(ReaperRoot& root, VulkanBackend& backend)
     const SceneMaterialHandle material_handle = static_cast<SceneMaterialHandle>(scene.scene_materials.size());
 
     scene.scene_materials.emplace_back(SceneMaterial{
-        .base_color_texture = asteroid_geometry.material.albedo.handle,
+        .base_color_texture = backend.resources->material_resources.texture_handles[0],
         .metal_roughness_texture = InvalidTextureHandle,
         .normal_map_texture = InvalidTextureHandle,
     });
@@ -122,14 +106,13 @@ SceneGraph create_static_test_scene(ReaperRoot& root, VulkanBackend& backend)
     return scene;
 }
 
-SceneGraph create_test_scene_tiled_lighting(ReaperRoot& root, VulkanBackend& backend)
+SceneGraph create_test_scene_tiled_lighting(VulkanBackend& backend)
 {
     std::vector<ReaperGeometry> geometries;
     ReaperGeometry&             asteroid_geometry = geometries.emplace_back();
-    asteroid_geometry.material.albedo.source = "res/texture/default.dds";
     asteroid_geometry.mesh.source = "res/model/quad.obj";
 
-    allocate_scene_resources(root, backend, geometries);
+    allocate_scene_resources(backend, geometries);
 
     SceneGraph scene;
 
@@ -137,7 +120,7 @@ SceneGraph create_test_scene_tiled_lighting(ReaperRoot& root, VulkanBackend& bac
     const SceneMaterialHandle material_handle = static_cast<SceneMaterialHandle>(scene.scene_materials.size());
 
     scene.scene_materials.emplace_back(SceneMaterial{
-        .base_color_texture = asteroid_geometry.material.albedo.handle,
+        .base_color_texture = backend.resources->material_resources.texture_handles[0],
         .metal_roughness_texture = InvalidTextureHandle,
         .normal_map_texture = InvalidTextureHandle,
     });

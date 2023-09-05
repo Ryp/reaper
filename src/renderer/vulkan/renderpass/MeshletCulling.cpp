@@ -145,8 +145,7 @@ CullMeshletsFrameGraphData create_cull_meshlet_frame_graph_data(FrameGraph::Buil
     };
 }
 
-MeshletCullingResources create_meshlet_culling_resources(ReaperRoot& root, VulkanBackend& backend,
-                                                         const ShaderModules& shader_modules)
+MeshletCullingResources create_meshlet_culling_resources(VulkanBackend& backend, const ShaderModules& shader_modules)
 {
     MeshletCullingResources resources;
 
@@ -218,7 +217,7 @@ MeshletCullingResources create_meshlet_culling_resources(ReaperRoot& root, Vulka
     }
 
     resources.mesh_instance_buffer =
-        create_buffer(root, backend.device, "Culling instance constants",
+        create_buffer(backend.device, "Culling instance constants",
                       DefaultGPUBufferProperties(MaxMeshInstanceCount * MaxMeshletCullingPassCount,
                                                  sizeof(CullMeshInstanceParams), GPUBufferUsage::StorageBuffer),
                       backend.vma_instance, MemUsage::CPU_To_GPU);
@@ -227,8 +226,8 @@ MeshletCullingResources create_meshlet_culling_resources(ReaperRoot& root, Vulka
                                                                    sizeof(u32), GPUBufferUsage::TransferDst);
 
     resources.counters_cpu_buffer =
-        create_buffer(root, backend.device, "Meshlet counters CPU", resources.counters_cpu_properties,
-                      backend.vma_instance, MemUsage::CPU_Only);
+        create_buffer(backend.device, "Meshlet counters CPU", resources.counters_cpu_properties, backend.vma_instance,
+                      MemUsage::CPU_Only);
 
     Assert(MaxIndirectDrawCountPerPass < backend.physical_device.properties.limits.maxDrawIndirectCount);
 

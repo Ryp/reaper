@@ -16,7 +16,6 @@
 
 namespace Reaper
 {
-struct ReaperRoot;
 struct VulkanBackend;
 
 struct FrameGraphTexture
@@ -59,10 +58,10 @@ struct FrameGraphResources
     std::vector<VkImageView> additional_texture_views_b;
 };
 
-FrameGraphResources create_framegraph_resources(ReaperRoot& root, VulkanBackend& backend);
+FrameGraphResources create_framegraph_resources(VulkanBackend& backend);
 void                destroy_framegraph_resources(VulkanBackend& backend, FrameGraphResources& resources);
 
-void allocate_framegraph_volatile_resources(ReaperRoot& root, VulkanBackend& backend, FrameGraphResources& resources,
+void allocate_framegraph_volatile_resources(VulkanBackend& backend, FrameGraphResources& resources,
                                             const FrameGraph::FrameGraph& framegraph);
 void destroy_framegraph_volatile_resources(VulkanBackend& backend, FrameGraphResources& resources);
 

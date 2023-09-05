@@ -33,13 +33,11 @@ struct HZBPassResources
     VkDescriptorSet descriptor_set;
 };
 
-struct ReaperRoot;
 struct VulkanBackend;
 struct FrameGraphBuffer;
 struct ShaderModules;
 
-HZBPassResources create_hzb_pass_resources(ReaperRoot& root, VulkanBackend& backend,
-                                           const ShaderModules& shader_modules);
+HZBPassResources create_hzb_pass_resources(VulkanBackend& backend, const ShaderModules& shader_modules);
 void             destroy_hzb_pass_resources(VulkanBackend& backend, const HZBPassResources& resources);
 
 struct SamplerResources;

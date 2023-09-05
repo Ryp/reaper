@@ -46,11 +46,10 @@ struct DebugGeometryPassResources
     GPUBuffer                   vertex_buffer_position;
 };
 
-struct ReaperRoot;
 struct VulkanBackend;
 struct ShaderModules;
 
-DebugGeometryPassResources create_debug_geometry_pass_resources(ReaperRoot& root, VulkanBackend& backend,
+DebugGeometryPassResources create_debug_geometry_pass_resources(VulkanBackend&       backend,
                                                                 const ShaderModules& shader_modules);
 void destroy_debug_geometry_pass_resources(VulkanBackend& backend, DebugGeometryPassResources& resources);
 

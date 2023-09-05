@@ -17,17 +17,13 @@
 #include "renderer/vulkan/SamplerResources.h"
 #include "renderer/vulkan/ShaderModules.h"
 
-#include "common/Log.h"
-#include "common/ReaperRoot.h"
-
 #include "profiling/Scope.h"
 
 #include "renderer/shader/hzb_reduce.share.hlsl"
 
 namespace Reaper
 {
-HZBPassResources create_hzb_pass_resources(ReaperRoot& /*root*/, VulkanBackend& backend,
-                                           const ShaderModules& shader_modules)
+HZBPassResources create_hzb_pass_resources(VulkanBackend& backend, const ShaderModules& shader_modules)
 {
     HZBPassResources resources = {};
 

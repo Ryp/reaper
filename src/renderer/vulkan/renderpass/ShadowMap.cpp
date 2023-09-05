@@ -23,10 +23,8 @@
 #include "renderer/vulkan/RenderPassHelpers.h"
 #include "renderer/vulkan/ShaderModules.h"
 
-#include "common/Log.h"
-#include "common/ReaperRoot.h"
-
 #include <array>
+#include <fmt/format.h>
 
 #include "renderer/shader/shadow/shadow_map_pass.share.hlsl"
 
@@ -35,8 +33,7 @@ namespace Reaper
 constexpr u32 ShadowInstanceCountMax = 512;
 constexpr u32 MaxShadowPassCount = 4;
 
-ShadowMapResources create_shadow_map_resources(ReaperRoot& root, VulkanBackend& backend,
-                                               const ShaderModules& shader_modules)
+ShadowMapResources create_shadow_map_resources(VulkanBackend& backend, const ShaderModules& shader_modules)
 {
     ShadowMapResources resources = {};
 
@@ -65,7 +62,7 @@ ShadowMapResources create_shadow_map_resources(ReaperRoot& root, VulkanBackend& 
         ShadowInstanceCountMax, sizeof(ShadowMapInstanceParams), GPUBufferUsage::StorageBuffer);
 
     resources.instance_buffer =
-        create_buffer(root, backend.device, "Shadow Map Instance buffer", resources.instance_buffer_properties,
+        create_buffer(backend.device, "Shadow Map Instance buffer", resources.instance_buffer_properties,
                       backend.vma_instance, MemUsage::CPU_To_GPU);
 
     resources.descriptor_sets.resize(3); // FIXME

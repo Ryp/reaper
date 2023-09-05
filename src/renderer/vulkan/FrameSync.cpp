@@ -9,11 +9,9 @@
 
 #include "Backend.h"
 
-#include "common/Log.h"
-
 namespace Reaper
 {
-FrameSyncResources create_frame_sync_resources(ReaperRoot& root, VulkanBackend& backend)
+FrameSyncResources create_frame_sync_resources(VulkanBackend& backend)
 {
     // Create fence signaled by default, so we don't have to make it a special case when waiting for the last frame at
     // the first frame
@@ -25,7 +23,6 @@ FrameSyncResources create_frame_sync_resources(ReaperRoot& root, VulkanBackend& 
 
     VkFence draw_fence = VK_NULL_HANDLE;
     vkCreateFence(backend.device, &fenceInfo, nullptr, &draw_fence);
-    log_debug(root, "vulkan: created fence with handle: {}", static_cast<void*>(draw_fence));
 
     FrameSyncResources resources = {};
 

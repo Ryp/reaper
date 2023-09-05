@@ -50,25 +50,25 @@ void create_backend_resources(ReaperRoot& root, VulkanBackend& backend)
     // TracyVkContextName(resources.gfxCmdBuffer.tracy_ctx, name, size);
 #endif
 
-    resources.shader_modules = create_shader_modules(root, backend);
-    resources.samplers_resources = create_sampler_resources(root, backend);
-    resources.debug_geometry_resources = create_debug_geometry_pass_resources(root, backend, resources.shader_modules);
-    resources.framegraph_resources = create_framegraph_resources(root, backend);
-    resources.audio_resources = create_audio_resources(root, backend, resources.shader_modules);
-    resources.meshlet_culling_resources = create_meshlet_culling_resources(root, backend, resources.shader_modules);
+    resources.shader_modules = create_shader_modules(backend);
+    resources.samplers_resources = create_sampler_resources(backend);
+    resources.debug_geometry_resources = create_debug_geometry_pass_resources(backend, resources.shader_modules);
+    resources.framegraph_resources = create_framegraph_resources(backend);
+    resources.audio_resources = create_audio_resources(backend, resources.shader_modules);
+    resources.meshlet_culling_resources = create_meshlet_culling_resources(backend, resources.shader_modules);
     resources.vis_buffer_pass_resources = create_vis_buffer_pass_resources(root, backend, resources.shader_modules);
-    resources.frame_sync_resources = create_frame_sync_resources(root, backend);
-    resources.gui_pass_resources = create_gui_pass_resources(root, backend, resources.shader_modules);
-    resources.histogram_pass_resources = create_histogram_pass_resources(root, backend, resources.shader_modules);
-    resources.hzb_pass_resources = create_hzb_pass_resources(root, backend, resources.shader_modules);
-    resources.lighting_resources = create_lighting_pass_resources(root, backend);
-    resources.tiled_raster_resources = create_tiled_raster_pass_resources(root, backend, resources.shader_modules);
-    resources.tiled_lighting_resources = create_tiled_lighting_pass_resources(root, backend, resources.shader_modules);
-    resources.forward_pass_resources = create_forward_pass_resources(root, backend, resources.shader_modules);
-    resources.material_resources = create_material_resources(root, backend);
-    resources.mesh_cache = create_mesh_cache(root, backend);
-    resources.shadow_map_resources = create_shadow_map_resources(root, backend, resources.shader_modules);
-    resources.swapchain_pass_resources = create_swapchain_pass_resources(root, backend, resources.shader_modules);
+    resources.frame_sync_resources = create_frame_sync_resources(backend);
+    resources.gui_pass_resources = create_gui_pass_resources(backend, resources.shader_modules);
+    resources.histogram_pass_resources = create_histogram_pass_resources(backend, resources.shader_modules);
+    resources.hzb_pass_resources = create_hzb_pass_resources(backend, resources.shader_modules);
+    resources.lighting_resources = create_lighting_pass_resources(backend);
+    resources.tiled_raster_resources = create_tiled_raster_pass_resources(backend, resources.shader_modules);
+    resources.tiled_lighting_resources = create_tiled_lighting_pass_resources(backend, resources.shader_modules);
+    resources.forward_pass_resources = create_forward_pass_resources(backend, resources.shader_modules);
+    resources.material_resources = create_material_resources(backend);
+    resources.mesh_cache = create_mesh_cache(backend);
+    resources.shadow_map_resources = create_shadow_map_resources(backend, resources.shader_modules);
+    resources.swapchain_pass_resources = create_swapchain_pass_resources(backend, resources.shader_modules);
 }
 
 void destroy_backend_resources(VulkanBackend& backend)

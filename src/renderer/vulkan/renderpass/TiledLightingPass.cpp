@@ -18,21 +18,19 @@
 #include "renderer/vulkan/DescriptorSet.h"
 #include "renderer/vulkan/FrameGraphResources.h"
 #include "renderer/vulkan/Image.h"
-#include "renderer/vulkan/MaterialResources.h"
 #include "renderer/vulkan/Pipeline.h"
 #include "renderer/vulkan/RenderPassHelpers.h"
 #include "renderer/vulkan/SamplerResources.h"
 #include "renderer/vulkan/ShaderModules.h"
 #include "renderer/vulkan/renderpass/LightingPass.h"
 
-#include "common/ReaperRoot.h"
 #include "profiling/Scope.h"
 
 #include "renderer/shader/tiled_lighting/tiled_lighting.share.hlsl"
 
 namespace Reaper
 {
-TiledLightingPassResources create_tiled_lighting_pass_resources(ReaperRoot& root, VulkanBackend& backend,
+TiledLightingPassResources create_tiled_lighting_pass_resources(VulkanBackend&       backend,
                                                                 const ShaderModules& shader_modules)
 {
     TiledLightingPassResources resources = {};
@@ -81,7 +79,7 @@ TiledLightingPassResources create_tiled_lighting_pass_resources(ReaperRoot& root
     }
 
     resources.tiled_lighting_constant_buffer =
-        create_buffer(root, backend.device, "Tiled lighting constants",
+        create_buffer(backend.device, "Tiled lighting constants",
                       DefaultGPUBufferProperties(1, sizeof(TiledLightingConstants), GPUBufferUsage::UniformBuffer),
                       backend.vma_instance, MemUsage::CPU_To_GPU);
 

@@ -88,12 +88,10 @@ namespace FrameGraph
 
 CullMeshletsFrameGraphData create_cull_meshlet_frame_graph_data(FrameGraph::Builder& builder);
 
-struct ReaperRoot;
 struct VulkanBackend;
 struct ShaderModules;
 
-MeshletCullingResources create_meshlet_culling_resources(ReaperRoot& root, VulkanBackend& backend,
-                                                         const ShaderModules& shader_modules);
+MeshletCullingResources create_meshlet_culling_resources(VulkanBackend& backend, const ShaderModules& shader_modules);
 void                    destroy_meshlet_culling_resources(VulkanBackend& backend, MeshletCullingResources& resources);
 
 struct PreparedData;
@@ -123,6 +121,7 @@ void update_triangle_culling_descriptor_sets(DescriptorWriteHelper& write_helper
                                              const FrameGraphBuffer& meshlet_visible_index_buffer,
                                              const FrameGraphBuffer& visible_meshlet_buffer);
 
+struct ReaperRoot;
 struct CommandBuffer;
 
 void record_meshlet_culling_command_buffer(ReaperRoot& root, CommandBuffer& cmdBuffer, const PreparedData& prepared,

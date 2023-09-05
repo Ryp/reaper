@@ -19,9 +19,6 @@
 #include "renderer/vulkan/SamplerResources.h"
 #include "renderer/vulkan/ShaderModules.h"
 
-#include "common/Log.h"
-#include "common/ReaperRoot.h"
-
 #include "profiling/Scope.h"
 
 #include "renderer/shader/swapchain_write.share.hlsl"
@@ -155,8 +152,7 @@ namespace
     }
 } // namespace
 
-SwapchainPassResources create_swapchain_pass_resources(ReaperRoot& /*root*/, VulkanBackend& backend,
-                                                       const ShaderModules& shader_modules)
+SwapchainPassResources create_swapchain_pass_resources(VulkanBackend& backend, const ShaderModules& shader_modules)
 {
     SwapchainPassResources resources = {};
 

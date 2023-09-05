@@ -20,6 +20,7 @@ GPUTextureProperties default_texture_properties(u32 width, u32 height, PixelForm
         .layer_count = 1,
         .sample_count = 1,
         .usage_flags = usage_flags,
+        .misc_flags = 0,
     };
 }
 } // namespace Reaper

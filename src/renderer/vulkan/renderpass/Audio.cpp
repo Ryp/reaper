@@ -57,7 +57,7 @@ AudioFrameGraphData create_audio_frame_graph_data(FrameGraph::Builder& builder)
     };
 }
 
-AudioResources create_audio_resources(ReaperRoot& root, VulkanBackend& backend, const ShaderModules& shader_modules)
+AudioResources create_audio_resources(VulkanBackend& backend, const ShaderModules& shader_modules)
 {
     AudioResources resources = {};
 
@@ -81,7 +81,7 @@ AudioResources create_audio_resources(ReaperRoot& root, VulkanBackend& backend, 
     }
 
     resources.instance_buffer = create_buffer(
-        root, backend.device, "Audio instance constant buffer",
+        backend.device, "Audio instance constant buffer",
         DefaultGPUBufferProperties(OscillatorCount, sizeof(OscillatorInstance), GPUBufferUsage::StorageBuffer),
         backend.vma_instance, MemUsage::CPU_To_GPU);
 
@@ -89,7 +89,7 @@ AudioResources create_audio_resources(ReaperRoot& root, VulkanBackend& backend, 
                                                                     sizeof(RawSample), GPUBufferUsage::TransferDst),
 
     resources.audio_staging_buffer =
-        create_buffer(root, backend.device, "Output sample buffer staging", resources.audio_staging_properties,
+        create_buffer(backend.device, "Output sample buffer staging", resources.audio_staging_properties,
                       backend.vma_instance, MemUsage::GPU_To_CPU);
 
     Assert(SampleSizeInBytes == sizeof(RawSample));

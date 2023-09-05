@@ -31,11 +31,10 @@ struct TiledLightingPassResources
     VkDescriptorSet tiled_lighting_debug_descriptor_set;
 };
 
-struct ReaperRoot;
 struct VulkanBackend;
 struct ShaderModules;
 
-TiledLightingPassResources create_tiled_lighting_pass_resources(ReaperRoot& root, VulkanBackend& backend,
+TiledLightingPassResources create_tiled_lighting_pass_resources(VulkanBackend&       backend,
                                                                 const ShaderModules& shader_modules);
 void destroy_tiled_lighting_pass_resources(VulkanBackend& backend, TiledLightingPassResources& resources);
 
@@ -44,7 +43,6 @@ class DescriptorWriteHelper;
 struct FrameGraphTexture;
 struct FrameGraphBuffer;
 struct LightingPassResources;
-struct MaterialResources;
 
 void update_tiled_lighting_pass_descriptor_sets(DescriptorWriteHelper&            write_helper,
                                                 const LightingPassResources&      lighting_resources,

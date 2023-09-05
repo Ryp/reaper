@@ -23,7 +23,7 @@ namespace
     }
 } // namespace
 
-FrameGraphResources create_framegraph_resources(ReaperRoot& /*root*/, VulkanBackend& backend)
+FrameGraphResources create_framegraph_resources(VulkanBackend& backend)
 {
     FrameGraphResources resources = {};
 
@@ -52,7 +52,7 @@ void destroy_framegraph_resources(VulkanBackend& backend, FrameGraphResources& r
     }
 }
 
-void allocate_framegraph_volatile_resources(ReaperRoot& root, VulkanBackend& backend, FrameGraphResources& resources,
+void allocate_framegraph_volatile_resources(VulkanBackend& backend, FrameGraphResources& resources,
                                             const FrameGraph::FrameGraph& framegraph)
 {
     REAPER_PROFILE_SCOPE_FUNC();
@@ -71,8 +71,8 @@ void allocate_framegraph_volatile_resources(ReaperRoot& root, VulkanBackend& bac
 
         if (resource.is_used)
         {
-            resources.buffers[index] = create_buffer(root, backend.device, resource.debug_name,
-                                                     resource.properties.buffer, backend.vma_instance);
+            resources.buffers[index] =
+                create_buffer(backend.device, resource.debug_name, resource.properties.buffer, backend.vma_instance);
         }
         else
         {
@@ -91,8 +91,8 @@ void allocate_framegraph_volatile_resources(ReaperRoot& root, VulkanBackend& bac
         if (resource.is_used)
         {
             GPUTexture& new_texture = resources.textures[index];
-            new_texture = create_image(root, backend.device, resource.debug_name, resource.properties.texture,
-                                       backend.vma_instance);
+            new_texture =
+                create_image(backend.device, resource.debug_name, resource.properties.texture, backend.vma_instance);
 
             resources.default_texture_views[index] =
                 create_image_view(backend.device, new_texture.handle, resource.default_view.texture);

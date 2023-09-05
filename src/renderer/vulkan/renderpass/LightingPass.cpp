@@ -11,19 +11,18 @@
 #include "renderer/vulkan/Backend.h"
 #include "renderer/vulkan/Buffer.h"
 
-#include "common/ReaperRoot.h"
 #include "profiling/Scope.h"
 
 namespace Reaper
 {
 constexpr u32 PointLightMax = 128;
 
-LightingPassResources create_lighting_pass_resources(ReaperRoot& root, VulkanBackend& backend)
+LightingPassResources create_lighting_pass_resources(VulkanBackend& backend)
 {
     LightingPassResources resources = {};
 
     resources.pointLightBuffer = create_buffer(
-        root, backend.device, "Point light buffer",
+        backend.device, "Point light buffer",
         DefaultGPUBufferProperties(PointLightMax, sizeof(PointLightProperties), GPUBufferUsage::StorageBuffer),
         backend.vma_instance, MemUsage::CPU_To_GPU);
 

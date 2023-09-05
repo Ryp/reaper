@@ -11,9 +11,6 @@
 
 namespace Reaper
 {
-struct ReaperRoot;
-struct VulkanBackend;
-
 struct SamplerResources
 {
     VkSampler linear_clamp;
@@ -22,6 +19,8 @@ struct SamplerResources
     VkSampler diffuse_map_sampler;
 };
 
-SamplerResources create_sampler_resources(ReaperRoot& root, VulkanBackend& backend);
+struct VulkanBackend;
+
+SamplerResources create_sampler_resources(VulkanBackend& backend);
 void             destroy_sampler_resources(VulkanBackend& backend, SamplerResources& resources);
 } // namespace Reaper

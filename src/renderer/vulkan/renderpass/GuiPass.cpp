@@ -18,15 +18,11 @@
 #include "renderer/vulkan/RenderPassHelpers.h"
 #include "renderer/vulkan/ShaderModules.h"
 
-#include "common/Log.h"
-#include "common/ReaperRoot.h"
-
 #include <backends/imgui_impl_vulkan.h>
 
 namespace Reaper
 {
-GuiPassResources create_gui_pass_resources(ReaperRoot& /*root*/, VulkanBackend& backend,
-                                           const ShaderModules& shader_modules)
+GuiPassResources create_gui_pass_resources(VulkanBackend& backend, const ShaderModules& shader_modules)
 {
     GuiPassResources resources = {};
 

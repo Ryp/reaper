@@ -17,8 +17,6 @@
 
 namespace Reaper
 {
-struct ReaperRoot;
-
 struct GPUTexture
 {
     VkImage       handle;
@@ -27,16 +25,21 @@ struct GPUTexture
 
 PixelFormat VulkanToPixelFormat(VkFormat format);
 
-VkFormat                PixelFormatToVulkan(PixelFormat format);
-VkSampleCountFlagBits   SampleCountToVulkan(u32 sampleCount);
-VkImageCreateFlags      GetVulkanCreateFlags(const GPUTextureProperties& properties);
-VkImageUsageFlags       GetVulkanUsageFlags(u32 usageFlags);
-u32                     GetUsageFlags(VkImageUsageFlags usageFlags);
-VkImageAspectFlags      GetVulkanImageAspectFlags(u32 aspect);
-VkImageSubresourceRange GetVulkanImageSubresourceRange(const GPUTextureSubresource& subresource);
+VkFormat              PixelFormatToVulkan(PixelFormat format);
+VkSampleCountFlagBits SampleCountToVulkan(u32 sampleCount);
+VkImageCreateFlags    GetVulkanCreateFlags(const GPUTextureProperties& properties);
+VkImageUsageFlags     GetVulkanUsageFlags(u32 usageFlags);
+u32                   GetUsageFlags(VkImageUsageFlags usageFlags);
+VkImageAspectFlags    GetVulkanImageAspectFlags(u32 aspect);
 
-GPUTexture  create_image(ReaperRoot& root, VkDevice device, const char* debug_string,
-                         const GPUTextureProperties& properties, VmaAllocator& allocator);
+VkImageSubresourceRange  get_vk_image_subresource_range(const GPUTextureSubresource& subresource);
+VkImageSubresourceLayers get_vk_image_subresource_layers(const GPUTextureSubresource& subresource);
+
+GPUTexture  create_image(VkDevice device, const char* debug_string, const GPUTextureProperties& properties,
+                         VmaAllocator& allocator);
 VkImageView create_image_view(VkDevice device, VkImage image, const GPUTextureView& view);
 
+struct ReaperRoot;
+
+void print_properties_debug(ReaperRoot& root, const GPUTextureProperties& properties);
 } // namespace Reaper

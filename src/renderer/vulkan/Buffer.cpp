@@ -36,8 +36,8 @@ namespace
     }
 } // namespace
 
-GPUBuffer create_buffer(ReaperRoot& root, VkDevice device, const char* debug_string,
-                        const GPUBufferProperties& input_properties, VmaAllocator& allocator, MemUsage mem_usage)
+GPUBuffer create_buffer(VkDevice device, const char* debug_string, const GPUBufferProperties& input_properties,
+                        VmaAllocator& allocator, MemUsage mem_usage)
 {
     GPUBufferProperties properties = input_properties;
 
@@ -92,8 +92,6 @@ GPUBuffer create_buffer(ReaperRoot& root, VkDevice device, const char* debug_str
     VkBuffer      buffer;
     VmaAllocation allocation;
     Assert(vmaCreateBuffer(allocator, &bufferInfo, &allocInfo, &buffer, &allocation, nullptr) == VK_SUCCESS);
-
-    log_debug(root, "vulkan: created buffer with handle: {}", static_cast<void*>(buffer));
 
     VulkanSetDebugName(device, buffer, debug_string);
 

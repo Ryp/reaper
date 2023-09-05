@@ -40,7 +40,7 @@ namespace Reaper
 constexpr u32 MaxIndexCount = 1024;
 constexpr u32 MaxVertexCount = MaxIndexCount * 3;
 
-DebugGeometryPassResources create_debug_geometry_pass_resources(ReaperRoot& root, VulkanBackend& backend,
+DebugGeometryPassResources create_debug_geometry_pass_resources(VulkanBackend&       backend,
                                                                 const ShaderModules& shader_modules)
 {
     DebugGeometryPassResources resources = {};
@@ -121,7 +121,7 @@ DebugGeometryPassResources create_debug_geometry_pass_resources(ReaperRoot& root
     resources.draw_descriptor_set = dsets[1];
 
     resources.build_cmds_constants = create_buffer(
-        root, backend.device, "Debug Build Cmds Uniform Buffer",
+        backend.device, "Debug Build Cmds Uniform Buffer",
         DefaultGPUBufferProperties(1, sizeof(DebugGeometryBuildCmdsPassConstants), GPUBufferUsage::UniformBuffer),
         backend.vma_instance, MemUsage::CPU_To_GPU);
 
@@ -135,10 +135,10 @@ DebugGeometryPassResources create_debug_geometry_pass_resources(ReaperRoot& root
         const GPUBufferProperties vertex_properties =
             DefaultGPUBufferProperties(MaxVertexCount, sizeof(hlsl_float3), GPUBufferUsage::StorageBuffer);
 
-        resources.index_buffer = create_buffer(root, backend.device, "Debug geometry index buffer", index_properties,
+        resources.index_buffer = create_buffer(backend.device, "Debug geometry index buffer", index_properties,
                                                backend.vma_instance, MemUsage::CPU_To_GPU);
 
-        resources.vertex_buffer_position = create_buffer(root, backend.device, "Debug geometry vertex buffer",
+        resources.vertex_buffer_position = create_buffer(backend.device, "Debug geometry vertex buffer",
                                                          vertex_properties, backend.vma_instance, MemUsage::CPU_To_GPU);
 
         std::vector<Mesh> meshes;

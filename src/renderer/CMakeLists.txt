@@ -69,6 +69,10 @@ target_sources(${target} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Image.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/MaterialResources.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/MaterialResources.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/TextureLoadingDDS.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/TextureLoadingDDS.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/TextureLoadingPNG.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/TextureLoadingPNG.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/MeshCache.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/MeshCache.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/PhysicalDevice.cpp
@@ -313,6 +317,7 @@ target_link_libraries(${target} PUBLIC
     amd-vma
     meshoptimizer
     tinyddsloader
+    lodepng
     imgui
 )
 

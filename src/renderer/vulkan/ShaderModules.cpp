@@ -39,7 +39,7 @@ namespace
     }
 } // namespace
 
-ShaderModules create_shader_modules(ReaperRoot& /*root*/, VulkanBackend& backend)
+ShaderModules create_shader_modules(VulkanBackend& backend)
 {
     ShaderModules modules = {};
 

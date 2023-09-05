@@ -13,41 +13,38 @@
 
 #include "mesh/Mesh.h"
 
-#include "common/Log.h"
-#include "common/ReaperRoot.h"
-
 #include <meshoptimizer.h>
 
 #include "renderer/shader/meshlet/meshlet.share.hlsl"
 
 namespace Reaper
 {
-MeshCache create_mesh_cache(ReaperRoot& root, VulkanBackend& backend)
+MeshCache create_mesh_cache(VulkanBackend& backend)
 {
     MeshCache cache;
 
     cache.vertexBufferPosition = create_buffer(
-        root, backend.device, "Position buffer",
+        backend.device, "Position buffer",
         DefaultGPUBufferProperties(MeshCache::MAX_VERTEX_COUNT, 3 * sizeof(float), GPUBufferUsage::StorageBuffer),
         backend.vma_instance, MemUsage::CPU_To_GPU);
 
     cache.vertexBufferNormal = create_buffer(
-        root, backend.device, "Normal buffer",
+        backend.device, "Normal buffer",
         DefaultGPUBufferProperties(MeshCache::MAX_VERTEX_COUNT, 3 * sizeof(float), GPUBufferUsage::StorageBuffer),
         backend.vma_instance, MemUsage::CPU_To_GPU);
 
     cache.vertexBufferUV = create_buffer(
-        root, backend.device, "UV buffer",
+        backend.device, "UV buffer",
         DefaultGPUBufferProperties(MeshCache::MAX_VERTEX_COUNT, 2 * sizeof(float), GPUBufferUsage::StorageBuffer),
         backend.vma_instance, MemUsage::CPU_To_GPU);
 
     cache.indexBuffer = create_buffer(
-        root, backend.device, "Index buffer",
+        backend.device, "Index buffer",
         DefaultGPUBufferProperties(MeshCache::MAX_INDEX_COUNT, sizeof(int), GPUBufferUsage::StorageBuffer),
         backend.vma_instance, MemUsage::CPU_To_GPU);
 
     cache.meshletBuffer = create_buffer(
-        root, backend.device, "Meshlet buffer",
+        backend.device, "Meshlet buffer",
         DefaultGPUBufferProperties(MeshCache::MAX_MESHLET_COUNT, sizeof(Meshlet), GPUBufferUsage::StorageBuffer),
         backend.vma_instance, MemUsage::CPU_To_GPU);
 

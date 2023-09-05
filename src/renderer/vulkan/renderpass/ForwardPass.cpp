@@ -28,9 +28,6 @@
 #include "renderer/vulkan/renderpass/ForwardPassConstants.h"
 #include "renderer/vulkan/renderpass/LightingPass.h"
 
-#include "common/Log.h"
-#include "common/ReaperRoot.h"
-
 #include "renderer/shader/forward.share.hlsl"
 
 namespace Reaper
@@ -39,7 +36,7 @@ constexpr u32 ForwardInstanceCountMax = 512;
 
 namespace
 {
-    VkPipeline create_forward_pipeline(ReaperRoot& root, VulkanBackend& backend, VkPipelineLayout pipeline_layout,
+    VkPipeline create_forward_pipeline(VulkanBackend& backend, VkPipelineLayout pipeline_layout,
                                        const ShaderModules& shader_modules)
     {
         std::vector<VkPipelineShaderStageCreateInfo> shader_stages = {
@@ -67,14 +64,11 @@ namespace
 
         VkPipeline pipeline = create_graphics_pipeline(backend.device, shader_stages, pipeline_properties);
 
-        log_debug(root, "vulkan: created blit pipeline with handle: {}", static_cast<void*>(pipeline));
-
         return pipeline;
     }
 } // namespace
 
-ForwardPassResources create_forward_pass_resources(ReaperRoot& root, VulkanBackend& backend,
-                                                   const ShaderModules& shader_modules)
+ForwardPassResources create_forward_pass_resources(VulkanBackend& backend, const ShaderModules& shader_modules)
 {
     ForwardPassResources resources = {};
 
@@ -110,15 +104,15 @@ ForwardPassResources create_forward_pass_resources(ReaperRoot& root, VulkanBacke
 
     resources.pipe.pipelineLayout = create_pipeline_layout(backend.device, descriptorSetLayouts);
 
-    resources.pipe.pipeline = create_forward_pipeline(root, backend, resources.pipe.pipelineLayout, shader_modules);
+    resources.pipe.pipeline = create_forward_pipeline(backend, resources.pipe.pipelineLayout, shader_modules);
 
     resources.pass_constant_buffer =
-        create_buffer(root, backend.device, "Forward Pass Constant buffer",
+        create_buffer(backend.device, "Forward Pass Constant buffer",
                       DefaultGPUBufferProperties(1, sizeof(ForwardPassParams), GPUBufferUsage::UniformBuffer),
                       backend.vma_instance, MemUsage::CPU_To_GPU);
 
     resources.instance_buffer =
-        create_buffer(root, backend.device, "Forward Instance buffer",
+        create_buffer(backend.device, "Forward Instance buffer",
                       DefaultGPUBufferProperties(ForwardInstanceCountMax, sizeof(ForwardInstanceParams),
                                                  GPUBufferUsage::StorageBuffer),
                       backend.vma_instance, MemUsage::CPU_To_GPU);

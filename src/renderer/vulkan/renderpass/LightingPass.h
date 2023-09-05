@@ -16,10 +16,9 @@ struct LightingPassResources
     GPUBuffer pointLightBuffer;
 };
 
-struct ReaperRoot;
 struct VulkanBackend;
 
-LightingPassResources create_lighting_pass_resources(ReaperRoot& root, VulkanBackend& backend);
+LightingPassResources create_lighting_pass_resources(VulkanBackend& backend);
 void                  destroy_lighting_pass_resources(VulkanBackend& backend, LightingPassResources& resources);
 
 struct PreparedData;

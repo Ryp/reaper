@@ -21,11 +21,6 @@
 
 namespace Reaper
 {
-struct ReaperRoot;
-struct VulkanBackend;
-struct GPUTextureProperties;
-struct ShaderModules;
-
 struct ShadowMapPipelineInfo
 {
     VkPipeline            pipeline;
@@ -43,8 +38,10 @@ struct ShadowMapResources
     std::vector<VkDescriptorSet> descriptor_sets;
 };
 
-ShadowMapResources create_shadow_map_resources(ReaperRoot& root, VulkanBackend& backend,
-                                               const ShaderModules& shader_modules);
+struct VulkanBackend;
+struct ShaderModules;
+
+ShadowMapResources create_shadow_map_resources(VulkanBackend& backend, const ShaderModules& shader_modules);
 void               destroy_shadow_map_resources(VulkanBackend& backend, ShadowMapResources& resources);
 
 struct PreparedData;
@@ -56,6 +53,7 @@ class DescriptorWriteHelper;
 void update_shadow_map_pass_descriptor_sets(DescriptorWriteHelper& write_helper, const PreparedData& prepared,
                                             ShadowMapResources& resources, GPUBuffer& vertex_position_buffer);
 
+struct GPUTextureProperties;
 std::vector<GPUTextureProperties> fill_shadow_map_properties(const PreparedData& prepared);
 
 struct CommandBuffer;

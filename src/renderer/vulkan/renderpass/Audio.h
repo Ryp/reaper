@@ -15,7 +15,6 @@
 
 namespace Reaper
 {
-struct ReaperRoot;
 struct VulkanBackend;
 struct ShaderModules;
 
@@ -78,7 +77,7 @@ namespace FrameGraph
 
 AudioFrameGraphData create_audio_frame_graph_data(FrameGraph::Builder& builder);
 
-AudioResources create_audio_resources(ReaperRoot& root, VulkanBackend& backend, const ShaderModules& shader_modules);
+AudioResources create_audio_resources(VulkanBackend& backend, const ShaderModules& shader_modules);
 void           destroy_audio_resources(VulkanBackend& backend, AudioResources& resources);
 
 struct PreparedData;

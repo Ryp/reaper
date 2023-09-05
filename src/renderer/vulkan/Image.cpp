@@ -998,7 +998,7 @@ VkImageAspectFlags GetVulkanImageAspectFlags(u32 aspect)
     return flags;
 }
 
-VkImageSubresourceRange GetVulkanImageSubresourceRange(const GPUTextureSubresource& subresource)
+VkImageSubresourceRange get_vk_image_subresource_range(const GPUTextureSubresource& subresource)
 {
     return VkImageSubresourceRange{
         .aspectMask = GetVulkanImageAspectFlags(subresource.aspect),
@@ -1009,19 +1009,32 @@ VkImageSubresourceRange GetVulkanImageSubresourceRange(const GPUTextureSubresour
     };
 }
 
-GPUTexture create_image(ReaperRoot& root, VkDevice device, const char* debug_string,
-                        const GPUTextureProperties& properties, VmaAllocator& allocator)
+VkImageSubresourceLayers get_vk_image_subresource_layers(const GPUTextureSubresource& subresource)
 {
-    const VkExtent3D    extent = {properties.width, properties.height, properties.depth};
-    const VkImageTiling tilingMode = VK_IMAGE_TILING_OPTIMAL;
-    const VkFormat      vulkan_format = PixelFormatToVulkan(properties.format);
+    Assert(subresource.mip_count == 1);
+
+    return VkImageSubresourceLayers{
+        .aspectMask = GetVulkanImageAspectFlags(subresource.aspect),
+        .mipLevel = subresource.mip_offset,
+        .baseArrayLayer = subresource.layer_offset,
+        .layerCount = subresource.layer_count,
+    };
+}
+
+GPUTexture create_image(VkDevice device, const char* debug_string, const GPUTextureProperties& properties,
+                        VmaAllocator& allocator)
+{
+    const VkExtent3D extent = {properties.width, properties.height, properties.depth};
+
+    const VkImageTiling tilingMode =
+        (properties.misc_flags & GPUTextureMisc::LinearTiling) ? VK_IMAGE_TILING_LINEAR : VK_IMAGE_TILING_OPTIMAL;
 
     const VkImageCreateInfo imageInfo = {
         .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
         .pNext = nullptr,
         .flags = GetVulkanCreateFlags(properties),
         .imageType = VK_IMAGE_TYPE_2D,
-        .format = vulkan_format,
+        .format = PixelFormatToVulkan(properties.format),
         .extent = extent,
         .mipLevels = properties.mip_count,
         .arrayLayers = properties.layer_count,
@@ -1037,16 +1050,9 @@ GPUTexture create_image(ReaperRoot& root, VkDevice device, const char* debug_str
     VmaAllocationCreateInfo allocInfo = {};
     allocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
 
-    log_debug(root, "vulkan: creating new image: extent = {}x{}x{}, format = {}", properties.width, properties.height,
-              properties.depth, vk_to_string(vulkan_format));
-    log_debug(root, "- mips = {}, layers = {}, samples = {}", properties.mip_count, properties.layer_count,
-              properties.sample_count);
-
     VkImage       image;
     VmaAllocation allocation;
     Assert(vmaCreateImage(allocator, &imageInfo, &allocInfo, &image, &allocation, nullptr) == VK_SUCCESS);
-
-    log_debug(root, "vulkan: created image '{}' with handle: {}", debug_string, static_cast<void*>(image));
 
     VulkanSetDebugName(device, image, debug_string);
 
@@ -1072,12 +1078,22 @@ VkImageView create_image_view(VkDevice device, VkImage image, const GPUTextureVi
                        .g = VK_COMPONENT_SWIZZLE_IDENTITY,
                        .b = VK_COMPONENT_SWIZZLE_IDENTITY,
                        .a = VK_COMPONENT_SWIZZLE_IDENTITY},
-        .subresourceRange = GetVulkanImageSubresourceRange(view.subresource),
+        .subresourceRange = get_vk_image_subresource_range(view.subresource),
     };
 
     VkImageView imageView = VK_NULL_HANDLE;
     Assert(vkCreateImageView(device, &imageViewInfo, nullptr, &imageView) == VK_SUCCESS);
 
     return imageView;
+}
+
+void print_properties_debug(ReaperRoot& root, const GPUTextureProperties& properties)
+{
+    const VkFormat vulkan_format = PixelFormatToVulkan(properties.format);
+
+    log_debug(root, "vulkan: creating new image: extent = {}x{}x{}, format = {}", properties.width, properties.height,
+              properties.depth, vk_to_string(vulkan_format));
+    log_debug(root, "- mips = {}, layers = {}, samples = {}", properties.mip_count, properties.layer_count,
+              properties.sample_count);
 }
 } // namespace Reaper

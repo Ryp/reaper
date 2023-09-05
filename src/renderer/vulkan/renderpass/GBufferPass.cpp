@@ -104,7 +104,7 @@ GBufferPassResources create_gbuffer_pass_resources(ReaperRoot& root, VulkanBacke
     resources.pipe.pipeline = create_gbuffer_pipeline(root, backend, resources.pipe.pipelineLayout, shader_modules);
 
     resources.instance_buffer =
-        create_buffer(root, backend.device, "GBuffer Instance buffer",
+        create_buffer(backend.device, "GBuffer Instance buffer",
                       DefaultGPUBufferProperties(GBufferInstanceCountMax, sizeof(ForwardInstanceParams),
                                                  GPUBufferUsage::StorageBuffer),
                       backend.vma_instance, MemUsage::CPU_To_GPU);

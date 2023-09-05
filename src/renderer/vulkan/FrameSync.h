@@ -16,9 +16,8 @@ struct FrameSyncResources
     VkFence draw_fence;
 };
 
-struct ReaperRoot;
 struct VulkanBackend;
 
-FrameSyncResources create_frame_sync_resources(ReaperRoot& root, VulkanBackend& backend);
+FrameSyncResources create_frame_sync_resources(VulkanBackend& backend);
 void               destroy_frame_sync_resources(VulkanBackend& backend, const FrameSyncResources& resources);
 } // namespace Reaper

@@ -15,27 +15,15 @@ namespace Reaper
 using ReaperSource = const char*;
 static constexpr ReaperSource EmptySource = nullptr;
 
-struct ReaperTexture
-{
-    ReaperSource  source = EmptySource;
-    TextureHandle handle;
-};
-
 struct ReaperMesh
 {
     ReaperSource source = EmptySource;
     MeshHandle   handle;
 };
 
-struct ReaperMaterial
-{
-    ReaperTexture albedo;
-};
-
 struct ReaperGeometry
 {
-    ReaperMesh     mesh;
-    ReaperMaterial material;
+    ReaperMesh mesh;
 };
 
 } // namespace Reaper
