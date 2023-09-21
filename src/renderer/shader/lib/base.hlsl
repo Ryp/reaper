@@ -33,11 +33,11 @@
 // Vulkan compat
 #if REAPER_USE_VULKAN_BINDING
     #define VK_PUSH_CONSTANT()          [[vk::push_constant]]
-    // https://github.com/KhronosGroup/glslang/issues/1629
-    #if defined(_DXC)
-        #define VK_PUSH_CONSTANT_HELPER(_type) VK_PUSH_CONSTANT() _type
-    #else
+    // FIXME https://github.com/KhronosGroup/glslang/issues/1629
+    #if defined(_GLSLANG)
         #define VK_PUSH_CONSTANT_HELPER(_type) VK_PUSH_CONSTANT() ConstantBuffer<_type>
+    #else
+        #define VK_PUSH_CONSTANT_HELPER(_type) VK_PUSH_CONSTANT() _type
     #endif
     #define VK_CONSTANT(_index)         [[vk::constant_id(_index)]]
     #define VK_BINDING(_set, _binding) [[vk::binding(_binding, _set)]]
@@ -49,6 +49,12 @@
     #define VK_CONSTANT(_index)
     #define VK_BINDING(_set, _binding)
     #define VK_LOCATION(_location)
+#endif
+
+// FIXME This is very wrong but let's wait until glslang catches up
+// https://github.com/KhronosGroup/glslang/issues/1637
+#if defined(_GLSLANG)
+    #define NonUniformResourceIndex(x) x
 #endif
 
 #include "common.hlsl"
