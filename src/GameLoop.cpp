@@ -81,7 +81,7 @@ namespace
 
         generate_track_skinning(track.skeleton_nodes, track.splines_ms, track.skinning);
 
-        const std::string         assetFile("res/model/track/chunk_simple.obj");
+        const std::string         assetFile("res/model/track_chunk_simple.obj");
         std::vector<glm::fmat4x3> chunk_transforms(gen_info.length);
         std::vector<Mesh>         track_meshes;
 
@@ -337,7 +337,7 @@ void execute_game_loop(ReaperRoot& root)
     load_dds_textures_to_staging(backend, backend.resources->material_resources, dds_filenames, dds_handle_span);
 
 #if GLTF_TEST
-    std::string   gltf_path = "res/gltf/scifihelmet/";
+    std::string   gltf_path = "res/model/sci_fi_helmet/";
     std::string   gltf_file = gltf_path + "SciFiHelmet.gltf";
     cgltf_options options = {};
     cgltf_data*   data = nullptr;

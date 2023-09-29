@@ -76,7 +76,7 @@ TEST_CASE("Track mesh generation")
     generate_track_splines(skeletonNodes, splinesMS);
     generate_track_skinning(skeletonNodes, splinesMS, skinning);
 
-    const std::string assetFile("res/model/track/chunk_simple.obj");
+    const std::string assetFile("res/model/track_chunk_simple.obj");
 
     std::ofstream     outFile("test_skinned_track.obj");
     std::vector<Mesh> meshes;
