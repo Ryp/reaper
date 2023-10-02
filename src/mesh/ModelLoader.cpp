@@ -36,9 +36,11 @@ Mesh load_obj_tiny_obj_loader(std::ifstream& src)
     Assert(ret, "could not load obj");
     Assert(shapes.size() > 0, "no shapes to load");
 
+    // FIXME reserve() not at the right size
     Mesh mesh;
     mesh.positions.reserve(attrib.vertices.size());
     mesh.normals.reserve(attrib.normals.size());
+    mesh.tangents.reserve(attrib.normals.size());
     mesh.uvs.reserve(attrib.texcoords.size());
 
     // Loop over shapes
@@ -71,6 +73,7 @@ Mesh load_obj_tiny_obj_loader(std::ifstream& src)
                     tinyobj::real_t  nz = attrib.normals[3 * indexInfo.normal_index + 2];
                     const glm::fvec3 normal(nx, ny, nz);
                     mesh.normals.push_back(normal);
+                    mesh.tangents.push_back(glm::fvec4(1.0, 0.0, 0.0, 1.0));
                 }
 
                 if (!attrib.texcoords.empty())
@@ -101,7 +104,7 @@ Mesh load_obj(const std::string& filename)
     return load_obj(file);
 }
 
-void SaveMeshesAsObj(std::ostream& output, std::span<const Mesh> meshes)
+void save_obj(std::ostream& output, std::span<const Mesh> meshes)
 {
     u32 vertexOffset = 0;
     u32 uvOffset = 0;

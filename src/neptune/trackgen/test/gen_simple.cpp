@@ -89,5 +89,5 @@ TEST_CASE("Track mesh generation")
         skin_track_chunk_mesh(skeletonNodes[i], skinning[i], mesh, 10.0f);
     }
 
-    SaveMeshesAsObj(outFile, meshes);
+    save_obj(outFile, meshes);
 }
