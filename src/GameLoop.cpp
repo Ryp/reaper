@@ -326,15 +326,21 @@ void execute_game_loop(ReaperRoot& root)
 
     SceneGraph scene;
 
-    // FIXME load common textures used in all scenes
-    std::vector<std::string> dds_filenames = {
-        "res/texture/default.dds",
+    // Load common textures used in all scenes
+    std::vector<std::string> default_texture_filesnames = {
+        "res/texture/default_standard_material/albedo.png",
+        "res/texture/default_standard_material/metalness_roughness.png",
+        "res/texture/default_standard_material/normal.png",
+        "res/texture/default_standard_material/ao.png",
     };
+    std::vector<u32> default_texture_srgb(default_texture_filesnames.size(), false);
+    default_texture_srgb[0] = true;
 
-    const HandleSpan<TextureHandle> dds_handle_span =
-        alloc_material_textures(backend.resources->material_resources, dds_filenames.size());
+    const HandleSpan<TextureHandle> default_material_handle_span =
+        alloc_material_textures(backend.resources->material_resources, default_texture_filesnames.size());
 
-    load_dds_textures_to_staging(backend, backend.resources->material_resources, dds_filenames, dds_handle_span);
+    load_png_textures_to_staging(backend, backend.resources->material_resources, default_texture_filesnames,
+                                 default_material_handle_span, default_texture_srgb);
 
 #if GLTF_TEST
     std::string   gltf_path = "res/model/sci_fi_helmet/";
@@ -478,15 +484,16 @@ void execute_game_loop(ReaperRoot& root)
     track_gen_info.width = 12.0f;
     track_gen_info.chaos = 0.0f;
 
-    const SceneMaterialHandle track_material_handle = alloc_scene_material(scene);
-    scene.scene_materials[track_material_handle] = SceneMaterial{
-        .base_color_texture = TextureHandle(dds_handle_span.offset + 0),
-        .metal_roughness_texture = InvalidTextureHandle,
-        .normal_map_texture = InvalidTextureHandle,
-        .ao_texture = InvalidTextureHandle,
+    const SceneMaterialHandle default_material_handle = alloc_scene_material(scene);
+    scene.scene_materials[default_material_handle] = SceneMaterial{
+        .base_color_texture = TextureHandle(default_material_handle_span.offset + 0),
+        .metal_roughness_texture = TextureHandle(default_material_handle_span.offset + 1),
+        .normal_map_texture = TextureHandle(default_material_handle_span.offset + 2),
+        .ao_texture = TextureHandle(default_material_handle_span.offset + 3),
     };
 
-    Neptune::Track game_track = Neptune::create_game_track(track_gen_info, backend, sim, scene, track_material_handle);
+    Neptune::Track game_track =
+        Neptune::create_game_track(track_gen_info, backend, sim, scene, default_material_handle);
 
     const glm::fmat4x3 player_initial_transform = glm::translate(glm::mat4(1.0f), glm::vec3(0.4f, 0.8f, 0.f));
     const glm::fvec3   player_shape_half_extent(0.4f, 0.3f, 0.3f);
@@ -763,7 +770,8 @@ void execute_game_loop(ReaperRoot& root)
                     // FIXME since GLTF was added we don't do this properly anymore
                     clear_meshes(backend.resources->mesh_cache);
 
-                    game_track = Neptune::create_game_track(track_gen_info, backend, sim, scene, track_material_handle);
+                    game_track =
+                        Neptune::create_game_track(track_gen_info, backend, sim, scene, default_material_handle);
                 }
 
                 ImGui::Separator();
