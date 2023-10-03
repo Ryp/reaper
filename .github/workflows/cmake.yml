@@ -1,3 +1,4 @@
+# FIXME windows doesn't have tmate support
 name: Build
 on:
   push:
@@ -9,6 +10,7 @@ on:
 env:
   vulkan_sdk_version: '1.3.250.1'
   vulkan_sdk_modules: 'Vulkan-Headers Vulkan-Loader SPIRV-Tools Glslang'
+  cmake_install_path: 'dist'
   itch_io_project_url: 'xryp/neptune'
 
 jobs:
@@ -36,7 +38,9 @@ jobs:
           lfs: true
 
       - name: Install dependencies
-        run: sudo apt-get install -y build-essential cmake gcc libunwind-dev libx11-xcb-dev libxcb-xkb-dev libasound2-dev
+        run: |
+          sudo apt-get update # Always do this step to prevent package urls to get outdated
+          sudo apt-get install -y build-essential cmake gcc libunwind-dev libx11-xcb-dev libxcb-xkb-dev libasound2-dev
 
       - name: Prepare Vulkan SDK
         uses: humbletim/setup-vulkan-sdk@v1.2.0
@@ -50,7 +54,7 @@ jobs:
         run: |
           cmake -H. -Bbuild \
             -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} \
-            -DCMAKE_INSTALL_PREFIX=install \
+            -DCMAKE_INSTALL_PREFIX=${{ env.cmake_install_path }} \
             -DBUILD_SHARED_LIBS=${{ matrix.config.cmake_build_shared_libs }} \
             -DREAPER_BUILD_WARNINGS_AS_ERRORS=ON \
             -DREAPER_GIT_HOOKS_AUTO_UPDATE=OFF \
@@ -66,17 +70,16 @@ jobs:
         run: ctest --test-dir build --output-on-failure
 
       - name: Install
-        run: cmake --build build --target install
-
-      - name: Deploy
-        env:
-          BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
+        if: ${{ matrix.cmake_build_type == 'Release' && matrix.config.cmake_build_shared_libs == 'OFF' }}
         run: |
-          curl -L -o butler.zip https://broth.itch.ovh/butler/linux-amd64/LATEST/archive/default
-          unzip butler.zip
-          chmod +x butler
-          ./butler -V
-          ./butler push --if-changed install ${{ env.itch_io_project_url }}:linux-latest
+          cmake --build build --target install
+          tar -cvf linux_build.tar ${{ env.cmake_install_path }}
+
+      - uses: actions/upload-artifact@v3
+        if: ${{ matrix.cmake_build_type == 'Release' && matrix.config.cmake_build_shared_libs == 'OFF' }}
+        with:
+          name: linux_build
+          path: linux_build.tar
 
       - name: Setup tmate session
         if: ${{ failure() }}
@@ -117,7 +120,7 @@ jobs:
           cmake .\ -Bbuild `
             -G "${{ matrix.config.cmake_generator }}" `
             -A "${{ matrix.cmake_arch }}" `
-            -DCMAKE_INSTALL_PREFIX=install `
+            -DCMAKE_INSTALL_PREFIX=${{ env.cmake_install_path }} `
             -DBUILD_SHARED_LIBS=${{ matrix.config.cmake_build_shared_libs }} `
             -DREAPER_BUILD_WARNINGS_AS_ERRORS=ON `
             -DREAPER_GIT_HOOKS_AUTO_UPDATE=OFF `
@@ -131,3 +134,38 @@ jobs:
 
       - name: Test
         run: ctest --test-dir build -C ${{ matrix.cmake_build_type }} --output-on-failure
+
+      - name: Install
+        run: |
+          cmake --build build --config ${{ matrix.cmake_build_type }} --target install
+          tar -cvf windows_build.tar ${{ env.cmake_install_path }}
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: windows_build
+          path: windows_build.tar
+
+  deploy_on_itch_io:
+    runs-on: ubuntu-latest
+    needs:
+      - build_ubuntu
+      - build_windows
+    name: "Deploy to itch.io"
+    steps:
+      - uses: actions/download-artifact@v3
+
+      - name: Unpack artifacts
+        run: |
+          pushd linux_build && tar -xvf linux_build.tar && popd
+          pushd windows_build && tar -xvf windows_build.tar && popd
+
+      - name: Deploy
+        env:
+          BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
+        run: |
+          curl -L -o butler.zip https://broth.itch.ovh/butler/linux-amd64/LATEST/archive/default
+          unzip butler.zip
+          chmod +x butler
+          ./butler -V
+          ./butler push --if-changed linux_build/dist ${{ env.itch_io_project_url }}:linux-latest
+          ./butler push --if-changed windows_build/dist ${{ env.itch_io_project_url }}:windows-latest
