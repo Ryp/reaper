@@ -55,3 +55,8 @@ set_target_properties(${REAPER_BIN} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY ${C
 set_property(DIRECTORY ${CMAKE_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${REAPER_BIN})
 
 reaper_configure_executable(${REAPER_BIN} "Reaper")
+
+install(TARGETS ${REAPER_BIN} DESTINATION ${CMAKE_INSTALL_PREFIX})
+
+# FIXME Copy all assets into the install folder
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/res DESTINATION ${CMAKE_INSTALL_PREFIX})

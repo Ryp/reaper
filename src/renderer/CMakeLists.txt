@@ -263,6 +263,9 @@ foreach(INPUT_SHADER IN LISTS REAPER_SHADER_SRCS)
         message(FATAL_ERROR "Unknown shader type for ${INPUT_SHADER_REL}")
     endif()
 
+    # FIXME We probably shouldn't reference a build dir
+    install(FILES ${OUTPUT_SPIRV} DESTINATION "${CMAKE_INSTALL_PREFIX}/build/shader/${INPUT_SHADER_REL_DIR}")
+
     list(APPEND REAPER_SPIRV_OUTPUT ${OUTPUT_SPIRV})
 endforeach()
 

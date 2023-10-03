@@ -21,6 +21,7 @@ namespace
 {
     VkShaderModule create_shader_module(VkDevice device, const std::string& fileName)
     {
+        // FIXME
         std::string       filename_with_root = "build/shader/" + fileName;
         std::vector<char> fileContents = readWholeFile(filename_with_root);
 
