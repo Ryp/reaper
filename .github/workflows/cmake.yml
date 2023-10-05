@@ -32,10 +32,9 @@ jobs:
     name: "Ubuntu ${{ matrix.config.name }} ${{ matrix.cmake_build_type }}"
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: nschloe/action-cached-lfs-checkout@v1
         with:
-          submodules: recursive
-          lfs: true
+          submodules: true
 
       - name: Install dependencies
         run: |
@@ -102,10 +101,9 @@ jobs:
     name: "Windows ${{ matrix.config.name }} ${{ matrix.cmake_arch }} ${{ matrix.cmake_build_type }}"
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: nschloe/action-cached-lfs-checkout@v1
         with:
-          submodules: recursive
-          lfs: true
+          submodules: true
 
       - name: Prepare Vulkan SDK
         uses: humbletim/setup-vulkan-sdk@v1.2.0
