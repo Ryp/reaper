@@ -48,7 +48,6 @@ jobs:
           vulkan-components: ${{ env.vulkan_sdk_modules }}
           vulkan-use-cache: true
 
-      # FIXME Enable bullet physics
       - name: Configure CMake
         run: |
           cmake -H. -Bbuild \
@@ -59,8 +58,7 @@ jobs:
             -DREAPER_GIT_HOOKS_AUTO_UPDATE=OFF \
             -DREAPER_RUN_CLANG_TIDY=OFF \
             -DREAPER_HEADLESS=ON \
-            -DREAPER_USE_TRACY=OFF \
-            -DREAPER_USE_BULLET_PHYSICS=OFF
+            -DREAPER_USE_TRACY=OFF
 
       - name: Build
         run: cmake --build build
@@ -112,7 +110,6 @@ jobs:
           vulkan-components: ${{ env.vulkan_sdk_modules }}
           vulkan-use-cache: true
 
-      # FIXME Enable bullet physics
       - name: Configure CMake
         run: |
           cmake .\ -Bbuild `
@@ -124,8 +121,7 @@ jobs:
             -DREAPER_GIT_HOOKS_AUTO_UPDATE=OFF `
             -DREAPER_RUN_CLANG_TIDY=OFF `
             -DREAPER_HEADLESS=ON `
-            -DREAPER_USE_TRACY=OFF `
-            -DREAPER_USE_BULLET_PHYSICS=OFF
+            -DREAPER_USE_TRACY=OFF
 
       - name: Build
         run: cmake --build build --config ${{ matrix.cmake_build_type }}

@@ -24,11 +24,8 @@ option(INSTALL_CMAKE_FILES OFF)
 
 add_subdirectory(${BULLET_PATH} ${CMAKE_BINARY_DIR}/external/bullet)
 
-set(BULLET_INCLUDE_DIRS ${BULLET_PATH}/src)
-set(BULLET_LIBRARIES LinearMath Bullet3Common BulletInverseDynamics BulletCollision BulletDynamics BulletSoftBody)
-
 # Wrap bullet for easier consumption
 add_library(bullet INTERFACE)
 
-target_include_directories(bullet SYSTEM INTERFACE ${BULLET_INCLUDE_DIRS})
-target_link_libraries(bullet INTERFACE ${BULLET_LIBRARIES})
+target_include_directories(bullet SYSTEM INTERFACE ${BULLET_PATH}/src)
+target_link_libraries(bullet INTERFACE BulletDynamics BulletCollision LinearMath)
