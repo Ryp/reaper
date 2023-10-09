@@ -8,6 +8,8 @@
 #include "FrameGraphResources.h"
 
 #include "Backend.h"
+#include "api/AssertHelper.h"
+
 #include "common/ReaperRoot.h"
 #include <profiling/Scope.h>
 
@@ -35,7 +37,7 @@ FrameGraphResources create_framegraph_resources(VulkanBackend& backend)
 
     for (auto& event : resources.events)
     {
-        Assert(vkCreateEvent(backend.device, &event_info, nullptr, &event) == VK_SUCCESS);
+        AssertVk(vkCreateEvent(backend.device, &event_info, nullptr, &event));
     }
 
     // Volatile stuff is created later

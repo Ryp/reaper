@@ -8,6 +8,7 @@
 #include "PhysicalDevice.h"
 #include "PresentationSurface.h"
 
+#include "api/AssertHelper.h"
 #include "api/VulkanHook.h"
 
 #include "core/Assert.h"
@@ -84,8 +85,7 @@ namespace
 
         for (uint32_t i = 0; i < queue_families_count; ++i)
         {
-            Assert(vkGetPhysicalDeviceSurfaceSupportKHR(handle, i, presentationSurface, &queue_present_support[i])
-                   == VK_SUCCESS);
+            AssertVk(vkGetPhysicalDeviceSurfaceSupportKHR(handle, i, presentationSurface, &queue_present_support[i]));
 
             if ((queue_family_properties[i].queueCount > 0)
                 && (queue_family_properties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT))

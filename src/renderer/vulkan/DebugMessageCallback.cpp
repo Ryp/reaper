@@ -7,6 +7,7 @@
 
 #include "DebugMessageCallback.h"
 
+#include "api/AssertHelper.h"
 #include "api/VulkanStringConversion.h"
 
 #include "common/Log.h"
@@ -157,8 +158,7 @@ VkDebugUtilsMessengerEXT vulkan_create_debug_callback(VkInstance instance, Reape
     VkDebugUtilsMessengerEXT debug_utils_messenger = VK_NULL_HANDLE;
 
 #if REAPER_DEBUG
-    Assert(vkCreateDebugUtilsMessengerEXT(instance, &callbackCreateInfo, nullptr, &debug_utils_messenger)
-           == VK_SUCCESS);
+    AssertVk(vkCreateDebugUtilsMessengerEXT(instance, &callbackCreateInfo, nullptr, &debug_utils_messenger));
 #endif
 
     return debug_utils_messenger;

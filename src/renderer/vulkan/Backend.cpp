@@ -24,6 +24,7 @@
 #include <iostream>
 
 #include "PresentationSurface.h"
+#include "api/AssertHelper.h"
 #include "api/VulkanHook.h"
 #include "api/VulkanStringConversion.h"
 #include "renderer/window/Window.h"
@@ -58,12 +59,11 @@ namespace
             return;
 
         uint32_t extensions_count = 0;
-        Assert(vkEnumerateInstanceExtensionProperties(nullptr, &extensions_count, nullptr) == VK_SUCCESS);
+        AssertVk(vkEnumerateInstanceExtensionProperties(nullptr, &extensions_count, nullptr));
 
         // NOTE: Vulkan spec states that it's safe to pass zero as a count with an invalid pointer
         std::vector<VkExtensionProperties> supported_extensions(extensions_count);
-        Assert(vkEnumerateInstanceExtensionProperties(nullptr, &extensions_count, supported_extensions.data())
-               == VK_SUCCESS);
+        AssertVk(vkEnumerateInstanceExtensionProperties(nullptr, &extensions_count, supported_extensions.data()));
 
         for (auto checked_extension : checked_extensions)
         {
@@ -84,12 +84,12 @@ namespace
             return;
 
         uint32_t layers_count = 0;
-        Assert(vkEnumerateInstanceLayerProperties(&layers_count, nullptr) == VK_SUCCESS);
+        AssertVk(vkEnumerateInstanceLayerProperties(&layers_count, nullptr));
         Assert(layers_count > 0);
 
         // NOTE: Vulkan spec states that it's safe to pass zero as a count with an invalid pointer
         std::vector<VkLayerProperties> supported_layers(layers_count);
-        Assert(vkEnumerateInstanceLayerProperties(&layers_count, supported_layers.data()) == VK_SUCCESS);
+        AssertVk(vkEnumerateInstanceLayerProperties(&layers_count, supported_layers.data()));
 
         for (auto checked_layer_name : checked_layer_names)
         {
@@ -193,9 +193,7 @@ namespace
             .pEnabledFeatures = nullptr,
         };
 
-        Assert(vkCreateDevice(backend.physical_device.handle, &device_create_info, nullptr, &backend.device)
-                   == VK_SUCCESS,
-               "could not create Vulkan device");
+        AssertVk(vkCreateDevice(backend.physical_device.handle, &device_create_info, nullptr, &backend.device));
 
         VulkanSetDebugName(backend.device, backend.device, "Device");
 
@@ -213,14 +211,12 @@ namespace
             return;
 
         uint32_t extensions_count = 0;
-        Assert(vkEnumerateDeviceExtensionProperties(physical_device, nullptr, &extensions_count, nullptr)
-               == VK_SUCCESS);
+        AssertVk(vkEnumerateDeviceExtensionProperties(physical_device, nullptr, &extensions_count, nullptr));
 
         // NOTE: Vulkan spec states that it's safe to pass zero as a count with an invalid pointer
         std::vector<VkExtensionProperties> supported_extensions(extensions_count);
-        Assert(vkEnumerateDeviceExtensionProperties(physical_device, nullptr, &extensions_count,
-                                                    supported_extensions.data())
-               == VK_SUCCESS);
+        AssertVk(vkEnumerateDeviceExtensionProperties(physical_device, nullptr, &extensions_count,
+                                                      supported_extensions.data()));
 
         for (auto checked_extension : checked_extensions)
         {
@@ -355,14 +351,13 @@ namespace
     {
         uint32_t deviceCount = 0;
 
-        Assert(vkEnumeratePhysicalDevices(backend.instance, &deviceCount, nullptr) == VK_SUCCESS);
+        AssertVk(vkEnumeratePhysicalDevices(backend.instance, &deviceCount, nullptr));
         Assert(deviceCount > 0);
 
         log_debug(root, "vulkan: enumerating {} physical devices", deviceCount);
 
         std::vector<VkPhysicalDevice> available_physical_devices(deviceCount);
-        Assert(vkEnumeratePhysicalDevices(backend.instance, &deviceCount, &available_physical_devices[0]) == VK_SUCCESS,
-               "error occurred during physical devices enumeration");
+        AssertVk(vkEnumeratePhysicalDevices(backend.instance, &deviceCount, available_physical_devices.data()));
 
         bool found_physical_device = false;
 
@@ -387,7 +382,7 @@ namespace
                                  const VkSemaphoreCreateInfo& create_info)
     {
         VkSemaphore semaphore;
-        Assert(vkCreateSemaphore(backend.device, &create_info, nullptr, &semaphore) == VK_SUCCESS);
+        AssertVk(vkCreateSemaphore(backend.device, &create_info, nullptr, &semaphore));
 
         VulkanSetDebugName(backend.device, semaphore, debug_name);
 
@@ -412,7 +407,7 @@ namespace
                                                      .pPoolSizes = descriptorPoolSizes.data()};
 
         VkDescriptorPool pool = VK_NULL_HANDLE;
-        Assert(vkCreateDescriptorPool(backend.device, &poolInfo, nullptr, &pool) == VK_SUCCESS);
+        AssertVk(vkCreateDescriptorPool(backend.device, &poolInfo, nullptr, &pool));
         log_debug(root, "vulkan: created descriptor pool with handle: {}", static_cast<void*>(pool));
 
         return pool;
@@ -485,8 +480,7 @@ void create_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& backend)
         .ppEnabledExtensionNames = instance_extensions.data(),
     };
 
-    Assert(vkCreateInstance(&instance_create_info, nullptr, &backend.instance) == VK_SUCCESS,
-           "cannot create Vulkan instance");
+    AssertVk(vkCreateInstance(&instance_create_info, nullptr, &backend.instance));
 
     vulkan_load_instance_level_functions(backend.instance);
 
@@ -601,7 +595,7 @@ void destroy_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& backend)
     log_info(root, "vulkan: destroying backend");
 
     log_debug(root, "vulkan: waiting for current work to finish");
-    Assert(vkDeviceWaitIdle(backend.device) == VK_SUCCESS);
+    AssertVk(vkDeviceWaitIdle(backend.device));
 
     ImGui_ImplVulkan_Shutdown();
 

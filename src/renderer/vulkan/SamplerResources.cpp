@@ -7,9 +7,10 @@
 
 #include "SamplerResources.h"
 
-#include "renderer/vulkan/Backend.h"
-#include "renderer/vulkan/Debug.h"
-#include "renderer/vulkan/renderpass/ShadowConstants.h"
+#include "Backend.h"
+#include "Debug.h"
+#include "api/AssertHelper.h"
+#include "renderpass/ShadowConstants.h"
 
 #include <cfloat>
 #include <core/Assert.h>
@@ -21,7 +22,7 @@ namespace
     VkSampler create_sampler(VulkanBackend& backend, const char* debug_name, const VkSamplerCreateInfo& create_info)
     {
         VkSampler sampler;
-        Assert(vkCreateSampler(backend.device, &create_info, nullptr, &sampler) == VK_SUCCESS);
+        AssertVk(vkCreateSampler(backend.device, &create_info, nullptr, &sampler));
 
         VulkanSetDebugName(backend.device, sampler, debug_name);
 

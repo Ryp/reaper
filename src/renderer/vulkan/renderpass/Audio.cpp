@@ -17,6 +17,7 @@
 #include "renderer/vulkan/FrameGraphResources.h"
 #include "renderer/vulkan/Pipeline.h"
 #include "renderer/vulkan/ShaderModules.h"
+#include "renderer/vulkan/api/AssertHelper.h"
 
 #include "renderer/graph/FrameGraphBuilder.h"
 
@@ -234,9 +235,8 @@ void read_gpu_audio_data(VulkanBackend& backend, AudioResources& resources)
 
     Assert(audio_buffer_offset % backend.physical_device.properties.limits.nonCoherentAtomSize == 0);
     Assert(audio_buffer_size % backend.physical_device.properties.limits.nonCoherentAtomSize == 0);
-    Assert(vkMapMemory(backend.device, allocation_info.deviceMemory, audio_buffer_offset, audio_buffer_size, 0,
-                       &mapped_data_ptr)
-           == VK_SUCCESS);
+    AssertVk(vkMapMemory(backend.device, allocation_info.deviceMemory, audio_buffer_offset, audio_buffer_size, 0,
+                         &mapped_data_ptr));
 
     const VkMappedMemoryRange staging_range = {
         .sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE,

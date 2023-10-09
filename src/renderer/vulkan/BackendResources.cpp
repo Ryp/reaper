@@ -8,6 +8,7 @@
 #include "BackendResources.h"
 
 #include "Backend.h"
+#include "api/AssertHelper.h"
 #include "profiling/Scope.h"
 
 #include "common/Log.h"
@@ -28,7 +29,7 @@ void create_backend_resources(ReaperRoot& root, VulkanBackend& backend)
         .queueFamilyIndex = backend.physical_device.graphics_queue_family_index,
     };
 
-    Assert(vkCreateCommandPool(backend.device, &poolCreateInfo, nullptr, &resources.gfxCommandPool) == VK_SUCCESS);
+    AssertVk(vkCreateCommandPool(backend.device, &poolCreateInfo, nullptr, &resources.gfxCommandPool));
     log_debug(root, "vulkan: created command pool with handle: {}", static_cast<void*>(resources.gfxCommandPool));
 
     const VkCommandBufferAllocateInfo cmdBufferAllocInfo = {
@@ -39,7 +40,7 @@ void create_backend_resources(ReaperRoot& root, VulkanBackend& backend)
         .commandBufferCount = 1,
     };
 
-    Assert(vkAllocateCommandBuffers(backend.device, &cmdBufferAllocInfo, &resources.gfxCmdBuffer.handle) == VK_SUCCESS);
+    AssertVk(vkAllocateCommandBuffers(backend.device, &cmdBufferAllocInfo, &resources.gfxCmdBuffer.handle));
     log_debug(root, "vulkan: created command buffer with handle: {}",
               static_cast<void*>(resources.gfxCmdBuffer.handle));
 

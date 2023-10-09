@@ -20,6 +20,7 @@
 #include "renderer/vulkan/MeshCache.h"
 #include "renderer/vulkan/Pipeline.h"
 #include "renderer/vulkan/ShaderModules.h"
+#include "renderer/vulkan/api/AssertHelper.h"
 
 #include "renderer/graph/FrameGraphBuilder.h"
 
@@ -248,7 +249,7 @@ MeshletCullingResources create_meshlet_culling_resources(VulkanBackend& backend,
         .flags = VK_FLAGS_NONE,
     };
 
-    Assert(vkCreateEvent(backend.device, &event_info, nullptr, &resources.countersReadyEvent) == VK_SUCCESS);
+    AssertVk(vkCreateEvent(backend.device, &event_info, nullptr, &resources.countersReadyEvent));
     VulkanSetDebugName(backend.device, resources.countersReadyEvent, "Counters ready event");
 
     return resources;
@@ -513,9 +514,8 @@ std::vector<MeshletCullingStats> get_meshlet_culling_gpu_stats(VulkanBackend& ba
     u64   mappped_data_size_bytes =
         alignOffset(allocation_info.size, backend.physical_device.properties.limits.nonCoherentAtomSize);
 
-    Assert(vkMapMemory(backend.device, allocation_info.deviceMemory, allocation_info.offset, mappped_data_size_bytes, 0,
-                       &mapped_data_ptr)
-           == VK_SUCCESS);
+    AssertVk(vkMapMemory(backend.device, allocation_info.deviceMemory, allocation_info.offset, mappped_data_size_bytes,
+                         0, &mapped_data_ptr));
 
     const VkMappedMemoryRange staging_range = {
         .sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE,

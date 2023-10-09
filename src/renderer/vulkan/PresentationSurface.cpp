@@ -7,6 +7,8 @@
 
 #include "PresentationSurface.h"
 
+#include "api/AssertHelper.h"
+
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
 #    include "renderer/window/Win32Window.h"
 #elif defined(VK_USE_PLATFORM_XCB_KHR)
@@ -21,7 +23,7 @@
 
 namespace Reaper
 {
-void vulkan_create_presentation_surface(VkInstance instance, VkSurfaceKHR& vkPresentationSurface, IWindow* window)
+void vulkan_create_presentation_surface(VkInstance instance, VkSurfaceKHR& presentation_surface, IWindow* window)
 {
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
     Win32Window* win32Window = dynamic_cast<Win32Window*>(window);
@@ -33,7 +35,7 @@ void vulkan_create_presentation_surface(VkInstance instance, VkSurfaceKHR& vkPre
                                                        .hinstance = win32Window->m_instance,
                                                        .hwnd = win32Window->m_handle};
 
-    Assert(vkCreateWin32SurfaceKHR(instance, &surface_create_info, nullptr, &vkPresentationSurface) == VK_SUCCESS);
+    AssertVk(vkCreateWin32SurfaceKHR(instance, &surface_create_info, nullptr, &presentation_surface));
 #elif defined(VK_USE_PLATFORM_XCB_KHR)
     XCBWindow* xcbWindow = dynamic_cast<XCBWindow*>(window);
     Assert(xcbWindow != nullptr);
@@ -44,7 +46,7 @@ void vulkan_create_presentation_surface(VkInstance instance, VkSurfaceKHR& vkPre
                                                      .connection = xcbWindow->m_connection,
                                                      .window = xcbWindow->m_handle};
 
-    Assert(vkCreateXcbSurfaceKHR(instance, &surface_create_info, nullptr, &vkPresentationSurface) == VK_SUCCESS);
+    AssertVk(vkCreateXcbSurfaceKHR(instance, &surface_create_info, nullptr, &presentation_surface));
 #elif defined(VK_USE_PLATFORM_XLIB_KHR)
     XLibWindow* xlibWindow = dynamic_cast<XLibWindow*>(window);
     Assert(xlibWindow != nullptr);
@@ -55,11 +57,11 @@ void vulkan_create_presentation_surface(VkInstance instance, VkSurfaceKHR& vkPre
                                                       .dpy = xlibWindow->DisplayPtr,
                                                       .window = xlibWindow->Handle};
 
-    Assert(vkCreateXlibSurfaceKHR(instance, &surface_create_info, nullptr, &vkPresentationSurface) == VK_SUCCESS);
+    AssertVk(vkCreateXlibSurfaceKHR(instance, &surface_create_info, nullptr, &presentation_surface));
 #else
 #    error "Unsupported WSI!"
 #endif
-    Assert(vkPresentationSurface != VK_NULL_HANDLE);
+    Assert(presentation_surface != VK_NULL_HANDLE);
 }
 
 bool vulkan_queue_family_has_presentation_support(VkPhysicalDevice device, uint32_t queueFamilyIndex, IWindow* window)

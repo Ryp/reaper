@@ -7,7 +7,10 @@
 
 #include "Pipeline.h"
 
+#include "api/AssertHelper.h"
+
 #include <core/Assert.h>
+
 #include <vector>
 
 namespace Reaper
@@ -26,7 +29,7 @@ void allocate_descriptor_sets(VkDevice device, VkDescriptorPool descriptor_pool,
         .pSetLayouts = descriptor_set_layouts.data(),
     };
 
-    Assert(vkAllocateDescriptorSets(device, &descriptorSetAllocInfo, output_descriptor_sets.data()) == VK_SUCCESS);
+    AssertVk(vkAllocateDescriptorSets(device, &descriptorSetAllocInfo, output_descriptor_sets.data()));
 }
 
 void allocate_descriptor_sets(VkDevice device, VkDescriptorPool descriptor_pool, VkDescriptorSetLayout set_layout,
@@ -76,7 +79,7 @@ VkDescriptorSetLayout create_descriptor_set_layout(VkDevice device,
     }
 
     VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
-    Assert(vkCreateDescriptorSetLayout(device, &descriptorSetLayoutInfo, nullptr, &descriptorSetLayout) == VK_SUCCESS);
+    AssertVk(vkCreateDescriptorSetLayout(device, &descriptorSetLayoutInfo, nullptr, &descriptorSetLayout));
 
     return descriptorSetLayout;
 }
@@ -97,7 +100,7 @@ VkPipelineLayout create_pipeline_layout(VkDevice device,
                                                      .pPushConstantRanges = push_constant_ranges.data()};
 
     VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
-    Assert(vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &pipelineLayout) == VK_SUCCESS);
+    AssertVk(vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &pipelineLayout));
 
     return pipelineLayout;
 }
@@ -123,7 +126,7 @@ VkPipeline create_compute_pipeline(VkDevice device, VkPipelineLayout pipeline_la
     VkPipeline      pipeline = VK_NULL_HANDLE;
     VkPipelineCache cache = VK_NULL_HANDLE;
 
-    Assert(vkCreateComputePipelines(device, cache, 1, &pipelineCreateInfo, nullptr, &pipeline) == VK_SUCCESS);
+    AssertVk(vkCreateComputePipelines(device, cache, 1, &pipelineCreateInfo, nullptr, &pipeline));
 
     return pipeline;
 }
@@ -342,7 +345,7 @@ VkPipeline create_graphics_pipeline(VkDevice device,
     VkPipeline      pipeline = VK_NULL_HANDLE;
     VkPipelineCache cache = VK_NULL_HANDLE;
 
-    Assert(vkCreateGraphicsPipelines(device, cache, 1, &create_info, nullptr, &pipeline) == VK_SUCCESS);
+    AssertVk(vkCreateGraphicsPipelines(device, cache, 1, &create_info, nullptr, &pipeline));
 
     return pipeline;
 } // namespace Reaper

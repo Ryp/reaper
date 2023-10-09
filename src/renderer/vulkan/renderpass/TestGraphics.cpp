@@ -18,6 +18,7 @@
 #include "renderer/vulkan/MaterialResources.h"
 #include "renderer/vulkan/MeshCache.h"
 #include "renderer/vulkan/Swapchain.h"
+#include "renderer/vulkan/api/AssertHelper.h"
 #include "renderer/vulkan/api/VulkanStringConversion.h"
 #include "renderer/vulkan/renderpass/Constants.h"
 #include "renderer/vulkan/renderpass/ForwardPassConstants.h"
@@ -187,10 +188,10 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         FrameMark;
 #endif
 
-        Assert(vkGetFenceStatus(backend.device, draw_fence) == VK_SUCCESS);
+        AssertVk(vkGetFenceStatus(backend.device, draw_fence));
 
         log_debug(root, "vulkan: reset fence");
-        Assert(vkResetFences(backend.device, 1, &draw_fence) == VK_SUCCESS);
+        AssertVk(vkResetFences(backend.device, 1, &draw_fence));
     }
 
     const VkExtent2D render_extent = backend.render_extent;
@@ -964,7 +965,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
                                                       .image_layout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL};
 
     log_debug(root, "vulkan: record command buffer");
-    Assert(vkResetCommandPool(backend.device, backend.resources->gfxCommandPool, VK_FLAGS_NONE) == VK_SUCCESS);
+    AssertVk(vkResetCommandPool(backend.device, backend.resources->gfxCommandPool, VK_FLAGS_NONE));
 
     const VkCommandBufferBeginInfo cmdBufferBeginInfo = {
         .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
@@ -973,7 +974,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         .pInheritanceInfo = nullptr,
     };
 
-    Assert(vkBeginCommandBuffer(cmdBuffer.handle, &cmdBufferBeginInfo) == VK_SUCCESS);
+    AssertVk(vkBeginCommandBuffer(cmdBuffer.handle, &cmdBufferBeginInfo));
 
     {
         REAPER_GPU_SCOPE(cmdBuffer, "GPU Frame");
@@ -1392,7 +1393,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 #endif
 
     // Stop recording
-    Assert(vkEndCommandBuffer(cmdBuffer.handle) == VK_SUCCESS);
+    AssertVk(vkEndCommandBuffer(cmdBuffer.handle));
 
     const VkPipelineStageFlags waitDstMask = swapchain_access_render.stage_mask;
 
@@ -1409,8 +1410,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     };
 
     log_debug(root, "vulkan: submit drawing commands");
-    Assert(vkQueueSubmit(backend.graphics_queue, 1, &submitInfo, resources.frame_sync_resources.draw_fence)
-           == VK_SUCCESS);
+    AssertVk(vkQueueSubmit(backend.graphics_queue, 1, &submitInfo, resources.frame_sync_resources.draw_fence));
 
     log_debug(root, "vulkan: present");
 

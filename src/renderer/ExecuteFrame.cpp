@@ -10,6 +10,7 @@
 #include "window/Window.h"
 #include "vulkan/Backend.h"
 #include "vulkan/BackendResources.h"
+#include "vulkan/api/AssertHelper.h"
 #include "vulkan/renderpass/Constants.h"
 #include "vulkan/renderpass/TestGraphics.h"
 #include "vulkan/renderpass/TiledLightingCommon.h"
@@ -32,19 +33,19 @@ void renderer_start(ReaperRoot& root, VulkanBackend& backend, IWindow* window)
 
     CommandBuffer& cmdBuffer = backend.resources->gfxCmdBuffer;
 
-    Assert(vkResetCommandPool(backend.device, backend.resources->gfxCommandPool, VK_FLAGS_NONE) == VK_SUCCESS);
+    AssertVk(vkResetCommandPool(backend.device, backend.resources->gfxCommandPool, VK_FLAGS_NONE));
 
     const VkCommandBufferBeginInfo cmdBufferBeginInfo = {.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
                                                          .pNext = nullptr,
                                                          .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
                                                          .pInheritanceInfo = nullptr};
 
-    Assert(vkBeginCommandBuffer(cmdBuffer.handle, &cmdBufferBeginInfo) == VK_SUCCESS);
+    AssertVk(vkBeginCommandBuffer(cmdBuffer.handle, &cmdBufferBeginInfo));
 
     // execute a gpu command to upload imgui font textures
     ImGui_ImplVulkan_CreateFontsTexture(cmdBuffer.handle);
 
-    Assert(vkEndCommandBuffer(cmdBuffer.handle) == VK_SUCCESS);
+    AssertVk(vkEndCommandBuffer(cmdBuffer.handle));
 
     const VkSubmitInfo submitInfo = {
         .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
@@ -59,9 +60,9 @@ void renderer_start(ReaperRoot& root, VulkanBackend& backend, IWindow* window)
     };
 
     log_debug(root, "vulkan: submit commands");
-    Assert(vkQueueSubmit(backend.graphics_queue, 1, &submitInfo, VK_NULL_HANDLE) == VK_SUCCESS);
+    AssertVk(vkQueueSubmit(backend.graphics_queue, 1, &submitInfo, VK_NULL_HANDLE));
 
-    Assert(vkDeviceWaitIdle(backend.device) == VK_SUCCESS);
+    AssertVk(vkDeviceWaitIdle(backend.device));
 
     ImGui_ImplVulkan_DestroyFontUploadObjects();
 

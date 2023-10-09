@@ -7,10 +7,11 @@
 
 #include "Buffer.h"
 
+#include "Debug.h"
+#include "api/AssertHelper.h"
+
 #include "common/Log.h"
 #include "common/ReaperRoot.h"
-
-#include "renderer/vulkan/Debug.h"
 
 #include <algorithm>
 
@@ -115,9 +116,8 @@ void upload_buffer_data(VkDevice device, const VmaAllocator& allocator, const GP
 
     const u64 offset_bytes = buffer_properties.stride * offset_elements;
 
-    Assert(vkMapMemory(device, allocation_info.deviceMemory, allocation_info.offset + offset_bytes, size, VK_FLAGS_NONE,
-                       reinterpret_cast<void**>(&writePtr))
-           == VK_SUCCESS);
+    AssertVk(vkMapMemory(device, allocation_info.deviceMemory, allocation_info.offset + offset_bytes, size,
+                         VK_FLAGS_NONE, reinterpret_cast<void**>(&writePtr)));
 
     Assert(size <= allocation_info.size,
            fmt::format("copy src of size {} on dst of size {}", size, allocation_info.size));

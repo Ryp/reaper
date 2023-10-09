@@ -8,6 +8,7 @@
 #include "Display.h"
 
 #include "Backend.h"
+#include "api/AssertHelper.h"
 
 #include <vulkan_loader/Vulkan.h>
 
@@ -25,15 +26,14 @@ void create_vulkan_display_swapchain(ReaperRoot& root, const VulkanBackend& back
 
     uint32_t displayCount = 0;
 
-    Assert(vkGetPhysicalDeviceDisplayPropertiesKHR(backend.physical_device, &displayCount, nullptr) == VK_SUCCESS);
+    AssertVk(vkGetPhysicalDeviceDisplayPropertiesKHR(backend.physical_device, &displayCount, nullptr));
     Assert(displayCount > 0);
 
     log_debug(root, "vulkan: enumerating {} displays", displayCount);
 
     std::vector<VkDisplayPropertiesKHR> availableDisplayProperties(displayCount);
-    Assert(vkGetPhysicalDeviceDisplayPropertiesKHR(backend.physical_device, &displayCount,
-                                                   availableDisplayProperties.data())
-           == VK_SUCCESS);
+    AssertVk(vkGetPhysicalDeviceDisplayPropertiesKHR(backend.physical_device, &displayCount,
+                                                     availableDisplayProperties.data()));
 
     for (const VkDisplayPropertiesKHR& properties : availableDisplayProperties)
     {
@@ -46,15 +46,14 @@ void create_vulkan_display_swapchain(ReaperRoot& root, const VulkanBackend& back
 
     uint32_t planeCount = 0;
 
-    Assert(vkGetPhysicalDeviceDisplayPlanePropertiesKHR(backend.physical_device, &planeCount, nullptr) == VK_SUCCESS);
+    AssertVk(vkGetPhysicalDeviceDisplayPlanePropertiesKHR(backend.physical_device, &planeCount, nullptr));
     Assert(planeCount > 0);
 
     log_debug(root, "vulkan: enumerating {} display planes", planeCount);
 
     std::vector<VkDisplayPlanePropertiesKHR> displayPlaneProperties(planeCount);
-    Assert(vkGetPhysicalDeviceDisplayPlanePropertiesKHR(backend.physical_device, &planeCount,
-                                                        displayPlaneProperties.data())
-           == VK_SUCCESS);
+    AssertVk(vkGetPhysicalDeviceDisplayPlanePropertiesKHR(backend.physical_device, &planeCount,
+                                                          displayPlaneProperties.data()));
 
     for (size_t i = 0; i < planeCount; i++)
     {

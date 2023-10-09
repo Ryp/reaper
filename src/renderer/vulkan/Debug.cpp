@@ -7,7 +7,7 @@
 
 #include "Debug.h"
 
-#include "core/Assert.h"
+#include "api/AssertHelper.h"
 
 #define REAPER_VULKAN_DEBUG REAPER_DEBUG
 
@@ -27,7 +27,7 @@ namespace
         };
 
 #if REAPER_VULKAN_DEBUG
-        Assert(vkSetDebugUtilsObjectNameEXT(device, &debugNameInfo) == VK_SUCCESS);
+        AssertVk(vkSetDebugUtilsObjectNameEXT(device, &debugNameInfo));
 #endif
     }
 } // namespace

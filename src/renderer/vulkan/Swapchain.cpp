@@ -10,6 +10,7 @@
 #include "Backend.h"
 #include "Image.h"
 
+#include "api/AssertHelper.h"
 #include "api/VulkanStringConversion.h"
 #include <vulkan_loader/Vulkan.h>
 
@@ -165,8 +166,8 @@ void configure_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backen
     surface_caps_2.pNext = &native_hdr_amd;
 #endif
 
-    Assert(vkGetPhysicalDeviceSurfaceCapabilities2KHR(backend.physical_device.handle, &surface_info_2, &surface_caps_2)
-           == VK_SUCCESS);
+    AssertVk(
+        vkGetPhysicalDeviceSurfaceCapabilities2KHR(backend.physical_device.handle, &surface_info_2, &surface_caps_2));
 
 #if REAPER_WINDOWS_HDR_TEST
     // Assert(native_hdr_amd.localDimmingSupport == VK_TRUE);
@@ -180,17 +181,15 @@ void configure_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backen
     VkSurfaceFormatKHR& surface_format = presentInfo.surface_format;
     {
         uint32_t formats_count;
-        Assert(vkGetPhysicalDeviceSurfaceFormats2KHR(backend.physical_device.handle, &surface_info_2, &formats_count,
-                                                     nullptr)
-               == VK_SUCCESS);
+        AssertVk(vkGetPhysicalDeviceSurfaceFormats2KHR(backend.physical_device.handle, &surface_info_2, &formats_count,
+                                                       nullptr));
         Assert(formats_count > 0);
 
         std::vector<VkSurfaceFormat2KHR> surface_formats(
             formats_count, VkSurfaceFormat2KHR{
                                .sType = VK_STRUCTURE_TYPE_SURFACE_FORMAT_2_KHR, .pNext = nullptr, .surfaceFormat = {}});
-        Assert(vkGetPhysicalDeviceSurfaceFormats2KHR(backend.physical_device.handle, &surface_info_2, &formats_count,
-                                                     surface_formats.data())
-               == VK_SUCCESS);
+        AssertVk(vkGetPhysicalDeviceSurfaceFormats2KHR(backend.physical_device.handle, &surface_info_2, &formats_count,
+                                                       surface_formats.data()));
 
         log_debug(root, "vulkan: swapchain supports {} formats", formats_count);
         for (auto& format : surface_formats)
@@ -241,15 +240,13 @@ void configure_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backen
 
     {
         uint32_t presentModeCount;
-        Assert(vkGetPhysicalDeviceSurfacePresentModesKHR(backend.physical_device.handle, presentInfo.surface,
-                                                         &presentModeCount, nullptr)
-               == VK_SUCCESS);
+        AssertVk(vkGetPhysicalDeviceSurfacePresentModesKHR(backend.physical_device.handle, presentInfo.surface,
+                                                           &presentModeCount, nullptr));
         Assert(presentModeCount > 0);
 
         std::vector<VkPresentModeKHR> availablePresentModes(presentModeCount);
-        Assert(vkGetPhysicalDeviceSurfacePresentModesKHR(backend.physical_device.handle, presentInfo.surface,
-                                                         &presentModeCount, availablePresentModes.data())
-               == VK_SUCCESS);
+        AssertVk(vkGetPhysicalDeviceSurfacePresentModesKHR(backend.physical_device.handle, presentInfo.surface,
+                                                           &presentModeCount, availablePresentModes.data()));
 
         log_debug(root, "vulkan: swapchain supports {} present modes", presentModeCount);
         for (auto& mode : availablePresentModes)
@@ -345,21 +342,20 @@ void create_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backend, 
         .oldSwapchain = presentInfo.swapchain,
     };
 
-    Assert(vkCreateSwapchainKHR(backend.device, &swap_chain_create_info, nullptr, &presentInfo.swapchain)
-           == VK_SUCCESS);
+    AssertVk(vkCreateSwapchainKHR(backend.device, &swap_chain_create_info, nullptr, &presentInfo.swapchain));
 
     log_info(root, "vulkan: swapchain created with format = {}, colorspace = {}",
              vk_to_string(presentInfo.surface_format.format), vk_to_string(presentInfo.surface_format.colorSpace));
 
     u32 actualImageCount = 0;
-    Assert(vkGetSwapchainImagesKHR(backend.device, presentInfo.swapchain, &actualImageCount, nullptr) == VK_SUCCESS);
+    AssertVk(vkGetSwapchainImagesKHR(backend.device, presentInfo.swapchain, &actualImageCount, nullptr));
 
     Assert(actualImageCount > 0);
     Assert(actualImageCount >= presentInfo.image_count, "Invalid swapchain image count returned");
 
     presentInfo.images.resize(actualImageCount);
-    Assert(vkGetSwapchainImagesKHR(backend.device, presentInfo.swapchain, &actualImageCount, presentInfo.images.data())
-           == VK_SUCCESS);
+    AssertVk(
+        vkGetSwapchainImagesKHR(backend.device, presentInfo.swapchain, &actualImageCount, presentInfo.images.data()));
 
     if (actualImageCount != presentInfo.image_count)
     {
@@ -394,7 +390,7 @@ void resize_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backend, 
     log_debug(root, "vulkan: resizing wm swapchain");
 
     // Destroy what needs to be
-    Assert(vkDeviceWaitIdle(backend.device) == VK_SUCCESS);
+    AssertVk(vkDeviceWaitIdle(backend.device));
 
     destroy_swapchain_views(backend, presentInfo);
 

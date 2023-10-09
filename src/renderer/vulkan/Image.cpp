@@ -5,6 +5,7 @@
 #include <core/BitTricks.h>
 
 #include "Backend.h"
+#include "api/AssertHelper.h"
 
 #include "renderer/texture/GPUTextureProperties.h"
 #include "renderer/vulkan/Debug.h"
@@ -1082,7 +1083,7 @@ VkImageView create_image_view(VkDevice device, VkImage image, const GPUTextureVi
     };
 
     VkImageView imageView = VK_NULL_HANDLE;
-    Assert(vkCreateImageView(device, &imageViewInfo, nullptr, &imageView) == VK_SUCCESS);
+    AssertVk(vkCreateImageView(device, &imageViewInfo, nullptr, &imageView));
 
     return imageView;
 }

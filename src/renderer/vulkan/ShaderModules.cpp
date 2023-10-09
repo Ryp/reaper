@@ -9,6 +9,7 @@
 
 #include "Backend.h"
 #include "Debug.h"
+#include "api/AssertHelper.h"
 
 #include <common/ReaperRoot.h>
 
@@ -33,7 +34,7 @@ namespace
             .pCode = reinterpret_cast<const uint32_t*>(&fileContents[0])};
 
         VkShaderModule shaderModule = VK_NULL_HANDLE;
-        Assert(vkCreateShaderModule(device, &shader_module_create_info, nullptr, &shaderModule) == VK_SUCCESS);
+        AssertVk(vkCreateShaderModule(device, &shader_module_create_info, nullptr, &shaderModule));
 
         VulkanSetDebugName(device, shaderModule, filename_with_root.c_str());
         return shaderModule;
