@@ -13,9 +13,9 @@ env:
 
 jobs:
   build_ubuntu:
+    runs-on: ubuntu-latest
     env:
       release_name: neptune-linux
-    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
@@ -84,20 +84,25 @@ jobs:
         timeout-minutes: 10
 
   build_windows:
+    runs-on: windows-latest
     env:
       release_name: neptune-windows
-    runs-on: windows-latest
     strategy:
       fail-fast: false
       matrix:
         config:
+          - {
+            name: "MSVC Shared",
+            cmake_generator: "Visual Studio 17 2022",
+            cmake_build_shared_libs: ON,
+          }
           - {
             name: "MSVC Static",
             cmake_generator: "Visual Studio 17 2022",
             cmake_build_shared_libs: OFF,
           }
         cmake_arch: [x64]
-        cmake_build_type: [Release]
+        cmake_build_type: [Debug, Release]
     name: "Windows ${{ matrix.config.name }} ${{ matrix.cmake_arch }} ${{ matrix.cmake_build_type }}"
     steps:
       - name: Checkout
@@ -132,11 +137,13 @@ jobs:
         run: ctest --test-dir build -C ${{ matrix.cmake_build_type }} --output-on-failure
 
       - name: Install
+        if: ${{ matrix.cmake_build_type == 'Release' && matrix.config.cmake_build_shared_libs == 'OFF' }}
         run: |
           cmake --build build --config ${{ matrix.cmake_build_type }} --target install
           tar -cvf windows_build.tar ${{ env.release_name }}
 
       - uses: actions/upload-artifact@v3
+        if: ${{ matrix.cmake_build_type == 'Release' && matrix.config.cmake_build_shared_libs == 'OFF' }}
         with:
           name: windows_build
           path: windows_build.tar
