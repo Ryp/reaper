@@ -87,8 +87,7 @@ namespace
 
         for (u32 i = 0; i < gen_info.length; i++)
         {
-            std::ifstream file(assetFile);
-            Mesh&         track_mesh = track_meshes.emplace_back(load_obj(file));
+            Mesh& track_mesh = track_meshes.emplace_back(load_obj(assetFile));
 
             const TrackSkeletonNode& track_node = track.skeleton_nodes[i];
 

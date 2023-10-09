@@ -93,15 +93,10 @@ Mesh load_obj_tiny_obj_loader(std::ifstream& src)
 }
 } // namespace
 
-Mesh load_obj(std::ifstream& src)
-{
-    return load_obj_tiny_obj_loader(src);
-}
-
 Mesh load_obj(const std::string& filename)
 {
     std::ifstream file(filename);
-    return load_obj(file);
+    return load_obj_tiny_obj_loader(file);
 }
 
 void save_obj(std::ostream& output, std::span<const Mesh> meshes)
