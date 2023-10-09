@@ -19,17 +19,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        config:
-          - {
-            name: "GCC Shared",
-            cmake_build_shared_libs: ON,
-          }
-          - {
-            name: "GCC Static",
-            cmake_build_shared_libs: OFF,
-          }
+        cmake_build_shared_libs: [ON, OFF]
         cmake_build_type: [Debug, Release]
-    name: "Ubuntu ${{ matrix.config.name }} ${{ matrix.cmake_build_type }}"
+        config:
+        - {
+          name: "Ubuntu GCC"
+        }
+
+    # NOTE: We're using a ternary op here, which is very wonky.
+    # https://7tonshark.com/posts/github-actions-ternary-operator/
+    name: "${{ matrix.config.name }} ${{ matrix.cmake_build_shared_libs == 'ON' && 'Shared' || 'Static' }} ${{ matrix.cmake_build_type }}"
     steps:
       - name: Checkout
         uses: nschloe/action-cached-lfs-checkout@v1
@@ -53,7 +52,7 @@ jobs:
           cmake -H. -Bbuild \
             -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} \
             -DCMAKE_INSTALL_PREFIX=${{ env.release_name }} \
-            -DBUILD_SHARED_LIBS=${{ matrix.config.cmake_build_shared_libs }} \
+            -DBUILD_SHARED_LIBS=${{ matrix.cmake_build_shared_libs }} \
             -DREAPER_BUILD_WARNINGS_AS_ERRORS=ON \
             -DREAPER_GIT_HOOKS_AUTO_UPDATE=OFF \
             -DREAPER_RUN_CLANG_TIDY=OFF \
@@ -67,13 +66,13 @@ jobs:
         run: ctest --test-dir build --output-on-failure
 
       - name: Install
-        if: ${{ matrix.cmake_build_type == 'Release' && matrix.config.cmake_build_shared_libs == 'OFF' }}
+        if: ${{ matrix.cmake_build_type == 'Release' && matrix.cmake_build_shared_libs == 'OFF' }}
         run: |
           cmake --build build --target install
           tar -cvf linux_build.tar ${{ env.release_name }}
 
       - uses: actions/upload-artifact@v3
-        if: ${{ matrix.cmake_build_type == 'Release' && matrix.config.cmake_build_shared_libs == 'OFF' }}
+        if: ${{ matrix.cmake_build_type == 'Release' && matrix.cmake_build_shared_libs == 'OFF' }}
         with:
           name: linux_build
           path: linux_build.tar
@@ -90,20 +89,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        config:
-          - {
-            name: "MSVC Shared",
-            cmake_generator: "Visual Studio 17 2022",
-            cmake_build_shared_libs: ON,
-          }
-          - {
-            name: "MSVC Static",
-            cmake_generator: "Visual Studio 17 2022",
-            cmake_build_shared_libs: OFF,
-          }
+        cmake_generator: ["Visual Studio 17 2022"]
         cmake_arch: [x64]
+        cmake_build_shared_libs: [ON, OFF]
         cmake_build_type: [Debug, Release]
-    name: "Windows ${{ matrix.config.name }} ${{ matrix.cmake_arch }} ${{ matrix.cmake_build_type }}"
+        config:
+        - {
+          name: "Windows MSVC"
+        }
+    name: "${{ matrix.config.name }} ${{ matrix.cmake_build_shared_libs == 'ON' && 'Shared' || 'Static' }} ${{ matrix.cmake_build_type }}"
     steps:
       - name: Checkout
         uses: nschloe/action-cached-lfs-checkout@v1
@@ -120,10 +114,10 @@ jobs:
       - name: Configure CMake
         run: |
           cmake .\ -Bbuild `
-            -G "${{ matrix.config.cmake_generator }}" `
+            -G "${{ matrix.cmake_generator }}" `
             -A "${{ matrix.cmake_arch }}" `
             -DCMAKE_INSTALL_PREFIX=${{ env.release_name }} `
-            -DBUILD_SHARED_LIBS=${{ matrix.config.cmake_build_shared_libs }} `
+            -DBUILD_SHARED_LIBS=${{ matrix.cmake_build_shared_libs }} `
             -DREAPER_BUILD_WARNINGS_AS_ERRORS=ON `
             -DREAPER_GIT_HOOKS_AUTO_UPDATE=OFF `
             -DREAPER_RUN_CLANG_TIDY=OFF `
@@ -137,13 +131,13 @@ jobs:
         run: ctest --test-dir build -C ${{ matrix.cmake_build_type }} --output-on-failure
 
       - name: Install
-        if: ${{ matrix.cmake_build_type == 'Release' && matrix.config.cmake_build_shared_libs == 'OFF' }}
+        if: ${{ matrix.cmake_build_type == 'Release' && matrix.cmake_build_shared_libs == 'OFF' }}
         run: |
           cmake --build build --config ${{ matrix.cmake_build_type }} --target install
           tar -cvf windows_build.tar ${{ env.release_name }}
 
       - uses: actions/upload-artifact@v3
-        if: ${{ matrix.cmake_build_type == 'Release' && matrix.config.cmake_build_shared_libs == 'OFF' }}
+        if: ${{ matrix.cmake_build_type == 'Release' && matrix.cmake_build_shared_libs == 'OFF' }}
         with:
           name: windows_build
           path: windows_build.tar
