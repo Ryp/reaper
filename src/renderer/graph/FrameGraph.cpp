@@ -73,8 +73,8 @@ Resource& GetResource(FrameGraph& framegraph, const ResourceUsage& resourceUsage
 
 ResourceViewHandles allocate_texture_views(FrameGraph& framegraph, std::span<const GPUTextureView> texture_views)
 {
-    const u32 view_offset = framegraph.TextureViews.size();
-    const u32 view_count = texture_views.size();
+    const u32 view_offset = static_cast<u32>(framegraph.TextureViews.size());
+    const u32 view_count = static_cast<u32>(texture_views.size());
 
     // NOTE: I hate C++
     framegraph.TextureViews.insert(framegraph.TextureViews.end(), texture_views.begin(), texture_views.end());
@@ -87,8 +87,8 @@ ResourceViewHandles allocate_texture_views(FrameGraph& framegraph, std::span<con
 
 ResourceViewHandles allocate_buffer_views(FrameGraph& framegraph, std::span<const GPUBufferView> buffer_views)
 {
-    const u32 view_offset = framegraph.BufferViews.size();
-    const u32 view_count = buffer_views.size();
+    const u32 view_offset = static_cast<u32>(framegraph.BufferViews.size());
+    const u32 view_count = static_cast<u32>(buffer_views.size());
 
     // NOTE: I hate C++
     framegraph.BufferViews.insert(framegraph.BufferViews.end(), buffer_views.begin(), buffer_views.end());
@@ -142,7 +142,7 @@ void ComputeTransitiveClosure(const DirectedAcyclicGraph& graph,
 {
     REAPER_PROFILE_SCOPE_FUNC();
 
-    const u32 nodeCount = graph.Nodes.size();
+    const u32 nodeCount = static_cast<u32>(graph.Nodes.size());
 
     Assert(nodeCount != 0, "Empty graph");
     Assert(nodeCount < 1000, "Big graph");
@@ -180,8 +180,8 @@ namespace
     void place_automatic_barriers(FrameGraphSchedule& schedule, const FrameGraph& framegraph)
     {
         // Indexed by resource handle
-        const u32 texture_count = framegraph.TextureResources.size();
-        const u32 buffer_count = framegraph.BufferResources.size();
+        const u32 texture_count = static_cast<u32>(framegraph.TextureResources.size());
+        const u32 buffer_count = static_cast<u32>(framegraph.BufferResources.size());
 
         // Small trickery to treat all resource types with the same array
         std::vector<std::vector<ResourceUsageEvent>> per_resource_events(texture_count + buffer_count);
@@ -272,7 +272,7 @@ FrameGraphSchedule compute_schedule(const FrameGraph& framegraph)
     REAPER_PROFILE_SCOPE_FUNC();
 
     FrameGraphSchedule schedule;
-    const u32          renderPassCount = framegraph.RenderPasses.size();
+    const u32          renderPassCount = static_cast<u32>(framegraph.RenderPasses.size());
 
     for (u32 renderPassIndex = 0; renderPassIndex < renderPassCount; renderPassIndex++)
     {

@@ -62,10 +62,10 @@ namespace
         pipeline_properties.depth_stencil.depthWriteEnable = VK_TRUE;
         pipeline_properties.depth_stencil.depthCompareOp =
             MainPassUseReverseZ ? VK_COMPARE_OP_GREATER : VK_COMPARE_OP_LESS;
-        pipeline_properties.blend_state.attachmentCount = blend_attachment_state.size();
+        pipeline_properties.blend_state.attachmentCount = static_cast<u32>(blend_attachment_state.size());
         pipeline_properties.blend_state.pAttachments = blend_attachment_state.data();
         pipeline_properties.pipeline_layout = pipeline_layout;
-        pipeline_properties.pipeline_rendering.colorAttachmentCount = color_formats.size();
+        pipeline_properties.pipeline_rendering.colorAttachmentCount = static_cast<u32>(color_formats.size());
         pipeline_properties.pipeline_rendering.pColorAttachmentFormats = color_formats.data();
         pipeline_properties.pipeline_rendering.depthAttachmentFormat = depth_format;
 
@@ -152,7 +152,7 @@ void update_gbuffer_pass_descriptor_sets(DescriptorWriteHelper& write_helper, co
     if (!material_resources.textures.empty())
     {
         std::span<VkDescriptorImageInfo> albedo_image_infos =
-            write_helper.new_image_infos(material_resources.textures.size());
+            write_helper.new_image_infos(static_cast<u32>(material_resources.textures.size()));
 
         for (u32 index = 0; index < albedo_image_infos.size(); index += 1)
         {

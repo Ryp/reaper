@@ -29,12 +29,12 @@ enum class PNGMode
 StagingEntry copy_texture_to_staging_area_png(VulkanBackend& backend, ResourceStagingArea& staging,
                                               const char* file_path, bool is_srgb)
 {
-    u32         error;
+    u32         error = 0;
     u8*         png_image_ptr = 0;
-    u32         width;
-    u32         height;
-    u32         size_bytes;
-    PixelFormat pixel_format;
+    u32         width = 0;
+    u32         height = 0;
+    u32         size_bytes = 0;
+    PixelFormat pixel_format = PixelFormat::Unknown;
 
     // NOTE: driver support for linear tiled RGB textures is more limited than the 4-channel version, so we prefer it.
     PNGMode mode = PNGMode::RGBA;
@@ -64,7 +64,7 @@ StagingEntry copy_texture_to_staging_area_png(VulkanBackend& backend, ResourceSt
 
     const GPUTextureSubresource subresource = default_texture_subresource_one_color_mip();
 
-    const u32 command_offset = staging.bufferCopyRegions.size();
+    const u32 command_offset = static_cast<u32>(staging.bufferCopyRegions.size());
 
     // Setup a buffer image copy structure for the current mip level
     staging.bufferCopyRegions.emplace_back(

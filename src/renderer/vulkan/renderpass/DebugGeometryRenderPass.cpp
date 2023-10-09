@@ -146,9 +146,9 @@ DebugGeometryPassResources create_debug_geometry_pass_resources(VulkanBackend&  
 
         DebugMeshAlloc& icosahedron_alloc = resources.proxy_mesh_allocs.emplace_back();
         icosahedron_alloc.index_offset = resources.index_buffer_offset;
-        icosahedron_alloc.index_count = icosahedron.indexes.size();
+        icosahedron_alloc.index_count = static_cast<u32>(icosahedron.indexes.size());
         icosahedron_alloc.vertex_offset = resources.vertex_buffer_offset;
-        icosahedron_alloc.vertex_count = icosahedron.positions.size();
+        icosahedron_alloc.vertex_count = static_cast<u32>(icosahedron.positions.size());
 
         resources.vertex_buffer_offset += icosahedron_alloc.vertex_count;
         resources.index_buffer_offset += icosahedron_alloc.index_count;

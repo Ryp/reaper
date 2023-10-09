@@ -24,8 +24,8 @@ void DumpFrameGraph(const FrameGraph& frameGraph)
     std::ofstream outRPInput("input.txt");
     std::ofstream outRPOutput("output.txt");
 
-    const u32 renderPassCount = frameGraph.RenderPasses.size();
-    const u32 resourceUsageCount = frameGraph.ResourceUsages.size();
+    const u32 renderPassCount = static_cast<u32>(frameGraph.RenderPasses.size());
+    const u32 resourceUsageCount = static_cast<u32>(frameGraph.ResourceUsages.size());
 
     for (u32 resourceUsageIndex = 0; resourceUsageIndex < resourceUsageCount; resourceUsageIndex++)
     {

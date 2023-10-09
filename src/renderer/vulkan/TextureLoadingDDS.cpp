@@ -81,7 +81,7 @@ StagingEntry copy_texture_to_staging_area_dds(VulkanBackend& backend, ResourceSt
     properties.layer_count = layer_count;
 
     const u32 copy_count = mip_count * layer_count;
-    const u32 command_offset = staging.bufferCopyRegions.size();
+    const u32 command_offset = static_cast<u32>(staging.bufferCopyRegions.size());
 
     for (uint32_t arrayIdx = 0; arrayIdx < layer_count; arrayIdx++)
     {

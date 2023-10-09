@@ -284,28 +284,35 @@ namespace
         toGlm(player_rigid_body->getOrientation());
     }
 #endif
+} // namespace
+} // namespace Neptune
 
 #if defined(REAPER_USE_BULLET_PHYSICS)
-    void pre_tick_callback(btDynamicsWorld* world, btScalar dt)
-    {
-        PhysicsSim* sim_ptr = static_cast<PhysicsSim*>(world->getWorldUserInfo());
-        Assert(sim_ptr);
+void pre_tick_callback(btDynamicsWorld* world, btScalar dt)
+{
+    using namespace Neptune;
 
-        PhysicsSim& sim = *sim_ptr;
+    PhysicsSim* sim_ptr = static_cast<PhysicsSim*>(world->getWorldUserInfo());
+    Assert(sim_ptr);
 
-        pre_tick(sim, sim.frame_data, dt);
-    }
+    PhysicsSim& sim = *sim_ptr;
 
-    void post_tick_callback(btDynamicsWorld* world, btScalar dt)
-    {
-        PhysicsSim* sim_ptr = static_cast<PhysicsSim*>(world->getWorldUserInfo());
-        Assert(sim_ptr);
+    pre_tick(sim, sim.frame_data, dt);
+}
 
-        post_tick(*sim_ptr, dt);
-    }
+void post_tick_callback(btDynamicsWorld* world, btScalar dt)
+{
+    using namespace Neptune;
+
+    PhysicsSim* sim_ptr = static_cast<PhysicsSim*>(world->getWorldUserInfo());
+    Assert(sim_ptr);
+
+    post_tick(*sim_ptr, dt);
+}
 #endif
-} // namespace
 
+namespace Neptune
+{
 void sim_start(PhysicsSim* sim)
 {
     REAPER_PROFILE_SCOPE_FUNC();

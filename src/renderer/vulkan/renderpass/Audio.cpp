@@ -229,7 +229,7 @@ void read_gpu_audio_data(VulkanBackend& backend, AudioResources& resources)
     VmaAllocationInfo allocation_info;
     vmaGetAllocationInfo(backend.vma_instance, resources.audio_staging_buffer.allocation, &allocation_info);
 
-    const u32 audio_buffer_offset = allocation_info.offset;
+    const u32 audio_buffer_offset = static_cast<u32>(allocation_info.offset);
     const u32 audio_buffer_size = FrameCountPerGroup * FrameCountPerDispatch * sizeof(RawSample);
     void*     mapped_data_ptr = nullptr;
 

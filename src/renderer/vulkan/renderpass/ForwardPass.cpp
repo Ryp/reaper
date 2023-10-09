@@ -170,7 +170,8 @@ void update_forward_pass_descriptor_sets(DescriptorWriteHelper& write_helper, co
 
     if (!shadow_maps.empty())
     {
-        std::span<VkDescriptorImageInfo> shadow_map_image_infos = write_helper.new_image_infos(shadow_maps.size());
+        std::span<VkDescriptorImageInfo> shadow_map_image_infos =
+            write_helper.new_image_infos(static_cast<u32>(shadow_maps.size()));
 
         for (u32 index = 0; index < shadow_maps.size(); index += 1)
         {
@@ -189,7 +190,7 @@ void update_forward_pass_descriptor_sets(DescriptorWriteHelper& write_helper, co
                             sampler_resources.diffuse_map_sampler);
 
         std::span<VkDescriptorImageInfo> albedo_image_infos =
-            write_helper.new_image_infos(material_resources.textures.size());
+            write_helper.new_image_infos(static_cast<u32>(material_resources.textures.size()));
 
         for (u32 index = 0; index < albedo_image_infos.size(); index += 1)
         {

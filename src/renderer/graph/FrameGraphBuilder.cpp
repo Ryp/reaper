@@ -208,8 +208,8 @@ namespace
     DirectedAcyclicGraph ConvertFrameGraphToDAG(const FrameGraph&                              frameGraph,
                                                 std::vector<DirectedAcyclicGraph::index_type>& outRootNodes)
     {
-        const u32 resourceUsageCount = frameGraph.ResourceUsages.size();
-        const u32 renderPassCount = frameGraph.RenderPasses.size();
+        const u32 resourceUsageCount = static_cast<u32>(frameGraph.ResourceUsages.size());
+        const u32 renderPassCount = static_cast<u32>(frameGraph.RenderPasses.size());
 
         // Resource usage node indexes are the same for both graphs and
         // can be used interchangeably.
@@ -298,7 +298,7 @@ namespace
 
         // Be extra careful with terminalNodes indexes for the DAG representation,
         // again they are NOT the same as FrameGraph indexes.
-        const u32 resourceCount = frameGraph.ResourceUsages.size();
+        const u32 resourceCount = static_cast<u32>(frameGraph.ResourceUsages.size());
 
         // Mark nodes in the framegraph as used or not
         for (auto nodeIndexInDAG : usedNodes)

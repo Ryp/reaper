@@ -429,7 +429,8 @@ void record_triangle_culling_prepare_command_buffer(CommandBuffer& cmdBuffer, co
                             resources.cull_meshlets_prep_indirect_pipe.pipelineLayout, 0, 1,
                             &resources.cull_prepare_descriptor_set, 0, nullptr);
 
-    const u32 group_count_x = div_round_up(prepared.cull_passes.size(), PrepareIndirectDispatchThreadCount);
+    const u32 group_count_x =
+        div_round_up(static_cast<u32>(prepared.cull_passes.size()), PrepareIndirectDispatchThreadCount);
     vkCmdDispatch(cmdBuffer.handle, group_count_x, 1, 1);
 }
 
@@ -548,20 +549,18 @@ std::vector<MeshletCullingStats> get_meshlet_culling_gpu_stats(VulkanBackend& ba
 
 namespace
 {
-    VkIndexType get_vk_meshlet_index_type()
+    constexpr VkIndexType get_vk_meshlet_index_type()
     {
-        if (IndexSizeBytes == 1)
+        if constexpr (IndexSizeBytes == 1)
             return VK_INDEX_TYPE_UINT8_EXT;
-        else if (IndexSizeBytes == 2)
+        else if constexpr (IndexSizeBytes == 2)
             return VK_INDEX_TYPE_UINT16;
-        else if (IndexSizeBytes == 4)
+        else if constexpr (IndexSizeBytes == 4)
             return VK_INDEX_TYPE_UINT32;
         else
         {
             AssertUnreachable();
         }
-
-        return VK_INDEX_TYPE_NONE_KHR;
     }
 } // namespace
 

@@ -57,7 +57,7 @@ void              destroy_material_resources(VulkanBackend& backend, MaterialRes
 
 inline HandleSpan<TextureHandle> alloc_material_textures(MaterialResources& resources, u32 count)
 {
-    const u32 old_size = resources.textures.size();
+    const u32 old_size = static_cast<u32>(resources.textures.size());
 
     resources.textures.resize(old_size + count);
 

@@ -214,7 +214,7 @@ TiledRasterResources create_tiled_raster_pass_resources(VulkanBackend& backend, 
 
         ProxyMeshAlloc& icosahedron_alloc = resources.proxy_mesh_allocs.emplace_back();
         icosahedron_alloc.vertex_offset = resources.vertex_buffer_offset;
-        icosahedron_alloc.vertex_count = icosahedron.positions.size();
+        icosahedron_alloc.vertex_count = static_cast<u32>(icosahedron.positions.size());
 
         resources.vertex_buffer_offset += icosahedron_alloc.vertex_count;
 

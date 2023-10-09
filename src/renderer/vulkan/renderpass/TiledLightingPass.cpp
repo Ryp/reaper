@@ -162,7 +162,8 @@ void update_tiled_lighting_pass_descriptor_sets(DescriptorWriteHelper&          
 
     if (!shadow_maps.empty())
     {
-        std::span<VkDescriptorImageInfo> shadow_map_image_infos = write_helper.new_image_infos(shadow_maps.size());
+        std::span<VkDescriptorImageInfo> shadow_map_image_infos =
+            write_helper.new_image_infos(static_cast<u32>(shadow_maps.size()));
 
         for (u32 index = 0; index < shadow_maps.size(); index += 1)
         {

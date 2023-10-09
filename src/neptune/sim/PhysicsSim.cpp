@@ -167,7 +167,7 @@ void sim_create_static_collision_meshes(std::span<StaticMeshColliderHandle> hand
         indexedMesh.m_numTriangles = static_cast<u32>(mesh_collider.indices.size() / 3);
         indexedMesh.m_triangleIndexBase = reinterpret_cast<const u8*>(mesh_collider.indices.data());
         indexedMesh.m_triangleIndexStride = 3 * sizeof(mesh_collider.indices[0]);
-        indexedMesh.m_numVertices = mesh_collider.vertex_positions.size();
+        indexedMesh.m_numVertices = static_cast<u32>(mesh_collider.vertex_positions.size());
         indexedMesh.m_vertexBase = reinterpret_cast<const u8*>(mesh_collider.vertex_positions.data());
         indexedMesh.m_vertexStride = sizeof(mesh_collider.vertex_positions[0]);
         indexedMesh.m_indexType = PHY_INTEGER;

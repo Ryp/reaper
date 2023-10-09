@@ -128,12 +128,12 @@ void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCa
             continue;
 
         ShadowPassData& shadow_pass = prepared.shadow_passes.emplace_back();
-        shadow_pass.pass_index = prepared.shadow_passes.size() - 1;
+        shadow_pass.pass_index = static_cast<u32>(prepared.shadow_passes.size() - 1);
 
-        shadow_pass.instance_offset = prepared.shadow_instance_params.size();
+        shadow_pass.instance_offset = static_cast<u32>(prepared.shadow_instance_params.size());
 
         CullPassData& cull_pass = prepared.cull_passes.emplace_back();
-        cull_pass.pass_index = prepared.cull_passes.size() - 1;
+        cull_pass.pass_index = static_cast<u32>(prepared.cull_passes.size() - 1);
         cull_pass.output_size_ts = glm::fvec2(light.shadow_map_size);
         cull_pass.main_pass = false;
 
@@ -153,7 +153,7 @@ void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCa
             ShadowMapInstanceParams& shadow_instance = prepared.shadow_instance_params.emplace_back();
             shadow_instance.ms_to_cs_matrix = light_view_proj_matrix * glm::mat4(mesh_transform);
 
-            const u32               cull_instance_index = prepared.cull_mesh_instance_params.size();
+            const u32               cull_instance_index = static_cast<u32>(prepared.cull_mesh_instance_params.size());
             CullMeshInstanceParams& cull_instance = prepared.cull_mesh_instance_params.emplace_back();
 
             cull_instance.ms_to_cs_matrix = shadow_instance.ms_to_cs_matrix;
@@ -171,14 +171,14 @@ void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCa
         }
 
         // Count instances we just inserted
-        const u32 shadow_total_instance_count = prepared.shadow_instance_params.size();
+        const u32 shadow_total_instance_count = static_cast<u32>(prepared.shadow_instance_params.size());
         shadow_pass.instance_count = shadow_total_instance_count - shadow_pass.instance_offset;
     }
 
     // Main + culling pass
     prepared.forward_pass_constants.ws_to_vs_matrix = main_camera.ws_to_vs_matrix;
     prepared.forward_pass_constants.ws_to_cs_matrix = main_camera.ws_to_cs_matrix;
-    prepared.forward_pass_constants.point_light_count = scene.scene_lights.size();
+    prepared.forward_pass_constants.point_light_count = static_cast<u32>(scene.scene_lights.size());
 
     prepared.tiled_light_constants.cs_to_vs = main_camera.perspective_projection.cs_to_vs_matrix;
     prepared.tiled_light_constants.vs_to_ws = main_camera.vs_to_ws_matrix;
@@ -211,7 +211,7 @@ void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCa
 
     {
         CullPassData& cull_pass = prepared.cull_passes.emplace_back();
-        cull_pass.pass_index = prepared.cull_passes.size() - 1;
+        cull_pass.pass_index = static_cast<u32>(prepared.cull_passes.size() - 1);
         cull_pass.output_size_ts = glm::fvec2(main_camera.viewport.extent);
         cull_pass.main_pass = true;
 
@@ -236,7 +236,7 @@ void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCa
             mesh_instance.normal_texture_index = scene_material.normal_map_texture;
             mesh_instance.ao_texture_index = scene_material.ao_texture;
 
-            const u32               cull_instance_index = prepared.cull_mesh_instance_params.size();
+            const u32               cull_instance_index = static_cast<u32>(prepared.cull_mesh_instance_params.size());
             CullMeshInstanceParams& cull_instance = prepared.cull_mesh_instance_params.emplace_back();
 
             cull_instance.ms_to_cs_matrix = mesh_instance.ms_to_cs_matrix;
@@ -258,8 +258,8 @@ void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCa
     {
         OscillatorInstance& instance = prepared.audio_instance_params.emplace_back();
 
-        instance.frequency = note(0 + i * 5);
-        instance.pan = -0.60f + i * 0.4f;
+        instance.frequency = note(0.f + static_cast<float>(i) * 5.f);
+        instance.pan = -0.60f + static_cast<float>(i) * 0.4f;
     }
 }
 } // namespace Reaper

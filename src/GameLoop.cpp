@@ -166,7 +166,7 @@ namespace
 
     void imgui_draw_gamepad_trigger(float w_px, float h_px, float trigger_axis)
     {
-        const float mag = trigger_axis * 0.5 + 0.5;
+        const float mag = trigger_axis * 0.5f + 0.5f;
         const float current_y = h_px * (1.0f - mag);
 
         const ImVec2 pos = ImGui::GetCursorScreenPos();
@@ -335,8 +335,8 @@ void execute_game_loop(ReaperRoot& root)
     std::vector<u32> default_texture_srgb(default_texture_filesnames.size(), false);
     default_texture_srgb[0] = true;
 
-    const HandleSpan<TextureHandle> default_material_handle_span =
-        alloc_material_textures(backend.resources->material_resources, default_texture_filesnames.size());
+    const HandleSpan<TextureHandle> default_material_handle_span = alloc_material_textures(
+        backend.resources->material_resources, static_cast<u32>(default_texture_filesnames.size()));
 
     load_png_textures_to_staging(backend, backend.resources->material_resources, default_texture_filesnames,
                                  default_material_handle_span, default_texture_srgb);
@@ -361,11 +361,12 @@ void execute_game_loop(ReaperRoot& root)
     }
 
     const HandleSpan<TextureHandle> png_handle_span =
-        alloc_material_textures(backend.resources->material_resources, png_filenames.size());
+        alloc_material_textures(backend.resources->material_resources, static_cast<u32>(png_filenames.size()));
 
     std::span<cgltf_material> gltf_materials(data->materials, data->materials_count);
 
-    const HandleSpan<SceneMaterialHandle> scene_materials = alloc_scene_materials(scene, data->materials_count);
+    const HandleSpan<SceneMaterialHandle> scene_materials =
+        alloc_scene_materials(scene, static_cast<u32>(data->materials_count));
 
     for (u32 i = 0; i < scene_materials.count; i++)
     {
@@ -413,9 +414,10 @@ void execute_game_loop(ReaperRoot& root)
         // Record material handle local to the GLTF file
         const u64 material_index =
             (gltf_primitive.material - data->materials); // FIXME ptr arithmetic is kinda sad here
-        mesh_gltf_material_handles[i] = material_index;
+        mesh_gltf_material_handles[i] = static_cast<u32>(material_index);
 
-        std::span<cgltf_attribute> attributes(gltf_primitive.attributes, gltf_primitive.attributes_count);
+        std::span<cgltf_attribute> attributes(gltf_primitive.attributes,
+                                              static_cast<u32>(gltf_primitive.attributes_count));
 
         auto& mesh = meshes[i];
 
@@ -729,8 +731,8 @@ void execute_game_loop(ReaperRoot& root)
 
 #if ENABLE_GAME_SCENE
         Neptune::ShipInput input;
-        input.throttle = controller_state.axes[GenericAxis::RT] * 0.5 + 0.5;
-        input.brake = controller_state.axes[GenericAxis::LT] * 0.5 + 0.5;
+        input.throttle = controller_state.axes[GenericAxis::RT] * 0.5f + 0.5f;
+        input.brake = controller_state.axes[GenericAxis::LT] * 0.5f + 0.5f;
         input.steer = controller_state.axes[GenericAxis::RSX];
 
         Neptune::sim_update(sim, game_track.skeleton_nodes, input, time_delta_secs);
@@ -831,8 +833,8 @@ void execute_game_loop(ReaperRoot& root)
         std::ofstream output_file("output.wav", std::ios::binary | std::ios::out);
         Assert(output_file.is_open());
 
-        Audio::write_wav(output_file, audio_backend.audio_buffer.data(), audio_backend.audio_buffer.size(),
-                         BitsPerChannel, SampleRate);
+        Audio::write_wav(output_file, audio_backend.audio_buffer.data(),
+                         static_cast<u32>(audio_backend.audio_buffer.size()), BitsPerChannel, SampleRate);
 
         output_file.close();
     }

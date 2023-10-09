@@ -99,7 +99,7 @@ namespace
 
 MaterialResources create_material_resources(VulkanBackend& backend)
 {
-    constexpr u32 StagingBufferSizeBytes = 512_MiB;
+    constexpr u32 StagingBufferSizeBytes = static_cast<u32>(512_MiB);
 
     const GPUBufferProperties properties =
         DefaultGPUBufferProperties(StagingBufferSizeBytes, sizeof(u8), GPUBufferUsage::TransferSrc);

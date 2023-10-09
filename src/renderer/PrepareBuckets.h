@@ -75,7 +75,8 @@ struct SceneGraph
 
 inline SceneMaterialHandle alloc_scene_material(SceneGraph& scene)
 {
-    const u32 old_size = scene.scene_materials.size();
+    const u32 old_size = static_cast<u32>(scene.scene_materials.size());
+
     scene.scene_materials.resize(old_size + 1);
 
     return SceneMaterialHandle(old_size);
@@ -83,7 +84,7 @@ inline SceneMaterialHandle alloc_scene_material(SceneGraph& scene)
 
 inline HandleSpan<SceneMaterialHandle> alloc_scene_materials(SceneGraph& scene, u32 count)
 {
-    const u32 old_size = scene.scene_materials.size();
+    const u32 old_size = static_cast<u32>(scene.scene_materials.size());
 
     scene.scene_materials.resize(old_size + count);
 

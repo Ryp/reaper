@@ -89,12 +89,12 @@ namespace
     {
         MeshAlloc alloc = {};
 
-        const u32 index_count = mesh.indexes.size();
-        const u32 position_count = mesh.positions.size();
-        const u32 uv_count = mesh.uvs.size();
-        const u32 normal_count = mesh.normals.size();
-        const u32 tangent_count = mesh.tangents.size();
-        const u32 meshlet_count = meshlets.size();
+        const u32 index_count = static_cast<u32>(mesh.indexes.size());
+        const u32 position_count = static_cast<u32>(mesh.positions.size());
+        const u32 uv_count = static_cast<u32>(mesh.uvs.size());
+        const u32 normal_count = static_cast<u32>(mesh.normals.size());
+        const u32 tangent_count = static_cast<u32>(mesh.tangents.size());
+        const u32 meshlet_count = static_cast<u32>(meshlets.size());
 
         Assert(index_count > 0);
         Assert(position_count > 0);
@@ -192,8 +192,8 @@ void load_meshes(VulkanBackend& backend, MeshCache& mesh_cache, std::span<const 
         meshlet_indices.resize(last.triangle_offset + last.triangle_count * 3);
         meshlets.resize(meshlet_count);
 
-        const u32 meshlet_vertex_count = meshlet_vertices.size();
-        const u32 total_mesh_index_count = meshlet_indices.size();
+        const u32 meshlet_vertex_count = static_cast<u32>(meshlet_vertices.size());
+        const u32 total_mesh_index_count = static_cast<u32>(meshlet_indices.size());
 
         std::vector<u32>        optimized_index_buffer(total_mesh_index_count);
         std::vector<glm::fvec3> optimized_position_buffer(meshlet_vertex_count);
