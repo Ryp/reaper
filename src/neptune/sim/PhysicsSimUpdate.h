@@ -15,13 +15,14 @@
 
 #include <glm/fwd.hpp>
 
+#include "neptune/trackgen/Track.h"
+
 namespace Neptune
 {
 struct PhysicsSim;
 
 NEPTUNE_SIM_API void sim_start(PhysicsSim* sim);
 
-struct TrackSkeletonNode;
 struct ShipInput;
 
 NEPTUNE_SIM_API void sim_update(PhysicsSim& sim, std::span<const TrackSkeletonNode> skeleton_nodes,

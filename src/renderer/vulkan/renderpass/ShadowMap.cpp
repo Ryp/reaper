@@ -31,7 +31,6 @@
 namespace Reaper
 {
 constexpr u32 ShadowInstanceCountMax = 512;
-constexpr u32 MaxShadowPassCount = 4;
 
 ShadowMapResources create_shadow_map_resources(VulkanBackend& backend, const ShaderModules& shader_modules)
 {

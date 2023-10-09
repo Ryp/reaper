@@ -18,6 +18,8 @@
 #include <unordered_map>
 #include <vector>
 
+#include "neptune/trackgen/Track.h"
+
 class btBroadphaseInterface;
 class btDefaultCollisionConfiguration;
 class btCollisionDispatcher;
@@ -74,8 +76,6 @@ struct RaycastSuspension
     float damper_friction_compression;
     float damper_friction_extension;
 };
-
-struct TrackSkeletonNode;
 
 struct PhysicsSim
 {

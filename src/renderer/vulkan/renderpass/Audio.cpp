@@ -86,7 +86,7 @@ AudioResources create_audio_resources(VulkanBackend& backend, const ShaderModule
         backend.vma_instance, MemUsage::CPU_To_GPU);
 
     resources.audio_staging_properties = DefaultGPUBufferProperties(FrameCountPerGroup * FrameCountPerDispatch,
-                                                                    sizeof(RawSample), GPUBufferUsage::TransferDst),
+                                                                    sizeof(RawSample), GPUBufferUsage::TransferDst);
 
     resources.audio_staging_buffer =
         create_buffer(backend.device, "Output sample buffer staging", resources.audio_staging_properties,
