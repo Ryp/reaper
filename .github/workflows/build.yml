@@ -80,13 +80,13 @@ jobs:
         run: ctest --test-dir build --output-on-failure
 
       - name: Install
-        if: ${{ matrix.cmake_build_type == 'Release' && matrix.cmake_build_shared_libs == 'OFF' && matrix.config.is_zig }}
+        if: ${{ matrix.cmake_build_type == 'Release' && matrix.cmake_build_shared_libs == 'OFF' && !matrix.config.is_zig }}
         run: |
           cmake --build build --target install
           tar -cvf linux_build.tar ${{ env.release_name }}
 
       - uses: actions/upload-artifact@v3
-        if: ${{ matrix.cmake_build_type == 'Release' && matrix.cmake_build_shared_libs == 'OFF' && matrix.config.is_zig }}
+        if: ${{ matrix.cmake_build_type == 'Release' && matrix.cmake_build_shared_libs == 'OFF' && !matrix.config.is_zig }}
         with:
           name: linux_build
           path: linux_build.tar
