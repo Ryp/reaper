@@ -358,7 +358,7 @@ void create_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backend, 
     Assert(actualImageCount >= presentInfo.image_count, "Invalid swapchain image count returned");
 
     presentInfo.images.resize(actualImageCount);
-    Assert(vkGetSwapchainImagesKHR(backend.device, presentInfo.swapchain, &actualImageCount, &presentInfo.images[0])
+    Assert(vkGetSwapchainImagesKHR(backend.device, presentInfo.swapchain, &actualImageCount, presentInfo.images.data())
            == VK_SUCCESS);
 
     if (actualImageCount != presentInfo.image_count)

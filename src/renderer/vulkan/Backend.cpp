@@ -52,52 +52,54 @@ namespace Reaper
 {
 namespace
 {
-    void vulkan_instance_check_extensions(std::span<const char*> extensions)
+    void vulkan_instance_check_extensions(std::span<const char*> checked_extensions)
     {
-        if (extensions.empty())
+        if (checked_extensions.empty())
             return;
 
         uint32_t extensions_count = 0;
         Assert(vkEnumerateInstanceExtensionProperties(nullptr, &extensions_count, nullptr) == VK_SUCCESS);
-        Assert(extensions_count > 0);
 
-        std::vector<VkExtensionProperties> available_extensions(extensions_count);
-        Assert(vkEnumerateInstanceExtensionProperties(nullptr, &extensions_count, &available_extensions[0])
+        // NOTE: Vulkan spec states that it's safe to pass zero as a count with an invalid pointer
+        std::vector<VkExtensionProperties> supported_extensions(extensions_count);
+        Assert(vkEnumerateInstanceExtensionProperties(nullptr, &extensions_count, supported_extensions.data())
                == VK_SUCCESS);
 
-        for (auto extension : extensions)
+        for (auto checked_extension : checked_extensions)
         {
             bool found = false;
-            for (size_t j = 0; j < available_extensions.size(); ++j)
+
+            for (auto supported_extension : supported_extensions)
             {
-                if (std::strcmp(available_extensions[j].extensionName, extension) == 0)
+                if (std::strcmp(supported_extension.extensionName, checked_extension) == 0)
                     found = true;
             }
-            Assert(found, fmt::format("vulkan: extension '{}' not supported by the instance", extension));
+            Assert(found, fmt::format("vulkan: extension '{}' not supported by the instance", checked_extension));
         }
     }
 
-    void vulkan_instance_check_layers(std::span<const char*> layer_names)
+    void vulkan_instance_check_layers(std::span<const char*> checked_layer_names)
     {
-        if (layer_names.empty())
+        if (checked_layer_names.empty())
             return;
 
         uint32_t layers_count = 0;
         Assert(vkEnumerateInstanceLayerProperties(&layers_count, nullptr) == VK_SUCCESS);
         Assert(layers_count > 0);
 
-        std::vector<VkLayerProperties> available_layers(layers_count);
-        Assert(vkEnumerateInstanceLayerProperties(&layers_count, &available_layers[0]) == VK_SUCCESS);
+        // NOTE: Vulkan spec states that it's safe to pass zero as a count with an invalid pointer
+        std::vector<VkLayerProperties> supported_layers(layers_count);
+        Assert(vkEnumerateInstanceLayerProperties(&layers_count, supported_layers.data()) == VK_SUCCESS);
 
-        for (auto layer_name : layer_names)
+        for (auto checked_layer_name : checked_layer_names)
         {
             bool found = false;
-            for (size_t j = 0; j < available_layers.size(); ++j)
+            for (auto supported_layer : supported_layers)
             {
-                if (std::strcmp(available_layers[j].layerName, layer_name) == 0)
+                if (std::strcmp(supported_layer.layerName, checked_layer_name) == 0)
                     found = true;
             }
-            Assert(found, fmt::format("vulkan: layer '{}' not supported by the instance", layer_name));
+            Assert(found, fmt::format("vulkan: layer '{}' not supported by the instance", checked_layer_name));
         }
     }
 
@@ -204,33 +206,33 @@ namespace
         vkGetDeviceQueue(backend.device, backend.physical_device.present_queue_family_index, 0, &backend.present_queue);
     }
 
-    void vulkan_check_physical_device_supported_extensions(
-        VkPhysicalDevice physical_device, std::span<const char*> extensions)
+    void vulkan_check_physical_device_supported_extensions(VkPhysicalDevice       physical_device,
+                                                           std::span<const char*> checked_extensions)
     {
-        if (extensions.empty())
+        if (checked_extensions.empty())
             return;
 
         uint32_t extensions_count = 0;
         Assert(vkEnumerateDeviceExtensionProperties(physical_device, nullptr, &extensions_count, nullptr)
                == VK_SUCCESS);
-        Assert(extensions_count > 0);
 
+        // NOTE: Vulkan spec states that it's safe to pass zero as a count with an invalid pointer
         std::vector<VkExtensionProperties> supported_extensions(extensions_count);
         Assert(vkEnumerateDeviceExtensionProperties(physical_device, nullptr, &extensions_count,
-                                                    (extensions_count > 0 ? &supported_extensions[0] : nullptr))
+                                                    supported_extensions.data())
                == VK_SUCCESS);
 
-        for (auto extension : extensions)
+        for (auto checked_extension : checked_extensions)
         {
             bool found = false;
 
             for (auto supported_extension : supported_extensions)
             {
-                if (std::strcmp(supported_extension.extensionName, extension) == 0)
+                if (std::strcmp(supported_extension.extensionName, checked_extension) == 0)
                     found = true;
             }
 
-            Assert(found, fmt::format("vulkan: extension '{}' not supported by the device", extension));
+            Assert(found, fmt::format("vulkan: extension '{}' not supported by the device", checked_extension));
         }
     }
 
