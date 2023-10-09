@@ -54,6 +54,9 @@ namespace
 {
     void vulkan_instance_check_extensions(std::span<const char*> extensions)
     {
+        if (extensions.empty())
+            return;
+
         uint32_t extensions_count = 0;
         Assert(vkEnumerateInstanceExtensionProperties(nullptr, &extensions_count, nullptr) == VK_SUCCESS);
         Assert(extensions_count > 0);
@@ -76,6 +79,9 @@ namespace
 
     void vulkan_instance_check_layers(std::span<const char*> layer_names)
     {
+        if (layer_names.empty())
+            return;
+
         uint32_t layers_count = 0;
         Assert(vkEnumerateInstanceLayerProperties(&layers_count, nullptr) == VK_SUCCESS);
         Assert(layers_count > 0);
@@ -201,6 +207,9 @@ namespace
     void vulkan_check_physical_device_supported_extensions(
         VkPhysicalDevice physical_device, std::span<const char*> extensions)
     {
+        if (extensions.empty())
+            return;
+
         uint32_t extensions_count = 0;
         Assert(vkEnumerateDeviceExtensionProperties(physical_device, nullptr, &extensions_count, nullptr)
                == VK_SUCCESS);
