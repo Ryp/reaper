@@ -133,4 +133,14 @@ void sim_destroy_static_collision_meshes(std::span<const StaticMeshColliderHandl
 
 NEPTUNE_SIM_API void sim_create_player_rigid_body(PhysicsSim& sim, const glm::fmat4x3& player_transform,
                                                   const glm::fvec3& shape_half_extent);
+
+inline glm::fvec3 forward()
+{
+    return glm::fvec3(1.0f, 0.0f, 0.0f);
+}
+
+inline glm::fvec3 up()
+{
+    return glm::fvec3(0.0f, 1.0f, 0.0f);
+}
 } // namespace Neptune

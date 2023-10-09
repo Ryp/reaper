@@ -34,16 +34,6 @@ namespace Neptune
 {
 namespace
 {
-    inline glm::fvec3 forward()
-    {
-        return glm::vec3(1.0f, 0.0f, 0.0f);
-    }
-
-    inline glm::fvec3 up()
-    {
-        return glm::vec3(0.0f, 1.0f, 0.0f);
-    }
-
     /*
     glm::fvec3 get_interpolated_up_vector_ws(const TrackSkeletonNode& skeleton_node)
     {

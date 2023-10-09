@@ -28,19 +28,6 @@
 #include <glm/gtx/projection.hpp>
 #include <glm/vec3.hpp>
 
-namespace
-{
-inline glm::fvec3 forward()
-{
-    return glm::fvec3(1.0f, 0.0f, 0.0f);
-}
-
-inline glm::fvec3 up()
-{
-    return glm::fvec3(0.0f, 1.0f, 0.0f);
-}
-} // namespace
-
 namespace Neptune
 {
 static constexpr float ShipMass = 2.f;
