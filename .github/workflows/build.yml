@@ -13,6 +13,8 @@ env:
 
 jobs:
   build_ubuntu:
+    env:
+      release_name: neptune-linux
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -33,12 +35,6 @@ jobs:
         uses: nschloe/action-cached-lfs-checkout@v1
         with:
           submodules: true
-
-      - name: Set env
-        run: |
-          git_version_string=$(git describe --tags)
-          echo "git_version_string=$(git_version_string)" >> "$GITHUB_ENV"
-          echo "release_name=neptune-$(git_version_string)-linux" >> "$GITHUB_ENV"
 
       - name: Install dependencies
         run: |
@@ -88,6 +84,8 @@ jobs:
         timeout-minutes: 10
 
   build_windows:
+    env:
+      release_name: neptune-windows
     runs-on: windows-latest
     strategy:
       fail-fast: false
@@ -106,14 +104,6 @@ jobs:
         uses: nschloe/action-cached-lfs-checkout@v1
         with:
           submodules: true
-
-      # https://stackoverflow.com/questions/57968497/how-do-i-set-an-env-var-with-a-bash-expression-in-github-actions
-      # https://docs.github.com/en/actions/using-workflows/workflow-commands-for-github-actions#example-of-writing-an-environment-variable-to-github_env
-      - name: Set env
-        run: |
-          git_version_string=$(git describe --tags)
-          echo "git_version_string=$(git_version_string)" >> "$env:GITHUB_ENV"
-          echo "release_name=neptune-$(git_version_string)-windows" >> "$env:GITHUB_ENV"
 
       - name: Prepare Vulkan SDK
         uses: humbletim/setup-vulkan-sdk@v1.2.0
@@ -162,8 +152,8 @@ jobs:
 
       - name: Unpack artifacts
         run: |
-          pushd linux_build && tar -xvf linux_build.tar && popd
-          pushd windows_build && tar -xvf windows_build.tar && popd
+          pushd linux_build && tar -xvf linux_build.tar && mv linux_build.tar .. && popd
+          pushd windows_build && tar -xvf windows_build.tar && mv windows_build.tar .. && popd
 
       - name: Deploy
         env:
@@ -174,5 +164,5 @@ jobs:
           chmod +x butler
           ./butler -V
           # FIXME Get the exact value for the release string
-          ./butler push --if-changed linux_build/neptune-* ${{ env.itch_io_project_url }}:linux-latest
-          ./butler push --if-changed windows_build/neptune-* ${{ env.itch_io_project_url }}:windows-latest
+          ./butler push --if-changed linux_build ${{ env.itch_io_project_url }}:linux-latest
+          ./butler push --if-changed windows_build ${{ env.itch_io_project_url }}:windows-latest
