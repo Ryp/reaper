@@ -49,8 +49,8 @@ void write_wav(std::ostream& out, const u8* raw_audio, u32 audio_size, u32 bit_d
     header.channel_count = 2;
     header.sample_rate = sample_rate;
     header.byte_rate = sample_rate * frame_size;
-    header.block_align = frame_size;
-    header.bits_per_sample = bit_depth;
+    header.block_align = static_cast<u16>(frame_size);
+    header.bits_per_sample = static_cast<u16>(bit_depth);
     write_magic(header.subchunk2_id, "data");
     header.subchunk2_size = audio_size;
 

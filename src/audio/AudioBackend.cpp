@@ -117,10 +117,10 @@ void play_something(AudioBackend& backend, const AudioConfig& config)
     for (u32 i = 0; i < sample_count; i++)
     {
         float time_s = static_cast<float>(i) / static_cast<float>(config.sample_rate);
-        float pitch_shift = 1.f + std::sin(time_s * 2.f * M_PI) * 0.04f;
+        float pitch_shift = 1.f + static_cast<float>(std::sin(time_s * 2.f * M_PI)) * 0.04f;
 
-        float sound = 0.33 * wave(time_s, pitch_shift * note(0.f)) + 0.33 * wave(time_s, pitch_shift * note(5.f))
-                      + 0.33 * wave(time_s, pitch_shift * note(12.f));
+        float sound = 0.33f * wave(time_s, pitch_shift * note(0.f)) + 0.33f * wave(time_s, pitch_shift * note(5.f))
+                      + 0.33f * wave(time_s, pitch_shift * note(12.f));
 
         float gain_db = -6.0f;
         float gain_linear = powf(2.f, gain_db / 3.f);

@@ -22,5 +22,3 @@ struct Mesh
     std::vector<glm::fvec4> tangents; // GLTF uses w for the bitangent sign (-1.0 or 1.0)
     std::vector<glm::fvec2> uvs;
 };
-
-void computeNormalsSimple(Mesh& mesh);

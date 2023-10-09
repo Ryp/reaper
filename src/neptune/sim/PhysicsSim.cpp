@@ -177,7 +177,7 @@ void sim_create_static_collision_meshes(std::span<StaticMeshColliderHandle> hand
 
         // Describe how the mesh is laid out in memory
         btIndexedMesh indexedMesh;
-        indexedMesh.m_numTriangles = mesh_collider.indices.size() / 3;
+        indexedMesh.m_numTriangles = static_cast<u32>(mesh_collider.indices.size() / 3);
         indexedMesh.m_triangleIndexBase = reinterpret_cast<const u8*>(mesh_collider.indices.data());
         indexedMesh.m_triangleIndexStride = 3 * sizeof(mesh_collider.indices[0]);
         indexedMesh.m_numVertices = mesh_collider.vertex_positions.size();

@@ -14,12 +14,10 @@
 
 #include <vector>
 
-#if defined(REAPER_PLATFORM_LINUX)
-#    include <fcntl.h>
-#    include <linux/joystick.h>
-#    include <sys/ioctl.h>
-#    include <unistd.h>
-#endif
+#include <fcntl.h>
+#include <linux/joystick.h>
+#include <sys/ioctl.h>
+#include <unistd.h>
 
 #define VERBOSE_DEBUG 0
 
@@ -31,7 +29,7 @@ static constexpr float AxisDeadzone = 0.08f; // FIXME Don't use dead zones on al
 LinuxController create_controller(const char* device_path, GenericControllerState& start_state)
 {
     LinuxController controller = {};
-#if defined(REAPER_PLATFORM_LINUX)
+
     controller.fd = open(device_path, O_RDONLY | O_NONBLOCK);
     Assert(controller.fd != -1, fmt::format("Couldn't connect to controller {}", device_path));
 
@@ -42,15 +40,13 @@ LinuxController create_controller(const char* device_path, GenericControllerStat
 
     // FIXME Should get the initial state with JS_EVENT_INIT instead
     start_state = update_controller_state(controller, {});
-#endif
+
     return controller;
 }
 
 void destroy_controller(LinuxController& controller)
 {
-#if defined(REAPER_PLATFORM_LINUX)
     Assert(close(controller.fd) != -1);
-#endif
 }
 
 struct ControllerButtonRemapEntry
@@ -142,7 +138,7 @@ GenericControllerState update_controller_state(LinuxController& controller, cons
 {
     GenericControllerState state = last_state;
     const RemapTable&      remap_table = RemapTables[Controllers::DualShock4];
-#if defined(REAPER_PLATFORM_LINUX)
+
     float           val;
     struct js_event event;
 
@@ -168,14 +164,14 @@ GenericControllerState update_controller_state(LinuxController& controller, cons
                 if (remap_entry.generic_axis != GenericAxis::Unknown)
                 {
                     state.axes[remap_entry.generic_axis] = axis_value;
-#    if VERBOSE_DEBUG
+#if VERBOSE_DEBUG
                     fmt::print("Axis index {} remapped to '{}'\n", axis_index,
                                generic_axis_name_to_string(remap_entry.generic_axis));
                 }
                 else
                 {
                     fmt::print("Axis index {} ignored\n", axis_index);
-#    endif
+#endif
                 }
             }
             else
@@ -195,14 +191,14 @@ GenericControllerState update_controller_state(LinuxController& controller, cons
                 if (remap_entry.generic_button != GenericButton::Unknown)
                 {
                     state.buttons[remap_entry.generic_button].held = button_held;
-#    if VERBOSE_DEBUG
+#if VERBOSE_DEBUG
                     fmt::print("Button index {} remapped to '{}'\n", button_index,
                                generic_button_name_to_string(remap_entry.generic_button));
                 }
                 else
                 {
                     fmt::print("Button index {} ignored\n", button_index);
-#    endif
+#endif
                 }
             }
             else
@@ -211,7 +207,6 @@ GenericControllerState update_controller_state(LinuxController& controller, cons
             }
         }
     }
-#endif
 
     return state;
 }

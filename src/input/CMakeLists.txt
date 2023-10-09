@@ -12,9 +12,14 @@ add_library(${target} ${REAPER_BUILD_TYPE})
 target_sources(${target} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/GenericController.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/GenericController.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/LinuxController.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/LinuxController.h
 )
+
+if(NOT MSVC)
+    target_sources(${target} PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/LinuxController.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/LinuxController.h
+    )
+endif()
 
 target_link_libraries(${target}
     reaper_core
