@@ -1395,26 +1395,51 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     // Stop recording
     AssertVk(vkEndCommandBuffer(cmdBuffer.handle));
 
-    const VkPipelineStageFlags waitDstMask = swapchain_access_render.stage_mask;
-
-    const VkSubmitInfo submitInfo = {
-        .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+    const VkSemaphoreSubmitInfo wait_semaphore_info = {
+        .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
         .pNext = nullptr,
-        .waitSemaphoreCount = 1,
-        .pWaitSemaphores = &backend.semaphore_swapchain_image_available,
-        .pWaitDstStageMask = &waitDstMask,
-        .commandBufferCount = 1,
-        .pCommandBuffers = &cmdBuffer.handle,
-        .signalSemaphoreCount = 1,
-        .pSignalSemaphores = &backend.semaphore_rendering_finished,
+        .semaphore = backend.semaphore_swapchain_image_available,
+        .value = 0, // NOTE: Ignored when not using a timeline semaphore
+        .stageMask = swapchain_access_render.stage_mask,
+        .deviceIndex = 0, // NOTE: Set to zero when not using device groups
+    };
+
+    const VkCommandBufferSubmitInfo command_buffer_info = {
+        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
+        .pNext = nullptr,
+        .commandBuffer = cmdBuffer.handle,
+        .deviceMask = 0, // NOTE: Set to zero when not using device groups
+    };
+
+    // NOTE: VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT is used there
+    // https://github.com/KhronosGroup/Vulkan-Docs/wiki/Synchronization-Examples
+    const VkSemaphoreSubmitInfo signal_semaphore_info = {
+        .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+        .pNext = nullptr,
+        .semaphore = backend.semaphore_rendering_finished,
+        .value = 0, // NOTE: Ignored when not using a timeline semaphore
+        .stageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+        .deviceIndex = 0, // NOTE: Set to zero when not using device groups
+    };
+
+    const VkSubmitInfo2 submit_info_2 = {
+        .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
+        .pNext = nullptr,
+        .flags = VK_FLAGS_NONE,
+        .waitSemaphoreInfoCount = 1,
+        .pWaitSemaphoreInfos = &wait_semaphore_info,
+        .commandBufferInfoCount = 1,
+        .pCommandBufferInfos = &command_buffer_info,
+        .signalSemaphoreInfoCount = 1,
+        .pSignalSemaphoreInfos = &signal_semaphore_info,
     };
 
     log_debug(root, "vulkan: submit drawing commands");
-    AssertVk(vkQueueSubmit(backend.graphics_queue, 1, &submitInfo, resources.frame_sync_resources.draw_fence));
+    AssertVk(vkQueueSubmit2(backend.graphics_queue, 1, &submit_info_2, resources.frame_sync_resources.draw_fence));
 
     log_debug(root, "vulkan: present");
 
-    VkPresentInfoKHR presentInfo = {
+    const VkPresentInfoKHR presentInfo = {
         .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
         .pNext = nullptr,
         .waitSemaphoreCount = 1,

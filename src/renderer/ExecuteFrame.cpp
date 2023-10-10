@@ -47,20 +47,27 @@ void renderer_start(ReaperRoot& root, VulkanBackend& backend, IWindow* window)
 
     AssertVk(vkEndCommandBuffer(cmdBuffer.handle));
 
-    const VkSubmitInfo submitInfo = {
-        .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+    const VkCommandBufferSubmitInfo command_buffer_info = {
+        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
         .pNext = nullptr,
-        .waitSemaphoreCount = 0,
-        .pWaitSemaphores = nullptr,
-        .pWaitDstStageMask = nullptr,
-        .commandBufferCount = 1,
-        .pCommandBuffers = &cmdBuffer.handle,
-        .signalSemaphoreCount = 0,
-        .pSignalSemaphores = nullptr,
+        .commandBuffer = cmdBuffer.handle,
+        .deviceMask = 0, // NOTE: Set to zero when not using device groups
+    };
+
+    const VkSubmitInfo2 submit_info_2 = {
+        .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
+        .pNext = nullptr,
+        .flags = VK_FLAGS_NONE,
+        .waitSemaphoreInfoCount = 0,
+        .pWaitSemaphoreInfos = nullptr,
+        .commandBufferInfoCount = 1,
+        .pCommandBufferInfos = &command_buffer_info,
+        .signalSemaphoreInfoCount = 0,
+        .pSignalSemaphoreInfos = nullptr,
     };
 
     log_debug(root, "vulkan: submit commands");
-    AssertVk(vkQueueSubmit(backend.graphics_queue, 1, &submitInfo, VK_NULL_HANDLE));
+    AssertVk(vkQueueSubmit2(backend.graphics_queue, 1, &submit_info_2, VK_NULL_HANDLE));
 
     AssertVk(vkDeviceWaitIdle(backend.device));
 
