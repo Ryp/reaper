@@ -415,9 +415,9 @@ void record_light_classify_command_buffer(CommandBuffer&              cmdBuffer,
 {
     const ProxyMeshAlloc& icosahedron_alloc = resources.proxy_mesh_allocs.front(); // FIXME
 
-    const float vertex_offset = icosahedron_alloc.vertex_offset;
-    const float vertex_count = icosahedron_alloc.vertex_count;
-    const float light_volumes_count = tiled_lighting_frame.light_volumes.size();
+    const u32 vertex_offset = icosahedron_alloc.vertex_offset;
+    const u32 vertex_count = icosahedron_alloc.vertex_count;
+    const u32 light_volumes_count = static_cast<u32>(tiled_lighting_frame.light_volumes.size());
 
     vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE, resources.classify_pipeline);
 
