@@ -288,7 +288,7 @@ namespace
 } // namespace Neptune
 
 #if defined(REAPER_USE_BULLET_PHYSICS)
-void pre_tick_callback(btDynamicsWorld* world, btScalar dt)
+static void pre_tick_callback(btDynamicsWorld* world, btScalar dt)
 {
     using namespace Neptune;
 
@@ -300,7 +300,7 @@ void pre_tick_callback(btDynamicsWorld* world, btScalar dt)
     pre_tick(sim, sim.frame_data, dt);
 }
 
-void post_tick_callback(btDynamicsWorld* world, btScalar dt)
+static void post_tick_callback(btDynamicsWorld* world, btScalar dt)
 {
     using namespace Neptune;
 
