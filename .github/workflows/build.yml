@@ -14,8 +14,6 @@ env:
 jobs:
   build_ubuntu:
     runs-on: ubuntu-latest
-    env:
-      release_name: neptune-linux
     strategy:
       fail-fast: false
       matrix:
@@ -64,7 +62,7 @@ jobs:
           export CXX='${{ matrix.config.compiler_invocation }}'
           cmake -H. -Bbuild \
             -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} \
-            -DCMAKE_INSTALL_PREFIX=${{ env.release_name }} \
+            -DCMAKE_INSTALL_PREFIX=install \
             -DBUILD_SHARED_LIBS=${{ matrix.cmake_build_shared_libs }} \
             -DREAPER_BUILD_WARNINGS_AS_ERRORS=ON \
             -DREAPER_GIT_HOOKS_AUTO_UPDATE=OFF \
@@ -82,9 +80,10 @@ jobs:
         if: ${{ matrix.cmake_build_type == 'Release' && matrix.cmake_build_shared_libs == 'OFF' && !matrix.config.is_zig }}
         run: |
           cmake --build build --target install
-          tar -cvf linux_build.tar ${{ env.release_name }}
+          tar -cvf linux_build.tar install
 
-      - uses: actions/upload-artifact@v3
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v3
         if: ${{ matrix.cmake_build_type == 'Release' && matrix.cmake_build_shared_libs == 'OFF' && !matrix.config.is_zig }}
         with:
           name: linux_build
@@ -97,8 +96,6 @@ jobs:
 
   build_windows:
     runs-on: windows-latest
-    env:
-      release_name: neptune-windows
     strategy:
       fail-fast: false
       matrix:
@@ -129,7 +126,7 @@ jobs:
           cmake .\ -Bbuild `
             -G "${{ matrix.cmake_generator }}" `
             -A "${{ matrix.cmake_arch }}" `
-            -DCMAKE_INSTALL_PREFIX=${{ env.release_name }} `
+            -DCMAKE_INSTALL_PREFIX=install `
             -DBUILD_SHARED_LIBS=${{ matrix.cmake_build_shared_libs }} `
             -DREAPER_BUILD_WARNINGS_AS_ERRORS=ON `
             -DREAPER_GIT_HOOKS_AUTO_UPDATE=OFF `
@@ -147,9 +144,10 @@ jobs:
         if: ${{ matrix.cmake_build_type == 'Release' && matrix.cmake_build_shared_libs == 'OFF' }}
         run: |
           cmake --build build --config ${{ matrix.cmake_build_type }} --target install
-          tar -cvf windows_build.tar ${{ env.release_name }}
+          tar -cvf windows_build.tar install
 
-      - uses: actions/upload-artifact@v3
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v3
         if: ${{ matrix.cmake_build_type == 'Release' && matrix.cmake_build_shared_libs == 'OFF' }}
         with:
           name: windows_build
@@ -162,12 +160,21 @@ jobs:
       - build_windows
     name: "Deploy to itch.io"
     steps:
-      - uses: actions/download-artifact@v3
+      - name: Download package artifact
+        uses: actions/download-artifact@v3
 
       - name: Unpack artifacts
         run: |
           pushd linux_build && tar -xvf linux_build.tar && mv linux_build.tar .. && popd
           pushd windows_build && tar -xvf windows_build.tar && mv windows_build.tar .. && popd
+
+      - name: Package
+        run: |
+          GIT_SHORT_HASH=$(echo ${{ github.sha }} | cut -c -7)
+          mv linux_build/install/version.txt linux_version.txt
+          mv linux_build/install linux_build/neptune-$(cat linux_version.txt)-$GIT_SHORT_HASH-linux
+          mv windows_build/install/version.txt windows_version.txt
+          mv windows_build/install windows_build/neptune-$(cat windows_version.txt)-$GIT_SHORT_HASH-windows
 
       - name: Deploy
         env:
@@ -179,5 +186,5 @@ jobs:
           chmod +x butler
           ./butler -V
           # FIXME Get the exact value for the release string
-          ./butler push --if-changed linux_build ${{ env.itch_io_project_url }}:linux-latest
-          ./butler push --if-changed windows_build ${{ env.itch_io_project_url }}:windows-latest
+          ./butler push --if-changed linux_build ${{ env.itch_io_project_url }}:linux-latest --userversion-file linux_version.txt
+          ./butler push --if-changed windows_build ${{ env.itch_io_project_url }}:windows-latest --userversion-file windows_version.txt

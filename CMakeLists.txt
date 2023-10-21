@@ -97,6 +97,13 @@ set(CMAKE_VERBOSE_MAKEFILE OFF)
 # Enable folder support (useful for Visual Studio)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
+# Write version string to text file
+set(REAPER_VERSION_FILE ${CMAKE_BINARY_DIR}/version.txt)
+
+# NOTE: newline is set to LF so that the deploy CI step code stays simple
+configure_file(${CMAKE_SOURCE_DIR}/cmake/version.txt.in ${REAPER_VERSION_FILE} NEWLINE_STYLE LF)
+install(FILES ${REAPER_VERSION_FILE} DESTINATION ${CMAKE_INSTALL_PREFIX})
+
 # Select linkage type
 if(REAPER_BUILD_SHARED_LIBS)
     set(REAPER_BUILD_TYPE SHARED)
