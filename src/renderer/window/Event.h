@@ -17,7 +17,7 @@ enum class EventType
 {
     Invalid,
     Resize,
-    ButtonPress,
+    MouseButton,
     MouseWheel,
     KeyPress,
     Close
@@ -78,21 +78,21 @@ struct Event
             u32 width;
             u32 height;
         } resize;
-        struct ButtonPress
+        struct MouseButton
         {
             Window::MouseButton::type button;
             bool                      press;
-        } buttonpress;
+        } mouse_button;
         struct MouseWheel
         {
             i32 x_delta;
             i32 y_delta;
-        } mousewheel;
+        } mouse_wheel;
         struct KeyPress
         {
             Window::KeyCode::type key;
-            u8                    key_code; // FIXME internal
             bool                  press;
+            u32                   internal_key_code; // FIXME not needed in release
         } keypress;
     } message;
 };
@@ -100,7 +100,7 @@ struct Event
 Event createResizeEvent(u32 width, u32 height);
 Event createButtonEvent(Window::MouseButton::type button, bool press);
 Event createMouseWheelEvent(i32 x_delta, i32 y_delta);
-Event createKeyEvent(Window::KeyCode::type id, bool press, u8 key_code);
+Event createKeyEvent(Window::KeyCode::type id, bool press, u32 internal_key_code);
 
 REAPER_RENDERER_API const char* get_mouse_button_string(MouseButton::type button);
 REAPER_RENDERER_API const char* get_keyboard_key_string(KeyCode::type key);

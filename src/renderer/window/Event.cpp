@@ -13,39 +13,39 @@ namespace Reaper::Window
 {
 Event createResizeEvent(u32 width, u32 height)
 {
-    Event event = {};
-    event.type = EventType::Resize;
-    event.message.resize.width = width;
-    event.message.resize.height = height;
-    return event;
+    return Event{.type = Window::EventType::Resize,
+                 .message = {.resize = {
+                                 .width = width,
+                                 .height = height,
+                             }}};
 }
 
 Event createButtonEvent(Window::MouseButton::type button, bool press)
 {
-    Event event = {};
-    event.type = Window::EventType::ButtonPress;
-    event.message.buttonpress.button = button;
-    event.message.buttonpress.press = press;
-    return event;
+    return Event{.type = Window::EventType::MouseButton,
+                 .message = {.mouse_button = {
+                                 .button = button,
+                                 .press = press,
+                             }}};
 }
 
 Event createMouseWheelEvent(i32 x_delta, i32 y_delta)
 {
     return Event{.type = Window::EventType::MouseWheel,
-                 .message = {.mousewheel = {
+                 .message = {.mouse_wheel = {
                                  .x_delta = x_delta,
                                  .y_delta = y_delta,
                              }}};
 }
 
-Event createKeyEvent(Window::KeyCode::type id, bool press, u8 key_code)
+Event createKeyEvent(Window::KeyCode::type id, bool press, u32 internal_key_code)
 {
-    Event event = {};
-    event.type = EventType::KeyPress;
-    event.message.keypress.key = id;
-    event.message.keypress.key_code = key_code;
-    event.message.keypress.press = press;
-    return event;
+    return Event{.type = Window::EventType::KeyPress,
+                 .message = {.keypress = {
+                                 .key = id,
+                                 .press = press,
+                                 .internal_key_code = internal_key_code,
+                             }}};
 }
 
 const char* get_mouse_button_string(MouseButton::type button)

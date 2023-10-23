@@ -18,7 +18,7 @@ namespace Reaper::Window
 {
 namespace
 {
-    KeyCode::type convert_win32_keycode(i32 key_code)
+    KeyCode::type convert_win32_keycode(u32 key_code)
     {
         switch (key_code)
         {
@@ -273,15 +273,14 @@ void Win32Window::pumpEvents(std::vector<Window::Event>& eventOutput)
         */
         case WM_KEYDOWN:
         case WM_SYSKEYDOWN: {
-            i32 key_code = message.wParam;
-            eventOutput.emplace_back(Window::createKeyEvent(Window::convert_win32_keycode(key_code), true, 0)); // FIXME
+            u32 key_code = static_cast<u32>(message.wParam);
+            eventOutput.emplace_back(Window::createKeyEvent(Window::convert_win32_keycode(key_code), true, key_code));
             break;
         }
         case WM_KEYUP:
         case WM_SYSKEYUP: {
-            i32 key_code = message.wParam;
-            eventOutput.emplace_back(
-                Window::createKeyEvent(Window::convert_win32_keycode(key_code), false, 0)); // FIXME
+            u32 key_code = static_cast<u32>(message.wParam);
+            eventOutput.emplace_back(Window::createKeyEvent(Window::convert_win32_keycode(key_code), false, key_code));
             break;
         }
         case REAPER_WM_CLOSE:

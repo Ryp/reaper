@@ -641,11 +641,11 @@ void execute_game_loop(ReaperRoot& root)
                     // FIXME Do not set for duplicate events
                     backend.new_swapchain_extent = {width, height};
                 }
-                else if (event.type == Window::EventType::ButtonPress)
+                else if (event.type == Window::EventType::MouseButton)
                 {
-                    Window::Event::Message::ButtonPress buttonpress = event.message.buttonpress;
-                    Window::MouseButton::type           button = buttonpress.button;
-                    bool                                press = buttonpress.press;
+                    Window::Event::Message::MouseButton mouse_button = event.message.mouse_button;
+                    Window::MouseButton::type           button = mouse_button.button;
+                    bool                                press = mouse_button.press;
 
                     log_debug(root, "window: button index = {}, press = {}", Window::get_mouse_button_string(button),
                               press);
@@ -654,14 +654,14 @@ void execute_game_loop(ReaperRoot& root)
                 }
                 else if (event.type == Window::EventType::MouseWheel)
                 {
-                    Window::Event::Message::MouseWheel mousewheel = event.message.mousewheel;
+                    Window::Event::Message::MouseWheel mouse_wheel = event.message.mouse_wheel;
 
-                    log_debug(root, "window: mouse wheel event, x = {}, y = {}", mousewheel.x_delta,
-                              mousewheel.y_delta);
+                    log_debug(root, "window: mouse wheel event, x = {}, y = {}", mouse_wheel.x_delta,
+                              mouse_wheel.y_delta);
 
                     constexpr float ImGuiScrollMultiplier = 0.5f;
-                    io.AddMouseWheelEvent(static_cast<float>(mousewheel.x_delta) * ImGuiScrollMultiplier,
-                                          static_cast<float>(mousewheel.y_delta) * ImGuiScrollMultiplier);
+                    io.AddMouseWheelEvent(static_cast<float>(mouse_wheel.x_delta) * ImGuiScrollMultiplier,
+                                          static_cast<float>(mouse_wheel.y_delta) * ImGuiScrollMultiplier);
                 }
                 else if (event.type == Window::EventType::KeyPress)
                 {
@@ -711,8 +711,8 @@ void execute_game_loop(ReaperRoot& root)
 
                     if (key == Window::KeyCode::Invalid)
                     {
-                        log_warning(root, "window: key with unknown key_code '{}' {} detected", keypress.key_code,
-                                    is_pressed ? "press" : "release");
+                        log_warning(root, "window: key with unknown key_code '{}' {} detected",
+                                    keypress.internal_key_code, is_pressed ? "press" : "release");
                     }
                     else
                     {
