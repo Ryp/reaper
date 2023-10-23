@@ -22,6 +22,12 @@ option(INSTALL_LIBS OFF)
 option(BUILD_UNIT_TESTS OFF)
 option(INSTALL_CMAKE_FILES OFF)
 
+# Force static libs with MSVC
+# https://stackoverflow.com/questions/28840628/building-bullet-physics-as-shared-libraries
+if(MSVC)
+    option(BULLET_BUILD_SHARED_LIBS OFF)
+endif()
+
 add_subdirectory(${BULLET_PATH} ${CMAKE_BINARY_DIR}/external/bullet)
 
 # Wrap bullet for easier consumption
