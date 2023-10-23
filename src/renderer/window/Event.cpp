@@ -29,6 +29,15 @@ Event createButtonEvent(Window::MouseButton::type button, bool press)
     return event;
 }
 
+Event createMouseWheelEvent(i32 x_delta, i32 y_delta)
+{
+    return Event{.type = Window::EventType::MouseWheel,
+                 .message = {.mousewheel = {
+                                 .x_delta = x_delta,
+                                 .y_delta = y_delta,
+                             }}};
+}
+
 Event createKeyEvent(Window::KeyCode::type id, bool press, u8 key_code)
 {
     Event event = {};

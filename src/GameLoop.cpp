@@ -652,6 +652,17 @@ void execute_game_loop(ReaperRoot& root)
 
                     imgui_process_button_press(io, button, press);
                 }
+                else if (event.type == Window::EventType::MouseWheel)
+                {
+                    Window::Event::Message::MouseWheel mousewheel = event.message.mousewheel;
+
+                    log_debug(root, "window: mouse wheel event, x = {}, y = {}", mousewheel.x_delta,
+                              mousewheel.y_delta);
+
+                    constexpr float ImGuiScrollMultiplier = 0.5f;
+                    io.AddMouseWheelEvent(static_cast<float>(mousewheel.x_delta) * ImGuiScrollMultiplier,
+                                          static_cast<float>(mousewheel.y_delta) * ImGuiScrollMultiplier);
+                }
                 else if (event.type == Window::EventType::KeyPress)
                 {
                     Window::Event::Message::KeyPress keypress = event.message.keypress;

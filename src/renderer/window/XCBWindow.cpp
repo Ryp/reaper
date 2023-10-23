@@ -47,6 +47,9 @@ namespace Window
     {
         MouseButton::type convert_xcb_mouse_button(xcb_button_t button)
         {
+            const u8 XCB_BUTTON_WHEEL_LEFT = 6;  // NOTE: this is not documented
+            const u8 XCB_BUTTON_WHEEL_RIGHT = 7; // NOTE: this is not documented
+
             switch (button)
             {
             case XCB_BUTTON_INDEX_1:
@@ -59,10 +62,10 @@ namespace Window
                 return MouseButton::WheelUp;
             case XCB_BUTTON_INDEX_5:
                 return MouseButton::WheelDown;
-            case 6:
-                return MouseButton::WheelLeft; // NOTE: this is not documented
-            case 7:
-                return MouseButton::WheelRight; // NOTE: this is not documented
+            case XCB_BUTTON_WHEEL_LEFT:
+                return MouseButton::WheelLeft;
+            case XCB_BUTTON_WHEEL_RIGHT:
+                return MouseButton::WheelRight;
             default:
                 AssertUnreachable();
                 return MouseButton::Invalid;

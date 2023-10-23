@@ -14,6 +14,63 @@
 #define REAPER_WM_UPDATE_SIZE (WM_USER + 1)
 #define REAPER_WM_CLOSE (WM_USER + 2)
 
+namespace Reaper::Window
+{
+namespace
+{
+    KeyCode::type convert_win32_keycode(i32 key_code)
+    {
+        switch (key_code)
+        {
+        case VK_ESCAPE:
+            return KeyCode::ESCAPE;
+        case VK_RETURN:
+            return KeyCode::ENTER;
+        case VK_SPACE:
+            return KeyCode::SPACE;
+        case VK_RIGHT:
+            return KeyCode::ARROW_RIGHT;
+        case VK_LEFT:
+            return KeyCode::ARROW_LEFT;
+        case VK_DOWN:
+            return KeyCode::ARROW_DOWN;
+        case VK_UP:
+            return KeyCode::ARROW_UP;
+        case 'W':
+            return KeyCode::W;
+        case 'A':
+            return KeyCode::A;
+        case 'S':
+            return KeyCode::S;
+        case 'D':
+            return KeyCode::D;
+        case '1':
+            return KeyCode::NUM_1;
+        case '2':
+            return KeyCode::NUM_2;
+        case '3':
+            return KeyCode::NUM_3;
+        case '4':
+            return KeyCode::NUM_4;
+        case '5':
+            return KeyCode::NUM_5;
+        case '6':
+            return KeyCode::NUM_6;
+        case '7':
+            return KeyCode::NUM_7;
+        case '8':
+            return KeyCode::NUM_8;
+        case '9':
+            return KeyCode::NUM_9;
+        case '0':
+            return KeyCode::NUM_0;
+        default:
+            return KeyCode::Invalid;
+        }
+    }
+} // namespace
+} // namespace Reaper::Window
+
 namespace
 {
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
@@ -159,6 +216,74 @@ void Win32Window::pumpEvents(std::vector<Window::Event>& eventOutput)
             eventOutput.emplace_back(Window::createResizeEvent(window_size.width, window_size.height));
             break;
         }
+        case WM_LBUTTONDOWN:
+        case WM_LBUTTONDBLCLK:
+        case WM_LBUTTONUP: {
+            bool is_pressed = message.message != WM_LBUTTONUP;
+            eventOutput.emplace_back(Window::createButtonEvent(Window::MouseButton::Left, is_pressed));
+            break;
+        }
+        case WM_RBUTTONDOWN:
+        case WM_RBUTTONDBLCLK:
+        case WM_RBUTTONUP: {
+            bool is_pressed = message.message != WM_RBUTTONUP;
+            eventOutput.emplace_back(Window::createButtonEvent(Window::MouseButton::Right, is_pressed));
+            break;
+        }
+        case WM_MBUTTONDOWN:
+        case WM_MBUTTONDBLCLK:
+        case WM_MBUTTONUP: {
+            bool is_pressed = message.message != WM_MBUTTONUP;
+            eventOutput.emplace_back(Window::createButtonEvent(Window::MouseButton::Middle, is_pressed));
+            break;
+        }
+        case WM_MOUSEWHEEL:
+        case WM_MOUSEHWHEEL: {
+            bool horizontal = message.message == WM_MOUSEHWHEEL;
+
+            // https://devblogs.microsoft.com/oldnewthing/20130123-00/?p=5473
+            i32 delta = GET_WHEEL_DELTA_WPARAM(message.wParam) / WHEEL_DELTA;
+            u32 key_state = GET_KEYSTATE_WPARAM(message.wParam);
+
+            // On windows you need to emulate horizontal scroll manually when shift is pressed
+            if (key_state & MK_SHIFT)
+            {
+                horizontal = true;
+            }
+
+            eventOutput.emplace_back(Window::createMouseWheelEvent(horizontal ? delta : 0, horizontal ? 0 : delta));
+            break;
+        }
+        /*
+        case WM_MOUSEMOVE:
+        {
+            constexpr LONG_PTR SIGNATURE_MASK = 0xFFFFFF00;
+            constexpr LONG_PTR MOUSEEVENTF_FROMTOUCH = 0xFF515700;
+
+            LONG_PTR extraInfo = GetMessageExtraInfo(); // NOTE: Careful, this call is context sensitive
+
+            if ((extraInfo & SIGNATURE_MASK) == MOUSEEVENTF_FROMTOUCH)
+                break;
+
+            i16 x = (i16)LOWORD(message.lParam);
+            i16 y = (i16)HIWORD(message.lParam);
+
+            break;
+        }
+        */
+        case WM_KEYDOWN:
+        case WM_SYSKEYDOWN: {
+            i32 key_code = message.wParam;
+            eventOutput.emplace_back(Window::createKeyEvent(Window::convert_win32_keycode(key_code), true, 0)); // FIXME
+            break;
+        }
+        case WM_KEYUP:
+        case WM_SYSKEYUP: {
+            i32 key_code = message.wParam;
+            eventOutput.emplace_back(
+                Window::createKeyEvent(Window::convert_win32_keycode(key_code), false, 0)); // FIXME
+            break;
+        }
         case REAPER_WM_CLOSE:
             // eventOutput.emplace_back(convertXcbEvent(event));
             break;
@@ -170,6 +295,12 @@ void Win32Window::pumpEvents(std::vector<Window::Event>& eventOutput)
 
 MouseState Win32Window::get_mouse_state()
 {
-    return MouseState{};
+    POINT point;
+    Assert(GetCursorPos(&point) == TRUE);
+
+    return MouseState{
+        .pos_x = point.x,
+        .pos_y = point.y,
+    };
 }
 } // namespace Reaper

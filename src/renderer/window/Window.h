@@ -23,8 +23,8 @@ namespace Window
 
 struct MouseState
 {
-    u32 pos_x;
-    u32 pos_y;
+    i32 pos_x;
+    i32 pos_y;
 };
 
 class REAPER_RENDERER_API IWindow
