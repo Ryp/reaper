@@ -95,8 +95,12 @@ endfunction()
 function(reaper_configure_target_common target project_label)
     target_include_directories(${target} PUBLIC ${CMAKE_SOURCE_DIR}/src)
     target_compile_definitions(${target} PRIVATE REAPER_BUILD_${REAPER_BUILD_TYPE})
-    if(MSVC)
+
+    if(WIN32)
         target_compile_definitions(${target} PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX _CRT_SECURE_NO_WARNINGS _USE_MATH_DEFINES)
+    endif()
+
+    if(MSVC)
         set_target_properties(${target} PROPERTIES PROJECT_LABEL ${project_label})
         reaper_fill_vs_source_tree(${target} ${CMAKE_CURRENT_SOURCE_DIR})
         # /MP:              enable multi-threaded compilation

@@ -14,7 +14,7 @@ target_sources(${target} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/GenericController.h
 )
 
-if(NOT MSVC)
+if(UNIX)
     target_sources(${target} PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/LinuxController.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/LinuxController.h
