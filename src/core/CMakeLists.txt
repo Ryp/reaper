@@ -14,6 +14,8 @@ target_sources(${target} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/Assert.h
     ${CMAKE_CURRENT_SOURCE_DIR}/BitTricks.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Cast.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Crash.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Crash.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Compiler.h
     ${CMAKE_CURRENT_SOURCE_DIR}/CoreExport.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Debugger.cpp

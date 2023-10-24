@@ -61,7 +61,13 @@ option(REAPER_BUILD_SHARED_LIBS         "Build shared libraries"        ${BUILD_
 
 # Enable runtime profiling with Tracy.
 # Tracy has its own profiler app that you have to compile from source.
-option(REAPER_USE_TRACY                 "Use tracy"                     ON)
+option(REAPER_USE_TRACY                 "Use Tracy"                     ON)
+
+# Enable crash reporting with google breakpad
+option(REAPER_USE_GOOGLE_BREAKPAD       "Use Google Breakpad"           OFF)
+
+# Enable crash reporting with google crashpad
+option(REAPER_USE_GOOGLE_CRASHPAD       "Use Google Crashpad"           ON)
 
 # See .clang-tidy for the list of useful checks.
 option(REAPER_RUN_CLANG_TIDY            "Run clang-tidy when compiling" OFF)
@@ -79,6 +85,10 @@ option(REAPER_HLSL_USE_DXC              "Build HLSL shaders with DXC"   OFF)
 
 # Enable physics simulation with bullet.
 option(REAPER_USE_BULLET_PHYSICS        "Enable game physics"           ON)
+
+if(REAPER_USE_GOOGLE_BREAKPAD AND REAPER_USE_GOOGLE_CRASHPAD)
+    message(FATAL_ERROR "Google breakpad and crashpad can't be both enabled at the same time!")
+endif()
 
 # Override binary output paths
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${Reaper_BINARY_DIR})

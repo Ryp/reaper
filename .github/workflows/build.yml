@@ -48,7 +48,9 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update -qq # Always do this step to prevent package urls to get outdated
-          sudo apt-get install -y build-essential cmake gcc libunwind-dev libx11-xcb-dev libxcb-xkb-dev libasound2-dev
+          sudo apt-get install -y libunwind-dev libx11-xcb-dev libxcb-xkb-dev libasound2-dev
+          sudo apt-get install -y build-essential cmake
+          sudo apt-get install -y ninja-build libcurl4-openssl-dev # For google crashpad
 
       - name: Prepare Vulkan SDK
         uses: humbletim/setup-vulkan-sdk@v1.2.0
@@ -120,6 +122,9 @@ jobs:
           vulkan-query-version: ${{ env.vulkan_sdk_version }}
           vulkan-components: ${{ env.vulkan_sdk_modules }}
           vulkan-use-cache: true
+
+      - name: Install Ninja
+        uses: seanmiddleditch/gha-setup-ninja@master
 
       - name: Configure CMake
         run: |

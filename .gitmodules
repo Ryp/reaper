@@ -39,3 +39,12 @@
 [submodule "external/bullet3"]
 	path = external/bullet3
 	url = https://github.com/Ryp/bullet3
+[submodule "external/google/depot_tools"]
+	path = external/google/depot_tools
+	url = https://chromium.googlesource.com/chromium/tools/depot_tools.git
+[submodule "external/google/breakpad/src"]
+	path = external/google/breakpad/src
+	url = https://chromium.googlesource.com/breakpad/breakpad.git
+[submodule "external/google/crashpad/crashpad"]
+	path = external/google/crashpad/crashpad
+	url = https://chromium.googlesource.com/crashpad/crashpad.git

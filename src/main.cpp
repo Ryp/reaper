@@ -16,6 +16,16 @@
 
 #include "GameLoop.h"
 
+#include <core/Assert.h>
+
+#if defined(REAPER_USE_GOOGLE_CRASHPAD)
+#    include "CrashpadHandler.h"
+#endif
+
+#if defined(REAPER_USE_GOOGLE_BREAKPAD)
+#    include "BreakpadHandler.h"
+#endif
+
 namespace Reaper
 {
 namespace
@@ -51,13 +61,34 @@ namespace
 
 int main(int /*ac*/, char** /*av*/)
 {
-    Reaper::ReaperRoot root = {};
+    using namespace Reaper;
 
-    Reaper::start_engine(root);
+#if defined(REAPER_USE_GOOGLE_BREAKPAD)
+    BreakpadContext breakpad_context = create_breakpad_context();
+#endif
 
-    Reaper::execute_game_loop(root);
+#if defined(REAPER_USE_GOOGLE_CRASHPAD)
+    CrashpadContext crashpad_context = create_crashpad_context();
+    Assert(crashpad_context.is_started);
+#endif
 
-    Reaper::stop_engine(root);
+    {
+        ReaperRoot root = {};
+
+        start_engine(root);
+
+        execute_game_loop(root);
+
+        stop_engine(root);
+    }
+
+#if defined(REAPER_USE_GOOGLE_CRASHPAD)
+    destroy_crashpad_context(crashpad_context);
+#endif
+
+#if defined(REAPER_USE_GOOGLE_BREAKPAD)
+    destroy_breakpad_context(breakpad_context);
+#endif
 
     return 0;
 }

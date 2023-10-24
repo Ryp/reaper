@@ -27,7 +27,6 @@ add_executable(${REAPER_BIN})
 
 target_sources(${REAPER_BIN} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp
-
     ${CMAKE_CURRENT_SOURCE_DIR}/Camera.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Camera.h
     ${CMAKE_CURRENT_SOURCE_DIR}/GameLoop.cpp
@@ -49,6 +48,26 @@ target_link_libraries(${REAPER_BIN} PRIVATE
     neptune_trackgen
     cgltf
 )
+
+if(REAPER_USE_GOOGLE_BREAKPAD)
+    target_sources(${REAPER_BIN} PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/BreakpadHandler.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/BreakpadHandler.h)
+
+    include(external/breakpad)
+    target_compile_definitions(${REAPER_BIN} PUBLIC REAPER_USE_GOOGLE_BREAKPAD)
+    target_link_libraries(${REAPER_BIN} PRIVATE google_breakpad)
+endif()
+
+if(REAPER_USE_GOOGLE_CRASHPAD)
+    target_sources(${REAPER_BIN} PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/CrashpadHandler.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/CrashpadHandler.h)
+
+    include(external/crashpad)
+    target_compile_definitions(${REAPER_BIN} PUBLIC REAPER_USE_GOOGLE_CRASHPAD)
+    target_link_libraries(${REAPER_BIN} PRIVATE google_crashpad_client)
+endif()
 
 # Configure main VS projet
 set_target_properties(${REAPER_BIN} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})

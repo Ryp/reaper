@@ -1,0 +1,15 @@
+////////////////////////////////////////////////////////////////////////////////
+/// Reaper
+///
+/// Copyright (c) 2015-2023 Thibault Schueller
+/// This file is distributed under the MIT License
+////////////////////////////////////////////////////////////////////////////////
+
+#pragma once
+
+#include "CoreExport.h"
+
+namespace Reaper
+{
+REAPER_CORE_API void trigger_crash();
+} // namespace Reaper

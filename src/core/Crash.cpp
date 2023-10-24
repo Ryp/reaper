@@ -1,0 +1,17 @@
+////////////////////////////////////////////////////////////////////////////////
+/// Reaper
+///
+/// Copyright (c) 2015-2023 Thibault Schueller
+/// This file is distributed under the MIT License
+////////////////////////////////////////////////////////////////////////////////
+
+#include "Crash.h"
+
+namespace Reaper
+{
+void trigger_crash()
+{
+    volatile int* a = (int*)(0);
+    *a = 1;
+}
+} // namespace Reaper
