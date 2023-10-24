@@ -47,9 +47,6 @@ namespace Window
     {
         MouseButton::type convert_xcb_mouse_button(xcb_button_t button)
         {
-            const u8 XCB_BUTTON_WHEEL_LEFT = 6;  // NOTE: this is not documented
-            const u8 XCB_BUTTON_WHEEL_RIGHT = 7; // NOTE: this is not documented
-
             switch (button)
             {
             case XCB_BUTTON_INDEX_1:
@@ -58,14 +55,6 @@ namespace Window
                 return MouseButton::Middle;
             case XCB_BUTTON_INDEX_3:
                 return MouseButton::Right;
-            case XCB_BUTTON_INDEX_4:
-                return MouseButton::WheelUp;
-            case XCB_BUTTON_INDEX_5:
-                return MouseButton::WheelDown;
-            case XCB_BUTTON_WHEEL_LEFT:
-                return MouseButton::WheelLeft;
-            case XCB_BUTTON_WHEEL_RIGHT:
-                return MouseButton::WheelRight;
             default:
                 AssertUnreachable();
                 return MouseButton::Invalid;
@@ -290,8 +279,13 @@ namespace
 {
     Window::Event convert_xcb_event(xcb_generic_event_t* event)
     {
-        constexpr u32 xcbMagicMask = 0x7f;
-        switch (event->response_type & xcbMagicMask)
+        constexpr u8  XCB_BUTTON_WHEEL_LEFT = 6;  // NOTE: this is not documented
+        constexpr u8  XCB_BUTTON_WHEEL_RIGHT = 7; // NOTE: this is not documented
+        constexpr u32 XCB_MAGIC_MASK = 0x7f;
+
+        const u8 event_type = event->response_type & XCB_MAGIC_MASK;
+
+        switch (event_type)
         {
         case XCB_CONFIGURE_NOTIFY: {
             xcb_configure_notify_event_t* configure_event = (xcb_configure_notify_event_t*)event;
@@ -319,13 +313,26 @@ namespace
             // AssertUnreachable();
             break;
         }
-        case XCB_BUTTON_PRESS: {
-            xcb_button_press_event_t* button_event = (xcb_button_press_event_t*)event;
-            return Window::createButtonEvent(Window::convert_xcb_mouse_button(button_event->detail), true);
-        }
+        case XCB_BUTTON_PRESS:
         case XCB_BUTTON_RELEASE: {
-            const xcb_button_release_event_t* button_event = (xcb_button_release_event_t*)event;
-            return Window::createButtonEvent(Window::convert_xcb_mouse_button(button_event->detail), false);
+            bool is_pressed = event_type == XCB_BUTTON_PRESS;
+            // NOE: xcb_key_press_event_t and xcb_key_release_event_t are supposed to be different but they aren't
+            xcb_button_press_event_t* button_event = (xcb_button_press_event_t*)event;
+            xcb_button_t              button = button_event->detail;
+
+            switch (button)
+            {
+            case XCB_BUTTON_INDEX_4:
+                return Window::createMouseWheelEvent(0, 1);
+            case XCB_BUTTON_INDEX_5:
+                return Window::createMouseWheelEvent(0, -1);
+            case XCB_BUTTON_WHEEL_LEFT:
+                return Window::createMouseWheelEvent(1, 0);
+            case XCB_BUTTON_WHEEL_RIGHT:
+                return Window::createMouseWheelEvent(-1, 0);
+            default:
+                return Window::createButtonEvent(Window::convert_xcb_mouse_button(button), is_pressed);
+            }
         }
         case XCB_KEY_PRESS: {
             xcb_key_press_event_t* key_event = (xcb_key_press_event_t*)event;

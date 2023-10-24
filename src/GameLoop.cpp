@@ -260,8 +260,6 @@ namespace
 
     void imgui_process_button_press(ImGuiIO& io, Window::MouseButton::type button, bool is_pressed)
     {
-        constexpr float ImGuiScrollMultiplier = 0.5f;
-
         switch (button)
         {
         case Window::MouseButton::Left:
@@ -272,18 +270,6 @@ namespace
             break;
         case Window::MouseButton::Middle:
             io.AddMouseButtonEvent(2, is_pressed);
-            break;
-        case Window::MouseButton::WheelUp:
-            io.AddMouseWheelEvent(0.f, is_pressed ? ImGuiScrollMultiplier : 0.f);
-            break;
-        case Window::MouseButton::WheelDown:
-            io.AddMouseWheelEvent(0.f, is_pressed ? -ImGuiScrollMultiplier : 0.f);
-            break;
-        case Window::MouseButton::WheelLeft:
-            io.AddMouseWheelEvent(is_pressed ? ImGuiScrollMultiplier : 0.f, 0.f);
-            break;
-        case Window::MouseButton::WheelRight:
-            io.AddMouseWheelEvent(is_pressed ? -ImGuiScrollMultiplier : 0.f, 0.f);
             break;
         case Window::MouseButton::Invalid:
             break;
@@ -660,6 +646,7 @@ void execute_game_loop(ReaperRoot& root)
                               mouse_wheel.y_delta);
 
                     constexpr float ImGuiScrollMultiplier = 0.5f;
+
                     io.AddMouseWheelEvent(static_cast<float>(mouse_wheel.x_delta) * ImGuiScrollMultiplier,
                                           static_cast<float>(mouse_wheel.y_delta) * ImGuiScrollMultiplier);
                 }

@@ -58,14 +58,6 @@ const char* get_mouse_button_string(MouseButton::type button)
         return "Middle";
     case Window::MouseButton::Right:
         return "Right";
-    case Window::MouseButton::WheelUp:
-        return "WheelUp";
-    case Window::MouseButton::WheelDown:
-        return "WheelDown";
-    case Window::MouseButton::WheelLeft:
-        return "WheelLeft";
-    case Window::MouseButton::WheelRight:
-        return "WheelRight";
     case Window::MouseButton::Invalid:
     default:
         AssertUnreachable();

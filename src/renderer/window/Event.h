@@ -31,11 +31,6 @@ namespace MouseButton
         Left,
         Middle,
         Right,
-        // NOTE: XCB produces wheel events in pairs of pressed/released
-        WheelUp,
-        WheelDown,
-        WheelLeft,
-        WheelRight,
     };
 }
 
