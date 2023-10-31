@@ -8,12 +8,8 @@
 # NOTE: it is possible to run DXC under linux using wine. If the binary is
 # executable, CMake should be able to call it successfully.
 # Just make sure you set $DXC_PATH in your env.
-find_program(DXC_EXEC dxc HINTS
+find_program(DXC_EXEC dxc REQUIRED HINTS
     "$ENV{DXC_PATH}/build/bin")
-
-if(NOT DXC_EXEC)
-    message(FATAL_ERROR "${DXC_EXEC} not found")
-endif()
 
 function(dxc_get_shader_model_string shader_type_extension shader_model_version_major shader_model_version_minor output_variable)
     if(shader_type_extension STREQUAL ".comp")
