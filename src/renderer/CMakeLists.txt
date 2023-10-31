@@ -183,7 +183,7 @@ set(REAPER_SHADER_SRCS
 
 # Shader compilation
 include(glslang)
-include(amdrga)
+include(external/amdrga)
 
 if(REAPER_HLSL_USE_DXC)
     include(dxc)
@@ -307,7 +307,7 @@ set(MESHOPT_BUILD_SHARED_LIBS ${REAPER_BUILD_SHARED_LIBS})
 add_subdirectory(${CMAKE_SOURCE_DIR}/external/meshoptimizer ${CMAKE_BINARY_DIR}/external/meshoptimizer)
 set_target_properties(meshoptimizer PROPERTIES FOLDER External)
 
-include(imgui)
+include(external/imgui)
 
 target_link_libraries(${target} PUBLIC
     reaper_core

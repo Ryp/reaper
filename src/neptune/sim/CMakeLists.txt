@@ -26,7 +26,7 @@ target_link_libraries(${target} PUBLIC
 )
 
 if(REAPER_USE_BULLET_PHYSICS)
-    include(bullet)
+    include(external/bullet)
     target_compile_definitions(${target} PUBLIC REAPER_USE_BULLET_PHYSICS)
     target_link_libraries(${target} PRIVATE bullet)
 endif()

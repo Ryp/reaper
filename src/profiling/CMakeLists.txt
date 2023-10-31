@@ -11,7 +11,7 @@ add_library(${target} INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/Scope.h)
 
 if(REAPER_USE_TRACY)
-    include(tracy)
+    include(external/tracy)
     target_include_directories(${target} SYSTEM INTERFACE ${CMAKE_SOURCE_DIR}/external/tracy/public)
     target_compile_definitions(${target} INTERFACE REAPER_USE_TRACY)
     target_link_libraries(${target} INTERFACE Tracy::TracyClient reaper_vulkan_loader)

@@ -15,7 +15,7 @@ target_sources(${target} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/ModelLoader.h
 )
 
-include(tinyobjloader)
+include(external/tinyobjloader)
 
 target_link_libraries(${target} PUBLIC
     reaper_core
