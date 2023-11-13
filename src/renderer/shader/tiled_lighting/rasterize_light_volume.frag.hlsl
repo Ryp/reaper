@@ -24,7 +24,7 @@ bool slabs(float3 p0, float3 p1, float3 ray_origin, float3 ray_direction_inv)
 void main(in VS_OUTPUT input)
 {
     const uint2 position_ts = input.position.xy;
-    const LightVolumeInstance instance_data = pass_params.instance_array[input.instance_id];
+    const LightVolumeInstance instance_data = LightVolumeInstances[input.instance_id];
 
     const float ray_depth_ndc = TileDepth.Load(uint3(position_ts, 0));
     const float ray_sign = spec_is_inner_pass ? -1.0 : 1.0;

@@ -18,8 +18,6 @@ static const hlsl_uint TileSizeY = 16;
 static const hlsl_uint TiledLightingThreadCountX = 16;
 static const hlsl_uint TiledLightingThreadCountY = 16;
 
-static const hlsl_uint LightVolumeMax = 128;
-
 // Remove one to leave space for the count
 static const hlsl_uint ElementsPerTile = 16;
 static const hlsl_uint LightsPerTileMax = ElementsPerTile - 1;

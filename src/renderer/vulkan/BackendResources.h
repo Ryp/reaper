@@ -14,6 +14,7 @@
 #include "MeshCache.h"
 #include "SamplerResources.h"
 #include "ShaderModules.h"
+#include "StorageBufferAllocator.h"
 
 #include "renderpass/Audio.h"
 #include "renderpass/DebugGeometryRenderPass.h"
@@ -38,6 +39,7 @@ struct BackendResources
     // TODO remove *_resources suffix
     ShaderModules                 shader_modules;
     SamplerResources              samplers_resources;
+    StorageBufferAllocator        frame_storage_allocator;
     DebugGeometryPassResources    debug_geometry_resources;
     FrameGraphResources           framegraph_resources;
     MeshCache                     mesh_cache;

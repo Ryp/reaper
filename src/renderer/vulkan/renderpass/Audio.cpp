@@ -243,7 +243,7 @@ void read_gpu_audio_data(VulkanBackend& backend, AudioResources& resources)
         .pNext = nullptr,
         .memory = allocation_info.deviceMemory,
         .offset = allocation_info.offset,
-        .size = VK_WHOLE_SIZE,
+        .size = allocation_info.size,
     };
 
     vkInvalidateMappedMemoryRanges(backend.device, 1, &staging_range);

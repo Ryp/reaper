@@ -86,6 +86,8 @@ target_sources(${target} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/SamplerResources.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/ShaderModules.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/ShaderModules.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/StorageBufferAllocator.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/StorageBufferAllocator.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Swapchain.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Swapchain.h
 

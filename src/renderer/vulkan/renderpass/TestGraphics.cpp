@@ -196,13 +196,16 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     const VkExtent2D render_extent = backend.render_extent;
 
+    DescriptorWriteHelper descriptor_write_helper(200, 200);
+
     {
         REAPER_PROFILE_SCOPE("Upload Resources");
         upload_meshlet_culling_resources(backend, prepared, resources.meshlet_culling_resources);
         upload_vis_buffer_pass_frame_resources(backend, prepared, resources.vis_buffer_pass_resources);
         upload_shadow_map_resources(backend, prepared, resources.shadow_map_resources);
         upload_lighting_pass_frame_resources(backend, prepared, resources.lighting_resources);
-        upload_tiled_raster_pass_frame_resources(backend, tiled_lighting_frame, resources.tiled_raster_resources);
+        upload_tiled_raster_pass_frame_resources(descriptor_write_helper, resources.frame_storage_allocator,
+                                                 tiled_lighting_frame, resources.tiled_raster_resources);
         upload_tiled_lighting_pass_frame_resources(backend, prepared, resources.tiled_lighting_resources);
         upload_forward_pass_frame_resources(backend, prepared, resources.forward_pass_resources);
         upload_debug_geometry_build_cmds_pass_frame_resources(backend, prepared, resources.debug_geometry_resources);
@@ -821,8 +824,6 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     allocate_framegraph_volatile_resources(backend, resources.framegraph_resources, framegraph);
 
-    DescriptorWriteHelper descriptor_write_helper(200, 200);
-
     update_meshlet_culling_descriptor_sets(
         descriptor_write_helper, prepared, resources.meshlet_culling_resources, resources.mesh_cache,
         get_frame_graph_buffer(resources.framegraph_resources, framegraph, meshlet_pass.cull_meshlets.meshlet_counters),
@@ -949,6 +950,8 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     update_audio_render_descriptor_set(
         descriptor_write_helper, resources.audio_resources,
         get_frame_graph_buffer(resources.framegraph_resources, framegraph, audio_pass.render.audio_buffer));
+
+    storage_allocator_commit_to_gpu(backend, resources.frame_storage_allocator);
 
     descriptor_write_helper.flush_descriptor_write_helper(backend.device);
 
@@ -1214,7 +1217,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
                                        light_raster.pass_handle, true);
 
             record_light_raster_command_buffer(
-                cmdBuffer, resources.tiled_raster_resources,
+                cmdBuffer, resources.tiled_raster_resources.light_raster,
                 get_frame_graph_buffer(resources.framegraph_resources, framegraph, light_raster.command_counters),
                 get_frame_graph_buffer(resources.framegraph_resources, framegraph, light_raster.draw_commands_inner),
                 get_frame_graph_buffer(resources.framegraph_resources, framegraph, light_raster.draw_commands_outer),

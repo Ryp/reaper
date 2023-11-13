@@ -10,14 +10,9 @@
 
 #include "tiled_lighting.share.hlsl"
 
-struct PassParams
-{
-    LightVolumeInstance instance_array[LightVolumeMax];
-};
-
 VK_PUSH_CONSTANT_HELPER(TileLightRasterPushConstants) consts;
 
-VK_BINDING(0, 0) ConstantBuffer<PassParams> pass_params;
+VK_BINDING(0, 0) StructuredBuffer<LightVolumeInstance> LightVolumeInstances;
 VK_BINDING(0, 1) Texture2D<float> TileDepth;
 VK_BINDING(0, 2) globallycoherent RWByteAddressBuffer TileVisibleLightIndices;
 VK_BINDING(0, 3) ByteAddressBuffer VertexPositionsMS;

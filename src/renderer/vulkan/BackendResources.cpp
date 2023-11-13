@@ -13,6 +13,8 @@
 
 #include "common/Log.h"
 
+#include <core/Literals.h>
+
 namespace Reaper
 {
 void create_backend_resources(ReaperRoot& root, VulkanBackend& backend)
@@ -53,6 +55,8 @@ void create_backend_resources(ReaperRoot& root, VulkanBackend& backend)
 
     resources.shader_modules = create_shader_modules(backend);
     resources.samplers_resources = create_sampler_resources(backend);
+    resources.frame_storage_allocator =
+        create_storage_buffer_allocator(backend, "Frame Storage Buffer Allocator", 1_MiB);
     resources.debug_geometry_resources = create_debug_geometry_pass_resources(backend, resources.shader_modules);
     resources.framegraph_resources = create_framegraph_resources(backend);
     resources.audio_resources = create_audio_resources(backend, resources.shader_modules);
@@ -78,6 +82,7 @@ void destroy_backend_resources(VulkanBackend& backend)
 
     destroy_shader_modules(backend, resources.shader_modules);
     destroy_sampler_resources(backend, resources.samplers_resources);
+    destroy_storage_buffer_allocator(backend, resources.frame_storage_allocator);
     destroy_debug_geometry_pass_resources(backend, resources.debug_geometry_resources);
     destroy_framegraph_resources(backend, resources.framegraph_resources);
     destroy_audio_resources(backend, resources.audio_resources);

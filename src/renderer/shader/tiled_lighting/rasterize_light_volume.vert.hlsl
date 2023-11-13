@@ -25,7 +25,7 @@ void main(VS_INPUT input, out VS_OUTPUT output)
     // Patch instance_id
     // https://twitter.com/iquilezles/status/736353148969746432
     const uint instance_id = consts.instance_id_offset + input.api_instance_id;
-    const LightVolumeInstance volume_instance = pass_params.instance_array[instance_id];
+    const LightVolumeInstance volume_instance = LightVolumeInstances[instance_id];
 
 #if 1
     const float3 vpos_ms = pull_position(VertexPositionsMS, input.vertex_id);

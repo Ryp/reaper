@@ -42,6 +42,18 @@ VkWriteDescriptorSet create_texel_buffer_view_descriptor_write(VkDescriptorSet d
                                                                VkDescriptorType    descriptor_type,
                                                                const VkBufferView* texel_buffer_view);
 
+struct DescriptorBinding
+{
+    u32                slot;
+    u32                count;
+    VkDescriptorType   type;
+    VkShaderStageFlags stage_mask;
+};
+
+void fill_layout_bindings(std::span<VkDescriptorSetLayoutBinding> descriptor_set_layout_bindings,
+                          std::span<const DescriptorBinding>
+                              descriptor_bindings);
+
 // Vulkan needs a few structures to be chained with pointers to fill descriptor sets.
 // This is quite tedious, so this helper's job is to hold the memory for these.
 class DescriptorWriteHelper
@@ -56,6 +68,7 @@ public:
     VkDescriptorBufferInfo&          new_buffer_info(VkDescriptorBufferInfo buffer_info);
     VkBufferView&                    new_texel_buffer_view(VkBufferView texel_buffer_view);
 
+    // Old API
     void append(VkDescriptorSet descriptor_set, u32 binding, VkDescriptorType type, VkImageView image_view,
                 VkImageLayout layout);
     void append(VkDescriptorSet descriptor_set, u32 binding, VkSampler sampler);
@@ -63,6 +76,15 @@ public:
                 u64 size_bytes);
     void append(VkDescriptorSet descriptor_set, u32 binding, VkDescriptorType type, VkBuffer buffer);
     void append(VkDescriptorSet descriptor_set, u32 binding, VkDescriptorType type, VkBufferView texel_buffer_view);
+
+    // New API
+    void append(VkDescriptorSet descriptor_set, const DescriptorBinding& binding, VkImageView image_view,
+                VkImageLayout layout);
+    void append(VkDescriptorSet descriptor_set, const DescriptorBinding& binding, VkSampler sampler);
+    void append(VkDescriptorSet descriptor_set, const DescriptorBinding& binding, VkBuffer buffer, u64 offset_bytes,
+                u64 size_bytes);
+    void append(VkDescriptorSet descriptor_set, const DescriptorBinding& binding, VkBuffer buffer);
+    void append(VkDescriptorSet descriptor_set, const DescriptorBinding& binding, VkBufferView texel_buffer_view);
 
     void flush_descriptor_write_helper(VkDevice device);
 

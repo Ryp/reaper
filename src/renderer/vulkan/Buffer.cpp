@@ -92,7 +92,7 @@ GPUBuffer create_buffer(VkDevice device, const char* debug_string, const GPUBuff
 
     VkBuffer      buffer;
     VmaAllocation allocation;
-    Assert(vmaCreateBuffer(allocator, &bufferInfo, &allocInfo, &buffer, &allocation, nullptr) == VK_SUCCESS);
+    AssertVk(vmaCreateBuffer(allocator, &bufferInfo, &allocInfo, &buffer, &allocation, nullptr));
 
     VulkanSetDebugName(device, buffer, debug_string);
 

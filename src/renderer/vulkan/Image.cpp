@@ -1053,7 +1053,7 @@ GPUTexture create_image(VkDevice device, const char* debug_string, const GPUText
 
     VkImage       image;
     VmaAllocation allocation;
-    Assert(vmaCreateImage(allocator, &imageInfo, &allocInfo, &image, &allocation, nullptr) == VK_SUCCESS);
+    AssertVk(vmaCreateImage(allocator, &imageInfo, &allocInfo, &image, &allocation, nullptr));
 
     VulkanSetDebugName(device, image, debug_string);
 

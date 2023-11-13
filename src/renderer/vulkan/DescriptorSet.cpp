@@ -219,6 +219,53 @@ void DescriptorWriteHelper::append(VkDescriptorSet descriptor_set, u32 binding, 
     writes.push_back(create_texel_buffer_view_descriptor_write(descriptor_set, binding, type, &texel_buffer_info));
 }
 
+void fill_layout_bindings(std::span<VkDescriptorSetLayoutBinding> descriptor_set_layout_bindings,
+                          std::span<const DescriptorBinding>
+                              descriptor_bindings)
+{
+    Assert(descriptor_set_layout_bindings.size() == descriptor_bindings.size());
+
+    for (u32 i = 0; i < descriptor_bindings.size(); i++)
+    {
+        const auto input = descriptor_bindings[i];
+        descriptor_set_layout_bindings[i] = {
+            .binding = input.slot,
+            .descriptorType = input.type,
+            .descriptorCount = input.count,
+            .stageFlags = input.stage_mask,
+            .pImmutableSamplers = nullptr,
+        };
+    }
+}
+
+void DescriptorWriteHelper::append(VkDescriptorSet descriptor_set, const DescriptorBinding& binding,
+                                   VkImageView image_view, VkImageLayout layout)
+{
+    append(descriptor_set, binding.slot, binding.type, image_view, layout);
+}
+
+void DescriptorWriteHelper::append(VkDescriptorSet descriptor_set, const DescriptorBinding& binding, VkSampler sampler)
+{
+    append(descriptor_set, binding.slot, sampler);
+}
+
+void DescriptorWriteHelper::append(VkDescriptorSet descriptor_set, const DescriptorBinding& binding, VkBuffer buffer,
+                                   u64 offset_bytes, u64 size_bytes)
+{
+    append(descriptor_set, binding.slot, binding.type, buffer, offset_bytes, size_bytes);
+}
+
+void DescriptorWriteHelper::append(VkDescriptorSet descriptor_set, const DescriptorBinding& binding, VkBuffer buffer)
+{
+    append(descriptor_set, binding, buffer, 0, VK_WHOLE_SIZE);
+}
+
+void DescriptorWriteHelper::append(VkDescriptorSet descriptor_set, const DescriptorBinding& binding,
+                                   VkBufferView texel_buffer_view)
+{
+    append(descriptor_set, binding.slot, binding.type, texel_buffer_view);
+}
+
 void DescriptorWriteHelper::flush_descriptor_write_helper(VkDevice device)
 {
     vkUpdateDescriptorSets(device, static_cast<u32>(writes.size()), writes.data(), 0, nullptr);
