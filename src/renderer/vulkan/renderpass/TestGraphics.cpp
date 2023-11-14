@@ -201,7 +201,8 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     {
         REAPER_PROFILE_SCOPE("Upload Resources");
         upload_meshlet_culling_resources(backend, prepared, resources.meshlet_culling_resources);
-        upload_vis_buffer_pass_frame_resources(backend, prepared, resources.vis_buffer_pass_resources);
+        upload_vis_buffer_pass_frame_resources(descriptor_write_helper, resources.frame_storage_allocator, prepared,
+                                               resources.vis_buffer_pass_resources);
         upload_shadow_map_resources(backend, prepared, resources.shadow_map_resources);
         upload_lighting_pass_frame_resources(backend, prepared, resources.lighting_resources);
         upload_tiled_raster_pass_frame_resources(descriptor_write_helper, resources.frame_storage_allocator,

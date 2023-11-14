@@ -34,8 +34,6 @@ struct ShaderModules;
 
 struct VisibilityBufferPassResources
 {
-    GPUBuffer instance_buffer;
-
     VisibilityBufferPipelineInfo pipe;
     VkDescriptorSet              descriptor_set;
 
@@ -68,8 +66,12 @@ void update_vis_buffer_pass_descriptor_sets(DescriptorWriteHelper&              
                                             const FrameGraphTexture&             gbuffer_rt0,
                                             const FrameGraphTexture&             gbuffer_rt1);
 
-void upload_vis_buffer_pass_frame_resources(VulkanBackend& backend, const PreparedData& prepared,
-                                            VisibilityBufferPassResources& pass_resources);
+struct StorageBufferAllocator;
+
+void upload_vis_buffer_pass_frame_resources(DescriptorWriteHelper&         write_helper,
+                                            StorageBufferAllocator&        frame_storage_allocator,
+                                            const PreparedData&            prepared,
+                                            VisibilityBufferPassResources& resources);
 
 struct CommandBuffer;
 struct FrameGraphTexture;

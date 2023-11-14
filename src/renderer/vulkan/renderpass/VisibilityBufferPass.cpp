@@ -25,6 +25,7 @@
 #include "renderer/vulkan/RenderPassHelpers.h"
 #include "renderer/vulkan/SamplerResources.h"
 #include "renderer/vulkan/ShaderModules.h"
+#include "renderer/vulkan/StorageBufferAllocator.h"
 #include "renderer/vulkan/renderpass/Constants.h"
 #include "renderer/vulkan/renderpass/VisibilityBufferConstants.h"
 
@@ -37,8 +38,6 @@
 
 namespace Reaper
 {
-constexpr u32 VisibilityBufferInstanceCountMax = 512;
-
 namespace
 {
     VkPipeline create_vis_buffer_pipeline(ReaperRoot& root, VulkanBackend& backend, VkPipelineLayout pipeline_layout,
@@ -150,12 +149,6 @@ VisibilityBufferPassResources create_vis_buffer_pass_resources(ReaperRoot& root,
         resources.fill_pipe.pipeline = pipeline;
     }
 
-    resources.instance_buffer =
-        create_buffer(backend.device, "VisibilityBuffer Instance buffer",
-                      DefaultGPUBufferProperties(VisibilityBufferInstanceCountMax, sizeof(MeshInstance),
-                                                 GPUBufferUsage::StorageBuffer),
-                      backend.vma_instance, MemUsage::CPU_To_GPU);
-
     allocate_descriptor_sets(backend.device, backend.global_descriptor_pool, resources.pipe.desc_set_layout,
                              std::span(&resources.descriptor_set, 1));
 
@@ -173,8 +166,6 @@ void destroy_vis_buffer_pass_resources(VulkanBackend& backend, VisibilityBufferP
     vkDestroyPipeline(backend.device, resources.fill_pipe.pipeline, nullptr);
     vkDestroyPipelineLayout(backend.device, resources.fill_pipe.pipelineLayout, nullptr);
     vkDestroyDescriptorSetLayout(backend.device, resources.fill_pipe.desc_set_layout, nullptr);
-
-    vmaDestroyBuffer(backend.vma_instance, resources.instance_buffer.handle, resources.instance_buffer.allocation);
 }
 
 void update_vis_buffer_pass_descriptor_sets(DescriptorWriteHelper&               write_helper,
@@ -189,8 +180,8 @@ void update_vis_buffer_pass_descriptor_sets(DescriptorWriteHelper&              
                                             const FrameGraphTexture&             gbuffer_rt0,
                                             const FrameGraphTexture&             gbuffer_rt1)
 {
-    write_helper.append(resources.descriptor_set, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                        resources.instance_buffer.handle);
+    // write_helper.append(resources.descriptor_set, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+    //                     resources.instance_buffer.handle);
     write_helper.append(resources.descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, visible_meshlet_buffer.handle);
     write_helper.append(resources.descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                         mesh_cache.vertexBufferPosition.handle);
@@ -205,8 +196,8 @@ void update_vis_buffer_pass_descriptor_sets(DescriptorWriteHelper&              
                         gbuffer_rt0.default_view_handle, gbuffer_rt0.image_layout);
     write_helper.append(resources.descriptor_set_fill, Slot_GBuffer1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
                         gbuffer_rt1.default_view_handle, gbuffer_rt1.image_layout);
-    write_helper.append(resources.descriptor_set_fill, Slot_instance_params, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                        resources.instance_buffer.handle);
+    // write_helper.append(resources.descriptor_set_fill, Slot_instance_params, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+    //                     resources.instance_buffer.handle);
     write_helper.append(resources.descriptor_set_fill, Slot_visible_index_buffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                         meshlet_visible_index_buffer.handle, visible_index_buffer_view.offset_bytes,
                         visible_index_buffer_view.size_bytes);
@@ -239,17 +230,28 @@ void update_vis_buffer_pass_descriptor_sets(DescriptorWriteHelper&              
     }
 }
 
-void upload_vis_buffer_pass_frame_resources(VulkanBackend& backend, const PreparedData& prepared,
-                                            VisibilityBufferPassResources& pass_resources)
+void upload_vis_buffer_pass_frame_resources(DescriptorWriteHelper&         write_helper,
+                                            StorageBufferAllocator&        frame_storage_allocator,
+                                            const PreparedData&            prepared,
+                                            VisibilityBufferPassResources& resources)
 {
     REAPER_PROFILE_SCOPE_FUNC();
 
     if (prepared.mesh_instances.empty())
         return;
 
-    upload_buffer_data_deprecated(backend.device, backend.vma_instance, pass_resources.instance_buffer,
-                                  prepared.mesh_instances.data(),
-                                  prepared.mesh_instances.size() * sizeof(MeshInstance));
+    StorageBufferAlloc mesh_instance_alloc =
+        allocate_storage(frame_storage_allocator, prepared.mesh_instances.size() * sizeof(MeshInstance));
+
+    upload_storage_buffer(frame_storage_allocator, mesh_instance_alloc, prepared.mesh_instances.data());
+
+    write_helper.append(resources.descriptor_set, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                        frame_storage_allocator.buffer.handle, mesh_instance_alloc.offset_bytes,
+                        mesh_instance_alloc.size_bytes);
+
+    write_helper.append(resources.descriptor_set_fill, Slot_instance_params, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                        frame_storage_allocator.buffer.handle, mesh_instance_alloc.offset_bytes,
+                        mesh_instance_alloc.size_bytes);
 }
 
 void record_vis_buffer_pass_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& prepared,
