@@ -53,13 +53,13 @@ struct SamplerResources;
 class DescriptorWriteHelper;
 struct FrameGraphBuffer;
 struct FrameGraphTexture;
+struct StorageBufferAllocator;
 
-void update_forward_pass_descriptor_sets(DescriptorWriteHelper& write_helper, const ForwardPassResources& resources,
-                                         const FrameGraphBuffer&  visible_meshlet_buffer,
-                                         const SamplerResources&  sampler_resources,
-                                         const MaterialResources& material_resources, const MeshCache& mesh_cache,
-                                         const LightingPassResources&       lighting_resources,
-                                         std::span<const FrameGraphTexture> shadow_maps);
+void update_forward_pass_descriptor_sets(
+    DescriptorWriteHelper& write_helper, const StorageBufferAllocator& frame_storage_allocator,
+    const ForwardPassResources& resources, const FrameGraphBuffer& visible_meshlet_buffer,
+    const SamplerResources& sampler_resources, const MaterialResources& material_resources, const MeshCache& mesh_cache,
+    const LightingPassResources& lighting_resources, std::span<const FrameGraphTexture> shadow_maps);
 
 struct PreparedData;
 

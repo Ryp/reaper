@@ -15,26 +15,22 @@
 
 namespace Reaper
 {
-constexpr u32 PointLightMax = 128;
-
 LightingPassResources create_lighting_pass_resources(VulkanBackend& backend)
 {
-    LightingPassResources resources = {};
+    static_cast<void>(backend);
 
-    resources.pointLightBuffer = create_buffer(
-        backend.device, "Point light buffer",
-        DefaultGPUBufferProperties(PointLightMax, sizeof(PointLightProperties), GPUBufferUsage::StorageBuffer),
-        backend.vma_instance, MemUsage::CPU_To_GPU);
+    LightingPassResources resources = {};
 
     return resources;
 }
 
 void destroy_lighting_pass_resources(VulkanBackend& backend, LightingPassResources& resources)
 {
-    vmaDestroyBuffer(backend.vma_instance, resources.pointLightBuffer.handle, resources.pointLightBuffer.allocation);
+    static_cast<void>(backend);
+    static_cast<void>(resources);
 }
 
-void upload_lighting_pass_frame_resources(VulkanBackend& backend, const PreparedData& prepared,
+void upload_lighting_pass_frame_resources(StorageBufferAllocator& frame_storage_allocator, const PreparedData& prepared,
                                           LightingPassResources& resources)
 {
     REAPER_PROFILE_SCOPE_FUNC();
@@ -42,8 +38,9 @@ void upload_lighting_pass_frame_resources(VulkanBackend& backend, const Prepared
     if (prepared.point_lights.empty())
         return;
 
-    upload_buffer_data_deprecated(backend.device, backend.vma_instance, resources.pointLightBuffer,
-                                  prepared.point_lights.data(),
-                                  prepared.point_lights.size() * sizeof(PointLightProperties));
+    resources.point_light_buffer_alloc =
+        allocate_storage(frame_storage_allocator, prepared.point_lights.size() * sizeof(PointLightProperties));
+
+    upload_storage_buffer(frame_storage_allocator, resources.point_light_buffer_alloc, prepared.point_lights.data());
 }
 } // namespace Reaper

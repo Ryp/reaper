@@ -8,12 +8,13 @@
 #pragma once
 
 #include "renderer/vulkan/Buffer.h"
+#include "renderer/vulkan/StorageBufferAllocator.h"
 
 namespace Reaper
 {
 struct LightingPassResources
 {
-    GPUBuffer pointLightBuffer;
+    StorageBufferAlloc point_light_buffer_alloc;
 };
 
 struct VulkanBackend;
@@ -23,6 +24,6 @@ void                  destroy_lighting_pass_resources(VulkanBackend& backend, Li
 
 struct PreparedData;
 
-void upload_lighting_pass_frame_resources(VulkanBackend& backend, const PreparedData& prepared,
+void upload_lighting_pass_frame_resources(StorageBufferAllocator& frame_storage_allocator, const PreparedData& prepared,
                                           LightingPassResources& resources);
 } // namespace Reaper

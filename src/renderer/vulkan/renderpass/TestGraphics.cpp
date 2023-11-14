@@ -204,7 +204,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         upload_vis_buffer_pass_frame_resources(descriptor_write_helper, resources.frame_storage_allocator, prepared,
                                                resources.vis_buffer_pass_resources);
         upload_shadow_map_resources(backend, prepared, resources.shadow_map_resources);
-        upload_lighting_pass_frame_resources(backend, prepared, resources.lighting_resources);
+        upload_lighting_pass_frame_resources(resources.frame_storage_allocator, prepared, resources.lighting_resources);
         upload_tiled_raster_pass_frame_resources(descriptor_write_helper, resources.frame_storage_allocator,
                                                  tiled_lighting_frame, resources.tiled_raster_resources);
         upload_tiled_lighting_pass_frame_resources(backend, prepared, resources.tiled_lighting_resources);
@@ -881,7 +881,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     }
 
     update_forward_pass_descriptor_sets(
-        descriptor_write_helper, resources.forward_pass_resources,
+        descriptor_write_helper, resources.frame_storage_allocator, resources.forward_pass_resources,
         get_frame_graph_buffer(resources.framegraph_resources, framegraph, forward.visible_meshlet_buffer),
         resources.samplers_resources, resources.material_resources, resources.mesh_cache, resources.lighting_resources,
         forward_shadow_map_views);
@@ -909,8 +909,8 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     }
 
     update_tiled_lighting_pass_descriptor_sets(
-        descriptor_write_helper, resources.lighting_resources, resources.tiled_lighting_resources,
-        resources.samplers_resources,
+        descriptor_write_helper, resources.frame_storage_allocator, resources.lighting_resources,
+        resources.tiled_lighting_resources, resources.samplers_resources,
         get_frame_graph_buffer(resources.framegraph_resources, framegraph, tiled_lighting.light_list),
         get_frame_graph_texture(resources.framegraph_resources, framegraph, tiled_lighting.gbuffer_rt0),
         get_frame_graph_texture(resources.framegraph_resources, framegraph, tiled_lighting.gbuffer_rt1),

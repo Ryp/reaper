@@ -24,6 +24,7 @@
 #include "renderer/vulkan/RenderPassHelpers.h"
 #include "renderer/vulkan/SamplerResources.h"
 #include "renderer/vulkan/ShaderModules.h"
+#include "renderer/vulkan/StorageBufferAllocator.h"
 #include "renderer/vulkan/renderpass/Constants.h"
 #include "renderer/vulkan/renderpass/ForwardPassConstants.h"
 #include "renderer/vulkan/renderpass/LightingPass.h"
@@ -143,12 +144,11 @@ void destroy_forward_pass_resources(VulkanBackend& backend, ForwardPassResources
     vmaDestroyBuffer(backend.vma_instance, resources.instance_buffer.handle, resources.instance_buffer.allocation);
 }
 
-void update_forward_pass_descriptor_sets(DescriptorWriteHelper& write_helper, const ForwardPassResources& resources,
-                                         const FrameGraphBuffer&  visible_meshlet_buffer,
-                                         const SamplerResources&  sampler_resources,
-                                         const MaterialResources& material_resources, const MeshCache& mesh_cache,
-                                         const LightingPassResources&       lighting_resources,
-                                         std::span<const FrameGraphTexture> shadow_maps)
+void update_forward_pass_descriptor_sets(
+    DescriptorWriteHelper& write_helper, const StorageBufferAllocator& frame_storage_allocator,
+    const ForwardPassResources& resources, const FrameGraphBuffer& visible_meshlet_buffer,
+    const SamplerResources& sampler_resources, const MaterialResources& material_resources, const MeshCache& mesh_cache,
+    const LightingPassResources& lighting_resources, std::span<const FrameGraphTexture> shadow_maps)
 {
     write_helper.append(resources.descriptor_set, Slot_fw_pass_params, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
                         resources.pass_constant_buffer.handle);
@@ -165,7 +165,8 @@ void update_forward_pass_descriptor_sets(DescriptorWriteHelper& write_helper, co
     write_helper.append(resources.descriptor_set, Slot_fw_buffer_uv, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                         mesh_cache.vertexBufferUV.handle);
     write_helper.append(resources.descriptor_set, Slot_fw_point_lights, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                        lighting_resources.pointLightBuffer.handle);
+                        frame_storage_allocator.buffer.handle, lighting_resources.point_light_buffer_alloc.offset_bytes,
+                        lighting_resources.point_light_buffer_alloc.size_bytes);
     write_helper.append(resources.descriptor_set, Slot_fw_shadow_map_sampler, sampler_resources.shadow_map_sampler);
 
     if (!shadow_maps.empty())
