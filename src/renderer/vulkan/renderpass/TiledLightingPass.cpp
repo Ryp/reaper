@@ -107,14 +107,9 @@ TiledLightingPassResources create_tiled_lighting_pass_resources(VulkanBackend&  
         resources.tiled_lighting_debug_pipeline = pipeline;
     }
 
-    {
-        std::vector<VkDescriptorSetLayout> dset_layouts = {resources.tiled_lighting_debug_descriptor_set_layout};
-        std::vector<VkDescriptorSet>       dsets(dset_layouts.size());
-
-        allocate_descriptor_sets(backend.device, backend.global_descriptor_pool, dset_layouts, dsets);
-
-        resources.tiled_lighting_debug_descriptor_set = dsets[0];
-    }
+    allocate_descriptor_sets(backend.device, backend.global_descriptor_pool,
+                             std::span(&resources.tiled_lighting_debug_descriptor_set_layout, 1),
+                             std::span(&resources.tiled_lighting_debug_descriptor_set, 1));
 
     return resources;
 }

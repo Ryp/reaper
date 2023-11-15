@@ -227,13 +227,10 @@ MeshletCullingResources create_meshlet_culling_resources(VulkanBackend& backend,
 
     Assert(MaxIndirectDrawCountPerPass < backend.physical_device.properties.limits.maxDrawIndirectCount);
 
-    resources.cull_meshlet_descriptor_sets.resize(4);
-    resources.cull_triangles_descriptor_sets.resize(4);
-
     allocate_descriptor_sets(backend.device, backend.global_descriptor_pool, resources.cull_meshlets_pipe.descSetLayout,
                              resources.cull_meshlet_descriptor_sets);
     allocate_descriptor_sets(backend.device, backend.global_descriptor_pool,
-                             resources.cull_meshlets_prep_indirect_pipe.descSetLayout,
+                             std::span(&resources.cull_meshlets_prep_indirect_pipe.descSetLayout, 1),
                              std::span(&resources.cull_prepare_descriptor_set, 1));
     allocate_descriptor_sets(backend.device, backend.global_descriptor_pool,
                              resources.cull_triangles_pipe.descSetLayout, resources.cull_triangles_descriptor_sets);

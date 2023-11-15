@@ -12,6 +12,7 @@
 
 #include <vulkan_loader/Vulkan.h>
 
+#include <array>
 #include <vector>
 
 namespace Reaper
@@ -36,9 +37,9 @@ struct MeshletCullingResources
     SimplePipeline cull_meshlets_prep_indirect_pipe;
     SimplePipeline cull_triangles_pipe;
 
-    std::vector<VkDescriptorSet> cull_meshlet_descriptor_sets;
-    std::vector<VkDescriptorSet> cull_triangles_descriptor_sets;
-    VkDescriptorSet              cull_prepare_descriptor_set;
+    std::array<VkDescriptorSet, 4> cull_meshlet_descriptor_sets;
+    std::array<VkDescriptorSet, 4> cull_triangles_descriptor_sets;
+    VkDescriptorSet                cull_prepare_descriptor_set;
 
     GPUBuffer           counters_cpu_buffer;
     GPUBufferProperties counters_cpu_properties;

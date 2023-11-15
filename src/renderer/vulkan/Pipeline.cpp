@@ -35,6 +35,9 @@ void allocate_descriptor_sets(VkDevice device, VkDescriptorPool descriptor_pool,
 void allocate_descriptor_sets(VkDevice device, VkDescriptorPool descriptor_pool, VkDescriptorSetLayout set_layout,
                               std::span<VkDescriptorSet> output_descriptor_sets)
 {
+    // Only use this signature if you're going to create multiple descriptor sets.
+    Assert(output_descriptor_sets.size() > 1);
+
     std::vector<VkDescriptorSetLayout> layouts(output_descriptor_sets.size(), set_layout);
 
     allocate_descriptor_sets(device, descriptor_pool, layouts, output_descriptor_sets);

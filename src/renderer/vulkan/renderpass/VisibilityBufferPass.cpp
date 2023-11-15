@@ -149,10 +149,11 @@ VisibilityBufferPassResources create_vis_buffer_pass_resources(ReaperRoot& root,
         resources.fill_pipe.pipeline = pipeline;
     }
 
-    allocate_descriptor_sets(backend.device, backend.global_descriptor_pool, resources.pipe.desc_set_layout,
-                             std::span(&resources.descriptor_set, 1));
+    allocate_descriptor_sets(backend.device, backend.global_descriptor_pool,
+                             std::span(&resources.pipe.desc_set_layout, 1), std::span(&resources.descriptor_set, 1));
 
-    allocate_descriptor_sets(backend.device, backend.global_descriptor_pool, resources.fill_pipe.desc_set_layout,
+    allocate_descriptor_sets(backend.device, backend.global_descriptor_pool,
+                             std::span(&resources.fill_pipe.desc_set_layout, 1),
                              std::span(&resources.descriptor_set_fill, 1));
     return resources;
 }
