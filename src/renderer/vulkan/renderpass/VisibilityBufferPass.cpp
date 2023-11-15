@@ -245,13 +245,11 @@ void upload_vis_buffer_pass_frame_resources(DescriptorWriteHelper&         write
 
     upload_storage_buffer(frame_storage_allocator, mesh_instance_alloc, prepared.mesh_instances.data());
 
-    write_helper.append(resources.descriptor_set, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                        frame_storage_allocator.buffer.handle, mesh_instance_alloc.offset_bytes,
-                        mesh_instance_alloc.size_bytes);
+    write_helper.append(resources.descriptor_set, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, mesh_instance_alloc.buffer,
+                        mesh_instance_alloc.offset_bytes, mesh_instance_alloc.size_bytes);
 
     write_helper.append(resources.descriptor_set_fill, Slot_instance_params, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                        frame_storage_allocator.buffer.handle, mesh_instance_alloc.offset_bytes,
-                        mesh_instance_alloc.size_bytes);
+                        mesh_instance_alloc.buffer, mesh_instance_alloc.offset_bytes, mesh_instance_alloc.size_bytes);
 }
 
 void record_vis_buffer_pass_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& prepared,

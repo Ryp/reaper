@@ -400,10 +400,10 @@ void upload_tiled_raster_pass_frame_resources(DescriptorWriteHelper&    write_he
         using namespace Raster;
 
         write_helper.append(resources.light_raster.descriptor_sets[RasterPass::Inner], g_bindings[LightVolumeInstances],
-                            frame_storage_allocator.buffer.handle, light_volumes_alloc.offset_bytes,
+                            light_volumes_alloc.buffer, light_volumes_alloc.offset_bytes,
                             light_volumes_alloc.size_bytes);
         write_helper.append(resources.light_raster.descriptor_sets[RasterPass::Outer], g_bindings[LightVolumeInstances],
-                            frame_storage_allocator.buffer.handle, light_volumes_alloc.offset_bytes,
+                            light_volumes_alloc.buffer, light_volumes_alloc.offset_bytes,
                             light_volumes_alloc.size_bytes);
     }
 
@@ -416,7 +416,7 @@ void upload_tiled_raster_pass_frame_resources(DescriptorWriteHelper&    write_he
         using namespace Classify;
 
         write_helper.append(resources.classify_descriptor_set, g_bindings[ProxyVolumeBuffer],
-                            frame_storage_allocator.buffer.handle, proxy_volumes_alloc.offset_bytes,
+                            proxy_volumes_alloc.buffer, proxy_volumes_alloc.offset_bytes,
                             proxy_volumes_alloc.size_bytes);
     }
 }

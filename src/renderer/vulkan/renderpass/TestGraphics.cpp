@@ -202,7 +202,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     Builder builder(framegraph);
 
-    const CullMeshletsFrameGraphData meshlet_pass = create_cull_meshlet_frame_graph_data(builder);
+    const CullMeshletsFrameGraphRecord meshlet_pass = create_cull_meshlet_frame_graph_record(builder);
 
     // Debug geometry clear
     struct DebugGeometryClearFrameGraphData
@@ -810,49 +810,22 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     DescriptorWriteHelper descriptor_write_helper(200, 200);
 
-    {
-        REAPER_PROFILE_SCOPE("Update Resources");
+    update_shadow_map_resources(descriptor_write_helper, resources.frame_storage_allocator, prepared,
+                                resources.shadow_map_resources, resources.mesh_cache.vertexBufferPosition);
 
-        update_shadow_map_resources(descriptor_write_helper, resources.frame_storage_allocator, prepared,
-                                    resources.shadow_map_resources, resources.mesh_cache.vertexBufferPosition);
+    upload_vis_buffer_pass_frame_resources(descriptor_write_helper, resources.frame_storage_allocator, prepared,
+                                           resources.vis_buffer_pass_resources);
+    upload_lighting_pass_frame_resources(resources.frame_storage_allocator, prepared, resources.lighting_resources);
+    upload_tiled_raster_pass_frame_resources(descriptor_write_helper, resources.frame_storage_allocator,
+                                             tiled_lighting_frame, resources.tiled_raster_resources);
+    upload_tiled_lighting_pass_frame_resources(backend, prepared, resources.tiled_lighting_resources);
+    upload_forward_pass_frame_resources(backend, prepared, resources.forward_pass_resources);
+    upload_debug_geometry_build_cmds_pass_frame_resources(backend, prepared, resources.debug_geometry_resources);
+    upload_audio_frame_resources(backend, prepared, resources.audio_resources);
 
-        upload_meshlet_culling_resources(backend, prepared, resources.meshlet_culling_resources);
-        upload_vis_buffer_pass_frame_resources(descriptor_write_helper, resources.frame_storage_allocator, prepared,
-                                               resources.vis_buffer_pass_resources);
-        upload_lighting_pass_frame_resources(resources.frame_storage_allocator, prepared, resources.lighting_resources);
-        upload_tiled_raster_pass_frame_resources(descriptor_write_helper, resources.frame_storage_allocator,
-                                                 tiled_lighting_frame, resources.tiled_raster_resources);
-        upload_tiled_lighting_pass_frame_resources(backend, prepared, resources.tiled_lighting_resources);
-        upload_forward_pass_frame_resources(backend, prepared, resources.forward_pass_resources);
-        upload_debug_geometry_build_cmds_pass_frame_resources(backend, prepared, resources.debug_geometry_resources);
-        upload_audio_frame_resources(backend, prepared, resources.audio_resources);
-    }
-
-    update_meshlet_culling_descriptor_sets(
-        descriptor_write_helper, prepared, resources.meshlet_culling_resources, resources.mesh_cache,
-        get_frame_graph_buffer(resources.framegraph_resources, framegraph, meshlet_pass.cull_meshlets.meshlet_counters),
-        get_frame_graph_buffer(resources.framegraph_resources, framegraph,
-                               meshlet_pass.cull_meshlets.visible_meshlet_offsets));
-
-    update_triangle_culling_prepare_descriptor_sets(
-        descriptor_write_helper, resources.meshlet_culling_resources,
-        get_frame_graph_buffer(resources.framegraph_resources, framegraph,
-                               meshlet_pass.cull_triangles_prepare.meshlet_counters),
-        get_frame_graph_buffer(resources.framegraph_resources, framegraph,
-                               meshlet_pass.cull_triangles_prepare.indirect_dispatch_buffer));
-
-    update_triangle_culling_descriptor_sets(
-        descriptor_write_helper, prepared, resources.meshlet_culling_resources, resources.mesh_cache,
-        get_frame_graph_buffer(resources.framegraph_resources, framegraph,
-                               meshlet_pass.cull_triangles.meshlet_counters),
-        get_frame_graph_buffer(resources.framegraph_resources, framegraph,
-                               meshlet_pass.cull_triangles.visible_meshlet_offsets),
-        get_frame_graph_buffer(resources.framegraph_resources, framegraph,
-                               meshlet_pass.cull_triangles.meshlet_indirect_draw_commands),
-        get_frame_graph_buffer(resources.framegraph_resources, framegraph,
-                               meshlet_pass.cull_triangles.meshlet_visible_index_buffer),
-        get_frame_graph_buffer(resources.framegraph_resources, framegraph,
-                               meshlet_pass.cull_triangles.visible_meshlet_buffer));
+    update_meshlet_culling_passes_resources(framegraph, resources.framegraph_resources, meshlet_pass,
+                                            descriptor_write_helper, resources.frame_storage_allocator, prepared,
+                                            resources.meshlet_culling_resources, resources.mesh_cache);
 
     update_vis_buffer_pass_descriptor_sets(
         descriptor_write_helper,
@@ -881,7 +854,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     }
 
     update_forward_pass_descriptor_sets(
-        descriptor_write_helper, resources.frame_storage_allocator, resources.forward_pass_resources,
+        descriptor_write_helper, resources.forward_pass_resources,
         get_frame_graph_buffer(resources.framegraph_resources, framegraph, forward.visible_meshlet_buffer),
         resources.samplers_resources, resources.material_resources, resources.mesh_cache, resources.lighting_resources,
         forward_shadow_map_views);
@@ -909,8 +882,8 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     }
 
     update_tiled_lighting_pass_descriptor_sets(
-        descriptor_write_helper, resources.frame_storage_allocator, resources.lighting_resources,
-        resources.tiled_lighting_resources, resources.samplers_resources,
+        descriptor_write_helper, resources.lighting_resources, resources.tiled_lighting_resources,
+        resources.samplers_resources,
         get_frame_graph_buffer(resources.framegraph_resources, framegraph, tiled_lighting.light_list),
         get_frame_graph_texture(resources.framegraph_resources, framegraph, tiled_lighting.gbuffer_rt0),
         get_frame_graph_texture(resources.framegraph_resources, framegraph, tiled_lighting.gbuffer_rt1),
@@ -1390,7 +1363,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
             record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
                                        audio_pass.staging_copy.pass_handle, false);
         }
-    }
+    } // namespace Reaper
 
 #if defined(REAPER_USE_TRACY)
     TracyVkCollect(cmdBuffer.tracy_ctx, cmdBuffer.handle);

@@ -116,9 +116,8 @@ void update_shadow_map_resources(DescriptorWriteHelper& write_helper, StorageBuf
                 .size_bytes = shadow_pass.instance_count * sizeof(ShadowMapInstanceParams),
             };
 
-            write_helper.append(descriptor_set, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                                frame_storage_allocator.buffer.handle, alloc.offset_bytes + instances_view.offset_bytes,
-                                instances_view.size_bytes);
+            write_helper.append(descriptor_set, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, alloc.buffer,
+                                instances_view.offset_bytes, instances_view.size_bytes);
             write_helper.append(descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, vertex_position_buffer.handle);
         }
     }

@@ -26,8 +26,9 @@ void                   destroy_storage_buffer_allocator(VulkanBackend& backend, 
 
 struct StorageBufferAlloc
 {
-    u64 offset_bytes;
-    u64 size_bytes;
+    VkBuffer buffer;
+    u64      offset_bytes;
+    u64      size_bytes;
 };
 
 // FIXME Alignment is not handled at all at this time

@@ -77,6 +77,7 @@ StorageBufferAlloc allocate_storage(StorageBufferAllocator& allocator, u64 size_
            < allocator.properties.element_count * allocator.properties.element_size_bytes); // OOM
 
     return {
+        .buffer = allocator.buffer.handle,
         .offset_bytes = current_offset,
         .size_bytes = size_bytes,
     };

@@ -134,7 +134,6 @@ void destroy_tiled_lighting_pass_resources(VulkanBackend& backend, TiledLighting
 }
 
 void update_tiled_lighting_pass_descriptor_sets(DescriptorWriteHelper&            write_helper,
-                                                const StorageBufferAllocator&     frame_storage_allocator,
                                                 const LightingPassResources&      lighting_resources,
                                                 const TiledLightingPassResources& resources,
                                                 const SamplerResources&           sampler_resources,
@@ -156,7 +155,7 @@ void update_tiled_lighting_pass_descriptor_sets(DescriptorWriteHelper&          
                         gbuffer_rt1.image_layout);
     write_helper.append(dset, 4, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, main_view_depth.default_view_handle,
                         main_view_depth.image_layout);
-    write_helper.append(dset, 5, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, frame_storage_allocator.buffer.handle,
+    write_helper.append(dset, 5, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, lighting_resources.point_light_buffer_alloc.buffer,
                         lighting_resources.point_light_buffer_alloc.offset_bytes,
                         lighting_resources.point_light_buffer_alloc.size_bytes);
     write_helper.append(dset, 6, sampler_resources.shadow_map_sampler);

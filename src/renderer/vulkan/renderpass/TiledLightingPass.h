@@ -43,10 +43,8 @@ class DescriptorWriteHelper;
 struct FrameGraphTexture;
 struct FrameGraphBuffer;
 struct LightingPassResources;
-struct StorageBufferAllocator;
 
 void update_tiled_lighting_pass_descriptor_sets(DescriptorWriteHelper&            write_helper,
-                                                const StorageBufferAllocator&     frame_storage_allocator,
                                                 const LightingPassResources&      lighting_resources,
                                                 const TiledLightingPassResources& resources,
                                                 const SamplerResources&           sampler_resources,
