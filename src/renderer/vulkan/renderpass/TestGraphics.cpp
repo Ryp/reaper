@@ -196,23 +196,6 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     const VkExtent2D render_extent = backend.render_extent;
 
-    DescriptorWriteHelper descriptor_write_helper(200, 200);
-
-    {
-        REAPER_PROFILE_SCOPE("Upload Resources");
-        upload_meshlet_culling_resources(backend, prepared, resources.meshlet_culling_resources);
-        upload_vis_buffer_pass_frame_resources(descriptor_write_helper, resources.frame_storage_allocator, prepared,
-                                               resources.vis_buffer_pass_resources);
-        upload_shadow_map_resources(backend, prepared, resources.shadow_map_resources);
-        upload_lighting_pass_frame_resources(resources.frame_storage_allocator, prepared, resources.lighting_resources);
-        upload_tiled_raster_pass_frame_resources(descriptor_write_helper, resources.frame_storage_allocator,
-                                                 tiled_lighting_frame, resources.tiled_raster_resources);
-        upload_tiled_lighting_pass_frame_resources(backend, prepared, resources.tiled_lighting_resources);
-        upload_forward_pass_frame_resources(backend, prepared, resources.forward_pass_resources);
-        upload_debug_geometry_build_cmds_pass_frame_resources(backend, prepared, resources.debug_geometry_resources);
-        upload_audio_frame_resources(backend, prepared, resources.audio_resources);
-    }
-
     FrameGraph::FrameGraph framegraph;
 
     using namespace FrameGraph;
@@ -825,6 +808,26 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     allocate_framegraph_volatile_resources(backend, resources.framegraph_resources, framegraph);
 
+    DescriptorWriteHelper descriptor_write_helper(200, 200);
+
+    {
+        REAPER_PROFILE_SCOPE("Update Resources");
+
+        update_shadow_map_resources(descriptor_write_helper, resources.frame_storage_allocator, prepared,
+                                    resources.shadow_map_resources, resources.mesh_cache.vertexBufferPosition);
+
+        upload_meshlet_culling_resources(backend, prepared, resources.meshlet_culling_resources);
+        upload_vis_buffer_pass_frame_resources(descriptor_write_helper, resources.frame_storage_allocator, prepared,
+                                               resources.vis_buffer_pass_resources);
+        upload_lighting_pass_frame_resources(resources.frame_storage_allocator, prepared, resources.lighting_resources);
+        upload_tiled_raster_pass_frame_resources(descriptor_write_helper, resources.frame_storage_allocator,
+                                                 tiled_lighting_frame, resources.tiled_raster_resources);
+        upload_tiled_lighting_pass_frame_resources(backend, prepared, resources.tiled_lighting_resources);
+        upload_forward_pass_frame_resources(backend, prepared, resources.forward_pass_resources);
+        upload_debug_geometry_build_cmds_pass_frame_resources(backend, prepared, resources.debug_geometry_resources);
+        upload_audio_frame_resources(backend, prepared, resources.audio_resources);
+    }
+
     update_meshlet_culling_descriptor_sets(
         descriptor_write_helper, prepared, resources.meshlet_culling_resources, resources.mesh_cache,
         get_frame_graph_buffer(resources.framegraph_resources, framegraph, meshlet_pass.cull_meshlets.meshlet_counters),
@@ -850,9 +853,6 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
                                meshlet_pass.cull_triangles.meshlet_visible_index_buffer),
         get_frame_graph_buffer(resources.framegraph_resources, framegraph,
                                meshlet_pass.cull_triangles.visible_meshlet_buffer));
-
-    update_shadow_map_pass_descriptor_sets(descriptor_write_helper, prepared, resources.shadow_map_resources,
-                                           resources.mesh_cache.vertexBufferPosition);
 
     update_vis_buffer_pass_descriptor_sets(
         descriptor_write_helper,

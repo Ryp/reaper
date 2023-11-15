@@ -32,9 +32,6 @@ struct ShadowMapResources
 {
     ShadowMapPipelineInfo pipe;
 
-    GPUBuffer           instance_buffer;
-    GPUBufferProperties instance_buffer_properties;
-
     std::vector<VkDescriptorSet> descriptor_sets;
 };
 
@@ -45,13 +42,12 @@ ShadowMapResources create_shadow_map_resources(VulkanBackend& backend, const Sha
 void               destroy_shadow_map_resources(VulkanBackend& backend, ShadowMapResources& resources);
 
 struct PreparedData;
-
-void upload_shadow_map_resources(VulkanBackend& backend, const PreparedData& prepared, ShadowMapResources& resources);
-
+struct StorageBufferAllocator;
 class DescriptorWriteHelper;
 
-void update_shadow_map_pass_descriptor_sets(DescriptorWriteHelper& write_helper, const PreparedData& prepared,
-                                            ShadowMapResources& resources, GPUBuffer& vertex_position_buffer);
+void update_shadow_map_resources(DescriptorWriteHelper& write_helper, StorageBufferAllocator& frame_storage_allocator,
+                                 const PreparedData& prepared, ShadowMapResources& resources,
+                                 GPUBuffer& vertex_position_buffer);
 
 struct GPUTextureProperties;
 std::vector<GPUTextureProperties> fill_shadow_map_properties(const PreparedData& prepared);

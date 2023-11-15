@@ -22,6 +22,7 @@
 #include "renderer/vulkan/Pipeline.h"
 #include "renderer/vulkan/RenderPassHelpers.h"
 #include "renderer/vulkan/ShaderModules.h"
+#include "renderer/vulkan/StorageBufferAllocator.h"
 
 #include <array>
 #include <fmt/format.h>
@@ -57,13 +58,6 @@ ShadowMapResources create_shadow_map_resources(VulkanBackend& backend, const Sha
 
     resources.pipe.pipeline = create_graphics_pipeline(backend.device, shader_stages, pipeline_properties);
 
-    resources.instance_buffer_properties = DefaultGPUBufferProperties(
-        ShadowInstanceCountMax, sizeof(ShadowMapInstanceParams), GPUBufferUsage::StorageBuffer);
-
-    resources.instance_buffer =
-        create_buffer(backend.device, "Shadow Map Instance buffer", resources.instance_buffer_properties,
-                      backend.vma_instance, MemUsage::CPU_To_GPU);
-
     resources.descriptor_sets.resize(3); // FIXME
 
     allocate_descriptor_sets(backend.device, backend.global_descriptor_pool, resources.pipe.descSetLayout,
@@ -74,33 +68,9 @@ ShadowMapResources create_shadow_map_resources(VulkanBackend& backend, const Sha
 
 void destroy_shadow_map_resources(VulkanBackend& backend, ShadowMapResources& resources)
 {
-    vmaDestroyBuffer(backend.vma_instance, resources.instance_buffer.handle, resources.instance_buffer.allocation);
-
     vkDestroyPipeline(backend.device, resources.pipe.pipeline, nullptr);
     vkDestroyPipelineLayout(backend.device, resources.pipe.pipelineLayout, nullptr);
     vkDestroyDescriptorSetLayout(backend.device, resources.pipe.descSetLayout, nullptr);
-}
-
-void update_shadow_map_pass_descriptor_sets(DescriptorWriteHelper& write_helper, const PreparedData& prepared,
-                                            ShadowMapResources& resources, GPUBuffer& vertex_position_buffer)
-{
-    for (const ShadowPassData& shadow_pass : prepared.shadow_passes)
-    {
-        if (shadow_pass.instance_count > 0)
-        {
-            Assert(shadow_pass.pass_index < resources.descriptor_sets.size());
-
-            VkDescriptorSet descriptor_set = resources.descriptor_sets[shadow_pass.pass_index];
-
-            const GPUBufferView instances_view =
-                get_buffer_view(resources.instance_buffer_properties,
-                                BufferSubresource{shadow_pass.instance_offset, shadow_pass.instance_count});
-
-            write_helper.append(descriptor_set, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, resources.instance_buffer.handle,
-                                instances_view.offset_bytes, instances_view.size_bytes);
-            write_helper.append(descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, vertex_position_buffer.handle);
-        }
-    }
 }
 
 std::vector<GPUTextureProperties> fill_shadow_map_properties(const PreparedData& prepared)
@@ -119,16 +89,39 @@ std::vector<GPUTextureProperties> fill_shadow_map_properties(const PreparedData&
     return shadow_map_properties;
 }
 
-void upload_shadow_map_resources(VulkanBackend& backend, const PreparedData& prepared, ShadowMapResources& resources)
+void update_shadow_map_resources(DescriptorWriteHelper& write_helper, StorageBufferAllocator& frame_storage_allocator,
+                                 const PreparedData& prepared, ShadowMapResources& resources,
+                                 GPUBuffer& vertex_position_buffer)
 {
     REAPER_PROFILE_SCOPE_FUNC();
 
     if (prepared.shadow_instance_params.empty())
         return;
 
-    upload_buffer_data_deprecated(backend.device, backend.vma_instance, resources.instance_buffer,
-                                  prepared.shadow_instance_params.data(),
-                                  prepared.shadow_instance_params.size() * sizeof(ShadowMapInstanceParams));
+    StorageBufferAlloc alloc = allocate_storage(frame_storage_allocator, prepared.shadow_instance_params.size()
+                                                                             * sizeof(ShadowMapInstanceParams));
+
+    upload_storage_buffer(frame_storage_allocator, alloc, prepared.shadow_instance_params.data());
+
+    for (const ShadowPassData& shadow_pass : prepared.shadow_passes)
+    {
+        if (shadow_pass.instance_count > 0)
+        {
+            Assert(shadow_pass.pass_index < resources.descriptor_sets.size());
+
+            VkDescriptorSet descriptor_set = resources.descriptor_sets[shadow_pass.pass_index];
+
+            const GPUBufferView instances_view = {
+                .offset_bytes = alloc.offset_bytes + shadow_pass.instance_offset * sizeof(ShadowMapInstanceParams),
+                .size_bytes = shadow_pass.instance_count * sizeof(ShadowMapInstanceParams),
+            };
+
+            write_helper.append(descriptor_set, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                                frame_storage_allocator.buffer.handle, alloc.offset_bytes + instances_view.offset_bytes,
+                                instances_view.size_bytes);
+            write_helper.append(descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, vertex_position_buffer.handle);
+        }
+    }
 }
 
 void record_shadow_map_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& prepared,
