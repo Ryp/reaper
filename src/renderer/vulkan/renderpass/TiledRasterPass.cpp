@@ -55,9 +55,10 @@ namespace Downsample
         SceneDepth,
         TileDepthMin,
         TileDepthMax,
+        _count,
     };
 
-    std::array<DescriptorBinding, 4> g_bindings = {
+    std::array<DescriptorBinding, BindingIndex::_count> g_bindings = {
         DescriptorBinding{
             .slot = 0, .count = 1, .type = VK_DESCRIPTOR_TYPE_SAMPLER, .stage_mask = VK_SHADER_STAGE_COMPUTE_BIT},
         {.slot = 1, .count = 1, .type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, .stage_mask = VK_SHADER_STAGE_COMPUTE_BIT},
@@ -75,9 +76,10 @@ namespace Classify
         DrawCommandsInner,
         DrawCommandsOuter,
         ProxyVolumeBuffer,
+        _count,
     };
 
-    std::array<DescriptorBinding, 5> g_bindings = {
+    std::array<DescriptorBinding, BindingIndex::_count> g_bindings = {
         DescriptorBinding{.slot = 0,
                           .count = 1,
                           .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
@@ -97,9 +99,10 @@ namespace Raster
         TileDepth,
         TileVisibleLightIndices,
         VertexPositionsMS,
+        _count,
     };
 
-    std::array<DescriptorBinding, 4> g_bindings = {
+    std::array<DescriptorBinding, BindingIndex::_count> g_bindings = {
         DescriptorBinding{.slot = 0,
                           .count = 1,
                           .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,

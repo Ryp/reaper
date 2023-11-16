@@ -36,6 +36,76 @@
 
 namespace Reaper
 {
+namespace CullMeshlets
+{
+    enum BindingIndex
+    {
+        meshlets,
+        cull_mesh_instance_params,
+        Counters,
+        meshlets_offsets_out,
+        _count,
+    };
+
+    std::array<DescriptorBinding, BindingIndex::_count> g_bindings = {
+        DescriptorBinding{.slot = 0,
+                          .count = 1,
+                          .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                          .stage_mask = VK_SHADER_STAGE_COMPUTE_BIT},
+        {.slot = 1, .count = 1, .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, .stage_mask = VK_SHADER_STAGE_COMPUTE_BIT},
+        {.slot = 2, .count = 1, .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, .stage_mask = VK_SHADER_STAGE_COMPUTE_BIT},
+        {.slot = 3, .count = 1, .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, .stage_mask = VK_SHADER_STAGE_COMPUTE_BIT},
+    };
+} // namespace CullMeshlets
+
+namespace CullTrianglesPrepare
+{
+    enum BindingIndex
+    {
+        Counters,
+        IndirectDispatchOut,
+        _count,
+    };
+
+    std::array<DescriptorBinding, BindingIndex::_count> g_bindings = {
+        DescriptorBinding{.slot = 0,
+                          .count = 1,
+                          .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                          .stage_mask = VK_SHADER_STAGE_COMPUTE_BIT},
+        {.slot = 1, .count = 1, .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, .stage_mask = VK_SHADER_STAGE_COMPUTE_BIT},
+    };
+} // namespace CullTrianglesPrepare
+
+namespace CullTriangles
+{
+    enum BindingIndex
+    {
+        meshlets,
+        Indices,
+        buffer_position_ms,
+        cull_mesh_instance_params,
+        visible_index_buffer,
+        DrawCommandOut,
+        Counters,
+        VisibleMeshlets,
+        _count,
+    };
+
+    std::array<DescriptorBinding, BindingIndex::_count> g_bindings = {
+        DescriptorBinding{.slot = 0,
+                          .count = 1,
+                          .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                          .stage_mask = VK_SHADER_STAGE_COMPUTE_BIT},
+        {.slot = 1, .count = 1, .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, .stage_mask = VK_SHADER_STAGE_COMPUTE_BIT},
+        {.slot = 2, .count = 1, .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, .stage_mask = VK_SHADER_STAGE_COMPUTE_BIT},
+        {.slot = 3, .count = 1, .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, .stage_mask = VK_SHADER_STAGE_COMPUTE_BIT},
+        {.slot = 4, .count = 1, .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, .stage_mask = VK_SHADER_STAGE_COMPUTE_BIT},
+        {.slot = 5, .count = 1, .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, .stage_mask = VK_SHADER_STAGE_COMPUTE_BIT},
+        {.slot = 6, .count = 1, .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, .stage_mask = VK_SHADER_STAGE_COMPUTE_BIT},
+        {.slot = 7, .count = 1, .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, .stage_mask = VK_SHADER_STAGE_COMPUTE_BIT},
+    };
+} // namespace CullTriangles
+
 constexpr u32 IndexSizeBytes = 1;
 // NOTE: Because of u8 indices we pack a triangle in 24 bits + 8 bits for a prim restart
 constexpr u32 TriangleIndicesSizeBytes = 4;
@@ -152,14 +222,12 @@ MeshletCullingResources create_meshlet_culling_resources(VulkanBackend& backend,
     MeshletCullingResources resources;
 
     {
-        std::vector<VkDescriptorSetLayoutBinding> bindings = {
-            {0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-            {1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-            {2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-            {3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-        };
+        using namespace CullMeshlets;
 
-        VkDescriptorSetLayout descriptorSetLayout = create_descriptor_set_layout(backend.device, bindings);
+        std::vector<VkDescriptorSetLayoutBinding> layout_bindings(g_bindings.size());
+        fill_layout_bindings(layout_bindings, g_bindings);
+
+        VkDescriptorSetLayout descriptorSetLayout = create_descriptor_set_layout(backend.device, layout_bindings);
 
         const VkPushConstantRange cullPushConstantRange = {VK_SHADER_STAGE_COMPUTE_BIT, 0,
                                                            sizeof(CullMeshletPushConstants)};
@@ -173,12 +241,12 @@ MeshletCullingResources create_meshlet_culling_resources(VulkanBackend& backend,
     }
 
     {
-        std::vector<VkDescriptorSetLayoutBinding> bindings = {
-            {0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-            {1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-        };
+        using namespace CullTrianglesPrepare;
 
-        VkDescriptorSetLayout descriptorSetLayout = create_descriptor_set_layout(backend.device, bindings);
+        std::vector<VkDescriptorSetLayoutBinding> layout_bindings(g_bindings.size());
+        fill_layout_bindings(layout_bindings, g_bindings);
+
+        VkDescriptorSetLayout descriptorSetLayout = create_descriptor_set_layout(backend.device, layout_bindings);
 
         const VkPushConstantRange cullPushConstantRange = {VK_SHADER_STAGE_COMPUTE_BIT, 0,
                                                            sizeof(CullMeshletPushConstants)};
@@ -193,19 +261,12 @@ MeshletCullingResources create_meshlet_culling_resources(VulkanBackend& backend,
     }
 
     {
-        std::vector<VkDescriptorSetLayoutBinding> descriptorSetLayoutBinding = {
-            {0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-            {1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-            {2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-            {3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-            {4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-            {5, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-            {6, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-            {7, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-        };
+        using namespace CullTriangles;
 
-        VkDescriptorSetLayout descriptorSetLayout =
-            create_descriptor_set_layout(backend.device, descriptorSetLayoutBinding);
+        std::vector<VkDescriptorSetLayoutBinding> layout_bindings(g_bindings.size());
+        fill_layout_bindings(layout_bindings, g_bindings);
+
+        VkDescriptorSetLayout descriptorSetLayout = create_descriptor_set_layout(backend.device, layout_bindings);
 
         const VkPushConstantRange cullPushConstantRange = {VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(CullPushConstants)};
 
@@ -283,6 +344,8 @@ namespace
         const FrameGraphBuffer visible_meshlet_offsets =
             get_frame_graph_buffer(frame_graph_resources, frame_graph, cull_meshlet_record.visible_meshlet_offsets);
 
+        using namespace CullMeshlets;
+
         for (const CullPassData& cull_pass : prepared.cull_passes)
         {
             const u32 pass_index = cull_pass.pass_index;
@@ -297,12 +360,12 @@ namespace
 
             VkDescriptorSet descriptor_set = resources.cull_meshlet_descriptor_sets[pass_index];
 
-            write_helper.append(descriptor_set, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, mesh_cache.meshletBuffer.handle);
-            write_helper.append(descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, mesh_instance_alloc.buffer,
+            write_helper.append(descriptor_set, g_bindings[meshlets], mesh_cache.meshletBuffer.handle);
+            write_helper.append(descriptor_set, g_bindings[cull_mesh_instance_params], mesh_instance_alloc.buffer,
                                 mesh_instance_alloc.offset_bytes, mesh_instance_alloc.size_bytes);
-            write_helper.append(descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, meshlet_counters.handle,
+            write_helper.append(descriptor_set, g_bindings[Counters], meshlet_counters.handle,
                                 counter_buffer_view.offset_bytes, counter_buffer_view.size_bytes);
-            write_helper.append(descriptor_set, 3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, visible_meshlet_offsets.handle,
+            write_helper.append(descriptor_set, g_bindings[meshlets_offsets_out], visible_meshlet_offsets.handle,
                                 visible_meshlet_offsets_view.offset_bytes, visible_meshlet_offsets_view.size_bytes);
         }
     }
@@ -319,9 +382,10 @@ namespace
         const FrameGraphBuffer indirect_dispatch_buffer = get_frame_graph_buffer(
             frame_graph_resources, frame_graph, cull_triangles_prepare_record.indirect_dispatch_buffer);
 
-        write_helper.append(resources.cull_prepare_descriptor_set, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                            meshlet_counters.handle);
-        write_helper.append(resources.cull_prepare_descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+        using namespace CullTrianglesPrepare;
+
+        write_helper.append(resources.cull_prepare_descriptor_set, g_bindings[Counters], meshlet_counters.handle);
+        write_helper.append(resources.cull_prepare_descriptor_set, g_bindings[IndirectDispatchOut],
                             indirect_dispatch_buffer.handle);
     }
 
@@ -341,6 +405,8 @@ namespace
             frame_graph_resources, frame_graph, cull_triangles_record.meshlet_visible_index_buffer);
         const FrameGraphBuffer visible_meshlet_buffer =
             get_frame_graph_buffer(frame_graph_resources, frame_graph, cull_triangles_record.visible_meshlet_buffer);
+
+        using namespace CullTriangles;
 
         for (const CullPassData& cull_pass : prepared.cull_passes)
         {
@@ -363,22 +429,19 @@ namespace
 
             VkDescriptorSet descriptor_set = resources.cull_triangles_descriptor_sets[pass_index];
 
-            write_helper.append(descriptor_set, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, visible_meshlet_offsets.handle,
+            write_helper.append(descriptor_set, g_bindings[meshlets], visible_meshlet_offsets.handle,
                                 visible_meshlet_offsets_view.offset_bytes, visible_meshlet_offsets_view.size_bytes);
-            write_helper.append(descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, mesh_cache.indexBuffer.handle);
-            write_helper.append(descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                                mesh_cache.vertexBufferPosition.handle);
-            write_helper.append(descriptor_set, 3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, mesh_instance_alloc.buffer,
+            write_helper.append(descriptor_set, g_bindings[Indices], mesh_cache.indexBuffer.handle);
+            write_helper.append(descriptor_set, g_bindings[buffer_position_ms], mesh_cache.vertexBufferPosition.handle);
+            write_helper.append(descriptor_set, g_bindings[cull_mesh_instance_params], mesh_instance_alloc.buffer,
                                 mesh_instance_alloc.offset_bytes, mesh_instance_alloc.size_bytes);
-            write_helper.append(descriptor_set, 4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                                meshlet_visible_index_buffer.handle, visible_indices_view.offset_bytes,
-                                visible_indices_view.size_bytes);
-            write_helper.append(descriptor_set, 5, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                                meshlet_indirect_draw_commands.handle, indirect_draw_view.offset_bytes,
-                                indirect_draw_view.size_bytes);
-            write_helper.append(descriptor_set, 6, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, meshlet_counters.handle,
+            write_helper.append(descriptor_set, g_bindings[visible_index_buffer], meshlet_visible_index_buffer.handle,
+                                visible_indices_view.offset_bytes, visible_indices_view.size_bytes);
+            write_helper.append(descriptor_set, g_bindings[DrawCommandOut], meshlet_indirect_draw_commands.handle,
+                                indirect_draw_view.offset_bytes, indirect_draw_view.size_bytes);
+            write_helper.append(descriptor_set, g_bindings[Counters], meshlet_counters.handle,
                                 counter_buffer_view.offset_bytes, counter_buffer_view.size_bytes);
-            write_helper.append(descriptor_set, 7, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, visible_meshlet_buffer.handle);
+            write_helper.append(descriptor_set, g_bindings[VisibleMeshlets], visible_meshlet_buffer.handle);
         }
     }
 } // namespace
