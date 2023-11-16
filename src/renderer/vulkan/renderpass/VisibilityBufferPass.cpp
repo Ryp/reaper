@@ -38,6 +38,95 @@
 
 namespace Reaper
 {
+namespace Render
+{
+    enum BindingIndex
+    {
+        instance_params,
+        visible_meshlets,
+        buffer_position_ms,
+        _count,
+    };
+
+    std::array<DescriptorBinding, BindingIndex::_count> g_bindings = {
+        DescriptorBinding{
+            .slot = 0, .count = 1, .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, .stage_mask = VK_SHADER_STAGE_VERTEX_BIT},
+        {.slot = 1, .count = 1, .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, .stage_mask = VK_SHADER_STAGE_VERTEX_BIT},
+        {.slot = 2, .count = 1, .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, .stage_mask = VK_SHADER_STAGE_VERTEX_BIT},
+    };
+} // namespace Render
+
+namespace FillGBuffer
+{
+    enum BindingIndex
+    {
+        VisBuffer,
+        GBuffer0,
+        GBuffer1,
+        instance_params,
+        visible_index_buffer,
+        buffer_position_ms,
+        buffer_normal_ms,
+        buffer_tangent_ms,
+        buffer_uv,
+        visible_meshlets,
+        diffuse_map_sampler,
+        material_maps,
+        _count,
+    };
+
+    std::array<DescriptorBinding, BindingIndex::_count> g_bindings = {
+        DescriptorBinding{.slot = Slot_VisBuffer,
+                          .count = 1,
+                          .type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+                          .stage_mask = VK_SHADER_STAGE_COMPUTE_BIT},
+        {.slot = Slot_GBuffer0,
+         .count = 1,
+         .type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+         .stage_mask = VK_SHADER_STAGE_COMPUTE_BIT},
+        {.slot = Slot_GBuffer1,
+         .count = 1,
+         .type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+         .stage_mask = VK_SHADER_STAGE_COMPUTE_BIT},
+        {.slot = Slot_instance_params,
+         .count = 1,
+         .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+         .stage_mask = VK_SHADER_STAGE_COMPUTE_BIT},
+        {.slot = Slot_visible_index_buffer,
+         .count = 1,
+         .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+         .stage_mask = VK_SHADER_STAGE_COMPUTE_BIT},
+        {.slot = Slot_buffer_position_ms,
+         .count = 1,
+         .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+         .stage_mask = VK_SHADER_STAGE_COMPUTE_BIT},
+        {.slot = Slot_buffer_normal_ms,
+         .count = 1,
+         .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+         .stage_mask = VK_SHADER_STAGE_COMPUTE_BIT},
+        {.slot = Slot_buffer_tangent_ms,
+         .count = 1,
+         .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+         .stage_mask = VK_SHADER_STAGE_COMPUTE_BIT},
+        {.slot = Slot_buffer_uv,
+         .count = 1,
+         .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+         .stage_mask = VK_SHADER_STAGE_COMPUTE_BIT},
+        {.slot = Slot_visible_meshlets,
+         .count = 1,
+         .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+         .stage_mask = VK_SHADER_STAGE_COMPUTE_BIT},
+        {.slot = Slot_diffuse_map_sampler,
+         .count = 1,
+         .type = VK_DESCRIPTOR_TYPE_SAMPLER,
+         .stage_mask = VK_SHADER_STAGE_COMPUTE_BIT},
+        {.slot = Slot_material_maps,
+         .count = MaterialTextureMaxCount,
+         .type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+         .stage_mask = VK_SHADER_STAGE_COMPUTE_BIT},
+    };
+} // namespace FillGBuffer
+
 namespace
 {
     VkPipeline create_vis_buffer_pipeline(ReaperRoot& root, VulkanBackend& backend, VkPipelineLayout pipeline_layout,
@@ -96,13 +185,13 @@ VisibilityBufferPassResources create_vis_buffer_pass_resources(ReaperRoot& root,
     VisibilityBufferPassResources resources = {};
 
     {
-        std::vector<VkDescriptorSetLayoutBinding> bindings = {
-            {0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
-            {1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
-            {2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
-        };
+        using namespace Render;
 
-        const VkDescriptorSetLayout descriptor_set_layout = create_descriptor_set_layout(backend.device, bindings);
+        std::vector<VkDescriptorSetLayoutBinding> layout_bindings(g_bindings.size());
+        fill_layout_bindings(layout_bindings, g_bindings);
+
+        const VkDescriptorSetLayout descriptor_set_layout =
+            create_descriptor_set_layout(backend.device, layout_bindings);
 
         resources.pipe.desc_set_layout = descriptor_set_layout;
 
@@ -113,27 +202,16 @@ VisibilityBufferPassResources create_vis_buffer_pass_resources(ReaperRoot& root,
     }
 
     {
-        std::vector<VkDescriptorSetLayoutBinding> bindings = {
-            {Slot_VisBuffer, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-            {Slot_GBuffer0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-            {Slot_GBuffer1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-            {Slot_instance_params, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-            {Slot_visible_index_buffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-            {Slot_buffer_position_ms, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-            {Slot_buffer_normal_ms, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-            {Slot_buffer_tangent_ms, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-            {Slot_buffer_uv, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-            {Slot_visible_meshlets, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-            {Slot_diffuse_map_sampler, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-            {Slot_material_maps, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, MaterialTextureMaxCount, VK_SHADER_STAGE_COMPUTE_BIT,
-             nullptr},
-        };
+        using namespace FillGBuffer;
 
-        std::vector<VkDescriptorBindingFlags> binding_flags(bindings.size(), VK_FLAGS_NONE);
+        std::vector<VkDescriptorSetLayoutBinding> layout_bindings(g_bindings.size());
+        fill_layout_bindings(layout_bindings, g_bindings);
+
+        std::vector<VkDescriptorBindingFlags> binding_flags(layout_bindings.size(), VK_FLAGS_NONE);
         binding_flags.back() = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT;
 
         VkDescriptorSetLayout descriptor_set_layout =
-            create_descriptor_set_layout(backend.device, bindings, binding_flags);
+            create_descriptor_set_layout(backend.device, layout_bindings, binding_flags);
 
         const VkPushConstantRange pushConstantRange = {VK_SHADER_STAGE_COMPUTE_BIT, 0,
                                                        sizeof(FillGBufferPushConstants)};
@@ -196,11 +274,12 @@ void update_vis_buffer_pass_resources(const FrameGraph::FrameGraph&        frame
         const FrameGraphBuffer visible_meshlet_buffer =
             get_frame_graph_buffer(frame_graph_resources, frame_graph, record.render.visible_meshlet_buffer);
 
-        write_helper.append(resources.descriptor_set, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, mesh_instance_alloc.buffer,
+        using namespace Render;
+
+        write_helper.append(resources.descriptor_set, g_bindings[instance_params], mesh_instance_alloc.buffer,
                             mesh_instance_alloc.offset_bytes, mesh_instance_alloc.size_bytes);
-        write_helper.append(resources.descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                            visible_meshlet_buffer.handle);
-        write_helper.append(resources.descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+        write_helper.append(resources.descriptor_set, g_bindings[visible_meshlets], visible_meshlet_buffer.handle);
+        write_helper.append(resources.descriptor_set, g_bindings[buffer_position_ms],
                             mesh_cache.vertexBufferPosition.handle);
     }
 
@@ -220,29 +299,28 @@ void update_vis_buffer_pass_resources(const FrameGraph::FrameGraph&        frame
             get_buffer_view(meshlet_visible_index_buffer.properties,
                             get_meshlet_visible_index_buffer_pass(prepared.main_culling_pass_index));
 
-        write_helper.append(resources.descriptor_set_fill, Slot_VisBuffer, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-                            vis_buffer.default_view_handle, vis_buffer.image_layout);
-        write_helper.append(resources.descriptor_set_fill, Slot_GBuffer0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
-                            gbuffer_rt0.default_view_handle, gbuffer_rt0.image_layout);
-        write_helper.append(resources.descriptor_set_fill, Slot_GBuffer1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
-                            gbuffer_rt1.default_view_handle, gbuffer_rt1.image_layout);
-        write_helper.append(resources.descriptor_set_fill, Slot_instance_params, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                            mesh_instance_alloc.buffer, mesh_instance_alloc.offset_bytes,
-                            mesh_instance_alloc.size_bytes);
-        write_helper.append(resources.descriptor_set_fill, Slot_visible_index_buffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+        using namespace FillGBuffer;
+
+        write_helper.append(resources.descriptor_set_fill, g_bindings[VisBuffer], vis_buffer.default_view_handle,
+                            vis_buffer.image_layout);
+        write_helper.append(resources.descriptor_set_fill, g_bindings[GBuffer0], gbuffer_rt0.default_view_handle,
+                            gbuffer_rt0.image_layout);
+        write_helper.append(resources.descriptor_set_fill, g_bindings[GBuffer1], gbuffer_rt1.default_view_handle,
+                            gbuffer_rt1.image_layout);
+        write_helper.append(resources.descriptor_set_fill, g_bindings[instance_params], mesh_instance_alloc.buffer,
+                            mesh_instance_alloc.offset_bytes, mesh_instance_alloc.size_bytes);
+        write_helper.append(resources.descriptor_set_fill, g_bindings[visible_index_buffer],
                             meshlet_visible_index_buffer.handle, visible_index_buffer_view.offset_bytes,
                             visible_index_buffer_view.size_bytes);
-        write_helper.append(resources.descriptor_set_fill, Slot_buffer_position_ms, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+        write_helper.append(resources.descriptor_set_fill, g_bindings[buffer_position_ms],
                             mesh_cache.vertexBufferPosition.handle);
-        write_helper.append(resources.descriptor_set_fill, Slot_buffer_normal_ms, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+        write_helper.append(resources.descriptor_set_fill, g_bindings[buffer_normal_ms],
                             mesh_cache.vertexBufferNormal.handle);
-        write_helper.append(resources.descriptor_set_fill, Slot_buffer_tangent_ms, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+        write_helper.append(resources.descriptor_set_fill, g_bindings[buffer_tangent_ms],
                             mesh_cache.vertexBufferTangent.handle);
-        write_helper.append(resources.descriptor_set_fill, Slot_buffer_uv, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                            mesh_cache.vertexBufferUV.handle);
-        write_helper.append(resources.descriptor_set_fill, Slot_visible_meshlets, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                            visible_meshlet_buffer.handle);
-        write_helper.append(resources.descriptor_set_fill, Slot_diffuse_map_sampler,
+        write_helper.append(resources.descriptor_set_fill, g_bindings[buffer_uv], mesh_cache.vertexBufferUV.handle);
+        write_helper.append(resources.descriptor_set_fill, g_bindings[visible_meshlets], visible_meshlet_buffer.handle);
+        write_helper.append(resources.descriptor_set_fill, g_bindings[diffuse_map_sampler],
                             sampler_resources.diffuse_map_sampler);
 
         if (!material_resources.textures.empty())
@@ -258,8 +336,8 @@ void update_vis_buffer_pass_resources(const FrameGraph::FrameGraph&        frame
             }
 
             write_helper.writes.push_back(
-                create_image_descriptor_write(resources.descriptor_set_fill, Slot_material_maps,
-                                              VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, albedo_image_infos));
+                create_image_descriptor_write(resources.descriptor_set_fill, g_bindings[material_maps].slot,
+                                              g_bindings[material_maps].type, albedo_image_infos));
         }
     }
 }
