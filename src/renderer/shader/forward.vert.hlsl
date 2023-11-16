@@ -5,13 +5,13 @@
 #include "mesh_instance.share.hlsl"
 #include "meshlet/meshlet.share.hlsl"
 
-VK_BINDING(0, Slot_fw_pass_params) ConstantBuffer<ForwardPassParams> pass_params;
-VK_BINDING(0, Slot_fw_instance_params) StructuredBuffer<MeshInstance> instance_params;
-VK_BINDING(0, Slot_fw_visible_meshlets) StructuredBuffer<VisibleMeshlet> visible_meshlets;
-VK_BINDING(0, Slot_fw_buffer_position_ms) ByteAddressBuffer buffer_position_ms;
-VK_BINDING(0, Slot_fw_buffer_normal_ms) ByteAddressBuffer buffer_normal_ms;
-VK_BINDING(0, Slot_fw_buffer_tangent_ms) ByteAddressBuffer buffer_tangent_ms;
-VK_BINDING(0, Slot_fw_buffer_uv) ByteAddressBuffer buffer_uv;
+VK_BINDING(0, 0) ConstantBuffer<ForwardPassParams> pass_params;
+VK_BINDING(0, 1) StructuredBuffer<MeshInstance> instance_params;
+VK_BINDING(0, 2) StructuredBuffer<VisibleMeshlet> visible_meshlets;
+VK_BINDING(0, 3) ByteAddressBuffer buffer_position_ms;
+VK_BINDING(0, 4) ByteAddressBuffer buffer_normal_ms;
+VK_BINDING(0, 5) ByteAddressBuffer buffer_tangent_ms;
+VK_BINDING(0, 6) ByteAddressBuffer buffer_uv;
 
 struct VS_INPUT
 {

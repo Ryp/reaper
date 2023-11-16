@@ -34,6 +34,62 @@
 
 namespace Reaper
 {
+namespace Forward::zero
+{
+    enum BindingIndex
+    {
+        pass_params,
+        instance_params,
+        visible_meshlets,
+        buffer_position_ms,
+        buffer_normal_ms,
+        buffer_tangent_ms,
+        buffer_uv,
+        point_lights,
+        shadow_map_sampler,
+        shadow_map_array,
+        _count,
+    };
+
+    std::array<DescriptorBinding, BindingIndex::_count> g_bindings = {
+        DescriptorBinding{.slot = 0,
+                          .count = 1,
+                          .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                          .stage_mask = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT},
+        {.slot = 1, .count = 1, .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, .stage_mask = VK_SHADER_STAGE_VERTEX_BIT},
+        {.slot = 2, .count = 1, .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, .stage_mask = VK_SHADER_STAGE_VERTEX_BIT},
+        {.slot = 3, .count = 1, .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, .stage_mask = VK_SHADER_STAGE_VERTEX_BIT},
+        {.slot = 4, .count = 1, .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, .stage_mask = VK_SHADER_STAGE_VERTEX_BIT},
+        {.slot = 5, .count = 1, .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, .stage_mask = VK_SHADER_STAGE_VERTEX_BIT},
+        {.slot = 6, .count = 1, .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, .stage_mask = VK_SHADER_STAGE_VERTEX_BIT},
+        {.slot = 7, .count = 1, .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, .stage_mask = VK_SHADER_STAGE_FRAGMENT_BIT},
+        {.slot = 8, .count = 1, .type = VK_DESCRIPTOR_TYPE_SAMPLER, .stage_mask = VK_SHADER_STAGE_FRAGMENT_BIT},
+        {.slot = 9,
+         .count = ShadowMapMaxCount,
+         .type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+         .stage_mask = VK_SHADER_STAGE_FRAGMENT_BIT},
+    };
+} // namespace Forward::zero
+
+namespace Forward::one
+{
+    enum BindingIndex
+    {
+        diffuse_map_sampler,
+        material_maps,
+        _count,
+    };
+
+    std::array<DescriptorBinding, BindingIndex::_count> g_bindings = {
+        DescriptorBinding{
+            .slot = 0, .count = 1, .type = VK_DESCRIPTOR_TYPE_SAMPLER, .stage_mask = VK_SHADER_STAGE_FRAGMENT_BIT},
+        {.slot = 1,
+         .count = MaterialTextureMaxCount,
+         .type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+         .stage_mask = VK_SHADER_STAGE_FRAGMENT_BIT},
+    };
+} // namespace Forward::one
+
 constexpr u32 MeshInstanceCountMax = 512;
 
 namespace
@@ -74,29 +130,16 @@ ForwardPassResources create_forward_pass_resources(VulkanBackend& backend, const
 {
     ForwardPassResources resources = {};
 
-    std::vector<VkDescriptorSetLayoutBinding> bindings0 = {
-        {Slot_fw_pass_params, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1,
-         VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
-        {Slot_fw_instance_params, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
-        {Slot_fw_visible_meshlets, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
-        {Slot_fw_buffer_position_ms, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
-        {Slot_fw_buffer_normal_ms, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
-        {Slot_fw_buffer_tangent_ms, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
-        {Slot_fw_buffer_uv, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
-        {Slot_fw_point_lights, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
-        {Slot_fw_shadow_map_sampler, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
-        {Slot_fw_shadow_maps, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, ShadowMapMaxCount, VK_SHADER_STAGE_FRAGMENT_BIT,
-         nullptr},
-    };
+    using namespace Forward;
+
+    std::vector<VkDescriptorSetLayoutBinding> bindings0(zero::g_bindings.size());
+    fill_layout_bindings(bindings0, zero::g_bindings);
 
     std::vector<VkDescriptorBindingFlags> bindingFlags0(bindings0.size(), VK_FLAGS_NONE);
     bindingFlags0.back() = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT;
 
-    std::vector<VkDescriptorSetLayoutBinding> bindings1 = {
-        {Slot_fw_diffuse_map_sampler, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
-        {Slot_fw_material_maps, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, MaterialTextureMaxCount, VK_SHADER_STAGE_FRAGMENT_BIT,
-         nullptr},
-    };
+    std::vector<VkDescriptorSetLayoutBinding> bindings1(one::g_bindings.size());
+    fill_layout_bindings(bindings1, one::g_bindings);
 
     std::vector<VkDescriptorBindingFlags> bindingFlags1 = {VK_FLAGS_NONE, VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT};
 
@@ -151,45 +194,48 @@ void update_forward_pass_descriptor_sets(DescriptorWriteHelper& write_helper, co
                                          const LightingPassResources&       lighting_resources,
                                          std::span<const FrameGraphTexture> shadow_maps)
 {
-    write_helper.append(resources.descriptor_set, Slot_fw_pass_params, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                        resources.pass_constant_buffer.handle);
-    write_helper.append(resources.descriptor_set, Slot_fw_instance_params, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                        resources.instance_buffer.handle);
-    write_helper.append(resources.descriptor_set, Slot_fw_visible_meshlets, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                        visible_meshlet_buffer.handle);
-    write_helper.append(resources.descriptor_set, Slot_fw_buffer_position_ms, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                        mesh_cache.vertexBufferPosition.handle);
-    write_helper.append(resources.descriptor_set, Slot_fw_buffer_normal_ms, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                        mesh_cache.vertexBufferNormal.handle);
-    write_helper.append(resources.descriptor_set, Slot_fw_buffer_tangent_ms, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                        mesh_cache.vertexBufferTangent.handle);
-    write_helper.append(resources.descriptor_set, Slot_fw_buffer_uv, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                        mesh_cache.vertexBufferUV.handle);
-    write_helper.append(resources.descriptor_set, Slot_fw_point_lights, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                        lighting_resources.point_light_buffer_alloc.buffer,
-                        lighting_resources.point_light_buffer_alloc.offset_bytes,
-                        lighting_resources.point_light_buffer_alloc.size_bytes);
-    write_helper.append(resources.descriptor_set, Slot_fw_shadow_map_sampler, sampler_resources.shadow_map_sampler);
-
-    if (!shadow_maps.empty())
     {
-        std::span<VkDescriptorImageInfo> shadow_map_image_infos =
-            write_helper.new_image_infos(static_cast<u32>(shadow_maps.size()));
+        using namespace Forward::zero;
+        write_helper.append(resources.descriptor_set, g_bindings[pass_params], resources.pass_constant_buffer.handle);
+        write_helper.append(resources.descriptor_set, g_bindings[instance_params], resources.instance_buffer.handle);
+        write_helper.append(resources.descriptor_set, g_bindings[visible_meshlets], visible_meshlet_buffer.handle);
+        write_helper.append(resources.descriptor_set, g_bindings[buffer_position_ms],
+                            mesh_cache.vertexBufferPosition.handle);
+        write_helper.append(resources.descriptor_set, g_bindings[buffer_normal_ms],
+                            mesh_cache.vertexBufferNormal.handle);
+        write_helper.append(resources.descriptor_set, g_bindings[buffer_tangent_ms],
+                            mesh_cache.vertexBufferTangent.handle);
+        write_helper.append(resources.descriptor_set, g_bindings[buffer_uv], mesh_cache.vertexBufferUV.handle);
+        write_helper.append(resources.descriptor_set, g_bindings[point_lights],
+                            lighting_resources.point_light_buffer_alloc.buffer,
+                            lighting_resources.point_light_buffer_alloc.offset_bytes,
+                            lighting_resources.point_light_buffer_alloc.size_bytes);
+        write_helper.append(resources.descriptor_set, g_bindings[shadow_map_sampler],
+                            sampler_resources.shadow_map_sampler);
 
-        for (u32 index = 0; index < shadow_maps.size(); index += 1)
+        if (!shadow_maps.empty())
         {
-            const auto& shadow_map = shadow_maps[index];
-            shadow_map_image_infos[index] =
-                create_descriptor_image_info(shadow_map.default_view_handle, shadow_map.image_layout);
-        }
+            std::span<VkDescriptorImageInfo> shadow_map_image_infos =
+                write_helper.new_image_infos(static_cast<u32>(shadow_maps.size()));
 
-        write_helper.writes.push_back(create_image_descriptor_write(
-            resources.descriptor_set, Slot_fw_shadow_maps, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, shadow_map_image_infos));
+            for (u32 index = 0; index < shadow_maps.size(); index += 1)
+            {
+                const auto& shadow_map = shadow_maps[index];
+                shadow_map_image_infos[index] =
+                    create_descriptor_image_info(shadow_map.default_view_handle, shadow_map.image_layout);
+            }
+
+            write_helper.writes.push_back(
+                create_image_descriptor_write(resources.descriptor_set, g_bindings[shadow_map_array].slot,
+                                              g_bindings[shadow_map_array].type, shadow_map_image_infos));
+        }
     }
 
     if (!material_resources.textures.empty())
     {
-        write_helper.append(resources.material_descriptor_set, Slot_fw_diffuse_map_sampler,
+        using namespace Forward::one;
+
+        write_helper.append(resources.material_descriptor_set, g_bindings[diffuse_map_sampler],
                             sampler_resources.diffuse_map_sampler);
 
         std::span<VkDescriptorImageInfo> albedo_image_infos =
@@ -203,8 +249,8 @@ void update_forward_pass_descriptor_sets(DescriptorWriteHelper& write_helper, co
         }
 
         write_helper.writes.push_back(
-            create_image_descriptor_write(resources.material_descriptor_set, Slot_fw_material_maps,
-                                          VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, albedo_image_infos));
+            create_image_descriptor_write(resources.material_descriptor_set, g_bindings[material_maps].slot,
+                                          g_bindings[material_maps].type, albedo_image_infos));
     }
 }
 

@@ -22,13 +22,13 @@ VK_CONSTANT(0) const uint spec_debug_mode = debug_mode_none;
 #endif
 VK_CONSTANT(1) const bool spec_debug_enable_shadows = true;
 
-VK_BINDING(0, Slot_fw_pass_params) ConstantBuffer<ForwardPassParams> pass_params;
-VK_BINDING(0, Slot_fw_point_lights) StructuredBuffer<PointLightProperties> point_lights;
-VK_BINDING(0, Slot_fw_shadow_map_sampler) SamplerComparisonState shadow_map_sampler;
-VK_BINDING(0, Slot_fw_shadow_maps) Texture2D<float> shadow_maps[ShadowMapMaxCount];
+VK_BINDING(0, 0) ConstantBuffer<ForwardPassParams> pass_params;
+VK_BINDING(0, 7) StructuredBuffer<PointLightProperties> point_lights;
+VK_BINDING(0, 8) SamplerComparisonState shadow_map_sampler;
+VK_BINDING(0, 9) Texture2D<float> shadow_map_array[ShadowMapMaxCount];
 
-VK_BINDING(1, Slot_fw_diffuse_map_sampler) SamplerState diffuse_map_sampler;
-VK_BINDING(1, Slot_fw_material_maps) Texture2D<float3> material_maps[MaterialTextureMaxCount];
+VK_BINDING(1, 0) SamplerState diffuse_map_sampler;
+VK_BINDING(1, 1) Texture2D<float3> material_maps[MaterialTextureMaxCount];
 
 struct PS_INPUT
 {
@@ -79,7 +79,7 @@ void main(in PS_INPUT input, out PS_OUTPUT output)
         if (point_light.shadow_map_index != InvalidShadowMapIndex && spec_debug_enable_shadows)
         {
             // NOTE: shadow_map_index MUST be uniform
-            shadow_term = sample_shadow_map(shadow_maps[point_light.shadow_map_index], shadow_map_sampler, point_light.light_ws_to_cs, input.PositionWS);
+            shadow_term = sample_shadow_map(shadow_map_array[point_light.shadow_map_index], shadow_map_sampler, point_light.light_ws_to_cs, input.PositionWS);
         }
 
         lighting_accum.diffuse += lighting.diffuse * shadow_term;
