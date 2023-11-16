@@ -106,7 +106,7 @@ struct PreparedData;
 struct MeshCache;
 
 void update_meshlet_culling_passes_resources(const FrameGraph::FrameGraph&       frame_graph,
-                                             FrameGraphResources&                frame_graph_resources,
+                                             const FrameGraphResources&          frame_graph_resources,
                                              const CullMeshletsFrameGraphRecord& record,
                                              DescriptorWriteHelper&              write_helper,
                                              StorageBufferAllocator&             frame_storage_allocator,

@@ -169,88 +169,99 @@ void destroy_vis_buffer_pass_resources(VulkanBackend& backend, VisibilityBufferP
     vkDestroyDescriptorSetLayout(backend.device, resources.fill_pipe.desc_set_layout, nullptr);
 }
 
-void update_vis_buffer_pass_descriptor_sets(DescriptorWriteHelper&               write_helper,
-                                            const VisibilityBufferPassResources& resources,
-                                            const PreparedData&                  prepared,
-                                            const SamplerResources&              sampler_resources,
-                                            const MaterialResources&             material_resources,
-                                            const MeshCache&                     mesh_cache,
-                                            const FrameGraphBuffer&              meshlet_visible_index_buffer,
-                                            const FrameGraphBuffer&              visible_meshlet_buffer,
-                                            const FrameGraphTexture&             vis_buffer,
-                                            const FrameGraphTexture&             gbuffer_rt0,
-                                            const FrameGraphTexture&             gbuffer_rt1)
-{
-    // write_helper.append(resources.descriptor_set, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-    //                     resources.instance_buffer.handle);
-    write_helper.append(resources.descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, visible_meshlet_buffer.handle);
-    write_helper.append(resources.descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                        mesh_cache.vertexBufferPosition.handle);
-
-    const GPUBufferView visible_index_buffer_view =
-        get_buffer_view(meshlet_visible_index_buffer.properties,
-                        get_meshlet_visible_index_buffer_pass(prepared.main_culling_pass_index));
-
-    write_helper.append(resources.descriptor_set_fill, Slot_VisBuffer, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-                        vis_buffer.default_view_handle, vis_buffer.image_layout);
-    write_helper.append(resources.descriptor_set_fill, Slot_GBuffer0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
-                        gbuffer_rt0.default_view_handle, gbuffer_rt0.image_layout);
-    write_helper.append(resources.descriptor_set_fill, Slot_GBuffer1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
-                        gbuffer_rt1.default_view_handle, gbuffer_rt1.image_layout);
-    // write_helper.append(resources.descriptor_set_fill, Slot_instance_params, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-    //                     resources.instance_buffer.handle);
-    write_helper.append(resources.descriptor_set_fill, Slot_visible_index_buffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                        meshlet_visible_index_buffer.handle, visible_index_buffer_view.offset_bytes,
-                        visible_index_buffer_view.size_bytes);
-    write_helper.append(resources.descriptor_set_fill, Slot_buffer_position_ms, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                        mesh_cache.vertexBufferPosition.handle);
-    write_helper.append(resources.descriptor_set_fill, Slot_buffer_normal_ms, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                        mesh_cache.vertexBufferNormal.handle);
-    write_helper.append(resources.descriptor_set_fill, Slot_buffer_tangent_ms, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                        mesh_cache.vertexBufferTangent.handle);
-    write_helper.append(resources.descriptor_set_fill, Slot_buffer_uv, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                        mesh_cache.vertexBufferUV.handle);
-    write_helper.append(resources.descriptor_set_fill, Slot_visible_meshlets, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                        visible_meshlet_buffer.handle);
-    write_helper.append(resources.descriptor_set_fill, Slot_diffuse_map_sampler, sampler_resources.diffuse_map_sampler);
-
-    if (!material_resources.textures.empty())
-    {
-        std::span<VkDescriptorImageInfo> albedo_image_infos =
-            write_helper.new_image_infos(static_cast<u32>(material_resources.textures.size()));
-
-        for (u32 index = 0; index < albedo_image_infos.size(); index += 1)
-        {
-            const auto& albedo_map = material_resources.textures[index];
-            albedo_image_infos[index] =
-                create_descriptor_image_info(albedo_map.default_view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-        }
-
-        write_helper.writes.push_back(create_image_descriptor_write(
-            resources.descriptor_set_fill, Slot_material_maps, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, albedo_image_infos));
-    }
-}
-
-void upload_vis_buffer_pass_frame_resources(DescriptorWriteHelper&         write_helper,
-                                            StorageBufferAllocator&        frame_storage_allocator,
-                                            const PreparedData&            prepared,
-                                            VisibilityBufferPassResources& resources)
+void update_vis_buffer_pass_resources(const FrameGraph::FrameGraph&        frame_graph,
+                                      const FrameGraphResources&           frame_graph_resources,
+                                      const VisBufferFrameGraphRecord&     record,
+                                      DescriptorWriteHelper&               write_helper,
+                                      StorageBufferAllocator&              frame_storage_allocator,
+                                      const VisibilityBufferPassResources& resources,
+                                      const PreparedData&                  prepared,
+                                      const SamplerResources&              sampler_resources,
+                                      const MaterialResources&             material_resources,
+                                      const MeshCache&                     mesh_cache)
 {
     REAPER_PROFILE_SCOPE_FUNC();
 
     if (prepared.mesh_instances.empty())
         return;
 
+    Assert(!prepared.mesh_instances.empty());
+
     StorageBufferAlloc mesh_instance_alloc =
         allocate_storage(frame_storage_allocator, prepared.mesh_instances.size() * sizeof(MeshInstance));
 
     upload_storage_buffer(frame_storage_allocator, mesh_instance_alloc, prepared.mesh_instances.data());
 
-    write_helper.append(resources.descriptor_set, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, mesh_instance_alloc.buffer,
-                        mesh_instance_alloc.offset_bytes, mesh_instance_alloc.size_bytes);
+    {
+        const FrameGraphBuffer visible_meshlet_buffer =
+            get_frame_graph_buffer(frame_graph_resources, frame_graph, record.render.visible_meshlet_buffer);
 
-    write_helper.append(resources.descriptor_set_fill, Slot_instance_params, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                        mesh_instance_alloc.buffer, mesh_instance_alloc.offset_bytes, mesh_instance_alloc.size_bytes);
+        write_helper.append(resources.descriptor_set, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, mesh_instance_alloc.buffer,
+                            mesh_instance_alloc.offset_bytes, mesh_instance_alloc.size_bytes);
+        write_helper.append(resources.descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                            visible_meshlet_buffer.handle);
+        write_helper.append(resources.descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                            mesh_cache.vertexBufferPosition.handle);
+    }
+
+    {
+        const FrameGraphBuffer meshlet_visible_index_buffer = get_frame_graph_buffer(
+            frame_graph_resources, frame_graph, record.fill_gbuffer.meshlet_visible_index_buffer);
+        const FrameGraphBuffer visible_meshlet_buffer =
+            get_frame_graph_buffer(frame_graph_resources, frame_graph, record.fill_gbuffer.visible_meshlet_buffer);
+        const FrameGraphTexture vis_buffer =
+            get_frame_graph_texture(frame_graph_resources, frame_graph, record.fill_gbuffer.vis_buffer);
+        const FrameGraphTexture gbuffer_rt0 =
+            get_frame_graph_texture(frame_graph_resources, frame_graph, record.fill_gbuffer.gbuffer_rt0);
+        const FrameGraphTexture gbuffer_rt1 =
+            get_frame_graph_texture(frame_graph_resources, frame_graph, record.fill_gbuffer.gbuffer_rt1);
+
+        const GPUBufferView visible_index_buffer_view =
+            get_buffer_view(meshlet_visible_index_buffer.properties,
+                            get_meshlet_visible_index_buffer_pass(prepared.main_culling_pass_index));
+
+        write_helper.append(resources.descriptor_set_fill, Slot_VisBuffer, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+                            vis_buffer.default_view_handle, vis_buffer.image_layout);
+        write_helper.append(resources.descriptor_set_fill, Slot_GBuffer0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+                            gbuffer_rt0.default_view_handle, gbuffer_rt0.image_layout);
+        write_helper.append(resources.descriptor_set_fill, Slot_GBuffer1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+                            gbuffer_rt1.default_view_handle, gbuffer_rt1.image_layout);
+        write_helper.append(resources.descriptor_set_fill, Slot_instance_params, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                            mesh_instance_alloc.buffer, mesh_instance_alloc.offset_bytes,
+                            mesh_instance_alloc.size_bytes);
+        write_helper.append(resources.descriptor_set_fill, Slot_visible_index_buffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                            meshlet_visible_index_buffer.handle, visible_index_buffer_view.offset_bytes,
+                            visible_index_buffer_view.size_bytes);
+        write_helper.append(resources.descriptor_set_fill, Slot_buffer_position_ms, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                            mesh_cache.vertexBufferPosition.handle);
+        write_helper.append(resources.descriptor_set_fill, Slot_buffer_normal_ms, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                            mesh_cache.vertexBufferNormal.handle);
+        write_helper.append(resources.descriptor_set_fill, Slot_buffer_tangent_ms, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                            mesh_cache.vertexBufferTangent.handle);
+        write_helper.append(resources.descriptor_set_fill, Slot_buffer_uv, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                            mesh_cache.vertexBufferUV.handle);
+        write_helper.append(resources.descriptor_set_fill, Slot_visible_meshlets, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                            visible_meshlet_buffer.handle);
+        write_helper.append(resources.descriptor_set_fill, Slot_diffuse_map_sampler,
+                            sampler_resources.diffuse_map_sampler);
+
+        if (!material_resources.textures.empty())
+        {
+            std::span<VkDescriptorImageInfo> albedo_image_infos =
+                write_helper.new_image_infos(static_cast<u32>(material_resources.textures.size()));
+
+            for (u32 index = 0; index < albedo_image_infos.size(); index += 1)
+            {
+                const auto& albedo_map = material_resources.textures[index];
+                albedo_image_infos[index] =
+                    create_descriptor_image_info(albedo_map.default_view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+            }
+
+            write_helper.writes.push_back(
+                create_image_descriptor_write(resources.descriptor_set_fill, Slot_material_maps,
+                                              VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, albedo_image_infos));
+        }
+    }
 }
 
 void record_vis_buffer_pass_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& prepared,

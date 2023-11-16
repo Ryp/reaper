@@ -272,7 +272,7 @@ void destroy_meshlet_culling_resources(VulkanBackend& backend, MeshletCullingRes
 namespace
 {
     void update_meshlet_culling_descriptor_sets(const FrameGraph::FrameGraph&                     frame_graph,
-                                                FrameGraphResources&                              frame_graph_resources,
+                                                const FrameGraphResources&                        frame_graph_resources,
                                                 const CullMeshletsFrameGraphRecord::CullMeshlets& cull_meshlet_record,
                                                 DescriptorWriteHelper& write_helper, const PreparedData& prepared,
                                                 MeshletCullingResources& resources, const MeshCache& mesh_cache,
@@ -309,7 +309,7 @@ namespace
 
     void update_triangle_culling_prepare_descriptor_sets(
         const FrameGraph::FrameGraph&                             frame_graph,
-        FrameGraphResources&                                      frame_graph_resources,
+        const FrameGraphResources&                                frame_graph_resources,
         const CullMeshletsFrameGraphRecord::CullTrianglesPrepare& cull_triangles_prepare_record,
         DescriptorWriteHelper&                                    write_helper,
         MeshletCullingResources&                                  resources)
@@ -326,7 +326,7 @@ namespace
     }
 
     void update_triangle_culling_descriptor_sets(
-        const FrameGraph::FrameGraph& frame_graph, FrameGraphResources& frame_graph_resources,
+        const FrameGraph::FrameGraph& frame_graph, const FrameGraphResources& frame_graph_resources,
         const CullMeshletsFrameGraphRecord::CullTriangles& cull_triangles_record, DescriptorWriteHelper& write_helper,
         const PreparedData& prepared, MeshletCullingResources& resources, const MeshCache& mesh_cache,
         const StorageBufferAlloc& mesh_instance_alloc)
@@ -384,7 +384,7 @@ namespace
 } // namespace
 
 void update_meshlet_culling_passes_resources(const FrameGraph::FrameGraph&       frame_graph,
-                                             FrameGraphResources&                frame_graph_resources,
+                                             const FrameGraphResources&          frame_graph_resources,
                                              const CullMeshletsFrameGraphRecord& record,
                                              DescriptorWriteHelper&              write_helper,
                                              StorageBufferAllocator&             frame_storage_allocator,

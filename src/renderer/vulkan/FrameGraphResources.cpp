@@ -167,7 +167,7 @@ void destroy_framegraph_volatile_resources(VulkanBackend& backend, FrameGraphRes
     }
 }
 
-VkImage get_frame_graph_texture_handle(FrameGraphResources& resources, FrameGraph::ResourceHandle resource_handle)
+VkImage get_frame_graph_texture_handle(const FrameGraphResources& resources, FrameGraph::ResourceHandle resource_handle)
 {
     Assert(resource_handle.is_texture, "Wrong handle");
 
@@ -177,7 +177,8 @@ VkImage get_frame_graph_texture_handle(FrameGraphResources& resources, FrameGrap
     return texture.handle;
 }
 
-FrameGraphTexture get_frame_graph_texture(FrameGraphResources& resources, const FrameGraph::FrameGraph& framegraph,
+FrameGraphTexture get_frame_graph_texture(const FrameGraphResources&      resources,
+                                          const FrameGraph::FrameGraph&   framegraph,
                                           FrameGraph::ResourceUsageHandle usage_handle)
 {
     using namespace FrameGraph;
@@ -206,7 +207,7 @@ FrameGraphTexture get_frame_graph_texture(FrameGraphResources& resources, const 
     };
 }
 
-VkBuffer get_frame_graph_buffer_handle(FrameGraphResources& resources, FrameGraph::ResourceHandle resource_handle)
+VkBuffer get_frame_graph_buffer_handle(const FrameGraphResources& resources, FrameGraph::ResourceHandle resource_handle)
 {
     Assert(!resource_handle.is_texture, "Wrong handle");
 
@@ -216,7 +217,7 @@ VkBuffer get_frame_graph_buffer_handle(FrameGraphResources& resources, FrameGrap
     return buffer.handle;
 };
 
-FrameGraphBuffer get_frame_graph_buffer(FrameGraphResources& resources, const FrameGraph::FrameGraph& framegraph,
+FrameGraphBuffer get_frame_graph_buffer(const FrameGraphResources& resources, const FrameGraph::FrameGraph& framegraph,
                                         FrameGraph::ResourceUsageHandle usage_handle)
 {
     using namespace FrameGraph;

@@ -264,15 +264,9 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         builder.read_buffer(shadow.pass_handle, meshlet_pass.cull_triangles.meshlet_visible_index_buffer,
                             GPUBufferAccess{VK_PIPELINE_STAGE_2_INDEX_INPUT_BIT, VK_ACCESS_2_INDEX_READ_BIT});
 
-    struct VisibilityFrameGraphData
-    {
-        RenderPassHandle    pass_handle;
-        ResourceUsageHandle vis_buffer;
-        ResourceUsageHandle depth;
-        ResourceUsageHandle meshlet_counters;
-        ResourceUsageHandle meshlet_indirect_draw_commands;
-        ResourceUsageHandle meshlet_visible_index_buffer;
-    } visibility;
+    VisBufferFrameGraphRecord               vis_buffer_record;
+    VisBufferFrameGraphRecord::Render&      visibility = vis_buffer_record.render;
+    VisBufferFrameGraphRecord::FillGBuffer& visibility_gbuffer = vis_buffer_record.fill_gbuffer;
 
     visibility.pass_handle = builder.create_render_pass("Visibility");
 
@@ -304,16 +298,9 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         builder.read_buffer(visibility.pass_handle, meshlet_pass.cull_triangles.meshlet_visible_index_buffer,
                             GPUBufferAccess{VK_PIPELINE_STAGE_2_INDEX_INPUT_BIT, VK_ACCESS_2_INDEX_READ_BIT});
 
-    // Fill GBuffer from visibility
-    struct VisibilityGBufferFrameGraphData
-    {
-        RenderPassHandle    pass_handle;
-        ResourceUsageHandle vis_buffer;
-        ResourceUsageHandle gbuffer_rt0;
-        ResourceUsageHandle gbuffer_rt1;
-        ResourceUsageHandle meshlet_visible_index_buffer;
-        ResourceUsageHandle visible_meshlet_buffer;
-    } visibility_gbuffer;
+    visibility.visible_meshlet_buffer =
+        builder.read_buffer(visibility.pass_handle, meshlet_pass.cull_triangles.visible_meshlet_buffer,
+                            GPUBufferAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT});
 
     visibility_gbuffer.pass_handle = builder.create_render_pass("Visibility Fill GBuffer");
 
@@ -813,8 +800,11 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     update_shadow_map_resources(descriptor_write_helper, resources.frame_storage_allocator, prepared,
                                 resources.shadow_map_resources, resources.mesh_cache.vertexBufferPosition);
 
-    upload_vis_buffer_pass_frame_resources(descriptor_write_helper, resources.frame_storage_allocator, prepared,
-                                           resources.vis_buffer_pass_resources);
+    update_vis_buffer_pass_resources(framegraph, resources.framegraph_resources, vis_buffer_record,
+                                     descriptor_write_helper, resources.frame_storage_allocator,
+                                     resources.vis_buffer_pass_resources, prepared, resources.samplers_resources,
+                                     resources.material_resources, resources.mesh_cache);
+
     upload_lighting_pass_frame_resources(resources.frame_storage_allocator, prepared, resources.lighting_resources);
     upload_tiled_raster_pass_frame_resources(descriptor_write_helper, resources.frame_storage_allocator,
                                              tiled_lighting_frame, resources.tiled_raster_resources);
@@ -826,20 +816,6 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     update_meshlet_culling_passes_resources(framegraph, resources.framegraph_resources, meshlet_pass,
                                             descriptor_write_helper, resources.frame_storage_allocator, prepared,
                                             resources.meshlet_culling_resources, resources.mesh_cache);
-
-    update_vis_buffer_pass_descriptor_sets(
-        descriptor_write_helper,
-        resources.vis_buffer_pass_resources,
-        prepared,
-        resources.samplers_resources,
-        resources.material_resources,
-        resources.mesh_cache,
-        get_frame_graph_buffer(resources.framegraph_resources, framegraph,
-                               visibility_gbuffer.meshlet_visible_index_buffer),
-        get_frame_graph_buffer(resources.framegraph_resources, framegraph, visibility_gbuffer.visible_meshlet_buffer),
-        get_frame_graph_texture(resources.framegraph_resources, framegraph, visibility_gbuffer.vis_buffer),
-        get_frame_graph_texture(resources.framegraph_resources, framegraph, visibility_gbuffer.gbuffer_rt0),
-        get_frame_graph_texture(resources.framegraph_resources, framegraph, visibility_gbuffer.gbuffer_rt1));
 
     update_hzb_pass_descriptor_set(
         descriptor_write_helper, resources.hzb_pass_resources, resources.samplers_resources,

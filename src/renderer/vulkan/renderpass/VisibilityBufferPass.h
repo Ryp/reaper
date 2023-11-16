@@ -8,6 +8,7 @@
 #pragma once
 
 #include "renderer/ResourceHandle.h"
+#include "renderer/graph/FrameGraphBasicTypes.h"
 #include "renderer/vulkan/Buffer.h"
 #include "renderer/vulkan/Image.h"
 
@@ -15,17 +16,45 @@
 
 #include <glm/vec2.hpp>
 
-#include <span>
-
 #include <vector>
 
 namespace Reaper
 {
+namespace FrameGraph
+{
+    class FrameGraph;
+}
+struct FrameGraphResources;
+
 struct VisibilityBufferPipelineInfo
 {
     VkPipeline            pipeline;
     VkPipelineLayout      pipelineLayout;
     VkDescriptorSetLayout desc_set_layout;
+};
+
+struct VisBufferFrameGraphRecord
+{
+    struct Render
+    {
+        FrameGraph::RenderPassHandle    pass_handle;
+        FrameGraph::ResourceUsageHandle vis_buffer;
+        FrameGraph::ResourceUsageHandle depth;
+        FrameGraph::ResourceUsageHandle meshlet_counters;
+        FrameGraph::ResourceUsageHandle meshlet_indirect_draw_commands;
+        FrameGraph::ResourceUsageHandle meshlet_visible_index_buffer;
+        FrameGraph::ResourceUsageHandle visible_meshlet_buffer;
+    } render;
+
+    struct FillGBuffer
+    {
+        FrameGraph::RenderPassHandle    pass_handle;
+        FrameGraph::ResourceUsageHandle vis_buffer;
+        FrameGraph::ResourceUsageHandle gbuffer_rt0;
+        FrameGraph::ResourceUsageHandle gbuffer_rt1;
+        FrameGraph::ResourceUsageHandle meshlet_visible_index_buffer;
+        FrameGraph::ResourceUsageHandle visible_meshlet_buffer;
+    } fill_gbuffer;
 };
 
 struct ReaperRoot;
@@ -51,27 +80,19 @@ struct SamplerResources;
 class DescriptorWriteHelper;
 struct FrameGraphBuffer;
 struct FrameGraphTexture;
-
 struct PreparedData;
-
-void update_vis_buffer_pass_descriptor_sets(DescriptorWriteHelper&               write_helper,
-                                            const VisibilityBufferPassResources& resources,
-                                            const PreparedData&                  prepared,
-                                            const SamplerResources&              sampler_resources,
-                                            const MaterialResources&             material_resources,
-                                            const MeshCache&                     mesh_cache,
-                                            const FrameGraphBuffer&              meshlet_visible_index_buffer,
-                                            const FrameGraphBuffer&              visible_meshlet_buffer,
-                                            const FrameGraphTexture&             vis_buffer,
-                                            const FrameGraphTexture&             gbuffer_rt0,
-                                            const FrameGraphTexture&             gbuffer_rt1);
-
 struct StorageBufferAllocator;
 
-void upload_vis_buffer_pass_frame_resources(DescriptorWriteHelper&         write_helper,
-                                            StorageBufferAllocator&        frame_storage_allocator,
-                                            const PreparedData&            prepared,
-                                            VisibilityBufferPassResources& resources);
+void update_vis_buffer_pass_resources(const FrameGraph::FrameGraph&        frame_graph,
+                                      const FrameGraphResources&           frame_graph_resources,
+                                      const VisBufferFrameGraphRecord&     record,
+                                      DescriptorWriteHelper&               write_helper,
+                                      StorageBufferAllocator&              frame_storage_allocator,
+                                      const VisibilityBufferPassResources& resources,
+                                      const PreparedData&                  prepared,
+                                      const SamplerResources&              sampler_resources,
+                                      const MaterialResources&             material_resources,
+                                      const MeshCache&                     mesh_cache);
 
 struct CommandBuffer;
 struct FrameGraphTexture;

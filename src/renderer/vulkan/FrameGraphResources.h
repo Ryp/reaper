@@ -65,11 +65,14 @@ void allocate_framegraph_volatile_resources(VulkanBackend& backend, FrameGraphRe
                                             const FrameGraph::FrameGraph& framegraph);
 void destroy_framegraph_volatile_resources(VulkanBackend& backend, FrameGraphResources& resources);
 
-VkImage get_frame_graph_texture_handle(FrameGraphResources& resources, FrameGraph::ResourceHandle resource_handle);
-FrameGraphTexture get_frame_graph_texture(FrameGraphResources& resources, const FrameGraph::FrameGraph& framegraph,
+VkImage           get_frame_graph_texture_handle(const FrameGraphResources& resources,
+                                                 FrameGraph::ResourceHandle resource_handle);
+FrameGraphTexture get_frame_graph_texture(const FrameGraphResources&      resources,
+                                          const FrameGraph::FrameGraph&   framegraph,
                                           FrameGraph::ResourceUsageHandle usage_handle);
 
-VkBuffer get_frame_graph_buffer_handle(FrameGraphResources& resources, FrameGraph::ResourceHandle resource_handle);
-FrameGraphBuffer get_frame_graph_buffer(FrameGraphResources& resources, const FrameGraph::FrameGraph& framegraph,
+VkBuffer         get_frame_graph_buffer_handle(const FrameGraphResources& resources,
+                                               FrameGraph::ResourceHandle resource_handle);
+FrameGraphBuffer get_frame_graph_buffer(const FrameGraphResources& resources, const FrameGraph::FrameGraph& framegraph,
                                         FrameGraph::ResourceUsageHandle usage_handle);
 } // namespace Reaper
