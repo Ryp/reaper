@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include "renderer/graph/FrameGraphBasicTypes.h"
 #include "renderer/vulkan/Buffer.h"
 #include "renderer/vulkan/Image.h"
 
@@ -40,6 +41,21 @@ struct ShaderModules;
 
 ShadowMapResources create_shadow_map_resources(VulkanBackend& backend, const ShaderModules& shader_modules);
 void               destroy_shadow_map_resources(VulkanBackend& backend, ShadowMapResources& resources);
+
+namespace FrameGraph
+{
+    class FrameGraph;
+    class Builder;
+} // namespace FrameGraph
+
+struct ShadowFrameGraphRecord
+{
+    FrameGraph::RenderPassHandle                 pass_handle;
+    std::vector<FrameGraph::ResourceUsageHandle> shadow_maps;
+    FrameGraph::ResourceUsageHandle              meshlet_counters;
+    FrameGraph::ResourceUsageHandle              meshlet_indirect_draw_commands;
+    FrameGraph::ResourceUsageHandle              meshlet_visible_index_buffer;
+};
 
 struct PreparedData;
 struct StorageBufferAllocator;

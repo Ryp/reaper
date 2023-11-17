@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include "renderer/graph/FrameGraphBasicTypes.h"
 #include "renderer/vulkan/Buffer.h"
 #include "renderer/vulkan/Image.h"
 #include <vulkan_loader/Vulkan.h>
@@ -39,6 +40,18 @@ struct ShaderModules;
 
 HZBPassResources create_hzb_pass_resources(VulkanBackend& backend, const ShaderModules& shader_modules);
 void             destroy_hzb_pass_resources(VulkanBackend& backend, const HZBPassResources& resources);
+
+namespace FrameGraph
+{
+    class FrameGraph;
+}
+
+struct HZBReduceFrameGraphRecord
+{
+    FrameGraph::RenderPassHandle    pass_handle;
+    FrameGraph::ResourceUsageHandle depth;
+    FrameGraph::ResourceUsageHandle hzb_texture;
+};
 
 struct SamplerResources;
 class DescriptorWriteHelper;

@@ -8,6 +8,7 @@
 #pragma once
 
 #include "renderer/ResourceHandle.h"
+#include "renderer/graph/FrameGraphBasicTypes.h"
 #include "renderer/vulkan/Buffer.h"
 #include "renderer/vulkan/Image.h"
 
@@ -45,6 +46,23 @@ struct ShaderModules;
 
 ForwardPassResources create_forward_pass_resources(VulkanBackend& backend, const ShaderModules& shader_modules);
 void                 destroy_forward_pass_resources(VulkanBackend& backend, ForwardPassResources& resources);
+
+namespace FrameGraph
+{
+    class FrameGraph;
+}
+
+struct ForwardFrameGraphRecord
+{
+    FrameGraph::RenderPassHandle                 pass_handle;
+    FrameGraph::ResourceUsageHandle              scene_hdr;
+    FrameGraph::ResourceUsageHandle              depth;
+    std::vector<FrameGraph::ResourceUsageHandle> shadow_maps;
+    FrameGraph::ResourceUsageHandle              meshlet_counters;
+    FrameGraph::ResourceUsageHandle              meshlet_indirect_draw_commands;
+    FrameGraph::ResourceUsageHandle              meshlet_visible_index_buffer;
+    FrameGraph::ResourceUsageHandle              visible_meshlet_buffer;
+};
 
 struct MaterialResources;
 struct MeshCache;

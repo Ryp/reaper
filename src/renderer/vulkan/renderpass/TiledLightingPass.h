@@ -7,9 +7,11 @@
 
 #pragma once
 
+#include "renderer/graph/FrameGraphBasicTypes.h"
 #include "renderer/vulkan/Buffer.h"
 
 #include <span>
+#include <vector>
 
 namespace Reaper
 {
@@ -37,6 +39,30 @@ struct ShaderModules;
 TiledLightingPassResources create_tiled_lighting_pass_resources(VulkanBackend&       backend,
                                                                 const ShaderModules& shader_modules);
 void destroy_tiled_lighting_pass_resources(VulkanBackend& backend, TiledLightingPassResources& resources);
+
+namespace FrameGraph
+{
+    class FrameGraph;
+} // namespace FrameGraph
+
+struct TiledLightingFrameGraphRecord
+{
+    FrameGraph::RenderPassHandle                 pass_handle;
+    std::vector<FrameGraph::ResourceUsageHandle> shadow_maps;
+    FrameGraph::ResourceUsageHandle              light_list;
+    FrameGraph::ResourceUsageHandle              depth;
+    FrameGraph::ResourceUsageHandle              gbuffer_rt0;
+    FrameGraph::ResourceUsageHandle              gbuffer_rt1;
+    FrameGraph::ResourceUsageHandle              lighting;
+    FrameGraph::ResourceUsageHandle              tile_debug_texture;
+};
+
+struct TiledLightingDebugFrameGraphRecord
+{
+    FrameGraph::RenderPassHandle    pass_handle;
+    FrameGraph::ResourceUsageHandle tile_debug;
+    FrameGraph::ResourceUsageHandle output;
+};
 
 struct SamplerResources;
 class DescriptorWriteHelper;

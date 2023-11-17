@@ -230,15 +230,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         debug_geometry_clear.pass_handle, "Debug geometry user command buffer", debug_geometry_user_commands_properties,
         GPUBufferAccess{VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT});
 
-    // Shadow
-    struct ShadowFrameGraphData
-    {
-        RenderPassHandle                 pass_handle;
-        std::vector<ResourceUsageHandle> shadow_maps;
-        ResourceUsageHandle              meshlet_counters;
-        ResourceUsageHandle              meshlet_indirect_draw_commands;
-        ResourceUsageHandle              meshlet_visible_index_buffer;
-    } shadow;
+    ShadowFrameGraphRecord shadow;
 
     shadow.pass_handle = builder.create_render_pass("Shadow");
 
@@ -265,13 +257,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     VisBufferFrameGraphRecord vis_buffer_record = create_vis_buffer_pass_record(builder, meshlet_pass, render_extent);
 
-    // HZB
-    struct HZBReduceFrameGraphData
-    {
-        RenderPassHandle    pass_handle;
-        ResourceUsageHandle depth;
-        ResourceUsageHandle hzb_texture;
-    } hzb_reduce;
+    HZBReduceFrameGraphRecord hzb_reduce;
 
     hzb_reduce.pass_handle = builder.create_render_pass("HZB Reduce");
 
@@ -302,18 +288,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     const LightRasterFrameGraphRecord light_raster_record =
         create_tiled_lighting_raster_pass_record(builder, tiled_lighting_frame, hzb_properties, hzb_reduce.hzb_texture);
 
-    // Tiled Lighting
-    struct TiledLightingFrameGraphData
-    {
-        RenderPassHandle                 pass_handle;
-        std::vector<ResourceUsageHandle> shadow_maps;
-        ResourceUsageHandle              light_list;
-        ResourceUsageHandle              depth;
-        ResourceUsageHandle              gbuffer_rt0;
-        ResourceUsageHandle              gbuffer_rt1;
-        ResourceUsageHandle              lighting;
-        ResourceUsageHandle              tile_debug_texture;
-    } tiled_lighting;
+    TiledLightingFrameGraphRecord tiled_lighting;
 
     tiled_lighting.pass_handle = builder.create_render_pass("Tiled Lighting");
 
@@ -361,12 +336,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
                               GPUBufferAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT});
 
     // Tiled Lighting debug
-    struct TiledLightingDebugFrameGraphData
-    {
-        RenderPassHandle    pass_handle;
-        ResourceUsageHandle tile_debug;
-        ResourceUsageHandle output;
-    } tiled_lighting_debug;
+    TiledLightingDebugFrameGraphRecord tiled_lighting_debug;
 
     tiled_lighting_debug.pass_handle = builder.create_render_pass("Tiled Lighting Debug");
 
@@ -381,18 +351,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         GPUTextureAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT,
                          VK_IMAGE_LAYOUT_GENERAL});
 
-    // Forward
-    struct ForwardFrameGraphData
-    {
-        RenderPassHandle                 pass_handle;
-        ResourceUsageHandle              scene_hdr;
-        ResourceUsageHandle              depth;
-        std::vector<ResourceUsageHandle> shadow_maps;
-        ResourceUsageHandle              meshlet_counters;
-        ResourceUsageHandle              meshlet_indirect_draw_commands;
-        ResourceUsageHandle              meshlet_visible_index_buffer;
-        ResourceUsageHandle              visible_meshlet_buffer;
-    } forward;
+    ForwardFrameGraphRecord forward;
 
     forward.pass_handle = builder.create_render_pass("Forward");
 
