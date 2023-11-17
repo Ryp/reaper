@@ -223,35 +223,12 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         debug_geometry_clear.pass_handle, "Debug geometry user command buffer", debug_geometry_user_commands_properties,
         GPUBufferAccess{VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT});
 
-    ShadowFrameGraphRecord shadow;
+    const ShadowFrameGraphRecord shadow = create_shadow_map_pass_record(builder, meshlet_pass, prepared);
 
-    shadow.pass_handle = builder.create_render_pass("Shadow");
-
-    std::vector<GPUTextureProperties> shadow_map_properties = fill_shadow_map_properties(prepared);
-    for (const GPUTextureProperties& properties : shadow_map_properties)
-    {
-        shadow.shadow_maps.push_back(builder.create_texture(
-            shadow.pass_handle, "Shadow map", properties,
-            GPUTextureAccess{VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT,
-                             VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL}));
-    }
-
-    shadow.meshlet_counters = builder.read_buffer(
-        shadow.pass_handle, meshlet_pass.cull_triangles.meshlet_counters,
-        GPUBufferAccess{VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT, VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT});
-
-    shadow.meshlet_indirect_draw_commands = builder.read_buffer(
-        shadow.pass_handle, meshlet_pass.cull_triangles.meshlet_indirect_draw_commands,
-        GPUBufferAccess{VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT, VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT});
-
-    shadow.meshlet_visible_index_buffer =
-        builder.read_buffer(shadow.pass_handle, meshlet_pass.cull_triangles.meshlet_visible_index_buffer,
-                            GPUBufferAccess{VK_PIPELINE_STAGE_2_INDEX_INPUT_BIT, VK_ACCESS_2_INDEX_READ_BIT});
-
-    VisBufferFrameGraphRecord vis_buffer_record = create_vis_buffer_pass_record(builder, meshlet_pass, render_extent);
+    const VisBufferFrameGraphRecord vis_buffer_record =
+        create_vis_buffer_pass_record(builder, meshlet_pass, render_extent);
 
     HZBReduceFrameGraphRecord hzb_reduce;
-
     hzb_reduce.pass_handle = builder.create_render_pass("HZB Reduce");
 
     hzb_reduce.depth =
@@ -285,10 +262,10 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     tiled_lighting.pass_handle = builder.create_render_pass("Tiled Lighting");
 
-    for (u32 shadow_map_index = 0; shadow_map_index < shadow_map_properties.size(); shadow_map_index++)
+    for (auto shadow_map_usage_handle : shadow.shadow_maps)
     {
         tiled_lighting.shadow_maps.push_back(
-            builder.read_texture(tiled_lighting.pass_handle, shadow.shadow_maps[shadow_map_index],
+            builder.read_texture(tiled_lighting.pass_handle, shadow_map_usage_handle,
                                  GPUTextureAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
                                                   VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL}));
     }
@@ -360,10 +337,10 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
                                                            VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
                                                            VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL});
 
-    for (u32 shadow_map_index = 0; shadow_map_index < shadow_map_properties.size(); shadow_map_index++)
+    for (auto shadow_map_usage_handle : shadow.shadow_maps)
     {
         forward.shadow_maps.push_back(
-            builder.read_texture(forward.pass_handle, shadow.shadow_maps[shadow_map_index],
+            builder.read_texture(forward.pass_handle, shadow_map_usage_handle,
                                  GPUTextureAccess{VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
                                                   VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL}));
     }

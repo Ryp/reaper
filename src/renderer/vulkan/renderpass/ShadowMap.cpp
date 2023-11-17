@@ -12,6 +12,7 @@
 
 #include "renderer/PrepareBuckets.h"
 #include "renderer/buffer/GPUBufferView.h"
+#include "renderer/graph/FrameGraphBuilder.h"
 #include "renderer/texture/GPUTextureProperties.h"
 #include "renderer/vulkan/Backend.h"
 #include "renderer/vulkan/CommandBuffer.h"
@@ -73,9 +74,12 @@ void destroy_shadow_map_resources(VulkanBackend& backend, ShadowMapResources& re
     vkDestroyDescriptorSetLayout(backend.device, resources.pipe.descSetLayout, nullptr);
 }
 
-std::vector<GPUTextureProperties> fill_shadow_map_properties(const PreparedData& prepared)
+ShadowFrameGraphRecord create_shadow_map_pass_record(FrameGraph::Builder&                builder,
+                                                     const CullMeshletsFrameGraphRecord& meshlet_pass,
+                                                     const PreparedData&                 prepared)
 {
-    std::vector<GPUTextureProperties> shadow_map_properties;
+    ShadowFrameGraphRecord record;
+    record.pass_handle = builder.create_render_pass("Shadow");
 
     for (const ShadowPassData& shadow_pass : prepared.shadow_passes)
     {
@@ -83,10 +87,25 @@ std::vector<GPUTextureProperties> fill_shadow_map_properties(const PreparedData&
             shadow_pass.shadow_map_size.x, shadow_pass.shadow_map_size.y, ShadowMapFormat,
             GPUTextureUsage::DepthStencilAttachment | GPUTextureUsage::InputAttachment | GPUTextureUsage::Sampled);
 
-        shadow_map_properties.emplace_back(properties);
+        record.shadow_maps.push_back(builder.create_texture(
+            record.pass_handle, "Shadow map", properties,
+            GPUTextureAccess{VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT,
+                             VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL}));
     }
 
-    return shadow_map_properties;
+    record.meshlet_counters = builder.read_buffer(
+        record.pass_handle, meshlet_pass.cull_triangles.meshlet_counters,
+        GPUBufferAccess{VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT, VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT});
+
+    record.meshlet_indirect_draw_commands = builder.read_buffer(
+        record.pass_handle, meshlet_pass.cull_triangles.meshlet_indirect_draw_commands,
+        GPUBufferAccess{VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT, VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT});
+
+    record.meshlet_visible_index_buffer =
+        builder.read_buffer(record.pass_handle, meshlet_pass.cull_triangles.meshlet_visible_index_buffer,
+                            GPUBufferAccess{VK_PIPELINE_STAGE_2_INDEX_INPUT_BIT, VK_ACCESS_2_INDEX_READ_BIT});
+
+    return record;
 }
 
 void update_shadow_map_resources(DescriptorWriteHelper& write_helper, StorageBufferAllocator& frame_storage_allocator,

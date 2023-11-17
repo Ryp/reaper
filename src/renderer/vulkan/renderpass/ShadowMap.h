@@ -57,16 +57,19 @@ struct ShadowFrameGraphRecord
     FrameGraph::ResourceUsageHandle              meshlet_visible_index_buffer;
 };
 
+struct CullMeshletsFrameGraphRecord;
 struct PreparedData;
+
+ShadowFrameGraphRecord create_shadow_map_pass_record(FrameGraph::Builder&                builder,
+                                                     const CullMeshletsFrameGraphRecord& meshlet_pass,
+                                                     const PreparedData&                 prepared);
+
 struct StorageBufferAllocator;
 class DescriptorWriteHelper;
 
 void update_shadow_map_resources(DescriptorWriteHelper& write_helper, StorageBufferAllocator& frame_storage_allocator,
                                  const PreparedData& prepared, ShadowMapResources& resources,
                                  GPUBuffer& vertex_position_buffer);
-
-struct GPUTextureProperties;
-std::vector<GPUTextureProperties> fill_shadow_map_properties(const PreparedData& prepared);
 
 struct CommandBuffer;
 struct FrameGraphTexture;
