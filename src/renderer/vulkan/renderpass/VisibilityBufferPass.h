@@ -20,12 +20,6 @@
 
 namespace Reaper
 {
-namespace FrameGraph
-{
-    class FrameGraph;
-}
-struct FrameGraphResources;
-
 struct VisibilityBufferPipelineInfo
 {
     VkPipeline            pipeline;
@@ -33,8 +27,33 @@ struct VisibilityBufferPipelineInfo
     VkDescriptorSetLayout desc_set_layout;
 };
 
+struct VisibilityBufferPassResources
+{
+    VisibilityBufferPipelineInfo pipe;
+    VkDescriptorSet              descriptor_set;
+
+    VisibilityBufferPipelineInfo fill_pipe;
+    VkDescriptorSet              descriptor_set_fill;
+};
+
+struct ReaperRoot;
+struct VulkanBackend;
+struct ShaderModules;
+
+VisibilityBufferPassResources create_vis_buffer_pass_resources(ReaperRoot& root, VulkanBackend& backend,
+                                                               const ShaderModules& shader_modules);
+void destroy_vis_buffer_pass_resources(VulkanBackend& backend, VisibilityBufferPassResources& resources);
+
+namespace FrameGraph
+{
+    class FrameGraph;
+    class Builder;
+} // namespace FrameGraph
+
 struct VisBufferFrameGraphRecord
 {
+    GPUTextureProperties scene_depth_properties;
+
     struct Render
     {
         FrameGraph::RenderPassHandle    pass_handle;
@@ -57,23 +76,15 @@ struct VisBufferFrameGraphRecord
     } fill_gbuffer;
 };
 
-struct ReaperRoot;
-struct VulkanBackend;
-struct ShaderModules;
+struct TiledLightingFrame;
+struct GPUTextureProperties;
+struct CullMeshletsFrameGraphRecord;
 
-struct VisibilityBufferPassResources
-{
-    VisibilityBufferPipelineInfo pipe;
-    VkDescriptorSet              descriptor_set;
+VisBufferFrameGraphRecord create_vis_buffer_pass_record(FrameGraph::Builder&                builder,
+                                                        const CullMeshletsFrameGraphRecord& meshlet_pass,
+                                                        VkExtent2D                          render_extent);
 
-    VisibilityBufferPipelineInfo fill_pipe;
-    VkDescriptorSet              descriptor_set_fill;
-};
-
-VisibilityBufferPassResources create_vis_buffer_pass_resources(ReaperRoot& root, VulkanBackend& backend,
-                                                               const ShaderModules& shader_modules);
-void destroy_vis_buffer_pass_resources(VulkanBackend& backend, VisibilityBufferPassResources& resources);
-
+struct FrameGraphResources;
 struct MaterialResources;
 struct MeshCache;
 struct SamplerResources;

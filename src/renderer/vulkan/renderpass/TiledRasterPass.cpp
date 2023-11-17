@@ -134,12 +134,11 @@ TiledRasterResources create_tiled_raster_pass_resources(VulkanBackend& backend, 
                                                       shader_modules.copy_to_depth_from_hzb_fs),
         };
 
-        std::vector<VkDescriptorSetLayoutBinding> descriptorSetLayoutBinding = {
+        std::vector<VkDescriptorSetLayoutBinding> layout_bindings = {
             {0, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
         };
 
-        VkDescriptorSetLayout descriptor_set_layout =
-            create_descriptor_set_layout(backend.device, descriptorSetLayoutBinding);
+        VkDescriptorSetLayout descriptor_set_layout = create_descriptor_set_layout(backend.device, layout_bindings);
 
         const VkPushConstantRange constant_range = {VK_SHADER_STAGE_FRAGMENT_BIT, 0,
                                                     sizeof(CopyDepthFromHZBPushConstants)};

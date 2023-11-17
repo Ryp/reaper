@@ -7,11 +7,13 @@
 
 #include "VisibilityBufferPass.h"
 
+#include "GBufferPassConstants.h"
 #include "MeshletCulling.h"
 #include "ShadowConstants.h"
 
 #include "renderer/PrepareBuckets.h"
 
+#include "renderer/graph/FrameGraphBuilder.h"
 #include "renderer/vulkan/Backend.h"
 #include "renderer/vulkan/CommandBuffer.h"
 #include "renderer/vulkan/ComputeHelper.h"
@@ -245,6 +247,82 @@ void destroy_vis_buffer_pass_resources(VulkanBackend& backend, VisibilityBufferP
     vkDestroyPipeline(backend.device, resources.fill_pipe.pipeline, nullptr);
     vkDestroyPipelineLayout(backend.device, resources.fill_pipe.pipelineLayout, nullptr);
     vkDestroyDescriptorSetLayout(backend.device, resources.fill_pipe.desc_set_layout, nullptr);
+}
+
+VisBufferFrameGraphRecord create_vis_buffer_pass_record(FrameGraph::Builder&                builder,
+                                                        const CullMeshletsFrameGraphRecord& meshlet_pass,
+                                                        VkExtent2D                          render_extent)
+{
+    VisBufferFrameGraphRecord               vis_buffer_record;
+    VisBufferFrameGraphRecord::Render&      visibility = vis_buffer_record.render;
+    VisBufferFrameGraphRecord::FillGBuffer& visibility_gbuffer = vis_buffer_record.fill_gbuffer;
+
+    visibility.pass_handle = builder.create_render_pass("Visibility");
+
+    visibility.vis_buffer = builder.create_texture(
+        visibility.pass_handle, "Visibility Buffer",
+        default_texture_properties(render_extent.width, render_extent.height, VisibilityBufferFormat,
+                                   GPUTextureUsage::ColorAttachment | GPUTextureUsage::Sampled),
+        GPUTextureAccess{VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+                         VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL});
+
+    const GPUTextureProperties scene_depth_properties =
+        default_texture_properties(render_extent.width, render_extent.height, MainPassDepthFormat,
+                                   GPUTextureUsage::DepthStencilAttachment | GPUTextureUsage::Sampled);
+
+    vis_buffer_record.scene_depth_properties = scene_depth_properties;
+
+    visibility.depth = builder.create_texture(visibility.pass_handle, "Main Depth", scene_depth_properties,
+                                              GPUTextureAccess{VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT,
+                                                               VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+                                                               VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL});
+
+    visibility.meshlet_counters = builder.read_buffer(
+        visibility.pass_handle, meshlet_pass.cull_triangles.meshlet_counters,
+        GPUBufferAccess{VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT, VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT});
+
+    visibility.meshlet_indirect_draw_commands = builder.read_buffer(
+        visibility.pass_handle, meshlet_pass.cull_triangles.meshlet_indirect_draw_commands,
+        GPUBufferAccess{VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT, VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT});
+
+    visibility.meshlet_visible_index_buffer =
+        builder.read_buffer(visibility.pass_handle, meshlet_pass.cull_triangles.meshlet_visible_index_buffer,
+                            GPUBufferAccess{VK_PIPELINE_STAGE_2_INDEX_INPUT_BIT, VK_ACCESS_2_INDEX_READ_BIT});
+
+    visibility.visible_meshlet_buffer =
+        builder.read_buffer(visibility.pass_handle, meshlet_pass.cull_triangles.visible_meshlet_buffer,
+                            GPUBufferAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT});
+
+    visibility_gbuffer.pass_handle = builder.create_render_pass("Visibility Fill GBuffer");
+
+    visibility_gbuffer.vis_buffer =
+        builder.read_texture(visibility_gbuffer.pass_handle, visibility.vis_buffer,
+                             GPUTextureAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
+                                              VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL});
+
+    visibility_gbuffer.gbuffer_rt0 =
+        builder.create_texture(visibility_gbuffer.pass_handle, "GBuffer RT0",
+                               default_texture_properties(render_extent.width, render_extent.height, GBufferRT0Format,
+                                                          GPUTextureUsage::Sampled | GPUTextureUsage::Storage),
+                               GPUTextureAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT,
+                                                VK_IMAGE_LAYOUT_GENERAL});
+
+    visibility_gbuffer.gbuffer_rt1 =
+        builder.create_texture(visibility_gbuffer.pass_handle, "GBuffer RT1",
+                               default_texture_properties(render_extent.width, render_extent.height, GBufferRT1Format,
+                                                          GPUTextureUsage::Sampled | GPUTextureUsage::Storage),
+                               GPUTextureAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT,
+                                                VK_IMAGE_LAYOUT_GENERAL});
+
+    visibility_gbuffer.meshlet_visible_index_buffer =
+        builder.read_buffer(visibility_gbuffer.pass_handle, meshlet_pass.cull_triangles.meshlet_visible_index_buffer,
+                            GPUBufferAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT});
+
+    visibility_gbuffer.visible_meshlet_buffer =
+        builder.read_buffer(visibility_gbuffer.pass_handle, meshlet_pass.cull_triangles.visible_meshlet_buffer,
+                            GPUBufferAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT});
+
+    return vis_buffer_record;
 }
 
 void update_vis_buffer_pass_resources(const FrameGraph::FrameGraph&        frame_graph,

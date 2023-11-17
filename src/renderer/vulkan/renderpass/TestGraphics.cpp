@@ -23,7 +23,6 @@
 #include "renderer/vulkan/renderpass/Constants.h"
 #include "renderer/vulkan/renderpass/ForwardPassConstants.h"
 #include "renderer/vulkan/renderpass/FrameGraphPass.h"
-#include "renderer/vulkan/renderpass/GBufferPassConstants.h"
 #include "renderer/vulkan/renderpass/HZBPass.h"
 #include "renderer/vulkan/renderpass/TiledLightingCommon.h"
 #include "renderer/vulkan/renderpass/VisibilityBufferConstants.h"
@@ -264,72 +263,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         builder.read_buffer(shadow.pass_handle, meshlet_pass.cull_triangles.meshlet_visible_index_buffer,
                             GPUBufferAccess{VK_PIPELINE_STAGE_2_INDEX_INPUT_BIT, VK_ACCESS_2_INDEX_READ_BIT});
 
-    VisBufferFrameGraphRecord               vis_buffer_record;
-    VisBufferFrameGraphRecord::Render&      visibility = vis_buffer_record.render;
-    VisBufferFrameGraphRecord::FillGBuffer& visibility_gbuffer = vis_buffer_record.fill_gbuffer;
-
-    visibility.pass_handle = builder.create_render_pass("Visibility");
-
-    visibility.vis_buffer = builder.create_texture(
-        visibility.pass_handle, "Visibility Buffer",
-        default_texture_properties(render_extent.width, render_extent.height, VisibilityBufferFormat,
-                                   GPUTextureUsage::ColorAttachment | GPUTextureUsage::Sampled),
-        GPUTextureAccess{VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-                         VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL});
-
-    const GPUTextureProperties scene_depth_properties =
-        default_texture_properties(render_extent.width, render_extent.height, MainPassDepthFormat,
-                                   GPUTextureUsage::DepthStencilAttachment | GPUTextureUsage::Sampled);
-
-    visibility.depth = builder.create_texture(visibility.pass_handle, "Main Depth", scene_depth_properties,
-                                              GPUTextureAccess{VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT,
-                                                               VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
-                                                               VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL});
-
-    visibility.meshlet_counters = builder.read_buffer(
-        visibility.pass_handle, meshlet_pass.cull_triangles.meshlet_counters,
-        GPUBufferAccess{VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT, VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT});
-
-    visibility.meshlet_indirect_draw_commands = builder.read_buffer(
-        visibility.pass_handle, meshlet_pass.cull_triangles.meshlet_indirect_draw_commands,
-        GPUBufferAccess{VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT, VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT});
-
-    visibility.meshlet_visible_index_buffer =
-        builder.read_buffer(visibility.pass_handle, meshlet_pass.cull_triangles.meshlet_visible_index_buffer,
-                            GPUBufferAccess{VK_PIPELINE_STAGE_2_INDEX_INPUT_BIT, VK_ACCESS_2_INDEX_READ_BIT});
-
-    visibility.visible_meshlet_buffer =
-        builder.read_buffer(visibility.pass_handle, meshlet_pass.cull_triangles.visible_meshlet_buffer,
-                            GPUBufferAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT});
-
-    visibility_gbuffer.pass_handle = builder.create_render_pass("Visibility Fill GBuffer");
-
-    visibility_gbuffer.vis_buffer =
-        builder.read_texture(visibility_gbuffer.pass_handle, visibility.vis_buffer,
-                             GPUTextureAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
-                                              VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL});
-
-    visibility_gbuffer.gbuffer_rt0 =
-        builder.create_texture(visibility_gbuffer.pass_handle, "GBuffer RT0",
-                               default_texture_properties(render_extent.width, render_extent.height, GBufferRT0Format,
-                                                          GPUTextureUsage::Sampled | GPUTextureUsage::Storage),
-                               GPUTextureAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT,
-                                                VK_IMAGE_LAYOUT_GENERAL});
-
-    visibility_gbuffer.gbuffer_rt1 =
-        builder.create_texture(visibility_gbuffer.pass_handle, "GBuffer RT1",
-                               default_texture_properties(render_extent.width, render_extent.height, GBufferRT1Format,
-                                                          GPUTextureUsage::Sampled | GPUTextureUsage::Storage),
-                               GPUTextureAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT,
-                                                VK_IMAGE_LAYOUT_GENERAL});
-
-    visibility_gbuffer.meshlet_visible_index_buffer =
-        builder.read_buffer(visibility_gbuffer.pass_handle, meshlet_pass.cull_triangles.meshlet_visible_index_buffer,
-                            GPUBufferAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT});
-
-    visibility_gbuffer.visible_meshlet_buffer =
-        builder.read_buffer(visibility_gbuffer.pass_handle, meshlet_pass.cull_triangles.visible_meshlet_buffer,
-                            GPUBufferAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT});
+    VisBufferFrameGraphRecord vis_buffer_record = create_vis_buffer_pass_record(builder, meshlet_pass, render_extent);
 
     // HZB
     struct HZBReduceFrameGraphData
@@ -342,7 +276,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     hzb_reduce.pass_handle = builder.create_render_pass("HZB Reduce");
 
     hzb_reduce.depth =
-        builder.read_texture(hzb_reduce.pass_handle, visibility.depth,
+        builder.read_texture(hzb_reduce.pass_handle, vis_buffer_record.render.depth,
                              GPUTextureAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
                                               VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL});
 
@@ -396,17 +330,17 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
                             GPUBufferAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT});
 
     tiled_lighting.gbuffer_rt0 =
-        builder.read_texture(tiled_lighting.pass_handle, visibility_gbuffer.gbuffer_rt0,
+        builder.read_texture(tiled_lighting.pass_handle, vis_buffer_record.fill_gbuffer.gbuffer_rt0,
                              GPUTextureAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
                                               VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL});
 
     tiled_lighting.gbuffer_rt1 =
-        builder.read_texture(tiled_lighting.pass_handle, visibility_gbuffer.gbuffer_rt1,
+        builder.read_texture(tiled_lighting.pass_handle, vis_buffer_record.fill_gbuffer.gbuffer_rt1,
                              GPUTextureAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
                                               VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL});
 
     tiled_lighting.depth =
-        builder.read_texture(tiled_lighting.pass_handle, visibility.depth,
+        builder.read_texture(tiled_lighting.pass_handle, vis_buffer_record.render.depth,
                              GPUTextureAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
                                               VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL});
 
@@ -469,7 +403,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         GPUTextureAccess{VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
                          VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL});
 
-    forward.depth = builder.write_texture(forward.pass_handle, visibility.depth,
+    forward.depth = builder.write_texture(forward.pass_handle, vis_buffer_record.render.depth,
                                           GPUTextureAccess{VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT,
                                                            VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
                                                            VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL});
@@ -943,20 +877,22 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         {
             REAPER_GPU_SCOPE(cmdBuffer, "Visibility");
             record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
-                                       visibility.pass_handle, true);
+                                       vis_buffer_record.render.pass_handle, true);
 
             record_vis_buffer_pass_command_buffer(
                 cmdBuffer, prepared, resources.vis_buffer_pass_resources,
-                get_frame_graph_buffer(resources.framegraph_resources, framegraph, visibility.meshlet_counters),
                 get_frame_graph_buffer(resources.framegraph_resources, framegraph,
-                                       visibility.meshlet_indirect_draw_commands),
+                                       vis_buffer_record.render.meshlet_counters),
                 get_frame_graph_buffer(resources.framegraph_resources, framegraph,
-                                       visibility.meshlet_visible_index_buffer),
-                get_frame_graph_texture(resources.framegraph_resources, framegraph, visibility.vis_buffer),
-                get_frame_graph_texture(resources.framegraph_resources, framegraph, visibility.depth));
+                                       vis_buffer_record.render.meshlet_indirect_draw_commands),
+                get_frame_graph_buffer(resources.framegraph_resources, framegraph,
+                                       vis_buffer_record.render.meshlet_visible_index_buffer),
+                get_frame_graph_texture(resources.framegraph_resources, framegraph,
+                                        vis_buffer_record.render.vis_buffer),
+                get_frame_graph_texture(resources.framegraph_resources, framegraph, vis_buffer_record.render.depth));
 
             record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
-                                       visibility.pass_handle, false);
+                                       vis_buffer_record.render.pass_handle, false);
         }
 
         {
@@ -964,11 +900,11 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
             record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
                                        hzb_reduce.pass_handle, true);
 
-            record_hzb_command_buffer(
-                cmdBuffer,
-                resources.hzb_pass_resources,
-                VkExtent2D{.width = scene_depth_properties.width, .height = scene_depth_properties.height},
-                VkExtent2D{.width = hzb_properties.width, .height = hzb_properties.height});
+            record_hzb_command_buffer(cmdBuffer,
+                                      resources.hzb_pass_resources,
+                                      VkExtent2D{.width = vis_buffer_record.scene_depth_properties.width,
+                                                 .height = vis_buffer_record.scene_depth_properties.height},
+                                      VkExtent2D{.width = hzb_properties.width, .height = hzb_properties.height});
 
             record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
                                        hzb_reduce.pass_handle, false);
@@ -977,12 +913,12 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         {
             REAPER_GPU_SCOPE(cmdBuffer, "Visibility Fill GBuffer");
             record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
-                                       visibility_gbuffer.pass_handle, true);
+                                       vis_buffer_record.fill_gbuffer.pass_handle, true);
 
             record_fill_gbuffer_pass_command_buffer(cmdBuffer, resources.vis_buffer_pass_resources, render_extent);
 
             record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
-                                       visibility_gbuffer.pass_handle, false);
+                                       vis_buffer_record.fill_gbuffer.pass_handle, false);
         }
 
         {
