@@ -98,8 +98,8 @@ void update_shadow_map_resources(DescriptorWriteHelper& write_helper, StorageBuf
     if (prepared.shadow_instance_params.empty())
         return;
 
-    StorageBufferAlloc alloc = allocate_storage(frame_storage_allocator, prepared.shadow_instance_params.size()
-                                                                             * sizeof(ShadowMapInstanceParams));
+    const StorageBufferAlloc alloc = allocate_storage(frame_storage_allocator, prepared.shadow_instance_params.size()
+                                                                                   * sizeof(ShadowMapInstanceParams));
 
     upload_storage_buffer(frame_storage_allocator, alloc, prepared.shadow_instance_params.data());
 

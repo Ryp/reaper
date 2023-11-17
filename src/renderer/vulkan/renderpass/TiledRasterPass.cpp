@@ -12,6 +12,7 @@
 
 #include "renderer/PrepareBuckets.h"
 #include "renderer/buffer/GPUBufferView.h"
+#include "renderer/graph/FrameGraphBuilder.h"
 #include "renderer/vulkan/Backend.h"
 #include "renderer/vulkan/Buffer.h"
 #include "renderer/vulkan/CommandBuffer.h"
@@ -126,32 +127,6 @@ TiledRasterResources create_tiled_raster_pass_resources(VulkanBackend& backend, 
     TiledRasterResources resources = {};
 
     {
-        using namespace Downsample;
-
-        std::vector<VkDescriptorSetLayoutBinding> layout_bindings(g_bindings.size());
-        fill_layout_bindings(layout_bindings, g_bindings);
-
-        VkDescriptorSetLayout descriptor_set_layout = create_descriptor_set_layout(backend.device, layout_bindings);
-
-        const VkPushConstantRange pushConstantRange = {VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(TileDepthConstants)};
-
-        const VkPipelineLayout pipeline_layout = create_pipeline_layout(
-            backend.device, std::span(&descriptor_set_layout, 1), std::span(&pushConstantRange, 1));
-
-        const VkPipelineShaderStageCreateInfo shader_stage = default_pipeline_shader_stage_create_info(
-            VK_SHADER_STAGE_COMPUTE_BIT, shader_modules.tile_depth_downsample_cs, nullptr,
-            VK_PIPELINE_SHADER_STAGE_CREATE_REQUIRE_FULL_SUBGROUPS_BIT);
-
-        VkPipeline pipeline = create_compute_pipeline(backend.device, pipeline_layout, shader_stage);
-
-        Assert(backend.physical_device.subgroup_properties.subgroupSize >= MinWaveLaneCount);
-
-        resources.tile_depth.descriptor_set_layout = descriptor_set_layout;
-        resources.tile_depth.pipeline_layout = pipeline_layout;
-        resources.tile_depth.pipeline = pipeline;
-    }
-
-    {
         std::vector<VkPipelineShaderStageCreateInfo> shader_stages = {
             default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_VERTEX_BIT,
                                                       shader_modules.fullscreen_triangle_vs),
@@ -251,18 +226,16 @@ TiledRasterResources create_tiled_raster_pass_resources(VulkanBackend& backend, 
     }
 
     std::vector<VkDescriptorSetLayout> dset_layouts = {
-        resources.tile_depth.descriptor_set_layout, resources.depth_copy.descriptor_set_layout,
-        resources.classify_descriptor_set_layout, resources.light_raster.descriptor_set_layout,
-        resources.light_raster.descriptor_set_layout};
+        resources.depth_copy.descriptor_set_layout, resources.classify_descriptor_set_layout,
+        resources.light_raster.descriptor_set_layout, resources.light_raster.descriptor_set_layout};
     std::vector<VkDescriptorSet> dsets(dset_layouts.size());
 
     allocate_descriptor_sets(backend.device, backend.global_descriptor_pool, dset_layouts, dsets);
 
-    resources.tile_depth.descriptor_set = dsets[0];
-    resources.depth_copy.descriptor_set = dsets[1];
-    resources.classify_descriptor_set = dsets[2];
-    resources.light_raster.descriptor_sets[0] = dsets[3];
-    resources.light_raster.descriptor_sets[1] = dsets[4];
+    resources.depth_copy.descriptor_set = dsets[0];
+    resources.classify_descriptor_set = dsets[1];
+    resources.light_raster.descriptor_sets[0] = dsets[2];
+    resources.light_raster.descriptor_sets[1] = dsets[3];
 
     {
         const GPUBufferProperties properties = DefaultGPUBufferProperties(
@@ -300,10 +273,6 @@ void destroy_tiled_raster_pass_resources(VulkanBackend& backend, TiledRasterReso
     vkDestroyPipelineLayout(backend.device, resources.depth_copy.pipeline_layout, nullptr);
     vkDestroyDescriptorSetLayout(backend.device, resources.depth_copy.descriptor_set_layout, nullptr);
 
-    vkDestroyPipeline(backend.device, resources.tile_depth.pipeline, nullptr);
-    vkDestroyPipelineLayout(backend.device, resources.tile_depth.pipeline_layout, nullptr);
-    vkDestroyDescriptorSetLayout(backend.device, resources.tile_depth.descriptor_set_layout, nullptr);
-
     vkDestroyPipeline(backend.device, resources.light_raster.pipeline, nullptr);
     vkDestroyPipelineLayout(backend.device, resources.light_raster.pipeline_layout, nullptr);
     vkDestroyDescriptorSetLayout(backend.device, resources.light_raster.descriptor_set_layout, nullptr);
@@ -313,138 +282,222 @@ void destroy_tiled_raster_pass_resources(VulkanBackend& backend, TiledRasterReso
     vkDestroyDescriptorSetLayout(backend.device, resources.classify_descriptor_set_layout, nullptr);
 }
 
-void update_lighting_depth_downsample_descriptor_set(DescriptorWriteHelper&      write_helper,
-                                                     const TiledRasterResources& resources,
-                                                     const SamplerResources&     sampler_resources,
-                                                     const FrameGraphTexture&    scene_depth,
-                                                     const FrameGraphTexture&    tile_depth_min,
-                                                     const FrameGraphTexture&    tile_depth_max)
+LightRasterFrameGraphRecord create_tiled_lighting_raster_pass_record(FrameGraph::Builder&        builder,
+                                                                     const TiledLightingFrame&   tiled_lighting_frame,
+                                                                     const GPUTextureProperties& hzb_properties,
+                                                                     FrameGraph::ResourceUsageHandle hzb_usage_handle)
 {
-    using namespace Downsample;
+    LightRasterFrameGraphRecord                 record;
+    LightRasterFrameGraphRecord::TileDepthCopy& tile_depth_copy = record.tile_depth_copy;
 
-    write_helper.append(resources.tile_depth.descriptor_set, g_bindings[Sampler], sampler_resources.linear_clamp);
-    write_helper.append(resources.tile_depth.descriptor_set, g_bindings[SceneDepth], scene_depth.default_view_handle,
-                        scene_depth.image_layout);
-    write_helper.append(resources.tile_depth.descriptor_set, g_bindings[TileDepthMin],
-                        tile_depth_min.default_view_handle, tile_depth_min.image_layout);
-    write_helper.append(resources.tile_depth.descriptor_set, g_bindings[TileDepthMax],
-                        tile_depth_max.default_view_handle, tile_depth_max.image_layout);
+    tile_depth_copy.pass_handle = builder.create_render_pass("Tile Depth Copy");
+
+    const GPUTextureProperties tile_depth_properties = default_texture_properties(
+        tiled_lighting_frame.tile_count_x, tiled_lighting_frame.tile_count_y, MainPassDepthFormat,
+        GPUTextureUsage::DepthStencilAttachment | GPUTextureUsage::Sampled);
+
+    record.tile_depth_properties = tile_depth_properties;
+
+    const GPUTextureAccess tile_depth_copy_dst_access = {
+        VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
+        VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL};
+
+    tile_depth_copy.depth_min = builder.create_texture(tile_depth_copy.pass_handle, "Tile Depth Min",
+                                                       tile_depth_properties, tile_depth_copy_dst_access);
+    tile_depth_copy.depth_max = builder.create_texture(tile_depth_copy.pass_handle, "Tile Depth Max",
+                                                       tile_depth_properties, tile_depth_copy_dst_access);
+
+    {
+        GPUTextureView hzb_view = default_texture_view(hzb_properties);
+        hzb_view.subresource.mip_count = 1;
+        hzb_view.subresource.mip_offset = 3;
+
+        Assert(tile_depth_properties.width == hzb_properties.width >> hzb_view.subresource.mip_offset);
+        Assert(tile_depth_properties.height == hzb_properties.height >> hzb_view.subresource.mip_offset);
+
+        tile_depth_copy.hzb_texture = builder.read_texture(
+            tile_depth_copy.pass_handle, hzb_usage_handle,
+            {VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT, VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL},
+            std::span(&hzb_view, 1));
+    }
+
+    tile_depth_copy.light_list_clear = builder.create_buffer(
+        tile_depth_copy.pass_handle, "Light lists",
+        DefaultGPUBufferProperties(ElementsPerTile * tile_depth_properties.width * tile_depth_properties.height,
+                                   sizeof(u32), GPUBufferUsage::StorageBuffer | GPUBufferUsage::TransferDst),
+        GPUBufferAccess{VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT});
+
+    const GPUBufferProperties classification_counters_properties = DefaultGPUBufferProperties(
+        2, sizeof(u32), GPUBufferUsage::StorageBuffer | GPUBufferUsage::TransferDst | GPUBufferUsage::IndirectBuffer);
+
+    tile_depth_copy.classification_counters_clear = builder.create_buffer(
+        tile_depth_copy.pass_handle, "Classification counters", classification_counters_properties,
+        GPUBufferAccess{VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT});
+
+    LightRasterFrameGraphRecord::Classify& light_classify = record.light_classify;
+
+    light_classify.pass_handle = builder.create_render_pass("Classify Light Volumes");
+
+    light_classify.classification_counters =
+        builder.write_buffer(light_classify.pass_handle, tile_depth_copy.classification_counters_clear,
+                             GPUBufferAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+                                             VK_ACCESS_2_SHADER_WRITE_BIT | VK_ACCESS_2_SHADER_READ_BIT});
+
+    const GPUBufferProperties draw_command_classify_properties =
+        DefaultGPUBufferProperties(TiledRasterMaxIndirectCommandCount, 4 * sizeof(u32), // FIXME
+                                   GPUBufferUsage::StorageBuffer | GPUBufferUsage::IndirectBuffer);
+
+    const GPUBufferAccess draw_command_classify_access = {VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+                                                          VK_ACCESS_2_SHADER_WRITE_BIT};
+
+    light_classify.draw_commands_inner =
+        builder.create_buffer(light_classify.pass_handle, "Draw Commands Inner", draw_command_classify_properties,
+                              draw_command_classify_access);
+    light_classify.draw_commands_outer =
+        builder.create_buffer(light_classify.pass_handle, "Draw Commands Outer", draw_command_classify_properties,
+                              draw_command_classify_access);
+
+    LightRasterFrameGraphRecord::Raster& light_raster = record.light_raster;
+
+    light_raster.pass_handle = builder.create_render_pass("Rasterize Light Volumes");
+
+    light_raster.command_counters = builder.read_buffer(
+        light_raster.pass_handle, light_classify.classification_counters,
+        GPUBufferAccess{VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT, VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT});
+
+    {
+        const GPUBufferAccess draw_command_raster_read_access = {VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT,
+                                                                 VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT};
+
+        light_raster.draw_commands_inner = builder.read_buffer(
+            light_raster.pass_handle, light_classify.draw_commands_inner, draw_command_raster_read_access);
+        light_raster.draw_commands_outer = builder.read_buffer(
+            light_raster.pass_handle, light_classify.draw_commands_outer, draw_command_raster_read_access);
+    }
+
+    {
+        GPUTextureAccess tile_depth_access = {
+            VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
+            VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT, VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL};
+
+        light_raster.tile_depth_min =
+            builder.read_texture(light_raster.pass_handle, tile_depth_copy.depth_min, tile_depth_access);
+        light_raster.tile_depth_max =
+            builder.read_texture(light_raster.pass_handle, tile_depth_copy.depth_max, tile_depth_access);
+    }
+
+    light_raster.light_list =
+        builder.write_buffer(light_raster.pass_handle,
+                             tile_depth_copy.light_list_clear,
+                             GPUBufferAccess{VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+                                             VK_ACCESS_2_SHADER_WRITE_BIT | VK_ACCESS_2_SHADER_READ_BIT});
+
+    return record;
 }
 
-void update_depth_copy_pass_descriptor_set(DescriptorWriteHelper&      write_helper,
-                                           const TiledRasterResources& resources,
-                                           const FrameGraphTexture&    hzb_texture)
+namespace
 {
-    write_helper.append(resources.depth_copy.descriptor_set, 0, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-                        hzb_texture.additional_views[0], hzb_texture.image_layout);
-}
+    void update_depth_copy_pass_descriptor_set(DescriptorWriteHelper&      write_helper,
+                                               const TiledRasterResources& resources,
+                                               const FrameGraphTexture&    hzb_texture)
+    {
+        write_helper.append(resources.depth_copy.descriptor_set, 0, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+                            hzb_texture.additional_views[0], hzb_texture.image_layout);
+    }
 
-void update_classify_descriptor_set(DescriptorWriteHelper&      write_helper,
-                                    const TiledRasterResources& resources,
-                                    const FrameGraphBuffer&     classification_counters,
-                                    const FrameGraphBuffer&     draw_commands_inner,
-                                    const FrameGraphBuffer&     draw_commands_outer)
-{
-    using namespace Classify;
+    void update_classify_descriptor_set(DescriptorWriteHelper&      write_helper,
+                                        const TiledRasterResources& resources,
+                                        const FrameGraphBuffer&     classification_counters,
+                                        const FrameGraphBuffer&     draw_commands_inner,
+                                        const FrameGraphBuffer&     draw_commands_outer,
+                                        const StorageBufferAlloc&   proxy_volumes_alloc)
+    {
+        using namespace Classify;
 
-    write_helper.append(resources.classify_descriptor_set, g_bindings[VertexPositionsMS],
-                        resources.vertex_buffer_position.handle);
-    write_helper.append(resources.classify_descriptor_set, g_bindings[InnerOuterCounter],
-                        classification_counters.handle);
-    write_helper.append(resources.classify_descriptor_set, g_bindings[DrawCommandsInner], draw_commands_inner.handle);
-    write_helper.append(resources.classify_descriptor_set, g_bindings[DrawCommandsOuter], draw_commands_outer.handle);
-    // NOTE: done earlier
-    // g_bindings[ProxyVolumeBuffer]
-}
+        write_helper.append(resources.classify_descriptor_set, g_bindings[VertexPositionsMS],
+                            resources.vertex_buffer_position.handle);
+        write_helper.append(resources.classify_descriptor_set, g_bindings[InnerOuterCounter],
+                            classification_counters.handle);
+        write_helper.append(resources.classify_descriptor_set, g_bindings[DrawCommandsInner],
+                            draw_commands_inner.handle);
+        write_helper.append(resources.classify_descriptor_set, g_bindings[DrawCommandsOuter],
+                            draw_commands_outer.handle);
+        write_helper.append(resources.classify_descriptor_set, g_bindings[ProxyVolumeBuffer],
+                            proxy_volumes_alloc.buffer, proxy_volumes_alloc.offset_bytes,
+                            proxy_volumes_alloc.size_bytes);
+    }
 
-void update_light_raster_pass_descriptor_sets(DescriptorWriteHelper&      write_helper,
-                                              const TiledRasterResources& resources,
-                                              const FrameGraphTexture&    depth_min,
-                                              const FrameGraphTexture&    depth_max,
-                                              const FrameGraphBuffer&     light_list_buffer)
-{
-    using namespace Raster;
+    void update_light_raster_pass_descriptor_sets(DescriptorWriteHelper&      write_helper,
+                                                  const TiledRasterResources& resources,
+                                                  const FrameGraphTexture&    depth_min,
+                                                  const FrameGraphTexture&    depth_max,
+                                                  const FrameGraphBuffer&     light_list_buffer,
+                                                  const StorageBufferAlloc&   light_volumes_alloc)
+    {
+        using namespace Raster;
 
-    // NOTE: done earlier
-    // g_bindings[LightVolumeInstances]
-    write_helper.append(resources.light_raster.descriptor_sets[RasterPass::Inner], g_bindings[TileDepth],
-                        depth_min.default_view_handle, depth_min.image_layout);
-    write_helper.append(resources.light_raster.descriptor_sets[RasterPass::Inner], g_bindings[TileVisibleLightIndices],
-                        light_list_buffer.handle);
-    write_helper.append(resources.light_raster.descriptor_sets[RasterPass::Inner], g_bindings[VertexPositionsMS],
-                        resources.vertex_buffer_position.handle);
+        write_helper.append(resources.light_raster.descriptor_sets[RasterPass::Inner], g_bindings[LightVolumeInstances],
+                            light_volumes_alloc.buffer, light_volumes_alloc.offset_bytes,
+                            light_volumes_alloc.size_bytes);
+        write_helper.append(resources.light_raster.descriptor_sets[RasterPass::Inner], g_bindings[TileDepth],
+                            depth_min.default_view_handle, depth_min.image_layout);
+        write_helper.append(resources.light_raster.descriptor_sets[RasterPass::Inner],
+                            g_bindings[TileVisibleLightIndices], light_list_buffer.handle);
+        write_helper.append(resources.light_raster.descriptor_sets[RasterPass::Inner], g_bindings[VertexPositionsMS],
+                            resources.vertex_buffer_position.handle);
 
-    // NOTE: done earlier
-    // g_bindings[LightVolumeInstances]
-    write_helper.append(resources.light_raster.descriptor_sets[RasterPass::Outer], g_bindings[TileDepth],
-                        depth_max.default_view_handle, depth_max.image_layout);
-    write_helper.append(resources.light_raster.descriptor_sets[RasterPass::Outer], g_bindings[TileVisibleLightIndices],
-                        light_list_buffer.handle);
-    write_helper.append(resources.light_raster.descriptor_sets[RasterPass::Outer], g_bindings[VertexPositionsMS],
-                        resources.vertex_buffer_position.handle);
-}
+        write_helper.append(resources.light_raster.descriptor_sets[RasterPass::Outer], g_bindings[LightVolumeInstances],
+                            light_volumes_alloc.buffer, light_volumes_alloc.offset_bytes,
+                            light_volumes_alloc.size_bytes);
+        write_helper.append(resources.light_raster.descriptor_sets[RasterPass::Outer], g_bindings[TileDepth],
+                            depth_max.default_view_handle, depth_max.image_layout);
+        write_helper.append(resources.light_raster.descriptor_sets[RasterPass::Outer],
+                            g_bindings[TileVisibleLightIndices], light_list_buffer.handle);
+        write_helper.append(resources.light_raster.descriptor_sets[RasterPass::Outer], g_bindings[VertexPositionsMS],
+                            resources.vertex_buffer_position.handle);
+    }
+} // namespace
 
-void upload_tiled_raster_pass_frame_resources(DescriptorWriteHelper&    write_helper,
-                                              StorageBufferAllocator&   frame_storage_allocator,
-                                              const TiledLightingFrame& tiled_lighting_frame,
-                                              TiledRasterResources&     resources)
+void update_tiled_lighting_raster_pass_resources(const FrameGraph::FrameGraph&      frame_graph,
+                                                 const FrameGraphResources&         frame_graph_resources,
+                                                 const LightRasterFrameGraphRecord& record,
+                                                 DescriptorWriteHelper&             write_helper,
+                                                 StorageBufferAllocator&            frame_storage_allocator,
+                                                 const TiledRasterResources&        resources,
+                                                 const TiledLightingFrame&          tiled_lighting_frame)
 {
     REAPER_PROFILE_SCOPE_FUNC();
 
     if (tiled_lighting_frame.light_volumes.empty())
         return;
 
-    {
-        StorageBufferAlloc light_volumes_alloc = allocate_storage(
-            frame_storage_allocator, tiled_lighting_frame.light_volumes.size() * sizeof(LightVolumeInstance));
+    update_depth_copy_pass_descriptor_set(
+        write_helper, resources,
+        get_frame_graph_texture(frame_graph_resources, frame_graph, record.tile_depth_copy.hzb_texture));
 
-        upload_storage_buffer(frame_storage_allocator, light_volumes_alloc, tiled_lighting_frame.light_volumes.data());
+    const StorageBufferAlloc proxy_volumes_alloc = allocate_storage(
+        frame_storage_allocator, tiled_lighting_frame.proxy_volumes.size() * sizeof(ProxyVolumeInstance));
 
-        using namespace Raster;
+    upload_storage_buffer(frame_storage_allocator, proxy_volumes_alloc, tiled_lighting_frame.proxy_volumes.data());
 
-        write_helper.append(resources.light_raster.descriptor_sets[RasterPass::Inner], g_bindings[LightVolumeInstances],
-                            light_volumes_alloc.buffer, light_volumes_alloc.offset_bytes,
-                            light_volumes_alloc.size_bytes);
-        write_helper.append(resources.light_raster.descriptor_sets[RasterPass::Outer], g_bindings[LightVolumeInstances],
-                            light_volumes_alloc.buffer, light_volumes_alloc.offset_bytes,
-                            light_volumes_alloc.size_bytes);
-    }
+    update_classify_descriptor_set(
+        write_helper, resources,
+        get_frame_graph_buffer(frame_graph_resources, frame_graph, record.light_classify.classification_counters),
+        get_frame_graph_buffer(frame_graph_resources, frame_graph, record.light_classify.draw_commands_inner),
+        get_frame_graph_buffer(frame_graph_resources, frame_graph, record.light_classify.draw_commands_outer),
+        proxy_volumes_alloc);
 
-    {
-        StorageBufferAlloc proxy_volumes_alloc = allocate_storage(
-            frame_storage_allocator, tiled_lighting_frame.proxy_volumes.size() * sizeof(ProxyVolumeInstance));
+    const StorageBufferAlloc light_volumes_alloc = allocate_storage(
+        frame_storage_allocator, tiled_lighting_frame.light_volumes.size() * sizeof(LightVolumeInstance));
 
-        upload_storage_buffer(frame_storage_allocator, proxy_volumes_alloc, tiled_lighting_frame.proxy_volumes.data());
+    upload_storage_buffer(frame_storage_allocator, light_volumes_alloc, tiled_lighting_frame.light_volumes.data());
 
-        using namespace Classify;
-
-        write_helper.append(resources.classify_descriptor_set, g_bindings[ProxyVolumeBuffer],
-                            proxy_volumes_alloc.buffer, proxy_volumes_alloc.offset_bytes,
-                            proxy_volumes_alloc.size_bytes);
-    }
-}
-
-void record_tile_depth_pass_command_buffer(CommandBuffer&                         cmdBuffer,
-                                           const TiledRasterResources::TileDepth& tile_depth_resources,
-                                           VkExtent2D                             render_extent)
-{
-    vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE, tile_depth_resources.pipeline);
-
-    TileDepthConstants push_constants;
-    push_constants.extent_ts = glm::uvec2(render_extent.width, render_extent.height);
-    push_constants.extent_ts_inv =
-        glm::fvec2(1.f / static_cast<float>(render_extent.width), 1.f / static_cast<float>(render_extent.height));
-
-    vkCmdPushConstants(cmdBuffer.handle, tile_depth_resources.pipeline_layout, VK_SHADER_STAGE_COMPUTE_BIT, 0,
-                       sizeof(push_constants), &push_constants);
-
-    vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE, tile_depth_resources.pipeline_layout, 0,
-                            1, &tile_depth_resources.descriptor_set, 0, nullptr);
-
-    vkCmdDispatch(cmdBuffer.handle,
-                  div_round_up(render_extent.width, TileDepthThreadCountX * 2),
-                  div_round_up(render_extent.height, TileDepthThreadCountY * 2),
-                  1);
+    update_light_raster_pass_descriptor_sets(
+        write_helper, resources,
+        get_frame_graph_texture(frame_graph_resources, frame_graph, record.light_raster.tile_depth_min),
+        get_frame_graph_texture(frame_graph_resources, frame_graph, record.light_raster.tile_depth_max),
+        get_frame_graph_buffer(frame_graph_resources, frame_graph, record.light_raster.light_list),
+        light_volumes_alloc);
 }
 
 void record_depth_copy(CommandBuffer& cmdBuffer, const TiledRasterResources& resources,
@@ -484,7 +537,7 @@ void record_depth_copy(CommandBuffer& cmdBuffer, const TiledRasterResources& res
 
         vkCmdEndRendering(cmdBuffer.handle);
     }
-}
+} // namespace
 
 void record_light_classify_command_buffer(CommandBuffer&              cmdBuffer,
                                           const TiledLightingFrame&   tiled_lighting_frame,

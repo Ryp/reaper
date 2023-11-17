@@ -7,6 +7,8 @@
 
 #pragma once
 
+#include "renderer/graph/FrameGraphBasicTypes.h"
+#include "renderer/texture/GPUTextureProperties.h"
 #include "renderer/vulkan/Buffer.h"
 
 #include <array>
@@ -24,15 +26,6 @@ struct ProxyMeshAlloc
 
 struct TiledRasterResources
 {
-    struct TileDepth
-    {
-        VkDescriptorSetLayout descriptor_set_layout;
-        VkPipelineLayout      pipeline_layout;
-        VkPipeline            pipeline;
-
-        VkDescriptorSet descriptor_set;
-    } tile_depth;
-
     struct DepthCopy
     {
         VkDescriptorSetLayout descriptor_set_layout;
@@ -69,54 +62,69 @@ struct ShaderModules;
 TiledRasterResources create_tiled_raster_pass_resources(VulkanBackend& backend, const ShaderModules& shader_modules);
 void                 destroy_tiled_raster_pass_resources(VulkanBackend& backend, TiledRasterResources& resources);
 
-struct SamplerResources;
-struct GPUBufferView;
-class DescriptorWriteHelper;
-struct FrameGraphTexture;
-struct FrameGraphBuffer;
-struct LightingPassResources;
+namespace FrameGraph
+{
+    struct FrameGraph;
+    struct Builder;
+}; // namespace FrameGraph
 
-void update_lighting_depth_downsample_descriptor_set(DescriptorWriteHelper&      write_helper,
-                                                     const TiledRasterResources& resources,
-                                                     const SamplerResources&     sampler_resources,
-                                                     const FrameGraphTexture&    scene_depth,
-                                                     const FrameGraphTexture&    tile_depth_min,
-                                                     const FrameGraphTexture&    tile_depth_max);
+struct LightRasterFrameGraphRecord
+{
+    GPUTextureProperties tile_depth_properties;
 
-void update_depth_copy_pass_descriptor_set(DescriptorWriteHelper&      write_helper,
-                                           const TiledRasterResources& resources,
-                                           const FrameGraphTexture&    hzb_texture);
+    struct TileDepthCopy
+    {
+        FrameGraph::RenderPassHandle    pass_handle;
+        FrameGraph::ResourceUsageHandle depth_min;
+        FrameGraph::ResourceUsageHandle depth_max;
+        FrameGraph::ResourceUsageHandle hzb_texture;
+        FrameGraph::ResourceUsageHandle light_list_clear;
+        FrameGraph::ResourceUsageHandle classification_counters_clear;
+    } tile_depth_copy;
 
-void update_classify_descriptor_set(DescriptorWriteHelper&      write_helper,
-                                    const TiledRasterResources& resources,
-                                    const FrameGraphBuffer&     classification_counters,
-                                    const FrameGraphBuffer&     draw_commands_inner,
-                                    const FrameGraphBuffer&     draw_commands_outer);
+    struct Classify
+    {
+        FrameGraph::RenderPassHandle    pass_handle;
+        FrameGraph::ResourceUsageHandle classification_counters;
+        FrameGraph::ResourceUsageHandle draw_commands_inner;
+        FrameGraph::ResourceUsageHandle draw_commands_outer;
+    } light_classify;
 
-void update_light_raster_pass_descriptor_sets(DescriptorWriteHelper&      write_helper,
-                                              const TiledRasterResources& resources,
-                                              const FrameGraphTexture&    depth_min,
-                                              const FrameGraphTexture&    depth_max,
-                                              const FrameGraphBuffer&     light_list_buffer);
+    struct Raster
+    {
+        FrameGraph::RenderPassHandle    pass_handle;
+        FrameGraph::ResourceUsageHandle command_counters;
+        FrameGraph::ResourceUsageHandle draw_commands_inner;
+        FrameGraph::ResourceUsageHandle draw_commands_outer;
+        FrameGraph::ResourceUsageHandle tile_depth_min;
+        FrameGraph::ResourceUsageHandle tile_depth_max;
+        FrameGraph::ResourceUsageHandle light_list;
+    } light_raster;
+};
 
-struct SceneGraph;
 struct TiledLightingFrame;
+struct GPUTextureProperties;
 
-void prepare_tile_lighting_frame(const SceneGraph& scene, TiledLightingFrame& tiled_lighting_frame);
+LightRasterFrameGraphRecord create_tiled_lighting_raster_pass_record(FrameGraph::Builder&        builder,
+                                                                     const TiledLightingFrame&   tiled_lighting_frame,
+                                                                     const GPUTextureProperties& hzb_properties,
+                                                                     FrameGraph::ResourceUsageHandle hzb_usage_handle);
 
-struct PreparedData;
+struct FrameGraphResources;
+class DescriptorWriteHelper;
 struct StorageBufferAllocator;
 
-void upload_tiled_raster_pass_frame_resources(DescriptorWriteHelper&    write_helper,
-                                              StorageBufferAllocator&   frame_storage_allocator,
-                                              const TiledLightingFrame& tiled_lighting_frame,
-                                              TiledRasterResources&     resources);
+void update_tiled_lighting_raster_pass_resources(const FrameGraph::FrameGraph&      frame_graph,
+                                                 const FrameGraphResources&         frame_graph_resources,
+                                                 const LightRasterFrameGraphRecord& record,
+                                                 DescriptorWriteHelper&             write_helper,
+                                                 StorageBufferAllocator&            frame_storage_allocator,
+                                                 const TiledRasterResources&        resources,
+                                                 const TiledLightingFrame&          tiled_lighting_frame);
 
 struct CommandBuffer;
-
-void record_tile_depth_pass_command_buffer(CommandBuffer&                         cmdBuffer,
-                                           const TiledRasterResources::TileDepth& tile_depth_resources,
-                                           VkExtent2D                             render_extent);
+struct FrameGraphTexture;
+struct FrameGraphBuffer;
 
 void record_depth_copy(CommandBuffer& cmdBuffer, const TiledRasterResources& pass_resources,
                        const FrameGraphTexture& depth_min_dst, const FrameGraphTexture& depth_max_dst);

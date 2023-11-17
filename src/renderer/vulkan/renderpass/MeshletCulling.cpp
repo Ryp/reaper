@@ -462,7 +462,7 @@ void update_meshlet_culling_passes_resources(const FrameGraph::FrameGraph&      
 
     Assert(!prepared.cull_mesh_instance_params.empty());
 
-    StorageBufferAlloc mesh_instance_alloc = allocate_storage(
+    const StorageBufferAlloc mesh_instance_alloc = allocate_storage(
         frame_storage_allocator, prepared.cull_mesh_instance_params.size() * sizeof(CullMeshInstanceParams));
 
     upload_storage_buffer(frame_storage_allocator, mesh_instance_alloc, prepared.cull_mesh_instance_params.data());
