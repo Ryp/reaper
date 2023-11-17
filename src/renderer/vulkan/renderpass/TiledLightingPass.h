@@ -42,6 +42,7 @@ void destroy_tiled_lighting_pass_resources(VulkanBackend& backend, TiledLighting
 
 namespace FrameGraph
 {
+    class Builder;
     class FrameGraph;
 } // namespace FrameGraph
 
@@ -57,12 +58,24 @@ struct TiledLightingFrameGraphRecord
     FrameGraph::ResourceUsageHandle              tile_debug_texture;
 };
 
+struct VisBufferFrameGraphRecord;
+struct ShadowFrameGraphRecord;
+struct LightRasterFrameGraphRecord;
+
+TiledLightingFrameGraphRecord create_tiled_lighting_pass_record(FrameGraph::Builder&               builder,
+                                                                const VisBufferFrameGraphRecord&   vis_buffer_record,
+                                                                const ShadowFrameGraphRecord&      shadow,
+                                                                const LightRasterFrameGraphRecord& light_raster_record);
+
 struct TiledLightingDebugFrameGraphRecord
 {
     FrameGraph::RenderPassHandle    pass_handle;
     FrameGraph::ResourceUsageHandle tile_debug;
     FrameGraph::ResourceUsageHandle output;
 };
+
+TiledLightingDebugFrameGraphRecord create_tiled_lighting_debug_pass_record(
+    FrameGraph::Builder& builder, const TiledLightingFrameGraphRecord& tiled_lighting_record, VkExtent2D render_extent);
 
 struct SamplerResources;
 class DescriptorWriteHelper;

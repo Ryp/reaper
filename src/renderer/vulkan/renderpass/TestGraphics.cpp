@@ -234,71 +234,13 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     const LightRasterFrameGraphRecord light_raster_record = create_tiled_lighting_raster_pass_record(
         builder, tiled_lighting_frame, hzb_reduce.hzb_properties, hzb_reduce.hzb_texture);
 
-    TiledLightingFrameGraphRecord tiled_lighting;
+    const TiledLightingFrameGraphRecord tiled_lighting =
+        create_tiled_lighting_pass_record(builder, vis_buffer_record, shadow, light_raster_record);
 
-    tiled_lighting.pass_handle = builder.create_render_pass("Tiled Lighting");
-
-    for (auto shadow_map_usage_handle : shadow.shadow_maps)
-    {
-        tiled_lighting.shadow_maps.push_back(
-            builder.read_texture(tiled_lighting.pass_handle, shadow_map_usage_handle,
-                                 GPUTextureAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
-                                                  VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL}));
-    }
-
-    tiled_lighting.light_list =
-        builder.read_buffer(tiled_lighting.pass_handle, light_raster_record.light_raster.light_list,
-                            GPUBufferAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT});
-
-    tiled_lighting.gbuffer_rt0 =
-        builder.read_texture(tiled_lighting.pass_handle, vis_buffer_record.fill_gbuffer.gbuffer_rt0,
-                             GPUTextureAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
-                                              VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL});
-
-    tiled_lighting.gbuffer_rt1 =
-        builder.read_texture(tiled_lighting.pass_handle, vis_buffer_record.fill_gbuffer.gbuffer_rt1,
-                             GPUTextureAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
-                                              VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL});
-
-    tiled_lighting.depth =
-        builder.read_texture(tiled_lighting.pass_handle, vis_buffer_record.render.depth,
-                             GPUTextureAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
-                                              VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL});
-
-    tiled_lighting.lighting = builder.create_texture(
-        tiled_lighting.pass_handle, "Lighting",
-        default_texture_properties(render_extent.width, render_extent.height, PixelFormat::B10G11R11_UFLOAT_PACK32,
-                                   GPUTextureUsage::Storage | GPUTextureUsage::Sampled
-                                       | GPUTextureUsage::ColorAttachment),
-        GPUTextureAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT,
-                         VK_IMAGE_LAYOUT_GENERAL});
-
-    const GPUBufferProperties tile_debug_properties = DefaultGPUBufferProperties(
-        light_raster_record.tile_depth_properties.width * light_raster_record.tile_depth_properties.height,
-        sizeof(TileDebug), GPUBufferUsage::StorageBuffer);
-
-    tiled_lighting.tile_debug_texture =
-        builder.create_buffer(tiled_lighting.pass_handle, "Tile debug", tile_debug_properties,
-                              GPUBufferAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT});
-
-    // Tiled Lighting debug
-    TiledLightingDebugFrameGraphRecord tiled_lighting_debug;
-
-    tiled_lighting_debug.pass_handle = builder.create_render_pass("Tiled Lighting Debug");
-
-    tiled_lighting_debug.tile_debug =
-        builder.read_buffer(tiled_lighting_debug.pass_handle, tiled_lighting.tile_debug_texture,
-                            GPUBufferAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT});
-
-    tiled_lighting_debug.output = builder.create_texture(
-        tiled_lighting_debug.pass_handle, "Tiled Lighting Debug Texture",
-        default_texture_properties(render_extent.width, render_extent.height, PixelFormat::R8G8B8A8_UNORM,
-                                   GPUTextureUsage::Storage | GPUTextureUsage::Sampled),
-        GPUTextureAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT,
-                         VK_IMAGE_LAYOUT_GENERAL});
+    const TiledLightingDebugFrameGraphRecord tiled_lighting_debug_record =
+        create_tiled_lighting_debug_pass_record(builder, tiled_lighting, render_extent);
 
     ForwardFrameGraphRecord forward;
-
     forward.pass_handle = builder.create_render_pass("Forward");
 
     forward.scene_hdr = builder.create_texture(
@@ -447,7 +389,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
                             GPUBufferAccess{VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT});
 
     swapchain.tile_debug =
-        builder.read_texture(swapchain.pass_handle, tiled_lighting_debug.output,
+        builder.read_texture(swapchain.pass_handle, tiled_lighting_debug_record.output,
                              GPUTextureAccess{VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
                                               VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL});
 
@@ -524,8 +466,8 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     update_tiled_lighting_debug_pass_descriptor_sets(
         descriptor_write_helper, resources.tiled_lighting_resources,
-        get_frame_graph_buffer(resources.framegraph_resources, framegraph, tiled_lighting_debug.tile_debug),
-        get_frame_graph_texture(resources.framegraph_resources, framegraph, tiled_lighting_debug.output));
+        get_frame_graph_buffer(resources.framegraph_resources, framegraph, tiled_lighting_debug_record.tile_debug),
+        get_frame_graph_texture(resources.framegraph_resources, framegraph, tiled_lighting_debug_record.output));
 
     update_histogram_pass_descriptor_set(
         descriptor_write_helper, resources.histogram_pass_resources, resources.samplers_resources,
@@ -858,14 +800,14 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         {
             REAPER_GPU_SCOPE(cmdBuffer, "Tiled Lighting Debug");
             record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
-                                       tiled_lighting_debug.pass_handle, true);
+                                       tiled_lighting_debug_record.pass_handle, true);
 
             record_tiled_lighting_debug_command_buffer(cmdBuffer, resources.tiled_lighting_resources, render_extent,
                                                        VkExtent2D{light_raster_record.tile_depth_properties.width,
                                                                   light_raster_record.tile_depth_properties.height});
 
             record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
-                                       tiled_lighting_debug.pass_handle, false);
+                                       tiled_lighting_debug_record.pass_handle, false);
         }
 
         {

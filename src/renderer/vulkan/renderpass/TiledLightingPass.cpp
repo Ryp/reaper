@@ -8,9 +8,13 @@
 #include "TiledLightingPass.h"
 
 #include "ShadowConstants.h"
+#include "ShadowMap.h"
+#include "TiledRasterPass.h"
+#include "VisibilityBufferPass.h"
 
 #include "renderer/PrepareBuckets.h"
 #include "renderer/buffer/GPUBufferView.h"
+#include "renderer/graph/FrameGraphBuilder.h"
 #include "renderer/vulkan/Backend.h"
 #include "renderer/vulkan/Buffer.h"
 #include "renderer/vulkan/CommandBuffer.h"
@@ -126,6 +130,82 @@ void destroy_tiled_lighting_pass_resources(VulkanBackend& backend, TiledLighting
     vkDestroyPipeline(backend.device, resources.tiled_lighting_pipeline, nullptr);
     vkDestroyPipelineLayout(backend.device, resources.tiled_lighting_pipeline_layout, nullptr);
     vkDestroyDescriptorSetLayout(backend.device, resources.tiled_lighting_descriptor_set_layout, nullptr);
+}
+
+TiledLightingFrameGraphRecord create_tiled_lighting_pass_record(FrameGraph::Builder&               builder,
+                                                                const VisBufferFrameGraphRecord&   vis_buffer_record,
+                                                                const ShadowFrameGraphRecord&      shadow,
+                                                                const LightRasterFrameGraphRecord& light_raster_record)
+{
+    TiledLightingFrameGraphRecord tiled_lighting;
+    tiled_lighting.pass_handle = builder.create_render_pass("Tiled Lighting");
+
+    for (auto shadow_map_usage_handle : shadow.shadow_maps)
+    {
+        tiled_lighting.shadow_maps.push_back(
+            builder.read_texture(tiled_lighting.pass_handle, shadow_map_usage_handle,
+                                 GPUTextureAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
+                                                  VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL}));
+    }
+
+    tiled_lighting.light_list =
+        builder.read_buffer(tiled_lighting.pass_handle, light_raster_record.light_raster.light_list,
+                            GPUBufferAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT});
+
+    tiled_lighting.gbuffer_rt0 =
+        builder.read_texture(tiled_lighting.pass_handle, vis_buffer_record.fill_gbuffer.gbuffer_rt0,
+                             GPUTextureAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
+                                              VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL});
+
+    tiled_lighting.gbuffer_rt1 =
+        builder.read_texture(tiled_lighting.pass_handle, vis_buffer_record.fill_gbuffer.gbuffer_rt1,
+                             GPUTextureAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
+                                              VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL});
+
+    tiled_lighting.depth =
+        builder.read_texture(tiled_lighting.pass_handle, vis_buffer_record.render.depth,
+                             GPUTextureAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
+                                              VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL});
+
+    tiled_lighting.lighting = builder.create_texture(
+        tiled_lighting.pass_handle, "Lighting",
+        default_texture_properties(
+            vis_buffer_record.scene_depth_properties.width, vis_buffer_record.scene_depth_properties.height,
+            PixelFormat::B10G11R11_UFLOAT_PACK32,
+            GPUTextureUsage::Storage | GPUTextureUsage::Sampled | GPUTextureUsage::ColorAttachment),
+        GPUTextureAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT,
+                         VK_IMAGE_LAYOUT_GENERAL});
+
+    const GPUBufferProperties tile_debug_properties = DefaultGPUBufferProperties(
+        light_raster_record.tile_depth_properties.width * light_raster_record.tile_depth_properties.height,
+        sizeof(TileDebug), GPUBufferUsage::StorageBuffer);
+
+    tiled_lighting.tile_debug_texture =
+        builder.create_buffer(tiled_lighting.pass_handle, "Tile debug", tile_debug_properties,
+                              GPUBufferAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT});
+
+    return tiled_lighting;
+}
+
+TiledLightingDebugFrameGraphRecord create_tiled_lighting_debug_pass_record(
+    FrameGraph::Builder& builder, const TiledLightingFrameGraphRecord& tiled_lighting_record, VkExtent2D render_extent)
+{
+    TiledLightingDebugFrameGraphRecord tiled_lighting_debug;
+
+    tiled_lighting_debug.pass_handle = builder.create_render_pass("Tiled Lighting Debug");
+
+    tiled_lighting_debug.tile_debug =
+        builder.read_buffer(tiled_lighting_debug.pass_handle, tiled_lighting_record.tile_debug_texture,
+                            GPUBufferAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT});
+
+    tiled_lighting_debug.output = builder.create_texture(
+        tiled_lighting_debug.pass_handle, "Tiled Lighting Debug Texture",
+        default_texture_properties(render_extent.width, render_extent.height, PixelFormat::R8G8B8A8_UNORM,
+                                   GPUTextureUsage::Storage | GPUTextureUsage::Sampled),
+        GPUTextureAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT,
+                         VK_IMAGE_LAYOUT_GENERAL});
+
+    return tiled_lighting_debug;
 }
 
 void update_tiled_lighting_pass_descriptor_sets(DescriptorWriteHelper&            write_helper,
