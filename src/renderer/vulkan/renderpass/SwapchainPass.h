@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include "renderer/graph/FrameGraphBasicTypes.h"
 #include "renderer/vulkan/Buffer.h"
 #include "renderer/vulkan/Image.h"
 #include <vulkan_loader/Vulkan.h>
@@ -36,6 +37,22 @@ void destroy_swapchain_pass_resources(VulkanBackend& backend, const SwapchainPas
 
 void reload_swapchain_pipeline(VulkanBackend& backend, const ShaderModules& shader_modules,
                                SwapchainPassResources& resources);
+
+namespace FrameGraph
+{
+    class Builder;
+    class FrameGraph;
+} // namespace FrameGraph
+
+struct SwapchainFrameGraphRecord
+{
+    FrameGraph::RenderPassHandle    pass_handle;
+    FrameGraph::ResourceUsageHandle scene_hdr;
+    FrameGraph::ResourceUsageHandle lighting_result;
+    FrameGraph::ResourceUsageHandle gui;
+    FrameGraph::ResourceUsageHandle histogram; // FIXME unused for now
+    FrameGraph::ResourceUsageHandle tile_debug;
+};
 
 struct SamplerResources;
 class DescriptorWriteHelper;

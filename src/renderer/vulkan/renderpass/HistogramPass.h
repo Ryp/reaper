@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include "renderer/graph/FrameGraphBasicTypes.h"
 #include "renderer/vulkan/Buffer.h"
 #include "renderer/vulkan/Image.h"
 #include <vulkan_loader/Vulkan.h>
@@ -39,6 +40,25 @@ struct ShaderModules;
 
 HistogramPassResources create_histogram_pass_resources(VulkanBackend& backend, const ShaderModules& shader_modules);
 void destroy_histogram_pass_resources(VulkanBackend& backend, const HistogramPassResources& resources);
+
+namespace FrameGraph
+{
+    class Builder;
+    class FrameGraph;
+} // namespace FrameGraph
+
+struct HistogramClearFrameGraphRecord
+{
+    FrameGraph::RenderPassHandle    pass_handle;
+    FrameGraph::ResourceUsageHandle histogram_buffer;
+};
+
+struct HistogramFrameGraphRecord
+{
+    FrameGraph::RenderPassHandle    pass_handle;
+    FrameGraph::ResourceUsageHandle scene_hdr;
+    FrameGraph::ResourceUsageHandle histogram_buffer;
+};
 
 struct SamplerResources;
 class DescriptorWriteHelper;

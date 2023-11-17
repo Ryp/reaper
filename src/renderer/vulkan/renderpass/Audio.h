@@ -18,7 +18,7 @@ namespace Reaper
 struct VulkanBackend;
 struct ShaderModules;
 
-struct AudioFrameGraphData
+struct AudioFrameGraphRecord
 {
     struct Render
     {
@@ -75,7 +75,7 @@ namespace FrameGraph
     class Builder;
 }
 
-AudioFrameGraphData create_audio_frame_graph_data(FrameGraph::Builder& builder);
+AudioFrameGraphRecord create_audio_frame_graph_data(FrameGraph::Builder& builder);
 
 AudioResources create_audio_resources(VulkanBackend& backend, const ShaderModules& shader_modules);
 void           destroy_audio_resources(VulkanBackend& backend, AudioResources& resources);

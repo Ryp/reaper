@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include "renderer/graph/FrameGraphBasicTypes.h"
 #include "renderer/vulkan/Buffer.h"
 #include "renderer/vulkan/Image.h"
 
@@ -44,6 +45,18 @@ struct GuiPassResources
 
 GuiPassResources create_gui_pass_resources(VulkanBackend& backend, const ShaderModules& shader_modules);
 void             destroy_gui_pass_resources(VulkanBackend& backend, GuiPassResources& resources);
+
+namespace FrameGraph
+{
+    class Builder;
+    class FrameGraph;
+} // namespace FrameGraph
+
+struct GUIFrameGraphRecord
+{
+    FrameGraph::RenderPassHandle    pass_handle;
+    FrameGraph::ResourceUsageHandle output;
+};
 
 struct CommandBuffer;
 struct FrameGraphTexture;

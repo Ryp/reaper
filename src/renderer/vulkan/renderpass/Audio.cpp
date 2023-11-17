@@ -32,9 +32,9 @@
 
 namespace Reaper
 {
-AudioFrameGraphData create_audio_frame_graph_data(FrameGraph::Builder& builder)
+AudioFrameGraphRecord create_audio_frame_graph_data(FrameGraph::Builder& builder)
 {
-    AudioFrameGraphData::Render render;
+    AudioFrameGraphRecord::Render render;
 
     render.pass_handle = builder.create_render_pass("Audio render");
 
@@ -44,7 +44,7 @@ AudioFrameGraphData create_audio_frame_graph_data(FrameGraph::Builder& builder)
                                                          GPUBufferUsage::TransferSrc | GPUBufferUsage::StorageBuffer),
                               GPUBufferAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT});
 
-    AudioFrameGraphData::StagingCopy staging_copy;
+    AudioFrameGraphRecord::StagingCopy staging_copy;
 
     staging_copy.pass_handle = builder.create_render_pass("Audio staging copy", true);
 

@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include "renderer/graph/FrameGraphBasicTypes.h"
 #include "renderer/vulkan/Buffer.h"
 
 #include <vector>
@@ -52,6 +53,38 @@ struct ShaderModules;
 DebugGeometryPassResources create_debug_geometry_pass_resources(VulkanBackend&       backend,
                                                                 const ShaderModules& shader_modules);
 void destroy_debug_geometry_pass_resources(VulkanBackend& backend, DebugGeometryPassResources& resources);
+
+namespace FrameGraph
+{
+    class Builder;
+    class FrameGraph;
+} // namespace FrameGraph
+
+struct DebugGeometryClearFrameGraphRecord
+{
+    FrameGraph::RenderPassHandle    pass_handle;
+    FrameGraph::ResourceUsageHandle draw_counter;
+    FrameGraph::ResourceUsageHandle user_commands_buffer;
+};
+
+struct DebugGeometryComputeFrameGraphRecord
+{
+    FrameGraph::RenderPassHandle    pass_handle;
+    FrameGraph::ResourceUsageHandle draw_counter;
+    FrameGraph::ResourceUsageHandle user_commands_buffer;
+    FrameGraph::ResourceUsageHandle draw_commands;
+    FrameGraph::ResourceUsageHandle instance_buffer;
+};
+
+struct DebugGeometryDrawFrameGraphRecord
+{
+    FrameGraph::RenderPassHandle    pass_handle;
+    FrameGraph::ResourceUsageHandle scene_hdr;
+    FrameGraph::ResourceUsageHandle scene_depth;
+    FrameGraph::ResourceUsageHandle draw_counter;
+    FrameGraph::ResourceUsageHandle draw_commands;
+    FrameGraph::ResourceUsageHandle instance_buffer;
+};
 
 struct PreparedData;
 

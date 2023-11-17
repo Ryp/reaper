@@ -203,14 +203,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     const CullMeshletsFrameGraphRecord meshlet_pass = create_cull_meshlet_frame_graph_record(builder);
 
-    // Debug geometry clear
-    struct DebugGeometryClearFrameGraphData
-    {
-        RenderPassHandle    pass_handle;
-        ResourceUsageHandle draw_counter;
-        ResourceUsageHandle user_commands_buffer;
-    } debug_geometry_clear;
-
+    DebugGeometryClearFrameGraphRecord debug_geometry_clear;
     debug_geometry_clear.pass_handle = builder.create_render_pass("Debug Geometry Clear");
 
     const GPUBufferProperties debug_geometry_counter_properties = DefaultGPUBufferProperties(
@@ -391,13 +384,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         builder.read_buffer(forward.pass_handle, meshlet_pass.cull_triangles.visible_meshlet_buffer,
                             GPUBufferAccess{VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT});
 
-    // GUI
-    struct GUIFrameGraphData
-    {
-        RenderPassHandle    pass_handle;
-        ResourceUsageHandle output;
-    } gui;
-
+    GUIFrameGraphRecord gui;
     gui.pass_handle = builder.create_render_pass("GUI");
 
     gui.output = builder.create_texture(
@@ -408,13 +395,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         GPUTextureAccess{VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
                          VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL});
 
-    // Histogram Clear
-    struct HistogramClearFrameGraphData
-    {
-        RenderPassHandle    pass_handle;
-        ResourceUsageHandle histogram_buffer;
-    } histogram_clear;
-
+    HistogramClearFrameGraphRecord histogram_clear;
     histogram_clear.pass_handle = builder.create_render_pass("Histogram Clear");
 
     const GPUBufferProperties histogram_buffer_properties = DefaultGPUBufferProperties(
@@ -424,14 +405,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         builder.create_buffer(histogram_clear.pass_handle, "Histogram Buffer", histogram_buffer_properties,
                               GPUBufferAccess{VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT});
 
-    // Histogram
-    struct HistogramFrameGraphData
-    {
-        RenderPassHandle    pass_handle;
-        ResourceUsageHandle scene_hdr;
-        ResourceUsageHandle histogram_buffer;
-    } histogram;
-
+    HistogramFrameGraphRecord histogram;
     histogram.pass_handle = builder.create_render_pass("Histogram");
 
     histogram.scene_hdr =
@@ -444,16 +418,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
                              GPUBufferAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
                                              VK_ACCESS_2_SHADER_WRITE_BIT | VK_ACCESS_2_SHADER_READ_BIT});
 
-    // Debug geometry create command buffer
-    struct DebugGeometryComputeFrameGraphData
-    {
-        RenderPassHandle    pass_handle;
-        ResourceUsageHandle draw_counter;
-        ResourceUsageHandle user_commands_buffer;
-        ResourceUsageHandle draw_commands;
-        ResourceUsageHandle instance_buffer;
-    } debug_geometry_build_cmds;
-
+    DebugGeometryComputeFrameGraphRecord debug_geometry_build_cmds;
     debug_geometry_build_cmds.pass_handle = builder.create_render_pass("Debug Geometry Build Commands");
 
     debug_geometry_build_cmds.draw_counter =
@@ -480,16 +445,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         GPUBufferAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT});
 
     // Debug geometry draw
-    struct DebugGeometryDrawFrameGraphData
-    {
-        RenderPassHandle    pass_handle;
-        ResourceUsageHandle scene_hdr;
-        ResourceUsageHandle scene_depth;
-        ResourceUsageHandle draw_counter;
-        ResourceUsageHandle draw_commands;
-        ResourceUsageHandle instance_buffer;
-    } debug_geometry_draw;
-
+    DebugGeometryDrawFrameGraphRecord debug_geometry_draw;
     debug_geometry_draw.pass_handle = builder.create_render_pass("Debug Geometry Draw");
 
     debug_geometry_draw.scene_hdr = builder.write_texture(
@@ -515,17 +471,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         builder.read_buffer(debug_geometry_draw.pass_handle, debug_geometry_build_cmds.instance_buffer,
                             GPUBufferAccess{VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT});
 
-    // Swapchain
-    struct SwapchainFrameGraphData
-    {
-        RenderPassHandle    pass_handle;
-        ResourceUsageHandle scene_hdr;
-        ResourceUsageHandle lighting_result;
-        ResourceUsageHandle gui;
-        ResourceUsageHandle histogram; // FIXME unused for now
-        ResourceUsageHandle tile_debug;
-    } swapchain;
-
+    SwapchainFrameGraphRecord swapchain;
     swapchain.pass_handle = builder.create_render_pass("Swapchain", true);
 
     swapchain.scene_hdr = builder.read_texture(swapchain.pass_handle, forward.scene_hdr,
@@ -552,7 +498,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
                              GPUTextureAccess{VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
                                               VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL});
 
-    const AudioFrameGraphData audio_pass = create_audio_frame_graph_data(builder);
+    const AudioFrameGraphRecord audio_pass = create_audio_frame_graph_data(builder);
 
     builder.build();
 
