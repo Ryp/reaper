@@ -7,6 +7,9 @@
 
 #include "HZBPass.h"
 
+#include "TiledLightingCommon.h"
+
+#include "renderer/graph/FrameGraphBuilder.h"
 #include "renderer/vulkan/Backend.h"
 #include "renderer/vulkan/CommandBuffer.h"
 #include "renderer/vulkan/ComputeHelper.h"
@@ -65,6 +68,43 @@ void destroy_hzb_pass_resources(VulkanBackend& backend, const HZBPassResources& 
     vkDestroyPipeline(backend.device, resources.hzb_pipe.handle, nullptr);
     vkDestroyPipelineLayout(backend.device, resources.hzb_pipe.layout, nullptr);
     vkDestroyDescriptorSetLayout(backend.device, resources.hzb_pipe.desc_set_layout, nullptr);
+}
+
+HZBReduceFrameGraphRecord create_hzb_pass_record(FrameGraph::Builder&            builder,
+                                                 FrameGraph::ResourceUsageHandle depth_buffer_usage_handle,
+                                                 const TiledLightingFrame&       tiled_lighting_frame)
+{
+    HZBReduceFrameGraphRecord record;
+
+    record.pass_handle = builder.create_render_pass("HZB Reduce");
+
+    record.depth =
+        builder.read_texture(record.pass_handle, depth_buffer_usage_handle,
+                             GPUTextureAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
+                                              VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL});
+
+    // NOTE: HZB size is rounded to match the depth used in the tiled lighting raster pass.
+    GPUTextureProperties hzb_properties =
+        default_texture_properties(tiled_lighting_frame.tile_count_x * 8, tiled_lighting_frame.tile_count_y * 8,
+                                   PixelFormat::R16G16_UNORM, GPUTextureUsage::Storage | GPUTextureUsage::Sampled);
+    hzb_properties.mip_count = 4; // FIXME
+
+    std::vector<GPUTextureView> hzb_mip_views(hzb_properties.mip_count, default_texture_view(hzb_properties));
+
+    for (u32 i = 0; i < hzb_mip_views.size(); i++)
+    {
+        hzb_mip_views[i].subresource.mip_count = 1;
+        hzb_mip_views[i].subresource.mip_offset = i;
+    }
+
+    record.hzb_texture = builder.create_texture(
+        record.pass_handle, "HZB Texture", hzb_properties,
+        GPUTextureAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT, VK_IMAGE_LAYOUT_GENERAL},
+        hzb_mip_views);
+
+    record.hzb_properties = hzb_properties;
+
+    return record;
 }
 
 void update_hzb_pass_descriptor_set(DescriptorWriteHelper& write_helper, const HZBPassResources& resources,

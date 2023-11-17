@@ -8,6 +8,7 @@
 #pragma once
 
 #include "renderer/graph/FrameGraphBasicTypes.h"
+#include "renderer/texture/GPUTextureProperties.h"
 #include "renderer/vulkan/Buffer.h"
 #include "renderer/vulkan/Image.h"
 #include <vulkan_loader/Vulkan.h>
@@ -52,7 +53,14 @@ struct HZBReduceFrameGraphRecord
     FrameGraph::RenderPassHandle    pass_handle;
     FrameGraph::ResourceUsageHandle depth;
     FrameGraph::ResourceUsageHandle hzb_texture;
+    GPUTextureProperties            hzb_properties;
 };
+
+struct TiledLightingFrame;
+
+HZBReduceFrameGraphRecord create_hzb_pass_record(FrameGraph::Builder&            builder,
+                                                 FrameGraph::ResourceUsageHandle depth_buffer_usage_handle,
+                                                 const TiledLightingFrame&       tiled_lighting_frame);
 
 struct SamplerResources;
 class DescriptorWriteHelper;

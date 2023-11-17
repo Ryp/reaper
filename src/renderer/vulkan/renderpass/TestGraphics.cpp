@@ -228,35 +228,11 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     const VisBufferFrameGraphRecord vis_buffer_record =
         create_vis_buffer_pass_record(builder, meshlet_pass, render_extent);
 
-    HZBReduceFrameGraphRecord hzb_reduce;
-    hzb_reduce.pass_handle = builder.create_render_pass("HZB Reduce");
+    const HZBReduceFrameGraphRecord hzb_reduce =
+        create_hzb_pass_record(builder, vis_buffer_record.render.depth, tiled_lighting_frame);
 
-    hzb_reduce.depth =
-        builder.read_texture(hzb_reduce.pass_handle, vis_buffer_record.render.depth,
-                             GPUTextureAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
-                                              VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL});
-
-    // NOTE: HZB size is rounded to match the depth used in the tiled lighting raster pass.
-    GPUTextureProperties hzb_properties =
-        default_texture_properties(tiled_lighting_frame.tile_count_x * 8, tiled_lighting_frame.tile_count_y * 8,
-                                   PixelFormat::R16G16_UNORM, GPUTextureUsage::Storage | GPUTextureUsage::Sampled);
-    hzb_properties.mip_count = 4; // FIXME
-
-    std::vector<GPUTextureView> hzb_mip_views(hzb_properties.mip_count, default_texture_view(hzb_properties));
-
-    for (u32 i = 0; i < hzb_mip_views.size(); i++)
-    {
-        hzb_mip_views[i].subresource.mip_count = 1;
-        hzb_mip_views[i].subresource.mip_offset = i;
-    }
-
-    hzb_reduce.hzb_texture = builder.create_texture(
-        hzb_reduce.pass_handle, "HZB Texture", hzb_properties,
-        GPUTextureAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT, VK_IMAGE_LAYOUT_GENERAL},
-        hzb_mip_views);
-
-    const LightRasterFrameGraphRecord light_raster_record =
-        create_tiled_lighting_raster_pass_record(builder, tiled_lighting_frame, hzb_properties, hzb_reduce.hzb_texture);
+    const LightRasterFrameGraphRecord light_raster_record = create_tiled_lighting_raster_pass_record(
+        builder, tiled_lighting_frame, hzb_reduce.hzb_properties, hzb_reduce.hzb_texture);
 
     TiledLightingFrameGraphRecord tiled_lighting;
 
@@ -782,11 +758,12 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
             record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
                                        hzb_reduce.pass_handle, true);
 
-            record_hzb_command_buffer(cmdBuffer,
-                                      resources.hzb_pass_resources,
-                                      VkExtent2D{.width = vis_buffer_record.scene_depth_properties.width,
-                                                 .height = vis_buffer_record.scene_depth_properties.height},
-                                      VkExtent2D{.width = hzb_properties.width, .height = hzb_properties.height});
+            record_hzb_command_buffer(
+                cmdBuffer,
+                resources.hzb_pass_resources,
+                VkExtent2D{.width = vis_buffer_record.scene_depth_properties.width,
+                           .height = vis_buffer_record.scene_depth_properties.height},
+                VkExtent2D{.width = hzb_reduce.hzb_properties.width, .height = hzb_reduce.hzb_properties.height});
 
             record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
                                        hzb_reduce.pass_handle, false);
