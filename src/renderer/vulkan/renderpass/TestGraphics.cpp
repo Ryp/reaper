@@ -240,44 +240,8 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     const TiledLightingDebugFrameGraphRecord tiled_lighting_debug_record =
         create_tiled_lighting_debug_pass_record(builder, tiled_lighting, render_extent);
 
-    ForwardFrameGraphRecord forward;
-    forward.pass_handle = builder.create_render_pass("Forward");
-
-    forward.scene_hdr = builder.create_texture(
-        forward.pass_handle, "Scene HDR",
-        default_texture_properties(render_extent.width, render_extent.height, ForwardHDRColorFormat,
-                                   GPUTextureUsage::ColorAttachment | GPUTextureUsage::Sampled),
-        GPUTextureAccess{VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-                         VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL});
-
-    forward.depth = builder.write_texture(forward.pass_handle, vis_buffer_record.render.depth,
-                                          GPUTextureAccess{VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT,
-                                                           VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
-                                                           VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL});
-
-    for (auto shadow_map_usage_handle : shadow.shadow_maps)
-    {
-        forward.shadow_maps.push_back(
-            builder.read_texture(forward.pass_handle, shadow_map_usage_handle,
-                                 GPUTextureAccess{VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
-                                                  VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL}));
-    }
-
-    forward.meshlet_counters = builder.read_buffer(
-        forward.pass_handle, meshlet_pass.cull_triangles.meshlet_counters,
-        GPUBufferAccess{VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT, VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT});
-
-    forward.meshlet_indirect_draw_commands = builder.read_buffer(
-        forward.pass_handle, meshlet_pass.cull_triangles.meshlet_indirect_draw_commands,
-        GPUBufferAccess{VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT, VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT});
-
-    forward.meshlet_visible_index_buffer =
-        builder.read_buffer(forward.pass_handle, meshlet_pass.cull_triangles.meshlet_visible_index_buffer,
-                            GPUBufferAccess{VK_PIPELINE_STAGE_2_INDEX_INPUT_BIT, VK_ACCESS_2_INDEX_READ_BIT});
-
-    forward.visible_meshlet_buffer =
-        builder.read_buffer(forward.pass_handle, meshlet_pass.cull_triangles.visible_meshlet_buffer,
-                            GPUBufferAccess{VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT});
+    const ForwardFrameGraphRecord forward =
+        create_forward_pass_record(builder, meshlet_pass, shadow, vis_buffer_record.render.depth, render_extent);
 
     GUIFrameGraphRecord gui;
     gui.pass_handle = builder.create_render_pass("GUI");

@@ -49,8 +49,9 @@ void                 destroy_forward_pass_resources(VulkanBackend& backend, Forw
 
 namespace FrameGraph
 {
+    class Builder;
     class FrameGraph;
-}
+} // namespace FrameGraph
 
 struct ForwardFrameGraphRecord
 {
@@ -63,6 +64,15 @@ struct ForwardFrameGraphRecord
     FrameGraph::ResourceUsageHandle              meshlet_visible_index_buffer;
     FrameGraph::ResourceUsageHandle              visible_meshlet_buffer;
 };
+
+struct CullMeshletsFrameGraphRecord;
+struct ShadowFrameGraphRecord;
+
+ForwardFrameGraphRecord create_forward_pass_record(FrameGraph::Builder&                builder,
+                                                   const CullMeshletsFrameGraphRecord& meshlet_pass,
+                                                   const ShadowFrameGraphRecord&       shadow,
+                                                   FrameGraph::ResourceUsageHandle     depth_buffer_usage_handle,
+                                                   VkExtent2D                          render_extent);
 
 struct MaterialResources;
 struct MeshCache;
