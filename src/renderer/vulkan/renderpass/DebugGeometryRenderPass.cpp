@@ -9,6 +9,7 @@
 
 #include "Constants.h"
 #include "ForwardPassConstants.h"
+#include "FrameGraphPass.h"
 
 #include "renderer/buffer/GPUBufferView.h"
 #include "renderer/graph/FrameGraphBuilder.h"
@@ -18,6 +19,7 @@
 #include "renderer/vulkan/ComputeHelper.h"
 #include "renderer/vulkan/DescriptorSet.h"
 #include "renderer/vulkan/FrameGraphResources.h"
+#include "renderer/vulkan/GpuProfile.h"
 #include "renderer/vulkan/Pipeline.h"
 #include "renderer/vulkan/RenderPassHelpers.h"
 #include "renderer/vulkan/SamplerResources.h"
@@ -327,9 +329,15 @@ void update_debug_geometry_build_cmds_pass_descriptor_sets(const FrameGraph::Fra
                         instance_buffer.handle);
 }
 
-void record_debug_geometry_build_cmds_command_buffer(CommandBuffer&                    cmdBuffer,
-                                                     const DebugGeometryPassResources& resources)
+void record_debug_geometry_build_cmds_command_buffer(const FrameGraphHelper&                     frame_graph_helper,
+                                                     const DebugGeometryComputeFrameGraphRecord& pass_record,
+                                                     CommandBuffer&                              cmdBuffer,
+                                                     const DebugGeometryPassResources&           resources)
 {
+    REAPER_GPU_SCOPE(cmdBuffer, "Debug Geometry Build Commands");
+
+    const FrameGraphBarrierScope framegraph_barrier_scope(cmdBuffer, frame_graph_helper, pass_record.pass_handle);
+
     vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE, resources.build_cmds_pipeline);
 
     vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE, resources.build_cmds_pipeline_layout, 0,
@@ -354,12 +362,23 @@ void update_debug_geometry_draw_pass_descriptor_sets(const FrameGraph::FrameGrap
     write_helper.append(resources.draw_descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, instance_buffer.handle);
 }
 
-void record_debug_geometry_draw_command_buffer(CommandBuffer& cmdBuffer, const DebugGeometryPassResources& resources,
-                                               const FrameGraphTexture& hdr_buffer,
-                                               const FrameGraphTexture& depth_texture,
-                                               const FrameGraphBuffer&  draw_counter,
-                                               const FrameGraphBuffer&  draw_commands)
+void record_debug_geometry_draw_command_buffer(const FrameGraphHelper&                  frame_graph_helper,
+                                               const DebugGeometryDrawFrameGraphRecord& pass_record,
+                                               CommandBuffer& cmdBuffer, const DebugGeometryPassResources& resources)
 {
+    REAPER_GPU_SCOPE(cmdBuffer, "Debug Geometry Draw");
+
+    const FrameGraphBarrierScope framegraph_barrier_scope(cmdBuffer, frame_graph_helper, pass_record.pass_handle);
+
+    const FrameGraphTexture hdr_buffer =
+        get_frame_graph_texture(frame_graph_helper.resources, frame_graph_helper.frame_graph, pass_record.scene_hdr);
+    const FrameGraphTexture depth_texture =
+        get_frame_graph_texture(frame_graph_helper.resources, frame_graph_helper.frame_graph, pass_record.scene_depth);
+    const FrameGraphBuffer draw_counter =
+        get_frame_graph_buffer(frame_graph_helper.resources, frame_graph_helper.frame_graph, pass_record.draw_counter);
+    const FrameGraphBuffer draw_commands =
+        get_frame_graph_buffer(frame_graph_helper.resources, frame_graph_helper.frame_graph, pass_record.draw_commands);
+
     const VkExtent2D depth_extent = {depth_texture.properties.width, depth_texture.properties.height};
     const VkRect2D   pass_rect = default_vk_rect(depth_extent);
     const VkViewport viewport = default_vk_viewport(pass_rect);

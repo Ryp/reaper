@@ -79,8 +79,6 @@ TiledLightingDebugFrameGraphRecord create_tiled_lighting_debug_pass_record(
 
 struct SamplerResources;
 class DescriptorWriteHelper;
-struct FrameGraphTexture;
-struct FrameGraphBuffer;
 struct LightingPassResources;
 struct FrameGraphResources;
 
@@ -98,9 +96,12 @@ void upload_tiled_lighting_pass_frame_resources(VulkanBackend& backend, const Pr
                                                 TiledLightingPassResources& resources);
 
 struct CommandBuffer;
+struct FrameGraphHelper;
 
-void record_tiled_lighting_command_buffer(CommandBuffer& cmdBuffer, const TiledLightingPassResources& resources,
-                                          VkExtent2D render_extent, VkExtent2D tile_extent);
+void record_tiled_lighting_command_buffer(const FrameGraphHelper&              frame_graph_helper,
+                                          const TiledLightingFrameGraphRecord& pass_record, CommandBuffer& cmdBuffer,
+                                          const TiledLightingPassResources& resources, VkExtent2D render_extent,
+                                          VkExtent2D tile_extent);
 
 void update_tiled_lighting_debug_pass_resources(const FrameGraph::FrameGraph&             frame_graph,
                                                 const FrameGraphResources&                frame_graph_resources,
@@ -108,6 +109,8 @@ void update_tiled_lighting_debug_pass_resources(const FrameGraph::FrameGraph&   
                                                 DescriptorWriteHelper&                    write_helper,
                                                 const TiledLightingPassResources&         resources);
 
-void record_tiled_lighting_debug_command_buffer(CommandBuffer& cmdBuffer, const TiledLightingPassResources& resources,
+void record_tiled_lighting_debug_command_buffer(const FrameGraphHelper&                   frame_graph_helper,
+                                                const TiledLightingDebugFrameGraphRecord& pass_record,
+                                                CommandBuffer& cmdBuffer, const TiledLightingPassResources& resources,
                                                 VkExtent2D render_extent, VkExtent2D tile_extent);
 } // namespace Reaper

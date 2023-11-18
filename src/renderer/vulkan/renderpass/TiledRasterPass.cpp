@@ -8,6 +8,7 @@
 #include "TiledRasterPass.h"
 
 #include "Constants.h"
+#include "FrameGraphPass.h"
 #include "TiledLightingCommon.h"
 
 #include "renderer/PrepareBuckets.h"
@@ -499,13 +500,17 @@ void update_tiled_lighting_raster_pass_resources(const FrameGraph::FrameGraph&  
         light_volumes_alloc);
 }
 
-void record_depth_copy(CommandBuffer& cmdBuffer, const TiledRasterResources& resources,
-                       const FrameGraphTexture& depth_min_dst, const FrameGraphTexture& depth_max_dst)
+void record_depth_copy(const FrameGraphHelper&                           frame_graph_helper,
+                       const LightRasterFrameGraphRecord::TileDepthCopy& pass_record, CommandBuffer& cmdBuffer,
+                       const TiledRasterResources& resources)
 {
-    std::vector<FrameGraphTexture> depth_dsts = {depth_min_dst, depth_max_dst};
-    const VkExtent2D               depth_extent = {depth_min_dst.properties.width, depth_min_dst.properties.height};
-    const VkRect2D                 pass_rect = default_vk_rect(depth_extent);
-    const VkViewport               viewport = default_vk_viewport(pass_rect);
+    std::vector<FrameGraphTexture> depth_dsts = {
+        get_frame_graph_texture(frame_graph_helper.resources, frame_graph_helper.frame_graph, pass_record.depth_min),
+        get_frame_graph_texture(frame_graph_helper.resources, frame_graph_helper.frame_graph, pass_record.depth_max),
+    };
+    const VkExtent2D depth_extent = {depth_dsts[0].properties.width, depth_dsts[0].properties.height};
+    const VkRect2D   pass_rect = default_vk_rect(depth_extent);
+    const VkViewport viewport = default_vk_viewport(pass_rect);
 
     vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, resources.depth_copy.pipeline);
 
@@ -538,10 +543,16 @@ void record_depth_copy(CommandBuffer& cmdBuffer, const TiledRasterResources& res
     }
 } // namespace
 
-void record_light_classify_command_buffer(CommandBuffer&              cmdBuffer,
-                                          const TiledLightingFrame&   tiled_lighting_frame,
-                                          const TiledRasterResources& resources)
+void record_light_classify_command_buffer(const FrameGraphHelper&                      frame_graph_helper,
+                                          const LightRasterFrameGraphRecord::Classify& pass_record,
+                                          CommandBuffer&                               cmdBuffer,
+                                          const TiledLightingFrame&                    tiled_lighting_frame,
+                                          const TiledRasterResources&                  resources)
 {
+    REAPER_GPU_SCOPE(cmdBuffer, "Classify Light Volumes");
+
+    const FrameGraphBarrierScope framegraph_barrier_scope(cmdBuffer, frame_graph_helper, pass_record.pass_handle);
+
     const ProxyMeshAlloc& icosahedron_alloc = resources.proxy_mesh_allocs.front(); // FIXME
 
     const u32 vertex_offset = icosahedron_alloc.vertex_offset;
@@ -565,18 +576,34 @@ void record_light_classify_command_buffer(CommandBuffer&              cmdBuffer,
     vkCmdDispatch(cmdBuffer.handle, div_round_up(vertex_count, ClassifyVolumeThreadCount), light_volumes_count, 1);
 }
 
-void record_light_raster_command_buffer(CommandBuffer&                      cmdBuffer,
-                                        const TiledRasterResources::Raster& light_raster_resources,
-                                        const FrameGraphBuffer&             command_counters,
-                                        const FrameGraphBuffer&             draw_commands_inner,
-                                        const FrameGraphBuffer& draw_commands_outer, const FrameGraphTexture& depth_min,
-                                        const FrameGraphTexture& depth_max)
+void record_light_raster_command_buffer(const FrameGraphHelper&                    frame_graph_helper,
+                                        const LightRasterFrameGraphRecord::Raster& pass_record,
+                                        CommandBuffer&                             cmdBuffer,
+                                        const TiledRasterResources::Raster&        light_raster_resources)
 {
-    std::vector<FrameGraphTexture> depth_buffers = {depth_max, depth_min};
-    std::vector<FrameGraphBuffer>  draw_commands = {draw_commands_inner, draw_commands_outer};
-    const VkExtent2D               depth_extent = {depth_max.properties.width, depth_max.properties.height};
-    const VkRect2D                 pass_rect = default_vk_rect(depth_extent);
-    const VkViewport               viewport = default_vk_viewport(pass_rect);
+    REAPER_GPU_SCOPE(cmdBuffer, "Rasterize Light Volumes");
+
+    const FrameGraphBarrierScope framegraph_barrier_scope(cmdBuffer, frame_graph_helper, pass_record.pass_handle);
+
+    const FrameGraphBuffer command_counters = get_frame_graph_buffer(
+        frame_graph_helper.resources, frame_graph_helper.frame_graph, pass_record.command_counters);
+
+    std::array<FrameGraphTexture, RasterPass::Count> depth_buffers = {
+        get_frame_graph_texture(frame_graph_helper.resources, frame_graph_helper.frame_graph,
+                                pass_record.tile_depth_max),
+        get_frame_graph_texture(frame_graph_helper.resources, frame_graph_helper.frame_graph,
+                                pass_record.tile_depth_min),
+    };
+    std::array<FrameGraphBuffer, RasterPass::Count> draw_commands = {
+        get_frame_graph_buffer(frame_graph_helper.resources, frame_graph_helper.frame_graph,
+                               pass_record.draw_commands_inner),
+        get_frame_graph_buffer(frame_graph_helper.resources, frame_graph_helper.frame_graph,
+                               pass_record.draw_commands_outer),
+    };
+
+    const VkExtent2D depth_extent = {depth_buffers[0].properties.width, depth_buffers[0].properties.height};
+    const VkRect2D   pass_rect = default_vk_rect(depth_extent);
+    const VkViewport viewport = default_vk_viewport(pass_rect);
 
     vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, light_raster_resources.pipeline);
 

@@ -7,12 +7,15 @@
 
 #include "HistogramPass.h"
 
+#include "FrameGraphPass.h"
+
 #include "renderer/graph/FrameGraphBuilder.h"
 #include "renderer/vulkan/Backend.h"
 #include "renderer/vulkan/CommandBuffer.h"
 #include "renderer/vulkan/ComputeHelper.h"
 #include "renderer/vulkan/DescriptorSet.h"
 #include "renderer/vulkan/FrameGraphResources.h"
+#include "renderer/vulkan/GpuProfile.h"
 #include "renderer/vulkan/Image.h"
 #include "renderer/vulkan/Pipeline.h"
 #include "renderer/vulkan/SamplerResources.h"
@@ -114,9 +117,14 @@ void update_histogram_pass_descriptor_set(const FrameGraph::FrameGraph&    frame
     write_helper.append(resources.descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, histogram_buffer.handle);
 }
 
-void record_histogram_command_buffer(CommandBuffer& cmdBuffer, const HistogramPassResources& pass_resources,
-                                     VkExtent2D render_extent)
+void record_histogram_command_buffer(const FrameGraphHelper&          frame_graph_helper,
+                                     const HistogramFrameGraphRecord& pass_record, CommandBuffer& cmdBuffer,
+                                     const HistogramPassResources& pass_resources, VkExtent2D render_extent)
 {
+    REAPER_GPU_SCOPE(cmdBuffer, "Histogram");
+
+    const FrameGraphBarrierScope framegraph_barrier_scope(cmdBuffer, frame_graph_helper, pass_record.pass_handle);
+
     vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE, pass_resources.histogramPipe.pipeline);
 
     ReduceHDRPassParams push_constants;

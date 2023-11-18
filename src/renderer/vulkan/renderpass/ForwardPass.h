@@ -95,13 +95,9 @@ void upload_forward_pass_frame_resources(VulkanBackend& backend, const PreparedD
                                          ForwardPassResources& pass_resources);
 
 struct CommandBuffer;
-struct FrameGraphBuffer;
-struct FrameGraphTexture;
+struct FrameGraphHelper;
 
-void record_forward_pass_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& prepared,
-                                        const ForwardPassResources& pass_resources,
-                                        const FrameGraphBuffer&     meshlet_counters,
-                                        const FrameGraphBuffer&     meshlet_indirect_draw_commands,
-                                        const FrameGraphBuffer&     meshlet_visible_index_buffer,
-                                        const FrameGraphTexture& hdr_buffer, const FrameGraphTexture& depth_buffer);
+void record_forward_pass_command_buffer(const FrameGraphHelper&        frame_graph_helper,
+                                        const ForwardFrameGraphRecord& pass_record, CommandBuffer& cmdBuffer,
+                                        const PreparedData& prepared, const ForwardPassResources& pass_resources);
 } // namespace Reaper

@@ -123,20 +123,20 @@ void update_tiled_lighting_raster_pass_resources(const FrameGraph::FrameGraph&  
                                                  const TiledLightingFrame&          tiled_lighting_frame);
 
 struct CommandBuffer;
-struct FrameGraphTexture;
-struct FrameGraphBuffer;
+struct FrameGraphHelper;
 
-void record_depth_copy(CommandBuffer& cmdBuffer, const TiledRasterResources& pass_resources,
-                       const FrameGraphTexture& depth_min_dst, const FrameGraphTexture& depth_max_dst);
+void record_depth_copy(const FrameGraphHelper&                           frame_graph_helper,
+                       const LightRasterFrameGraphRecord::TileDepthCopy& pass_record, CommandBuffer& cmdBuffer,
+                       const TiledRasterResources& resources);
 
-void record_light_classify_command_buffer(CommandBuffer&              cmdBuffer,
-                                          const TiledLightingFrame&   tiled_lighting_frame,
-                                          const TiledRasterResources& resources);
+void record_light_classify_command_buffer(const FrameGraphHelper&                      frame_graph_helper,
+                                          const LightRasterFrameGraphRecord::Classify& pass_record,
+                                          CommandBuffer&                               cmdBuffer,
+                                          const TiledLightingFrame&                    tiled_lighting_frame,
+                                          const TiledRasterResources&                  resources);
 
-void record_light_raster_command_buffer(CommandBuffer&                      cmdBuffer,
-                                        const TiledRasterResources::Raster& light_raster_resources,
-                                        const FrameGraphBuffer&             command_counters,
-                                        const FrameGraphBuffer&             draw_commands_inner,
-                                        const FrameGraphBuffer& draw_commands_outer, const FrameGraphTexture& depth_min,
-                                        const FrameGraphTexture& depth_max);
+void record_light_raster_command_buffer(const FrameGraphHelper&                    frame_graph_helper,
+                                        const LightRasterFrameGraphRecord::Raster& pass_record,
+                                        CommandBuffer&                             cmdBuffer,
+                                        const TiledRasterResources::Raster&        light_raster_resources);
 } // namespace Reaper

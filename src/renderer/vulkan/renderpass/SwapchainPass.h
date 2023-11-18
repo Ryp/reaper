@@ -62,11 +62,9 @@ create_swapchain_pass_record(FrameGraph::Builder&            builder,
                              FrameGraph::ResourceUsageHandle histogram_buffer_usage_handle,
                              FrameGraph::ResourceUsageHandle tiled_debug_texture_overlay_usage_handle);
 
-struct SamplerResources;
-class DescriptorWriteHelper;
-struct FrameGraphTexture;
-
 struct FrameGraphResources;
+class DescriptorWriteHelper;
+struct SamplerResources;
 
 void update_swapchain_pass_descriptor_set(const FrameGraph::FrameGraph&    frame_graph,
                                           const FrameGraphResources&       frame_graph_resources,
@@ -75,7 +73,10 @@ void update_swapchain_pass_descriptor_set(const FrameGraph::FrameGraph&    frame
                                           const SamplerResources&       sampler_resources);
 
 struct CommandBuffer;
+struct FrameGraphHelper;
 
-void record_swapchain_command_buffer(CommandBuffer& cmdBuffer, const SwapchainPassResources& pass_resources,
-                                     VkImageView swapchain_buffer_view, VkExtent2D swapchain_extent);
+void record_swapchain_command_buffer(const FrameGraphHelper&          frame_graph_helper,
+                                     const SwapchainFrameGraphRecord& pass_record, CommandBuffer& cmdBuffer,
+                                     const SwapchainPassResources& pass_resources, VkImageView swapchain_buffer_view,
+                                     VkExtent2D swapchain_extent);
 } // namespace Reaper

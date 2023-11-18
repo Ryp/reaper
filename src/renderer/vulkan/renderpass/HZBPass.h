@@ -36,7 +36,6 @@ struct HZBPassResources
 };
 
 struct VulkanBackend;
-struct FrameGraphBuffer;
 struct ShaderModules;
 
 HZBPassResources create_hzb_pass_resources(VulkanBackend& backend, const ShaderModules& shader_modules);
@@ -64,7 +63,6 @@ HZBReduceFrameGraphRecord create_hzb_pass_record(FrameGraph::Builder&           
 
 struct SamplerResources;
 class DescriptorWriteHelper;
-struct FrameGraphTexture;
 struct FrameGraphResources;
 
 void update_hzb_pass_descriptor_set(const FrameGraph::FrameGraph&    frame_graph,

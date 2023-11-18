@@ -61,8 +61,9 @@ struct GUIFrameGraphRecord
 GUIFrameGraphRecord create_gui_pass_record(FrameGraph::Builder& builder, VkExtent2D gui_extent);
 
 struct CommandBuffer;
-struct FrameGraphTexture;
+struct FrameGraphHelper;
 
-void record_gui_command_buffer(CommandBuffer& cmdBuffer, const GuiPassResources& pass_resources,
-                               const FrameGraphTexture& gui_buffer, ImDrawData* imgui_draw_data);
+void record_gui_command_buffer(const FrameGraphHelper& frame_graph_helper, const GUIFrameGraphRecord& pass_record,
+                               CommandBuffer& cmdBuffer, const GuiPassResources& pass_resources,
+                               ImDrawData* imgui_draw_data);
 } // namespace Reaper

@@ -7,6 +7,7 @@
 
 #include "TiledLightingPass.h"
 
+#include "FrameGraphPass.h"
 #include "ShadowConstants.h"
 #include "ShadowMap.h"
 #include "TiledRasterPass.h"
@@ -21,6 +22,7 @@
 #include "renderer/vulkan/ComputeHelper.h"
 #include "renderer/vulkan/DescriptorSet.h"
 #include "renderer/vulkan/FrameGraphResources.h"
+#include "renderer/vulkan/GpuProfile.h"
 #include "renderer/vulkan/Image.h"
 #include "renderer/vulkan/Pipeline.h"
 #include "renderer/vulkan/RenderPassHelpers.h"
@@ -276,9 +278,15 @@ void upload_tiled_lighting_pass_frame_resources(VulkanBackend& backend, const Pr
                                   &prepared.tiled_light_constants, sizeof(TiledLightingConstants));
 }
 
-void record_tiled_lighting_command_buffer(CommandBuffer& cmdBuffer, const TiledLightingPassResources& resources,
-                                          VkExtent2D render_extent, VkExtent2D tile_extent)
+void record_tiled_lighting_command_buffer(const FrameGraphHelper&              frame_graph_helper,
+                                          const TiledLightingFrameGraphRecord& pass_record, CommandBuffer& cmdBuffer,
+                                          const TiledLightingPassResources& resources, VkExtent2D render_extent,
+                                          VkExtent2D tile_extent)
 {
+    REAPER_GPU_SCOPE(cmdBuffer, "Tiled Lighting");
+
+    const FrameGraphBarrierScope framegraph_barrier_scope(cmdBuffer, frame_graph_helper, pass_record.pass_handle);
+
     vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE, resources.tiled_lighting_pipeline);
 
     TiledLightingPushConstants push_constants;
@@ -316,9 +324,15 @@ void update_tiled_lighting_debug_pass_resources(const FrameGraph::FrameGraph&   
                         tile_debug_texture.image_layout);
 }
 
-void record_tiled_lighting_debug_command_buffer(CommandBuffer& cmdBuffer, const TiledLightingPassResources& resources,
+void record_tiled_lighting_debug_command_buffer(const FrameGraphHelper&                   frame_graph_helper,
+                                                const TiledLightingDebugFrameGraphRecord& pass_record,
+                                                CommandBuffer& cmdBuffer, const TiledLightingPassResources& resources,
                                                 VkExtent2D render_extent, VkExtent2D tile_extent)
 {
+    REAPER_GPU_SCOPE(cmdBuffer, "Tiled Lighting Debug");
+
+    const FrameGraphBarrierScope framegraph_barrier_scope(cmdBuffer, frame_graph_helper, pass_record.pass_handle);
+
     vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE, resources.tiled_lighting_debug_pipeline);
 
     TiledLightingDebugPushConstants push_constants;

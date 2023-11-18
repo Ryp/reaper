@@ -7,6 +7,7 @@
 
 #include "SwapchainPass.h"
 
+#include "FrameGraphPass.h"
 #include "ShadowConstants.h"
 
 #include "renderer/graph/FrameGraphBuilder.h"
@@ -14,6 +15,7 @@
 #include "renderer/vulkan/CommandBuffer.h"
 #include "renderer/vulkan/DescriptorSet.h"
 #include "renderer/vulkan/FrameGraphResources.h"
+#include "renderer/vulkan/GpuProfile.h"
 #include "renderer/vulkan/Image.h"
 #include "renderer/vulkan/Pipeline.h"
 #include "renderer/vulkan/RenderPassHelpers.h"
@@ -259,9 +261,15 @@ void update_swapchain_pass_descriptor_set(const FrameGraph::FrameGraph&    frame
                         tile_lighting_debug_texture.default_view_handle, tile_lighting_debug_texture.image_layout);
 }
 
-void record_swapchain_command_buffer(CommandBuffer& cmdBuffer, const SwapchainPassResources& pass_resources,
-                                     VkImageView swapchain_buffer_view, VkExtent2D swapchain_extent)
+void record_swapchain_command_buffer(const FrameGraphHelper&          frame_graph_helper,
+                                     const SwapchainFrameGraphRecord& pass_record, CommandBuffer& cmdBuffer,
+                                     const SwapchainPassResources& pass_resources, VkImageView swapchain_buffer_view,
+                                     VkExtent2D swapchain_extent)
 {
+    REAPER_GPU_SCOPE(cmdBuffer, "Swapchain");
+
+    const FrameGraphBarrierScope framegraph_barrier_scope(cmdBuffer, frame_graph_helper, pass_record.pass_handle);
+
     const VkRect2D   pass_rect = default_vk_rect(swapchain_extent);
     const VkViewport viewport = default_vk_viewport(pass_rect);
 

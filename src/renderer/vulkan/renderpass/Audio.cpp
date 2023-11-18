@@ -8,6 +8,7 @@
 #include "Audio.h"
 
 #include "AudioConstants.h"
+#include "FrameGraphPass.h"
 
 #include "renderer/PrepareBuckets.h"
 #include "renderer/vulkan/Backend.h"
@@ -15,6 +16,7 @@
 #include "renderer/vulkan/CommandBuffer.h"
 #include "renderer/vulkan/DescriptorSet.h"
 #include "renderer/vulkan/FrameGraphResources.h"
+#include "renderer/vulkan/GpuProfile.h"
 #include "renderer/vulkan/Pipeline.h"
 #include "renderer/vulkan/ShaderModules.h"
 #include "renderer/vulkan/api/AssertHelper.h"
@@ -153,9 +155,14 @@ void update_audio_render_resources(const FrameGraph::FrameGraph& frame_graph,
     write_helper.append(resources.descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, audio_buffer.handle);
 }
 
-void record_audio_render_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& prepared,
-                                        AudioResources& resources)
+void record_audio_render_command_buffer(const FrameGraphHelper&              frame_graph_helper,
+                                        const AudioFrameGraphRecord::Render& pass_record, CommandBuffer& cmdBuffer,
+                                        const PreparedData& prepared, AudioResources& resources)
 {
+    REAPER_GPU_SCOPE(cmdBuffer, "Audio Render");
+
+    const FrameGraphBarrierScope framegraph_barrier_scope(cmdBuffer, frame_graph_helper, pass_record.pass_handle);
+
     vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE, resources.audioPipe.pipeline);
 
     vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE, resources.audioPipe.pipelineLayout, 0, 1,
@@ -180,10 +187,18 @@ void record_audio_render_command_buffer(CommandBuffer& cmdBuffer, const Prepared
     }
 }
 
-void record_audio_copy_command_buffer(CommandBuffer&          cmdBuffer,
-                                      AudioResources&         resources,
-                                      const FrameGraphBuffer& audio_buffer)
+void record_audio_copy_command_buffer(const FrameGraphHelper&                   frame_graph_helper,
+                                      const AudioFrameGraphRecord::StagingCopy& pass_record,
+                                      CommandBuffer&                            cmdBuffer,
+                                      AudioResources&                           resources)
 {
+    REAPER_GPU_SCOPE(cmdBuffer, "Audio Staging Copy");
+
+    const FrameGraphBarrierScope framegraph_barrier_scope(cmdBuffer, frame_graph_helper, pass_record.pass_handle);
+
+    const FrameGraphBuffer audio_buffer =
+        get_frame_graph_buffer(frame_graph_helper.resources, frame_graph_helper.frame_graph, pass_record.audio_buffer);
+
     const VkBufferCopy2 region = {
         .sType = VK_STRUCTURE_TYPE_BUFFER_COPY_2,
         .pNext = nullptr,

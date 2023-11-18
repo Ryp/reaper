@@ -433,11 +433,8 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
             const FrameGraphBarrierScope framegraph_barrier_scope(cmdBuffer, frame_graph_helper,
                                                                   light_raster_record.tile_depth_copy.pass_handle);
 
-            record_depth_copy(cmdBuffer, resources.tiled_raster_resources,
-                              get_frame_graph_texture(resources.framegraph_resources, framegraph,
-                                                      light_raster_record.tile_depth_copy.depth_min),
-                              get_frame_graph_texture(resources.framegraph_resources, framegraph,
-                                                      light_raster_record.tile_depth_copy.depth_max));
+            record_depth_copy(frame_graph_helper, light_raster_record.tile_depth_copy, cmdBuffer,
+                              resources.tiled_raster_resources);
 
             const u32        clear_value = 0;
             FrameGraphBuffer light_lists = get_frame_graph_buffer(resources.framegraph_resources, framegraph,
@@ -454,96 +451,26 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
                             counters.default_view.size_bytes, clear_value);
         }
 
-        {
-            REAPER_GPU_SCOPE(cmdBuffer, "Classify Light Volumes");
-            record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
-                                       light_raster_record.light_classify.pass_handle, true);
+        record_light_classify_command_buffer(frame_graph_helper, light_raster_record.light_classify, cmdBuffer,
+                                             tiled_lighting_frame, resources.tiled_raster_resources);
 
-            record_light_classify_command_buffer(cmdBuffer, tiled_lighting_frame, resources.tiled_raster_resources);
+        record_light_raster_command_buffer(frame_graph_helper, light_raster_record.light_raster, cmdBuffer,
+                                           resources.tiled_raster_resources.light_raster);
 
-            record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
-                                       light_raster_record.light_classify.pass_handle, false);
-        }
+        record_tiled_lighting_command_buffer(frame_graph_helper, tiled_lighting, cmdBuffer,
+                                             resources.tiled_lighting_resources, render_extent,
+                                             VkExtent2D{light_raster_record.tile_depth_properties.width,
+                                                        light_raster_record.tile_depth_properties.height});
 
-        {
-            REAPER_GPU_SCOPE(cmdBuffer, "Rasterize Light Volumes");
-            record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
-                                       light_raster_record.light_raster.pass_handle, true);
+        record_tiled_lighting_debug_command_buffer(frame_graph_helper, tiled_lighting_debug_record, cmdBuffer,
+                                                   resources.tiled_lighting_resources, render_extent,
+                                                   VkExtent2D{light_raster_record.tile_depth_properties.width,
+                                                              light_raster_record.tile_depth_properties.height});
 
-            record_light_raster_command_buffer(
-                cmdBuffer, resources.tiled_raster_resources.light_raster,
-                get_frame_graph_buffer(resources.framegraph_resources, framegraph,
-                                       light_raster_record.light_raster.command_counters),
-                get_frame_graph_buffer(resources.framegraph_resources, framegraph,
-                                       light_raster_record.light_raster.draw_commands_inner),
-                get_frame_graph_buffer(resources.framegraph_resources, framegraph,
-                                       light_raster_record.light_raster.draw_commands_outer),
-                get_frame_graph_texture(resources.framegraph_resources, framegraph,
-                                        light_raster_record.light_raster.tile_depth_min),
-                get_frame_graph_texture(resources.framegraph_resources, framegraph,
-                                        light_raster_record.light_raster.tile_depth_max));
+        record_forward_pass_command_buffer(frame_graph_helper, forward, cmdBuffer, prepared,
+                                           resources.forward_pass_resources);
 
-            record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
-                                       light_raster_record.light_raster.pass_handle, false);
-        }
-
-        {
-            REAPER_GPU_SCOPE(cmdBuffer, "Tiled Lighting");
-            record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
-                                       tiled_lighting.pass_handle, true);
-
-            record_tiled_lighting_command_buffer(cmdBuffer, resources.tiled_lighting_resources, render_extent,
-                                                 VkExtent2D{light_raster_record.tile_depth_properties.width,
-                                                            light_raster_record.tile_depth_properties.height});
-
-            record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
-                                       tiled_lighting.pass_handle, false);
-        }
-
-        {
-            REAPER_GPU_SCOPE(cmdBuffer, "Tiled Lighting Debug");
-            record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
-                                       tiled_lighting_debug_record.pass_handle, true);
-
-            record_tiled_lighting_debug_command_buffer(cmdBuffer, resources.tiled_lighting_resources, render_extent,
-                                                       VkExtent2D{light_raster_record.tile_depth_properties.width,
-                                                                  light_raster_record.tile_depth_properties.height});
-
-            record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
-                                       tiled_lighting_debug_record.pass_handle, false);
-        }
-
-        {
-            REAPER_GPU_SCOPE(cmdBuffer, "Forward");
-            record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
-                                       forward.pass_handle, true);
-
-            record_forward_pass_command_buffer(
-                cmdBuffer, prepared, resources.forward_pass_resources,
-                get_frame_graph_buffer(resources.framegraph_resources, framegraph, forward.meshlet_counters),
-                get_frame_graph_buffer(resources.framegraph_resources, framegraph,
-                                       forward.meshlet_indirect_draw_commands),
-                get_frame_graph_buffer(resources.framegraph_resources, framegraph,
-                                       forward.meshlet_visible_index_buffer),
-                get_frame_graph_texture(resources.framegraph_resources, framegraph, forward.scene_hdr),
-                get_frame_graph_texture(resources.framegraph_resources, framegraph, forward.depth));
-
-            record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
-                                       forward.pass_handle, false);
-        }
-
-        {
-            REAPER_GPU_SCOPE(cmdBuffer, "GUI");
-            record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources, gui.pass_handle,
-                                       true);
-
-            record_gui_command_buffer(cmdBuffer, resources.gui_pass_resources,
-                                      get_frame_graph_texture(resources.framegraph_resources, framegraph, gui.output),
-                                      imgui_draw_data);
-
-            record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources, gui.pass_handle,
-                                       false);
-        }
+        record_gui_command_buffer(frame_graph_helper, gui, cmdBuffer, resources.gui_pass_resources, imgui_draw_data);
 
         {
             REAPER_GPU_SCOPE(cmdBuffer, "Histogram Clear");
@@ -559,56 +486,18 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
                             histogram_buffer.default_view.size_bytes, clear_value);
         }
 
-        {
-            REAPER_GPU_SCOPE(cmdBuffer, "Histogram");
-            record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
-                                       histogram.pass_handle, true);
+        record_histogram_command_buffer(frame_graph_helper, histogram, cmdBuffer, resources.histogram_pass_resources,
+                                        render_extent);
 
-            record_histogram_command_buffer(cmdBuffer, resources.histogram_pass_resources, render_extent);
+        record_debug_geometry_build_cmds_command_buffer(frame_graph_helper, debug_geometry_build_cmds, cmdBuffer,
+                                                        resources.debug_geometry_resources);
 
-            record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
-                                       histogram.pass_handle, false);
-        }
+        record_debug_geometry_draw_command_buffer(frame_graph_helper, debug_geometry_draw, cmdBuffer,
+                                                  resources.debug_geometry_resources);
 
-        {
-            REAPER_GPU_SCOPE(cmdBuffer, "Debug Geometry Build Commands");
-            record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
-                                       debug_geometry_build_cmds.pass_handle, true);
-
-            record_debug_geometry_build_cmds_command_buffer(cmdBuffer, resources.debug_geometry_resources);
-
-            record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
-                                       debug_geometry_build_cmds.pass_handle, false);
-        }
-
-        {
-            REAPER_GPU_SCOPE(cmdBuffer, "Debug Geometry Draw");
-            record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
-                                       debug_geometry_draw.pass_handle, true);
-
-            record_debug_geometry_draw_command_buffer(
-                cmdBuffer, resources.debug_geometry_resources,
-                get_frame_graph_texture(resources.framegraph_resources, framegraph, debug_geometry_draw.scene_hdr),
-                get_frame_graph_texture(resources.framegraph_resources, framegraph, debug_geometry_draw.scene_depth),
-                get_frame_graph_buffer(resources.framegraph_resources, framegraph, debug_geometry_draw.draw_counter),
-                get_frame_graph_buffer(resources.framegraph_resources, framegraph, debug_geometry_draw.draw_commands));
-
-            record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
-                                       debug_geometry_draw.pass_handle, false);
-        }
-
-        {
-            REAPER_GPU_SCOPE(cmdBuffer, "Swapchain");
-            record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
-                                       swapchain.pass_handle, true);
-
-            record_swapchain_command_buffer(cmdBuffer, resources.swapchain_pass_resources,
-                                            backend.presentInfo.imageViews[current_swapchain_index],
-                                            backend.presentInfo.surface_extent);
-
-            record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
-                                       swapchain.pass_handle, false);
-        }
+        record_swapchain_command_buffer(frame_graph_helper, swapchain, cmdBuffer, resources.swapchain_pass_resources,
+                                        backend.presentInfo.imageViews[current_swapchain_index],
+                                        backend.presentInfo.surface_extent);
 
         {
             const GPUTextureAccess src = swapchain_access_render;
@@ -624,29 +513,11 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
             vkCmdPipelineBarrier2(cmdBuffer.handle, &dependencies);
         }
 
-        {
-            REAPER_GPU_SCOPE(cmdBuffer, "Audio Render");
-            record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
-                                       audio_pass.render.pass_handle, true);
+        record_audio_render_command_buffer(frame_graph_helper, audio_pass.render, cmdBuffer, prepared,
+                                           resources.audio_resources);
 
-            record_audio_render_command_buffer(cmdBuffer, prepared, resources.audio_resources);
-
-            record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
-                                       audio_pass.render.pass_handle, false);
-        }
-
-        {
-            REAPER_GPU_SCOPE(cmdBuffer, "Audio Staging Copy");
-            record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
-                                       audio_pass.staging_copy.pass_handle, true);
-
-            record_audio_copy_command_buffer(cmdBuffer, resources.audio_resources,
-                                             get_frame_graph_buffer(resources.framegraph_resources, framegraph,
-                                                                    audio_pass.staging_copy.audio_buffer));
-
-            record_framegraph_barriers(cmdBuffer, schedule, framegraph, resources.framegraph_resources,
-                                       audio_pass.staging_copy.pass_handle, false);
-        }
+        record_audio_copy_command_buffer(frame_graph_helper, audio_pass.staging_copy, cmdBuffer,
+                                         resources.audio_resources);
     } // namespace Reaper
 
 #if defined(REAPER_USE_TRACY)

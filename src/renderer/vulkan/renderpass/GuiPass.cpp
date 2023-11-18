@@ -7,6 +7,7 @@
 
 #include "GuiPass.h"
 
+#include "FrameGraphPass.h"
 #include "ShadowConstants.h"
 
 #include "renderer/PrepareBuckets.h"
@@ -14,6 +15,7 @@
 #include "renderer/vulkan/Backend.h"
 #include "renderer/vulkan/CommandBuffer.h"
 #include "renderer/vulkan/FrameGraphResources.h"
+#include "renderer/vulkan/GpuProfile.h"
 #include "renderer/vulkan/Image.h"
 #include "renderer/vulkan/Pipeline.h"
 #include "renderer/vulkan/RenderPassHelpers.h"
@@ -83,9 +85,17 @@ GUIFrameGraphRecord create_gui_pass_record(FrameGraph::Builder& builder, VkExten
     return gui;
 }
 
-void record_gui_command_buffer(CommandBuffer& cmdBuffer, const GuiPassResources& pass_resources,
-                               const FrameGraphTexture& gui_buffer, ImDrawData* imgui_draw_data)
+void record_gui_command_buffer(const FrameGraphHelper& frame_graph_helper, const GUIFrameGraphRecord& pass_record,
+                               CommandBuffer& cmdBuffer, const GuiPassResources& pass_resources,
+                               ImDrawData* imgui_draw_data)
 {
+    REAPER_GPU_SCOPE(cmdBuffer, "GUI");
+
+    const FrameGraphBarrierScope framegraph_barrier_scope(cmdBuffer, frame_graph_helper, pass_record.pass_handle);
+
+    const FrameGraphTexture gui_buffer =
+        get_frame_graph_texture(frame_graph_helper.resources, frame_graph_helper.frame_graph, pass_record.output);
+
     const VkExtent2D gui_extent = {gui_buffer.properties.width, gui_buffer.properties.height};
     const VkRect2D   pass_rect = default_vk_rect(gui_extent);
     const VkViewport viewport = default_vk_viewport(pass_rect);

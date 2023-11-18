@@ -105,7 +105,6 @@ void upload_debug_geometry_build_cmds_pass_frame_resources(VulkanBackend& backen
                                                            const DebugGeometryPassResources& resources);
 
 class DescriptorWriteHelper;
-struct FrameGraphBuffer;
 struct FrameGraphResources;
 
 void update_debug_geometry_build_cmds_pass_descriptor_sets(const FrameGraph::FrameGraph& frame_graph,
@@ -115,10 +114,12 @@ void update_debug_geometry_build_cmds_pass_descriptor_sets(const FrameGraph::Fra
                                                            const DebugGeometryPassResources&           resources);
 
 struct CommandBuffer;
-struct FrameGraphTexture;
+struct FrameGraphHelper;
 
-void record_debug_geometry_build_cmds_command_buffer(CommandBuffer&                    cmdBuffer,
-                                                     const DebugGeometryPassResources& resources);
+void record_debug_geometry_build_cmds_command_buffer(const FrameGraphHelper&                     frame_graph_helper,
+                                                     const DebugGeometryComputeFrameGraphRecord& pass_record,
+                                                     CommandBuffer&                              cmdBuffer,
+                                                     const DebugGeometryPassResources&           resources);
 
 void update_debug_geometry_draw_pass_descriptor_sets(const FrameGraph::FrameGraph&            frame_graph,
                                                      const FrameGraphResources&               frame_graph_resources,
@@ -126,9 +127,7 @@ void update_debug_geometry_draw_pass_descriptor_sets(const FrameGraph::FrameGrap
                                                      DescriptorWriteHelper&                   write_helper,
                                                      const DebugGeometryPassResources&        resources);
 
-void record_debug_geometry_draw_command_buffer(CommandBuffer& cmdBuffer, const DebugGeometryPassResources& resources,
-                                               const FrameGraphTexture& hdr_buffer,
-                                               const FrameGraphTexture& depth_texture,
-                                               const FrameGraphBuffer&  draw_counter,
-                                               const FrameGraphBuffer&  draw_commands);
+void record_debug_geometry_draw_command_buffer(const FrameGraphHelper&                  frame_graph_helper,
+                                               const DebugGeometryDrawFrameGraphRecord& pass_record,
+                                               CommandBuffer& cmdBuffer, const DebugGeometryPassResources& resources);
 } // namespace Reaper

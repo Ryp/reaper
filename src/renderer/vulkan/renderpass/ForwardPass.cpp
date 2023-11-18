@@ -7,6 +7,7 @@
 
 #include "ForwardPass.h"
 
+#include "FrameGraphPass.h"
 #include "MeshletCulling.h"
 #include "ShadowConstants.h"
 #include "ShadowMap.h"
@@ -326,15 +327,27 @@ void upload_forward_pass_frame_resources(VulkanBackend& backend, const PreparedD
                                   prepared.mesh_instances.size() * sizeof(MeshInstance));
 }
 
-void record_forward_pass_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& prepared,
-                                        const ForwardPassResources& pass_resources,
-                                        const FrameGraphBuffer&     meshlet_counters,
-                                        const FrameGraphBuffer&     meshlet_indirect_draw_commands,
-                                        const FrameGraphBuffer&     meshlet_visible_index_buffer,
-                                        const FrameGraphTexture& hdr_buffer, const FrameGraphTexture& depth_buffer)
+void record_forward_pass_command_buffer(const FrameGraphHelper&        frame_graph_helper,
+                                        const ForwardFrameGraphRecord& pass_record, CommandBuffer& cmdBuffer,
+                                        const PreparedData& prepared, const ForwardPassResources& pass_resources)
 {
     if (prepared.mesh_instances.empty())
         return;
+
+    REAPER_GPU_SCOPE(cmdBuffer, "Forward");
+
+    const FrameGraphBarrierScope framegraph_barrier_scope(cmdBuffer, frame_graph_helper, pass_record.pass_handle);
+
+    const FrameGraphBuffer meshlet_counters = get_frame_graph_buffer(
+        frame_graph_helper.resources, frame_graph_helper.frame_graph, pass_record.meshlet_counters);
+    const FrameGraphBuffer meshlet_indirect_draw_commands = get_frame_graph_buffer(
+        frame_graph_helper.resources, frame_graph_helper.frame_graph, pass_record.meshlet_indirect_draw_commands);
+    const FrameGraphBuffer meshlet_visible_index_buffer = get_frame_graph_buffer(
+        frame_graph_helper.resources, frame_graph_helper.frame_graph, pass_record.meshlet_visible_index_buffer);
+    const FrameGraphTexture hdr_buffer =
+        get_frame_graph_texture(frame_graph_helper.resources, frame_graph_helper.frame_graph, pass_record.scene_hdr);
+    const FrameGraphTexture depth_buffer =
+        get_frame_graph_texture(frame_graph_helper.resources, frame_graph_helper.frame_graph, pass_record.depth);
 
     const VkExtent2D extent = {hdr_buffer.properties.width, hdr_buffer.properties.height};
     const VkRect2D   pass_rect = default_vk_rect(extent);
