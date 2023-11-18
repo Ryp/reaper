@@ -208,19 +208,26 @@ TiledLightingDebugFrameGraphRecord create_tiled_lighting_debug_pass_record(
     return tiled_lighting_debug;
 }
 
-void update_tiled_lighting_pass_descriptor_sets(DescriptorWriteHelper&            write_helper,
-                                                const LightingPassResources&      lighting_resources,
-                                                const TiledLightingPassResources& resources,
-                                                const SamplerResources&           sampler_resources,
-                                                const FrameGraphBuffer&           light_list_buffer,
-                                                const FrameGraphTexture&          gbuffer_rt0,
-                                                const FrameGraphTexture&          gbuffer_rt1,
-                                                const FrameGraphTexture&          main_view_depth,
-                                                const FrameGraphTexture&          lighting_output,
-                                                const FrameGraphBuffer&           tile_debug_buffer,
-                                                std::span<const FrameGraphTexture>
-                                                    shadow_maps)
+void update_tiled_lighting_pass_resources(const FrameGraph::FrameGraph&        frame_graph,
+                                          const FrameGraphResources&           frame_graph_resources,
+                                          const TiledLightingFrameGraphRecord& record,
+                                          DescriptorWriteHelper&               write_helper,
+                                          const LightingPassResources&         lighting_resources,
+                                          const TiledLightingPassResources&    resources,
+                                          const SamplerResources&              sampler_resources)
 {
+    const FrameGraphBuffer light_list_buffer =
+        get_frame_graph_buffer(frame_graph_resources, frame_graph, record.light_list);
+    const FrameGraphTexture gbuffer_rt0 =
+        get_frame_graph_texture(frame_graph_resources, frame_graph, record.gbuffer_rt0);
+    const FrameGraphTexture gbuffer_rt1 =
+        get_frame_graph_texture(frame_graph_resources, frame_graph, record.gbuffer_rt1);
+    const FrameGraphTexture main_view_depth = get_frame_graph_texture(frame_graph_resources, frame_graph, record.depth);
+    const FrameGraphTexture lighting_output =
+        get_frame_graph_texture(frame_graph_resources, frame_graph, record.lighting);
+    const FrameGraphBuffer tile_debug_buffer =
+        get_frame_graph_buffer(frame_graph_resources, frame_graph, record.tile_debug_texture);
+
     VkDescriptorSet dset = resources.tiled_lighting_descriptor_set;
     write_helper.append(dset, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, resources.tiled_lighting_constant_buffer.handle);
     write_helper.append(dset, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, light_list_buffer.handle);
@@ -238,14 +245,16 @@ void update_tiled_lighting_pass_descriptor_sets(DescriptorWriteHelper&          
                         lighting_output.image_layout);
     write_helper.append(dset, 8, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, tile_debug_buffer.handle);
 
-    if (!shadow_maps.empty())
+    if (!record.shadow_maps.empty())
     {
         std::span<VkDescriptorImageInfo> shadow_map_image_infos =
-            write_helper.new_image_infos(static_cast<u32>(shadow_maps.size()));
+            write_helper.new_image_infos(static_cast<u32>(record.shadow_maps.size()));
 
-        for (u32 index = 0; index < shadow_maps.size(); index += 1)
+        for (u32 index = 0; index < record.shadow_maps.size(); index += 1)
         {
-            const auto& shadow_map = shadow_maps[index];
+            const FrameGraphTexture shadow_map =
+                get_frame_graph_texture(frame_graph_resources, frame_graph, record.shadow_maps[index]);
+
             shadow_map_image_infos[index] =
                 create_descriptor_image_info(shadow_map.default_view_handle, shadow_map.image_layout);
         }
@@ -290,11 +299,17 @@ void record_tiled_lighting_command_buffer(CommandBuffer& cmdBuffer, const TiledL
                   1);
 }
 
-void update_tiled_lighting_debug_pass_descriptor_sets(DescriptorWriteHelper&            write_helper,
-                                                      const TiledLightingPassResources& resources,
-                                                      const FrameGraphBuffer&           tile_debug_buffer,
-                                                      const FrameGraphTexture&          tile_debug_texture)
+void update_tiled_lighting_debug_pass_resources(const FrameGraph::FrameGraph&             frame_graph,
+                                                const FrameGraphResources&                frame_graph_resources,
+                                                const TiledLightingDebugFrameGraphRecord& record,
+                                                DescriptorWriteHelper&                    write_helper,
+                                                const TiledLightingPassResources&         resources)
 {
+    const FrameGraphBuffer tile_debug_buffer =
+        get_frame_graph_buffer(frame_graph_resources, frame_graph, record.tile_debug);
+    const FrameGraphTexture tile_debug_texture =
+        get_frame_graph_texture(frame_graph_resources, frame_graph, record.output);
+
     VkDescriptorSet dset = resources.tiled_lighting_debug_descriptor_set;
     write_helper.append(dset, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, tile_debug_buffer.handle);
     write_helper.append(dset, 1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, tile_debug_texture.default_view_handle,

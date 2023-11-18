@@ -98,10 +98,16 @@ HistogramFrameGraphRecord create_histogram_pass_record(FrameGraph::Builder&     
     return histogram;
 }
 
-void update_histogram_pass_descriptor_set(DescriptorWriteHelper& write_helper, const HistogramPassResources& resources,
-                                          const SamplerResources& sampler_resources, const FrameGraphTexture& scene_hdr,
-                                          const FrameGraphBuffer& histogram_buffer)
+void update_histogram_pass_descriptor_set(const FrameGraph::FrameGraph&    frame_graph,
+                                          const FrameGraphResources&       frame_graph_resources,
+                                          const HistogramFrameGraphRecord& record, DescriptorWriteHelper& write_helper,
+                                          const HistogramPassResources& resources,
+                                          const SamplerResources&       sampler_resources)
 {
+    const FrameGraphTexture scene_hdr = get_frame_graph_texture(frame_graph_resources, frame_graph, record.scene_hdr);
+    const FrameGraphBuffer  histogram_buffer =
+        get_frame_graph_buffer(frame_graph_resources, frame_graph, record.histogram_buffer);
+
     write_helper.append(resources.descriptor_set, 0, sampler_resources.linear_clamp);
     write_helper.append(resources.descriptor_set, 1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, scene_hdr.default_view_handle,
                         scene_hdr.image_layout);

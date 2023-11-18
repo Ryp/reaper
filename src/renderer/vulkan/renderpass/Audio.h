@@ -15,24 +15,6 @@
 
 namespace Reaper
 {
-struct VulkanBackend;
-struct ShaderModules;
-
-struct AudioFrameGraphRecord
-{
-    struct Render
-    {
-        FrameGraph::RenderPassHandle    pass_handle;
-        FrameGraph::ResourceUsageHandle audio_buffer;
-    } render;
-
-    struct StagingCopy
-    {
-        FrameGraph::RenderPassHandle    pass_handle;
-        FrameGraph::ResourceUsageHandle audio_buffer;
-    } staging_copy;
-};
-
 struct AudioPipelineInfo
 {
     VkPipeline            pipeline;
@@ -70,15 +52,34 @@ struct RawSample
 };
 #endif
 
-namespace FrameGraph
-{
-    class Builder;
-}
-
-AudioFrameGraphRecord create_audio_frame_graph_data(FrameGraph::Builder& builder);
+struct VulkanBackend;
+struct ShaderModules;
 
 AudioResources create_audio_resources(VulkanBackend& backend, const ShaderModules& shader_modules);
 void           destroy_audio_resources(VulkanBackend& backend, AudioResources& resources);
+
+namespace FrameGraph
+{
+    class FrameGraph;
+    class Builder;
+} // namespace FrameGraph
+
+struct AudioFrameGraphRecord
+{
+    struct Render
+    {
+        FrameGraph::RenderPassHandle    pass_handle;
+        FrameGraph::ResourceUsageHandle audio_buffer;
+    } render;
+
+    struct StagingCopy
+    {
+        FrameGraph::RenderPassHandle    pass_handle;
+        FrameGraph::ResourceUsageHandle audio_buffer;
+    } staging_copy;
+};
+
+AudioFrameGraphRecord create_audio_frame_graph_data(FrameGraph::Builder& builder);
 
 struct PreparedData;
 
@@ -86,9 +87,13 @@ void upload_audio_frame_resources(VulkanBackend& backend, const PreparedData& pr
 
 class DescriptorWriteHelper;
 struct FrameGraphBuffer;
+struct FrameGraphResources;
 
-void update_audio_render_descriptor_set(DescriptorWriteHelper& write_helper, AudioResources& resources,
-                                        const FrameGraphBuffer& audio_buffer);
+void update_audio_render_resources(const FrameGraph::FrameGraph& frame_graph,
+                                   const FrameGraphResources&    frame_graph_resources,
+                                   const AudioFrameGraphRecord&  record,
+                                   DescriptorWriteHelper&        write_helper,
+                                   const AudioResources&         resources);
 
 struct CommandBuffer;
 

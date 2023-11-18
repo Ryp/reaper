@@ -234,13 +234,20 @@ create_swapchain_pass_record(FrameGraph::Builder&            builder,
     return swapchain;
 }
 
-void update_swapchain_pass_descriptor_set(DescriptorWriteHelper& write_helper, const SwapchainPassResources& resources,
-                                          const SamplerResources&  sampler_resources,
-                                          const FrameGraphTexture& hdr_scene_texture,
-                                          const FrameGraphTexture& lighting_texture,
-                                          const FrameGraphTexture& gui_texture,
-                                          const FrameGraphTexture& tile_lighting_debug_texture)
+void update_swapchain_pass_descriptor_set(const FrameGraph::FrameGraph&    frame_graph,
+                                          const FrameGraphResources&       frame_graph_resources,
+                                          const SwapchainFrameGraphRecord& record, DescriptorWriteHelper& write_helper,
+                                          const SwapchainPassResources& resources,
+                                          const SamplerResources&       sampler_resources)
 {
+    const FrameGraphTexture hdr_scene_texture =
+        get_frame_graph_texture(frame_graph_resources, frame_graph, record.scene_hdr);
+    const FrameGraphTexture lighting_texture =
+        get_frame_graph_texture(frame_graph_resources, frame_graph, record.lighting_result);
+    const FrameGraphTexture gui_texture = get_frame_graph_texture(frame_graph_resources, frame_graph, record.gui);
+    const FrameGraphTexture tile_lighting_debug_texture =
+        get_frame_graph_texture(frame_graph_resources, frame_graph, record.tile_debug);
+
     write_helper.append(resources.descriptor_set, 0, sampler_resources.linear_black_border);
     write_helper.append(resources.descriptor_set, 1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
                         hdr_scene_texture.default_view_handle, hdr_scene_texture.image_layout);

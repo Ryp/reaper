@@ -82,19 +82,15 @@ class DescriptorWriteHelper;
 struct FrameGraphTexture;
 struct FrameGraphBuffer;
 struct LightingPassResources;
+struct FrameGraphResources;
 
-void update_tiled_lighting_pass_descriptor_sets(DescriptorWriteHelper&            write_helper,
-                                                const LightingPassResources&      lighting_resources,
-                                                const TiledLightingPassResources& resources,
-                                                const SamplerResources&           sampler_resources,
-                                                const FrameGraphBuffer&           light_list_buffer,
-                                                const FrameGraphTexture&          gbuffer_rt0,
-                                                const FrameGraphTexture&          gbuffer_rt1,
-                                                const FrameGraphTexture&          main_view_depth,
-                                                const FrameGraphTexture&          lighting_output,
-                                                const FrameGraphBuffer&           tile_debug_buffer,
-                                                std::span<const FrameGraphTexture>
-                                                    shadow_maps);
+void update_tiled_lighting_pass_resources(const FrameGraph::FrameGraph&        frame_graph,
+                                          const FrameGraphResources&           frame_graph_resources,
+                                          const TiledLightingFrameGraphRecord& record,
+                                          DescriptorWriteHelper&               write_helper,
+                                          const LightingPassResources&         lighting_resources,
+                                          const TiledLightingPassResources&    resources,
+                                          const SamplerResources&              sampler_resources);
 
 struct PreparedData;
 
@@ -106,11 +102,11 @@ struct CommandBuffer;
 void record_tiled_lighting_command_buffer(CommandBuffer& cmdBuffer, const TiledLightingPassResources& resources,
                                           VkExtent2D render_extent, VkExtent2D tile_extent);
 
-// Debug
-void update_tiled_lighting_debug_pass_descriptor_sets(DescriptorWriteHelper&            write_helper,
-                                                      const TiledLightingPassResources& resources,
-                                                      const FrameGraphBuffer&           tile_debug_buffer,
-                                                      const FrameGraphTexture&          tile_debug_texture);
+void update_tiled_lighting_debug_pass_resources(const FrameGraph::FrameGraph&             frame_graph,
+                                                const FrameGraphResources&                frame_graph_resources,
+                                                const TiledLightingDebugFrameGraphRecord& record,
+                                                DescriptorWriteHelper&                    write_helper,
+                                                const TiledLightingPassResources&         resources);
 
 void record_tiled_lighting_debug_command_buffer(CommandBuffer& cmdBuffer, const TiledLightingPassResources& resources,
                                                 VkExtent2D render_extent, VkExtent2D tile_extent);

@@ -107,10 +107,15 @@ HZBReduceFrameGraphRecord create_hzb_pass_record(FrameGraph::Builder&           
     return record;
 }
 
-void update_hzb_pass_descriptor_set(DescriptorWriteHelper& write_helper, const HZBPassResources& resources,
-                                    const SamplerResources& sampler_resources, const FrameGraphTexture& scene_depth,
-                                    const FrameGraphTexture& hzb_texture)
+void update_hzb_pass_descriptor_set(const FrameGraph::FrameGraph&    frame_graph,
+                                    const FrameGraphResources&       frame_graph_resources,
+                                    const HZBReduceFrameGraphRecord& record, DescriptorWriteHelper& write_helper,
+                                    const HZBPassResources& resources, const SamplerResources& sampler_resources)
 {
+    const FrameGraphTexture scene_depth = get_frame_graph_texture(frame_graph_resources, frame_graph, record.depth);
+    const FrameGraphTexture hzb_texture =
+        get_frame_graph_texture(frame_graph_resources, frame_graph, record.hzb_texture);
+
     write_helper.append(resources.descriptor_set, Slot_LinearClampSampler, sampler_resources.linear_clamp);
     write_helper.append(resources.descriptor_set, Slot_SceneDepth, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
                         scene_depth.default_view_handle, scene_depth.image_layout);

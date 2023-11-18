@@ -66,12 +66,13 @@ struct SamplerResources;
 class DescriptorWriteHelper;
 struct FrameGraphTexture;
 
-void update_swapchain_pass_descriptor_set(DescriptorWriteHelper& write_helper, const SwapchainPassResources& resources,
-                                          const SamplerResources&  sampler_resources,
-                                          const FrameGraphTexture& hdr_scene_texture,
-                                          const FrameGraphTexture& lighting_texture,
-                                          const FrameGraphTexture& gui_texture,
-                                          const FrameGraphTexture& tile_lighting_debug_texture);
+struct FrameGraphResources;
+
+void update_swapchain_pass_descriptor_set(const FrameGraph::FrameGraph&    frame_graph,
+                                          const FrameGraphResources&       frame_graph_resources,
+                                          const SwapchainFrameGraphRecord& record, DescriptorWriteHelper& write_helper,
+                                          const SwapchainPassResources& resources,
+                                          const SamplerResources&       sampler_resources);
 
 struct CommandBuffer;
 

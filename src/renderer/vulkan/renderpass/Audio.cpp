@@ -32,32 +32,6 @@
 
 namespace Reaper
 {
-AudioFrameGraphRecord create_audio_frame_graph_data(FrameGraph::Builder& builder)
-{
-    AudioFrameGraphRecord::Render render;
-
-    render.pass_handle = builder.create_render_pass("Audio render");
-
-    render.audio_buffer =
-        builder.create_buffer(render.pass_handle, "Output sample buffer",
-                              DefaultGPUBufferProperties(FrameCountPerGroup * FrameCountPerDispatch, sizeof(RawSample),
-                                                         GPUBufferUsage::TransferSrc | GPUBufferUsage::StorageBuffer),
-                              GPUBufferAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT});
-
-    AudioFrameGraphRecord::StagingCopy staging_copy;
-
-    staging_copy.pass_handle = builder.create_render_pass("Audio staging copy", true);
-
-    staging_copy.audio_buffer =
-        builder.read_buffer(staging_copy.pass_handle, render.audio_buffer,
-                            GPUBufferAccess{VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_READ_BIT});
-
-    return {
-        .render = render,
-        .staging_copy = staging_copy,
-    };
-}
-
 AudioResources create_audio_resources(VulkanBackend& backend, const ShaderModules& shader_modules)
 {
     AudioResources resources = {};
@@ -131,6 +105,32 @@ void destroy_audio_resources(VulkanBackend& backend, AudioResources& resources)
     vkDestroySemaphore(backend.device, resources.semaphore, nullptr);
 }
 
+AudioFrameGraphRecord create_audio_frame_graph_data(FrameGraph::Builder& builder)
+{
+    AudioFrameGraphRecord::Render render;
+
+    render.pass_handle = builder.create_render_pass("Audio render");
+
+    render.audio_buffer =
+        builder.create_buffer(render.pass_handle, "Output sample buffer",
+                              DefaultGPUBufferProperties(FrameCountPerGroup * FrameCountPerDispatch, sizeof(RawSample),
+                                                         GPUBufferUsage::TransferSrc | GPUBufferUsage::StorageBuffer),
+                              GPUBufferAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT});
+
+    AudioFrameGraphRecord::StagingCopy staging_copy;
+
+    staging_copy.pass_handle = builder.create_render_pass("Audio staging copy", true);
+
+    staging_copy.audio_buffer =
+        builder.read_buffer(staging_copy.pass_handle, render.audio_buffer,
+                            GPUBufferAccess{VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_READ_BIT});
+
+    return {
+        .render = render,
+        .staging_copy = staging_copy,
+    };
+}
+
 void upload_audio_frame_resources(VulkanBackend& backend, const PreparedData& prepared, AudioResources& resources)
 {
     REAPER_PROFILE_SCOPE_FUNC();
@@ -140,9 +140,14 @@ void upload_audio_frame_resources(VulkanBackend& backend, const PreparedData& pr
                                   prepared.audio_instance_params.size() * sizeof(OscillatorInstance));
 }
 
-void update_audio_render_descriptor_set(DescriptorWriteHelper& write_helper, AudioResources& resources,
-                                        const FrameGraphBuffer& audio_buffer)
+void update_audio_render_resources(const FrameGraph::FrameGraph& frame_graph,
+                                   const FrameGraphResources&    frame_graph_resources,
+                                   const AudioFrameGraphRecord& record, DescriptorWriteHelper& write_helper,
+                                   const AudioResources& resources)
 {
+    const FrameGraphBuffer audio_buffer =
+        get_frame_graph_buffer(frame_graph_resources, frame_graph, record.render.audio_buffer);
+
     write_helper.append(resources.descriptor_set, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                         resources.instance_buffer.handle);
     write_helper.append(resources.descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, audio_buffer.handle);

@@ -65,10 +65,12 @@ HZBReduceFrameGraphRecord create_hzb_pass_record(FrameGraph::Builder&           
 struct SamplerResources;
 class DescriptorWriteHelper;
 struct FrameGraphTexture;
+struct FrameGraphResources;
 
-void update_hzb_pass_descriptor_set(DescriptorWriteHelper& write_helper, const HZBPassResources& resources,
-                                    const SamplerResources& sampler_resources, const FrameGraphTexture& scene_depth,
-                                    const FrameGraphTexture& hzb_texture);
+void update_hzb_pass_descriptor_set(const FrameGraph::FrameGraph&    frame_graph,
+                                    const FrameGraphResources&       frame_graph_resources,
+                                    const HZBReduceFrameGraphRecord& record, DescriptorWriteHelper& write_helper,
+                                    const HZBPassResources& resources, const SamplerResources& sampler_resources);
 
 struct CommandBuffer;
 

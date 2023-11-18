@@ -264,73 +264,35 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
                                             descriptor_write_helper, resources.frame_storage_allocator, prepared,
                                             resources.meshlet_culling_resources, resources.mesh_cache);
 
-    update_hzb_pass_descriptor_set(
-        descriptor_write_helper, resources.hzb_pass_resources, resources.samplers_resources,
-        get_frame_graph_texture(resources.framegraph_resources, framegraph, hzb_reduce.depth),
-        get_frame_graph_texture(resources.framegraph_resources, framegraph, hzb_reduce.hzb_texture));
-
-    std::vector<FrameGraphTexture> forward_shadow_map_views;
-    for (auto handle : forward.shadow_maps)
-    {
-        forward_shadow_map_views.emplace_back(
-            get_frame_graph_texture(resources.framegraph_resources, framegraph, handle));
-    }
+    update_hzb_pass_descriptor_set(framegraph, resources.framegraph_resources, hzb_reduce, descriptor_write_helper,
+                                   resources.hzb_pass_resources, resources.samplers_resources);
 
     update_forward_pass_descriptor_sets(
-        descriptor_write_helper, resources.forward_pass_resources,
-        get_frame_graph_buffer(resources.framegraph_resources, framegraph, forward.visible_meshlet_buffer),
-        resources.samplers_resources, resources.material_resources, resources.mesh_cache, resources.lighting_resources,
-        forward_shadow_map_views);
+        framegraph, resources.framegraph_resources, forward, descriptor_write_helper, resources.forward_pass_resources,
+        resources.samplers_resources, resources.material_resources, resources.mesh_cache, resources.lighting_resources);
 
-    std::vector<FrameGraphTexture> tiled_shadow_maps;
-    for (auto handle : tiled_lighting.shadow_maps)
-    {
-        tiled_shadow_maps.emplace_back(get_frame_graph_texture(resources.framegraph_resources, framegraph, handle));
-    }
+    update_tiled_lighting_pass_resources(framegraph, resources.framegraph_resources, tiled_lighting,
+                                         descriptor_write_helper, resources.lighting_resources,
+                                         resources.tiled_lighting_resources, resources.samplers_resources);
 
-    update_tiled_lighting_pass_descriptor_sets(
-        descriptor_write_helper, resources.lighting_resources, resources.tiled_lighting_resources,
-        resources.samplers_resources,
-        get_frame_graph_buffer(resources.framegraph_resources, framegraph, tiled_lighting.light_list),
-        get_frame_graph_texture(resources.framegraph_resources, framegraph, tiled_lighting.gbuffer_rt0),
-        get_frame_graph_texture(resources.framegraph_resources, framegraph, tiled_lighting.gbuffer_rt1),
-        get_frame_graph_texture(resources.framegraph_resources, framegraph, tiled_lighting.depth),
-        get_frame_graph_texture(resources.framegraph_resources, framegraph, tiled_lighting.lighting),
-        get_frame_graph_buffer(resources.framegraph_resources, framegraph, tiled_lighting.tile_debug_texture),
-        tiled_shadow_maps);
+    update_tiled_lighting_debug_pass_resources(framegraph, resources.framegraph_resources, tiled_lighting_debug_record,
+                                               descriptor_write_helper, resources.tiled_lighting_resources);
 
-    update_tiled_lighting_debug_pass_descriptor_sets(
-        descriptor_write_helper, resources.tiled_lighting_resources,
-        get_frame_graph_buffer(resources.framegraph_resources, framegraph, tiled_lighting_debug_record.tile_debug),
-        get_frame_graph_texture(resources.framegraph_resources, framegraph, tiled_lighting_debug_record.output));
+    update_histogram_pass_descriptor_set(framegraph, resources.framegraph_resources, histogram, descriptor_write_helper,
+                                         resources.histogram_pass_resources, resources.samplers_resources);
 
-    update_histogram_pass_descriptor_set(
-        descriptor_write_helper, resources.histogram_pass_resources, resources.samplers_resources,
-        get_frame_graph_texture(resources.framegraph_resources, framegraph, histogram.scene_hdr),
-        get_frame_graph_buffer(resources.framegraph_resources, framegraph, histogram.histogram_buffer));
+    update_debug_geometry_build_cmds_pass_descriptor_sets(framegraph, resources.framegraph_resources,
+                                                          debug_geometry_build_cmds, descriptor_write_helper,
+                                                          resources.debug_geometry_resources);
 
-    update_debug_geometry_build_cmds_pass_descriptor_sets(
-        descriptor_write_helper, resources.debug_geometry_resources,
-        get_frame_graph_buffer(resources.framegraph_resources, framegraph, debug_geometry_build_cmds.draw_counter),
-        get_frame_graph_buffer(resources.framegraph_resources, framegraph,
-                               debug_geometry_build_cmds.user_commands_buffer),
-        get_frame_graph_buffer(resources.framegraph_resources, framegraph, debug_geometry_build_cmds.draw_commands),
-        get_frame_graph_buffer(resources.framegraph_resources, framegraph, debug_geometry_build_cmds.instance_buffer));
+    update_debug_geometry_draw_pass_descriptor_sets(framegraph, resources.framegraph_resources, debug_geometry_draw,
+                                                    descriptor_write_helper, resources.debug_geometry_resources);
 
-    update_debug_geometry_draw_pass_descriptor_sets(
-        descriptor_write_helper, resources.debug_geometry_resources,
-        get_frame_graph_buffer(resources.framegraph_resources, framegraph, debug_geometry_draw.instance_buffer));
+    update_swapchain_pass_descriptor_set(framegraph, resources.framegraph_resources, swapchain, descriptor_write_helper,
+                                         resources.swapchain_pass_resources, resources.samplers_resources);
 
-    update_swapchain_pass_descriptor_set(
-        descriptor_write_helper, resources.swapchain_pass_resources, resources.samplers_resources,
-        get_frame_graph_texture(resources.framegraph_resources, framegraph, swapchain.scene_hdr),
-        get_frame_graph_texture(resources.framegraph_resources, framegraph, swapchain.lighting_result),
-        get_frame_graph_texture(resources.framegraph_resources, framegraph, swapchain.gui),
-        get_frame_graph_texture(resources.framegraph_resources, framegraph, swapchain.tile_debug));
-
-    update_audio_render_descriptor_set(
-        descriptor_write_helper, resources.audio_resources,
-        get_frame_graph_buffer(resources.framegraph_resources, framegraph, audio_pass.render.audio_buffer));
+    update_audio_render_resources(framegraph, resources.framegraph_resources, audio_pass, descriptor_write_helper,
+                                  resources.audio_resources);
 
     storage_allocator_commit_to_gpu(backend, resources.frame_storage_allocator);
 

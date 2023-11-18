@@ -237,13 +237,17 @@ ForwardFrameGraphRecord create_forward_pass_record(FrameGraph::Builder&         
     return forward;
 }
 
-void update_forward_pass_descriptor_sets(DescriptorWriteHelper& write_helper, const ForwardPassResources& resources,
-                                         const FrameGraphBuffer&  visible_meshlet_buffer,
-                                         const SamplerResources&  sampler_resources,
+void update_forward_pass_descriptor_sets(const FrameGraph::FrameGraph&  frame_graph,
+                                         const FrameGraphResources&     frame_graph_resources,
+                                         const ForwardFrameGraphRecord& record, DescriptorWriteHelper& write_helper,
+                                         const ForwardPassResources& resources,
+                                         const SamplerResources&     sampler_resources,
                                          const MaterialResources& material_resources, const MeshCache& mesh_cache,
-                                         const LightingPassResources&       lighting_resources,
-                                         std::span<const FrameGraphTexture> shadow_maps)
+                                         const LightingPassResources& lighting_resources)
 {
+    const FrameGraphBuffer visible_meshlet_buffer =
+        get_frame_graph_buffer(frame_graph_resources, frame_graph, record.visible_meshlet_buffer);
+
     {
         using namespace Forward::zero;
         write_helper.append(resources.descriptor_set, g_bindings[pass_params], resources.pass_constant_buffer.handle);
@@ -263,14 +267,16 @@ void update_forward_pass_descriptor_sets(DescriptorWriteHelper& write_helper, co
         write_helper.append(resources.descriptor_set, g_bindings[shadow_map_sampler],
                             sampler_resources.shadow_map_sampler);
 
-        if (!shadow_maps.empty())
+        if (!record.shadow_maps.empty())
         {
             std::span<VkDescriptorImageInfo> shadow_map_image_infos =
-                write_helper.new_image_infos(static_cast<u32>(shadow_maps.size()));
+                write_helper.new_image_infos(static_cast<u32>(record.shadow_maps.size()));
 
-            for (u32 index = 0; index < shadow_maps.size(); index += 1)
+            for (u32 index = 0; index < record.shadow_maps.size(); index += 1)
             {
-                const auto& shadow_map = shadow_maps[index];
+                const FrameGraphTexture shadow_map =
+                    get_frame_graph_texture(frame_graph_resources, frame_graph, record.shadow_maps[index]);
+
                 shadow_map_image_infos[index] =
                     create_descriptor_image_info(shadow_map.default_view_handle, shadow_map.image_layout);
             }
