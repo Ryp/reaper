@@ -28,20 +28,38 @@
 
 namespace Reaper
 {
+namespace
+{
+    enum BindingIndex
+    {
+        LinearClampSampler,
+        SceneDepth,
+        HZB_mips,
+        _count,
+    };
+
+    std::array<DescriptorBinding, BindingIndex::_count> g_bindings = {
+        DescriptorBinding{
+            .slot = 0, .count = 1, .type = VK_DESCRIPTOR_TYPE_SAMPLER, .stage_mask = VK_SHADER_STAGE_COMPUTE_BIT},
+        {.slot = 1, .count = 1, .type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, .stage_mask = VK_SHADER_STAGE_COMPUTE_BIT},
+        {.slot = 2,
+         .count = HZBMaxMipCount,
+         .type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+         .stage_mask = VK_SHADER_STAGE_COMPUTE_BIT},
+    };
+} // namespace
+
 HZBPassResources create_hzb_pass_resources(VulkanBackend& backend, const ShaderModules& shader_modules)
 {
     HZBPassResources resources = {};
 
-    std::vector<VkDescriptorSetLayoutBinding> bindings = {
-        {Slot_LinearClampSampler, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-        {Slot_SceneDepth, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-        {Slot_HZB_mips, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, HZBMaxMipCount, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-    };
+    std::vector<VkDescriptorSetLayoutBinding> layout_bindings(g_bindings.size());
+    fill_layout_bindings(layout_bindings, g_bindings);
 
-    std::vector<VkDescriptorBindingFlags> binding_flags(bindings.size(), VK_FLAGS_NONE);
+    std::vector<VkDescriptorBindingFlags> binding_flags(layout_bindings.size(), VK_FLAGS_NONE);
     binding_flags.back() = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT;
 
-    resources.hzb_pipe.desc_set_layout = create_descriptor_set_layout(backend.device, bindings, binding_flags);
+    resources.hzb_pipe.desc_set_layout = create_descriptor_set_layout(backend.device, layout_bindings, binding_flags);
 
     {
         const VkPushConstantRange push_constant_range = {VK_SHADER_STAGE_COMPUTE_BIT, 0,
@@ -118,9 +136,9 @@ void update_hzb_pass_descriptor_set(const FrameGraph::FrameGraph&    frame_graph
     const FrameGraphTexture hzb_texture =
         get_frame_graph_texture(frame_graph_resources, frame_graph, record.hzb_texture);
 
-    write_helper.append(resources.descriptor_set, Slot_LinearClampSampler, sampler_resources.linear_clamp);
-    write_helper.append(resources.descriptor_set, Slot_SceneDepth, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-                        scene_depth.default_view_handle, scene_depth.image_layout);
+    write_helper.append(resources.descriptor_set, g_bindings[LinearClampSampler], sampler_resources.linear_clamp);
+    write_helper.append(resources.descriptor_set, g_bindings[SceneDepth], scene_depth.default_view_handle,
+                        scene_depth.image_layout);
 
     const u32                        hzb_mip_count = hzb_texture.properties.mip_count;
     std::span<VkDescriptorImageInfo> hzb_mips = write_helper.new_image_infos(hzb_mip_count);
@@ -132,8 +150,8 @@ void update_hzb_pass_descriptor_set(const FrameGraph::FrameGraph&    frame_graph
         hzb_mips[index] = create_descriptor_image_info(hzb_texture.additional_views[index], hzb_texture.image_layout);
     }
 
-    write_helper.writes.push_back(create_image_descriptor_write(resources.descriptor_set, Slot_HZB_mips,
-                                                                VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, hzb_mips));
+    write_helper.writes.push_back(create_image_descriptor_write(resources.descriptor_set, g_bindings[HZB_mips].slot,
+                                                                g_bindings[HZB_mips].type, hzb_mips));
 }
 
 void record_hzb_command_buffer(const FrameGraphHelper& frame_graph_helper, const HZBReduceFrameGraphRecord& pass_record,

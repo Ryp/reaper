@@ -10,10 +10,6 @@
 
 #include "shared_types.hlsl"
 
-#define Slot_LinearClampSampler 0
-#define Slot_SceneDepth         1
-#define Slot_HZB_mips           2
-
 static const hlsl_uint MinWaveLaneCount = 8; // FIXME
 
 static const hlsl_uint HZBMaxMipCount = 10;

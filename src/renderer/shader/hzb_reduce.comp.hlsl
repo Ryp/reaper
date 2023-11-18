@@ -5,9 +5,9 @@
 
 VK_PUSH_CONSTANT_HELPER(HZBReducePushConstants) consts;
 
-VK_BINDING(0, Slot_LinearClampSampler) SamplerState LinearClampSampler;
-VK_BINDING(0, Slot_SceneDepth) Texture2D<float> SceneDepth;
-VK_BINDING(0, Slot_HZB_mips) RWTexture2D<float2> HZB_mips[HZBMaxMipCount];
+VK_BINDING(0, 0) SamplerState LinearClampSampler;
+VK_BINDING(0, 1) Texture2D<float> SceneDepth;
+VK_BINDING(0, 2) RWTexture2D<float2> HZB_mips[HZBMaxMipCount];
 
 static const uint ThreadCount = HZBReduceThreadCountX * HZBReduceThreadCountY;
 
