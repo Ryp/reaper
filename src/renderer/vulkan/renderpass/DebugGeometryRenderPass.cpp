@@ -209,6 +209,76 @@ DebugGeometryClearFrameGraphRecord create_debug_geometry_clear_pass_record(Frame
     return debug_geometry_clear;
 }
 
+DebugGeometryComputeFrameGraphRecord
+create_debug_geometry_compute_pass_record(FrameGraph::Builder&                      builder,
+                                          const DebugGeometryClearFrameGraphRecord& debug_geometry_clear)
+{
+    DebugGeometryComputeFrameGraphRecord debug_geometry_build_cmds;
+
+    debug_geometry_build_cmds.pass_handle = builder.create_render_pass("Debug Geometry Build Commands");
+
+    debug_geometry_build_cmds.draw_counter =
+        builder.read_buffer(debug_geometry_build_cmds.pass_handle, debug_geometry_clear.draw_counter,
+                            GPUBufferAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT});
+
+    debug_geometry_build_cmds.user_commands_buffer =
+        builder.read_buffer(debug_geometry_build_cmds.pass_handle, debug_geometry_clear.user_commands_buffer,
+                            GPUBufferAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT});
+
+    const GPUBufferProperties debug_geometry_command_properties =
+        DefaultGPUBufferProperties(DebugGeometryCountMax, sizeof(VkDrawIndexedIndirectCommand),
+                                   GPUBufferUsage::IndirectBuffer | GPUBufferUsage::StorageBuffer);
+
+    debug_geometry_build_cmds.draw_commands = builder.create_buffer(
+        debug_geometry_build_cmds.pass_handle, "Debug Indirect draw command buffer", debug_geometry_command_properties,
+        GPUBufferAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT});
+
+    const GPUBufferProperties debug_geometry_instance_properties =
+        DefaultGPUBufferProperties(DebugGeometryCountMax, sizeof(DebugGeometryInstance), GPUBufferUsage::StorageBuffer);
+
+    debug_geometry_build_cmds.instance_buffer = builder.create_buffer(
+        debug_geometry_build_cmds.pass_handle, "Debug geometry instance buffer", debug_geometry_instance_properties,
+        GPUBufferAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT});
+
+    return debug_geometry_build_cmds;
+}
+
+DebugGeometryDrawFrameGraphRecord
+create_debug_geometry_draw_pass_record(FrameGraph::Builder&                        builder,
+                                       const DebugGeometryClearFrameGraphRecord&   debug_geometry_clear,
+                                       const DebugGeometryComputeFrameGraphRecord& debug_geometry_build_cmds,
+                                       FrameGraph::ResourceUsageHandle             scene_hdr_usage_handle,
+                                       FrameGraph::ResourceUsageHandle             scene_depth_usage_handle)
+{
+    DebugGeometryDrawFrameGraphRecord debug_geometry_draw;
+    debug_geometry_draw.pass_handle = builder.create_render_pass("Debug Geometry Draw");
+
+    debug_geometry_draw.scene_hdr = builder.write_texture(
+        debug_geometry_draw.pass_handle,
+        scene_hdr_usage_handle,
+        GPUTextureAccess{VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+                         VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL});
+
+    debug_geometry_draw.scene_depth = builder.read_texture(
+        debug_geometry_draw.pass_handle, scene_depth_usage_handle,
+        GPUTextureAccess{VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
+                         VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT, VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL});
+
+    debug_geometry_draw.draw_counter = builder.read_buffer(
+        debug_geometry_draw.pass_handle, debug_geometry_clear.draw_counter,
+        GPUBufferAccess{VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT, VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT});
+
+    debug_geometry_draw.draw_commands = builder.read_buffer(
+        debug_geometry_draw.pass_handle, debug_geometry_build_cmds.draw_commands,
+        GPUBufferAccess{VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT, VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT});
+
+    debug_geometry_draw.instance_buffer =
+        builder.read_buffer(debug_geometry_draw.pass_handle, debug_geometry_build_cmds.instance_buffer,
+                            GPUBufferAccess{VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT});
+
+    return debug_geometry_draw;
+}
+
 void upload_debug_geometry_build_cmds_pass_frame_resources(VulkanBackend& backend, const PreparedData& prepared,
                                                            const DebugGeometryPassResources& resources)
 {

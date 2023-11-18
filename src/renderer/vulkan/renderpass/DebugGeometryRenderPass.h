@@ -67,6 +67,8 @@ struct DebugGeometryClearFrameGraphRecord
     FrameGraph::ResourceUsageHandle user_commands_buffer;
 };
 
+DebugGeometryClearFrameGraphRecord create_debug_geometry_clear_pass_record(FrameGraph::Builder& builder);
+
 struct DebugGeometryComputeFrameGraphRecord
 {
     FrameGraph::RenderPassHandle    pass_handle;
@@ -75,6 +77,10 @@ struct DebugGeometryComputeFrameGraphRecord
     FrameGraph::ResourceUsageHandle draw_commands;
     FrameGraph::ResourceUsageHandle instance_buffer;
 };
+
+DebugGeometryComputeFrameGraphRecord
+create_debug_geometry_compute_pass_record(FrameGraph::Builder&                      builder,
+                                          const DebugGeometryClearFrameGraphRecord& debug_geometry_clear);
 
 struct DebugGeometryDrawFrameGraphRecord
 {
@@ -86,7 +92,12 @@ struct DebugGeometryDrawFrameGraphRecord
     FrameGraph::ResourceUsageHandle instance_buffer;
 };
 
-DebugGeometryClearFrameGraphRecord create_debug_geometry_clear_pass_record(FrameGraph::Builder& builder);
+DebugGeometryDrawFrameGraphRecord
+create_debug_geometry_draw_pass_record(FrameGraph::Builder&                        builder,
+                                       const DebugGeometryClearFrameGraphRecord&   debug_geometry_clear,
+                                       const DebugGeometryComputeFrameGraphRecord& debug_geometry_build_cmds,
+                                       FrameGraph::ResourceUsageHandle             scene_hdr_usage_handle,
+                                       FrameGraph::ResourceUsageHandle             scene_depth_usage_handle);
 
 struct PreparedData;
 

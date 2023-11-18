@@ -54,6 +54,14 @@ struct SwapchainFrameGraphRecord
     FrameGraph::ResourceUsageHandle tile_debug;
 };
 
+SwapchainFrameGraphRecord
+create_swapchain_pass_record(FrameGraph::Builder&            builder,
+                             FrameGraph::ResourceUsageHandle scene_hdr_usage_handle,
+                             FrameGraph::ResourceUsageHandle split_tiled_lighting_hdr_usage_handle,
+                             FrameGraph::ResourceUsageHandle gui_sdr_usage_handle,
+                             FrameGraph::ResourceUsageHandle histogram_buffer_usage_handle,
+                             FrameGraph::ResourceUsageHandle tiled_debug_texture_overlay_usage_handle);
+
 struct SamplerResources;
 class DescriptorWriteHelper;
 struct FrameGraphTexture;

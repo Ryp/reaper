@@ -7,6 +7,7 @@
 
 #include "HistogramPass.h"
 
+#include "renderer/graph/FrameGraphBuilder.h"
 #include "renderer/vulkan/Backend.h"
 #include "renderer/vulkan/CommandBuffer.h"
 #include "renderer/vulkan/ComputeHelper.h"
@@ -60,6 +61,41 @@ void destroy_histogram_pass_resources(VulkanBackend& backend, const HistogramPas
     vkDestroyPipeline(backend.device, resources.histogramPipe.pipeline, nullptr);
     vkDestroyPipelineLayout(backend.device, resources.histogramPipe.pipelineLayout, nullptr);
     vkDestroyDescriptorSetLayout(backend.device, resources.descSetLayout, nullptr);
+}
+
+HistogramClearFrameGraphRecord create_histogram_clear_pass_record(FrameGraph::Builder& builder)
+{
+    HistogramClearFrameGraphRecord histogram_clear;
+    histogram_clear.pass_handle = builder.create_render_pass("Histogram Clear");
+
+    const GPUBufferProperties histogram_buffer_properties = DefaultGPUBufferProperties(
+        HistogramRes, sizeof(u32), GPUBufferUsage::StorageBuffer | GPUBufferUsage::TransferDst);
+
+    histogram_clear.histogram_buffer =
+        builder.create_buffer(histogram_clear.pass_handle, "Histogram Buffer", histogram_buffer_properties,
+                              GPUBufferAccess{VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT});
+
+    return histogram_clear;
+}
+
+HistogramFrameGraphRecord create_histogram_pass_record(FrameGraph::Builder&                  builder,
+                                                       const HistogramClearFrameGraphRecord& histogram_clear,
+                                                       FrameGraph::ResourceUsageHandle       scene_hdr_usage_handle)
+{
+    HistogramFrameGraphRecord histogram;
+    histogram.pass_handle = builder.create_render_pass("Histogram");
+
+    histogram.scene_hdr =
+        builder.read_texture(histogram.pass_handle, scene_hdr_usage_handle,
+                             GPUTextureAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
+                                              VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL});
+
+    histogram.histogram_buffer =
+        builder.write_buffer(histogram.pass_handle, histogram_clear.histogram_buffer,
+                             GPUBufferAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+                                             VK_ACCESS_2_SHADER_WRITE_BIT | VK_ACCESS_2_SHADER_READ_BIT});
+
+    return histogram;
 }
 
 void update_histogram_pass_descriptor_set(DescriptorWriteHelper& write_helper, const HistogramPassResources& resources,

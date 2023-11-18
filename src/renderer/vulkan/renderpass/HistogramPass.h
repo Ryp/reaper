@@ -53,12 +53,18 @@ struct HistogramClearFrameGraphRecord
     FrameGraph::ResourceUsageHandle histogram_buffer;
 };
 
+HistogramClearFrameGraphRecord create_histogram_clear_pass_record(FrameGraph::Builder& builder);
+
 struct HistogramFrameGraphRecord
 {
     FrameGraph::RenderPassHandle    pass_handle;
     FrameGraph::ResourceUsageHandle scene_hdr;
     FrameGraph::ResourceUsageHandle histogram_buffer;
 };
+
+HistogramFrameGraphRecord create_histogram_pass_record(FrameGraph::Builder&                  builder,
+                                                       const HistogramClearFrameGraphRecord& histogram_clear,
+                                                       FrameGraph::ResourceUsageHandle       scene_hdr_usage_handle);
 
 struct SamplerResources;
 class DescriptorWriteHelper;

@@ -9,6 +9,7 @@
 
 #include "ShadowConstants.h"
 
+#include "renderer/graph/FrameGraphBuilder.h"
 #include "renderer/vulkan/Backend.h"
 #include "renderer/vulkan/CommandBuffer.h"
 #include "renderer/vulkan/DescriptorSet.h"
@@ -192,6 +193,45 @@ void reload_swapchain_pipeline(VulkanBackend& backend, const ShaderModules& shad
 
     resources.pipeline =
         create_swapchain_pipeline(backend, shader_modules, resources.pipelineLayout, backend.presentInfo.view_format);
+}
+
+SwapchainFrameGraphRecord
+create_swapchain_pass_record(FrameGraph::Builder&            builder,
+                             FrameGraph::ResourceUsageHandle scene_hdr_usage_handle,
+                             FrameGraph::ResourceUsageHandle split_tiled_lighting_hdr_usage_handle,
+                             FrameGraph::ResourceUsageHandle gui_sdr_usage_handle,
+                             FrameGraph::ResourceUsageHandle histogram_buffer_usage_handle,
+                             FrameGraph::ResourceUsageHandle tiled_debug_texture_overlay_usage_handle)
+{
+    SwapchainFrameGraphRecord swapchain;
+    swapchain.pass_handle = builder.create_render_pass("Swapchain", true);
+
+    swapchain.scene_hdr = builder.read_texture(swapchain.pass_handle, scene_hdr_usage_handle,
+                                               GPUTextureAccess{.stage_mask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+                                                                .access_mask = VK_ACCESS_2_SHADER_READ_BIT,
+                                                                .image_layout = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL});
+
+    swapchain.lighting_result =
+        builder.read_texture(swapchain.pass_handle, split_tiled_lighting_hdr_usage_handle,
+                             GPUTextureAccess{VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
+                                              VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL});
+
+    swapchain.gui =
+        builder.read_texture(swapchain.pass_handle, gui_sdr_usage_handle,
+                             GPUTextureAccess{VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
+                                              VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL});
+
+    // FIXME just to hook the pass to the render graph
+    swapchain.histogram =
+        builder.read_buffer(swapchain.pass_handle, histogram_buffer_usage_handle,
+                            GPUBufferAccess{VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT});
+
+    swapchain.tile_debug =
+        builder.read_texture(swapchain.pass_handle, tiled_debug_texture_overlay_usage_handle,
+                             GPUTextureAccess{VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
+                                              VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL});
+
+    return swapchain;
 }
 
 void update_swapchain_pass_descriptor_set(DescriptorWriteHelper& write_helper, const SwapchainPassResources& resources,

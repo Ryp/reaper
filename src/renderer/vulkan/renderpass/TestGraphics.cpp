@@ -196,10 +196,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     const VkExtent2D render_extent = backend.render_extent;
 
     FrameGraph::FrameGraph framegraph;
-
-    using namespace FrameGraph;
-
-    Builder builder(framegraph);
+    FrameGraph::Builder    builder(framegraph);
 
     const CullMeshletsFrameGraphRecord meshlet_pass = create_cull_meshlet_frame_graph_record(builder);
 
@@ -227,108 +224,23 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     const GUIFrameGraphRecord gui = create_gui_pass_record(builder, backend.presentInfo.surface_extent);
 
-    HistogramClearFrameGraphRecord histogram_clear;
-    histogram_clear.pass_handle = builder.create_render_pass("Histogram Clear");
+    const HistogramClearFrameGraphRecord histogram_clear = create_histogram_clear_pass_record(builder);
 
-    const GPUBufferProperties histogram_buffer_properties = DefaultGPUBufferProperties(
-        HistogramRes, sizeof(u32), GPUBufferUsage::StorageBuffer | GPUBufferUsage::TransferDst);
+    const HistogramFrameGraphRecord histogram =
+        create_histogram_pass_record(builder, histogram_clear, forward.scene_hdr);
 
-    histogram_clear.histogram_buffer =
-        builder.create_buffer(histogram_clear.pass_handle, "Histogram Buffer", histogram_buffer_properties,
-                              GPUBufferAccess{VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT});
+    const DebugGeometryComputeFrameGraphRecord debug_geometry_build_cmds =
+        create_debug_geometry_compute_pass_record(builder, debug_geometry_clear);
 
-    HistogramFrameGraphRecord histogram;
-    histogram.pass_handle = builder.create_render_pass("Histogram");
+    const DebugGeometryDrawFrameGraphRecord debug_geometry_draw = create_debug_geometry_draw_pass_record(
+        builder, debug_geometry_clear, debug_geometry_build_cmds, tiled_lighting.lighting, forward.depth);
 
-    histogram.scene_hdr =
-        builder.read_texture(histogram.pass_handle, forward.scene_hdr,
-                             GPUTextureAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
-                                              VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL});
-
-    histogram.histogram_buffer =
-        builder.write_buffer(histogram.pass_handle, histogram_clear.histogram_buffer,
-                             GPUBufferAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-                                             VK_ACCESS_2_SHADER_WRITE_BIT | VK_ACCESS_2_SHADER_READ_BIT});
-
-    DebugGeometryComputeFrameGraphRecord debug_geometry_build_cmds;
-    debug_geometry_build_cmds.pass_handle = builder.create_render_pass("Debug Geometry Build Commands");
-
-    debug_geometry_build_cmds.draw_counter =
-        builder.read_buffer(debug_geometry_build_cmds.pass_handle, debug_geometry_clear.draw_counter,
-                            GPUBufferAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT});
-
-    debug_geometry_build_cmds.user_commands_buffer =
-        builder.read_buffer(debug_geometry_build_cmds.pass_handle, debug_geometry_clear.user_commands_buffer,
-                            GPUBufferAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT});
-
-    const GPUBufferProperties debug_geometry_command_properties =
-        DefaultGPUBufferProperties(DebugGeometryCountMax, sizeof(VkDrawIndexedIndirectCommand),
-                                   GPUBufferUsage::IndirectBuffer | GPUBufferUsage::StorageBuffer);
-
-    debug_geometry_build_cmds.draw_commands = builder.create_buffer(
-        debug_geometry_build_cmds.pass_handle, "Debug Indirect draw command buffer", debug_geometry_command_properties,
-        GPUBufferAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT});
-
-    const GPUBufferProperties debug_geometry_instance_properties =
-        DefaultGPUBufferProperties(DebugGeometryCountMax, sizeof(DebugGeometryInstance), GPUBufferUsage::StorageBuffer);
-
-    debug_geometry_build_cmds.instance_buffer = builder.create_buffer(
-        debug_geometry_build_cmds.pass_handle, "Debug geometry instance buffer", debug_geometry_instance_properties,
-        GPUBufferAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT});
-
-    // Debug geometry draw
-    DebugGeometryDrawFrameGraphRecord debug_geometry_draw;
-    debug_geometry_draw.pass_handle = builder.create_render_pass("Debug Geometry Draw");
-
-    debug_geometry_draw.scene_hdr = builder.write_texture(
-        debug_geometry_draw.pass_handle,
-        tiled_lighting.lighting,
-        GPUTextureAccess{VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-                         VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL});
-
-    debug_geometry_draw.scene_depth = builder.read_texture(
-        debug_geometry_draw.pass_handle, forward.depth,
-        GPUTextureAccess{VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
-                         VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT, VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL});
-
-    debug_geometry_draw.draw_counter = builder.read_buffer(
-        debug_geometry_draw.pass_handle, debug_geometry_clear.draw_counter,
-        GPUBufferAccess{VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT, VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT});
-
-    debug_geometry_draw.draw_commands = builder.read_buffer(
-        debug_geometry_draw.pass_handle, debug_geometry_build_cmds.draw_commands,
-        GPUBufferAccess{VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT, VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT});
-
-    debug_geometry_draw.instance_buffer =
-        builder.read_buffer(debug_geometry_draw.pass_handle, debug_geometry_build_cmds.instance_buffer,
-                            GPUBufferAccess{VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT});
-
-    SwapchainFrameGraphRecord swapchain;
-    swapchain.pass_handle = builder.create_render_pass("Swapchain", true);
-
-    swapchain.scene_hdr = builder.read_texture(swapchain.pass_handle, forward.scene_hdr,
-                                               GPUTextureAccess{.stage_mask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
-                                                                .access_mask = VK_ACCESS_2_SHADER_READ_BIT,
-                                                                .image_layout = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL});
-
-    swapchain.lighting_result =
-        builder.read_texture(swapchain.pass_handle, debug_geometry_draw.scene_hdr,
-                             GPUTextureAccess{VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
-                                              VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL});
-
-    swapchain.gui =
-        builder.read_texture(swapchain.pass_handle, gui.output,
-                             GPUTextureAccess{VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
-                                              VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL});
-
-    swapchain.histogram =
-        builder.read_buffer(swapchain.pass_handle, histogram.histogram_buffer,
-                            GPUBufferAccess{VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT});
-
-    swapchain.tile_debug =
-        builder.read_texture(swapchain.pass_handle, tiled_lighting_debug_record.output,
-                             GPUTextureAccess{VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
-                                              VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL});
+    const SwapchainFrameGraphRecord swapchain = create_swapchain_pass_record(builder,
+                                                                             forward.scene_hdr,
+                                                                             debug_geometry_draw.scene_hdr,
+                                                                             gui.output,
+                                                                             histogram.histogram_buffer,
+                                                                             tiled_lighting_debug_record.output);
 
     const AudioFrameGraphRecord audio_pass = create_audio_frame_graph_data(builder);
 
@@ -336,7 +248,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     // DumpFrameGraph(framegraph);
 
-    const FrameGraphSchedule schedule = compute_schedule(framegraph);
+    const FrameGraph::FrameGraphSchedule schedule = compute_schedule(framegraph);
 
     log_barriers(root, framegraph, schedule);
 
