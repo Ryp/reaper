@@ -74,25 +74,21 @@ ForwardFrameGraphRecord create_forward_pass_record(FrameGraph::Builder&         
                                                    FrameGraph::ResourceUsageHandle     depth_buffer_usage_handle,
                                                    VkExtent2D                          render_extent);
 
+struct FrameGraphResources;
 struct MaterialResources;
 struct MeshCache;
 struct LightingPassResources;
-struct SamplerResources;
+struct PreparedData;
 class DescriptorWriteHelper;
-struct FrameGraphResources;
+struct SamplerResources;
 
-void update_forward_pass_descriptor_sets(const FrameGraph::FrameGraph&  frame_graph,
+void update_forward_pass_descriptor_sets(VulkanBackend& backend, const FrameGraph::FrameGraph& frame_graph,
                                          const FrameGraphResources&     frame_graph_resources,
                                          const ForwardFrameGraphRecord& record, DescriptorWriteHelper& write_helper,
-                                         const ForwardPassResources& resources,
-                                         const SamplerResources&     sampler_resources,
+                                         const PreparedData& prepared, const ForwardPassResources& resources,
+                                         const SamplerResources&  sampler_resources,
                                          const MaterialResources& material_resources, const MeshCache& mesh_cache,
                                          const LightingPassResources& lighting_resources);
-
-struct PreparedData;
-
-void upload_forward_pass_frame_resources(VulkanBackend& backend, const PreparedData& prepared,
-                                         ForwardPassResources& pass_resources);
 
 struct CommandBuffer;
 struct FrameGraphHelper;

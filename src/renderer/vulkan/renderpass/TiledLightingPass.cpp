@@ -210,14 +210,22 @@ TiledLightingDebugFrameGraphRecord create_tiled_lighting_debug_pass_record(
     return tiled_lighting_debug;
 }
 
-void update_tiled_lighting_pass_resources(const FrameGraph::FrameGraph&        frame_graph,
+void update_tiled_lighting_pass_resources(VulkanBackend& backend, const FrameGraph::FrameGraph& frame_graph,
                                           const FrameGraphResources&           frame_graph_resources,
                                           const TiledLightingFrameGraphRecord& record,
-                                          DescriptorWriteHelper&               write_helper,
-                                          const LightingPassResources&         lighting_resources,
-                                          const TiledLightingPassResources&    resources,
-                                          const SamplerResources&              sampler_resources)
+                                          DescriptorWriteHelper& write_helper, const PreparedData& prepared,
+                                          const LightingPassResources&      lighting_resources,
+                                          const TiledLightingPassResources& resources,
+                                          const SamplerResources&           sampler_resources)
 {
+    REAPER_PROFILE_SCOPE_FUNC();
+
+    if (prepared.point_lights.empty())
+        return;
+
+    upload_buffer_data_deprecated(backend.device, backend.vma_instance, resources.tiled_lighting_constant_buffer,
+                                  &prepared.tiled_light_constants, sizeof(TiledLightingConstants));
+
     const FrameGraphBuffer light_list_buffer =
         get_frame_graph_buffer(frame_graph_resources, frame_graph, record.light_list);
     const FrameGraphTexture gbuffer_rt0 =
@@ -264,18 +272,6 @@ void update_tiled_lighting_pass_resources(const FrameGraph::FrameGraph&        f
         write_helper.writes.push_back(
             create_image_descriptor_write(dset, 9, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, shadow_map_image_infos));
     }
-}
-
-void upload_tiled_lighting_pass_frame_resources(VulkanBackend& backend, const PreparedData& prepared,
-                                                TiledLightingPassResources& resources)
-{
-    REAPER_PROFILE_SCOPE_FUNC();
-
-    if (prepared.point_lights.empty())
-        return;
-
-    upload_buffer_data_deprecated(backend.device, backend.vma_instance, resources.tiled_lighting_constant_buffer,
-                                  &prepared.tiled_light_constants, sizeof(TiledLightingConstants));
 }
 
 void record_tiled_lighting_command_buffer(const FrameGraphHelper&              frame_graph_helper,

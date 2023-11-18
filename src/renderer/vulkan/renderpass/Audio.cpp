@@ -107,7 +107,7 @@ void destroy_audio_resources(VulkanBackend& backend, AudioResources& resources)
     vkDestroySemaphore(backend.device, resources.semaphore, nullptr);
 }
 
-AudioFrameGraphRecord create_audio_frame_graph_data(FrameGraph::Builder& builder)
+AudioFrameGraphRecord create_audio_frame_graph_record(FrameGraph::Builder& builder)
 {
     AudioFrameGraphRecord::Render render;
 
@@ -133,20 +133,17 @@ AudioFrameGraphRecord create_audio_frame_graph_data(FrameGraph::Builder& builder
     };
 }
 
-void upload_audio_frame_resources(VulkanBackend& backend, const PreparedData& prepared, AudioResources& resources)
+void update_audio_render_resources(VulkanBackend& backend, const FrameGraph::FrameGraph& frame_graph,
+                                   const FrameGraphResources&   frame_graph_resources,
+                                   const AudioFrameGraphRecord& record, DescriptorWriteHelper& write_helper,
+                                   const PreparedData& prepared, const AudioResources& resources)
 {
     REAPER_PROFILE_SCOPE_FUNC();
 
     upload_buffer_data_deprecated(backend.device, backend.vma_instance, resources.instance_buffer,
                                   prepared.audio_instance_params.data(),
                                   prepared.audio_instance_params.size() * sizeof(OscillatorInstance));
-}
 
-void update_audio_render_resources(const FrameGraph::FrameGraph& frame_graph,
-                                   const FrameGraphResources&    frame_graph_resources,
-                                   const AudioFrameGraphRecord& record, DescriptorWriteHelper& write_helper,
-                                   const AudioResources& resources)
-{
     const FrameGraphBuffer audio_buffer =
         get_frame_graph_buffer(frame_graph_resources, frame_graph, record.render.audio_buffer);
 

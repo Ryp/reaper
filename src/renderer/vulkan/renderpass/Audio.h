@@ -79,20 +79,16 @@ struct AudioFrameGraphRecord
     } staging_copy;
 };
 
-AudioFrameGraphRecord create_audio_frame_graph_data(FrameGraph::Builder& builder);
-
-struct PreparedData;
-
-void upload_audio_frame_resources(VulkanBackend& backend, const PreparedData& prepared, AudioResources& resources);
+AudioFrameGraphRecord create_audio_frame_graph_record(FrameGraph::Builder& builder);
 
 class DescriptorWriteHelper;
 struct FrameGraphResources;
+struct PreparedData;
 
-void update_audio_render_resources(const FrameGraph::FrameGraph& frame_graph,
-                                   const FrameGraphResources&    frame_graph_resources,
-                                   const AudioFrameGraphRecord&  record,
-                                   DescriptorWriteHelper&        write_helper,
-                                   const AudioResources&         resources);
+void update_audio_render_resources(VulkanBackend& backend, const FrameGraph::FrameGraph& frame_graph,
+                                   const FrameGraphResources&   frame_graph_resources,
+                                   const AudioFrameGraphRecord& record, DescriptorWriteHelper& write_helper,
+                                   const PreparedData& prepared, const AudioResources& resources);
 
 struct CommandBuffer;
 struct FrameGraphHelper;

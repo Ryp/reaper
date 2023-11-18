@@ -238,14 +238,26 @@ ForwardFrameGraphRecord create_forward_pass_record(FrameGraph::Builder&         
     return forward;
 }
 
-void update_forward_pass_descriptor_sets(const FrameGraph::FrameGraph&  frame_graph,
+void update_forward_pass_descriptor_sets(VulkanBackend& backend, const FrameGraph::FrameGraph& frame_graph,
                                          const FrameGraphResources&     frame_graph_resources,
                                          const ForwardFrameGraphRecord& record, DescriptorWriteHelper& write_helper,
-                                         const ForwardPassResources& resources,
-                                         const SamplerResources&     sampler_resources,
+                                         const PreparedData& prepared, const ForwardPassResources& resources,
+                                         const SamplerResources&  sampler_resources,
                                          const MaterialResources& material_resources, const MeshCache& mesh_cache,
                                          const LightingPassResources& lighting_resources)
 {
+    REAPER_PROFILE_SCOPE_FUNC();
+
+    if (prepared.mesh_instances.empty())
+        return;
+
+    upload_buffer_data_deprecated(backend.device, backend.vma_instance, resources.pass_constant_buffer,
+                                  &prepared.forward_pass_constants, sizeof(ForwardPassParams));
+
+    upload_buffer_data_deprecated(backend.device, backend.vma_instance, resources.instance_buffer,
+                                  prepared.mesh_instances.data(),
+                                  prepared.mesh_instances.size() * sizeof(MeshInstance));
+
     const FrameGraphBuffer visible_meshlet_buffer =
         get_frame_graph_buffer(frame_graph_resources, frame_graph, record.visible_meshlet_buffer);
 
@@ -309,22 +321,6 @@ void update_forward_pass_descriptor_sets(const FrameGraph::FrameGraph&  frame_gr
             create_image_descriptor_write(resources.material_descriptor_set, g_bindings[material_maps].slot,
                                           g_bindings[material_maps].type, albedo_image_infos));
     }
-}
-
-void upload_forward_pass_frame_resources(VulkanBackend& backend, const PreparedData& prepared,
-                                         ForwardPassResources& pass_resources)
-{
-    REAPER_PROFILE_SCOPE_FUNC();
-
-    if (prepared.mesh_instances.empty())
-        return;
-
-    upload_buffer_data_deprecated(backend.device, backend.vma_instance, pass_resources.pass_constant_buffer,
-                                  &prepared.forward_pass_constants, sizeof(ForwardPassParams));
-
-    upload_buffer_data_deprecated(backend.device, backend.vma_instance, pass_resources.instance_buffer,
-                                  prepared.mesh_instances.data(),
-                                  prepared.mesh_instances.size() * sizeof(MeshInstance));
 }
 
 void record_forward_pass_command_buffer(const FrameGraphHelper&        frame_graph_helper,

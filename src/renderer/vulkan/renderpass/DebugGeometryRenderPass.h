@@ -99,19 +99,15 @@ create_debug_geometry_draw_pass_record(FrameGraph::Builder&                     
                                        FrameGraph::ResourceUsageHandle             scene_hdr_usage_handle,
                                        FrameGraph::ResourceUsageHandle             scene_depth_usage_handle);
 
-struct PreparedData;
-
-void upload_debug_geometry_build_cmds_pass_frame_resources(VulkanBackend& backend, const PreparedData& prepared,
-                                                           const DebugGeometryPassResources& resources);
-
 class DescriptorWriteHelper;
 struct FrameGraphResources;
+struct PreparedData;
 
-void update_debug_geometry_build_cmds_pass_descriptor_sets(const FrameGraph::FrameGraph& frame_graph,
-                                                           const FrameGraphResources&    frame_graph_resources,
-                                                           const DebugGeometryComputeFrameGraphRecord& record,
-                                                           DescriptorWriteHelper&                      write_helper,
-                                                           const DebugGeometryPassResources&           resources);
+void update_debug_geometry_build_cmds_pass_resources(VulkanBackend& backend, const FrameGraph::FrameGraph& frame_graph,
+                                                     const FrameGraphResources&                  frame_graph_resources,
+                                                     const DebugGeometryComputeFrameGraphRecord& record,
+                                                     DescriptorWriteHelper& write_helper, const PreparedData& prepared,
+                                                     const DebugGeometryPassResources& resources);
 
 struct CommandBuffer;
 struct FrameGraphHelper;

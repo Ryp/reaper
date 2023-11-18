@@ -229,7 +229,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
                                                                              histogram.histogram_buffer,
                                                                              tiled_lighting_debug_record.output);
 
-    const AudioFrameGraphRecord audio_pass = create_audio_frame_graph_data(builder);
+    const AudioFrameGraphRecord audio_pass = create_audio_frame_graph_record(builder);
 
     builder.build();
     // DumpFrameGraph(framegraph);
@@ -239,10 +239,6 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     DescriptorWriteHelper descriptor_write_helper(200, 200);
 
     upload_lighting_pass_frame_resources(resources.frame_storage_allocator, prepared, resources.lighting_resources);
-    upload_tiled_lighting_pass_frame_resources(backend, prepared, resources.tiled_lighting_resources);
-    upload_forward_pass_frame_resources(backend, prepared, resources.forward_pass_resources);
-    upload_debug_geometry_build_cmds_pass_frame_resources(backend, prepared, resources.debug_geometry_resources);
-    upload_audio_frame_resources(backend, prepared, resources.audio_resources);
 
     update_shadow_map_resources(descriptor_write_helper, resources.frame_storage_allocator, prepared,
                                 resources.shadow_map_resources, resources.mesh_cache.vertexBufferPosition);
@@ -263,12 +259,13 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     update_hzb_pass_descriptor_set(framegraph, resources.framegraph_resources, hzb_reduce, descriptor_write_helper,
                                    resources.hzb_pass_resources, resources.samplers_resources);
 
-    update_forward_pass_descriptor_sets(
-        framegraph, resources.framegraph_resources, forward, descriptor_write_helper, resources.forward_pass_resources,
-        resources.samplers_resources, resources.material_resources, resources.mesh_cache, resources.lighting_resources);
+    update_forward_pass_descriptor_sets(backend, framegraph, resources.framegraph_resources, forward,
+                                        descriptor_write_helper, prepared, resources.forward_pass_resources,
+                                        resources.samplers_resources, resources.material_resources,
+                                        resources.mesh_cache, resources.lighting_resources);
 
-    update_tiled_lighting_pass_resources(framegraph, resources.framegraph_resources, tiled_lighting,
-                                         descriptor_write_helper, resources.lighting_resources,
+    update_tiled_lighting_pass_resources(backend, framegraph, resources.framegraph_resources, tiled_lighting,
+                                         descriptor_write_helper, prepared, resources.lighting_resources,
                                          resources.tiled_lighting_resources, resources.samplers_resources);
 
     update_tiled_lighting_debug_pass_resources(framegraph, resources.framegraph_resources, tiled_lighting_debug_record,
@@ -277,9 +274,9 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     update_histogram_pass_descriptor_set(framegraph, resources.framegraph_resources, histogram, descriptor_write_helper,
                                          resources.histogram_pass_resources, resources.samplers_resources);
 
-    update_debug_geometry_build_cmds_pass_descriptor_sets(framegraph, resources.framegraph_resources,
-                                                          debug_geometry_build_cmds, descriptor_write_helper,
-                                                          resources.debug_geometry_resources);
+    update_debug_geometry_build_cmds_pass_resources(backend, framegraph, resources.framegraph_resources,
+                                                    debug_geometry_build_cmds, descriptor_write_helper, prepared,
+                                                    resources.debug_geometry_resources);
 
     update_debug_geometry_draw_pass_descriptor_sets(framegraph, resources.framegraph_resources, debug_geometry_draw,
                                                     descriptor_write_helper, resources.debug_geometry_resources);
@@ -287,8 +284,8 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     update_swapchain_pass_descriptor_set(framegraph, resources.framegraph_resources, swapchain, descriptor_write_helper,
                                          resources.swapchain_pass_resources, resources.samplers_resources);
 
-    update_audio_render_resources(framegraph, resources.framegraph_resources, audio_pass, descriptor_write_helper,
-                                  resources.audio_resources);
+    update_audio_render_resources(backend, framegraph, resources.framegraph_resources, audio_pass,
+                                  descriptor_write_helper, prepared, resources.audio_resources);
 
     storage_allocator_commit_to_gpu(backend, resources.frame_storage_allocator);
 

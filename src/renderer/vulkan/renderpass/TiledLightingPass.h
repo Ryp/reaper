@@ -77,23 +77,19 @@ struct TiledLightingDebugFrameGraphRecord
 TiledLightingDebugFrameGraphRecord create_tiled_lighting_debug_pass_record(
     FrameGraph::Builder& builder, const TiledLightingFrameGraphRecord& tiled_lighting_record, VkExtent2D render_extent);
 
-struct SamplerResources;
+struct FrameGraphResources;
 class DescriptorWriteHelper;
 struct LightingPassResources;
-struct FrameGraphResources;
+struct PreparedData;
+struct SamplerResources;
 
-void update_tiled_lighting_pass_resources(const FrameGraph::FrameGraph&        frame_graph,
+void update_tiled_lighting_pass_resources(VulkanBackend& backend, const FrameGraph::FrameGraph& frame_graph,
                                           const FrameGraphResources&           frame_graph_resources,
                                           const TiledLightingFrameGraphRecord& record,
-                                          DescriptorWriteHelper&               write_helper,
-                                          const LightingPassResources&         lighting_resources,
-                                          const TiledLightingPassResources&    resources,
-                                          const SamplerResources&              sampler_resources);
-
-struct PreparedData;
-
-void upload_tiled_lighting_pass_frame_resources(VulkanBackend& backend, const PreparedData& prepared,
-                                                TiledLightingPassResources& resources);
+                                          DescriptorWriteHelper& write_helper, const PreparedData& prepared,
+                                          const LightingPassResources&      lighting_resources,
+                                          const TiledLightingPassResources& resources,
+                                          const SamplerResources&           sampler_resources);
 
 struct CommandBuffer;
 struct FrameGraphHelper;
