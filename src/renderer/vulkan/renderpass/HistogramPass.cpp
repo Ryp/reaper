@@ -117,6 +117,21 @@ void update_histogram_pass_descriptor_set(const FrameGraph::FrameGraph&    frame
     write_helper.append(resources.descriptor_set, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, histogram_buffer.handle);
 }
 
+void record_histogram_clear_command_buffer(const FrameGraphHelper&               frame_graph_helper,
+                                           const HistogramClearFrameGraphRecord& pass_record, CommandBuffer& cmdBuffer)
+{
+    REAPER_GPU_SCOPE(cmdBuffer, "Histogram Clear");
+
+    const FrameGraphBarrierScope framegraph_barrier_scope(cmdBuffer, frame_graph_helper, pass_record.pass_handle);
+
+    const u32        clear_value = 0;
+    FrameGraphBuffer histogram_buffer = get_frame_graph_buffer(
+        frame_graph_helper.resources, frame_graph_helper.frame_graph, pass_record.histogram_buffer);
+
+    vkCmdFillBuffer(cmdBuffer.handle, histogram_buffer.handle, histogram_buffer.default_view.offset_bytes,
+                    histogram_buffer.default_view.size_bytes, clear_value);
+}
+
 void record_histogram_command_buffer(const FrameGraphHelper&          frame_graph_helper,
                                      const HistogramFrameGraphRecord& pass_record, CommandBuffer& cmdBuffer,
                                      const HistogramPassResources& pass_resources, VkExtent2D render_extent)

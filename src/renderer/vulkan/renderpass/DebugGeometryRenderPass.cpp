@@ -325,6 +325,36 @@ void update_debug_geometry_build_cmds_pass_resources(VulkanBackend& backend, con
                         instance_buffer.handle);
 }
 
+void update_debug_geometry_draw_pass_descriptor_sets(const FrameGraph::FrameGraph&            frame_graph,
+                                                     const FrameGraphResources&               frame_graph_resources,
+                                                     const DebugGeometryDrawFrameGraphRecord& record,
+                                                     DescriptorWriteHelper&                   write_helper,
+                                                     const DebugGeometryPassResources&        resources)
+{
+    const FrameGraphBuffer instance_buffer =
+        get_frame_graph_buffer(frame_graph_resources, frame_graph, record.instance_buffer);
+
+    write_helper.append(resources.draw_descriptor_set, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                        resources.vertex_buffer_position.handle);
+    write_helper.append(resources.draw_descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, instance_buffer.handle);
+}
+
+void record_debug_geometry_clear_command_buffer(const FrameGraphHelper&                   frame_graph_helper,
+                                                const DebugGeometryClearFrameGraphRecord& pass_record,
+                                                CommandBuffer&                            cmdBuffer)
+{
+    REAPER_GPU_SCOPE(cmdBuffer, "Debug Geometry Clear");
+
+    const FrameGraphBarrierScope framegraph_barrier_scope(cmdBuffer, frame_graph_helper, pass_record.pass_handle);
+
+    const u32        clear_value = 0;
+    FrameGraphBuffer draw_counter =
+        get_frame_graph_buffer(frame_graph_helper.resources, frame_graph_helper.frame_graph, pass_record.draw_counter);
+
+    vkCmdFillBuffer(cmdBuffer.handle, draw_counter.handle, draw_counter.default_view.offset_bytes,
+                    draw_counter.default_view.size_bytes, clear_value);
+}
+
 void record_debug_geometry_build_cmds_command_buffer(const FrameGraphHelper&                     frame_graph_helper,
                                                      const DebugGeometryComputeFrameGraphRecord& pass_record,
                                                      CommandBuffer&                              cmdBuffer,
@@ -342,20 +372,6 @@ void record_debug_geometry_build_cmds_command_buffer(const FrameGraphHelper&    
     // Since we know the actual debug geometry count on the GPU, we can use indirect dispatch instead.
     // Doing it this way wastes a bit of resources, but it's negligible to do this ATM for debug builds.
     vkCmdDispatch(cmdBuffer.handle, div_round_up(DebugGeometryCountMax, DebugGeometryBuildCmdsThreadCount), 1, 1);
-}
-
-void update_debug_geometry_draw_pass_descriptor_sets(const FrameGraph::FrameGraph&            frame_graph,
-                                                     const FrameGraphResources&               frame_graph_resources,
-                                                     const DebugGeometryDrawFrameGraphRecord& record,
-                                                     DescriptorWriteHelper&                   write_helper,
-                                                     const DebugGeometryPassResources&        resources)
-{
-    const FrameGraphBuffer instance_buffer =
-        get_frame_graph_buffer(frame_graph_resources, frame_graph, record.instance_buffer);
-
-    write_helper.append(resources.draw_descriptor_set, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                        resources.vertex_buffer_position.handle);
-    write_helper.append(resources.draw_descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, instance_buffer.handle);
 }
 
 void record_debug_geometry_draw_command_buffer(const FrameGraphHelper&                  frame_graph_helper,

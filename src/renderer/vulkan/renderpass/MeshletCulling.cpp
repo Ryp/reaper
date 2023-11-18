@@ -479,6 +479,21 @@ void update_meshlet_culling_passes_resources(const FrameGraph::FrameGraph&      
                                             prepared, resources, mesh_cache, mesh_instance_alloc);
 }
 
+void record_meshlet_culling_clear_command_buffer(const FrameGraphHelper&                    frame_graph_helper,
+                                                 const CullMeshletsFrameGraphRecord::Clear& pass_record,
+                                                 CommandBuffer&                             cmdBuffer)
+{
+    REAPER_GPU_SCOPE(cmdBuffer, "Meshlet Culling Clear");
+
+    const FrameGraphBarrierScope framegraph_barrier_scope(cmdBuffer, frame_graph_helper, pass_record.pass_handle);
+
+    const FrameGraphBuffer meshlet_counters = get_frame_graph_buffer(
+        frame_graph_helper.resources, frame_graph_helper.frame_graph, pass_record.meshlet_counters);
+
+    const u32 clear_value = 0;
+    vkCmdFillBuffer(cmdBuffer.handle, meshlet_counters.handle, 0, VK_WHOLE_SIZE, clear_value);
+}
+
 void record_meshlet_culling_command_buffer(ReaperRoot& root, const FrameGraphHelper& frame_graph_helper,
                                            const CullMeshletsFrameGraphRecord::CullMeshlets& pass_record,
                                            CommandBuffer& cmdBuffer, const PreparedData& prepared,

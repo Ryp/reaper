@@ -109,19 +109,23 @@ void update_debug_geometry_build_cmds_pass_resources(VulkanBackend& backend, con
                                                      DescriptorWriteHelper& write_helper, const PreparedData& prepared,
                                                      const DebugGeometryPassResources& resources);
 
-struct CommandBuffer;
-struct FrameGraphHelper;
-
-void record_debug_geometry_build_cmds_command_buffer(const FrameGraphHelper&                     frame_graph_helper,
-                                                     const DebugGeometryComputeFrameGraphRecord& pass_record,
-                                                     CommandBuffer&                              cmdBuffer,
-                                                     const DebugGeometryPassResources&           resources);
-
 void update_debug_geometry_draw_pass_descriptor_sets(const FrameGraph::FrameGraph&            frame_graph,
                                                      const FrameGraphResources&               frame_graph_resources,
                                                      const DebugGeometryDrawFrameGraphRecord& record,
                                                      DescriptorWriteHelper&                   write_helper,
                                                      const DebugGeometryPassResources&        resources);
+
+struct CommandBuffer;
+struct FrameGraphHelper;
+
+void record_debug_geometry_clear_command_buffer(const FrameGraphHelper&                   frame_graph_helper,
+                                                const DebugGeometryClearFrameGraphRecord& pass_record,
+                                                CommandBuffer&                            cmdBuffer);
+
+void record_debug_geometry_build_cmds_command_buffer(const FrameGraphHelper&                     frame_graph_helper,
+                                                     const DebugGeometryComputeFrameGraphRecord& pass_record,
+                                                     CommandBuffer&                              cmdBuffer,
+                                                     const DebugGeometryPassResources&           resources);
 
 void record_debug_geometry_draw_command_buffer(const FrameGraphHelper&                  frame_graph_helper,
                                                const DebugGeometryDrawFrameGraphRecord& pass_record,

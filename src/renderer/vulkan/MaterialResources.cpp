@@ -166,6 +166,8 @@ void record_material_upload_command_buffer(ResourceStagingArea& staging, Command
     if (staging.staging_queue.empty())
         return;
 
+    REAPER_GPU_SCOPE(cmdBuffer, "Material Upload");
+
     for (const auto& entry : staging.staging_queue)
     {
         flush_pending_staging_commands(cmdBuffer, staging, entry);

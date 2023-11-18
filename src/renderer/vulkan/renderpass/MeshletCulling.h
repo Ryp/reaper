@@ -111,9 +111,14 @@ void update_meshlet_culling_passes_resources(const FrameGraph::FrameGraph&      
                                              MeshletCullingResources&            resources,
                                              const MeshCache&                    mesh_cache);
 
-struct ReaperRoot;
-struct CommandBuffer;
 struct FrameGraphHelper;
+struct CommandBuffer;
+
+void record_meshlet_culling_clear_command_buffer(const FrameGraphHelper&                    frame_graph_helper,
+                                                 const CullMeshletsFrameGraphRecord::Clear& pass_record,
+                                                 CommandBuffer&                             cmdBuffer);
+
+struct ReaperRoot;
 
 void record_meshlet_culling_command_buffer(ReaperRoot& root, const FrameGraphHelper& frame_graph_helper,
                                            const CullMeshletsFrameGraphRecord::CullMeshlets& pass_record,

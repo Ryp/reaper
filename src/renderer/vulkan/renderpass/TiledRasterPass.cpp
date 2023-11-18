@@ -504,6 +504,10 @@ void record_depth_copy(const FrameGraphHelper&                           frame_g
                        const LightRasterFrameGraphRecord::TileDepthCopy& pass_record, CommandBuffer& cmdBuffer,
                        const TiledRasterResources& resources)
 {
+    REAPER_GPU_SCOPE(cmdBuffer, "Tile Depth Copy");
+
+    const FrameGraphBarrierScope framegraph_barrier_scope(cmdBuffer, frame_graph_helper, pass_record.pass_handle);
+
     std::vector<FrameGraphTexture> depth_dsts = {
         get_frame_graph_texture(frame_graph_helper.resources, frame_graph_helper.frame_graph, pass_record.depth_min),
         get_frame_graph_texture(frame_graph_helper.resources, frame_graph_helper.frame_graph, pass_record.depth_max),
@@ -541,7 +545,23 @@ void record_depth_copy(const FrameGraphHelper&                           frame_g
 
         vkCmdEndRendering(cmdBuffer.handle);
     }
-} // namespace
+
+    // Clear buffers
+    {
+        const u32              clear_value = 0;
+        const FrameGraphBuffer light_lists = get_frame_graph_buffer(
+            frame_graph_helper.resources, frame_graph_helper.frame_graph, pass_record.light_list_clear);
+
+        vkCmdFillBuffer(cmdBuffer.handle, light_lists.handle, light_lists.default_view.offset_bytes,
+                        light_lists.default_view.size_bytes, clear_value);
+
+        const FrameGraphBuffer counters = get_frame_graph_buffer(
+            frame_graph_helper.resources, frame_graph_helper.frame_graph, pass_record.classification_counters_clear);
+
+        vkCmdFillBuffer(cmdBuffer.handle, counters.handle, counters.default_view.offset_bytes,
+                        counters.default_view.size_bytes, clear_value);
+    }
+}
 
 void record_light_classify_command_buffer(const FrameGraphHelper&                      frame_graph_helper,
                                           const LightRasterFrameGraphRecord::Classify& pass_record,

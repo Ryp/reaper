@@ -78,6 +78,9 @@ void update_histogram_pass_descriptor_set(const FrameGraph::FrameGraph&    frame
 struct CommandBuffer;
 struct FrameGraphHelper;
 
+void record_histogram_clear_command_buffer(const FrameGraphHelper&               frame_graph_helper,
+                                           const HistogramClearFrameGraphRecord& pass_record, CommandBuffer& cmdBuffer);
+
 void record_histogram_command_buffer(const FrameGraphHelper&          frame_graph_helper,
                                      const HistogramFrameGraphRecord& pass_record, CommandBuffer& cmdBuffer,
                                      const HistogramPassResources& pass_resources, VkExtent2D render_extent);

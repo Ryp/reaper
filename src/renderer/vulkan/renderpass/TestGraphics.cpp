@@ -356,6 +356,8 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         }
         else
         {
+            REAPER_GPU_SCOPE(cmdBuffer, "Barrier");
+
             const VkImageMemoryBarrier2 barrier = get_vk_image_barrier(
                 backend.presentInfo.images[current_swapchain_index], default_texture_subresource_one_color_mip(),
                 swapchain_access_present, swapchain_access_render);
@@ -365,23 +367,9 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
             vkCmdPipelineBarrier2(cmdBuffer.handle, &dependencies);
         }
 
-        {
-            REAPER_GPU_SCOPE(cmdBuffer, "Material Upload");
-            record_material_upload_command_buffer(resources.material_resources.staging, cmdBuffer);
-        }
+        record_material_upload_command_buffer(resources.material_resources.staging, cmdBuffer);
 
-        {
-            REAPER_GPU_SCOPE(cmdBuffer, "Meshlet Culling Clear");
-
-            const FrameGraphBarrierScope framegraph_barrier_scope(cmdBuffer, frame_graph_helper,
-                                                                  meshlet_pass.clear.pass_handle);
-
-            FrameGraphBuffer meshlet_counters =
-                get_frame_graph_buffer(resources.framegraph_resources, framegraph, meshlet_pass.clear.meshlet_counters);
-
-            const u32 clear_value = 0;
-            vkCmdFillBuffer(cmdBuffer.handle, meshlet_counters.handle, 0, VK_WHOLE_SIZE, clear_value);
-        }
+        record_meshlet_culling_clear_command_buffer(frame_graph_helper, meshlet_pass.clear, cmdBuffer);
 
         record_meshlet_culling_command_buffer(root, frame_graph_helper, meshlet_pass.cull_meshlets, cmdBuffer, prepared,
                                               resources.meshlet_culling_resources);
@@ -395,19 +383,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         record_meshlet_culling_debug_command_buffer(frame_graph_helper, meshlet_pass.debug, cmdBuffer,
                                                     resources.meshlet_culling_resources);
 
-        {
-            REAPER_GPU_SCOPE(cmdBuffer, "Debug Geometry Clear");
-
-            const FrameGraphBarrierScope framegraph_barrier_scope(cmdBuffer, frame_graph_helper,
-                                                                  debug_geometry_clear.pass_handle);
-
-            const u32        clear_value = 0;
-            FrameGraphBuffer draw_counter =
-                get_frame_graph_buffer(resources.framegraph_resources, framegraph, debug_geometry_clear.draw_counter);
-
-            vkCmdFillBuffer(cmdBuffer.handle, draw_counter.handle, draw_counter.default_view.offset_bytes,
-                            draw_counter.default_view.size_bytes, clear_value);
-        }
+        record_debug_geometry_clear_command_buffer(frame_graph_helper, debug_geometry_clear, cmdBuffer);
 
         record_shadow_map_command_buffer(frame_graph_helper, shadow, cmdBuffer, prepared,
                                          resources.shadow_map_resources);
@@ -424,29 +400,8 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         record_fill_gbuffer_pass_command_buffer(frame_graph_helper, vis_buffer_record.fill_gbuffer, cmdBuffer,
                                                 resources.vis_buffer_pass_resources, render_extent);
 
-        {
-            REAPER_GPU_SCOPE(cmdBuffer, "Tile Depth Copy");
-
-            const FrameGraphBarrierScope framegraph_barrier_scope(cmdBuffer, frame_graph_helper,
-                                                                  light_raster_record.tile_depth_copy.pass_handle);
-
-            record_depth_copy(frame_graph_helper, light_raster_record.tile_depth_copy, cmdBuffer,
-                              resources.tiled_raster_resources);
-
-            const u32        clear_value = 0;
-            FrameGraphBuffer light_lists = get_frame_graph_buffer(resources.framegraph_resources, framegraph,
-                                                                  light_raster_record.tile_depth_copy.light_list_clear);
-
-            vkCmdFillBuffer(cmdBuffer.handle, light_lists.handle, light_lists.default_view.offset_bytes,
-                            light_lists.default_view.size_bytes, clear_value);
-
-            FrameGraphBuffer counters =
-                get_frame_graph_buffer(resources.framegraph_resources, framegraph,
-                                       light_raster_record.tile_depth_copy.classification_counters_clear);
-
-            vkCmdFillBuffer(cmdBuffer.handle, counters.handle, counters.default_view.offset_bytes,
-                            counters.default_view.size_bytes, clear_value);
-        }
+        record_depth_copy(frame_graph_helper, light_raster_record.tile_depth_copy, cmdBuffer,
+                          resources.tiled_raster_resources);
 
         record_light_classify_command_buffer(frame_graph_helper, light_raster_record.light_classify, cmdBuffer,
                                              tiled_lighting_frame, resources.tiled_raster_resources);
@@ -469,19 +424,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
         record_gui_command_buffer(frame_graph_helper, gui, cmdBuffer, resources.gui_pass_resources, imgui_draw_data);
 
-        {
-            REAPER_GPU_SCOPE(cmdBuffer, "Histogram Clear");
-
-            const FrameGraphBarrierScope framegraph_barrier_scope(cmdBuffer, frame_graph_helper,
-                                                                  histogram_clear.pass_handle);
-
-            const u32        clear_value = 0;
-            FrameGraphBuffer histogram_buffer =
-                get_frame_graph_buffer(resources.framegraph_resources, framegraph, histogram_clear.histogram_buffer);
-
-            vkCmdFillBuffer(cmdBuffer.handle, histogram_buffer.handle, histogram_buffer.default_view.offset_bytes,
-                            histogram_buffer.default_view.size_bytes, clear_value);
-        }
+        record_histogram_clear_command_buffer(frame_graph_helper, histogram_clear, cmdBuffer);
 
         record_histogram_command_buffer(frame_graph_helper, histogram, cmdBuffer, resources.histogram_pass_resources,
                                         render_extent);
@@ -497,6 +440,8 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
                                         backend.presentInfo.surface_extent);
 
         {
+            REAPER_GPU_SCOPE(cmdBuffer, "Barrier");
+
             const GPUTextureAccess src = swapchain_access_render;
             const GPUTextureAccess dst = swapchain_access_present;
 
@@ -515,7 +460,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
         record_audio_copy_command_buffer(frame_graph_helper, audio_pass.staging_copy, cmdBuffer,
                                          resources.audio_resources);
-    } // namespace Reaper
+    }
 
 #if defined(REAPER_USE_TRACY)
     TracyVkCollect(cmdBuffer.tracy_ctx, cmdBuffer.handle);
