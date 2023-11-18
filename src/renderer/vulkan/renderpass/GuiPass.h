@@ -58,6 +58,8 @@ struct GUIFrameGraphRecord
     FrameGraph::ResourceUsageHandle output;
 };
 
+GUIFrameGraphRecord create_gui_pass_record(FrameGraph::Builder& builder, VkExtent2D gui_extent);
+
 struct CommandBuffer;
 struct FrameGraphTexture;
 

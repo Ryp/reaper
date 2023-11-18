@@ -86,6 +86,8 @@ struct DebugGeometryDrawFrameGraphRecord
     FrameGraph::ResourceUsageHandle instance_buffer;
 };
 
+DebugGeometryClearFrameGraphRecord create_debug_geometry_clear_pass_record(FrameGraph::Builder& builder);
+
 struct PreparedData;
 
 void upload_debug_geometry_build_cmds_pass_frame_resources(VulkanBackend& backend, const PreparedData& prepared,

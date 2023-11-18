@@ -10,6 +10,7 @@
 #include "ShadowConstants.h"
 
 #include "renderer/PrepareBuckets.h"
+#include "renderer/graph/FrameGraphBuilder.h"
 #include "renderer/vulkan/Backend.h"
 #include "renderer/vulkan/CommandBuffer.h"
 #include "renderer/vulkan/FrameGraphResources.h"
@@ -65,6 +66,21 @@ void destroy_gui_pass_resources(VulkanBackend& backend, GuiPassResources& resour
     vkDestroyPipeline(backend.device, resources.guiPipe.pipeline, nullptr);
     vkDestroyPipelineLayout(backend.device, resources.guiPipe.pipelineLayout, nullptr);
     vkDestroyDescriptorSetLayout(backend.device, resources.guiPipe.descSetLayout, nullptr);
+}
+
+GUIFrameGraphRecord create_gui_pass_record(FrameGraph::Builder& builder, VkExtent2D gui_extent)
+{
+    GUIFrameGraphRecord gui;
+    gui.pass_handle = builder.create_render_pass("GUI");
+
+    gui.output = builder.create_texture(
+        gui.pass_handle, "GUI SDR",
+        default_texture_properties(gui_extent.width, gui_extent.height, GUIFormat,
+                                   GPUTextureUsage::ColorAttachment | GPUTextureUsage::Sampled),
+        GPUTextureAccess{VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+                         VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL});
+
+    return gui;
 }
 
 void record_gui_command_buffer(CommandBuffer& cmdBuffer, const GuiPassResources& pass_resources,

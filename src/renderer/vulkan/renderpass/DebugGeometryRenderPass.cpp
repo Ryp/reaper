@@ -11,6 +11,7 @@
 #include "ForwardPassConstants.h"
 
 #include "renderer/buffer/GPUBufferView.h"
+#include "renderer/graph/FrameGraphBuilder.h"
 #include "renderer/vulkan/Backend.h"
 #include "renderer/vulkan/Buffer.h"
 #include "renderer/vulkan/CommandBuffer.h"
@@ -181,6 +182,31 @@ void destroy_debug_geometry_pass_resources(VulkanBackend& backend, DebugGeometry
     vkDestroyPipeline(backend.device, resources.build_cmds_pipeline, nullptr);
     vkDestroyPipelineLayout(backend.device, resources.build_cmds_pipeline_layout, nullptr);
     vkDestroyDescriptorSetLayout(backend.device, resources.build_cmds_descriptor_set_layout, nullptr);
+}
+
+DebugGeometryClearFrameGraphRecord create_debug_geometry_clear_pass_record(FrameGraph::Builder& builder)
+{
+    DebugGeometryClearFrameGraphRecord debug_geometry_clear;
+    debug_geometry_clear.pass_handle = builder.create_render_pass("Debug Geometry Clear");
+
+    const GPUBufferProperties debug_geometry_counter_properties = DefaultGPUBufferProperties(
+        1, sizeof(u32), GPUBufferUsage::IndirectBuffer | GPUBufferUsage::StorageBuffer | GPUBufferUsage::TransferDst);
+
+    debug_geometry_clear.draw_counter = builder.create_buffer(
+        debug_geometry_clear.pass_handle, "Debug Indirect draw counter buffer", debug_geometry_counter_properties,
+        GPUBufferAccess{VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT});
+
+    const GPUBufferProperties debug_geometry_user_commands_properties = DefaultGPUBufferProperties(
+        DebugGeometryCountMax, sizeof(DebugGeometryUserCommand), GPUBufferUsage::StorageBuffer);
+
+    // Technically we shouldn't create an usage here, the first client of the debug geometry API should call
+    // create_buffer() with the right data. But it makes it slightly simpler this way for the user API so I'm taking
+    // the trade-off and paying for an extra useless barrier.
+    debug_geometry_clear.user_commands_buffer = builder.create_buffer(
+        debug_geometry_clear.pass_handle, "Debug geometry user command buffer", debug_geometry_user_commands_properties,
+        GPUBufferAccess{VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT});
+
+    return debug_geometry_clear;
 }
 
 void upload_debug_geometry_build_cmds_pass_frame_resources(VulkanBackend& backend, const PreparedData& prepared,

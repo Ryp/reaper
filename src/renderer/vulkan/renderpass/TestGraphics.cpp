@@ -203,25 +203,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     const CullMeshletsFrameGraphRecord meshlet_pass = create_cull_meshlet_frame_graph_record(builder);
 
-    DebugGeometryClearFrameGraphRecord debug_geometry_clear;
-    debug_geometry_clear.pass_handle = builder.create_render_pass("Debug Geometry Clear");
-
-    const GPUBufferProperties debug_geometry_counter_properties = DefaultGPUBufferProperties(
-        1, sizeof(u32), GPUBufferUsage::IndirectBuffer | GPUBufferUsage::StorageBuffer | GPUBufferUsage::TransferDst);
-
-    debug_geometry_clear.draw_counter = builder.create_buffer(
-        debug_geometry_clear.pass_handle, "Debug Indirect draw counter buffer", debug_geometry_counter_properties,
-        GPUBufferAccess{VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT});
-
-    const GPUBufferProperties debug_geometry_user_commands_properties = DefaultGPUBufferProperties(
-        DebugGeometryCountMax, sizeof(DebugGeometryUserCommand), GPUBufferUsage::StorageBuffer);
-
-    // Technically we shouldn't create an usage here, the first client of the debug geometry API should call
-    // create_buffer() with the right data. But it makes it slightly simpler this way for the user API so I'm taking
-    // the trade-off and paying for an extra useless barrier.
-    debug_geometry_clear.user_commands_buffer = builder.create_buffer(
-        debug_geometry_clear.pass_handle, "Debug geometry user command buffer", debug_geometry_user_commands_properties,
-        GPUBufferAccess{VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT});
+    const DebugGeometryClearFrameGraphRecord debug_geometry_clear = create_debug_geometry_clear_pass_record(builder);
 
     const ShadowFrameGraphRecord shadow = create_shadow_map_pass_record(builder, meshlet_pass, prepared);
 
@@ -243,16 +225,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     const ForwardFrameGraphRecord forward =
         create_forward_pass_record(builder, meshlet_pass, shadow, vis_buffer_record.render.depth, render_extent);
 
-    GUIFrameGraphRecord gui;
-    gui.pass_handle = builder.create_render_pass("GUI");
-
-    gui.output = builder.create_texture(
-        gui.pass_handle, "GUI SDR",
-
-        default_texture_properties(backend.presentInfo.surface_extent.width, backend.presentInfo.surface_extent.height,
-                                   GUIFormat, GPUTextureUsage::ColorAttachment | GPUTextureUsage::Sampled),
-        GPUTextureAccess{VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-                         VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL});
+    const GUIFrameGraphRecord gui = create_gui_pass_record(builder, backend.presentInfo.surface_extent);
 
     HistogramClearFrameGraphRecord histogram_clear;
     histogram_clear.pass_handle = builder.create_render_pass("Histogram Clear");
