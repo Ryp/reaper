@@ -7,6 +7,8 @@
 
 #include "TestGraphics.h"
 
+#include "renderer/graph/FrameGraphBuilder.h"
+#include "renderer/graph/GraphDebug.h"
 #include "renderer/vulkan/Backend.h"
 #include "renderer/vulkan/BackendResources.h"
 #include "renderer/vulkan/Barrier.h"
@@ -19,20 +21,9 @@
 #include "renderer/vulkan/MeshCache.h"
 #include "renderer/vulkan/Swapchain.h"
 #include "renderer/vulkan/api/AssertHelper.h"
-#include "renderer/vulkan/api/VulkanStringConversion.h"
-#include "renderer/vulkan/renderpass/Constants.h"
-#include "renderer/vulkan/renderpass/ForwardPassConstants.h"
 #include "renderer/vulkan/renderpass/FrameGraphPass.h"
 #include "renderer/vulkan/renderpass/HZBPass.h"
 #include "renderer/vulkan/renderpass/TiledLightingCommon.h"
-#include "renderer/vulkan/renderpass/VisibilityBufferConstants.h"
-
-#include "renderer/Mesh2.h"
-#include "renderer/texture/GPUTextureProperties.h"
-#include "renderer/texture/GPUTextureView.h"
-
-#include "renderer/graph/FrameGraphBuilder.h"
-#include "renderer/graph/GraphDebug.h"
 
 #include "common/Log.h"
 #include "common/ReaperRoot.h"
@@ -40,10 +31,6 @@
 #include "core/BitTricks.h"
 #include "core/memory/Allocator.h"
 #include "profiling/Scope.h"
-
-#include "renderer/shader/debug_geometry/debug_geometry_private.share.hlsl"
-#include "renderer/shader/histogram/reduce_histogram.share.hlsl"
-#include "renderer/shader/tiled_lighting/tiled_lighting.share.hlsl"
 
 #include <vulkan_loader/Vulkan.h>
 
@@ -245,7 +232,6 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     const AudioFrameGraphRecord audio_pass = create_audio_frame_graph_data(builder);
 
     builder.build();
-
     // DumpFrameGraph(framegraph);
 
     const FrameGraph::FrameGraphSchedule schedule = compute_schedule(framegraph);
