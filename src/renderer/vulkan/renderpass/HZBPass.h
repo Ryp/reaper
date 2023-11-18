@@ -72,9 +72,11 @@ void update_hzb_pass_descriptor_set(const FrameGraph::FrameGraph&    frame_graph
                                     const HZBReduceFrameGraphRecord& record, DescriptorWriteHelper& write_helper,
                                     const HZBPassResources& resources, const SamplerResources& sampler_resources);
 
+struct FrameGraphHelper;
 struct CommandBuffer;
 
-void record_hzb_command_buffer(CommandBuffer& cmdBuffer, const HZBPassResources& pass_resources,
+void record_hzb_command_buffer(const FrameGraphHelper& frame_graph_helper, const HZBReduceFrameGraphRecord& pass_record,
+                               CommandBuffer& cmdBuffer, const HZBPassResources& pass_resources,
                                VkExtent2D depth_extent, VkExtent2D hzb_extent);
 
 } // namespace Reaper

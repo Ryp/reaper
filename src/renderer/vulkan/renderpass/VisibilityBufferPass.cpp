@@ -7,6 +7,7 @@
 
 #include "VisibilityBufferPass.h"
 
+#include "FrameGraphPass.h"
 #include "GBufferPassConstants.h"
 #include "MeshletCulling.h"
 #include "ShadowConstants.h"
@@ -420,15 +421,29 @@ void update_vis_buffer_pass_resources(const FrameGraph::FrameGraph&        frame
     }
 }
 
-void record_vis_buffer_pass_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& prepared,
-                                           const VisibilityBufferPassResources& pass_resources,
-                                           const FrameGraphBuffer&              meshlet_counters,
-                                           const FrameGraphBuffer&              meshlet_indirect_draw_commands,
-                                           const FrameGraphBuffer&              meshlet_visible_index_buffer,
-                                           const FrameGraphTexture& vis_buffer, const FrameGraphTexture& depth_buffer)
+void record_vis_buffer_pass_command_buffer(const FrameGraphHelper&                  frame_graph_helper,
+                                           const VisBufferFrameGraphRecord::Render& pass_record,
+                                           CommandBuffer& cmdBuffer, const PreparedData& prepared,
+                                           const VisibilityBufferPassResources& pass_resources)
 {
+    // FIXME should be moved out
     if (prepared.mesh_instances.empty())
         return;
+
+    REAPER_GPU_SCOPE(cmdBuffer, "Visibility");
+
+    const FrameGraphBarrierScope framegraph_barrier_scope(cmdBuffer, frame_graph_helper, pass_record.pass_handle);
+
+    const FrameGraphBuffer meshlet_counters = get_frame_graph_buffer(
+        frame_graph_helper.resources, frame_graph_helper.frame_graph, pass_record.meshlet_counters);
+    const FrameGraphBuffer meshlet_indirect_draw_commands = get_frame_graph_buffer(
+        frame_graph_helper.resources, frame_graph_helper.frame_graph, pass_record.meshlet_indirect_draw_commands);
+    const FrameGraphBuffer meshlet_visible_index_buffer = get_frame_graph_buffer(
+        frame_graph_helper.resources, frame_graph_helper.frame_graph, pass_record.meshlet_visible_index_buffer);
+    const FrameGraphTexture vis_buffer =
+        get_frame_graph_texture(frame_graph_helper.resources, frame_graph_helper.frame_graph, pass_record.vis_buffer);
+    const FrameGraphTexture depth_buffer =
+        get_frame_graph_texture(frame_graph_helper.resources, frame_graph_helper.frame_graph, pass_record.depth);
 
     const VkExtent2D extent = {depth_buffer.properties.width, depth_buffer.properties.height};
     const VkRect2D   pass_rect = default_vk_rect(extent);
@@ -475,10 +490,16 @@ void record_vis_buffer_pass_command_buffer(CommandBuffer& cmdBuffer, const Prepa
     vkCmdEndRendering(cmdBuffer.handle);
 }
 
-void record_fill_gbuffer_pass_command_buffer(CommandBuffer&                       cmdBuffer,
-                                             const VisibilityBufferPassResources& resources,
-                                             VkExtent2D                           render_extent)
+void record_fill_gbuffer_pass_command_buffer(const FrameGraphHelper&                       frame_graph_helper,
+                                             const VisBufferFrameGraphRecord::FillGBuffer& pass_record,
+                                             CommandBuffer&                                cmdBuffer,
+                                             const VisibilityBufferPassResources&          resources,
+                                             VkExtent2D                                    render_extent)
 {
+    REAPER_GPU_SCOPE(cmdBuffer, "Visibility Fill GBuffer");
+
+    const FrameGraphBarrierScope framegraph_barrier_scope(cmdBuffer, frame_graph_helper, pass_record.pass_handle);
+
     vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE, resources.fill_pipe.pipeline);
 
     FillGBufferPushConstants push_constants;

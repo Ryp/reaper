@@ -89,8 +89,6 @@ struct MaterialResources;
 struct MeshCache;
 struct SamplerResources;
 class DescriptorWriteHelper;
-struct FrameGraphBuffer;
-struct FrameGraphTexture;
 struct PreparedData;
 struct StorageBufferAllocator;
 
@@ -105,17 +103,17 @@ void update_vis_buffer_pass_resources(const FrameGraph::FrameGraph&        frame
                                       const MaterialResources&             material_resources,
                                       const MeshCache&                     mesh_cache);
 
+struct FrameGraphHelper;
 struct CommandBuffer;
-struct FrameGraphTexture;
-struct FrameGraphBuffer;
 
-void record_vis_buffer_pass_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& prepared,
-                                           const VisibilityBufferPassResources& pass_resources,
-                                           const FrameGraphBuffer&              meshlet_counters,
-                                           const FrameGraphBuffer&              meshlet_indirect_draw_commands,
-                                           const FrameGraphBuffer&              meshlet_visible_index_buffer,
-                                           const FrameGraphTexture& vis_buffer, const FrameGraphTexture& depth_buffer);
+void record_vis_buffer_pass_command_buffer(const FrameGraphHelper&                  frame_graph_helper,
+                                           const VisBufferFrameGraphRecord::Render& pass_record,
+                                           CommandBuffer& cmdBuffer, const PreparedData& prepared,
+                                           const VisibilityBufferPassResources& pass_resources);
 
-void record_fill_gbuffer_pass_command_buffer(CommandBuffer& cmdBuffer, const VisibilityBufferPassResources& resources,
-                                             VkExtent2D render_extent);
+void record_fill_gbuffer_pass_command_buffer(const FrameGraphHelper&                       frame_graph_helper,
+                                             const VisBufferFrameGraphRecord::FillGBuffer& pass_record,
+                                             CommandBuffer&                                cmdBuffer,
+                                             const VisibilityBufferPassResources&          resources,
+                                             VkExtent2D                                    render_extent);
 } // namespace Reaper

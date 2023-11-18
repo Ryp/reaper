@@ -7,6 +7,8 @@
 
 #include "MeshletCulling.h"
 
+#include "FrameGraphPass.h"
+
 #include "renderer/PrepareBuckets.h"
 
 #include "renderer/vulkan/Backend.h"
@@ -477,9 +479,15 @@ void update_meshlet_culling_passes_resources(const FrameGraph::FrameGraph&      
                                             prepared, resources, mesh_cache, mesh_instance_alloc);
 }
 
-void record_meshlet_culling_command_buffer(ReaperRoot& root, CommandBuffer& cmdBuffer, const PreparedData& prepared,
+void record_meshlet_culling_command_buffer(ReaperRoot& root, const FrameGraphHelper& frame_graph_helper,
+                                           const CullMeshletsFrameGraphRecord::CullMeshlets& pass_record,
+                                           CommandBuffer& cmdBuffer, const PreparedData& prepared,
                                            MeshletCullingResources& resources)
 {
+    REAPER_GPU_SCOPE(cmdBuffer, "Cull Meshlets");
+
+    const FrameGraphBarrierScope framegraph_barrier_scope(cmdBuffer, frame_graph_helper, pass_record.pass_handle);
+
     u64              total_meshlet_count = 0;
     std::vector<u64> meshlet_count_per_pass;
 
@@ -518,9 +526,14 @@ void record_meshlet_culling_command_buffer(ReaperRoot& root, CommandBuffer& cmdB
               total_meshlet_count * MeshletMaxTriangleCount);
 }
 
-void record_triangle_culling_prepare_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& prepared,
-                                                    MeshletCullingResources& resources)
+void record_triangle_culling_prepare_command_buffer(
+    const FrameGraphHelper& frame_graph_helper, const CullMeshletsFrameGraphRecord::CullTrianglesPrepare& pass_record,
+    CommandBuffer& cmdBuffer, const PreparedData& prepared, MeshletCullingResources& resources)
 {
+    REAPER_GPU_SCOPE(cmdBuffer, "Cull Meshlet Triangles Prepare");
+
+    const FrameGraphBarrierScope framegraph_barrier_scope(cmdBuffer, frame_graph_helper, pass_record.pass_handle);
+
     vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE,
                       resources.cull_meshlets_prep_indirect_pipe.pipeline);
 
@@ -533,10 +546,18 @@ void record_triangle_culling_prepare_command_buffer(CommandBuffer& cmdBuffer, co
     vkCmdDispatch(cmdBuffer.handle, group_count_x, 1, 1);
 }
 
-void record_triangle_culling_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& prepared,
-                                            MeshletCullingResources& resources,
-                                            const FrameGraphBuffer&  indirect_dispatch_buffer)
+void record_triangle_culling_command_buffer(const FrameGraphHelper&                            frame_graph_helper,
+                                            const CullMeshletsFrameGraphRecord::CullTriangles& pass_record,
+                                            CommandBuffer& cmdBuffer, const PreparedData& prepared,
+                                            MeshletCullingResources& resources)
 {
+    REAPER_GPU_SCOPE(cmdBuffer, "Cull Meshlet Triangles");
+
+    const FrameGraphBarrierScope framegraph_barrier_scope(cmdBuffer, frame_graph_helper, pass_record.pass_handle);
+
+    const FrameGraphBuffer indirect_dispatch_buffer = get_frame_graph_buffer(
+        frame_graph_helper.resources, frame_graph_helper.frame_graph, pass_record.indirect_dispatch_buffer);
+
     vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE, resources.cull_triangles_pipe.pipeline);
 
     for (const CullPassData& cull_pass : prepared.cull_passes)
@@ -557,10 +578,18 @@ void record_triangle_culling_command_buffer(CommandBuffer& cmdBuffer, const Prep
     }
 }
 
-void record_meshlet_culling_debug_command_buffer(CommandBuffer&           cmdBuffer,
-                                                 MeshletCullingResources& resources,
-                                                 const FrameGraphBuffer&  meshlet_counters)
+void record_meshlet_culling_debug_command_buffer(const FrameGraphHelper&                    frame_graph_helper,
+                                                 const CullMeshletsFrameGraphRecord::Debug& pass_record,
+                                                 CommandBuffer&                             cmdBuffer,
+                                                 MeshletCullingResources&                   resources)
 {
+    REAPER_GPU_SCOPE(cmdBuffer, "Meshlet Debug");
+
+    const FrameGraphBarrierScope framegraph_barrier_scope(cmdBuffer, frame_graph_helper, pass_record.pass_handle);
+
+    const FrameGraphBuffer meshlet_counters = get_frame_graph_buffer(
+        frame_graph_helper.resources, frame_graph_helper.frame_graph, pass_record.meshlet_counters);
+
     const VkBufferCopy2 region = {
         .sType = VK_STRUCTURE_TYPE_BUFFER_COPY_2,
         .pNext = nullptr,

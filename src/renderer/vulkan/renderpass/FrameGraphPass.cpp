@@ -16,7 +16,7 @@ namespace Reaper
 {
 // FIXME We have no way of merging events for now (dependencies struct)
 void record_framegraph_barriers(CommandBuffer& cmdBuffer, const FrameGraph::FrameGraphSchedule& schedule,
-                                const FrameGraph::FrameGraph& framegraph, FrameGraphResources& resources,
+                                const FrameGraph::FrameGraph& framegraph, const FrameGraphResources& resources,
                                 FrameGraph::RenderPassHandle render_pass_handle, bool before)
 {
     const auto barrier_events = get_barriers_to_execute(schedule, render_pass_handle, before);

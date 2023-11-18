@@ -7,6 +7,7 @@
 
 #include "ShadowMap.h"
 
+#include "FrameGraphPass.h"
 #include "MeshletCulling.h"
 #include "ShadowConstants.h"
 
@@ -142,12 +143,21 @@ void update_shadow_map_resources(DescriptorWriteHelper& write_helper, StorageBuf
     }
 }
 
-void record_shadow_map_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& prepared,
-                                      ShadowMapResources& resources, std::span<const FrameGraphTexture> shadow_maps,
-                                      const FrameGraphBuffer& meshlet_counters,
-                                      const FrameGraphBuffer& meshlet_indirect_draw_commands,
-                                      const FrameGraphBuffer& meshlet_visible_index_buffer)
+void record_shadow_map_command_buffer(const FrameGraphHelper&       frame_graph_helper,
+                                      const ShadowFrameGraphRecord& pass_record, CommandBuffer& cmdBuffer,
+                                      const PreparedData& prepared, ShadowMapResources& resources)
 {
+    REAPER_GPU_SCOPE(cmdBuffer, "Shadow");
+
+    const FrameGraphBarrierScope framegraph_barrier_scope(cmdBuffer, frame_graph_helper, pass_record.pass_handle);
+
+    const FrameGraphBuffer meshlet_counters = get_frame_graph_buffer(
+        frame_graph_helper.resources, frame_graph_helper.frame_graph, pass_record.meshlet_counters);
+    const FrameGraphBuffer meshlet_indirect_draw_commands = get_frame_graph_buffer(
+        frame_graph_helper.resources, frame_graph_helper.frame_graph, pass_record.meshlet_indirect_draw_commands);
+    const FrameGraphBuffer meshlet_visible_index_buffer = get_frame_graph_buffer(
+        frame_graph_helper.resources, frame_graph_helper.frame_graph, pass_record.meshlet_visible_index_buffer);
+
     vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, resources.pipe.pipeline);
 
     for (const ShadowPassData& shadow_pass : prepared.shadow_passes)
@@ -159,10 +169,12 @@ void record_shadow_map_command_buffer(CommandBuffer& cmdBuffer, const PreparedDa
                                          fmt::format("Shadow Pass {}", shadow_pass.pass_index).c_str());
         REAPER_PROFILE_SCOPE_GPU(cmdBuffer, "Shadow Pass");
 
-        const FrameGraphTexture& shadow_map = shadow_maps[shadow_pass.pass_index];
-        const VkExtent2D         output_extent = {shadow_pass.shadow_map_size.x, shadow_pass.shadow_map_size.y};
-        const VkRect2D           pass_rect = default_vk_rect(output_extent);
-        const VkViewport         viewport = default_vk_viewport(pass_rect);
+        const FrameGraphTexture shadow_map =
+            get_frame_graph_texture(frame_graph_helper.resources, frame_graph_helper.frame_graph,
+                                    pass_record.shadow_maps[shadow_pass.pass_index]);
+        const VkExtent2D output_extent = {shadow_pass.shadow_map_size.x, shadow_pass.shadow_map_size.y};
+        const VkRect2D   pass_rect = default_vk_rect(output_extent);
+        const VkViewport viewport = default_vk_viewport(pass_rect);
 
         Assert(output_extent.width == shadow_map.properties.width);
         Assert(output_extent.height == shadow_map.properties.height);

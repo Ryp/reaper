@@ -7,6 +7,7 @@
 
 #include "HZBPass.h"
 
+#include "FrameGraphPass.h"
 #include "TiledLightingCommon.h"
 
 #include "renderer/graph/FrameGraphBuilder.h"
@@ -15,6 +16,7 @@
 #include "renderer/vulkan/ComputeHelper.h"
 #include "renderer/vulkan/DescriptorSet.h"
 #include "renderer/vulkan/FrameGraphResources.h"
+#include "renderer/vulkan/GpuProfile.h"
 #include "renderer/vulkan/Image.h"
 #include "renderer/vulkan/Pipeline.h"
 #include "renderer/vulkan/SamplerResources.h"
@@ -134,9 +136,14 @@ void update_hzb_pass_descriptor_set(const FrameGraph::FrameGraph&    frame_graph
                                                                 VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, hzb_mips));
 }
 
-void record_hzb_command_buffer(CommandBuffer& cmdBuffer, const HZBPassResources& pass_resources,
+void record_hzb_command_buffer(const FrameGraphHelper& frame_graph_helper, const HZBReduceFrameGraphRecord& pass_record,
+                               CommandBuffer& cmdBuffer, const HZBPassResources& pass_resources,
                                VkExtent2D depth_extent, VkExtent2D hzb_extent)
 {
+    REAPER_GPU_SCOPE(cmdBuffer, "HZB Reduce");
+
+    const FrameGraphBarrierScope framegraph_barrier_scope(cmdBuffer, frame_graph_helper, pass_record.pass_handle);
+
     vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE, pass_resources.hzb_pipe.handle);
 
     HZBReducePushConstants push_constants;

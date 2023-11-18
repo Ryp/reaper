@@ -71,13 +71,10 @@ void update_shadow_map_resources(DescriptorWriteHelper& write_helper, StorageBuf
                                  const PreparedData& prepared, ShadowMapResources& resources,
                                  GPUBuffer& vertex_position_buffer);
 
+struct FrameGraphHelper;
 struct CommandBuffer;
-struct FrameGraphTexture;
-struct FrameGraphBuffer;
 
-void record_shadow_map_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& prepared,
-                                      ShadowMapResources& resources, std::span<const FrameGraphTexture> shadow_maps,
-                                      const FrameGraphBuffer& meshlet_counters,
-                                      const FrameGraphBuffer& meshlet_indirect_draw_commands,
-                                      const FrameGraphBuffer& meshlet_visible_index_buffer);
+void record_shadow_map_command_buffer(const FrameGraphHelper&       frame_graph_helper,
+                                      const ShadowFrameGraphRecord& pass_record, CommandBuffer& cmdBuffer,
+                                      const PreparedData& prepared, ShadowMapResources& resources);
 } // namespace Reaper
