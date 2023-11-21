@@ -236,60 +236,67 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     allocate_framegraph_volatile_resources(backend, resources.framegraph_resources, framegraph);
 
-    DescriptorWriteHelper descriptor_write_helper(200, 200);
+    {
+        REAPER_PROFILE_SCOPE("Update pass resources");
 
-    upload_lighting_pass_frame_resources(resources.frame_storage_allocator, prepared, resources.lighting_resources);
+        DescriptorWriteHelper descriptor_write_helper(200, 200);
 
-    update_shadow_map_resources(descriptor_write_helper, resources.frame_storage_allocator, prepared,
-                                resources.shadow_map_resources, resources.mesh_cache.vertexBufferPosition);
+        upload_lighting_pass_frame_resources(resources.frame_storage_allocator, prepared, resources.lighting_resources);
 
-    update_vis_buffer_pass_resources(framegraph, resources.framegraph_resources, vis_buffer_record,
-                                     descriptor_write_helper, resources.frame_storage_allocator,
-                                     resources.vis_buffer_pass_resources, prepared, resources.samplers_resources,
-                                     resources.material_resources, resources.mesh_cache);
+        update_shadow_map_resources(descriptor_write_helper, resources.frame_storage_allocator, prepared,
+                                    resources.shadow_map_resources, resources.mesh_cache.vertexBufferPosition);
 
-    update_tiled_lighting_raster_pass_resources(framegraph, resources.framegraph_resources, light_raster_record,
-                                                descriptor_write_helper, resources.frame_storage_allocator,
-                                                resources.tiled_raster_resources, tiled_lighting_frame);
+        update_vis_buffer_pass_resources(framegraph, resources.framegraph_resources, vis_buffer_record,
+                                         descriptor_write_helper, resources.frame_storage_allocator,
+                                         resources.vis_buffer_pass_resources, prepared, resources.samplers_resources,
+                                         resources.material_resources, resources.mesh_cache);
 
-    update_meshlet_culling_passes_resources(framegraph, resources.framegraph_resources, meshlet_pass,
-                                            descriptor_write_helper, resources.frame_storage_allocator, prepared,
-                                            resources.meshlet_culling_resources, resources.mesh_cache);
+        update_tiled_lighting_raster_pass_resources(framegraph, resources.framegraph_resources, light_raster_record,
+                                                    descriptor_write_helper, resources.frame_storage_allocator,
+                                                    resources.tiled_raster_resources, tiled_lighting_frame);
 
-    update_hzb_pass_descriptor_set(framegraph, resources.framegraph_resources, hzb_reduce, descriptor_write_helper,
-                                   resources.hzb_pass_resources, resources.samplers_resources);
+        update_meshlet_culling_passes_resources(framegraph, resources.framegraph_resources, meshlet_pass,
+                                                descriptor_write_helper, resources.frame_storage_allocator, prepared,
+                                                resources.meshlet_culling_resources, resources.mesh_cache);
 
-    update_forward_pass_descriptor_sets(backend, framegraph, resources.framegraph_resources, forward,
-                                        descriptor_write_helper, prepared, resources.forward_pass_resources,
-                                        resources.samplers_resources, resources.material_resources,
-                                        resources.mesh_cache, resources.lighting_resources);
+        update_hzb_pass_descriptor_set(framegraph, resources.framegraph_resources, hzb_reduce, descriptor_write_helper,
+                                       resources.hzb_pass_resources, resources.samplers_resources);
 
-    update_tiled_lighting_pass_resources(backend, framegraph, resources.framegraph_resources, tiled_lighting,
-                                         descriptor_write_helper, prepared, resources.lighting_resources,
-                                         resources.tiled_lighting_resources, resources.samplers_resources);
+        update_forward_pass_descriptor_sets(backend, framegraph, resources.framegraph_resources, forward,
+                                            descriptor_write_helper, prepared, resources.forward_pass_resources,
+                                            resources.samplers_resources, resources.material_resources,
+                                            resources.mesh_cache, resources.lighting_resources);
 
-    update_tiled_lighting_debug_pass_resources(framegraph, resources.framegraph_resources, tiled_lighting_debug_record,
-                                               descriptor_write_helper, resources.tiled_lighting_resources);
+        update_tiled_lighting_pass_resources(backend, framegraph, resources.framegraph_resources, tiled_lighting,
+                                             descriptor_write_helper, prepared, resources.lighting_resources,
+                                             resources.tiled_lighting_resources, resources.samplers_resources);
 
-    update_histogram_pass_descriptor_set(framegraph, resources.framegraph_resources, histogram, descriptor_write_helper,
-                                         resources.histogram_pass_resources, resources.samplers_resources);
+        update_tiled_lighting_debug_pass_resources(framegraph, resources.framegraph_resources,
+                                                   tiled_lighting_debug_record, descriptor_write_helper,
+                                                   resources.tiled_lighting_resources);
 
-    update_debug_geometry_build_cmds_pass_resources(backend, framegraph, resources.framegraph_resources,
-                                                    debug_geometry_build_cmds, descriptor_write_helper, prepared,
-                                                    resources.debug_geometry_resources);
+        update_histogram_pass_descriptor_set(framegraph, resources.framegraph_resources, histogram,
+                                             descriptor_write_helper, resources.histogram_pass_resources,
+                                             resources.samplers_resources);
 
-    update_debug_geometry_draw_pass_descriptor_sets(framegraph, resources.framegraph_resources, debug_geometry_draw,
-                                                    descriptor_write_helper, resources.debug_geometry_resources);
+        update_debug_geometry_build_cmds_pass_resources(backend, framegraph, resources.framegraph_resources,
+                                                        debug_geometry_build_cmds, descriptor_write_helper, prepared,
+                                                        resources.debug_geometry_resources);
 
-    update_swapchain_pass_descriptor_set(framegraph, resources.framegraph_resources, swapchain, descriptor_write_helper,
-                                         resources.swapchain_pass_resources, resources.samplers_resources);
+        update_debug_geometry_draw_pass_descriptor_sets(framegraph, resources.framegraph_resources, debug_geometry_draw,
+                                                        descriptor_write_helper, resources.debug_geometry_resources);
 
-    update_audio_render_resources(backend, framegraph, resources.framegraph_resources, audio_pass,
-                                  descriptor_write_helper, prepared, resources.audio_resources);
+        update_swapchain_pass_descriptor_set(framegraph, resources.framegraph_resources, swapchain,
+                                             descriptor_write_helper, resources.swapchain_pass_resources,
+                                             resources.samplers_resources);
+
+        update_audio_render_resources(backend, framegraph, resources.framegraph_resources, audio_pass,
+                                      descriptor_write_helper, prepared, resources.audio_resources);
+
+        descriptor_write_helper.flush_descriptor_write_helper(backend.device);
+    }
 
     storage_allocator_commit_to_gpu(backend, resources.frame_storage_allocator);
-
-    descriptor_write_helper.flush_descriptor_write_helper(backend.device);
 
     const FrameGraph::FrameGraphSchedule schedule = compute_schedule(framegraph);
 
