@@ -107,7 +107,10 @@ DebugGeometryPassResources create_debug_geometry_pass_resources(VulkanBackend&  
         pipeline_properties.pipeline_rendering.pColorAttachmentFormats = &color_format;
         pipeline_properties.pipeline_rendering.depthAttachmentFormat = depth_format;
 
-        VkPipeline pipeline = create_graphics_pipeline(backend.device, shader_stages, pipeline_properties);
+        std::vector<VkDynamicState> dynamic_states = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
+
+        VkPipeline pipeline =
+            create_graphics_pipeline(backend.device, shader_stages, pipeline_properties, dynamic_states);
 
         resources.draw_descriptor_set_layout = descriptor_set_layout;
         resources.draw_pipeline_layout = pipeline_layout;

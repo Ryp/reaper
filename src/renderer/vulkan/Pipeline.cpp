@@ -321,9 +321,7 @@ VkPipeline create_graphics_pipeline(VkDevice device,
                                     std::span<const VkDynamicState>
                                         dynamic_states)
 {
-    const std::vector<VkDynamicState> default_dynamic_states = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
-    const VkPipelineDynamicStateCreateInfo dynamic_state =
-        create_pipeline_dynamic_state_create_info(dynamic_states.empty() ? default_dynamic_states : dynamic_states);
+    const VkPipelineDynamicStateCreateInfo dynamic_state = create_pipeline_dynamic_state_create_info(dynamic_states);
 
     VkGraphicsPipelineCreateInfo create_info = {.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
                                                 .pNext = &properties.pipeline_rendering,

@@ -53,7 +53,9 @@ GuiPassResources create_gui_pass_resources(VulkanBackend& backend, const ShaderM
     pipeline_properties.pipeline_rendering.colorAttachmentCount = 1;
     pipeline_properties.pipeline_rendering.pColorAttachmentFormats = &gui_format;
 
-    VkPipeline pipeline = create_graphics_pipeline(backend.device, shader_stages, pipeline_properties);
+    std::vector<VkDynamicState> dynamic_states = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
+
+    VkPipeline pipeline = create_graphics_pipeline(backend.device, shader_stages, pipeline_properties, dynamic_states);
 
     resources.guiPipe = GuiPipelineInfo{pipeline, pipelineLayout, descriptor_set_layout};
 

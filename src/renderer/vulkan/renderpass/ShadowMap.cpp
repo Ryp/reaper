@@ -58,7 +58,10 @@ ShadowMapResources create_shadow_map_resources(VulkanBackend& backend, const Sha
     pipeline_properties.pipeline_layout = resources.pipe.pipelineLayout;
     pipeline_properties.pipeline_rendering.depthAttachmentFormat = PixelFormatToVulkan(ShadowMapFormat);
 
-    resources.pipe.pipeline = create_graphics_pipeline(backend.device, shader_stages, pipeline_properties);
+    std::vector<VkDynamicState> dynamic_states = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
+
+    resources.pipe.pipeline =
+        create_graphics_pipeline(backend.device, shader_stages, pipeline_properties, dynamic_states);
 
     resources.descriptor_sets.resize(3); // FIXME
 

@@ -123,10 +123,11 @@ namespace Raster
     };
 } // namespace Raster
 
-TiledRasterResources create_tiled_raster_pass_resources(VulkanBackend& backend, const ShaderModules& shader_modules)
+namespace
 {
-    TiledRasterResources resources = {};
-
+    VkPipeline create_tiled_raster_depth_copy_pipeline(VkDevice             device,
+                                                       const ShaderModules& shader_modules,
+                                                       VkPipelineLayout     pipeline_layout)
     {
         std::vector<VkPipelineShaderStageCreateInfo> shader_stages = {
             default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_VERTEX_BIT,
@@ -135,18 +136,6 @@ TiledRasterResources create_tiled_raster_pass_resources(VulkanBackend& backend, 
                                                       shader_modules.copy_to_depth_from_hzb_fs),
         };
 
-        std::vector<VkDescriptorSetLayoutBinding> layout_bindings = {
-            {0, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
-        };
-
-        VkDescriptorSetLayout descriptor_set_layout = create_descriptor_set_layout(backend.device, layout_bindings);
-
-        const VkPushConstantRange constant_range = {VK_SHADER_STAGE_FRAGMENT_BIT, 0,
-                                                    sizeof(CopyDepthFromHZBPushConstants)};
-
-        VkPipelineLayout pipeline_layout =
-            create_pipeline_layout(backend.device, std::span(&descriptor_set_layout, 1), std::span(&constant_range, 1));
-
         GraphicsPipelineProperties pipeline_properties = default_graphics_pipeline_properties();
         pipeline_properties.depth_stencil.depthTestEnable = VK_TRUE;
         pipeline_properties.depth_stencil.depthWriteEnable = VK_TRUE;
@@ -154,13 +143,20 @@ TiledRasterResources create_tiled_raster_pass_resources(VulkanBackend& backend, 
         pipeline_properties.pipeline_layout = pipeline_layout;
         pipeline_properties.pipeline_rendering.depthAttachmentFormat = PixelFormatToVulkan(MainPassDepthFormat);
 
-        VkPipeline pipeline = create_graphics_pipeline(backend.device, shader_stages, pipeline_properties);
+        const std::vector<VkDynamicState> dynamic_states = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
 
-        resources.depth_copy.descriptor_set_layout = descriptor_set_layout;
-        resources.depth_copy.pipeline_layout = pipeline_layout;
-        resources.depth_copy.pipeline = pipeline;
+        VkPipeline pipeline = create_graphics_pipeline(device, shader_stages, pipeline_properties, dynamic_states);
+        return pipeline;
     }
 
+    VkPipeline create_tiled_raster_classify_pipeline(VkDevice device, const ShaderModules& shader_modules,
+                                                     VkPipelineLayout pipeline_layout)
+    {
+        return create_compute_pipeline(device, pipeline_layout, shader_modules.classify_volume_cs);
+    }
+
+    VkPipeline create_tiled_raster_pipeline(VkDevice device, const ShaderModules& shader_modules,
+                                            VkPipelineLayout pipeline_layout)
     {
         std::vector<VkPipelineShaderStageCreateInfo> shader_stages = {
             default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_VERTEX_BIT,
@@ -168,19 +164,6 @@ TiledRasterResources create_tiled_raster_pass_resources(VulkanBackend& backend, 
             default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_FRAGMENT_BIT,
                                                       shader_modules.rasterize_light_volume_fs),
         };
-
-        using namespace Raster;
-
-        std::vector<VkDescriptorSetLayoutBinding> layout_bindings(g_bindings.size());
-        fill_layout_bindings(layout_bindings, g_bindings);
-
-        VkDescriptorSetLayout descriptor_set_layout = create_descriptor_set_layout(backend.device, layout_bindings);
-
-        const VkPushConstantRange pushConstantRange = {VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0,
-                                                       sizeof(TileLightRasterPushConstants)};
-
-        VkPipelineLayout pipeline_layout = create_pipeline_layout(backend.device, std::span(&descriptor_set_layout, 1),
-                                                                  std::span(&pushConstantRange, 1));
 
         GraphicsPipelineProperties pipeline_properties = default_graphics_pipeline_properties();
         pipeline_properties.depth_stencil.depthTestEnable = VK_TRUE;
@@ -195,12 +178,52 @@ TiledRasterResources create_tiled_raster_pass_resources(VulkanBackend& backend, 
                                                             VK_DYNAMIC_STATE_DEPTH_COMPARE_OP,
                                                             VK_DYNAMIC_STATE_CULL_MODE};
 
-        VkPipeline pipeline =
-            create_graphics_pipeline(backend.device, shader_stages, pipeline_properties, dynamic_states);
+        return create_graphics_pipeline(device, shader_stages, pipeline_properties, dynamic_states);
+    }
+} // namespace
+
+TiledRasterResources create_tiled_raster_pass_resources(VulkanBackend& backend, const ShaderModules& shader_modules)
+{
+    TiledRasterResources resources = {};
+
+    {
+        std::vector<VkDescriptorSetLayoutBinding> layout_bindings = {
+            {0, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+        };
+
+        const VkDescriptorSetLayout descriptor_set_layout =
+            create_descriptor_set_layout(backend.device, layout_bindings);
+
+        const VkPushConstantRange constant_range = {VK_SHADER_STAGE_FRAGMENT_BIT, 0,
+                                                    sizeof(CopyDepthFromHZBPushConstants)};
+
+        const VkPipelineLayout pipeline_layout =
+            create_pipeline_layout(backend.device, std::span(&descriptor_set_layout, 1), std::span(&constant_range, 1));
+
+        resources.depth_copy.descriptor_set_layout = descriptor_set_layout;
+        resources.depth_copy.pipeline_layout = pipeline_layout;
+        resources.depth_copy.pipeline =
+            create_tiled_raster_depth_copy_pipeline(backend.device, shader_modules, pipeline_layout);
+    }
+
+    {
+        using namespace Raster;
+
+        std::vector<VkDescriptorSetLayoutBinding> layout_bindings(g_bindings.size());
+        fill_layout_bindings(layout_bindings, g_bindings);
+
+        const VkDescriptorSetLayout descriptor_set_layout =
+            create_descriptor_set_layout(backend.device, layout_bindings);
+
+        const VkPushConstantRange pushConstantRange = {VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0,
+                                                       sizeof(TileLightRasterPushConstants)};
+
+        const VkPipelineLayout pipeline_layout = create_pipeline_layout(
+            backend.device, std::span(&descriptor_set_layout, 1), std::span(&pushConstantRange, 1));
 
         resources.light_raster.descriptor_set_layout = descriptor_set_layout;
         resources.light_raster.pipeline_layout = pipeline_layout;
-        resources.light_raster.pipeline = pipeline;
+        resources.light_raster.pipeline = create_tiled_raster_pipeline(backend.device, shader_modules, pipeline_layout);
     }
 
     {
@@ -209,20 +232,19 @@ TiledRasterResources create_tiled_raster_pass_resources(VulkanBackend& backend, 
         std::vector<VkDescriptorSetLayoutBinding> layout_bindings(g_bindings.size());
         fill_layout_bindings(layout_bindings, g_bindings);
 
-        VkDescriptorSetLayout descriptor_set_layout = create_descriptor_set_layout(backend.device, layout_bindings);
+        const VkDescriptorSetLayout descriptor_set_layout =
+            create_descriptor_set_layout(backend.device, layout_bindings);
 
         const VkPushConstantRange pushConstantRange = {VK_SHADER_STAGE_COMPUTE_BIT, 0,
                                                        sizeof(ClassifyVolumePushConstants)};
 
-        VkPipelineLayout pipeline_layout = create_pipeline_layout(backend.device, std::span(&descriptor_set_layout, 1),
-                                                                  std::span(&pushConstantRange, 1));
-
-        VkPipeline pipeline =
-            create_compute_pipeline(backend.device, pipeline_layout, shader_modules.classify_volume_cs);
+        const VkPipelineLayout pipeline_layout = create_pipeline_layout(
+            backend.device, std::span(&descriptor_set_layout, 1), std::span(&pushConstantRange, 1));
 
         resources.classify_descriptor_set_layout = descriptor_set_layout;
         resources.classify_pipeline_layout = pipeline_layout;
-        resources.classify_pipeline = pipeline;
+        resources.classify_pipeline =
+            create_tiled_raster_classify_pipeline(backend.device, shader_modules, pipeline_layout);
     }
 
     std::vector<VkDescriptorSetLayout> dset_layouts = {

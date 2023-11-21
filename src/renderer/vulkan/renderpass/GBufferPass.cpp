@@ -69,7 +69,10 @@ namespace
         pipeline_properties.pipeline_rendering.pColorAttachmentFormats = color_formats.data();
         pipeline_properties.pipeline_rendering.depthAttachmentFormat = depth_format;
 
-        VkPipeline pipeline = create_graphics_pipeline(backend.device, shader_stages, pipeline_properties);
+        std::vector<VkDynamicState> dynamic_states = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
+
+        VkPipeline pipeline =
+            create_graphics_pipeline(backend.device, shader_stages, pipeline_properties, dynamic_states);
 
         log_debug(root, "vulkan: created blit pipeline with handle: {}", static_cast<void*>(pipeline));
 
