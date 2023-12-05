@@ -53,6 +53,7 @@ void create_backend_resources(ReaperRoot& root, VulkanBackend& backend)
     // TracyVkContextName(resources.gfxCmdBuffer.tracy_ctx, name, size);
 #endif
 
+    resources.pipeline_factory = create_pipeline_factory(backend);
     resources.shader_modules = create_shader_modules(backend);
     resources.samplers_resources = create_sampler_resources(backend);
     resources.frame_storage_allocator =
@@ -67,7 +68,7 @@ void create_backend_resources(ReaperRoot& root, VulkanBackend& backend)
     resources.histogram_pass_resources = create_histogram_pass_resources(backend, resources.shader_modules);
     resources.hzb_pass_resources = create_hzb_pass_resources(backend, resources.shader_modules);
     resources.lighting_resources = create_lighting_pass_resources(backend);
-    resources.tiled_raster_resources = create_tiled_raster_pass_resources(backend, resources.shader_modules);
+    resources.tiled_raster_resources = create_tiled_raster_pass_resources(backend, resources.pipeline_factory);
     resources.tiled_lighting_resources = create_tiled_lighting_pass_resources(backend, resources.shader_modules);
     resources.forward_pass_resources = create_forward_pass_resources(backend, resources.shader_modules);
     resources.material_resources = create_material_resources(backend);
@@ -80,6 +81,7 @@ void destroy_backend_resources(VulkanBackend& backend)
 {
     BackendResources& resources = *backend.resources;
 
+    destroy_pipeline_factory(backend, resources.pipeline_factory);
     destroy_shader_modules(backend, resources.shader_modules);
     destroy_sampler_resources(backend, resources.samplers_resources);
     destroy_storage_buffer_allocator(backend, resources.frame_storage_allocator);

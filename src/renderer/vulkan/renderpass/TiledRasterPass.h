@@ -30,7 +30,7 @@ struct TiledRasterResources
     {
         VkDescriptorSetLayout descriptor_set_layout;
         VkPipelineLayout      pipeline_layout;
-        VkPipeline            pipeline;
+        u32                   pipeline_index;
 
         VkDescriptorSet descriptor_set;
     } depth_copy;
@@ -39,16 +39,19 @@ struct TiledRasterResources
     {
         VkDescriptorSetLayout descriptor_set_layout;
         VkPipelineLayout      pipeline_layout;
-        VkPipeline            pipeline;
+        u32                   pipeline_index;
 
         std::array<VkDescriptorSet, 2> descriptor_sets;
     } light_raster;
 
-    VkDescriptorSetLayout classify_descriptor_set_layout;
-    VkPipelineLayout      classify_pipeline_layout;
-    VkPipeline            classify_pipeline;
+    struct Classify
+    {
+        VkDescriptorSetLayout descriptor_set_layout;
+        VkPipelineLayout      pipeline_layout;
+        u32                   pipeline_index;
 
-    VkDescriptorSet classify_descriptor_set;
+        VkDescriptorSet descriptor_set;
+    } classify;
 
     std::vector<ProxyMeshAlloc> proxy_mesh_allocs;
     u32                         vertex_buffer_offset;
@@ -57,9 +60,9 @@ struct TiledRasterResources
 };
 
 struct VulkanBackend;
-struct ShaderModules;
+struct PipelineFactory;
 
-TiledRasterResources create_tiled_raster_pass_resources(VulkanBackend& backend, const ShaderModules& shader_modules);
+TiledRasterResources create_tiled_raster_pass_resources(VulkanBackend& backend, PipelineFactory& pipeline_factory);
 void                 destroy_tiled_raster_pass_resources(VulkanBackend& backend, TiledRasterResources& resources);
 
 namespace FrameGraph
@@ -127,16 +130,18 @@ struct FrameGraphHelper;
 
 void record_depth_copy(const FrameGraphHelper&                           frame_graph_helper,
                        const LightRasterFrameGraphRecord::TileDepthCopy& pass_record, CommandBuffer& cmdBuffer,
-                       const TiledRasterResources& resources);
+                       const PipelineFactory& pipeline_factory, const TiledRasterResources& resources);
 
 void record_light_classify_command_buffer(const FrameGraphHelper&                      frame_graph_helper,
                                           const LightRasterFrameGraphRecord::Classify& pass_record,
                                           CommandBuffer&                               cmdBuffer,
+                                          const PipelineFactory&                       pipeline_factory,
                                           const TiledLightingFrame&                    tiled_lighting_frame,
                                           const TiledRasterResources&                  resources);
 
 void record_light_raster_command_buffer(const FrameGraphHelper&                    frame_graph_helper,
                                         const LightRasterFrameGraphRecord::Raster& pass_record,
                                         CommandBuffer&                             cmdBuffer,
+                                        const PipelineFactory&                     pipeline_factory,
                                         const TiledRasterResources::Raster&        light_raster_resources);
 } // namespace Reaper

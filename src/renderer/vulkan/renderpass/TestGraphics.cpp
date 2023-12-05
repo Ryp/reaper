@@ -116,6 +116,8 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
                            const PreparedData& prepared, const TiledLightingFrame& tiled_lighting_frame,
                            BackendResources& resources, ImDrawData* imgui_draw_data)
 {
+    pipeline_factory_update(backend, resources.pipeline_factory, resources.shader_modules);
+
     VkResult acquireResult;
     u64      acquireTimeoutUs = 1000000000;
     uint32_t current_swapchain_index;
@@ -408,13 +410,14 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
                                                 resources.vis_buffer_pass_resources, render_extent);
 
         record_depth_copy(frame_graph_helper, light_raster_record.tile_depth_copy, cmdBuffer,
-                          resources.tiled_raster_resources);
+                          resources.pipeline_factory, resources.tiled_raster_resources);
 
         record_light_classify_command_buffer(frame_graph_helper, light_raster_record.light_classify, cmdBuffer,
-                                             tiled_lighting_frame, resources.tiled_raster_resources);
+                                             resources.pipeline_factory, tiled_lighting_frame,
+                                             resources.tiled_raster_resources);
 
         record_light_raster_command_buffer(frame_graph_helper, light_raster_record.light_raster, cmdBuffer,
-                                           resources.tiled_raster_resources.light_raster);
+                                           resources.pipeline_factory, resources.tiled_raster_resources.light_raster);
 
         record_tiled_lighting_command_buffer(frame_graph_helper, tiled_lighting, cmdBuffer,
                                              resources.tiled_lighting_resources, render_extent,

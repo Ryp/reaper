@@ -22,6 +22,7 @@
 #include "renderer/vulkan/FrameGraphResources.h"
 #include "renderer/vulkan/GpuProfile.h"
 #include "renderer/vulkan/Pipeline.h"
+#include "renderer/vulkan/PipelineFactory.h"
 #include "renderer/vulkan/RenderPassHelpers.h"
 #include "renderer/vulkan/SamplerResources.h"
 #include "renderer/vulkan/ShaderModules.h"
@@ -182,7 +183,7 @@ namespace
     }
 } // namespace
 
-TiledRasterResources create_tiled_raster_pass_resources(VulkanBackend& backend, const ShaderModules& shader_modules)
+TiledRasterResources create_tiled_raster_pass_resources(VulkanBackend& backend, PipelineFactory& pipeline_factory)
 {
     TiledRasterResources resources = {};
 
@@ -202,8 +203,12 @@ TiledRasterResources create_tiled_raster_pass_resources(VulkanBackend& backend, 
 
         resources.depth_copy.descriptor_set_layout = descriptor_set_layout;
         resources.depth_copy.pipeline_layout = pipeline_layout;
-        resources.depth_copy.pipeline =
-            create_tiled_raster_depth_copy_pipeline(backend.device, shader_modules, pipeline_layout);
+        resources.depth_copy.pipeline_index =
+            register_pipeline_creator(pipeline_factory,
+                                      PipelineCreator{
+                                          .pipeline_layout = pipeline_layout,
+                                          .pipeline_creation_function = &create_tiled_raster_depth_copy_pipeline,
+                                      });
     }
 
     {
@@ -223,7 +228,12 @@ TiledRasterResources create_tiled_raster_pass_resources(VulkanBackend& backend, 
 
         resources.light_raster.descriptor_set_layout = descriptor_set_layout;
         resources.light_raster.pipeline_layout = pipeline_layout;
-        resources.light_raster.pipeline = create_tiled_raster_pipeline(backend.device, shader_modules, pipeline_layout);
+        resources.light_raster.pipeline_index =
+            register_pipeline_creator(pipeline_factory,
+                                      PipelineCreator{
+                                          .pipeline_layout = pipeline_layout,
+                                          .pipeline_creation_function = &create_tiled_raster_pipeline,
+                                      });
     }
 
     {
@@ -241,21 +251,25 @@ TiledRasterResources create_tiled_raster_pass_resources(VulkanBackend& backend, 
         const VkPipelineLayout pipeline_layout = create_pipeline_layout(
             backend.device, std::span(&descriptor_set_layout, 1), std::span(&pushConstantRange, 1));
 
-        resources.classify_descriptor_set_layout = descriptor_set_layout;
-        resources.classify_pipeline_layout = pipeline_layout;
-        resources.classify_pipeline =
-            create_tiled_raster_classify_pipeline(backend.device, shader_modules, pipeline_layout);
+        resources.classify.descriptor_set_layout = descriptor_set_layout;
+        resources.classify.pipeline_layout = pipeline_layout;
+        resources.classify.pipeline_index =
+            register_pipeline_creator(pipeline_factory,
+                                      PipelineCreator{
+                                          .pipeline_layout = pipeline_layout,
+                                          .pipeline_creation_function = &create_tiled_raster_classify_pipeline,
+                                      });
     }
 
     std::vector<VkDescriptorSetLayout> dset_layouts = {
-        resources.depth_copy.descriptor_set_layout, resources.classify_descriptor_set_layout,
+        resources.depth_copy.descriptor_set_layout, resources.classify.descriptor_set_layout,
         resources.light_raster.descriptor_set_layout, resources.light_raster.descriptor_set_layout};
     std::vector<VkDescriptorSet> dsets(dset_layouts.size());
 
     allocate_descriptor_sets(backend.device, backend.global_descriptor_pool, dset_layouts, dsets);
 
     resources.depth_copy.descriptor_set = dsets[0];
-    resources.classify_descriptor_set = dsets[1];
+    resources.classify.descriptor_set = dsets[1];
     resources.light_raster.descriptor_sets[0] = dsets[2];
     resources.light_raster.descriptor_sets[1] = dsets[3];
 
@@ -291,17 +305,14 @@ void destroy_tiled_raster_pass_resources(VulkanBackend& backend, TiledRasterReso
     vmaDestroyBuffer(backend.vma_instance, resources.vertex_buffer_position.handle,
                      resources.vertex_buffer_position.allocation);
 
-    vkDestroyPipeline(backend.device, resources.depth_copy.pipeline, nullptr);
     vkDestroyPipelineLayout(backend.device, resources.depth_copy.pipeline_layout, nullptr);
     vkDestroyDescriptorSetLayout(backend.device, resources.depth_copy.descriptor_set_layout, nullptr);
 
-    vkDestroyPipeline(backend.device, resources.light_raster.pipeline, nullptr);
     vkDestroyPipelineLayout(backend.device, resources.light_raster.pipeline_layout, nullptr);
     vkDestroyDescriptorSetLayout(backend.device, resources.light_raster.descriptor_set_layout, nullptr);
 
-    vkDestroyPipeline(backend.device, resources.classify_pipeline, nullptr);
-    vkDestroyPipelineLayout(backend.device, resources.classify_pipeline_layout, nullptr);
-    vkDestroyDescriptorSetLayout(backend.device, resources.classify_descriptor_set_layout, nullptr);
+    vkDestroyPipelineLayout(backend.device, resources.classify.pipeline_layout, nullptr);
+    vkDestroyDescriptorSetLayout(backend.device, resources.classify.descriptor_set_layout, nullptr);
 }
 
 LightRasterFrameGraphRecord create_tiled_lighting_raster_pass_record(FrameGraph::Builder&        builder,
@@ -436,15 +447,15 @@ namespace
     {
         using namespace Classify;
 
-        write_helper.append(resources.classify_descriptor_set, g_bindings[VertexPositionsMS],
+        write_helper.append(resources.classify.descriptor_set, g_bindings[VertexPositionsMS],
                             resources.vertex_buffer_position.handle);
-        write_helper.append(resources.classify_descriptor_set, g_bindings[InnerOuterCounter],
+        write_helper.append(resources.classify.descriptor_set, g_bindings[InnerOuterCounter],
                             classification_counters.handle);
-        write_helper.append(resources.classify_descriptor_set, g_bindings[DrawCommandsInner],
+        write_helper.append(resources.classify.descriptor_set, g_bindings[DrawCommandsInner],
                             draw_commands_inner.handle);
-        write_helper.append(resources.classify_descriptor_set, g_bindings[DrawCommandsOuter],
+        write_helper.append(resources.classify.descriptor_set, g_bindings[DrawCommandsOuter],
                             draw_commands_outer.handle);
-        write_helper.append(resources.classify_descriptor_set, g_bindings[ProxyVolumeBuffer],
+        write_helper.append(resources.classify.descriptor_set, g_bindings[ProxyVolumeBuffer],
                             proxy_volumes_alloc.buffer, proxy_volumes_alloc.offset_bytes,
                             proxy_volumes_alloc.size_bytes);
     }
@@ -524,7 +535,7 @@ void update_tiled_lighting_raster_pass_resources(const FrameGraph::FrameGraph&  
 
 void record_depth_copy(const FrameGraphHelper&                           frame_graph_helper,
                        const LightRasterFrameGraphRecord::TileDepthCopy& pass_record, CommandBuffer& cmdBuffer,
-                       const TiledRasterResources& resources)
+                       const PipelineFactory& pipeline_factory, const TiledRasterResources& resources)
 {
     REAPER_GPU_SCOPE(cmdBuffer, "Tile Depth Copy");
 
@@ -538,7 +549,8 @@ void record_depth_copy(const FrameGraphHelper&                           frame_g
     const VkRect2D   pass_rect = default_vk_rect(depth_extent);
     const VkViewport viewport = default_vk_viewport(pass_rect);
 
-    vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, resources.depth_copy.pipeline);
+    vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                      get_pipeline(pipeline_factory, resources.depth_copy.pipeline_index));
 
     vkCmdSetViewport(cmdBuffer.handle, 0, 1, &viewport);
     vkCmdSetScissor(cmdBuffer.handle, 0, 1, &pass_rect);
@@ -588,6 +600,7 @@ void record_depth_copy(const FrameGraphHelper&                           frame_g
 void record_light_classify_command_buffer(const FrameGraphHelper&                      frame_graph_helper,
                                           const LightRasterFrameGraphRecord::Classify& pass_record,
                                           CommandBuffer&                               cmdBuffer,
+                                          const PipelineFactory&                       pipeline_factory,
                                           const TiledLightingFrame&                    tiled_lighting_frame,
                                           const TiledRasterResources&                  resources)
 {
@@ -601,7 +614,8 @@ void record_light_classify_command_buffer(const FrameGraphHelper&               
     const u32 vertex_count = icosahedron_alloc.vertex_count;
     const u32 light_volumes_count = static_cast<u32>(tiled_lighting_frame.light_volumes.size());
 
-    vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE, resources.classify_pipeline);
+    vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE,
+                      get_pipeline(pipeline_factory, resources.classify.pipeline_index));
 
     ClassifyVolumePushConstants push_constants;
     push_constants.vertex_offset = vertex_offset;
@@ -609,11 +623,11 @@ void record_light_classify_command_buffer(const FrameGraphHelper&               
     push_constants.instance_id_offset = 0;          // FIXME
     push_constants.near_clip_plane_depth_vs = 0.1f; // FIXME copied from near_plane_distance
 
-    vkCmdPushConstants(cmdBuffer.handle, resources.classify_pipeline_layout, VK_SHADER_STAGE_COMPUTE_BIT, 0,
+    vkCmdPushConstants(cmdBuffer.handle, resources.classify.pipeline_layout, VK_SHADER_STAGE_COMPUTE_BIT, 0,
                        sizeof(push_constants), &push_constants);
 
-    vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE, resources.classify_pipeline_layout, 0, 1,
-                            &resources.classify_descriptor_set, 0, nullptr);
+    vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE, resources.classify.pipeline_layout, 0, 1,
+                            &resources.classify.descriptor_set, 0, nullptr);
 
     vkCmdDispatch(cmdBuffer.handle, div_round_up(vertex_count, ClassifyVolumeThreadCount), light_volumes_count, 1);
 }
@@ -621,7 +635,8 @@ void record_light_classify_command_buffer(const FrameGraphHelper&               
 void record_light_raster_command_buffer(const FrameGraphHelper&                    frame_graph_helper,
                                         const LightRasterFrameGraphRecord::Raster& pass_record,
                                         CommandBuffer&                             cmdBuffer,
-                                        const TiledRasterResources::Raster&        light_raster_resources)
+                                        const PipelineFactory&                     pipeline_factory,
+                                        const TiledRasterResources::Raster&        resources)
 {
     REAPER_GPU_SCOPE(cmdBuffer, "Rasterize Light Volumes");
 
@@ -647,7 +662,8 @@ void record_light_raster_command_buffer(const FrameGraphHelper&                 
     const VkRect2D   pass_rect = default_vk_rect(depth_extent);
     const VkViewport viewport = default_vk_viewport(pass_rect);
 
-    vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, light_raster_resources.pipeline);
+    vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                      get_pipeline(pipeline_factory, resources.pipeline_index));
 
     vkCmdSetViewport(cmdBuffer.handle, 0, 1, &viewport);
     vkCmdSetScissor(cmdBuffer.handle, 0, 1, &pass_rect);
@@ -672,15 +688,14 @@ void record_light_raster_command_buffer(const FrameGraphHelper&                 
 
         vkCmdBeginRendering(cmdBuffer.handle, &rendering_info);
 
-        vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                light_raster_resources.pipeline_layout, 0, 1,
-                                &light_raster_resources.descriptor_sets[pass_index], 0, nullptr);
+        vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, resources.pipeline_layout, 0, 1,
+                                &resources.descriptor_sets[pass_index], 0, nullptr);
 
         TileLightRasterPushConstants push_constants;
         push_constants.instance_id_offset = 0; // FIXME
         push_constants.tile_count_x = depth_extent.width;
 
-        vkCmdPushConstants(cmdBuffer.handle, light_raster_resources.pipeline_layout,
+        vkCmdPushConstants(cmdBuffer.handle, resources.pipeline_layout,
                            VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(push_constants),
                            &push_constants);
 

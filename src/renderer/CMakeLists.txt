@@ -79,6 +79,8 @@ target_sources(${target} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/PhysicalDevice.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Pipeline.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Pipeline.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/PipelineFactory.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/PipelineFactory.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/PresentationSurface.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/PresentationSurface.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/RenderPassHelpers.h

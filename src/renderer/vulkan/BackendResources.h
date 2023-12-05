@@ -12,6 +12,7 @@
 #include "FrameSync.h"
 #include "MaterialResources.h"
 #include "MeshCache.h"
+#include "PipelineFactory.h"
 #include "SamplerResources.h"
 #include "ShaderModules.h"
 #include "StorageBufferAllocator.h"
@@ -37,6 +38,7 @@ namespace Reaper
 struct BackendResources
 {
     // TODO remove *_resources suffix
+    PipelineFactory               pipeline_factory;
     ShaderModules                 shader_modules;
     SamplerResources              samplers_resources;
     StorageBufferAllocator        frame_storage_allocator;
