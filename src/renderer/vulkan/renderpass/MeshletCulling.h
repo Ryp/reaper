@@ -20,7 +20,7 @@ namespace Reaper
 // FIXME
 struct SimplePipeline
 {
-    VkPipeline            pipeline;
+    u32                   pipeline_index;
     VkPipelineLayout      pipelineLayout;
     VkDescriptorSetLayout descSetLayout;
 };
@@ -91,9 +91,9 @@ struct CullMeshletsFrameGraphRecord
 CullMeshletsFrameGraphRecord create_cull_meshlet_frame_graph_record(FrameGraph::Builder& builder);
 
 struct VulkanBackend;
-struct ShaderModules;
+struct PipelineFactory;
 
-MeshletCullingResources create_meshlet_culling_resources(VulkanBackend& backend, const ShaderModules& shader_modules);
+MeshletCullingResources create_meshlet_culling_resources(VulkanBackend& backend, PipelineFactory& pipeline_factory);
 void                    destroy_meshlet_culling_resources(VulkanBackend& backend, MeshletCullingResources& resources);
 
 struct FrameGraphResources;
@@ -122,17 +122,20 @@ struct ReaperRoot;
 
 void record_meshlet_culling_command_buffer(ReaperRoot& root, const FrameGraphHelper& frame_graph_helper,
                                            const CullMeshletsFrameGraphRecord::CullMeshlets& pass_record,
-                                           CommandBuffer& cmdBuffer, const PreparedData& prepared,
-                                           MeshletCullingResources& resources);
+                                           CommandBuffer& cmdBuffer, const PipelineFactory& pipeline_factory,
+                                           const PreparedData& prepared, MeshletCullingResources& resources);
 
 void record_triangle_culling_prepare_command_buffer(
     const FrameGraphHelper& frame_graph_helper, const CullMeshletsFrameGraphRecord::CullTrianglesPrepare& pass_record,
-    CommandBuffer& cmdBuffer, const PreparedData& prepared, MeshletCullingResources& resources);
+    CommandBuffer& cmdBuffer, const PipelineFactory& pipeline_factory, const PreparedData& prepared,
+    MeshletCullingResources& resources);
 
 void record_triangle_culling_command_buffer(const FrameGraphHelper&                            frame_graph_helper,
                                             const CullMeshletsFrameGraphRecord::CullTriangles& pass_record,
-                                            CommandBuffer& cmdBuffer, const PreparedData& prepared,
-                                            MeshletCullingResources& resources);
+                                            CommandBuffer&                                     cmdBuffer,
+                                            const PipelineFactory&                             pipeline_factory,
+                                            const PreparedData&                                prepared,
+                                            MeshletCullingResources&                           resources);
 
 void record_meshlet_culling_debug_command_buffer(const FrameGraphHelper&                    frame_graph_helper,
                                                  const CullMeshletsFrameGraphRecord::Debug& pass_record,

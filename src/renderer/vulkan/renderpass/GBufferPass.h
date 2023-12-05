@@ -23,14 +23,10 @@ namespace Reaper
 {
 struct GBufferPipelineInfo
 {
-    VkPipeline            pipeline;
+    u32                   pipeline_index;
     VkPipelineLayout      pipelineLayout;
     VkDescriptorSetLayout desc_set_layout;
 };
-
-struct ReaperRoot;
-struct VulkanBackend;
-struct ShaderModules;
 
 struct GBufferPassResources
 {
@@ -41,8 +37,10 @@ struct GBufferPassResources
     VkDescriptorSet descriptor_set;
 };
 
-GBufferPassResources create_gbuffer_pass_resources(ReaperRoot& root, VulkanBackend& backend,
-                                                   const ShaderModules& shader_modules);
+struct VulkanBackend;
+struct PipelineFactory;
+
+GBufferPassResources create_gbuffer_pass_resources(VulkanBackend& backend, PipelineFactory& pipeline_factory);
 void                 destroy_gbuffer_pass_resources(VulkanBackend& backend, GBufferPassResources& resources);
 
 class DescriptorWriteHelper;
@@ -50,6 +48,7 @@ struct MaterialResources;
 struct MeshCache;
 struct SamplerResources;
 struct FrameGraphBuffer;
+struct FrameGraphTexture;
 
 void update_gbuffer_pass_descriptor_sets(DescriptorWriteHelper& write_helper, const GBufferPassResources& resources,
                                          const FrameGraphBuffer&  visible_meshlet_buffer,
@@ -62,13 +61,12 @@ void upload_gbuffer_pass_frame_resources(VulkanBackend& backend, const PreparedD
                                          GBufferPassResources& pass_resources);
 
 struct CommandBuffer;
-struct FrameGraphTexture;
 
-void record_gbuffer_pass_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& prepared,
-                                        const GBufferPassResources& pass_resources,
-                                        const FrameGraphBuffer&     meshlet_counters,
-                                        const FrameGraphBuffer&     meshlet_indirect_draw_commands,
-                                        const FrameGraphBuffer&     meshlet_visible_index_buffer,
+void record_gbuffer_pass_command_buffer(CommandBuffer& cmdBuffer, const PipelineFactory& pipeline_factory,
+                                        const PreparedData& prepared, const GBufferPassResources& pass_resources,
+                                        const FrameGraphBuffer&  meshlet_counters,
+                                        const FrameGraphBuffer&  meshlet_indirect_draw_commands,
+                                        const FrameGraphBuffer&  meshlet_visible_index_buffer,
                                         const FrameGraphTexture& gbuffer_rt0, const FrameGraphTexture& gbuffer_rt1,
                                         const FrameGraphTexture& depth_buffer);
 } // namespace Reaper

@@ -21,6 +21,7 @@
 #include "renderer/vulkan/FrameGraphResources.h"
 #include "renderer/vulkan/GpuProfile.h"
 #include "renderer/vulkan/Pipeline.h"
+#include "renderer/vulkan/PipelineFactory.h"
 #include "renderer/vulkan/RenderPassHelpers.h"
 #include "renderer/vulkan/SamplerResources.h"
 #include "renderer/vulkan/ShaderModules.h"
@@ -43,32 +44,16 @@ namespace Reaper
 constexpr u32 MaxIndexCount = 1024;
 constexpr u32 MaxVertexCount = MaxIndexCount * 3;
 
-DebugGeometryPassResources create_debug_geometry_pass_resources(VulkanBackend&       backend,
-                                                                const ShaderModules& shader_modules)
+namespace
 {
-    DebugGeometryPassResources resources = {};
-
+    VkPipeline create_build_cmds_pipeline(VkDevice device, const ShaderModules& shader_modules,
+                                          VkPipelineLayout pipeline_layout)
     {
-        std::vector<VkDescriptorSetLayoutBinding> layout_bindings = {
-            {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-            {1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-            {2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-            {3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-            {4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-        };
-
-        VkDescriptorSetLayout descriptor_set_layout = create_descriptor_set_layout(backend.device, layout_bindings);
-
-        VkPipelineLayout pipeline_layout = create_pipeline_layout(backend.device, std::span(&descriptor_set_layout, 1));
-
-        VkPipeline pipeline =
-            create_compute_pipeline(backend.device, pipeline_layout, shader_modules.debug_geometry_build_cmds_cs);
-
-        resources.build_cmds_descriptor_set_layout = descriptor_set_layout;
-        resources.build_cmds_pipeline_layout = pipeline_layout;
-        resources.build_cmds_pipeline = pipeline;
+        return create_compute_pipeline(device, pipeline_layout, shader_modules.debug_geometry_build_cmds_cs);
     }
 
+    VkPipeline create_draw_pipeline(VkDevice device, const ShaderModules& shader_modules,
+                                    VkPipelineLayout pipeline_layout)
     {
         std::vector<VkPipelineShaderStageCreateInfo> shader_stages = {
             default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_VERTEX_BIT,
@@ -76,16 +61,6 @@ DebugGeometryPassResources create_debug_geometry_pass_resources(VulkanBackend&  
             default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_FRAGMENT_BIT,
                                                       shader_modules.debug_geometry_draw_fs),
         };
-
-        std::vector<VkDescriptorSetLayoutBinding> descriptorSetLayoutBinding = {
-            {0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
-            {1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
-        };
-
-        VkDescriptorSetLayout descriptor_set_layout =
-            create_descriptor_set_layout(backend.device, descriptorSetLayoutBinding);
-
-        VkPipelineLayout pipeline_layout = create_pipeline_layout(backend.device, std::span(&descriptor_set_layout, 1));
 
         VkPipelineColorBlendAttachmentState blend_attachment_state = default_pipeline_color_blend_attachment_state();
 
@@ -109,16 +84,61 @@ DebugGeometryPassResources create_debug_geometry_pass_resources(VulkanBackend&  
 
         std::vector<VkDynamicState> dynamic_states = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
 
-        VkPipeline pipeline =
-            create_graphics_pipeline(backend.device, shader_stages, pipeline_properties, dynamic_states);
+        return create_graphics_pipeline(device, shader_stages, pipeline_properties, dynamic_states);
+    }
+} // namespace
 
-        resources.draw_descriptor_set_layout = descriptor_set_layout;
-        resources.draw_pipeline_layout = pipeline_layout;
-        resources.draw_pipeline = pipeline;
+DebugGeometryPassResources create_debug_geometry_pass_resources(VulkanBackend&   backend,
+                                                                PipelineFactory& pipeline_factory)
+{
+    DebugGeometryPassResources resources = {};
+
+    {
+        std::vector<VkDescriptorSetLayoutBinding> layout_bindings = {
+            {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+            {1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+            {2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+            {3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+            {4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+        };
+
+        VkDescriptorSetLayout descriptor_set_layout = create_descriptor_set_layout(backend.device, layout_bindings);
+
+        VkPipelineLayout pipeline_layout = create_pipeline_layout(backend.device, std::span(&descriptor_set_layout, 1));
+
+        resources.build_cmds.descriptor_set_layout = descriptor_set_layout;
+        resources.build_cmds.pipeline_layout = pipeline_layout;
+        resources.build_cmds.pipeline_index =
+            register_pipeline_creator(pipeline_factory,
+                                      PipelineCreator{
+                                          .pipeline_layout = pipeline_layout,
+                                          .pipeline_creation_function = &create_build_cmds_pipeline,
+                                      });
     }
 
-    std::vector<VkDescriptorSetLayout> dset_layouts = {resources.build_cmds_descriptor_set_layout,
-                                                       resources.draw_descriptor_set_layout};
+    {
+        std::vector<VkDescriptorSetLayoutBinding> descriptorSetLayoutBinding = {
+            {0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
+            {1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
+        };
+
+        VkDescriptorSetLayout descriptor_set_layout =
+            create_descriptor_set_layout(backend.device, descriptorSetLayoutBinding);
+
+        VkPipelineLayout pipeline_layout = create_pipeline_layout(backend.device, std::span(&descriptor_set_layout, 1));
+
+        resources.draw.descriptor_set_layout = descriptor_set_layout;
+        resources.draw.pipeline_layout = pipeline_layout;
+        resources.draw.pipeline_index =
+            register_pipeline_creator(pipeline_factory,
+                                      PipelineCreator{
+                                          .pipeline_layout = pipeline_layout,
+                                          .pipeline_creation_function = &create_draw_pipeline,
+                                      });
+    }
+
+    std::vector<VkDescriptorSetLayout> dset_layouts = {resources.build_cmds.descriptor_set_layout,
+                                                       resources.draw.descriptor_set_layout};
     std::vector<VkDescriptorSet>       dsets(dset_layouts.size());
 
     allocate_descriptor_sets(backend.device, backend.global_descriptor_pool, dset_layouts, dsets);
@@ -180,13 +200,11 @@ void destroy_debug_geometry_pass_resources(VulkanBackend& backend, DebugGeometry
     vmaDestroyBuffer(backend.vma_instance, resources.build_cmds_constants.handle,
                      resources.build_cmds_constants.allocation);
 
-    vkDestroyPipeline(backend.device, resources.draw_pipeline, nullptr);
-    vkDestroyPipelineLayout(backend.device, resources.draw_pipeline_layout, nullptr);
-    vkDestroyDescriptorSetLayout(backend.device, resources.draw_descriptor_set_layout, nullptr);
+    vkDestroyPipelineLayout(backend.device, resources.draw.pipeline_layout, nullptr);
+    vkDestroyDescriptorSetLayout(backend.device, resources.draw.descriptor_set_layout, nullptr);
 
-    vkDestroyPipeline(backend.device, resources.build_cmds_pipeline, nullptr);
-    vkDestroyPipelineLayout(backend.device, resources.build_cmds_pipeline_layout, nullptr);
-    vkDestroyDescriptorSetLayout(backend.device, resources.build_cmds_descriptor_set_layout, nullptr);
+    vkDestroyPipelineLayout(backend.device, resources.build_cmds.pipeline_layout, nullptr);
+    vkDestroyDescriptorSetLayout(backend.device, resources.build_cmds.descriptor_set_layout, nullptr);
 }
 
 DebugGeometryClearFrameGraphRecord create_debug_geometry_clear_pass_record(FrameGraph::Builder& builder)
@@ -361,15 +379,17 @@ void record_debug_geometry_clear_command_buffer(const FrameGraphHelper&         
 void record_debug_geometry_build_cmds_command_buffer(const FrameGraphHelper&                     frame_graph_helper,
                                                      const DebugGeometryComputeFrameGraphRecord& pass_record,
                                                      CommandBuffer&                              cmdBuffer,
+                                                     const PipelineFactory&                      pipeline_factory,
                                                      const DebugGeometryPassResources&           resources)
 {
     REAPER_GPU_SCOPE(cmdBuffer, "Debug Geometry Build Commands");
 
     const FrameGraphBarrierScope framegraph_barrier_scope(cmdBuffer, frame_graph_helper, pass_record.pass_handle);
 
-    vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE, resources.build_cmds_pipeline);
+    vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE,
+                      get_pipeline(pipeline_factory, resources.build_cmds.pipeline_index));
 
-    vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE, resources.build_cmds_pipeline_layout, 0,
+    vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE, resources.build_cmds.pipeline_layout, 0,
                             1, &resources.build_cmds_descriptor_set, 0, nullptr);
 
     // Since we know the actual debug geometry count on the GPU, we can use indirect dispatch instead.
@@ -379,7 +399,9 @@ void record_debug_geometry_build_cmds_command_buffer(const FrameGraphHelper&    
 
 void record_debug_geometry_draw_command_buffer(const FrameGraphHelper&                  frame_graph_helper,
                                                const DebugGeometryDrawFrameGraphRecord& pass_record,
-                                               CommandBuffer& cmdBuffer, const DebugGeometryPassResources& resources)
+                                               CommandBuffer&                           cmdBuffer,
+                                               const PipelineFactory&                   pipeline_factory,
+                                               const DebugGeometryPassResources&        resources)
 {
     REAPER_GPU_SCOPE(cmdBuffer, "Debug Geometry Draw");
 
@@ -398,7 +420,8 @@ void record_debug_geometry_draw_command_buffer(const FrameGraphHelper&          
     const VkRect2D   pass_rect = default_vk_rect(depth_extent);
     const VkViewport viewport = default_vk_viewport(pass_rect);
 
-    vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, resources.draw_pipeline);
+    vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                      get_pipeline(pipeline_factory, resources.draw.pipeline_index));
 
     vkCmdSetViewport(cmdBuffer.handle, 0, 1, &viewport);
     vkCmdSetScissor(cmdBuffer.handle, 0, 1, &pass_rect);
@@ -412,7 +435,7 @@ void record_debug_geometry_draw_command_buffer(const FrameGraphHelper&          
 
     vkCmdBeginRendering(cmdBuffer.handle, &rendering_info);
 
-    vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, resources.draw_pipeline_layout, 0, 1,
+    vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, resources.draw.pipeline_layout, 0, 1,
                             &resources.draw_descriptor_set, 0, nullptr);
 
     const u64 index_buffer_offset = 0;

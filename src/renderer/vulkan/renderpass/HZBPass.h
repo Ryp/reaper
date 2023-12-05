@@ -23,7 +23,7 @@ namespace Reaper
 {
 struct HZBPipelineInfo
 {
-    VkPipeline            handle;
+    u32                   pipeline_index;
     VkPipelineLayout      layout;
     VkDescriptorSetLayout desc_set_layout;
 };
@@ -36,9 +36,9 @@ struct HZBPassResources
 };
 
 struct VulkanBackend;
-struct ShaderModules;
+struct PipelineFactory;
 
-HZBPassResources create_hzb_pass_resources(VulkanBackend& backend, const ShaderModules& shader_modules);
+HZBPassResources create_hzb_pass_resources(VulkanBackend& backend, PipelineFactory& pipeline_factory);
 void             destroy_hzb_pass_resources(VulkanBackend& backend, const HZBPassResources& resources);
 
 namespace FrameGraph
@@ -74,7 +74,7 @@ struct FrameGraphHelper;
 struct CommandBuffer;
 
 void record_hzb_command_buffer(const FrameGraphHelper& frame_graph_helper, const HZBReduceFrameGraphRecord& pass_record,
-                               CommandBuffer& cmdBuffer, const HZBPassResources& pass_resources,
-                               VkExtent2D depth_extent, VkExtent2D hzb_extent);
+                               CommandBuffer& cmdBuffer, const PipelineFactory& pipeline_factory,
+                               const HZBPassResources& pass_resources, VkExtent2D depth_extent, VkExtent2D hzb_extent);
 
 } // namespace Reaper

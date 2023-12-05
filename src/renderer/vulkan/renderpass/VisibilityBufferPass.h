@@ -22,7 +22,7 @@ namespace Reaper
 {
 struct VisibilityBufferPipelineInfo
 {
-    VkPipeline            pipeline;
+    u32                   pipeline_index;
     VkPipelineLayout      pipelineLayout;
     VkDescriptorSetLayout desc_set_layout;
 };
@@ -36,12 +36,11 @@ struct VisibilityBufferPassResources
     VkDescriptorSet              descriptor_set_fill;
 };
 
-struct ReaperRoot;
 struct VulkanBackend;
-struct ShaderModules;
+struct PipelineFactory;
 
-VisibilityBufferPassResources create_vis_buffer_pass_resources(ReaperRoot& root, VulkanBackend& backend,
-                                                               const ShaderModules& shader_modules);
+VisibilityBufferPassResources create_vis_buffer_pass_resources(VulkanBackend&   backend,
+                                                               PipelineFactory& pipeline_factory);
 void destroy_vis_buffer_pass_resources(VulkanBackend& backend, VisibilityBufferPassResources& resources);
 
 namespace FrameGraph
@@ -108,12 +107,15 @@ struct CommandBuffer;
 
 void record_vis_buffer_pass_command_buffer(const FrameGraphHelper&                  frame_graph_helper,
                                            const VisBufferFrameGraphRecord::Render& pass_record,
-                                           CommandBuffer& cmdBuffer, const PreparedData& prepared,
-                                           const VisibilityBufferPassResources& pass_resources);
+                                           CommandBuffer&                           cmdBuffer,
+                                           const PipelineFactory&                   pipeline_factory,
+                                           const PreparedData&                      prepared,
+                                           const VisibilityBufferPassResources&     pass_resources);
 
 void record_fill_gbuffer_pass_command_buffer(const FrameGraphHelper&                       frame_graph_helper,
                                              const VisBufferFrameGraphRecord::FillGBuffer& pass_record,
                                              CommandBuffer&                                cmdBuffer,
+                                             const PipelineFactory&                        pipeline_factory,
                                              const VisibilityBufferPassResources&          resources,
                                              VkExtent2D                                    render_extent);
 } // namespace Reaper

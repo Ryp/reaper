@@ -25,25 +25,19 @@ namespace Reaper
 {
 constexpr PixelFormat GUIFormat = PixelFormat::R8G8B8A8_SRGB;
 
-struct GuiPipelineInfo
-{
-    VkPipeline            pipeline;
-    VkPipelineLayout      pipelineLayout;
-    VkDescriptorSetLayout descSetLayout;
-};
-
-struct VulkanBackend;
-struct GPUTextureProperties;
-struct ShaderModules;
-
 struct GuiPassResources
 {
-    GuiPipelineInfo guiPipe;
+    u32                   pipeline_index;
+    VkPipelineLayout      pipeline_layout;
+    VkDescriptorSetLayout descriptor_set_layout;
 
     VkDescriptorSet descriptor_set;
 };
 
-GuiPassResources create_gui_pass_resources(VulkanBackend& backend, const ShaderModules& shader_modules);
+struct VulkanBackend;
+struct PipelineFactory;
+
+GuiPassResources create_gui_pass_resources(VulkanBackend& backend, PipelineFactory& pipeline_factory);
 void             destroy_gui_pass_resources(VulkanBackend& backend, GuiPassResources& resources);
 
 namespace FrameGraph
@@ -64,6 +58,6 @@ struct CommandBuffer;
 struct FrameGraphHelper;
 
 void record_gui_command_buffer(const FrameGraphHelper& frame_graph_helper, const GUIFrameGraphRecord& pass_record,
-                               CommandBuffer& cmdBuffer, const GuiPassResources& pass_resources,
-                               ImDrawData* imgui_draw_data);
+                               CommandBuffer& cmdBuffer, const PipelineFactory& pipeline_factory,
+                               const GuiPassResources& pass_resources, ImDrawData* imgui_draw_data);
 } // namespace Reaper

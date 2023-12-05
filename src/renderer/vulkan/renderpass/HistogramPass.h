@@ -20,24 +20,20 @@
 
 namespace Reaper
 {
-struct HistogramPipelineInfo
-{
-    VkPipeline       pipeline;
-    VkPipelineLayout pipelineLayout;
-};
-
 struct HistogramPassResources
 {
     VkDescriptorSetLayout descSetLayout;
-    HistogramPipelineInfo histogramPipe;
+
+    u32              pipeline_index;
+    VkPipelineLayout pipeline_layout;
 
     VkDescriptorSet descriptor_set;
 };
 
 struct VulkanBackend;
-struct ShaderModules;
+struct PipelineFactory;
 
-HistogramPassResources create_histogram_pass_resources(VulkanBackend& backend, const ShaderModules& shader_modules);
+HistogramPassResources create_histogram_pass_resources(VulkanBackend& backend, PipelineFactory& pipeline_factory);
 void destroy_histogram_pass_resources(VulkanBackend& backend, const HistogramPassResources& resources);
 
 namespace FrameGraph
@@ -83,5 +79,6 @@ void record_histogram_clear_command_buffer(const FrameGraphHelper&              
 
 void record_histogram_command_buffer(const FrameGraphHelper&          frame_graph_helper,
                                      const HistogramFrameGraphRecord& pass_record, CommandBuffer& cmdBuffer,
+                                     const PipelineFactory&        pipeline_factory,
                                      const HistogramPassResources& pass_resources, VkExtent2D render_extent);
 } // namespace Reaper

@@ -25,6 +25,7 @@
 #include "renderer/vulkan/MaterialResources.h"
 #include "renderer/vulkan/MeshCache.h"
 #include "renderer/vulkan/Pipeline.h"
+#include "renderer/vulkan/PipelineFactory.h"
 #include "renderer/vulkan/RenderPassHelpers.h"
 #include "renderer/vulkan/SamplerResources.h"
 #include "renderer/vulkan/ShaderModules.h"
@@ -132,8 +133,8 @@ namespace FillGBuffer
 
 namespace
 {
-    VkPipeline create_vis_buffer_pipeline(ReaperRoot& root, VulkanBackend& backend, VkPipelineLayout pipeline_layout,
-                                          const ShaderModules& shader_modules)
+    VkPipeline create_vis_buffer_pipeline(VkDevice device, const ShaderModules& shader_modules,
+                                          VkPipelineLayout pipeline_layout)
     {
         std::vector<VkPipelineShaderStageCreateInfo> shader_stages = {
             default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_VERTEX_BIT, shader_modules.vis_buffer_raster_vs),
@@ -172,21 +173,24 @@ namespace
 
         std::vector<VkDynamicState> dynamic_states = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
 
-        VkPipeline pipeline =
-            create_graphics_pipeline(backend.device, shader_stages, pipeline_properties, dynamic_states);
+        VkPipeline pipeline = create_graphics_pipeline(device, shader_stages, pipeline_properties, dynamic_states);
 
-        Assert(backend.physical_device.graphics_queue_family_index
-               == backend.physical_device.present_queue_family_index);
-
-        log_debug(root, "- total time = {}ms, vs = {}ms, fs = {}ms", feedback.duration / 1000,
-                  feedback_stages[0].duration / 1000, feedback_stages[1].duration / 1000);
+        // log_debug(root, "- total time = {}ms, vs = {}ms, fs = {}ms", feedback.duration / 1000,
+        //           feedback_stages[0].duration / 1000, feedback_stages[1].duration / 1000);
 
         return pipeline;
     }
+
+    VkPipeline create_vis_buffer_fill_pipeline(VkDevice device, const ShaderModules& shader_modules,
+                                               VkPipelineLayout pipeline_layout)
+    {
+        return create_compute_pipeline(device, pipeline_layout, shader_modules.vis_fill_gbuffer_cs);
+        ;
+    }
 } // namespace
 
-VisibilityBufferPassResources create_vis_buffer_pass_resources(ReaperRoot& root, VulkanBackend& backend,
-                                                               const ShaderModules& shader_modules)
+VisibilityBufferPassResources create_vis_buffer_pass_resources(VulkanBackend&   backend,
+                                                               PipelineFactory& pipeline_factory)
 {
     VisibilityBufferPassResources resources = {};
 
@@ -203,8 +207,15 @@ VisibilityBufferPassResources create_vis_buffer_pass_resources(ReaperRoot& root,
 
         resources.pipe.pipelineLayout = create_pipeline_layout(backend.device, std::span(&descriptor_set_layout, 1));
 
-        resources.pipe.pipeline =
-            create_vis_buffer_pipeline(root, backend, resources.pipe.pipelineLayout, shader_modules);
+        Assert(backend.physical_device.graphics_queue_family_index
+               == backend.physical_device.present_queue_family_index);
+
+        resources.pipe.pipeline_index =
+            register_pipeline_creator(pipeline_factory,
+                                      PipelineCreator{
+                                          .pipeline_layout = resources.pipe.pipelineLayout,
+                                          .pipeline_creation_function = &create_vis_buffer_pipeline,
+                                      });
     }
 
     {
@@ -225,12 +236,14 @@ VisibilityBufferPassResources create_vis_buffer_pass_resources(ReaperRoot& root,
         VkPipelineLayout pipelineLayout = create_pipeline_layout(backend.device, std::span(&descriptor_set_layout, 1),
                                                                  std::span(&pushConstantRange, 1));
 
-        VkPipeline pipeline =
-            create_compute_pipeline(backend.device, pipelineLayout, shader_modules.vis_fill_gbuffer_cs);
-
         resources.fill_pipe.desc_set_layout = descriptor_set_layout;
         resources.fill_pipe.pipelineLayout = pipelineLayout;
-        resources.fill_pipe.pipeline = pipeline;
+        resources.fill_pipe.pipeline_index =
+            register_pipeline_creator(pipeline_factory,
+                                      PipelineCreator{
+                                          .pipeline_layout = pipelineLayout,
+                                          .pipeline_creation_function = &create_vis_buffer_fill_pipeline,
+                                      });
     }
 
     allocate_descriptor_sets(backend.device, backend.global_descriptor_pool,
@@ -244,11 +257,9 @@ VisibilityBufferPassResources create_vis_buffer_pass_resources(ReaperRoot& root,
 
 void destroy_vis_buffer_pass_resources(VulkanBackend& backend, VisibilityBufferPassResources& resources)
 {
-    vkDestroyPipeline(backend.device, resources.pipe.pipeline, nullptr);
     vkDestroyPipelineLayout(backend.device, resources.pipe.pipelineLayout, nullptr);
     vkDestroyDescriptorSetLayout(backend.device, resources.pipe.desc_set_layout, nullptr);
 
-    vkDestroyPipeline(backend.device, resources.fill_pipe.pipeline, nullptr);
     vkDestroyPipelineLayout(backend.device, resources.fill_pipe.pipelineLayout, nullptr);
     vkDestroyDescriptorSetLayout(backend.device, resources.fill_pipe.desc_set_layout, nullptr);
 }
@@ -426,8 +437,10 @@ void update_vis_buffer_pass_resources(const FrameGraph::FrameGraph&        frame
 
 void record_vis_buffer_pass_command_buffer(const FrameGraphHelper&                  frame_graph_helper,
                                            const VisBufferFrameGraphRecord::Render& pass_record,
-                                           CommandBuffer& cmdBuffer, const PreparedData& prepared,
-                                           const VisibilityBufferPassResources& pass_resources)
+                                           CommandBuffer&                           cmdBuffer,
+                                           const PipelineFactory&                   pipeline_factory,
+                                           const PreparedData&                      prepared,
+                                           const VisibilityBufferPassResources&     pass_resources)
 {
     // FIXME should be moved out
     if (prepared.mesh_instances.empty())
@@ -452,7 +465,8 @@ void record_vis_buffer_pass_command_buffer(const FrameGraphHelper&              
     const VkRect2D   pass_rect = default_vk_rect(extent);
     const VkViewport viewport = default_vk_viewport(pass_rect);
 
-    vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, pass_resources.pipe.pipeline);
+    vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                      get_pipeline(pipeline_factory, pass_resources.pipe.pipeline_index));
 
     vkCmdSetViewport(cmdBuffer.handle, 0, 1, &viewport);
     vkCmdSetScissor(cmdBuffer.handle, 0, 1, &pass_rect);
@@ -496,6 +510,7 @@ void record_vis_buffer_pass_command_buffer(const FrameGraphHelper&              
 void record_fill_gbuffer_pass_command_buffer(const FrameGraphHelper&                       frame_graph_helper,
                                              const VisBufferFrameGraphRecord::FillGBuffer& pass_record,
                                              CommandBuffer&                                cmdBuffer,
+                                             const PipelineFactory&                        pipeline_factory,
                                              const VisibilityBufferPassResources&          resources,
                                              VkExtent2D                                    render_extent)
 {
@@ -503,7 +518,8 @@ void record_fill_gbuffer_pass_command_buffer(const FrameGraphHelper&            
 
     const FrameGraphBarrierScope framegraph_barrier_scope(cmdBuffer, frame_graph_helper, pass_record.pass_handle);
 
-    vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE, resources.fill_pipe.pipeline);
+    vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE,
+                      get_pipeline(pipeline_factory, resources.fill_pipe.pipeline_index));
 
     FillGBufferPushConstants push_constants;
     push_constants.extent_ts = glm::uvec2(render_extent.width, render_extent.height);

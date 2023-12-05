@@ -18,6 +18,7 @@
 #include "renderer/vulkan/GpuProfile.h"
 #include "renderer/vulkan/Image.h"
 #include "renderer/vulkan/Pipeline.h"
+#include "renderer/vulkan/PipelineFactory.h"
 #include "renderer/vulkan/RenderPassHelpers.h"
 #include "renderer/vulkan/ShaderModules.h"
 
@@ -25,14 +26,37 @@
 
 namespace Reaper
 {
-GuiPassResources create_gui_pass_resources(VulkanBackend& backend, const ShaderModules& shader_modules)
+namespace
+{
+    VkPipeline create_gui_pipeline(VkDevice device, const ShaderModules& shader_modules,
+                                   VkPipelineLayout pipeline_layout)
+    {
+        std::vector<VkPipelineShaderStageCreateInfo> shader_stages = {
+            default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_VERTEX_BIT,
+                                                      shader_modules.fullscreen_triangle_vs),
+            default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_FRAGMENT_BIT, shader_modules.gui_write_fs),
+        };
+
+        VkPipelineColorBlendAttachmentState blend_attachment_state = default_pipeline_color_blend_attachment_state();
+
+        const VkFormat gui_format = PixelFormatToVulkan(GUIFormat);
+
+        GraphicsPipelineProperties pipeline_properties = default_graphics_pipeline_properties();
+        pipeline_properties.blend_state.attachmentCount = 1;
+        pipeline_properties.blend_state.pAttachments = &blend_attachment_state;
+        pipeline_properties.pipeline_layout = pipeline_layout;
+        pipeline_properties.pipeline_rendering.colorAttachmentCount = 1;
+        pipeline_properties.pipeline_rendering.pColorAttachmentFormats = &gui_format;
+
+        std::vector<VkDynamicState> dynamic_states = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
+
+        return create_graphics_pipeline(device, shader_stages, pipeline_properties, dynamic_states);
+    }
+
+} // namespace
+GuiPassResources create_gui_pass_resources(VulkanBackend& backend, PipelineFactory& pipeline_factory)
 {
     GuiPassResources resources = {};
-
-    std::vector<VkPipelineShaderStageCreateInfo> shader_stages = {
-        default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_VERTEX_BIT, shader_modules.fullscreen_triangle_vs),
-        default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_FRAGMENT_BIT, shader_modules.gui_write_fs),
-    };
 
     // Nothing for now
     std::vector<VkDescriptorSetLayoutBinding> descriptorSetLayoutBinding = {};
@@ -40,36 +64,26 @@ GuiPassResources create_gui_pass_resources(VulkanBackend& backend, const ShaderM
     VkDescriptorSetLayout descriptor_set_layout =
         create_descriptor_set_layout(backend.device, descriptorSetLayoutBinding);
 
-    VkPipelineLayout pipelineLayout = create_pipeline_layout(backend.device, std::span(&descriptor_set_layout, 1));
+    VkPipelineLayout pipeline_layout = create_pipeline_layout(backend.device, std::span(&descriptor_set_layout, 1));
 
-    VkPipelineColorBlendAttachmentState blend_attachment_state = default_pipeline_color_blend_attachment_state();
-
-    const VkFormat gui_format = PixelFormatToVulkan(GUIFormat);
-
-    GraphicsPipelineProperties pipeline_properties = default_graphics_pipeline_properties();
-    pipeline_properties.blend_state.attachmentCount = 1;
-    pipeline_properties.blend_state.pAttachments = &blend_attachment_state;
-    pipeline_properties.pipeline_layout = pipelineLayout;
-    pipeline_properties.pipeline_rendering.colorAttachmentCount = 1;
-    pipeline_properties.pipeline_rendering.pColorAttachmentFormats = &gui_format;
-
-    std::vector<VkDynamicState> dynamic_states = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
-
-    VkPipeline pipeline = create_graphics_pipeline(backend.device, shader_stages, pipeline_properties, dynamic_states);
-
-    resources.guiPipe = GuiPipelineInfo{pipeline, pipelineLayout, descriptor_set_layout};
+    resources.pipeline_layout = pipeline_layout;
+    resources.descriptor_set_layout = descriptor_set_layout;
+    resources.pipeline_index = register_pipeline_creator(pipeline_factory,
+                                                         PipelineCreator{
+                                                             .pipeline_layout = pipeline_layout,
+                                                             .pipeline_creation_function = &create_gui_pipeline,
+                                                         });
 
     allocate_descriptor_sets(backend.device, backend.global_descriptor_pool,
-                             std::span(&resources.guiPipe.descSetLayout, 1), std::span(&resources.descriptor_set, 1));
+                             std::span(&resources.descriptor_set_layout, 1), std::span(&resources.descriptor_set, 1));
 
     return resources;
 }
 
 void destroy_gui_pass_resources(VulkanBackend& backend, GuiPassResources& resources)
 {
-    vkDestroyPipeline(backend.device, resources.guiPipe.pipeline, nullptr);
-    vkDestroyPipelineLayout(backend.device, resources.guiPipe.pipelineLayout, nullptr);
-    vkDestroyDescriptorSetLayout(backend.device, resources.guiPipe.descSetLayout, nullptr);
+    vkDestroyPipelineLayout(backend.device, resources.pipeline_layout, nullptr);
+    vkDestroyDescriptorSetLayout(backend.device, resources.descriptor_set_layout, nullptr);
 }
 
 GUIFrameGraphRecord create_gui_pass_record(FrameGraph::Builder& builder, VkExtent2D gui_extent)
@@ -88,8 +102,8 @@ GUIFrameGraphRecord create_gui_pass_record(FrameGraph::Builder& builder, VkExten
 }
 
 void record_gui_command_buffer(const FrameGraphHelper& frame_graph_helper, const GUIFrameGraphRecord& pass_record,
-                               CommandBuffer& cmdBuffer, const GuiPassResources& pass_resources,
-                               ImDrawData* imgui_draw_data)
+                               CommandBuffer& cmdBuffer, const PipelineFactory& pipeline_factory,
+                               const GuiPassResources& pass_resources, ImDrawData* imgui_draw_data)
 {
     REAPER_GPU_SCOPE(cmdBuffer, "GUI");
 
@@ -102,7 +116,8 @@ void record_gui_command_buffer(const FrameGraphHelper& frame_graph_helper, const
     const VkRect2D   pass_rect = default_vk_rect(gui_extent);
     const VkViewport viewport = default_vk_viewport(pass_rect);
 
-    vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, pass_resources.guiPipe.pipeline);
+    vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                      get_pipeline(pipeline_factory, pass_resources.pipeline_index));
 
     vkCmdSetViewport(cmdBuffer.handle, 0, 1, &viewport);
     vkCmdSetScissor(cmdBuffer.handle, 0, 1, &pass_rect);
@@ -116,8 +131,8 @@ void record_gui_command_buffer(const FrameGraphHelper& frame_graph_helper, const
 
     vkCmdBeginRendering(cmdBuffer.handle, &rendering_info);
 
-    vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, pass_resources.guiPipe.pipelineLayout, 0,
-                            1, &pass_resources.descriptor_set, 0, nullptr);
+    vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, pass_resources.pipeline_layout, 0, 1,
+                            &pass_resources.descriptor_set, 0, nullptr);
 
     // vkCmdDraw(cmdBuffer.handle, 3, 1, 0, 0);
 

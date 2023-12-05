@@ -380,13 +380,16 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
         record_meshlet_culling_clear_command_buffer(frame_graph_helper, meshlet_pass.clear, cmdBuffer);
 
-        record_meshlet_culling_command_buffer(root, frame_graph_helper, meshlet_pass.cull_meshlets, cmdBuffer, prepared,
+        record_meshlet_culling_command_buffer(root, frame_graph_helper, meshlet_pass.cull_meshlets, cmdBuffer,
+                                              resources.pipeline_factory, prepared,
                                               resources.meshlet_culling_resources);
 
         record_triangle_culling_prepare_command_buffer(frame_graph_helper, meshlet_pass.cull_triangles_prepare,
-                                                       cmdBuffer, prepared, resources.meshlet_culling_resources);
+                                                       cmdBuffer, resources.pipeline_factory, prepared,
+                                                       resources.meshlet_culling_resources);
 
-        record_triangle_culling_command_buffer(frame_graph_helper, meshlet_pass.cull_triangles, cmdBuffer, prepared,
+        record_triangle_culling_command_buffer(frame_graph_helper, meshlet_pass.cull_triangles, cmdBuffer,
+                                               resources.pipeline_factory, prepared,
                                                resources.meshlet_culling_resources);
 
         record_meshlet_culling_debug_command_buffer(frame_graph_helper, meshlet_pass.debug, cmdBuffer,
@@ -394,20 +397,22 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
         record_debug_geometry_clear_command_buffer(frame_graph_helper, debug_geometry_clear, cmdBuffer);
 
-        record_shadow_map_command_buffer(frame_graph_helper, shadow, cmdBuffer, prepared,
+        record_shadow_map_command_buffer(frame_graph_helper, shadow, cmdBuffer, resources.pipeline_factory, prepared,
                                          resources.shadow_map_resources);
 
-        record_vis_buffer_pass_command_buffer(frame_graph_helper, vis_buffer_record.render, cmdBuffer, prepared,
+        record_vis_buffer_pass_command_buffer(frame_graph_helper, vis_buffer_record.render, cmdBuffer,
+                                              resources.pipeline_factory, prepared,
                                               resources.vis_buffer_pass_resources);
 
         record_hzb_command_buffer(
-            frame_graph_helper, hzb_reduce, cmdBuffer, resources.hzb_pass_resources,
+            frame_graph_helper, hzb_reduce, cmdBuffer, resources.pipeline_factory, resources.hzb_pass_resources,
             VkExtent2D{.width = vis_buffer_record.scene_depth_properties.width,
                        .height = vis_buffer_record.scene_depth_properties.height},
             VkExtent2D{.width = hzb_reduce.hzb_properties.width, .height = hzb_reduce.hzb_properties.height});
 
         record_fill_gbuffer_pass_command_buffer(frame_graph_helper, vis_buffer_record.fill_gbuffer, cmdBuffer,
-                                                resources.vis_buffer_pass_resources, render_extent);
+                                                resources.pipeline_factory, resources.vis_buffer_pass_resources,
+                                                render_extent);
 
         record_depth_copy(frame_graph_helper, light_raster_record.tile_depth_copy, cmdBuffer,
                           resources.pipeline_factory, resources.tiled_raster_resources);
@@ -419,31 +424,33 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         record_light_raster_command_buffer(frame_graph_helper, light_raster_record.light_raster, cmdBuffer,
                                            resources.pipeline_factory, resources.tiled_raster_resources.light_raster);
 
-        record_tiled_lighting_command_buffer(frame_graph_helper, tiled_lighting, cmdBuffer,
+        record_tiled_lighting_command_buffer(frame_graph_helper, tiled_lighting, cmdBuffer, resources.pipeline_factory,
                                              resources.tiled_lighting_resources, render_extent,
                                              VkExtent2D{light_raster_record.tile_depth_properties.width,
                                                         light_raster_record.tile_depth_properties.height});
 
         record_tiled_lighting_debug_command_buffer(frame_graph_helper, tiled_lighting_debug_record, cmdBuffer,
-                                                   resources.tiled_lighting_resources, render_extent,
+                                                   resources.pipeline_factory, resources.tiled_lighting_resources,
+                                                   render_extent,
                                                    VkExtent2D{light_raster_record.tile_depth_properties.width,
                                                               light_raster_record.tile_depth_properties.height});
 
-        record_forward_pass_command_buffer(frame_graph_helper, forward, cmdBuffer, prepared,
+        record_forward_pass_command_buffer(frame_graph_helper, forward, cmdBuffer, resources.pipeline_factory, prepared,
                                            resources.forward_pass_resources);
 
-        record_gui_command_buffer(frame_graph_helper, gui, cmdBuffer, resources.gui_pass_resources, imgui_draw_data);
+        record_gui_command_buffer(frame_graph_helper, gui, cmdBuffer, resources.pipeline_factory,
+                                  resources.gui_pass_resources, imgui_draw_data);
 
         record_histogram_clear_command_buffer(frame_graph_helper, histogram_clear, cmdBuffer);
 
-        record_histogram_command_buffer(frame_graph_helper, histogram, cmdBuffer, resources.histogram_pass_resources,
-                                        render_extent);
+        record_histogram_command_buffer(frame_graph_helper, histogram, cmdBuffer, resources.pipeline_factory,
+                                        resources.histogram_pass_resources, render_extent);
 
         record_debug_geometry_build_cmds_command_buffer(frame_graph_helper, debug_geometry_build_cmds, cmdBuffer,
-                                                        resources.debug_geometry_resources);
+                                                        resources.pipeline_factory, resources.debug_geometry_resources);
 
         record_debug_geometry_draw_command_buffer(frame_graph_helper, debug_geometry_draw, cmdBuffer,
-                                                  resources.debug_geometry_resources);
+                                                  resources.pipeline_factory, resources.debug_geometry_resources);
 
         record_swapchain_command_buffer(frame_graph_helper, swapchain, cmdBuffer, resources.swapchain_pass_resources,
                                         backend.presentInfo.imageViews[current_swapchain_index],
@@ -465,8 +472,8 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
             vkCmdPipelineBarrier2(cmdBuffer.handle, &dependencies);
         }
 
-        record_audio_render_command_buffer(frame_graph_helper, audio_pass.render, cmdBuffer, prepared,
-                                           resources.audio_resources);
+        record_audio_render_command_buffer(frame_graph_helper, audio_pass.render, cmdBuffer, resources.pipeline_factory,
+                                           prepared, resources.audio_resources);
 
         record_audio_copy_command_buffer(frame_graph_helper, audio_pass.staging_copy, cmdBuffer,
                                          resources.audio_resources);

@@ -22,6 +22,7 @@
 #include "renderer/vulkan/GpuProfile.h"
 #include "renderer/vulkan/Image.h"
 #include "renderer/vulkan/Pipeline.h"
+#include "renderer/vulkan/PipelineFactory.h"
 #include "renderer/vulkan/RenderPassHelpers.h"
 #include "renderer/vulkan/ShaderModules.h"
 #include "renderer/vulkan/StorageBufferAllocator.h"
@@ -33,39 +34,50 @@
 
 namespace Reaper
 {
-constexpr u32 ShadowInstanceCountMax = 512;
+namespace
+{
+    VkPipeline create_shadow_pipeline(VkDevice device, const ShaderModules& shader_modules,
+                                      VkPipelineLayout pipeline_layout)
 
-ShadowMapResources create_shadow_map_resources(VulkanBackend& backend, const ShaderModules& shader_modules)
+    {
+        std::vector<VkPipelineShaderStageCreateInfo> shader_stages = {
+            default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_VERTEX_BIT, shader_modules.render_shadow_vs)};
+
+        GraphicsPipelineProperties pipeline_properties = default_graphics_pipeline_properties();
+        pipeline_properties.input_assembly.primitiveRestartEnable = VK_TRUE;
+        pipeline_properties.depth_stencil.depthTestEnable = VK_TRUE;
+        pipeline_properties.depth_stencil.depthWriteEnable = VK_TRUE;
+        pipeline_properties.depth_stencil.depthCompareOp =
+            ShadowUseReverseZ ? VK_COMPARE_OP_GREATER : VK_COMPARE_OP_LESS;
+        pipeline_properties.pipeline_layout = pipeline_layout;
+        pipeline_properties.pipeline_rendering.depthAttachmentFormat = PixelFormatToVulkan(ShadowMapFormat);
+
+        std::vector<VkDynamicState> dynamic_states = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
+
+        return create_graphics_pipeline(device, shader_stages, pipeline_properties, dynamic_states);
+    }
+} // namespace
+
+ShadowMapResources create_shadow_map_resources(VulkanBackend& backend, PipelineFactory& pipeline_factory)
 {
     ShadowMapResources resources = {};
-
-    std::vector<VkPipelineShaderStageCreateInfo> shader_stages = {
-        default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_VERTEX_BIT, shader_modules.render_shadow_vs)};
 
     std::vector<VkDescriptorSetLayoutBinding> descriptorSetLayoutBinding = {
         {0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
         {1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
     };
 
-    resources.pipe.descSetLayout = create_descriptor_set_layout(backend.device, descriptorSetLayoutBinding);
-    resources.pipe.pipelineLayout = create_pipeline_layout(backend.device, std::span(&resources.pipe.descSetLayout, 1));
-
-    GraphicsPipelineProperties pipeline_properties = default_graphics_pipeline_properties();
-    pipeline_properties.input_assembly.primitiveRestartEnable = VK_TRUE;
-    pipeline_properties.depth_stencil.depthTestEnable = VK_TRUE;
-    pipeline_properties.depth_stencil.depthWriteEnable = VK_TRUE;
-    pipeline_properties.depth_stencil.depthCompareOp = ShadowUseReverseZ ? VK_COMPARE_OP_GREATER : VK_COMPARE_OP_LESS;
-    pipeline_properties.pipeline_layout = resources.pipe.pipelineLayout;
-    pipeline_properties.pipeline_rendering.depthAttachmentFormat = PixelFormatToVulkan(ShadowMapFormat);
-
-    std::vector<VkDynamicState> dynamic_states = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
-
-    resources.pipe.pipeline =
-        create_graphics_pipeline(backend.device, shader_stages, pipeline_properties, dynamic_states);
+    resources.desc_set_layout = create_descriptor_set_layout(backend.device, descriptorSetLayoutBinding);
+    resources.pipeline_layout = create_pipeline_layout(backend.device, std::span(&resources.desc_set_layout, 1));
+    resources.pipeline_index = register_pipeline_creator(pipeline_factory,
+                                                         PipelineCreator{
+                                                             .pipeline_layout = resources.pipeline_layout,
+                                                             .pipeline_creation_function = &create_shadow_pipeline,
+                                                         });
 
     resources.descriptor_sets.resize(3); // FIXME
 
-    allocate_descriptor_sets(backend.device, backend.global_descriptor_pool, resources.pipe.descSetLayout,
+    allocate_descriptor_sets(backend.device, backend.global_descriptor_pool, resources.desc_set_layout,
                              resources.descriptor_sets);
 
     return resources;
@@ -73,9 +85,8 @@ ShadowMapResources create_shadow_map_resources(VulkanBackend& backend, const Sha
 
 void destroy_shadow_map_resources(VulkanBackend& backend, ShadowMapResources& resources)
 {
-    vkDestroyPipeline(backend.device, resources.pipe.pipeline, nullptr);
-    vkDestroyPipelineLayout(backend.device, resources.pipe.pipelineLayout, nullptr);
-    vkDestroyDescriptorSetLayout(backend.device, resources.pipe.descSetLayout, nullptr);
+    vkDestroyPipelineLayout(backend.device, resources.pipeline_layout, nullptr);
+    vkDestroyDescriptorSetLayout(backend.device, resources.desc_set_layout, nullptr);
 }
 
 ShadowFrameGraphRecord create_shadow_map_pass_record(FrameGraph::Builder&                builder,
@@ -148,7 +159,8 @@ void update_shadow_map_resources(DescriptorWriteHelper& write_helper, StorageBuf
 
 void record_shadow_map_command_buffer(const FrameGraphHelper&       frame_graph_helper,
                                       const ShadowFrameGraphRecord& pass_record, CommandBuffer& cmdBuffer,
-                                      const PreparedData& prepared, ShadowMapResources& resources)
+                                      const PipelineFactory& pipeline_factory, const PreparedData& prepared,
+                                      ShadowMapResources& resources)
 {
     REAPER_GPU_SCOPE(cmdBuffer, "Shadow");
 
@@ -161,7 +173,8 @@ void record_shadow_map_command_buffer(const FrameGraphHelper&       frame_graph_
     const FrameGraphBuffer meshlet_visible_index_buffer = get_frame_graph_buffer(
         frame_graph_helper.resources, frame_graph_helper.frame_graph, pass_record.meshlet_visible_index_buffer);
 
-    vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, resources.pipe.pipeline);
+    vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                      get_pipeline(pipeline_factory, resources.pipeline_index));
 
     for (const ShadowPassData& shadow_pass : prepared.shadow_passes)
     {
@@ -199,7 +212,7 @@ void record_shadow_map_command_buffer(const FrameGraphHelper&       frame_graph_
         vkCmdBindIndexBuffer(cmdBuffer.handle, meshlet_visible_index_buffer.handle, meshlet_draw.index_buffer_offset,
                              meshlet_draw.index_type);
 
-        vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, resources.pipe.pipelineLayout, 0, 1,
+        vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, resources.pipeline_layout, 0, 1,
                                 &resources.descriptor_sets[shadow_pass.pass_index], 0, nullptr);
 
         vkCmdDrawIndexedIndirectCount(cmdBuffer.handle, meshlet_indirect_draw_commands.handle,

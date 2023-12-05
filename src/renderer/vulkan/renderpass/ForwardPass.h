@@ -24,8 +24,8 @@ namespace Reaper
 {
 struct ForwardPipelineInfo
 {
-    VkPipeline            pipeline;
-    VkPipelineLayout      pipelineLayout;
+    u32                   pipeline_index;
+    VkPipelineLayout      pipeline_layout;
     VkDescriptorSetLayout desc_set_layout;
     VkDescriptorSetLayout desc_set_layout_material;
 };
@@ -42,9 +42,9 @@ struct ForwardPassResources
 };
 
 struct VulkanBackend;
-struct ShaderModules;
+struct PipelineFactory;
 
-ForwardPassResources create_forward_pass_resources(VulkanBackend& backend, const ShaderModules& shader_modules);
+ForwardPassResources create_forward_pass_resources(VulkanBackend& backend, PipelineFactory& pipeline_factory);
 void                 destroy_forward_pass_resources(VulkanBackend& backend, ForwardPassResources& resources);
 
 namespace FrameGraph
@@ -92,8 +92,10 @@ void update_forward_pass_descriptor_sets(VulkanBackend& backend, const FrameGrap
 
 struct CommandBuffer;
 struct FrameGraphHelper;
+struct PipelineFactory;
 
 void record_forward_pass_command_buffer(const FrameGraphHelper&        frame_graph_helper,
                                         const ForwardFrameGraphRecord& pass_record, CommandBuffer& cmdBuffer,
-                                        const PreparedData& prepared, const ForwardPassResources& pass_resources);
+                                        const PipelineFactory& pipeline_factory, const PreparedData& prepared,
+                                        const ForwardPassResources& pass_resources);
 } // namespace Reaper

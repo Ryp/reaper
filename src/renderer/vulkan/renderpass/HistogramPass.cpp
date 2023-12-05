@@ -18,6 +18,7 @@
 #include "renderer/vulkan/GpuProfile.h"
 #include "renderer/vulkan/Image.h"
 #include "renderer/vulkan/Pipeline.h"
+#include "renderer/vulkan/PipelineFactory.h"
 #include "renderer/vulkan/SamplerResources.h"
 #include "renderer/vulkan/ShaderModules.h"
 
@@ -30,7 +31,16 @@
 
 namespace Reaper
 {
-HistogramPassResources create_histogram_pass_resources(VulkanBackend& backend, const ShaderModules& shader_modules)
+namespace
+{
+    VkPipeline create_histogram_pipeline(VkDevice device, const ShaderModules& shader_modules,
+                                         VkPipelineLayout pipeline_layout)
+    {
+        return create_compute_pipeline(device, pipeline_layout, shader_modules.histogram_cs);
+    }
+} // namespace
+
+HistogramPassResources create_histogram_pass_resources(VulkanBackend& backend, PipelineFactory& pipeline_factory)
 {
     HistogramPassResources resources = {};
 
@@ -48,9 +58,13 @@ HistogramPassResources create_histogram_pass_resources(VulkanBackend& backend, c
         VkPipelineLayout pipeline_layout = create_pipeline_layout(
             backend.device, std::span(&resources.descSetLayout, 1), std::span(&push_constant_range, 1));
 
-        resources.histogramPipe.pipeline =
-            create_compute_pipeline(backend.device, pipeline_layout, shader_modules.histogram_cs);
-        resources.histogramPipe.pipelineLayout = pipeline_layout;
+        resources.pipeline_layout = pipeline_layout;
+        resources.pipeline_index =
+            register_pipeline_creator(pipeline_factory,
+                                      PipelineCreator{
+                                          .pipeline_layout = pipeline_layout,
+                                          .pipeline_creation_function = &create_histogram_pipeline,
+                                      });
     }
 
     allocate_descriptor_sets(backend.device, backend.global_descriptor_pool, std::span(&resources.descSetLayout, 1),
@@ -61,8 +75,7 @@ HistogramPassResources create_histogram_pass_resources(VulkanBackend& backend, c
 
 void destroy_histogram_pass_resources(VulkanBackend& backend, const HistogramPassResources& resources)
 {
-    vkDestroyPipeline(backend.device, resources.histogramPipe.pipeline, nullptr);
-    vkDestroyPipelineLayout(backend.device, resources.histogramPipe.pipelineLayout, nullptr);
+    vkDestroyPipelineLayout(backend.device, resources.pipeline_layout, nullptr);
     vkDestroyDescriptorSetLayout(backend.device, resources.descSetLayout, nullptr);
 }
 
@@ -134,25 +147,26 @@ void record_histogram_clear_command_buffer(const FrameGraphHelper&              
 
 void record_histogram_command_buffer(const FrameGraphHelper&          frame_graph_helper,
                                      const HistogramFrameGraphRecord& pass_record, CommandBuffer& cmdBuffer,
+                                     const PipelineFactory&        pipeline_factory,
                                      const HistogramPassResources& pass_resources, VkExtent2D render_extent)
 {
     REAPER_GPU_SCOPE(cmdBuffer, "Histogram");
 
     const FrameGraphBarrierScope framegraph_barrier_scope(cmdBuffer, frame_graph_helper, pass_record.pass_handle);
 
-    vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE, pass_resources.histogramPipe.pipeline);
+    vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE,
+                      get_pipeline(pipeline_factory, pass_resources.pipeline_index));
 
     ReduceHDRPassParams push_constants;
     push_constants.extent_ts = glm::uvec2(render_extent.width, render_extent.height);
     push_constants.extent_ts_inv =
         glm::fvec2(1.f / static_cast<float>(render_extent.width), 1.f / static_cast<float>(render_extent.height));
 
-    vkCmdPushConstants(cmdBuffer.handle, pass_resources.histogramPipe.pipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0,
+    vkCmdPushConstants(cmdBuffer.handle, pass_resources.pipeline_layout, VK_SHADER_STAGE_COMPUTE_BIT, 0,
                        sizeof(push_constants), &push_constants);
 
-    vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE,
-                            pass_resources.histogramPipe.pipelineLayout, 0, 1, &pass_resources.descriptor_set, 0,
-                            nullptr);
+    vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE, pass_resources.pipeline_layout, 0, 1,
+                            &pass_resources.descriptor_set, 0, nullptr);
 
     Assert(HistogramRes % (HistogramThreadCountX * HistogramThreadCountY) == 0);
     vkCmdDispatch(cmdBuffer.handle,

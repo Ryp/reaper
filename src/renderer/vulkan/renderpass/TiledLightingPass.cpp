@@ -25,6 +25,7 @@
 #include "renderer/vulkan/GpuProfile.h"
 #include "renderer/vulkan/Image.h"
 #include "renderer/vulkan/Pipeline.h"
+#include "renderer/vulkan/PipelineFactory.h"
 #include "renderer/vulkan/RenderPassHelpers.h"
 #include "renderer/vulkan/SamplerResources.h"
 #include "renderer/vulkan/ShaderModules.h"
@@ -37,8 +38,23 @@
 
 namespace Reaper
 {
-TiledLightingPassResources create_tiled_lighting_pass_resources(VulkanBackend&       backend,
-                                                                const ShaderModules& shader_modules)
+namespace
+{
+    VkPipeline create_lighting_pipeline(VkDevice device, const ShaderModules& shader_modules,
+                                        VkPipelineLayout pipeline_layout)
+    {
+        return create_compute_pipeline(device, pipeline_layout, shader_modules.tiled_lighting_cs);
+    }
+
+    VkPipeline create_lighting_debug_pipeline(VkDevice device, const ShaderModules& shader_modules,
+                                              VkPipelineLayout pipeline_layout)
+    {
+        return create_compute_pipeline(device, pipeline_layout, shader_modules.tiled_lighting_debug_cs);
+    }
+} // namespace
+
+TiledLightingPassResources create_tiled_lighting_pass_resources(VulkanBackend&   backend,
+                                                                PipelineFactory& pipeline_factory)
 {
     TiledLightingPassResources resources = {};
 
@@ -68,16 +84,18 @@ TiledLightingPassResources create_tiled_lighting_pass_resources(VulkanBackend&  
         VkPipelineLayout pipeline_layout =
             create_pipeline_layout(backend.device, descriptor_set_layouts, std::span(&pushConstantRange, 1));
 
-        VkPipeline pipeline =
-            create_compute_pipeline(backend.device, pipeline_layout, shader_modules.tiled_lighting_cs);
-
-        resources.tiled_lighting_descriptor_set_layout = descriptor_set_layouts[0];
-        resources.tiled_lighting_pipeline_layout = pipeline_layout;
-        resources.tiled_lighting_pipeline = pipeline;
+        resources.lighting.descriptor_set_layout = descriptor_set_layouts[0];
+        resources.lighting.pipeline_layout = pipeline_layout;
+        resources.lighting.pipeline_index =
+            register_pipeline_creator(pipeline_factory,
+                                      PipelineCreator{
+                                          .pipeline_layout = pipeline_layout,
+                                          .pipeline_creation_function = &create_lighting_pipeline,
+                                      });
     }
 
     {
-        std::vector<VkDescriptorSetLayout> dset_layouts = {resources.tiled_lighting_descriptor_set_layout};
+        std::vector<VkDescriptorSetLayout> dset_layouts = {resources.lighting.descriptor_set_layout};
         std::vector<VkDescriptorSet>       dsets(dset_layouts.size());
 
         allocate_descriptor_sets(backend.device, backend.global_descriptor_pool, dset_layouts, dsets);
@@ -105,33 +123,33 @@ TiledLightingPassResources create_tiled_lighting_pass_resources(VulkanBackend&  
         VkPipelineLayout pipeline_layout = create_pipeline_layout(backend.device, std::span(&descriptor_set_layout, 1),
                                                                   std::span(&pushConstantRange, 1));
 
-        VkPipeline pipeline =
-            create_compute_pipeline(backend.device, pipeline_layout, shader_modules.tiled_lighting_debug_cs);
-
-        resources.tiled_lighting_debug_descriptor_set_layout = descriptor_set_layout;
-        resources.tiled_lighting_debug_pipeline_layout = pipeline_layout;
-        resources.tiled_lighting_debug_pipeline = pipeline;
+        resources.debug.descriptor_set_layout = descriptor_set_layout;
+        resources.debug.pipeline_layout = pipeline_layout;
+        resources.debug.pipeline_index =
+            register_pipeline_creator(pipeline_factory,
+                                      PipelineCreator{
+                                          .pipeline_layout = pipeline_layout,
+                                          .pipeline_creation_function = &create_lighting_debug_pipeline,
+                                      });
     }
 
     allocate_descriptor_sets(backend.device, backend.global_descriptor_pool,
-                             std::span(&resources.tiled_lighting_debug_descriptor_set_layout, 1),
-                             std::span(&resources.tiled_lighting_debug_descriptor_set, 1));
+                             std::span(&resources.debug.descriptor_set_layout, 1),
+                             std::span(&resources.debug_descriptor_set, 1));
 
     return resources;
 }
 
 void destroy_tiled_lighting_pass_resources(VulkanBackend& backend, TiledLightingPassResources& resources)
 {
-    vkDestroyPipeline(backend.device, resources.tiled_lighting_debug_pipeline, nullptr);
-    vkDestroyPipelineLayout(backend.device, resources.tiled_lighting_debug_pipeline_layout, nullptr);
-    vkDestroyDescriptorSetLayout(backend.device, resources.tiled_lighting_debug_descriptor_set_layout, nullptr);
+    vkDestroyPipelineLayout(backend.device, resources.debug.pipeline_layout, nullptr);
+    vkDestroyDescriptorSetLayout(backend.device, resources.debug.descriptor_set_layout, nullptr);
 
     vmaDestroyBuffer(backend.vma_instance, resources.tiled_lighting_constant_buffer.handle,
                      resources.tiled_lighting_constant_buffer.allocation);
 
-    vkDestroyPipeline(backend.device, resources.tiled_lighting_pipeline, nullptr);
-    vkDestroyPipelineLayout(backend.device, resources.tiled_lighting_pipeline_layout, nullptr);
-    vkDestroyDescriptorSetLayout(backend.device, resources.tiled_lighting_descriptor_set_layout, nullptr);
+    vkDestroyPipelineLayout(backend.device, resources.lighting.pipeline_layout, nullptr);
+    vkDestroyDescriptorSetLayout(backend.device, resources.lighting.descriptor_set_layout, nullptr);
 }
 
 TiledLightingFrameGraphRecord create_tiled_lighting_pass_record(FrameGraph::Builder&               builder,
@@ -276,6 +294,7 @@ void update_tiled_lighting_pass_resources(VulkanBackend& backend, const FrameGra
 
 void record_tiled_lighting_command_buffer(const FrameGraphHelper&              frame_graph_helper,
                                           const TiledLightingFrameGraphRecord& pass_record, CommandBuffer& cmdBuffer,
+                                          const PipelineFactory&            pipeline_factory,
                                           const TiledLightingPassResources& resources, VkExtent2D render_extent,
                                           VkExtent2D tile_extent)
 {
@@ -283,7 +302,8 @@ void record_tiled_lighting_command_buffer(const FrameGraphHelper&              f
 
     const FrameGraphBarrierScope framegraph_barrier_scope(cmdBuffer, frame_graph_helper, pass_record.pass_handle);
 
-    vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE, resources.tiled_lighting_pipeline);
+    vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE,
+                      get_pipeline(pipeline_factory, resources.lighting.pipeline_index));
 
     TiledLightingPushConstants push_constants;
     push_constants.extent_ts = glm::uvec2(render_extent.width, render_extent.height);
@@ -291,11 +311,11 @@ void record_tiled_lighting_command_buffer(const FrameGraphHelper&              f
         glm::fvec2(1.f / static_cast<float>(render_extent.width), 1.f / static_cast<float>(render_extent.height));
     push_constants.tile_count_x = tile_extent.width;
 
-    vkCmdPushConstants(cmdBuffer.handle, resources.tiled_lighting_pipeline_layout, VK_SHADER_STAGE_COMPUTE_BIT, 0,
+    vkCmdPushConstants(cmdBuffer.handle, resources.lighting.pipeline_layout, VK_SHADER_STAGE_COMPUTE_BIT, 0,
                        sizeof(push_constants), &push_constants);
 
-    vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE, resources.tiled_lighting_pipeline_layout,
-                            0, 1, &resources.tiled_lighting_descriptor_set, 0, nullptr);
+    vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE, resources.lighting.pipeline_layout, 0, 1,
+                            &resources.tiled_lighting_descriptor_set, 0, nullptr);
 
     vkCmdDispatch(cmdBuffer.handle,
                   div_round_up(render_extent.width, TiledLightingThreadCountX),
@@ -314,33 +334,33 @@ void update_tiled_lighting_debug_pass_resources(const FrameGraph::FrameGraph&   
     const FrameGraphTexture tile_debug_texture =
         get_frame_graph_texture(frame_graph_resources, frame_graph, record.output);
 
-    VkDescriptorSet dset = resources.tiled_lighting_debug_descriptor_set;
-    write_helper.append(dset, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, tile_debug_buffer.handle);
-    write_helper.append(dset, 1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, tile_debug_texture.default_view_handle,
-                        tile_debug_texture.image_layout);
+    write_helper.append(resources.debug_descriptor_set, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, tile_debug_buffer.handle);
+    write_helper.append(resources.debug_descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+                        tile_debug_texture.default_view_handle, tile_debug_texture.image_layout);
 }
 
 void record_tiled_lighting_debug_command_buffer(const FrameGraphHelper&                   frame_graph_helper,
                                                 const TiledLightingDebugFrameGraphRecord& pass_record,
-                                                CommandBuffer& cmdBuffer, const TiledLightingPassResources& resources,
-                                                VkExtent2D render_extent, VkExtent2D tile_extent)
+                                                CommandBuffer& cmdBuffer, const PipelineFactory& pipeline_factory,
+                                                const TiledLightingPassResources& resources, VkExtent2D render_extent,
+                                                VkExtent2D tile_extent)
 {
     REAPER_GPU_SCOPE(cmdBuffer, "Tiled Lighting Debug");
 
     const FrameGraphBarrierScope framegraph_barrier_scope(cmdBuffer, frame_graph_helper, pass_record.pass_handle);
 
-    vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE, resources.tiled_lighting_debug_pipeline);
+    vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE,
+                      get_pipeline(pipeline_factory, resources.debug.pipeline_index));
 
     TiledLightingDebugPushConstants push_constants;
     push_constants.extent_ts = glm::uvec2(render_extent.width, render_extent.height);
     push_constants.tile_count_x = tile_extent.width;
 
-    vkCmdPushConstants(cmdBuffer.handle, resources.tiled_lighting_debug_pipeline_layout, VK_SHADER_STAGE_COMPUTE_BIT, 0,
+    vkCmdPushConstants(cmdBuffer.handle, resources.debug.pipeline_layout, VK_SHADER_STAGE_COMPUTE_BIT, 0,
                        sizeof(push_constants), &push_constants);
 
-    vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE,
-                            resources.tiled_lighting_debug_pipeline_layout, 0, 1,
-                            &resources.tiled_lighting_debug_descriptor_set, 0, nullptr);
+    vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE, resources.debug.pipeline_layout, 0, 1,
+                            &resources.debug_descriptor_set, 0, nullptr);
 
     vkCmdDispatch(cmdBuffer.handle,
                   div_round_up(render_extent.width, TiledLightingThreadCountX),

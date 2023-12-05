@@ -22,24 +22,19 @@
 
 namespace Reaper
 {
-struct ShadowMapPipelineInfo
-{
-    VkPipeline            pipeline;
-    VkPipelineLayout      pipelineLayout;
-    VkDescriptorSetLayout descSetLayout;
-};
-
 struct ShadowMapResources
 {
-    ShadowMapPipelineInfo pipe;
+    u32                   pipeline_index;
+    VkPipelineLayout      pipeline_layout;
+    VkDescriptorSetLayout desc_set_layout;
 
     std::vector<VkDescriptorSet> descriptor_sets;
 };
 
 struct VulkanBackend;
-struct ShaderModules;
+struct PipelineFactory;
 
-ShadowMapResources create_shadow_map_resources(VulkanBackend& backend, const ShaderModules& shader_modules);
+ShadowMapResources create_shadow_map_resources(VulkanBackend& backend, PipelineFactory& pipeline_factory);
 void               destroy_shadow_map_resources(VulkanBackend& backend, ShadowMapResources& resources);
 
 namespace FrameGraph
@@ -76,5 +71,6 @@ struct CommandBuffer;
 
 void record_shadow_map_command_buffer(const FrameGraphHelper&       frame_graph_helper,
                                       const ShadowFrameGraphRecord& pass_record, CommandBuffer& cmdBuffer,
-                                      const PreparedData& prepared, ShadowMapResources& resources);
+                                      const PipelineFactory& pipeline_factory, const PreparedData& prepared,
+                                      ShadowMapResources& resources);
 } // namespace Reaper

@@ -19,6 +19,7 @@
 #include "renderer/vulkan/GpuProfile.h"
 #include "renderer/vulkan/Image.h"
 #include "renderer/vulkan/Pipeline.h"
+#include "renderer/vulkan/PipelineFactory.h"
 #include "renderer/vulkan/SamplerResources.h"
 #include "renderer/vulkan/ShaderModules.h"
 
@@ -47,9 +48,19 @@ namespace
          .type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
          .stage_mask = VK_SHADER_STAGE_COMPUTE_BIT},
     };
+
+    VkPipeline create_hzb_pipeline(VkDevice device, const ShaderModules& shader_modules,
+                                   VkPipelineLayout pipeline_layout)
+    {
+        const VkPipelineShaderStageCreateInfo shader_stage = default_pipeline_shader_stage_create_info(
+            VK_SHADER_STAGE_COMPUTE_BIT, shader_modules.hzb_reduce_cs, nullptr,
+            VK_PIPELINE_SHADER_STAGE_CREATE_REQUIRE_FULL_SUBGROUPS_BIT);
+
+        return create_compute_pipeline(device, pipeline_layout, shader_stage);
+    }
 } // namespace
 
-HZBPassResources create_hzb_pass_resources(VulkanBackend& backend, const ShaderModules& shader_modules)
+HZBPassResources create_hzb_pass_resources(VulkanBackend& backend, PipelineFactory& pipeline_factory)
 {
     HZBPassResources resources = {};
 
@@ -61,20 +72,18 @@ HZBPassResources create_hzb_pass_resources(VulkanBackend& backend, const ShaderM
 
     resources.hzb_pipe.desc_set_layout = create_descriptor_set_layout(backend.device, layout_bindings, binding_flags);
 
-    {
-        const VkPushConstantRange push_constant_range = {VK_SHADER_STAGE_COMPUTE_BIT, 0,
-                                                         sizeof(HZBReducePushConstants)};
+    const VkPushConstantRange push_constant_range = {VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(HZBReducePushConstants)};
 
-        VkPipelineLayout pipeline_layout = create_pipeline_layout(
-            backend.device, std::span(&resources.hzb_pipe.desc_set_layout, 1), std::span(&push_constant_range, 1));
+    VkPipelineLayout pipeline_layout = create_pipeline_layout(
+        backend.device, std::span(&resources.hzb_pipe.desc_set_layout, 1), std::span(&push_constant_range, 1));
 
-        const VkPipelineShaderStageCreateInfo shader_stage = default_pipeline_shader_stage_create_info(
-            VK_SHADER_STAGE_COMPUTE_BIT, shader_modules.hzb_reduce_cs, nullptr,
-            VK_PIPELINE_SHADER_STAGE_CREATE_REQUIRE_FULL_SUBGROUPS_BIT);
-
-        resources.hzb_pipe.handle = create_compute_pipeline(backend.device, pipeline_layout, shader_stage);
-        resources.hzb_pipe.layout = pipeline_layout;
-    }
+    resources.hzb_pipe.layout = pipeline_layout;
+    resources.hzb_pipe.pipeline_index =
+        register_pipeline_creator(pipeline_factory,
+                                  PipelineCreator{
+                                      .pipeline_layout = pipeline_layout,
+                                      .pipeline_creation_function = &create_hzb_pipeline,
+                                  });
 
     allocate_descriptor_sets(backend.device, backend.global_descriptor_pool,
                              std::span(&resources.hzb_pipe.desc_set_layout, 1),
@@ -85,7 +94,6 @@ HZBPassResources create_hzb_pass_resources(VulkanBackend& backend, const ShaderM
 
 void destroy_hzb_pass_resources(VulkanBackend& backend, const HZBPassResources& resources)
 {
-    vkDestroyPipeline(backend.device, resources.hzb_pipe.handle, nullptr);
     vkDestroyPipelineLayout(backend.device, resources.hzb_pipe.layout, nullptr);
     vkDestroyDescriptorSetLayout(backend.device, resources.hzb_pipe.desc_set_layout, nullptr);
 }
@@ -155,14 +163,15 @@ void update_hzb_pass_descriptor_set(const FrameGraph::FrameGraph&    frame_graph
 }
 
 void record_hzb_command_buffer(const FrameGraphHelper& frame_graph_helper, const HZBReduceFrameGraphRecord& pass_record,
-                               CommandBuffer& cmdBuffer, const HZBPassResources& pass_resources,
-                               VkExtent2D depth_extent, VkExtent2D hzb_extent)
+                               CommandBuffer& cmdBuffer, const PipelineFactory& pipeline_factory,
+                               const HZBPassResources& pass_resources, VkExtent2D depth_extent, VkExtent2D hzb_extent)
 {
     REAPER_GPU_SCOPE(cmdBuffer, "HZB Reduce");
 
     const FrameGraphBarrierScope framegraph_barrier_scope(cmdBuffer, frame_graph_helper, pass_record.pass_handle);
 
-    vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE, pass_resources.hzb_pipe.handle);
+    vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE,
+                      get_pipeline(pipeline_factory, pass_resources.hzb_pipe.pipeline_index));
 
     HZBReducePushConstants push_constants;
     push_constants.depth_extent_ts_inv =

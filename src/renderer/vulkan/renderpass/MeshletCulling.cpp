@@ -21,6 +21,7 @@
 #include "renderer/vulkan/GpuProfile.h"
 #include "renderer/vulkan/MeshCache.h"
 #include "renderer/vulkan/Pipeline.h"
+#include "renderer/vulkan/PipelineFactory.h"
 #include "renderer/vulkan/ShaderModules.h"
 #include "renderer/vulkan/StorageBufferAllocator.h"
 #include "renderer/vulkan/api/AssertHelper.h"
@@ -122,6 +123,24 @@ constexpr u64 VisibleIndexBufferSizeBytes =
     MaxVisibleMeshletsPerPass * MaxMeshletCullingPassCount * MeshletMaxTriangleCount * TriangleIndicesSizeBytes;
 constexpr u32 MaxIndirectDrawCountPerPass = MaxVisibleMeshletsPerPass;
 
+namespace
+{
+    VkPipeline create_cull_meshlet_pipeline(VkDevice device, const ShaderModules& shader_modules,
+                                            VkPipelineLayout pipeline_layout)
+    {
+        return create_compute_pipeline(device, pipeline_layout, shader_modules.cull_meshlet_cs);
+    }
+    VkPipeline create_cull_triangle_prepare_pipeline(VkDevice device, const ShaderModules& shader_modules,
+                                                     VkPipelineLayout pipeline_layout)
+    {
+        return create_compute_pipeline(device, pipeline_layout, shader_modules.prepare_fine_culling_indirect_cs);
+    }
+    VkPipeline create_cull_triangle_pipeline(VkDevice device, const ShaderModules& shader_modules,
+                                             VkPipelineLayout pipeline_layout)
+    {
+        return create_compute_pipeline(device, pipeline_layout, shader_modules.cull_triangle_batch_cs);
+    }
+} // namespace
 CullMeshletsFrameGraphRecord create_cull_meshlet_frame_graph_record(FrameGraph::Builder& builder)
 {
     CullMeshletsFrameGraphRecord::Clear clear;
@@ -219,7 +238,7 @@ CullMeshletsFrameGraphRecord create_cull_meshlet_frame_graph_record(FrameGraph::
     };
 }
 
-MeshletCullingResources create_meshlet_culling_resources(VulkanBackend& backend, const ShaderModules& shader_modules)
+MeshletCullingResources create_meshlet_culling_resources(VulkanBackend& backend, PipelineFactory& pipeline_factory)
 {
     MeshletCullingResources resources;
 
@@ -237,9 +256,13 @@ MeshletCullingResources create_meshlet_culling_resources(VulkanBackend& backend,
         VkPipelineLayout pipelineLayout = create_pipeline_layout(backend.device, std::span(&descriptorSetLayout, 1),
                                                                  std::span(&cullPushConstantRange, 1));
 
-        VkPipeline pipeline = create_compute_pipeline(backend.device, pipelineLayout, shader_modules.cull_meshlet_cs);
+        u32 pipeline_index = register_pipeline_creator(pipeline_factory,
+                                                       PipelineCreator{
+                                                           .pipeline_layout = pipelineLayout,
+                                                           .pipeline_creation_function = &create_cull_meshlet_pipeline,
+                                                       });
 
-        resources.cull_meshlets_pipe = SimplePipeline{pipeline, pipelineLayout, descriptorSetLayout};
+        resources.cull_meshlets_pipe = SimplePipeline{pipeline_index, pipelineLayout, descriptorSetLayout};
     }
 
     {
@@ -256,10 +279,15 @@ MeshletCullingResources create_meshlet_culling_resources(VulkanBackend& backend,
         VkPipelineLayout pipelineLayout = create_pipeline_layout(backend.device, std::span(&descriptorSetLayout, 1),
                                                                  std::span(&cullPushConstantRange, 1));
 
-        VkPipeline pipeline =
-            create_compute_pipeline(backend.device, pipelineLayout, shader_modules.prepare_fine_culling_indirect_cs);
+        u32 pipeline_index =
+            register_pipeline_creator(pipeline_factory,
+                                      PipelineCreator{
+                                          .pipeline_layout = pipelineLayout,
+                                          .pipeline_creation_function = &create_cull_triangle_prepare_pipeline,
+                                      });
 
-        resources.cull_meshlets_prep_indirect_pipe = SimplePipeline{pipeline, pipelineLayout, descriptorSetLayout};
+        resources.cull_meshlets_prep_indirect_pipe =
+            SimplePipeline{pipeline_index, pipelineLayout, descriptorSetLayout};
     }
 
     {
@@ -275,10 +303,13 @@ MeshletCullingResources create_meshlet_culling_resources(VulkanBackend& backend,
         VkPipelineLayout pipelineLayout = create_pipeline_layout(backend.device, std::span(&descriptorSetLayout, 1),
                                                                  std::span(&cullPushConstantRange, 1));
 
-        VkPipeline pipeline =
-            create_compute_pipeline(backend.device, pipelineLayout, shader_modules.cull_triangle_batch_cs);
+        u32 pipeline_index = register_pipeline_creator(pipeline_factory,
+                                                       PipelineCreator{
+                                                           .pipeline_layout = pipelineLayout,
+                                                           .pipeline_creation_function = &create_cull_triangle_pipeline,
+                                                       });
 
-        resources.cull_triangles_pipe = SimplePipeline{pipeline, pipelineLayout, descriptorSetLayout};
+        resources.cull_triangles_pipe = SimplePipeline{pipeline_index, pipelineLayout, descriptorSetLayout};
     }
 
     resources.counters_cpu_properties = DefaultGPUBufferProperties(CountersCount * MaxMeshletCullingPassCount,
@@ -314,7 +345,6 @@ namespace
 {
     void destroy_simple_pipeline(VkDevice device, SimplePipeline simple_pipeline)
     {
-        vkDestroyPipeline(device, simple_pipeline.pipeline, nullptr);
         vkDestroyPipelineLayout(device, simple_pipeline.pipelineLayout, nullptr);
         vkDestroyDescriptorSetLayout(device, simple_pipeline.descSetLayout, nullptr);
     }
@@ -496,8 +526,8 @@ void record_meshlet_culling_clear_command_buffer(const FrameGraphHelper&        
 
 void record_meshlet_culling_command_buffer(ReaperRoot& root, const FrameGraphHelper& frame_graph_helper,
                                            const CullMeshletsFrameGraphRecord::CullMeshlets& pass_record,
-                                           CommandBuffer& cmdBuffer, const PreparedData& prepared,
-                                           MeshletCullingResources& resources)
+                                           CommandBuffer& cmdBuffer, const PipelineFactory& pipeline_factory,
+                                           const PreparedData& prepared, MeshletCullingResources& resources)
 {
     REAPER_GPU_SCOPE(cmdBuffer, "Cull Meshlets");
 
@@ -506,7 +536,8 @@ void record_meshlet_culling_command_buffer(ReaperRoot& root, const FrameGraphHel
     u64              total_meshlet_count = 0;
     std::vector<u64> meshlet_count_per_pass;
 
-    vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE, resources.cull_meshlets_pipe.pipeline);
+    vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE,
+                      get_pipeline(pipeline_factory, resources.cull_meshlets_pipe.pipeline_index));
 
     for (const CullPassData& cull_pass : prepared.cull_passes)
     {
@@ -543,14 +574,15 @@ void record_meshlet_culling_command_buffer(ReaperRoot& root, const FrameGraphHel
 
 void record_triangle_culling_prepare_command_buffer(
     const FrameGraphHelper& frame_graph_helper, const CullMeshletsFrameGraphRecord::CullTrianglesPrepare& pass_record,
-    CommandBuffer& cmdBuffer, const PreparedData& prepared, MeshletCullingResources& resources)
+    CommandBuffer& cmdBuffer, const PipelineFactory& pipeline_factory, const PreparedData& prepared,
+    MeshletCullingResources& resources)
 {
     REAPER_GPU_SCOPE(cmdBuffer, "Cull Meshlet Triangles Prepare");
 
     const FrameGraphBarrierScope framegraph_barrier_scope(cmdBuffer, frame_graph_helper, pass_record.pass_handle);
 
     vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE,
-                      resources.cull_meshlets_prep_indirect_pipe.pipeline);
+                      get_pipeline(pipeline_factory, resources.cull_meshlets_prep_indirect_pipe.pipeline_index));
 
     vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE,
                             resources.cull_meshlets_prep_indirect_pipe.pipelineLayout, 0, 1,
@@ -563,8 +595,10 @@ void record_triangle_culling_prepare_command_buffer(
 
 void record_triangle_culling_command_buffer(const FrameGraphHelper&                            frame_graph_helper,
                                             const CullMeshletsFrameGraphRecord::CullTriangles& pass_record,
-                                            CommandBuffer& cmdBuffer, const PreparedData& prepared,
-                                            MeshletCullingResources& resources)
+                                            CommandBuffer&                                     cmdBuffer,
+                                            const PipelineFactory&                             pipeline_factory,
+                                            const PreparedData&                                prepared,
+                                            MeshletCullingResources&                           resources)
 {
     REAPER_GPU_SCOPE(cmdBuffer, "Cull Meshlet Triangles");
 
@@ -573,7 +607,8 @@ void record_triangle_culling_command_buffer(const FrameGraphHelper&             
     const FrameGraphBuffer indirect_dispatch_buffer = get_frame_graph_buffer(
         frame_graph_helper.resources, frame_graph_helper.frame_graph, pass_record.indirect_dispatch_buffer);
 
-    vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE, resources.cull_triangles_pipe.pipeline);
+    vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE,
+                      get_pipeline(pipeline_factory, resources.cull_triangles_pipe.pipeline_index));
 
     for (const CullPassData& cull_pass : prepared.cull_passes)
     {

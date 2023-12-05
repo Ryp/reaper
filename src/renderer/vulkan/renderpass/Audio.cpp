@@ -18,6 +18,7 @@
 #include "renderer/vulkan/FrameGraphResources.h"
 #include "renderer/vulkan/GpuProfile.h"
 #include "renderer/vulkan/Pipeline.h"
+#include "renderer/vulkan/PipelineFactory.h"
 #include "renderer/vulkan/ShaderModules.h"
 #include "renderer/vulkan/api/AssertHelper.h"
 
@@ -34,7 +35,16 @@
 
 namespace Reaper
 {
-AudioResources create_audio_resources(VulkanBackend& backend, const ShaderModules& shader_modules)
+namespace
+{
+    VkPipeline create_audio_pipeline(VkDevice device, const ShaderModules& shader_modules,
+                                     VkPipelineLayout pipeline_layout)
+    {
+        return create_compute_pipeline(device, pipeline_layout, shader_modules.oscillator_cs);
+    }
+} // namespace
+
+AudioResources create_audio_resources(VulkanBackend& backend, PipelineFactory& pipeline_factory)
 {
     AudioResources resources = {};
 
@@ -52,9 +62,13 @@ AudioResources create_audio_resources(VulkanBackend& backend, const ShaderModule
         VkPipelineLayout pipelineLayout = create_pipeline_layout(backend.device, std::span(&descriptorSetLayout, 1),
                                                                  std::span(&audioPushConstantRange, 1));
 
-        VkPipeline pipeline = create_compute_pipeline(backend.device, pipelineLayout, shader_modules.oscillator_cs);
-
-        resources.audioPipe = AudioPipelineInfo{pipeline, pipelineLayout, descriptorSetLayout};
+        resources.descSetLayout = descriptorSetLayout;
+        resources.pipelineLayout = pipelineLayout;
+        resources.pipeline_index = register_pipeline_creator(pipeline_factory,
+                                                             PipelineCreator{
+                                                                 .pipeline_layout = pipelineLayout,
+                                                                 .pipeline_creation_function = &create_audio_pipeline,
+                                                             });
     }
 
     resources.instance_buffer = create_buffer(
@@ -86,8 +100,8 @@ AudioResources create_audio_resources(VulkanBackend& backend, const ShaderModule
 
     vkCreateSemaphore(backend.device, &createInfo, NULL, &resources.semaphore);
 
-    allocate_descriptor_sets(backend.device, backend.global_descriptor_pool,
-                             std::span(&resources.audioPipe.descSetLayout, 1), std::span(&resources.descriptor_set, 1));
+    allocate_descriptor_sets(backend.device, backend.global_descriptor_pool, std::span(&resources.descSetLayout, 1),
+                             std::span(&resources.descriptor_set, 1));
 
     resources.current_frame = 0;
 
@@ -100,9 +114,8 @@ void destroy_audio_resources(VulkanBackend& backend, AudioResources& resources)
     vmaDestroyBuffer(backend.vma_instance, resources.audio_staging_buffer.handle,
                      resources.audio_staging_buffer.allocation);
 
-    vkDestroyPipeline(backend.device, resources.audioPipe.pipeline, nullptr);
-    vkDestroyPipelineLayout(backend.device, resources.audioPipe.pipelineLayout, nullptr);
-    vkDestroyDescriptorSetLayout(backend.device, resources.audioPipe.descSetLayout, nullptr);
+    vkDestroyPipelineLayout(backend.device, resources.pipelineLayout, nullptr);
+    vkDestroyDescriptorSetLayout(backend.device, resources.descSetLayout, nullptr);
 
     vkDestroySemaphore(backend.device, resources.semaphore, nullptr);
 }
@@ -154,18 +167,20 @@ void update_audio_render_resources(VulkanBackend& backend, const FrameGraph::Fra
 
 void record_audio_render_command_buffer(const FrameGraphHelper&              frame_graph_helper,
                                         const AudioFrameGraphRecord::Render& pass_record, CommandBuffer& cmdBuffer,
-                                        const PreparedData& prepared, AudioResources& resources)
+                                        const PipelineFactory& pipeline_factory, const PreparedData& prepared,
+                                        AudioResources& resources)
 {
     REAPER_GPU_SCOPE(cmdBuffer, "Audio Render");
 
     const FrameGraphBarrierScope framegraph_barrier_scope(cmdBuffer, frame_graph_helper, pass_record.pass_handle);
 
-    vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE, resources.audioPipe.pipeline);
+    vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE,
+                      get_pipeline(pipeline_factory, resources.pipeline_index));
 
-    vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE, resources.audioPipe.pipelineLayout, 0, 1,
+    vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE, resources.pipelineLayout, 0, 1,
                             &resources.descriptor_set, 0, nullptr);
 
-    vkCmdPushConstants(cmdBuffer.handle, resources.audioPipe.pipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0,
+    vkCmdPushConstants(cmdBuffer.handle, resources.pipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0,
                        sizeof(SoundPushConstants), &prepared.audio_push_constants);
 
     vkCmdDispatch(cmdBuffer.handle, FrameCountPerDispatch, 1, 1);

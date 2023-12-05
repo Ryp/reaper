@@ -24,6 +24,7 @@
 #include "renderer/vulkan/MaterialResources.h"
 #include "renderer/vulkan/MeshCache.h"
 #include "renderer/vulkan/Pipeline.h"
+#include "renderer/vulkan/PipelineFactory.h"
 #include "renderer/vulkan/RenderPassHelpers.h"
 #include "renderer/vulkan/SamplerResources.h"
 #include "renderer/vulkan/ShaderModules.h"
@@ -97,8 +98,8 @@ constexpr u32 MeshInstanceCountMax = 512;
 
 namespace
 {
-    VkPipeline create_forward_pipeline(VulkanBackend& backend, VkPipelineLayout pipeline_layout,
-                                       const ShaderModules& shader_modules)
+    VkPipeline create_forward_pipeline(VkDevice device, const ShaderModules& shader_modules,
+                                       VkPipelineLayout pipeline_layout)
     {
         std::vector<VkPipelineShaderStageCreateInfo> shader_stages = {
             default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_VERTEX_BIT, shader_modules.forward_vs),
@@ -125,14 +126,13 @@ namespace
 
         std::vector<VkDynamicState> dynamic_states = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
 
-        VkPipeline pipeline =
-            create_graphics_pipeline(backend.device, shader_stages, pipeline_properties, dynamic_states);
+        VkPipeline pipeline = create_graphics_pipeline(device, shader_stages, pipeline_properties, dynamic_states);
 
         return pipeline;
     }
 } // namespace
 
-ForwardPassResources create_forward_pass_resources(VulkanBackend& backend, const ShaderModules& shader_modules)
+ForwardPassResources create_forward_pass_resources(VulkanBackend& backend, PipelineFactory& pipeline_factory)
 {
     ForwardPassResources resources = {};
 
@@ -157,9 +157,14 @@ ForwardPassResources create_forward_pass_resources(VulkanBackend& backend, const
     resources.pipe.desc_set_layout = descriptorSetLayouts[0];
     resources.pipe.desc_set_layout_material = descriptorSetLayouts[1];
 
-    resources.pipe.pipelineLayout = create_pipeline_layout(backend.device, descriptorSetLayouts);
+    resources.pipe.pipeline_layout = create_pipeline_layout(backend.device, descriptorSetLayouts);
 
-    resources.pipe.pipeline = create_forward_pipeline(backend, resources.pipe.pipelineLayout, shader_modules);
+    resources.pipe.pipeline_index =
+        register_pipeline_creator(pipeline_factory,
+                                  PipelineCreator{
+                                      .pipeline_layout = resources.pipe.pipeline_layout,
+                                      .pipeline_creation_function = &create_forward_pipeline,
+                                  });
 
     resources.pass_constant_buffer =
         create_buffer(backend.device, "Forward Pass Constant buffer",
@@ -183,8 +188,7 @@ ForwardPassResources create_forward_pass_resources(VulkanBackend& backend, const
 
 void destroy_forward_pass_resources(VulkanBackend& backend, ForwardPassResources& resources)
 {
-    vkDestroyPipeline(backend.device, resources.pipe.pipeline, nullptr);
-    vkDestroyPipelineLayout(backend.device, resources.pipe.pipelineLayout, nullptr);
+    vkDestroyPipelineLayout(backend.device, resources.pipe.pipeline_layout, nullptr);
     vkDestroyDescriptorSetLayout(backend.device, resources.pipe.desc_set_layout, nullptr);
     vkDestroyDescriptorSetLayout(backend.device, resources.pipe.desc_set_layout_material, nullptr);
 
@@ -328,7 +332,8 @@ void update_forward_pass_descriptor_sets(VulkanBackend& backend, const FrameGrap
 
 void record_forward_pass_command_buffer(const FrameGraphHelper&        frame_graph_helper,
                                         const ForwardFrameGraphRecord& pass_record, CommandBuffer& cmdBuffer,
-                                        const PreparedData& prepared, const ForwardPassResources& pass_resources)
+                                        const PipelineFactory& pipeline_factory, const PreparedData& prepared,
+                                        const ForwardPassResources& pass_resources)
 {
     if (prepared.mesh_instances.empty())
         return;
@@ -352,7 +357,8 @@ void record_forward_pass_command_buffer(const FrameGraphHelper&        frame_gra
     const VkRect2D   pass_rect = default_vk_rect(extent);
     const VkViewport viewport = default_vk_viewport(pass_rect);
 
-    vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, pass_resources.pipe.pipeline);
+    vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                      get_pipeline(pipeline_factory, pass_resources.pipe.pipeline_index));
 
     vkCmdSetViewport(cmdBuffer.handle, 0, 1, &viewport);
     vkCmdSetScissor(cmdBuffer.handle, 0, 1, &pass_rect);
@@ -381,7 +387,7 @@ void record_forward_pass_command_buffer(const FrameGraphHelper&        frame_gra
         pass_resources.material_descriptor_set,
     };
 
-    vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, pass_resources.pipe.pipelineLayout, 0,
+    vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, pass_resources.pipe.pipeline_layout, 0,
                             static_cast<u32>(pass_descriptors.size()), pass_descriptors.data(), 0, nullptr);
 
     vkCmdDrawIndexedIndirectCount(cmdBuffer.handle, meshlet_indirect_draw_commands.handle,

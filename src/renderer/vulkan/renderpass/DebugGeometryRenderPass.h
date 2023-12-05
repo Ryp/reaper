@@ -26,15 +26,21 @@ struct DebugMeshAlloc
 
 struct DebugGeometryPassResources
 {
-    VkDescriptorSetLayout build_cmds_descriptor_set_layout;
-    VkPipelineLayout      build_cmds_pipeline_layout;
-    VkPipeline            build_cmds_pipeline;
+    struct BuildCmds
+    {
+        VkDescriptorSetLayout descriptor_set_layout;
+        VkPipelineLayout      pipeline_layout;
+        u32                   pipeline_index;
+    } build_cmds;
 
     VkDescriptorSet build_cmds_descriptor_set;
 
-    VkDescriptorSetLayout draw_descriptor_set_layout;
-    VkPipelineLayout      draw_pipeline_layout;
-    VkPipeline            draw_pipeline;
+    struct Draw
+    {
+        VkDescriptorSetLayout descriptor_set_layout;
+        VkPipelineLayout      pipeline_layout;
+        u32                   pipeline_index;
+    } draw;
 
     VkDescriptorSet draw_descriptor_set;
 
@@ -48,10 +54,10 @@ struct DebugGeometryPassResources
 };
 
 struct VulkanBackend;
-struct ShaderModules;
+struct PipelineFactory;
 
-DebugGeometryPassResources create_debug_geometry_pass_resources(VulkanBackend&       backend,
-                                                                const ShaderModules& shader_modules);
+DebugGeometryPassResources create_debug_geometry_pass_resources(VulkanBackend&   backend,
+                                                                PipelineFactory& pipeline_factory);
 void destroy_debug_geometry_pass_resources(VulkanBackend& backend, DebugGeometryPassResources& resources);
 
 namespace FrameGraph
@@ -125,9 +131,12 @@ void record_debug_geometry_clear_command_buffer(const FrameGraphHelper&         
 void record_debug_geometry_build_cmds_command_buffer(const FrameGraphHelper&                     frame_graph_helper,
                                                      const DebugGeometryComputeFrameGraphRecord& pass_record,
                                                      CommandBuffer&                              cmdBuffer,
+                                                     const PipelineFactory&                      pipeline_factory,
                                                      const DebugGeometryPassResources&           resources);
 
 void record_debug_geometry_draw_command_buffer(const FrameGraphHelper&                  frame_graph_helper,
                                                const DebugGeometryDrawFrameGraphRecord& pass_record,
-                                               CommandBuffer& cmdBuffer, const DebugGeometryPassResources& resources);
+                                               CommandBuffer&                           cmdBuffer,
+                                               const PipelineFactory&                   pipeline_factory,
+                                               const DebugGeometryPassResources&        resources);
 } // namespace Reaper

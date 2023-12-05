@@ -15,16 +15,11 @@
 
 namespace Reaper
 {
-struct AudioPipelineInfo
-{
-    VkPipeline            pipeline;
-    VkPipelineLayout      pipelineLayout;
-    VkDescriptorSetLayout descSetLayout;
-};
-
 struct AudioResources
 {
-    AudioPipelineInfo audioPipe;
+    u32                   pipeline_index;
+    VkPipelineLayout      pipelineLayout;
+    VkDescriptorSetLayout descSetLayout;
 
     GPUBuffer           instance_buffer;
     GPUBuffer           audio_staging_buffer;
@@ -53,9 +48,9 @@ struct RawSample
 #endif
 
 struct VulkanBackend;
-struct ShaderModules;
+struct PipelineFactory;
 
-AudioResources create_audio_resources(VulkanBackend& backend, const ShaderModules& shader_modules);
+AudioResources create_audio_resources(VulkanBackend& backend, PipelineFactory& pipeline_factory);
 void           destroy_audio_resources(VulkanBackend& backend, AudioResources& resources);
 
 namespace FrameGraph
@@ -95,7 +90,8 @@ struct FrameGraphHelper;
 
 void record_audio_render_command_buffer(const FrameGraphHelper&              frame_graph_helper,
                                         const AudioFrameGraphRecord::Render& pass_record, CommandBuffer& cmdBuffer,
-                                        const PreparedData& prepared, AudioResources& resources);
+                                        const PipelineFactory& pipeline_factory, const PreparedData& prepared,
+                                        AudioResources& resources);
 
 void record_audio_copy_command_buffer(const FrameGraphHelper&                   frame_graph_helper,
                                       const AudioFrameGraphRecord::StagingCopy& pass_record,

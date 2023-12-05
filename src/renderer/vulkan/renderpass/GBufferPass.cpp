@@ -21,16 +21,12 @@
 #include "renderer/vulkan/MaterialResources.h"
 #include "renderer/vulkan/MeshCache.h"
 #include "renderer/vulkan/Pipeline.h"
+#include "renderer/vulkan/PipelineFactory.h"
 #include "renderer/vulkan/RenderPassHelpers.h"
 #include "renderer/vulkan/SamplerResources.h"
 #include "renderer/vulkan/ShaderModules.h"
 #include "renderer/vulkan/renderpass/Constants.h"
 #include "renderer/vulkan/renderpass/GBufferPassConstants.h"
-
-#include "common/Log.h"
-#include "common/ReaperRoot.h"
-
-#include <vector>
 
 #include "gbuffer/gbuffer_write_opaque.share.hlsl"
 
@@ -40,8 +36,8 @@ constexpr u32 GBufferInstanceCountMax = 512;
 
 namespace
 {
-    VkPipeline create_gbuffer_pipeline(ReaperRoot& root, VulkanBackend& backend, VkPipelineLayout pipeline_layout,
-                                       const ShaderModules& shader_modules)
+    VkPipeline create_gbuffer_pipeline(VkDevice device, const ShaderModules& shader_modules,
+                                       VkPipelineLayout pipeline_layout)
     {
         std::vector<VkPipelineShaderStageCreateInfo> shader_stages = {
             default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_VERTEX_BIT,
@@ -71,17 +67,13 @@ namespace
 
         std::vector<VkDynamicState> dynamic_states = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
 
-        VkPipeline pipeline =
-            create_graphics_pipeline(backend.device, shader_stages, pipeline_properties, dynamic_states);
-
-        log_debug(root, "vulkan: created blit pipeline with handle: {}", static_cast<void*>(pipeline));
+        VkPipeline pipeline = create_graphics_pipeline(device, shader_stages, pipeline_properties, dynamic_states);
 
         return pipeline;
     }
 } // namespace
 
-GBufferPassResources create_gbuffer_pass_resources(ReaperRoot& root, VulkanBackend& backend,
-                                                   const ShaderModules& shader_modules)
+GBufferPassResources create_gbuffer_pass_resources(VulkanBackend& backend, PipelineFactory& pipeline_factory)
 {
     GBufferPassResources resources = {};
 
@@ -108,7 +100,12 @@ GBufferPassResources create_gbuffer_pass_resources(ReaperRoot& root, VulkanBacke
 
     resources.pipe.pipelineLayout = create_pipeline_layout(backend.device, descriptorSetLayouts);
 
-    resources.pipe.pipeline = create_gbuffer_pipeline(root, backend, resources.pipe.pipelineLayout, shader_modules);
+    resources.pipe.pipeline_index =
+        register_pipeline_creator(pipeline_factory,
+                                  PipelineCreator{
+                                      .pipeline_layout = resources.pipe.pipelineLayout,
+                                      .pipeline_creation_function = &create_gbuffer_pipeline,
+                                  });
 
     resources.instance_buffer = create_buffer(
         backend.device, "GBuffer Instance buffer",
@@ -126,7 +123,6 @@ GBufferPassResources create_gbuffer_pass_resources(ReaperRoot& root, VulkanBacke
 
 void destroy_gbuffer_pass_resources(VulkanBackend& backend, GBufferPassResources& resources)
 {
-    vkDestroyPipeline(backend.device, resources.pipe.pipeline, nullptr);
     vkDestroyPipelineLayout(backend.device, resources.pipe.pipelineLayout, nullptr);
     vkDestroyDescriptorSetLayout(backend.device, resources.pipe.desc_set_layout, nullptr);
 
@@ -182,11 +178,11 @@ void upload_gbuffer_pass_frame_resources(VulkanBackend& backend, const PreparedD
                                   prepared.mesh_instances.size() * sizeof(MeshInstance));
 }
 
-void record_gbuffer_pass_command_buffer(CommandBuffer& cmdBuffer, const PreparedData& prepared,
-                                        const GBufferPassResources& pass_resources,
-                                        const FrameGraphBuffer&     meshlet_counters,
-                                        const FrameGraphBuffer&     meshlet_indirect_draw_commands,
-                                        const FrameGraphBuffer&     meshlet_visible_index_buffer,
+void record_gbuffer_pass_command_buffer(CommandBuffer& cmdBuffer, const PipelineFactory& pipeline_factory,
+                                        const PreparedData& prepared, const GBufferPassResources& pass_resources,
+                                        const FrameGraphBuffer&  meshlet_counters,
+                                        const FrameGraphBuffer&  meshlet_indirect_draw_commands,
+                                        const FrameGraphBuffer&  meshlet_visible_index_buffer,
                                         const FrameGraphTexture& gbuffer_rt0, const FrameGraphTexture& gbuffer_rt1,
                                         const FrameGraphTexture& depth_buffer)
 {
@@ -197,7 +193,8 @@ void record_gbuffer_pass_command_buffer(CommandBuffer& cmdBuffer, const Prepared
     const VkRect2D   pass_rect = default_vk_rect(extent);
     const VkViewport viewport = default_vk_viewport(pass_rect);
 
-    vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, pass_resources.pipe.pipeline);
+    vkCmdBindPipeline(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                      get_pipeline(pipeline_factory, pass_resources.pipe.pipeline_index));
 
     vkCmdSetViewport(cmdBuffer.handle, 0, 1, &viewport);
     vkCmdSetScissor(cmdBuffer.handle, 0, 1, &pass_rect);
