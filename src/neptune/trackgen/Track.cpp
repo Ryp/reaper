@@ -119,7 +119,6 @@ namespace
             node.center_ws = node.in_transform_ms_to_ws * glm::fvec4(forward_offset_ms, 1.f);
         }
 
-        // TODO Cheat sheet for matrix combination in C++/GLM and HLSL
         node.end_transform = GenerateChunkEndLocalSpace(gen_info, rng);
 
         const glm::fmat4 translation_a = glm::translate(glm::identity<glm::fmat4>(), forward_offset_ms);

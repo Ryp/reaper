@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include "renderer/buffer/GPUBufferView.h"
 #include "renderer/graph/FrameGraphBasicTypes.h"
 #include "renderer/vulkan/Buffer.h"
 

@@ -17,9 +17,6 @@
 
 namespace Reaper
 {
-struct ReaperRoot;
-struct BufferSubresource;
-
 struct GPUBuffer
 {
     VkBuffer            handle;

@@ -34,12 +34,6 @@ namespace Neptune
 {
 namespace
 {
-    /*
-    glm::fvec3 get_interpolated_up_vector_ws(const TrackSkeletonNode& skeleton_node)
-    {
-    }
-    */
-
 #if defined(REAPER_USE_BULLET_PHYSICS)
     void pre_tick(PhysicsSim& sim, const PhysicsSim::FrameData& frame_data, float dt)
     {
@@ -133,7 +127,7 @@ namespace
             const float      u_dot_v_plus_one = 1.f + dot_gravity_to_player;
 
             const glm::quat  delta = glm::normalize(glm::quat(glm::fvec4(u_cross_v, u_dot_v_plus_one)));
-            const glm::fvec3 torque = glm::eulerAngles(delta) * -1.85f;
+            const glm::fvec3 torque = glm::eulerAngles(delta) * 0.85f;
 
             torque_ws += torque;
         }

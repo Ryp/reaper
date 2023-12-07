@@ -22,9 +22,9 @@ namespace Reaper
 {
 struct MeshCache
 {
-    static constexpr u32 MAX_INDEX_COUNT = 1000000;
-    static constexpr u32 MAX_VERTEX_COUNT = 2000000;
-    static constexpr u32 MAX_MESHLET_COUNT = 4096;
+    static constexpr u32 MAX_INDEX_COUNT = 2000000;
+    static constexpr u32 MAX_VERTEX_COUNT = 4000000;
+    static constexpr u32 MAX_MESHLET_COUNT = MAX_VERTEX_COUNT / 64; // FIXME
 
     GPUBuffer indexBuffer;
     GPUBuffer vertexBufferPosition;
