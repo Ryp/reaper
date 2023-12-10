@@ -7,11 +7,14 @@
 
 #pragma once
 
-#include <vector>
-
 #include "RendererExport.h"
 
 #include <core/Types.h>
+
+#include <span>
+#include <vector>
+
+struct DebugGeometryUserCommand;
 
 namespace Reaper
 {
@@ -24,6 +27,7 @@ REAPER_RENDERER_API void renderer_stop(ReaperRoot& root, VulkanBackend& backend,
 
 struct SceneGraph;
 
-REAPER_RENDERER_API void renderer_execute_frame(ReaperRoot& root, const SceneGraph& scene,
-                                                std::vector<u8>& audio_output);
+REAPER_RENDERER_API void
+renderer_execute_frame(ReaperRoot& root, const SceneGraph& scene, std::vector<u8>& audio_output,
+                       std::span<DebugGeometryUserCommand> debug_draw_commands = std::span<DebugGeometryUserCommand>());
 } // namespace Reaper

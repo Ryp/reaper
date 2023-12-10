@@ -189,7 +189,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     const CullMeshletsFrameGraphRecord meshlet_pass = create_cull_meshlet_frame_graph_record(builder);
 
-    const DebugGeometryClearFrameGraphRecord debug_geometry_clear = create_debug_geometry_clear_pass_record(builder);
+    const DebugGeometryStartFrameGraphRecord debug_geometry_start = create_debug_geometry_start_pass_record(builder);
 
     const ShadowFrameGraphRecord shadow = create_shadow_map_pass_record(builder, meshlet_pass, prepared);
 
@@ -218,11 +218,16 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     const HistogramFrameGraphRecord histogram =
         create_histogram_pass_record(builder, histogram_clear, forward.scene_hdr);
 
-    const DebugGeometryComputeFrameGraphRecord debug_geometry_build_cmds =
-        create_debug_geometry_compute_pass_record(builder, debug_geometry_clear);
+    // NOTE: If you have GPU passes that writes debug commands, the last one should give its handles here
+    FrameGraph::ResourceUsageHandle last_draw_count_handle = debug_geometry_start.draw_counter;
+    FrameGraph::ResourceUsageHandle last_user_commands_buffer_handle = debug_geometry_start.user_commands_buffer;
 
+    const DebugGeometryComputeFrameGraphRecord debug_geometry_build_cmds =
+        create_debug_geometry_compute_pass_record(builder, last_draw_count_handle, last_user_commands_buffer_handle);
+
+    // If you have GPU passes that writes debug commands, the last one should give its handles here.
     const DebugGeometryDrawFrameGraphRecord debug_geometry_draw = create_debug_geometry_draw_pass_record(
-        builder, debug_geometry_clear, debug_geometry_build_cmds, tiled_lighting.lighting, forward.depth);
+        builder, debug_geometry_build_cmds, last_draw_count_handle, tiled_lighting.lighting, forward.depth);
 
     const SwapchainFrameGraphRecord swapchain = create_swapchain_pass_record(builder,
                                                                              forward.scene_hdr,
@@ -280,6 +285,8 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         update_histogram_pass_descriptor_set(framegraph, resources.framegraph_resources, histogram,
                                              descriptor_write_helper, resources.histogram_pass_resources,
                                              resources.samplers_resources);
+
+        update_debug_geometry_start_resources(backend, prepared, resources.debug_geometry_resources);
 
         update_debug_geometry_build_cmds_pass_resources(backend, framegraph, resources.framegraph_resources,
                                                         debug_geometry_build_cmds, descriptor_write_helper, prepared,
@@ -395,7 +402,8 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         record_meshlet_culling_debug_command_buffer(frame_graph_helper, meshlet_pass.debug, cmdBuffer,
                                                     resources.meshlet_culling_resources);
 
-        record_debug_geometry_clear_command_buffer(frame_graph_helper, debug_geometry_clear, cmdBuffer);
+        record_debug_geometry_start_command_buffer(frame_graph_helper, debug_geometry_start, cmdBuffer, prepared,
+                                                   resources.debug_geometry_resources);
 
         record_shadow_map_command_buffer(frame_graph_helper, shadow, cmdBuffer, resources.pipeline_factory, prepared,
                                          resources.shadow_map_resources);

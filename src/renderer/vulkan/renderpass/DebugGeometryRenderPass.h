@@ -44,6 +44,7 @@ struct DebugGeometryPassResources
 
     VkDescriptorSet draw_descriptor_set;
 
+    GPUBuffer cpu_commands_staging_buffer;
     GPUBuffer build_cmds_constants;
 
     std::vector<DebugMeshAlloc> proxy_mesh_allocs;
@@ -66,14 +67,14 @@ namespace FrameGraph
     class FrameGraph;
 } // namespace FrameGraph
 
-struct DebugGeometryClearFrameGraphRecord
+struct DebugGeometryStartFrameGraphRecord
 {
     FrameGraph::RenderPassHandle    pass_handle;
     FrameGraph::ResourceUsageHandle draw_counter;
     FrameGraph::ResourceUsageHandle user_commands_buffer;
 };
 
-DebugGeometryClearFrameGraphRecord create_debug_geometry_clear_pass_record(FrameGraph::Builder& builder);
+DebugGeometryStartFrameGraphRecord create_debug_geometry_start_pass_record(FrameGraph::Builder& builder);
 
 struct DebugGeometryComputeFrameGraphRecord
 {
@@ -85,8 +86,9 @@ struct DebugGeometryComputeFrameGraphRecord
 };
 
 DebugGeometryComputeFrameGraphRecord
-create_debug_geometry_compute_pass_record(FrameGraph::Builder&                      builder,
-                                          const DebugGeometryClearFrameGraphRecord& debug_geometry_clear);
+create_debug_geometry_compute_pass_record(FrameGraph::Builder&            builder,
+                                          FrameGraph::ResourceUsageHandle draw_counter_handle,
+                                          FrameGraph::ResourceUsageHandle user_commands_buffer_handle);
 
 struct DebugGeometryDrawFrameGraphRecord
 {
@@ -100,14 +102,17 @@ struct DebugGeometryDrawFrameGraphRecord
 
 DebugGeometryDrawFrameGraphRecord
 create_debug_geometry_draw_pass_record(FrameGraph::Builder&                        builder,
-                                       const DebugGeometryClearFrameGraphRecord&   debug_geometry_clear,
                                        const DebugGeometryComputeFrameGraphRecord& debug_geometry_build_cmds,
+                                       FrameGraph::ResourceUsageHandle             draw_counter_handle,
                                        FrameGraph::ResourceUsageHandle             scene_hdr_usage_handle,
                                        FrameGraph::ResourceUsageHandle             scene_depth_usage_handle);
 
 class DescriptorWriteHelper;
 struct FrameGraphResources;
 struct PreparedData;
+
+void update_debug_geometry_start_resources(VulkanBackend& backend, const PreparedData& prepared,
+                                           const DebugGeometryPassResources& resources);
 
 void update_debug_geometry_build_cmds_pass_resources(VulkanBackend& backend, const FrameGraph::FrameGraph& frame_graph,
                                                      const FrameGraphResources&                  frame_graph_resources,
@@ -124,9 +129,11 @@ void update_debug_geometry_draw_pass_descriptor_sets(const FrameGraph::FrameGrap
 struct CommandBuffer;
 struct FrameGraphHelper;
 
-void record_debug_geometry_clear_command_buffer(const FrameGraphHelper&                   frame_graph_helper,
-                                                const DebugGeometryClearFrameGraphRecord& pass_record,
-                                                CommandBuffer&                            cmdBuffer);
+void record_debug_geometry_start_command_buffer(const FrameGraphHelper&                   frame_graph_helper,
+                                                const DebugGeometryStartFrameGraphRecord& pass_record,
+                                                CommandBuffer&                            cmdBuffer,
+                                                const PreparedData&                       prepared,
+                                                const DebugGeometryPassResources&         resources);
 
 void record_debug_geometry_build_cmds_command_buffer(const FrameGraphHelper&                     frame_graph_helper,
                                                      const DebugGeometryComputeFrameGraphRecord& pass_record,

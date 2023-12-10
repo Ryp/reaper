@@ -41,6 +41,7 @@ static_assert(sizeof(DebugGeometryInstance) == DebugGeometryInstanceSizeBytes, "
 
 namespace Reaper
 {
+constexpr u32 MaxCPUDebugCommandCount = 1024;
 constexpr u32 MaxIndexCount = 1024;
 constexpr u32 MaxVertexCount = MaxIndexCount * 3;
 
@@ -146,6 +147,12 @@ DebugGeometryPassResources create_debug_geometry_pass_resources(VulkanBackend&  
     resources.build_cmds_descriptor_set = dsets[0];
     resources.draw_descriptor_set = dsets[1];
 
+    resources.cpu_commands_staging_buffer =
+        create_buffer(backend.device, "Debug CPU Command Buffer",
+                      DefaultGPUBufferProperties(MaxCPUDebugCommandCount, sizeof(DebugGeometryUserCommand),
+                                                 GPUBufferUsage::TransferSrc),
+                      backend.vma_instance, MemUsage::CPU_To_GPU);
+
     resources.build_cmds_constants = create_buffer(
         backend.device, "Debug Build Cmds Uniform Buffer",
         DefaultGPUBufferProperties(1, sizeof(DebugGeometryBuildCmdsPassConstants), GPUBufferUsage::UniformBuffer),
@@ -199,6 +206,8 @@ void destroy_debug_geometry_pass_resources(VulkanBackend& backend, DebugGeometry
     vmaDestroyBuffer(backend.vma_instance, resources.index_buffer.handle, resources.index_buffer.allocation);
     vmaDestroyBuffer(backend.vma_instance, resources.build_cmds_constants.handle,
                      resources.build_cmds_constants.allocation);
+    vmaDestroyBuffer(backend.vma_instance, resources.cpu_commands_staging_buffer.handle,
+                     resources.cpu_commands_staging_buffer.allocation);
 
     vkDestroyPipelineLayout(backend.device, resources.draw.pipeline_layout, nullptr);
     vkDestroyDescriptorSetLayout(backend.device, resources.draw.descriptor_set_layout, nullptr);
@@ -207,99 +216,111 @@ void destroy_debug_geometry_pass_resources(VulkanBackend& backend, DebugGeometry
     vkDestroyDescriptorSetLayout(backend.device, resources.build_cmds.descriptor_set_layout, nullptr);
 }
 
-DebugGeometryClearFrameGraphRecord create_debug_geometry_clear_pass_record(FrameGraph::Builder& builder)
+DebugGeometryStartFrameGraphRecord create_debug_geometry_start_pass_record(FrameGraph::Builder& builder)
 {
-    DebugGeometryClearFrameGraphRecord debug_geometry_clear;
-    debug_geometry_clear.pass_handle = builder.create_render_pass("Debug Geometry Clear");
+    DebugGeometryStartFrameGraphRecord record;
+    record.pass_handle = builder.create_render_pass("Debug Geometry Start");
 
     const GPUBufferProperties debug_geometry_counter_properties = DefaultGPUBufferProperties(
         1, sizeof(u32), GPUBufferUsage::IndirectBuffer | GPUBufferUsage::StorageBuffer | GPUBufferUsage::TransferDst);
 
-    debug_geometry_clear.draw_counter = builder.create_buffer(
-        debug_geometry_clear.pass_handle, "Debug Indirect draw counter buffer", debug_geometry_counter_properties,
+    record.draw_counter = builder.create_buffer(
+        record.pass_handle, "Debug Indirect draw counter buffer", debug_geometry_counter_properties,
         GPUBufferAccess{VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT});
 
-    const GPUBufferProperties debug_geometry_user_commands_properties = DefaultGPUBufferProperties(
-        DebugGeometryCountMax, sizeof(DebugGeometryUserCommand), GPUBufferUsage::StorageBuffer);
+    const GPUBufferProperties debug_geometry_user_commands_properties =
+        DefaultGPUBufferProperties(DebugGeometryCountMax, sizeof(DebugGeometryUserCommand),
+                                   GPUBufferUsage::StorageBuffer | GPUBufferUsage::TransferDst);
 
-    // Technically we shouldn't create an usage here, the first client of the debug geometry API should call
-    // create_buffer() with the right data. But it makes it slightly simpler this way for the user API so I'm taking
-    // the trade-off and paying for an extra useless barrier.
-    debug_geometry_clear.user_commands_buffer = builder.create_buffer(
-        debug_geometry_clear.pass_handle, "Debug geometry user command buffer", debug_geometry_user_commands_properties,
+    record.user_commands_buffer = builder.create_buffer(
+        record.pass_handle, "Debug geometry user command buffer", debug_geometry_user_commands_properties,
         GPUBufferAccess{VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT});
 
-    return debug_geometry_clear;
+    return record;
 }
 
 DebugGeometryComputeFrameGraphRecord
-create_debug_geometry_compute_pass_record(FrameGraph::Builder&                      builder,
-                                          const DebugGeometryClearFrameGraphRecord& debug_geometry_clear)
+create_debug_geometry_compute_pass_record(FrameGraph::Builder&            builder,
+                                          FrameGraph::ResourceUsageHandle draw_counter_handle,
+                                          FrameGraph::ResourceUsageHandle user_commands_buffer_handle)
 {
-    DebugGeometryComputeFrameGraphRecord debug_geometry_build_cmds;
+    DebugGeometryComputeFrameGraphRecord record;
 
-    debug_geometry_build_cmds.pass_handle = builder.create_render_pass("Debug Geometry Build Commands");
+    record.pass_handle = builder.create_render_pass("Debug Geometry Build Commands");
 
-    debug_geometry_build_cmds.draw_counter =
-        builder.read_buffer(debug_geometry_build_cmds.pass_handle, debug_geometry_clear.draw_counter,
+    record.draw_counter =
+        builder.read_buffer(record.pass_handle, draw_counter_handle,
                             GPUBufferAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT});
 
-    debug_geometry_build_cmds.user_commands_buffer =
-        builder.read_buffer(debug_geometry_build_cmds.pass_handle, debug_geometry_clear.user_commands_buffer,
+    record.user_commands_buffer =
+        builder.read_buffer(record.pass_handle, user_commands_buffer_handle,
                             GPUBufferAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT});
 
     const GPUBufferProperties debug_geometry_command_properties =
         DefaultGPUBufferProperties(DebugGeometryCountMax, sizeof(VkDrawIndexedIndirectCommand),
                                    GPUBufferUsage::IndirectBuffer | GPUBufferUsage::StorageBuffer);
 
-    debug_geometry_build_cmds.draw_commands = builder.create_buffer(
-        debug_geometry_build_cmds.pass_handle, "Debug Indirect draw command buffer", debug_geometry_command_properties,
+    record.draw_commands = builder.create_buffer(
+        record.pass_handle, "Debug Indirect draw command buffer", debug_geometry_command_properties,
         GPUBufferAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT});
 
     const GPUBufferProperties debug_geometry_instance_properties =
         DefaultGPUBufferProperties(DebugGeometryCountMax, sizeof(DebugGeometryInstance), GPUBufferUsage::StorageBuffer);
 
-    debug_geometry_build_cmds.instance_buffer = builder.create_buffer(
-        debug_geometry_build_cmds.pass_handle, "Debug geometry instance buffer", debug_geometry_instance_properties,
-        GPUBufferAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT});
+    record.instance_buffer =
+        builder.create_buffer(record.pass_handle, "Debug geometry instance buffer", debug_geometry_instance_properties,
+                              GPUBufferAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT});
 
-    return debug_geometry_build_cmds;
+    return record;
 }
 
 DebugGeometryDrawFrameGraphRecord
 create_debug_geometry_draw_pass_record(FrameGraph::Builder&                        builder,
-                                       const DebugGeometryClearFrameGraphRecord&   debug_geometry_clear,
                                        const DebugGeometryComputeFrameGraphRecord& debug_geometry_build_cmds,
+                                       FrameGraph::ResourceUsageHandle             draw_counter_handle,
                                        FrameGraph::ResourceUsageHandle             scene_hdr_usage_handle,
                                        FrameGraph::ResourceUsageHandle             scene_depth_usage_handle)
 {
-    DebugGeometryDrawFrameGraphRecord debug_geometry_draw;
-    debug_geometry_draw.pass_handle = builder.create_render_pass("Debug Geometry Draw");
+    DebugGeometryDrawFrameGraphRecord record;
+    record.pass_handle = builder.create_render_pass("Debug Geometry Draw");
 
-    debug_geometry_draw.scene_hdr = builder.write_texture(
-        debug_geometry_draw.pass_handle,
-        scene_hdr_usage_handle,
-        GPUTextureAccess{VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-                         VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL});
+    record.scene_hdr = builder.write_texture(record.pass_handle,
+                                             scene_hdr_usage_handle,
+                                             GPUTextureAccess{VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                                                              VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+                                                              VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL});
 
-    debug_geometry_draw.scene_depth = builder.read_texture(
-        debug_geometry_draw.pass_handle, scene_depth_usage_handle,
+    record.scene_depth = builder.read_texture(
+        record.pass_handle, scene_depth_usage_handle,
         GPUTextureAccess{VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
                          VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT, VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL});
 
-    debug_geometry_draw.draw_counter = builder.read_buffer(
-        debug_geometry_draw.pass_handle, debug_geometry_clear.draw_counter,
+    record.draw_counter = builder.read_buffer(
+        record.pass_handle, draw_counter_handle,
         GPUBufferAccess{VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT, VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT});
 
-    debug_geometry_draw.draw_commands = builder.read_buffer(
-        debug_geometry_draw.pass_handle, debug_geometry_build_cmds.draw_commands,
+    record.draw_commands = builder.read_buffer(
+        record.pass_handle, debug_geometry_build_cmds.draw_commands,
         GPUBufferAccess{VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT, VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT});
 
-    debug_geometry_draw.instance_buffer =
-        builder.read_buffer(debug_geometry_draw.pass_handle, debug_geometry_build_cmds.instance_buffer,
+    record.instance_buffer =
+        builder.read_buffer(record.pass_handle, debug_geometry_build_cmds.instance_buffer,
                             GPUBufferAccess{VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT});
 
-    return debug_geometry_draw;
+    return record;
+}
+
+void update_debug_geometry_start_resources(VulkanBackend& backend, const PreparedData& prepared,
+                                           const DebugGeometryPassResources& resources)
+{
+    const u32 cpu_command_count = prepared.debug_draw_commands.size();
+
+    if (cpu_command_count > 0)
+    {
+        upload_buffer_data_deprecated(backend.device, backend.vma_instance, resources.cpu_commands_staging_buffer,
+                                      prepared.debug_draw_commands.data(),
+                                      cpu_command_count * sizeof(prepared.debug_draw_commands[0]));
+    }
 }
 
 void update_debug_geometry_build_cmds_pass_resources(VulkanBackend& backend, const FrameGraph::FrameGraph& frame_graph,
@@ -360,20 +381,48 @@ void update_debug_geometry_draw_pass_descriptor_sets(const FrameGraph::FrameGrap
     write_helper.append(resources.draw_descriptor_set, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, instance_buffer.handle);
 }
 
-void record_debug_geometry_clear_command_buffer(const FrameGraphHelper&                   frame_graph_helper,
-                                                const DebugGeometryClearFrameGraphRecord& pass_record,
-                                                CommandBuffer&                            cmdBuffer)
+void record_debug_geometry_start_command_buffer(const FrameGraphHelper&                   frame_graph_helper,
+                                                const DebugGeometryStartFrameGraphRecord& pass_record,
+                                                CommandBuffer&                            cmdBuffer,
+                                                const PreparedData&                       prepared,
+                                                const DebugGeometryPassResources&         resources)
 {
-    REAPER_GPU_SCOPE(cmdBuffer, "Debug Geometry Clear");
+    REAPER_GPU_SCOPE(cmdBuffer, "Debug Geometry Start");
 
     const FrameGraphBarrierScope framegraph_barrier_scope(cmdBuffer, frame_graph_helper, pass_record.pass_handle);
 
-    const u32        clear_value = 0;
+    const u32 cpu_command_count = prepared.debug_draw_commands.size();
+
     FrameGraphBuffer draw_counter =
         get_frame_graph_buffer(frame_graph_helper.resources, frame_graph_helper.frame_graph, pass_record.draw_counter);
 
     vkCmdFillBuffer(cmdBuffer.handle, draw_counter.handle, draw_counter.default_view.offset_bytes,
-                    draw_counter.default_view.size_bytes, clear_value);
+                    draw_counter.default_view.size_bytes, cpu_command_count);
+
+    FrameGraphBuffer user_commands_buffer = get_frame_graph_buffer(
+        frame_graph_helper.resources, frame_graph_helper.frame_graph, pass_record.user_commands_buffer);
+
+    if (cpu_command_count > 0)
+    {
+        const VkBufferCopy2 region = {
+            .sType = VK_STRUCTURE_TYPE_BUFFER_COPY_2,
+            .pNext = nullptr,
+            .srcOffset = 0,
+            .dstOffset = 0,
+            .size = cpu_command_count * resources.cpu_commands_staging_buffer.properties_deprecated.element_size_bytes,
+        };
+
+        const VkCopyBufferInfo2 copy = {
+            .sType = VK_STRUCTURE_TYPE_COPY_BUFFER_INFO_2,
+            .pNext = nullptr,
+            .srcBuffer = resources.cpu_commands_staging_buffer.handle,
+            .dstBuffer = user_commands_buffer.handle,
+            .regionCount = 1,
+            .pRegions = &region,
+        };
+
+        vkCmdCopyBuffer2(cmdBuffer.handle, &copy);
+    }
 }
 
 void record_debug_geometry_build_cmds_command_buffer(const FrameGraphHelper&                     frame_graph_helper,

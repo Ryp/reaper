@@ -12,6 +12,8 @@ add_library(${target} ${REAPER_BUILD_TYPE})
 target_sources(${target} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/Camera.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Camera.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/DebugGeometryCommandRecordAPI.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/DebugGeometryCommandRecordAPI.h
     ${CMAKE_CURRENT_SOURCE_DIR}/ExecuteFrame.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/ExecuteFrame.h
     ${CMAKE_CURRENT_SOURCE_DIR}/PrepareBuckets.cpp

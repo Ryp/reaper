@@ -4,6 +4,7 @@
 /// Copyright (c) 2015-2022 Thibault Schueller
 /// This file is distributed under the MIT License
 ////////////////////////////////////////////////////////////////////////////////
+// NOTE: Must match with 'DebugGeometryCommandRecordAPI.h'
 
 #ifndef DEBUG_GEOMETRY_COMMAND_RECORD_API_INCLUDED
 #define DEBUG_GEOMETRY_COMMAND_RECORD_API_INCLUDED

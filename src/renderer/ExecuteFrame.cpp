@@ -87,7 +87,8 @@ void renderer_stop(ReaperRoot& root, VulkanBackend& backend, IWindow* window)
     destroy_backend_resources(backend);
 }
 
-void renderer_execute_frame(ReaperRoot& root, const SceneGraph& scene, std::vector<u8>& audio_output)
+void renderer_execute_frame(ReaperRoot& root, const SceneGraph& scene, std::vector<u8>& audio_output,
+                            std::span<DebugGeometryUserCommand> debug_draw_commands)
 {
     VulkanBackend& backend = *root.renderer->backend;
 
@@ -133,6 +134,8 @@ void renderer_execute_frame(ReaperRoot& root, const SceneGraph& scene, std::vect
     PreparedData prepared;
     prepare_scene(scene, prepared, backend.resources->mesh_cache, main_camera,
                   static_cast<u32>(audio_output.size() / 8));
+
+    prepared.debug_draw_commands = debug_draw_commands;
 
     TiledLightingFrame tiled_lighting_frame; // FIXME use frame allocator
     prepare_tile_lighting_frame(scene, main_camera, tiled_lighting_frame);

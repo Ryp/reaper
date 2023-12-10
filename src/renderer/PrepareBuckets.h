@@ -26,6 +26,8 @@
 
 #include <core/Types.h>
 
+struct DebugGeometryUserCommand;
+
 namespace Reaper
 {
 struct SceneNode
@@ -145,6 +147,8 @@ struct PreparedData
 
     SoundPushConstants              audio_push_constants;
     std::vector<OscillatorInstance> audio_instance_params;
+
+    std::span<DebugGeometryUserCommand> debug_draw_commands;
 };
 
 struct MeshCache;
