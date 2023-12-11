@@ -50,9 +50,10 @@ void main(uint3 gtid : SV_GroupThreadID,
         DrawCommands[instance_id] = command;
 
         DebugGeometryInstance instance;
+
         instance.ms_to_cs = float3x4_to_float4x4(user_command.ms_to_ws_matrix) * PassConstants.main_camera_ws_to_cs;
         instance.color = rgba8_unorm_to_rgba32_float(user_command.color_rgba8_unorm).rgb;
-        instance.radius = user_command.radius;
+        instance.half_extent = user_command.half_extent;
 
         InstanceBuffer[instance_id] = instance;
     }

@@ -12,8 +12,6 @@
 
 #include "debug_geometry_public.share.hlsl"
 
-static const hlsl_uint DebugGeometryUserCommandSizeBytes = 4 * (16 + 4);
-
 struct DebugGeometryMeshAlloc
 {
     hlsl_uint index_offset;
@@ -30,23 +28,15 @@ struct DebugGeometryBuildCmdsPassConstants
 
 static const hlsl_uint DebugGeometryBuildCmdsThreadCount = 128;
 
-static const hlsl_uint DebugGeometryCommandSizeBytes = 4 * 4 * 2;
-
-struct DebugGeometryCommand
-{
-    hlsl_float3 position_vs;
-    hlsl_float  intensity;
-    hlsl_float3 color;
-    hlsl_float  radius_sq;
-};
-
-static const hlsl_uint DebugGeometryInstanceSizeBytes = 4 * (16 + 4);
-
 struct DebugGeometryInstance
 {
     hlsl_float4x4   ms_to_cs;
     hlsl_float3     color;
-    hlsl_float      radius;
+    hlsl_float      _pad0;
+    hlsl_float3     half_extent;
+    hlsl_float      _pad1;
 };
+
+static const hlsl_uint DebugGeometryInstanceSizeBytes = 4 * (16 + 4 + 4);
 
 #endif

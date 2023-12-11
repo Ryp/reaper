@@ -17,8 +17,20 @@ DebugGeometryUserCommand create_debug_command_sphere(float3x4 ms_to_ws_matrix, f
 
     command.ms_to_ws_matrix = ms_to_ws_matrix;
     command.geometry_type = DebugGeometryType_Icosphere;
-    command.radius = radius;
     command.color_rgba8_unorm = color_rgba8_unorm;
+    command.half_extent = radius.xxx;
+
+    return command;
+}
+
+DebugGeometryUserCommand create_debug_command_box(float3x4 ms_to_ws_matrix, float3 half_extent, uint color_rgba8_unorm)
+{
+    DebugGeometryUserCommand command;
+
+    command.ms_to_ws_matrix = ms_to_ws_matrix;
+    command.geometry_type = DebugGeometryType_Box;
+    command.color_rgba8_unorm = color_rgba8_unorm;
+    command.half_extent = half_extent;
 
     return command;
 }

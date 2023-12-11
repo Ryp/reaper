@@ -16,4 +16,7 @@ namespace Reaper
 {
 REAPER_RENDERER_API DebugGeometryUserCommand create_debug_command_sphere(glm::fmat4x3 ms_to_ws_matrix, float radius,
                                                                          u32 color_rgba8_unorm);
+
+REAPER_RENDERER_API DebugGeometryUserCommand create_debug_command_box(glm::fmat4x3 ms_to_ws_matrix,
+                                                                      glm::fvec3 half_extent, u32 color_rgba8_unorm);
 } // namespace Reaper

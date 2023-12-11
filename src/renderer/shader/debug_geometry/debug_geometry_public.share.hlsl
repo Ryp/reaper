@@ -10,16 +10,23 @@
 
 #include "shared_types.hlsl"
 
-static const hlsl_uint DebugGeometryTypeCount = 1;
 static const hlsl_uint DebugGeometryType_Icosphere = 0;
+static const hlsl_uint DebugGeometryType_Box = 1;
+static const hlsl_uint DebugGeometryTypeCount = 2;
 
 struct DebugGeometryUserCommand
 {
     hlsl_float3x4   ms_to_ws_matrix;
     hlsl_uint       geometry_type;
     hlsl_uint       color_rgba8_unorm;
-    hlsl_float      radius;
-    hlsl_uint       _pad;
+
+    // FIXME Think of a better way to have some kind of polymorphism that isn't super ugly
+    hlsl_uint       _pad0;
+    hlsl_uint       _pad1;
+    hlsl_float3     half_extent;
+    hlsl_uint       _pad2;
 };
+
+static const hlsl_uint DebugGeometryUserCommandSizeBytes = 4 * (16 + 4 + 4);
 
 #endif

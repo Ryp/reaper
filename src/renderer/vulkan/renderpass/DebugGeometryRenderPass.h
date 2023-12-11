@@ -50,8 +50,10 @@ struct DebugGeometryPassResources
     std::vector<DebugMeshAlloc> proxy_mesh_allocs;
     u32                         index_buffer_offset;
     GPUBuffer                   index_buffer;
+    GPUBufferProperties         index_buffer_properties;
     u32                         vertex_buffer_offset;
     GPUBuffer                   vertex_buffer_position;
+    GPUBufferProperties         vertex_buffer_properties;
 };
 
 struct VulkanBackend;

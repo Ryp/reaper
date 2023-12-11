@@ -19,7 +19,7 @@ void main(VS_INPUT input, out VS_OUTPUT output)
     const DebugGeometryInstance instance = InstanceBuffer[input.api_instance_id];
 
     const float3 vpos_ms = pull_position(VertexPositionsMS, input.vertex_id);
-    const float3 position_ms = vpos_ms * instance.radius;
+    const float3 position_ms = vpos_ms * instance.half_extent;
     const float4 position_cs = mul(instance.ms_to_cs, float4(position_ms, 1.0));
 
     output.position = position_cs;

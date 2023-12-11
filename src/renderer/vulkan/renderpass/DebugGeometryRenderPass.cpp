@@ -36,7 +36,6 @@
 #include "debug_geometry/debug_geometry_private.share.hlsl"
 
 static_assert(sizeof(DebugGeometryUserCommand) == DebugGeometryUserCommandSizeBytes, "Invalid HLSL struct size");
-static_assert(sizeof(DebugGeometryCommand) == DebugGeometryCommandSizeBytes, "Invalid HLSL struct size");
 static_assert(sizeof(DebugGeometryInstance) == DebugGeometryInstanceSizeBytes, "Invalid HLSL struct size");
 
 namespace Reaper
@@ -86,6 +85,35 @@ namespace
         std::vector<VkDynamicState> dynamic_states = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
 
         return create_graphics_pipeline(device, shader_stages, pipeline_properties, dynamic_states);
+    }
+
+    void upload_debug_meshes(VulkanBackend& backend, DebugGeometryPassResources& resources,
+                             std::span<const Mesh> meshes, std::span<DebugMeshAlloc> debug_mesh_allocs)
+    {
+        Assert(meshes.size() == debug_mesh_allocs.size());
+
+        for (u32 i = 0; i < static_cast<u32>(meshes.size()); i++)
+        {
+            const Mesh&     mesh = meshes[i];
+            DebugMeshAlloc& debug_mesh_alloc = debug_mesh_allocs[i];
+
+            debug_mesh_alloc.index_offset = resources.index_buffer_offset;
+            debug_mesh_alloc.index_count = static_cast<u32>(mesh.indexes.size());
+            debug_mesh_alloc.vertex_offset = resources.vertex_buffer_offset;
+            debug_mesh_alloc.vertex_count = static_cast<u32>(mesh.positions.size());
+
+            resources.vertex_buffer_offset += debug_mesh_alloc.vertex_count;
+            resources.index_buffer_offset += debug_mesh_alloc.index_count;
+
+            upload_buffer_data(backend.device, backend.vma_instance, resources.index_buffer,
+                               resources.index_buffer_properties, mesh.indexes.data(),
+                               mesh.indexes.size() * sizeof(mesh.indexes[0]), debug_mesh_alloc.index_offset);
+
+            upload_buffer_data(backend.device, backend.vma_instance, resources.vertex_buffer_position,
+                               resources.vertex_buffer_properties, mesh.positions.data(),
+                               mesh.positions.size() * sizeof(mesh.positions.data()[0]),
+                               debug_mesh_alloc.vertex_offset);
+        }
     }
 } // namespace
 
@@ -160,40 +188,27 @@ DebugGeometryPassResources create_debug_geometry_pass_resources(VulkanBackend&  
 
     {
         resources.index_buffer_offset = 0;
-        resources.vertex_buffer_offset = 0;
-
-        const GPUBufferProperties index_properties = DefaultGPUBufferProperties(
+        resources.index_buffer_properties = DefaultGPUBufferProperties(
             MaxIndexCount, sizeof(hlsl_uint), GPUBufferUsage::StorageBuffer | GPUBufferUsage::IndexBuffer);
+        resources.index_buffer =
+            create_buffer(backend.device, "Debug geometry index buffer", resources.index_buffer_properties,
+                          backend.vma_instance, MemUsage::CPU_To_GPU);
 
-        const GPUBufferProperties vertex_properties =
+        resources.vertex_buffer_offset = 0;
+        resources.vertex_buffer_properties =
             DefaultGPUBufferProperties(MaxVertexCount, sizeof(hlsl_float3), GPUBufferUsage::StorageBuffer);
+        resources.vertex_buffer_position =
+            create_buffer(backend.device, "Debug geometry vertex buffer", resources.vertex_buffer_properties,
+                          backend.vma_instance, MemUsage::CPU_To_GPU);
 
-        resources.index_buffer = create_buffer(backend.device, "Debug geometry index buffer", index_properties,
-                                               backend.vma_instance, MemUsage::CPU_To_GPU);
+        // Upload mesh data
+        std::vector<Mesh> meshes(DebugGeometryTypeCount);
+        meshes[DebugGeometryType_Icosphere] = load_obj("res/model/icosahedron.obj");
+        meshes[DebugGeometryType_Box] = load_obj("res/model/box.obj");
 
-        resources.vertex_buffer_position = create_buffer(backend.device, "Debug geometry vertex buffer",
-                                                         vertex_properties, backend.vma_instance, MemUsage::CPU_To_GPU);
+        resources.proxy_mesh_allocs.resize(meshes.size());
 
-        std::vector<Mesh> meshes;
-        const Mesh&       icosahedron = meshes.emplace_back(load_obj("res/model/icosahedron.obj"));
-
-        DebugMeshAlloc& icosahedron_alloc = resources.proxy_mesh_allocs.emplace_back();
-        icosahedron_alloc.index_offset = resources.index_buffer_offset;
-        icosahedron_alloc.index_count = static_cast<u32>(icosahedron.indexes.size());
-        icosahedron_alloc.vertex_offset = resources.vertex_buffer_offset;
-        icosahedron_alloc.vertex_count = static_cast<u32>(icosahedron.positions.size());
-
-        resources.vertex_buffer_offset += icosahedron_alloc.vertex_count;
-        resources.index_buffer_offset += icosahedron_alloc.index_count;
-
-        upload_buffer_data(backend.device, backend.vma_instance, resources.vertex_buffer_position, vertex_properties,
-                           icosahedron.positions.data(),
-                           icosahedron.positions.size() * sizeof(icosahedron.positions.data()[0]),
-                           icosahedron_alloc.vertex_offset);
-
-        upload_buffer_data(backend.device, backend.vma_instance, resources.index_buffer, index_properties,
-                           icosahedron.indexes.data(), icosahedron.indexes.size() * sizeof(icosahedron.indexes[0]),
-                           icosahedron_alloc.index_offset);
+        upload_debug_meshes(backend, resources, meshes, resources.proxy_mesh_allocs);
     }
 
     return resources;
