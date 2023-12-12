@@ -35,13 +35,13 @@ namespace Neptune
 namespace
 {
 #if defined(REAPER_USE_BULLET_PHYSICS)
-    void pre_tick(PhysicsSim& sim, const PhysicsSim::FrameData& frame_data, float dt)
+    void update_forces(PhysicsSim& sim, const PhysicsSim::FrameData& frame_data, float dt)
     {
+        // FIXME: getMotionState() could be used to get interpolated positions (might be better)
         REAPER_PROFILE_SCOPE_FUNC();
 
         btRigidBody*       player_rigid_body = sim.players[0];
-        const auto         player_transform_bt = player_rigid_body->getWorldTransform();
-        const glm::fmat4x3 player_transform = toGlm(player_transform_bt);
+        const glm::fmat4x3 player_transform = toGlm(player_rigid_body->getWorldTransform());
         const glm::fvec3   player_position_ws = player_transform[3];
 
         float                    min_dist_sq = 10000000.f;
@@ -90,6 +90,8 @@ namespace
             }
         }
 
+        sim.last_gravity_frame = gravity_frame;
+
         const glm::fvec3 gravity_up_ws = gravity_frame * up();
         const glm::fvec3 player_forward_ws = player_transform * glm::vec4(forward(), 0.f);
         const glm::fvec3 player_up_ws = player_transform * glm::vec4(up(), 0.f);
@@ -115,7 +117,7 @@ namespace
         glm::fvec3 torque_ws = {};
 
         // Turning torque
-        torque_ws += player_up_ws * frame_data.input.steer;
+        torque_ws += player_up_ws * -frame_data.input.steer;
         // torque_ws += glm::eulerAngles(glm::angleAxis(frame_data.input.steer, player_up_ws));
 
         // Torque to orient the ship upright
@@ -141,23 +143,23 @@ namespace
 
         for (auto& suspension : sim.raycast_suspensions)
         {
-            btTransform chassis_transform = player_transform_bt;
+            const glm::fmat4x3 chassis_transform = player_transform;
 
-            constexpr bool interpolated = false;
-            if (interpolated)
-            {
-                player_rigid_body->getMotionState()->getWorldTransform(chassis_transform); // FIXME
-            }
-
-            const btVector3 suspension_position_start_ws = chassis_transform(toBt(suspension.position_start_ms));
-            const btVector3 suspension_position_end_ws = chassis_transform(toBt(suspension.position_end_ms));
+            const glm::fvec3 suspension_position_start_ws =
+                chassis_transform * glm::fvec4(suspension.position_start_ms, 1.f);
+            const glm::fvec3 suspension_position_end_ws =
+                chassis_transform * glm::fvec4(suspension.position_end_ms, 1.f);
             const btVector3 suspension_direction_ws =
-                (suspension_position_end_ws - suspension_position_start_ws).normalized();
+                (toBt(suspension_position_end_ws - suspension_position_start_ws)).normalized();
 
-            btCollisionWorld::ClosestRayResultCallback ray_result_callback(suspension_position_start_ws,
-                                                                           suspension_position_end_ws);
+            btCollisionWorld::ClosestRayResultCallback ray_result_callback(toBt(suspension_position_start_ws),
+                                                                           toBt(suspension_position_end_ws));
 
-            sim.dynamics_world->rayTest(suspension_position_start_ws, suspension_position_end_ws, ray_result_callback);
+            suspension.position_start_ws = suspension_position_start_ws;
+            suspension.position_end_ws = suspension_position_end_ws;
+
+            sim.dynamics_world->rayTest(
+                toBt(suspension_position_start_ws), toBt(suspension_position_end_ws), ray_result_callback);
 
             const float chassisMass = 1.f / player_rigid_body->getInvMass(); // FIXME or get the constant directly
 
@@ -234,7 +236,10 @@ namespace
                     btVector3 impulse = ray_hit_normal_ws * suspension_force * dt;
                     btVector3 force_relpos = ray_hit_position_ws - player_rigid_body->getCenterOfMassPosition();
 
-                    player_rigid_body->applyImpulse(impulse, force_relpos);
+                    if (sim.vars.enable_suspension_forces)
+                    {
+                        player_rigid_body->applyImpulse(impulse, force_relpos);
+                    }
 
                     // Update dynamic suspension data FIXME this makes the sim non-const
                     suspension.length_ratio_last = ray_result_callback.m_closestHitFraction;
@@ -291,7 +296,7 @@ static void pre_tick_callback(btDynamicsWorld* world, btScalar dt)
 
     PhysicsSim& sim = *sim_ptr;
 
-    pre_tick(sim, sim.frame_data, dt);
+    update_forces(sim, sim.frame_data, dt);
 }
 
 static void post_tick_callback(btDynamicsWorld* world, btScalar dt)

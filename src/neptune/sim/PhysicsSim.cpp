@@ -30,8 +30,6 @@
 
 namespace Neptune
 {
-static constexpr float ShipMass = 2.f;
-
 PhysicsSim create_sim()
 {
     PhysicsSim sim = {};
@@ -42,11 +40,13 @@ PhysicsSim create_sim()
     sim.vars.gravity_force_intensity = 9.8331f;
     sim.vars.linear_friction = 4.0f;
     sim.vars.quadratic_friction = 0.01f;
-    sim.vars.angular_friction = 0.3f;
+    sim.vars.angular_friction = 0.03f;
+    sim.vars.enable_suspension_forces = true;
     sim.vars.max_suspension_force = 6000.f;
     sim.vars.default_spring_stiffness = 30.f;
     sim.vars.default_damper_friction_compression = 2.82f;
     sim.vars.default_damper_friction_extension = 0.22f;
+    sim.vars.enable_debug_geometry = false;
     sim.vars.default_ship_stats.thrust = 100.f;
     sim.vars.default_ship_stats.braking = 10.f;
     sim.vars.default_ship_stats.handling = 0.4f;
@@ -67,9 +67,9 @@ PhysicsSim create_sim()
     glm::fvec3 suspension_dir_ms = -up();
     float      suspension_length = 0.3f;
     float      suspension_length_ratio_rest = 0.8f;
-    float      suspension_height_offset = -0.3f + 0.05f;
-    float      suspension_forward_offset = 0.4f - 0.05f;
-    float      suspension_side_offset = 0.3f - 0.05f;
+    float      suspension_forward_offset = sim.consts.player_shape_half_extent.x - 0.05f;
+    float      suspension_height_offset = -sim.consts.player_shape_half_extent.y + 0.05f;
+    float      suspension_side_offset = sim.consts.player_shape_half_extent.z - 0.05f;
 
     std::vector<glm::fvec3> suspension_attach_points_ms = {
         glm::fvec3(suspension_forward_offset, suspension_height_offset, suspension_side_offset),
@@ -88,8 +88,12 @@ PhysicsSim create_sim()
             .spring_stiffness = sim.vars.default_spring_stiffness,
             .damper_friction_compression = sim.vars.default_damper_friction_compression,
             .damper_friction_extension = sim.vars.default_damper_friction_extension,
+            .position_start_ws = {},
+            .position_end_ws = {},
         });
     }
+
+    sim.last_gravity_frame = glm::identity<glm::mat3>();
 
     return sim;
 }
@@ -174,22 +178,21 @@ void sim_create_static_collision_meshes(std::span<StaticMeshColliderHandle> hand
         indexedMesh.m_vertexType = PHY_FLOAT;
 
         // Create bullet collision shape based on the mesh described
-        btTriangleIndexVertexArray* meshInterface = new btTriangleIndexVertexArray();
+        btTriangleIndexVertexArray* mesh_interface = new btTriangleIndexVertexArray();
 
-        meshInterface->addIndexedMesh(indexedMesh);
-        btBvhTriangleMeshShape* meshShape = new btBvhTriangleMeshShape(meshInterface, true);
+        mesh_interface->addIndexedMesh(indexedMesh);
+        btBvhTriangleMeshShape* meshShape = new btBvhTriangleMeshShape(mesh_interface, true);
 
         const btVector3               scale = scales.empty() ? btVector3(1.f, 1.f, 1.f) : toBt(scales[i]);
         btScaledBvhTriangleMeshShape* scaled_mesh_shape = new btScaledBvhTriangleMeshShape(meshShape, scale);
 
-        btDefaultMotionState* chunkMotionState = new btDefaultMotionState(btTransform(toBt(transforms_no_scale[i])));
+        btRigidBody::btRigidBodyConstructionInfo static_rigid_body_info(0.f, nullptr, scaled_mesh_shape);
+        static_rigid_body_info.m_startWorldTransform = btTransform(toBt(transforms_no_scale[i]));
 
-        // Create the rigidbody with the collision shape
-        btRigidBody::btRigidBodyConstructionInfo staticMeshRigidBodyInfo(0, chunkMotionState, scaled_mesh_shape);
-        btRigidBody*                             staticRigidMesh = new btRigidBody(staticMeshRigidBodyInfo);
+        btRigidBody* static_rigid_body = new btRigidBody(static_rigid_body_info);
 
-        mesh_collider.rigid_body = staticRigidMesh;
-        mesh_collider.mesh_interface = meshInterface;
+        mesh_collider.rigid_body = static_rigid_body;
+        mesh_collider.mesh_interface = mesh_interface;
         mesh_collider.scaled_mesh_shape = scaled_mesh_shape;
 
         sim.dynamics_world->addRigidBody(mesh_collider.rigid_body);
@@ -212,7 +215,6 @@ void sim_destroy_static_collision_meshes(std::span<const StaticMeshColliderHandl
 
         sim.dynamics_world->removeRigidBody(collider.rigid_body);
 
-        delete collider.rigid_body->getMotionState();
         delete collider.rigid_body;
         delete collider.scaled_mesh_shape->getChildShape();
         delete collider.scaled_mesh_shape;
@@ -226,19 +228,19 @@ void sim_destroy_static_collision_meshes(std::span<const StaticMeshColliderHandl
 #endif
 }
 
-void sim_create_player_rigid_body(PhysicsSim& sim, const glm::fmat4x3& player_transform,
-                                  const glm::fvec3& shape_half_extent)
+void sim_create_player_rigid_body(PhysicsSim& sim, const glm::fmat4x3& player_transform)
 {
 #if defined(REAPER_USE_BULLET_PHYSICS)
     btMotionState*    motionState = new btDefaultMotionState(toBt(player_transform));
-    btCollisionShape* chassisCollisionShape = new btBoxShape(toBt(shape_half_extent));
+    btCollisionShape* chassisCollisionShape = new btBoxShape(toBt(sim.consts.player_shape_half_extent));
 
     btVector3 inertia;
-    chassisCollisionShape->calculateLocalInertia(ShipMass, inertia);
+    chassisCollisionShape->calculateLocalInertia(sim.consts.ship_mass, inertia);
 
-    btRigidBody::btRigidBodyConstructionInfo constructInfo(ShipMass, motionState, chassisCollisionShape, inertia);
+    btRigidBody::btRigidBodyConstructionInfo rigid_body_info(sim.consts.ship_mass, motionState, chassisCollisionShape,
+                                                             inertia);
 
-    btRigidBody* player_rigid_body = new btRigidBody(constructInfo);
+    btRigidBody* player_rigid_body = new btRigidBody(rigid_body_info);
     // player_rigid_body->setFriction(0.9f);
     // player_rigid_body->setRollingFriction(9.8f);
 
@@ -246,14 +248,13 @@ void sim_create_player_rigid_body(PhysicsSim& sim, const glm::fmat4x3& player_tr
 
     // FIXME doesn't do anything? Wrong collision mesh?
     player_rigid_body->setCcdMotionThreshold(0.05f);
-    player_rigid_body->setCcdSweptSphereRadius(shape_half_extent.x);
+    player_rigid_body->setCcdSweptSphereRadius(sim.consts.player_shape_half_extent.x); // FIXME
 
     sim.dynamics_world->addRigidBody(player_rigid_body);
     sim.players.push_back(player_rigid_body);
 #else
     static_cast<void>(sim);
     static_cast<void>(player_transform);
-    static_cast<void>(shape_half_extent);
 #endif
 }
 } // namespace Neptune

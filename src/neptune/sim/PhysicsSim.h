@@ -63,8 +63,8 @@ struct ShipInput
 
 struct RaycastSuspension
 {
-    glm::vec3 position_start_ms;
-    glm::vec3 position_end_ms;
+    glm::vec3 position_start_ms; // This shouldn't change over time
+    glm::vec3 position_end_ms;   // This shouldn't change over time
 
     float length_max;
     float length_ratio_rest;
@@ -75,10 +75,19 @@ struct RaycastSuspension
 
     float damper_friction_compression;
     float damper_friction_extension;
+
+    glm::vec3 position_start_ws;
+    glm::vec3 position_end_ws;
 };
 
 struct PhysicsSim
 {
+    struct Consts
+    {
+        static constexpr glm::fvec3 player_shape_half_extent = glm::fvec3(0.4f, 0.2f, 0.35f);
+        static constexpr float      ship_mass = 2.f;
+    } consts;
+
     struct Vars
     {
         float     simulation_substep_duration;
@@ -87,10 +96,12 @@ struct PhysicsSim
         float     linear_friction;
         float     quadratic_friction;
         float     angular_friction;
+        bool      enable_suspension_forces;
         float     max_suspension_force;
         float     default_spring_stiffness;
         float     default_damper_friction_compression;
         float     default_damper_friction_extension;
+        bool      enable_debug_geometry;
         ShipStats default_ship_stats;
     } vars;
 
@@ -104,6 +115,7 @@ struct PhysicsSim
     } frame_data;
 
     std::vector<RaycastSuspension> raycast_suspensions;
+    glm::fmat3x3                   last_gravity_frame;
 
 #if defined(REAPER_USE_BULLET_PHYSICS)
     btBroadphaseInterface*               broadphase;
@@ -131,8 +143,7 @@ void sim_create_static_collision_meshes(std::span<StaticMeshColliderHandle> hand
 NEPTUNE_SIM_API
 void sim_destroy_static_collision_meshes(std::span<const StaticMeshColliderHandle> handles, PhysicsSim& sim);
 
-NEPTUNE_SIM_API void sim_create_player_rigid_body(PhysicsSim& sim, const glm::fmat4x3& player_transform,
-                                                  const glm::fvec3& shape_half_extent);
+NEPTUNE_SIM_API void sim_create_player_rigid_body(PhysicsSim& sim, const glm::fmat4x3& player_transform);
 
 inline glm::fvec3 forward()
 {

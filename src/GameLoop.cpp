@@ -11,6 +11,7 @@
 #include "renderer/vulkan/BackendResources.h"
 #include "renderer/vulkan/renderpass/TestGraphics.h"
 
+#include "renderer/DebugGeometryCommandRecordAPI.h"
 #include "renderer/ExecuteFrame.h"
 #include "renderer/PrepareBuckets.h"
 #include "renderer/ResourceHandle.h"
@@ -238,6 +239,7 @@ namespace
                            ImGuiSliderFlags_Logarithmic);
         ImGui::SliderFloat("angular_friction", &sim.vars.angular_friction, 0.f, 100.f, "%.3f",
                            ImGuiSliderFlags_Logarithmic);
+        ImGui::Checkbox("enable_suspension_forces", &sim.vars.enable_suspension_forces);
         ImGui::SliderFloat("max_suspension_force", &sim.vars.max_suspension_force, 0.f, 100000.f, "%.3f",
                            ImGuiSliderFlags_Logarithmic);
         ImGui::SliderFloat("default_spring_stiffness", &sim.vars.default_spring_stiffness, 0.0f, 100.f, "%.3f",
@@ -246,6 +248,7 @@ namespace
                            100.f, "%.3f", ImGuiSliderFlags_Logarithmic);
         ImGui::SliderFloat("default_damper_friction_extension", &sim.vars.default_damper_friction_extension, 0.0f,
                            100.f, "%.3f", ImGuiSliderFlags_Logarithmic);
+        ImGui::Checkbox("enable_debug_geometry", &sim.vars.enable_debug_geometry);
         ImGui::BeginDisabled();
         ImGui::SliderFloat("suspension ratio 0", &sim.raycast_suspensions[0].length_ratio_last, 0.0f, 1.f, "%.3f");
         ImGui::SliderFloat("suspension ratio 1", &sim.raycast_suspensions[1].length_ratio_last, 0.0f, 1.f, "%.3f");
@@ -318,6 +321,7 @@ void execute_game_loop(ReaperRoot& root)
         "res/texture/default_standard_material/normal.png",
         "res/texture/default_standard_material/ao.png",
     };
+
     std::vector<u32> default_texture_srgb(default_texture_filesnames.size(), false);
     default_texture_srgb[0] = true;
 
@@ -483,8 +487,7 @@ void execute_game_loop(ReaperRoot& root)
         Neptune::create_game_track(track_gen_info, backend, sim, scene, default_material_handle);
 
     const glm::fmat4x3 player_initial_transform = glm::translate(glm::mat4(1.0f), glm::vec3(0.4f, 0.8f, 0.f));
-    const glm::fvec3   player_shape_half_extent(0.4f, 0.3f, 0.3f);
-    Neptune::sim_create_player_rigid_body(sim, player_initial_transform, player_shape_half_extent);
+    Neptune::sim_create_player_rigid_body(sim, player_initial_transform);
 
     // Build scene
     SceneNode* player_scene_node = nullptr;
@@ -806,7 +809,34 @@ void execute_game_loop(ReaperRoot& root)
         scene.scene_meshes.push_back(player_scene_mesh);
 #endif
 
-        renderer_execute_frame(root, scene, audio_backend.audio_buffer);
+        std::vector<DebugGeometryUserCommand> debug_draw_commands;
+
+        if (sim.vars.enable_debug_geometry)
+        {
+            debug_draw_commands.push_back(
+                create_debug_command_box(player_transform, sim.consts.player_shape_half_extent, 0x000000FF));
+
+            for (auto& suspension : sim.raycast_suspensions)
+            {
+                debug_draw_commands.push_back(create_debug_command_sphere(
+                    glm::translate(glm::mat4(1.0f), suspension.position_start_ws), 0.05f, 0x000000FF));
+                debug_draw_commands.push_back(create_debug_command_sphere(
+                    glm::translate(glm::mat4(1.0f), suspension.position_end_ws), 0.05f, 0x000000FF));
+                debug_draw_commands.push_back(create_debug_command_sphere(
+                    glm::translate(glm::mat4(1.0f), glm::mix(suspension.position_start_ws, suspension.position_end_ws,
+                                                             suspension.length_ratio_last)),
+                    0.05f, 0x00FF00FF));
+            }
+
+            debug_draw_commands.push_back(create_debug_command_sphere(
+                glm::translate(glm::mat4(1.0f), player_translation) * glm::fmat4(sim.last_gravity_frame), 1.f,
+                0x00FF00FF));
+            debug_draw_commands.push_back(create_debug_command_sphere(
+                glm::translate(glm::mat4(1.0f), player_translation) * glm::fmat4(sim.last_gravity_frame), 0.95f,
+                0x0000FFFF));
+        }
+
+        renderer_execute_frame(root, scene, audio_backend.audio_buffer, debug_draw_commands);
 
         audio_execute_frame(root, audio_backend);
 
