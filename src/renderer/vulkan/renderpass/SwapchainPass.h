@@ -41,7 +41,7 @@ void reload_swapchain_pipeline(VulkanBackend& backend, const ShaderModules& shad
 namespace FrameGraph
 {
     class Builder;
-    class FrameGraph;
+    struct FrameGraph;
 } // namespace FrameGraph
 
 struct SwapchainFrameGraphRecord

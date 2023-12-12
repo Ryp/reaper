@@ -46,7 +46,7 @@ namespace FrameGraph
 {
     class Builder;
     struct FrameGraphSchedule;
-    class FrameGraph;
+    struct FrameGraph;
 } // namespace FrameGraph
 
 struct CullMeshletsFrameGraphRecord

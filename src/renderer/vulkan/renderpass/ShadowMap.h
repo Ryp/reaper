@@ -39,7 +39,7 @@ void               destroy_shadow_map_resources(VulkanBackend& backend, ShadowMa
 
 namespace FrameGraph
 {
-    class FrameGraph;
+    struct FrameGraph;
     class Builder;
 } // namespace FrameGraph
 

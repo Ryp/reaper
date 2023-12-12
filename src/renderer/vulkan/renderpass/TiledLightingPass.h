@@ -49,7 +49,7 @@ void destroy_tiled_lighting_pass_resources(VulkanBackend& backend, TiledLighting
 namespace FrameGraph
 {
     class Builder;
-    class FrameGraph;
+    struct FrameGraph;
 } // namespace FrameGraph
 
 struct TiledLightingFrameGraphRecord

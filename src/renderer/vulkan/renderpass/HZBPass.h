@@ -44,7 +44,7 @@ void             destroy_hzb_pass_resources(VulkanBackend& backend, const HZBPas
 namespace FrameGraph
 {
     class Builder;
-    class FrameGraph;
+    struct FrameGraph;
 } // namespace FrameGraph
 
 struct HZBReduceFrameGraphRecord

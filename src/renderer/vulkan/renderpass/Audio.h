@@ -55,7 +55,7 @@ void           destroy_audio_resources(VulkanBackend& backend, AudioResources& r
 
 namespace FrameGraph
 {
-    class FrameGraph;
+    struct FrameGraph;
     class Builder;
 } // namespace FrameGraph
 

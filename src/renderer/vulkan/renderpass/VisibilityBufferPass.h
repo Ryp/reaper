@@ -45,7 +45,7 @@ void destroy_vis_buffer_pass_resources(VulkanBackend& backend, VisibilityBufferP
 
 namespace FrameGraph
 {
-    class FrameGraph;
+    struct FrameGraph;
     class Builder;
 } // namespace FrameGraph
 

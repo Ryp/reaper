@@ -66,7 +66,7 @@ void destroy_debug_geometry_pass_resources(VulkanBackend& backend, DebugGeometry
 namespace FrameGraph
 {
     class Builder;
-    class FrameGraph;
+    struct FrameGraph;
 } // namespace FrameGraph
 
 struct DebugGeometryStartFrameGraphRecord

@@ -43,7 +43,7 @@ void             destroy_gui_pass_resources(VulkanBackend& backend, GuiPassResou
 namespace FrameGraph
 {
     class Builder;
-    class FrameGraph;
+    struct FrameGraph;
 } // namespace FrameGraph
 
 struct GUIFrameGraphRecord

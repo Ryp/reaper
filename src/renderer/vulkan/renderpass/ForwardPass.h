@@ -50,7 +50,7 @@ void                 destroy_forward_pass_resources(VulkanBackend& backend, Forw
 namespace FrameGraph
 {
     class Builder;
-    class FrameGraph;
+    struct FrameGraph;
 } // namespace FrameGraph
 
 struct ForwardFrameGraphRecord

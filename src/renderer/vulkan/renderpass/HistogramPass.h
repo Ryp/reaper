@@ -39,7 +39,7 @@ void destroy_histogram_pass_resources(VulkanBackend& backend, const HistogramPas
 namespace FrameGraph
 {
     class Builder;
-    class FrameGraph;
+    struct FrameGraph;
 } // namespace FrameGraph
 
 struct HistogramClearFrameGraphRecord
