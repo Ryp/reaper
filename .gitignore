@@ -1,13 +1,13 @@
 !.gitignore
 
 # build artefacts
-build
+/build
+
+# user
+/.vscode/
+/compile_commands.json
 
 # python
 __pycache__/
 *.py[cod]
 *$py.class
-
-# user
-.vscode/
-compile_commands.json
