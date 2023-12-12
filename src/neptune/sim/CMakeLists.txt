@@ -28,13 +28,13 @@ target_link_libraries(${target} PUBLIC
 if(REAPER_USE_BULLET_PHYSICS)
     include(external/bullet)
     target_compile_definitions(${target} PUBLIC REAPER_USE_BULLET_PHYSICS)
-    target_link_libraries(${target} PRIVATE bullet)
+    target_link_libraries(${target} PUBLIC bullet)
 endif()
 
 set_target_properties(${target} PROPERTIES FOLDER Neptune)
 
 reaper_configure_library(${target} "Sim")
 
-#reaper_add_tests(${target}
-#    ${CMAKE_CURRENT_SOURCE_DIR}/test/TODO.cpp
-#)
+reaper_add_tests(${target}
+    ${CMAKE_CURRENT_SOURCE_DIR}/test/conversion.cpp
+)
