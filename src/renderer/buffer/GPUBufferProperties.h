@@ -36,7 +36,7 @@ struct GPUBufferProperties
     u32 usage_flags;
 };
 
-inline GPUBufferProperties DefaultGPUBufferProperties(u32 element_count, u32 element_size_bytes, u32 usage_flags)
+inline GPUBufferProperties DefaultGPUBufferProperties(u64 element_count, u32 element_size_bytes, u32 usage_flags)
 {
     return GPUBufferProperties{element_count, element_size_bytes, element_size_bytes, usage_flags};
 }

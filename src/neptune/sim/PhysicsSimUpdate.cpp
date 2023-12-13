@@ -63,8 +63,6 @@ namespace
 
         glm::fmat3x3 gravity_frame;
 
-        Assert(closest_skeleton_node);
-
         if (closest_skeleton_node)
         {
             const TrackSkeletonNode& skeleton_node = *closest_skeleton_node;
@@ -88,6 +86,11 @@ namespace
                 // FIXME
                 gravity_frame = skeleton_node.in_transform_ms_to_ws;
             }
+        }
+        else
+        {
+            AssertUnreachable();
+            gravity_frame = glm::identity<glm::fmat3x3>();
         }
 
         sim.last_gravity_frame = gravity_frame;

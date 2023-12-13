@@ -328,7 +328,7 @@ create_debug_geometry_draw_pass_record(FrameGraph::Builder&                     
 void update_debug_geometry_start_resources(VulkanBackend& backend, const PreparedData& prepared,
                                            const DebugGeometryPassResources& resources)
 {
-    const u32 cpu_command_count = prepared.debug_draw_commands.size();
+    const u32 cpu_command_count = static_cast<u32>(prepared.debug_draw_commands.size());
 
     if (cpu_command_count > 0)
     {
@@ -406,7 +406,7 @@ void record_debug_geometry_start_command_buffer(const FrameGraphHelper&         
 
     const FrameGraphBarrierScope framegraph_barrier_scope(cmdBuffer, frame_graph_helper, pass_record.pass_handle);
 
-    const u32 cpu_command_count = prepared.debug_draw_commands.size();
+    const u32 cpu_command_count = static_cast<u32>(prepared.debug_draw_commands.size());
 
     FrameGraphBuffer draw_counter =
         get_frame_graph_buffer(frame_graph_helper.resources, frame_graph_helper.frame_graph, pass_record.draw_counter);

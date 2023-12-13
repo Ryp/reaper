@@ -68,7 +68,7 @@ void                 destroy_tiled_raster_pass_resources(VulkanBackend& backend,
 namespace FrameGraph
 {
     struct FrameGraph;
-    struct Builder;
+    class Builder;
 }; // namespace FrameGraph
 
 struct LightRasterFrameGraphRecord

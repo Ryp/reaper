@@ -16,6 +16,7 @@
 #include <span>
 #include <vector>
 
+#include "renderer/shader/debug_geometry/debug_geometry_public.share.hlsl"
 #include "renderer/shader/forward.share.hlsl"
 #include "renderer/shader/lighting.share.hlsl"
 #include "renderer/shader/mesh_instance.share.hlsl"
@@ -25,8 +26,6 @@
 #include "renderer/shader/tiled_lighting/tiled_lighting.share.hlsl"
 
 #include <core/Types.h>
-
-struct DebugGeometryUserCommand;
 
 namespace Reaper
 {
