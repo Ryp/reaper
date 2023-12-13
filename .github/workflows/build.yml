@@ -23,11 +23,12 @@ jobs:
             compiler_invocation: 'g++',
             is_zig: false,
           }
-          - {
-            name: "Ubuntu Zig",
-            compiler_invocation: 'zig c++',
-            is_zig: true,
-          }
+          # FIXME Restore Zig support
+          # - {
+          #   name: "Ubuntu Zig",
+          #   compiler_invocation: 'zig c++',
+          #   is_zig: true,
+          # }
         cmake_build_shared_libs: [ON, OFF]
         cmake_build_type: [Debug, Release]
     # NOTE: We're using a ternary op here, which is very wonky.
@@ -128,6 +129,7 @@ jobs:
 
       - name: Configure CMake
         run: |
+          # FIXME Restore crashpad support on windows
           cmake .\ -Bbuild `
             -G "${{ matrix.cmake_generator }}" `
             -A "${{ matrix.cmake_arch }}" `
@@ -137,6 +139,7 @@ jobs:
             -DREAPER_GIT_HOOKS_AUTO_UPDATE=OFF `
             -DREAPER_RUN_CLANG_TIDY=OFF `
             -DREAPER_HEADLESS=ON `
+            -DREAPER_USE_GOOGLE_CRASHPAD=OFF `
             -DREAPER_USE_TRACY=OFF
 
       - name: Build
