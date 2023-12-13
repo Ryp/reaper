@@ -57,17 +57,17 @@ namespace
 {
     glm::fmat4x3 GenerateChunkEndLocalSpace(const GenerationInfo& gen_info, RNG& rng)
     {
-        const glm::vec2 thetaBounds = glm::vec2(0.0f, ThetaMax) * gen_info.chaos;
-        const glm::vec2 phiBounds = glm::vec2(-PhiMax, PhiMax) * gen_info.chaos;
-        const glm::vec2 rollBounds = glm::vec2(-RollMax, RollMax) * gen_info.chaos;
+        glm::vec2 thetaBounds = glm::vec2(0.0f, ThetaMax) * gen_info.chaos;
+        glm::vec2 phiBounds = glm::vec2(-PhiMax, PhiMax);
+        glm::vec2 rollBounds = glm::vec2(-RollMax, RollMax) * gen_info.chaos;
 
         std::uniform_real_distribution<float> thetaDistribution(thetaBounds.x, thetaBounds.y);
         std::uniform_real_distribution<float> phiDistribution(phiBounds.x, phiBounds.y);
         std::uniform_real_distribution<float> rollDistribution(rollBounds.x, rollBounds.y);
 
-        const float theta = thetaDistribution(rng);
-        const float phi = phiDistribution(rng);
-        const float roll = rollDistribution(rng);
+        float theta = thetaDistribution(rng);
+        float phi = phiDistribution(rng);
+        float roll = rollDistribution(rng);
 
         glm::quat deviation = glm::angleAxis(phi, UnitXAxis) * glm::angleAxis(theta, UnitZAxis);
         glm::quat rollFixup = glm::angleAxis(-phi + roll, deviation * UnitXAxis);
