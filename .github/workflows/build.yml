@@ -36,7 +36,7 @@ jobs:
     name: "${{ matrix.config.name }} ${{ matrix.cmake_build_shared_libs == 'ON' && 'Shared' || 'Static' }} ${{ matrix.cmake_build_type }}"
     steps:
       - name: Checkout
-        uses: nschloe/action-cached-lfs-checkout@v1
+        uses: actions/checkout@v4
         with:
           submodules: true
 
@@ -113,7 +113,7 @@ jobs:
     name: "${{ matrix.config.name }} ${{ matrix.cmake_build_shared_libs == 'ON' && 'Shared' || 'Static' }} ${{ matrix.cmake_build_type }}"
     steps:
       - name: Checkout
-        uses: nschloe/action-cached-lfs-checkout@v1
+        uses: actions/checkout@v4
         with:
           submodules: true
 

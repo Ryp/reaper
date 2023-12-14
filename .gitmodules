@@ -48,3 +48,6 @@
 [submodule "external/google/crashpad/crashpad"]
 	path = external/google/crashpad/crashpad
 	url = https://chromium.googlesource.com/crashpad/crashpad.git
+[submodule "res"]
+	path = res
+	url = https://github.com/Ryp/reaper-resources
