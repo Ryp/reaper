@@ -77,3 +77,15 @@ set(TINYDDSLOADER_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/external/tinyddsloader)
 target_include_directories(tinyddsloader SYSTEM INTERFACE ${TINYDDSLOADER_INCLUDE_DIR})
 
 #///////////////////////////////////////////////////////////////////////////////
+
+add_library(inih STATIC)
+
+set(INIH_PATH ${CMAKE_SOURCE_DIR}/external/inih)
+
+target_sources(inih PRIVATE
+    ${INIH_PATH}/ini.c
+)
+
+target_include_directories(inih SYSTEM INTERFACE ${INIH_PATH})
+
+#///////////////////////////////////////////////////////////////////////////////

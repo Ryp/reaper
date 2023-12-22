@@ -38,7 +38,7 @@ endif()
 
 project(Reaper
     VERSION 0.2.0
-    LANGUAGES CXX
+    LANGUAGES C CXX
     DESCRIPTION "Tiny C++ Engine")
 
 # This should be set to ON on CI builds at least.

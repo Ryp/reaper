@@ -51,3 +51,6 @@
 [submodule "res"]
 	path = res
 	url = https://github.com/Ryp/reaper-resources
+[submodule "external/inih"]
+	path = external/inih
+	url = https://github.com/benhoyt/inih

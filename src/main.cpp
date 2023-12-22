@@ -68,7 +68,11 @@ int main(int /*ac*/, char** /*av*/)
 #endif
 
 #if defined(REAPER_USE_GOOGLE_CRASHPAD)
-    CrashpadContext crashpad_context = create_crashpad_context();
+    const char* config_filename = "crashpad.ini";
+
+    CrashpadConfig crashpad_config = crashpad_parse_ini_config(config_filename);
+
+    CrashpadContext crashpad_context = create_crashpad_context(crashpad_config);
     Assert(crashpad_context.is_started);
 #endif
 

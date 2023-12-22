@@ -47,6 +47,7 @@ target_link_libraries(${REAPER_BIN} PRIVATE
     neptune_sim
     neptune_trackgen
     cgltf
+    inih
 )
 
 if(REAPER_USE_GOOGLE_BREAKPAD)
@@ -67,6 +68,8 @@ if(REAPER_USE_GOOGLE_CRASHPAD)
     include(external/crashpad)
     target_compile_definitions(${REAPER_BIN} PUBLIC REAPER_USE_GOOGLE_CRASHPAD)
     target_link_libraries(${REAPER_BIN} PRIVATE google_crashpad_client)
+
+    install(FILES ${CMAKE_SOURCE_DIR}/config/release/crashpad.ini DESTINATION ${CMAKE_INSTALL_PREFIX})
 endif()
 
 # Configure main VS projet
