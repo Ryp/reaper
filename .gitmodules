@@ -1,3 +1,6 @@
+[submodule "res"]
+    path = res
+    url = https://github.com/Ryp/reaper-resources
 [submodule "external/doctest"]
     path = external/doctest
     url = https://github.com/onqtam/doctest
@@ -28,29 +31,27 @@
     url = https://github.com/Ryp/imgui
     ignore = untracked
 [submodule "external/tracy"]
-	path = external/tracy
-	url = https://github.com/wolfpld/tracy
+    path = external/tracy
+    url = https://github.com/wolfpld/tracy
+    ignore = untracked
 [submodule "external/cgltf"]
-	path = external/cgltf
-	url = https://github.com/jkuhlmann/cgltf
+    path = external/cgltf
+    url = https://github.com/jkuhlmann/cgltf
 [submodule "external/lodepng"]
-	path = external/lodepng
-	url = https://github.com/lvandeve/lodepng
+    path = external/lodepng
+    url = https://github.com/lvandeve/lodepng
 [submodule "external/bullet3"]
-	path = external/bullet3
-	url = https://github.com/Ryp/bullet3
+    path = external/bullet3
+    url = https://github.com/Ryp/bullet3
 [submodule "external/google/depot_tools"]
-	path = external/google/depot_tools
-	url = https://chromium.googlesource.com/chromium/tools/depot_tools.git
+    path = external/google/depot_tools
+    url = https://chromium.googlesource.com/chromium/tools/depot_tools.git
 [submodule "external/google/breakpad/src"]
-	path = external/google/breakpad/src
-	url = https://chromium.googlesource.com/breakpad/breakpad.git
+    path = external/google/breakpad/src
+    url = https://chromium.googlesource.com/breakpad/breakpad.git
 [submodule "external/google/crashpad/crashpad"]
-	path = external/google/crashpad/crashpad
-	url = https://chromium.googlesource.com/crashpad/crashpad.git
-[submodule "res"]
-	path = res
-	url = https://github.com/Ryp/reaper-resources
+    path = external/google/crashpad/crashpad
+    url = https://chromium.googlesource.com/crashpad/crashpad.git
 [submodule "external/inih"]
-	path = external/inih
-	url = https://github.com/benhoyt/inih
+    path = external/inih
+    url = https://github.com/benhoyt/inih
