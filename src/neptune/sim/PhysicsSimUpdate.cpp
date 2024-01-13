@@ -34,15 +34,38 @@ namespace Neptune
 {
 namespace
 {
+    constexpr float RespawnDistanceGU = 6.f;
+
 #if defined(REAPER_USE_BULLET_PHYSICS)
+    void reset_player_position(
+        btRigidBody* rigid_body, std::span<RaycastSuspension> raycast_suspensions, const glm::fmat4x3& transform)
+    {
+        // Reset all velocities
+        rigid_body->setWorldTransform(toBt(transform));
+        rigid_body->setLinearVelocity(toBt(glm::fvec3()));
+        rigid_body->setAngularVelocity(toBt(glm::fvec3()));
+        rigid_body->setTurnVelocity(toBt(glm::fvec3()));
+        rigid_body->setPushVelocity(toBt(glm::fvec3()));
+
+        // Reset suspension state
+        // NOTE: maybe it's better to use the minimum travel distance in this case?
+        for (auto& suspension : raycast_suspensions)
+        {
+            suspension.length_ratio_last = suspension.length_ratio_rest;
+        }
+    }
+
     void update_forces(PhysicsSim& sim, const PhysicsSim::FrameData& frame_data, float dt)
     {
         // FIXME: getMotionState() could be used to get interpolated positions (might be better)
         REAPER_PROFILE_SCOPE_FUNC();
 
-        btRigidBody*       player_rigid_body = sim.players[0];
+        btRigidBody*       player_rigid_body = sim.players.front(); // FIXME
         const glm::fmat4x3 player_transform = toGlm(player_rigid_body->getWorldTransform());
         const glm::fvec3   player_position_ws = player_transform[3];
+
+        // NOTE: We need to do this everyframe anyway, otherwise it's kept from last sim frame
+        player_rigid_body->clearForces();
 
         float                    min_dist_sq = 10000000.f;
         const TrackSkeletonNode* closest_skeleton_node = nullptr;
@@ -95,6 +118,18 @@ namespace
 
         sim.last_gravity_frame = gravity_frame;
 
+        if (closest_skeleton_node)
+        {
+            if (min_dist_sq > RespawnDistanceGU * RespawnDistanceGU)
+            {
+                glm::fmat4x3 new_player_transform = glm::mat4(closest_skeleton_node->in_transform_ms_to_ws)
+                                                    * glm::translate(glm::identity<glm::mat4>(), up() * 1.f);
+
+                reset_player_position(player_rigid_body, sim.raycast_suspensions, new_player_transform);
+                return;
+            }
+        }
+
         const glm::fvec3 gravity_up_ws = gravity_frame * up();
         const glm::fvec3 player_forward_ws = player_transform * glm::vec4(forward(), 0.f);
         const glm::fvec3 player_up_ws = player_transform * glm::vec4(up(), 0.f);
@@ -140,7 +175,6 @@ namespace
         // Friction torque (FIXME might be better applied by bullet directly)
         torque_ws += -player_angular_speed * sim.vars.angular_friction;
 
-        player_rigid_body->clearForces();
         player_rigid_body->applyTorque(toBt(torque_ws));
         player_rigid_body->applyCentralForce(toBt(force_ws));
 
@@ -276,15 +310,6 @@ namespace
     // float upSpeed = glm::length(movement.speed - glm::proj(movement.speed, shipUp));
     // if (projection.relativePosition.y > 2.0f && upSpeed > 0.0f)
     //     force_ws += player_orientation * (glm::vec3(0.0f, 2.0f - upSpeed, 0.0f) * 10.0f);
-
-    void post_tick(const PhysicsSim& sim, float /*dt*/)
-    {
-        REAPER_PROFILE_SCOPE_FUNC();
-
-        btRigidBody* player_rigid_body = sim.players.front(); // FIXME
-        toGlm(player_rigid_body->getLinearVelocity());
-        toGlm(player_rigid_body->getOrientation());
-    }
 #endif
 } // namespace
 } // namespace Neptune
@@ -301,16 +326,6 @@ static void pre_tick_callback(btDynamicsWorld* world, btScalar dt)
 
     update_forces(sim, sim.frame_data, dt);
 }
-
-static void post_tick_callback(btDynamicsWorld* world, btScalar dt)
-{
-    using namespace Neptune;
-
-    PhysicsSim* sim_ptr = static_cast<PhysicsSim*>(world->getWorldUserInfo());
-    Assert(sim_ptr);
-
-    post_tick(*sim_ptr, dt);
-}
 #endif
 
 namespace Neptune
@@ -323,7 +338,6 @@ void sim_start(PhysicsSim* sim)
 
 #if defined(REAPER_USE_BULLET_PHYSICS)
     sim->dynamics_world->setInternalTickCallback(pre_tick_callback, sim, true);
-    sim->dynamics_world->setInternalTickCallback(post_tick_callback, sim, false);
 #endif
 }
 
