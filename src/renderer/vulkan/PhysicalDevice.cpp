@@ -123,6 +123,47 @@ namespace
             }
         }
     }
+
+    bool check_support_for_compute_writable_depth_format(VkPhysicalDevice physical_device)
+    {
+        // FIXME This way of detection is a bit brittle.
+        // We're not exactly matching what the render pass code will do
+        // NOTE: Maybe we could have detection code per-renderpass instead.
+        const VkPhysicalDeviceImageFormatInfo2 compute_writable_depth_info = {
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_FORMAT_INFO_2,
+            .pNext = nullptr,
+            .format = VK_FORMAT_D16_UNORM, // Only checking one format here
+            .type = VK_IMAGE_TYPE_2D,
+            .tiling = VK_IMAGE_TILING_OPTIMAL,
+            .usage = VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+            .flags = VK_FLAGS_NONE,
+        };
+
+        VkImageFormatProperties2 image_properties;
+        image_properties.sType = VK_STRUCTURE_TYPE_IMAGE_FORMAT_PROPERTIES_2;
+        image_properties.pNext = nullptr;
+
+        const VkResult result =
+            vkGetPhysicalDeviceImageFormatProperties2(physical_device, &compute_writable_depth_info, &image_properties);
+
+        switch (result)
+        {
+        case VK_SUCCESS:
+            return true;
+        case VK_ERROR_FORMAT_NOT_SUPPORTED:
+            return false;
+        default:
+            AssertVk(result);
+            return false;
+        }
+    }
+
+    PhysicalDeviceInfo::MacroFeatures fill_physical_device_info_features(VkPhysicalDevice handle)
+    {
+        return PhysicalDeviceInfo::MacroFeatures{
+            .compute_stores_to_depth = check_support_for_compute_writable_depth_format(handle),
+        };
+    }
 } // namespace
 
 PhysicalDeviceInfo create_physical_device_info(VkPhysicalDevice handle, IWindow* window,
@@ -135,6 +176,8 @@ PhysicalDeviceInfo create_physical_device_info(VkPhysicalDevice handle, IWindow*
     fill_physical_device_properties(physical_device, handle);
     fill_physical_device_supported_features(physical_device, handle);
     fill_physical_device_supported_queues(physical_device, handle, window, presentationSurface);
+
+    physical_device.macro_features = fill_physical_device_info_features(handle);
 
     return physical_device;
 }

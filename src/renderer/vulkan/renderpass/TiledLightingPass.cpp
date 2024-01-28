@@ -183,7 +183,7 @@ TiledLightingFrameGraphRecord create_tiled_lighting_pass_record(FrameGraph::Buil
                                               VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL});
 
     tiled_lighting.depth =
-        builder.read_texture(tiled_lighting.pass_handle, vis_buffer_record.render.depth,
+        builder.read_texture(tiled_lighting.pass_handle, vis_buffer_record.depth,
                              GPUTextureAccess{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
                                               VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL});
 

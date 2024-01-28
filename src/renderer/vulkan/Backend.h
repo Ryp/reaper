@@ -84,6 +84,7 @@ struct REAPER_RENDERER_API VulkanBackend
     {
         bool freeze_meshlet_culling = false; // FIXME using the framegraph we can't have persistent resources yet
         bool enable_debug_tile_lighting = true;
+        bool enable_msaa_visibility = false;
     } options;
 
     BackendResources* resources = nullptr;

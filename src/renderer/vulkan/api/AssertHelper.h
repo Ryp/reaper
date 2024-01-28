@@ -13,10 +13,10 @@
 #include "core/Assert.h"
 
 // NOTE: It's really important to evaluate 'vk_call' only once
-#define AssertVk(vk_call)                                                                     \
-    do                                                                                        \
-    {                                                                                         \
-        const VkResult result = vk_call;                                                      \
-        AssertImpl(__FILE__, __FUNCTION__, __LINE__, result == VK_SUCCESS,                    \
-                   fmt::format("vulkan call failed with result '{}'", vk_to_string(result))); \
+#define AssertVk(vk_call)                                                                        \
+    do                                                                                           \
+    {                                                                                            \
+        const VkResult vk_result = vk_call;                                                      \
+        AssertImpl(__FILE__, __FUNCTION__, __LINE__, vk_result == VK_SUCCESS,                    \
+                   fmt::format("vulkan call failed with result '{}'", vk_to_string(vk_result))); \
     } while (false)

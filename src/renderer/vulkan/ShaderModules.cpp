@@ -80,6 +80,11 @@ ShaderModules create_shader_modules(VulkanBackend& backend)
     modules.vis_buffer_raster_fs = create_shader_module(backend.device, "vis_buffer/vis_buffer_raster.frag.spv");
     modules.vis_buffer_raster_vs = create_shader_module(backend.device, "vis_buffer/vis_buffer_raster.vert.spv");
     modules.vis_fill_gbuffer_cs = create_shader_module(backend.device, "vis_buffer/fill_gbuffer.comp.spv");
+    modules.vis_fill_gbuffer_msaa_cs = create_shader_module(backend.device, "vis_buffer/fill_gbuffer_msaa.comp.spv");
+    modules.vis_fill_gbuffer_msaa_with_depth_resolve_cs =
+        create_shader_module(backend.device, "vis_buffer/fill_gbuffer_msaa_with_depth_resolve.comp.spv");
+    modules.vis_resolve_depth_legacy_fs =
+        create_shader_module(backend.device, "vis_buffer/resolve_depth_legacy.frag.spv");
 
     return modules;
 }
@@ -116,5 +121,8 @@ void destroy_shader_modules(VulkanBackend& backend, ShaderModules& shader_module
     vkDestroyShaderModule(backend.device, shader_modules.vis_buffer_raster_fs, nullptr);
     vkDestroyShaderModule(backend.device, shader_modules.vis_buffer_raster_vs, nullptr);
     vkDestroyShaderModule(backend.device, shader_modules.vis_fill_gbuffer_cs, nullptr);
+    vkDestroyShaderModule(backend.device, shader_modules.vis_fill_gbuffer_msaa_cs, nullptr);
+    vkDestroyShaderModule(backend.device, shader_modules.vis_fill_gbuffer_msaa_with_depth_resolve_cs, nullptr);
+    vkDestroyShaderModule(backend.device, shader_modules.vis_resolve_depth_legacy_fs, nullptr);
 }
 } // namespace Reaper

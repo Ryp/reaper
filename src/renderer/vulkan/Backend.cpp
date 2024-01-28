@@ -208,8 +208,8 @@ namespace
         vkGetDeviceQueue(backend.device, backend.physical_device.present_queue_family_index, 0, &backend.present_queue);
     }
 
-    void vulkan_check_physical_device_supported_extensions(VkPhysicalDevice       physical_device,
-                                                           std::span<const char*> checked_extensions)
+    void vulkan_check_physical_device_supported_extensions(
+        VkPhysicalDevice physical_device, std::span<const char*> checked_extensions)
     {
         if (checked_extensions.empty())
             return;

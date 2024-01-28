@@ -186,9 +186,12 @@ set(REAPER_SHADER_SRCS
     ${REAPER_SHADER_DIR}/tiled_lighting/tile_depth_downsample.comp.hlsl
     ${REAPER_SHADER_DIR}/tiled_lighting/tiled_lighting.comp.hlsl
     ${REAPER_SHADER_DIR}/tiled_lighting/tiled_lighting_debug.comp.hlsl
+    ${REAPER_SHADER_DIR}/vis_buffer/resolve_depth_legacy.frag.hlsl
     ${REAPER_SHADER_DIR}/vis_buffer/vis_buffer_raster.frag.hlsl
     ${REAPER_SHADER_DIR}/vis_buffer/vis_buffer_raster.vert.hlsl
     ${REAPER_SHADER_DIR}/vis_buffer/fill_gbuffer.comp.hlsl
+    ${REAPER_SHADER_DIR}/vis_buffer/fill_gbuffer_msaa.comp.hlsl
+    ${REAPER_SHADER_DIR}/vis_buffer/fill_gbuffer_msaa_with_depth_resolve.comp.hlsl
 )
 
 # Shader compilation

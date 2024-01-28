@@ -43,6 +43,9 @@ struct ShaderModules
     VkShaderModule vis_buffer_raster_fs;
     VkShaderModule vis_buffer_raster_vs;
     VkShaderModule vis_fill_gbuffer_cs;
+    VkShaderModule vis_fill_gbuffer_msaa_cs;
+    VkShaderModule vis_fill_gbuffer_msaa_with_depth_resolve_cs;
+    VkShaderModule vis_resolve_depth_legacy_fs;
 };
 
 struct VulkanBackend;

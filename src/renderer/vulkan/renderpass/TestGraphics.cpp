@@ -102,6 +102,7 @@ void backend_debug_ui(VulkanBackend& backend)
     {
         ImGui::Checkbox("Freeze culling [BROKEN]", &backend.options.freeze_meshlet_culling); // FIXME
         ImGui::Checkbox("Enable debug tile culling", &backend.options.enable_debug_tile_lighting);
+        ImGui::Checkbox("Enable MSAA-based visibility", &backend.options.enable_msaa_visibility);
         ImGui::SliderFloat("Tonemap min (nits)", &backend.presentInfo.tonemap_min_nits, 0.0001f, 1.f);
         ImGui::SliderFloat("Tonemap max (nits)", &backend.presentInfo.tonemap_max_nits, 80.f, 2000.f);
         ImGui::SliderFloat("SDR UI max brightness (nits)", &backend.presentInfo.sdr_ui_max_brightness_nits, 20.f,
@@ -193,10 +194,11 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     const ShadowFrameGraphRecord shadow = create_shadow_map_pass_record(builder, meshlet_pass, prepared);
 
     const VisBufferFrameGraphRecord vis_buffer_record =
-        create_vis_buffer_pass_record(builder, meshlet_pass, render_extent);
+        create_vis_buffer_pass_record(builder, meshlet_pass, render_extent, backend.options.enable_msaa_visibility,
+                                      backend.physical_device.macro_features.compute_stores_to_depth);
 
     const HZBReduceFrameGraphRecord hzb_reduce =
-        create_hzb_pass_record(builder, vis_buffer_record.render.depth, tiled_lighting_frame);
+        create_hzb_pass_record(builder, vis_buffer_record.depth, tiled_lighting_frame);
 
     const LightRasterFrameGraphRecord light_raster_record = create_tiled_lighting_raster_pass_record(
         builder, tiled_lighting_frame, hzb_reduce.hzb_properties, hzb_reduce.hzb_texture);
@@ -208,7 +210,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         create_tiled_lighting_debug_pass_record(builder, tiled_lighting, render_extent);
 
     const ForwardFrameGraphRecord forward =
-        create_forward_pass_record(builder, meshlet_pass, shadow, vis_buffer_record.render.depth, render_extent);
+        create_forward_pass_record(builder, meshlet_pass, shadow, vis_buffer_record.depth, render_extent);
 
     const GUIFrameGraphRecord gui = create_gui_pass_record(builder, backend.presentInfo.surface_extent);
 
@@ -255,10 +257,11 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         update_shadow_map_resources(descriptor_write_helper, resources.frame_storage_allocator, prepared,
                                     resources.shadow_map_resources, resources.mesh_cache.vertexBufferPosition);
 
-        update_vis_buffer_pass_resources(framegraph, resources.framegraph_resources, vis_buffer_record,
-                                         descriptor_write_helper, resources.frame_storage_allocator,
-                                         resources.vis_buffer_pass_resources, prepared, resources.samplers_resources,
-                                         resources.material_resources, resources.mesh_cache);
+        update_vis_buffer_pass_resources(
+            framegraph, resources.framegraph_resources, vis_buffer_record, descriptor_write_helper,
+            resources.frame_storage_allocator, resources.vis_buffer_pass_resources, prepared,
+            resources.samplers_resources, resources.material_resources, resources.mesh_cache,
+            backend.options.enable_msaa_visibility, backend.physical_device.macro_features.compute_stores_to_depth);
 
         update_tiled_lighting_raster_pass_resources(framegraph, resources.framegraph_resources, light_raster_record,
                                                     descriptor_write_helper, resources.frame_storage_allocator,
@@ -415,18 +418,24 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
                                          resources.shadow_map_resources);
 
         record_vis_buffer_pass_command_buffer(frame_graph_helper, vis_buffer_record.render, cmdBuffer,
-                                              resources.pipeline_factory, prepared,
-                                              resources.vis_buffer_pass_resources);
+                                              resources.pipeline_factory, prepared, resources.vis_buffer_pass_resources,
+                                              backend.options.enable_msaa_visibility);
+
+        record_fill_gbuffer_pass_command_buffer(frame_graph_helper, vis_buffer_record.fill_gbuffer, cmdBuffer,
+                                                resources.pipeline_factory, resources.vis_buffer_pass_resources,
+                                                render_extent, backend.options.enable_msaa_visibility,
+                                                backend.physical_device.macro_features.compute_stores_to_depth);
+
+        record_legacy_depth_resolve_pass_command_buffer(
+            frame_graph_helper, vis_buffer_record.legacy_depth_resolve, cmdBuffer, resources.pipeline_factory,
+            resources.vis_buffer_pass_resources, backend.options.enable_msaa_visibility,
+            backend.physical_device.macro_features.compute_stores_to_depth);
 
         record_hzb_command_buffer(
             frame_graph_helper, hzb_reduce, cmdBuffer, resources.pipeline_factory, resources.hzb_pass_resources,
             VkExtent2D{.width = vis_buffer_record.scene_depth_properties.width,
                        .height = vis_buffer_record.scene_depth_properties.height},
             VkExtent2D{.width = hzb_reduce.hzb_properties.width, .height = hzb_reduce.hzb_properties.height});
-
-        record_fill_gbuffer_pass_command_buffer(frame_graph_helper, vis_buffer_record.fill_gbuffer, cmdBuffer,
-                                                resources.pipeline_factory, resources.vis_buffer_pass_resources,
-                                                render_extent);
 
         record_depth_copy(frame_graph_helper, light_raster_record.tile_depth_copy, cmdBuffer,
                           resources.pipeline_factory, resources.tiled_raster_resources);

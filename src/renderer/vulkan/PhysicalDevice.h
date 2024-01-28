@@ -33,6 +33,11 @@ struct PhysicalDeviceInfo
     // These can point to the same object!
     uint32_t graphics_queue_family_index;
     uint32_t present_queue_family_index;
+
+    struct MacroFeatures
+    {
+        bool compute_stores_to_depth = false;
+    } macro_features;
 };
 
 class IWindow;

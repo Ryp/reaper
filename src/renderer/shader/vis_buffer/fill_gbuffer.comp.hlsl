@@ -13,9 +13,23 @@
 #include "vis_buffer.hlsl"
 #include "fill_gbuffer.share.hlsl"
 
+#if defined(ENABLE_MSAA_DEPTH_RESOLVE) && !defined(ENABLE_MSAA_VIS_BUFFER)
+    #error
+#endif
+
 VK_PUSH_CONSTANT_HELPER(FillGBufferPushConstants) push;
 
+#if defined(ENABLE_MSAA_VIS_BUFFER)
+VK_BINDING(0, Slot_VisBuffer) Texture2DMS<VisBufferRawType> VisBufferMS;
+#else
 VK_BINDING(0, Slot_VisBuffer) Texture2D<VisBufferRawType> VisBuffer;
+#endif
+
+#if defined(ENABLE_MSAA_DEPTH_RESOLVE)
+VK_BINDING(0, Slot_VisBufferDepthMS) Texture2DMS<float> VisBufferDepthMS;
+VK_BINDING(0, Slot_ResolvedDepth) RWTexture2D<float> ResolvedDepth;
+#endif
+
 VK_BINDING(0, Slot_GBuffer0) RWTexture2D<GBuffer0Type> GBuffer0;
 VK_BINDING(0, Slot_GBuffer1) RWTexture2D<GBuffer1Type> GBuffer1;
 VK_BINDING(0, Slot_instance_params) StructuredBuffer<MeshInstance> instance_params;
@@ -49,7 +63,18 @@ void main(uint3 gtid : SV_GroupThreadID,
         return;
     }
 
+#if defined(ENABLE_MSAA_VIS_BUFFER)
+    uint sample_location = (position_ts.x & 1) + (position_ts.y & 1) * 2;
+    VisBufferRawType vis_buffer_raw = VisBufferMS.Load(uint3(position_ts / 2, 0), sample_location);
+
+#if defined(ENABLE_MSAA_DEPTH_RESOLVE)
+    // Resolve depth in this pass as well
+    const float depth = VisBufferDepthMS.Load(uint3(position_ts / 2, 0), sample_location);
+    ResolvedDepth[position_ts] = depth;
+#endif
+#else
     VisBufferRawType vis_buffer_raw = VisBuffer.Load(uint3(position_ts, 0));
+#endif
 
     if (!is_vis_buffer_valid(vis_buffer_raw))
     {
