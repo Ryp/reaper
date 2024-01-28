@@ -113,7 +113,6 @@ constexpr u32 IndexSizeBytes = 1;
 // NOTE: Because of u8 indices we pack a triangle in 24 bits + 8 bits for a prim restart
 constexpr u32 TriangleIndicesSizeBytes = 4;
 constexpr u32 MaxMeshletCullingPassCount = 4;
-constexpr u32 MaxMeshInstanceCount = 512;
 // NOTE: Increasing this seems to make perf degrade noticeably on my intel iGPU for the same amount of geometry drawn.
 constexpr u32 MaxVisibleMeshletsPerPass = 4096;
 
