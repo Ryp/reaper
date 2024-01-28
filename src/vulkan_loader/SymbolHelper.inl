@@ -177,6 +177,7 @@ REAPER_VK_DEVICE_LEVEL_FUNCTION(vkCmdSetStencilTestEnable);
 REAPER_VK_DEVICE_LEVEL_FUNCTION(vkCmdSetViewportWithCount);
 
 #include "extension/VK_EXT_calibrated_timestamps.inl"
+#include "extension/VK_EXT_sample_locations.inl"
 #include "extension/VK_KHR_get_surface_capabilities2.inl"
 
 #if REAPER_DEBUG

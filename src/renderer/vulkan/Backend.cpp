@@ -267,6 +267,15 @@ namespace
         Assert(physical_device.graphics_queue_family_index != UINT32_MAX);
         Assert(physical_device.present_queue_family_index != UINT32_MAX);
 
+        VkMultisamplePropertiesEXT multisample_properties;
+        multisample_properties.sType = VK_STRUCTURE_TYPE_MULTISAMPLE_PROPERTIES_EXT;
+        multisample_properties.pNext = nullptr;
+        vkGetPhysicalDeviceMultisamplePropertiesEXT(physical_device_handle, VK_SAMPLE_COUNT_8_BIT,
+                                                    &multisample_properties);
+
+        Assert(multisample_properties.maxSampleLocationGridSize.height >= 1);
+        Assert(multisample_properties.maxSampleLocationGridSize.width >= 1);
+
         // Supported Extensions
         vulkan_check_physical_device_supported_extensions(physical_device_handle, extensions);
 
@@ -515,6 +524,7 @@ void create_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& backend)
         VK_EXT_CALIBRATED_TIMESTAMPS_EXTENSION_NAME,
         VK_EXT_INDEX_TYPE_UINT8_EXTENSION_NAME,
         VK_EXT_PRIMITIVE_TOPOLOGY_LIST_RESTART_EXTENSION_NAME,
+        VK_EXT_SAMPLE_LOCATIONS_EXTENSION_NAME,
     };
 
     log_debug(root, "vulkan: choosing physical device");
