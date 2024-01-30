@@ -41,9 +41,10 @@ void DumpFrameGraph(const FrameGraph& frameGraph)
             if (resource_handle.is_texture)
             {
                 const GPUTextureProperties& desc = resource.properties.texture;
-                label = fmt::format("{0} ({1})\\n{2}x{3}\\n{4}\\n[{5}]", resource.debug_name, resource_handle.index,
+                label = fmt::format("{0} ({1})\\n{2}x{3} {6}\\n{4}\\n[{5}]", resource.debug_name, resource_handle.index,
                                     desc.width, desc.height, vk_to_string(PixelFormatToVulkan(desc.format)),
-                                    resourceUsageIndex);
+                                    resourceUsageIndex,
+                                    desc.sample_count > 1 ? vk_to_string(SampleCountToVulkan(desc.sample_count)) : "");
             }
             else
             {
