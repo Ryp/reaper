@@ -118,6 +118,33 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 {
     pipeline_factory_update(backend, resources.pipeline_factory, resources.shader_modules);
 
+    {
+        VkFence draw_fence = resources.frame_sync_resources.draw_fence;
+
+        VkResult waitResult;
+        log_debug(root, "vulkan: wait for fence");
+
+        do
+        {
+            REAPER_PROFILE_SCOPE_COLOR("Wait for fence", Color::Red);
+
+            const u64 waitTimeoutNs = 1 * 1000 * 1000 * 1000;
+            waitResult = vkWaitForFences(backend.device, 1, &draw_fence, VK_TRUE, waitTimeoutNs);
+
+            if (waitResult != VK_SUCCESS)
+            {
+                log_debug(root, "- return result {}", vk_to_string(waitResult));
+            }
+        } while (waitResult != VK_SUCCESS);
+
+#if defined(REAPER_USE_TRACY)
+        FrameMark;
+#endif
+
+        log_debug(root, "vulkan: reset fence");
+        AssertVk(vkResetFences(backend.device, 1, &draw_fence));
+    }
+
     VkResult acquireResult;
     u64      acquireTimeoutUs = 1000000000;
     uint32_t current_swapchain_index;
@@ -152,35 +179,6 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     }
 
     log_debug(root, "vulkan: swapchain image index = {}", current_swapchain_index);
-
-    {
-        VkFence draw_fence = resources.frame_sync_resources.draw_fence;
-
-        VkResult waitResult;
-        log_debug(root, "vulkan: wait for fence");
-
-        do
-        {
-            REAPER_PROFILE_SCOPE_COLOR("Wait for fence", Color::Red);
-
-            const u64 waitTimeoutNs = 1 * 1000 * 1000 * 1000;
-            waitResult = vkWaitForFences(backend.device, 1, &draw_fence, VK_TRUE, waitTimeoutNs);
-
-            if (waitResult != VK_SUCCESS)
-            {
-                log_debug(root, "- return result {}", vk_to_string(waitResult));
-            }
-        } while (waitResult != VK_SUCCESS);
-
-#if defined(REAPER_USE_TRACY)
-        FrameMark;
-#endif
-
-        AssertVk(vkGetFenceStatus(backend.device, draw_fence));
-
-        log_debug(root, "vulkan: reset fence");
-        AssertVk(vkResetFences(backend.device, 1, &draw_fence));
-    }
 
     const VkExtent2D render_extent = backend.render_extent;
 
@@ -498,8 +496,8 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
         .pNext = nullptr,
         .semaphore = backend.semaphore_swapchain_image_available,
-        .value = 0, // NOTE: Ignored when not using a timeline semaphore
-        .stageMask = swapchain_access_render.stage_mask,
+        .value = 0, // NOTE: Only for timeline semaphores
+        .stageMask = swapchain_access_present.access_mask,
         .deviceIndex = 0, // NOTE: Set to zero when not using device groups
     };
 
@@ -516,7 +514,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
         .pNext = nullptr,
         .semaphore = backend.semaphore_rendering_finished,
-        .value = 0, // NOTE: Ignored when not using a timeline semaphore
+        .value = 0, // NOTE: Only for timeline semaphores
         .stageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
         .deviceIndex = 0, // NOTE: Set to zero when not using device groups
     };

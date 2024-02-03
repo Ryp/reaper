@@ -69,7 +69,7 @@ void renderer_start(ReaperRoot& root, VulkanBackend& backend, IWindow* window)
     log_debug(root, "vulkan: submit commands");
     AssertVk(vkQueueSubmit2(backend.graphics_queue, 1, &submit_info_2, VK_NULL_HANDLE));
 
-    AssertVk(vkDeviceWaitIdle(backend.device));
+    AssertVk(vkQueueWaitIdle(backend.graphics_queue));
 
     ImGui_ImplVulkan_DestroyFontUploadObjects();
 
@@ -79,7 +79,7 @@ void renderer_start(ReaperRoot& root, VulkanBackend& backend, IWindow* window)
 
 void renderer_stop(ReaperRoot& root, VulkanBackend& backend, IWindow* window)
 {
-    vkQueueWaitIdle(backend.present_queue);
+    vkDeviceWaitIdle(backend.device);
 
     log_info(root, "window: unmap window");
     window->unmap();
