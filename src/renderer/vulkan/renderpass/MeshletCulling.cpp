@@ -659,27 +659,16 @@ void record_meshlet_culling_debug_command_buffer(const FrameGraphHelper&        
     vkCmdCopyBuffer2(cmdBuffer.handle, &copy);
 
     const GPUBufferAccess src = {VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT};
-    const GPUBufferAccess dst = {VK_PIPELINE_STAGE_2_HOST_BIT, VK_ACCESS_2_HOST_READ_BIT};
+    const GPUBufferAccess dst = {VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, VK_ACCESS_2_NONE};
     const GPUBufferView   view = default_buffer_view(resources.counters_cpu_properties);
 
-    VkBufferMemoryBarrier2 bufferBarrier = get_vk_buffer_barrier(resources.counters_cpu_buffer.handle, view, src, dst);
+    VkBufferMemoryBarrier2 buffer_barrier = get_vk_buffer_barrier(resources.counters_cpu_buffer.handle, view, src, dst);
 
-    const VkDependencyInfo dependencies = VkDependencyInfo{
-        .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
-        .pNext = nullptr,
-        .dependencyFlags = VK_FLAGS_NONE,
-        .memoryBarrierCount = 0,
-        .pMemoryBarriers = nullptr,
-        .bufferMemoryBarrierCount = 1,
-        .pBufferMemoryBarriers = &bufferBarrier,
-        .imageMemoryBarrierCount = 0,
-        .pImageMemoryBarriers = nullptr,
-    };
+    const VkDependencyInfo dependencies = get_vk_buffer_barrier_depency_info(std::span(&buffer_barrier, 1));
 
     vkCmdSetEvent2(cmdBuffer.handle, resources.countersReadyEvent, &dependencies);
 
-    vkCmdResetEvent2(cmdBuffer.handle, resources.countersReadyEvent,
-                     VK_PIPELINE_STAGE_2_TRANSFER_BIT | VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT); // FIXME
+    vkCmdResetEvent2(cmdBuffer.handle, resources.countersReadyEvent, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT);
 }
 
 std::vector<MeshletCullingStats> get_meshlet_culling_gpu_stats(VulkanBackend& backend, const PreparedData& prepared,
