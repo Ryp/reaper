@@ -511,11 +511,6 @@ void create_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& backend)
 
     std::vector<const char*> device_extensions = {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-#if REAPER_WINDOWS_HDR_TEST
-        VK_EXT_HDR_METADATA_EXTENSION_NAME,
-        VK_EXT_FULL_SCREEN_EXCLUSIVE_EXTENSION_NAME,
-        VK_AMD_DISPLAY_NATIVE_HDR_EXTENSION_NAME,
-#endif
         VK_KHR_SWAPCHAIN_MUTABLE_FORMAT_EXTENSION_NAME,
         VK_EXT_CALIBRATED_TIMESTAMPS_EXTENSION_NAME,
         VK_EXT_INDEX_TYPE_UINT8_EXTENSION_NAME,

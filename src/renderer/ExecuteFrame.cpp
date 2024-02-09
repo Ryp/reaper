@@ -92,27 +92,6 @@ void renderer_execute_frame(ReaperRoot& root, const SceneGraph& scene, std::vect
 {
     VulkanBackend& backend = *root.renderer->backend;
 
-#if REAPER_WINDOWS_HDR_TEST
-    static bool fullscreen = false;
-    if (fullscreen == false)
-    {
-        VkResult acquireFullscreenResult =
-            vkAcquireFullScreenExclusiveModeEXT(backend.device, backend.presentInfo.swapchain);
-
-        if (acquireFullscreenResult == VK_SUCCESS)
-        {
-            fullscreen = true;
-            // FIXME Trigger resize to check for new formats
-            backend.new_swapchain_extent = backend.presentInfo.surface_extent;
-            log_info(root, "vulkan: FULLSCREEN!");
-        }
-        else
-        {
-            log_error(root, "vulkan: UNABLE TO SET FULLSCREEN!");
-        }
-    }
-#endif
-
     resize_swapchain(root, backend);
 
     const float near_plane_distance = 0.1f;

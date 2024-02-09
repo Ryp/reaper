@@ -19,10 +19,6 @@
 #include "core/Assert.h"
 #include "profiling/Scope.h"
 
-#if REAPER_WINDOWS_HDR_TEST
-#    include "renderer/window/Win32Window.h" // FIXME
-#endif
-
 namespace
 {
 VkSurfaceFormatKHR vulkan_swapchain_choose_surface_format(std::vector<VkSurfaceFormat2KHR>& surface_formats,
@@ -145,34 +141,8 @@ void configure_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backen
     VkSurfaceCapabilities2KHR surface_caps_2 = {};
     surface_caps_2.sType = VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_2_KHR;
 
-#if REAPER_WINDOWS_HDR_TEST
-    Win32Window* win32Window = dynamic_cast<Win32Window*>(root.renderer->window);
-
-    const VkSurfaceFullScreenExclusiveWin32InfoEXT fullscreen_exclusive_win32_info = {
-        .sType = VK_STRUCTURE_TYPE_SURFACE_FULL_SCREEN_EXCLUSIVE_WIN32_INFO_EXT,
-        .pNext = nullptr,
-        .hmonitor = MonitorFromWindow(win32Window->m_handle, MONITOR_DEFAULTTOPRIMARY),
-    };
-
-    surface_info_2.pNext = &fullscreen_exclusive_win32_info,
-
-    VkSurfaceCapabilitiesFullScreenExclusiveEXT fullscreen_exclusive_info = {};
-    fullscreen_exclusive_info.sType = VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_FULL_SCREEN_EXCLUSIVE_EXT;
-
-    VkDisplayNativeHdrSurfaceCapabilitiesAMD native_hdr_amd = {};
-    native_hdr_amd.sType = VK_STRUCTURE_TYPE_DISPLAY_NATIVE_HDR_SURFACE_CAPABILITIES_AMD;
-    native_hdr_amd.pNext = &fullscreen_exclusive_info;
-
-    surface_caps_2.pNext = &native_hdr_amd;
-#endif
-
     AssertVk(
         vkGetPhysicalDeviceSurfaceCapabilities2KHR(backend.physical_device.handle, &surface_info_2, &surface_caps_2));
-
-#if REAPER_WINDOWS_HDR_TEST
-    // Assert(native_hdr_amd.localDimmingSupport == VK_TRUE);
-    Assert(fullscreen_exclusive_info.fullScreenExclusiveSupported == VK_TRUE);
-#endif
 
     presentInfo.surface_caps = surface_caps_2.surfaceCapabilities;
     const VkSurfaceCapabilitiesKHR& surface_caps = surface_caps_2.surfaceCapabilities;
@@ -296,30 +266,6 @@ void create_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backend, 
         .viewFormatCount = static_cast<u32>(view_formats.size()),
         .pViewFormats = view_formats.data(),
     };
-
-#if REAPER_WINDOWS_HDR_TEST
-    Win32Window* win32Window = dynamic_cast<Win32Window*>(root.renderer->window);
-
-    const VkSurfaceFullScreenExclusiveWin32InfoEXT fullscreen_exclusive_win32_info = {
-        .sType = VK_STRUCTURE_TYPE_SURFACE_FULL_SCREEN_EXCLUSIVE_WIN32_INFO_EXT,
-        .pNext = nullptr,
-        .hmonitor = MonitorFromWindow(win32Window->m_handle, MONITOR_DEFAULTTOPRIMARY),
-    };
-
-    const VkSurfaceFullScreenExclusiveInfoEXT fullscreen_exclusive_info = {
-        .sType = VK_STRUCTURE_TYPE_SURFACE_FULL_SCREEN_EXCLUSIVE_INFO_EXT,
-        .pNext = &fullscreen_exclusive_win32_info,
-        .fullScreenExclusive = VK_FULL_SCREEN_EXCLUSIVE_APPLICATION_CONTROLLED_EXT,
-    };
-
-    const VkSwapchainDisplayNativeHdrCreateInfoAMD display_native_hdr_amd_info = {
-        .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_DISPLAY_NATIVE_HDR_CREATE_INFO_AMD,
-        .pNext = &fullscreen_exclusive_info,
-        .localDimmingEnable = false, // FIXME
-    };
-
-    format_list.pNext = &display_native_hdr_amd_info,
-#endif
 
     VkSwapchainCreateInfoKHR swap_chain_create_info = {
         .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
