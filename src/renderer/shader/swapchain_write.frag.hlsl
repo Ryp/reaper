@@ -17,7 +17,8 @@ VK_BINDING(0, 0) SamplerState linear_sampler;
 VK_BINDING(0, 1) Texture2D<float3> t_hdr_scene;
 VK_BINDING(0, 2) Texture2D<float3> Lighting;
 VK_BINDING(0, 3) Texture2D<float4> t_ldr_gui;
-VK_BINDING(0, 4) Texture2D<float3> t_ldr_debug;
+VK_BINDING(0, 4) ByteAddressBuffer AvgLog2Luminance;
+VK_BINDING(0, 5) Texture2D<float3> t_ldr_debug;
 
 struct PS_INPUT
 {
@@ -86,8 +87,6 @@ float3 apply_hdr_transfer_func(float3 color_linear_nits, uint transfer_function)
         return 0.42; // Invalid
 }
 
-static const float exposure = 1.f; // FIXME
-
 void main(in PS_INPUT input, out PS_OUTPUT output)
 {
     // Unexposed scene color in linear sRGB
@@ -99,9 +98,20 @@ void main(in PS_INPUT input, out PS_OUTPUT output)
         color = lighting;
     }
 
-    color *= exposure;
+#define USE_AUTO_EXPOSURE 0
+#if USE_AUTO_EXPOSURE
+    float average_log2_luma = asfloat(AvgLog2Luminance.Load(0));
+    float exposure = exp2(-average_log2_luma) * 0.18;
+#else
+    // FIXME The HDR range at this point should preferably be in nits, so that we can set
+    // an exposure key in more consistent units as well. Here it's completely arbitrary
+    // but it gives us an exposed image.
+    const float manual_exposure_key = 200.0;
+    float exposure = manual_exposure_key;
+#endif
 
-    color *= Consts.exposure_compensation;
+    // Apply exposure
+    color *= exposure * Consts.exposure_compensation;
 
     // Composite UI
     float4 sdr_gui_color = t_ldr_gui.SampleLevel(linear_sampler, input.PositionUV, 0);

@@ -19,6 +19,7 @@
 
 #include "renderpass/Audio.h"
 #include "renderpass/DebugGeometryRenderPass.h"
+#include "renderpass/ExposurePass.h"
 #include "renderpass/ForwardPass.h"
 #include "renderpass/GuiPass.h"
 #include "renderpass/HZBPass.h"
@@ -54,6 +55,7 @@ struct BackendResources
     TiledLightingPassResources    tiled_lighting_resources;
     ForwardPassResources          forward_pass_resources;
     HistogramPassResources        histogram_pass_resources;
+    ExposurePassResources         exposure_pass_resources;
     HZBPassResources              hzb_pass_resources;
     GuiPassResources              gui_pass_resources;
     SwapchainPassResources        swapchain_pass_resources;

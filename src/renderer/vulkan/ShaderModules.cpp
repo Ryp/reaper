@@ -67,6 +67,8 @@ ShaderModules create_shader_modules(VulkanBackend& backend)
         create_shader_module(backend.device, "tiled_lighting/rasterize_light_volume.frag.spv");
     modules.rasterize_light_volume_vs =
         create_shader_module(backend.device, "tiled_lighting/rasterize_light_volume.vert.spv");
+    modules.reduce_exposure_cs = create_shader_module(backend.device, "reduce_exposure.comp.spv");
+    modules.reduce_exposure_tail_cs = create_shader_module(backend.device, "reduce_exposure_tail.comp.spv");
     modules.render_shadow_vs = create_shader_module(backend.device, "shadow/render_shadow.vert.spv");
     modules.swapchain_write_fs = create_shader_module(backend.device, "swapchain_write.frag.spv");
     modules.classify_volume_cs = create_shader_module(backend.device, "tiled_lighting/classify_volume.comp.spv");
@@ -103,6 +105,8 @@ void destroy_shader_modules(VulkanBackend& backend, ShaderModules& shader_module
     vkDestroyShaderModule(backend.device, shader_modules.prepare_fine_culling_indirect_cs, nullptr);
     vkDestroyShaderModule(backend.device, shader_modules.rasterize_light_volume_fs, nullptr);
     vkDestroyShaderModule(backend.device, shader_modules.rasterize_light_volume_vs, nullptr);
+    vkDestroyShaderModule(backend.device, shader_modules.reduce_exposure_cs, nullptr);
+    vkDestroyShaderModule(backend.device, shader_modules.reduce_exposure_tail_cs, nullptr);
     vkDestroyShaderModule(backend.device, shader_modules.render_shadow_vs, nullptr);
     vkDestroyShaderModule(backend.device, shader_modules.swapchain_write_fs, nullptr);
     vkDestroyShaderModule(backend.device, shader_modules.classify_volume_cs, nullptr);

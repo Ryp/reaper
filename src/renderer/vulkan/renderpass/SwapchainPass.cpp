@@ -195,7 +195,8 @@ SwapchainPassResources create_swapchain_pass_resources(VulkanBackend& backend, c
         {1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
         {2, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
         {3, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
-        {4, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+        {4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+        {5, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
     };
 
     resources.descriptorSetLayout = create_descriptor_set_layout(backend.device, descriptorSetLayoutBinding);
@@ -237,6 +238,7 @@ create_swapchain_pass_record(FrameGraph::Builder&            builder,
                              FrameGraph::ResourceUsageHandle split_tiled_lighting_hdr_usage_handle,
                              FrameGraph::ResourceUsageHandle gui_sdr_usage_handle,
                              FrameGraph::ResourceUsageHandle histogram_buffer_usage_handle,
+                             FrameGraph::ResourceUsageHandle average_exposure_usage_handle,
                              FrameGraph::ResourceUsageHandle tiled_debug_texture_overlay_usage_handle)
 {
     SwapchainFrameGraphRecord swapchain;
@@ -262,6 +264,10 @@ create_swapchain_pass_record(FrameGraph::Builder&            builder,
         builder.read_buffer(swapchain.pass_handle, histogram_buffer_usage_handle,
                             GPUBufferAccess{VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT});
 
+    swapchain.average_exposure =
+        builder.read_buffer(swapchain.pass_handle, average_exposure_usage_handle,
+                            GPUBufferAccess{VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT});
+
     swapchain.tile_debug =
         builder.read_texture(swapchain.pass_handle, tiled_debug_texture_overlay_usage_handle,
                              GPUTextureAccess{VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
@@ -281,6 +287,8 @@ void update_swapchain_pass_descriptor_set(const FrameGraph::FrameGraph&    frame
     const FrameGraphTexture lighting_texture =
         get_frame_graph_texture(frame_graph_resources, frame_graph, record.lighting_result);
     const FrameGraphTexture gui_texture = get_frame_graph_texture(frame_graph_resources, frame_graph, record.gui);
+    const FrameGraphBuffer  average_exposure =
+        get_frame_graph_buffer(frame_graph_resources, frame_graph, record.average_exposure);
     const FrameGraphTexture tile_lighting_debug_texture =
         get_frame_graph_texture(frame_graph_resources, frame_graph, record.tile_debug);
 
@@ -291,7 +299,8 @@ void update_swapchain_pass_descriptor_set(const FrameGraph::FrameGraph&    frame
                         lighting_texture.default_view_handle, lighting_texture.image_layout);
     write_helper.append(resources.descriptor_set, 3, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, gui_texture.default_view_handle,
                         gui_texture.image_layout);
-    write_helper.append(resources.descriptor_set, 4, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+    write_helper.append(resources.descriptor_set, 4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, average_exposure.handle);
+    write_helper.append(resources.descriptor_set, 5, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
                         tile_lighting_debug_texture.default_view_handle, tile_lighting_debug_texture.image_layout);
 }
 

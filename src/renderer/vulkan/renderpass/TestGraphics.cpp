@@ -217,6 +217,8 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     const HistogramFrameGraphRecord histogram =
         create_histogram_pass_record(builder, histogram_clear, forward.scene_hdr);
 
+    const ExposureFrameGraphRecord exposure = create_exposure_pass_record(builder, forward.scene_hdr, render_extent);
+
     // NOTE: If you have GPU passes that writes debug commands, the last one should give its handles here
     FrameGraph::ResourceUsageHandle last_draw_count_handle = debug_geometry_start.draw_counter;
     FrameGraph::ResourceUsageHandle last_user_commands_buffer_handle = debug_geometry_start.user_commands_buffer;
@@ -233,6 +235,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
                                                                              debug_geometry_draw.scene_hdr,
                                                                              gui.output,
                                                                              histogram.histogram_buffer,
+                                                                             exposure.reduce_tail.average_exposure,
                                                                              tiled_lighting_debug_record.output);
 
     const AudioFrameGraphRecord audio_pass = create_audio_frame_graph_record(builder);
@@ -284,6 +287,10 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         update_histogram_pass_descriptor_set(framegraph, resources.framegraph_resources, histogram,
                                              descriptor_write_helper, resources.histogram_pass_resources,
                                              resources.samplers_resources);
+
+        update_exposure_pass_descriptor_set(framegraph, resources.framegraph_resources, exposure,
+                                            descriptor_write_helper, resources.exposure_pass_resources,
+                                            resources.samplers_resources);
 
         update_debug_geometry_start_resources(backend, prepared, resources.debug_geometry_resources);
 
@@ -452,6 +459,9 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
         record_histogram_command_buffer(frame_graph_helper, histogram, cmdBuffer, resources.pipeline_factory,
                                         resources.histogram_pass_resources, render_extent);
+
+        record_exposure_command_buffer(frame_graph_helper, exposure, cmdBuffer, resources.pipeline_factory,
+                                       resources.exposure_pass_resources);
 
         record_debug_geometry_build_cmds_command_buffer(frame_graph_helper, debug_geometry_build_cmds, cmdBuffer,
                                                         resources.pipeline_factory, resources.debug_geometry_resources);

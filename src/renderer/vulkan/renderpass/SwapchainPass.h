@@ -51,6 +51,7 @@ struct SwapchainFrameGraphRecord
     FrameGraph::ResourceUsageHandle lighting_result;
     FrameGraph::ResourceUsageHandle gui;
     FrameGraph::ResourceUsageHandle histogram; // FIXME unused for now
+    FrameGraph::ResourceUsageHandle average_exposure;
     FrameGraph::ResourceUsageHandle tile_debug;
 };
 
@@ -60,6 +61,7 @@ create_swapchain_pass_record(FrameGraph::Builder&            builder,
                              FrameGraph::ResourceUsageHandle split_tiled_lighting_hdr_usage_handle,
                              FrameGraph::ResourceUsageHandle gui_sdr_usage_handle,
                              FrameGraph::ResourceUsageHandle histogram_buffer_usage_handle,
+                             FrameGraph::ResourceUsageHandle average_exposure_usage_handle,
                              FrameGraph::ResourceUsageHandle tiled_debug_texture_overlay_usage_handle);
 
 struct FrameGraphResources;

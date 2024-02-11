@@ -32,6 +32,8 @@ struct ShaderModules
     VkShaderModule prepare_fine_culling_indirect_cs;
     VkShaderModule rasterize_light_volume_fs;
     VkShaderModule rasterize_light_volume_vs;
+    VkShaderModule reduce_exposure_cs;
+    VkShaderModule reduce_exposure_tail_cs;
     VkShaderModule render_shadow_vs;
     VkShaderModule swapchain_write_fs;
     VkShaderModule classify_volume_cs;

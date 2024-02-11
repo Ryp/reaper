@@ -109,6 +109,8 @@ target_sources(${target} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/MeshletCulling.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/DebugGeometryRenderPass.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/DebugGeometryRenderPass.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/ExposurePass.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/ExposurePass.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/ForwardPass.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/ForwardPass.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/FrameGraphPass.cpp
@@ -161,6 +163,8 @@ set(REAPER_SHADER_SRCS
     ${REAPER_SHADER_DIR}/debug_geometry/build_cmds.comp.hlsl
     ${REAPER_SHADER_DIR}/debug_geometry/draw.frag.hlsl
     ${REAPER_SHADER_DIR}/debug_geometry/draw.vert.hlsl
+    ${REAPER_SHADER_DIR}/reduce_exposure.comp.hlsl
+    ${REAPER_SHADER_DIR}/reduce_exposure_tail.comp.hlsl
     ${REAPER_SHADER_DIR}/forward.frag.hlsl
     ${REAPER_SHADER_DIR}/forward.vert.hlsl
     ${REAPER_SHADER_DIR}/fullscreen_triangle.vert.hlsl

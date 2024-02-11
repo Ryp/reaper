@@ -66,6 +66,7 @@ void create_backend_resources(ReaperRoot& root, VulkanBackend& backend)
     resources.frame_sync_resources = create_frame_sync_resources(backend);
     resources.gui_pass_resources = create_gui_pass_resources(backend, resources.pipeline_factory);
     resources.histogram_pass_resources = create_histogram_pass_resources(backend, resources.pipeline_factory);
+    resources.exposure_pass_resources = create_exposure_pass_resources(backend, resources.pipeline_factory);
     resources.hzb_pass_resources = create_hzb_pass_resources(backend, resources.pipeline_factory);
     resources.lighting_resources = create_lighting_pass_resources(backend);
     resources.tiled_raster_resources = create_tiled_raster_pass_resources(backend, resources.pipeline_factory);
@@ -93,6 +94,7 @@ void destroy_backend_resources(VulkanBackend& backend)
     destroy_frame_sync_resources(backend, resources.frame_sync_resources);
     destroy_gui_pass_resources(backend, resources.gui_pass_resources);
     destroy_histogram_pass_resources(backend, resources.histogram_pass_resources);
+    destroy_exposure_pass_resources(backend, resources.exposure_pass_resources);
     destroy_hzb_pass_resources(backend, resources.hzb_pass_resources);
     destroy_lighting_pass_resources(backend, resources.lighting_resources);
     destroy_tiled_raster_pass_resources(backend, resources.tiled_raster_resources);
