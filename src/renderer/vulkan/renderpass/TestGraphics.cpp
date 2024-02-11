@@ -22,7 +22,6 @@
 #include "renderer/vulkan/Swapchain.h"
 #include "renderer/vulkan/api/AssertHelper.h"
 #include "renderer/vulkan/renderpass/FrameGraphPass.h"
-#include "renderer/vulkan/renderpass/HZBPass.h"
 #include "renderer/vulkan/renderpass/TiledLightingCommon.h"
 
 #include "common/Log.h"

@@ -104,7 +104,7 @@ ShadowFrameGraphRecord create_shadow_map_pass_record(FrameGraph::Builder&       
 
         record.shadow_maps.push_back(builder.create_texture(
             record.pass_handle, "Shadow map", properties,
-            GPUTextureAccess{VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT,
+            GPUTextureAccess{VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
                              VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL}));
     }
 

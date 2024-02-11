@@ -142,7 +142,7 @@ float3 cie_xy_to_rec2020(float2 cie_xy)
 
     float3 cie_XYZ = cie_xy_to_XYZ(cie_xy);
     float3 color_rec2020 = mul(XYZ_to_rec2020_matrix, cie_XYZ);
-    float maxChannel = max(color_rec2020.r, max(color_rec2020.g, color_rec2020.b));
+    float maxChannel = max3(color_rec2020);
     return color_rec2020 / maxChannel;
 }
 
