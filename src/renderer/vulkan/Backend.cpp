@@ -166,6 +166,9 @@ namespace
         vulkan1_3_features.dynamicRendering = VK_TRUE;
         vulkan1_3_features.computeFullSubgroups = VK_TRUE;
 
+        VkPhysicalDeviceShaderAtomicFloatFeaturesEXT shader_atomic_features = {};
+        shader_atomic_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_ATOMIC_FLOAT_FEATURES_EXT;
+
         VkPhysicalDeviceIndexTypeUint8FeaturesEXT index_uint8_features = {};
         index_uint8_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INDEX_TYPE_UINT8_FEATURES_EXT;
         index_uint8_features.indexTypeUint8 = VK_TRUE;
@@ -175,10 +178,11 @@ namespace
             VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRIMITIVE_TOPOLOGY_LIST_RESTART_FEATURES_EXT;
         primitive_restart_features.primitiveTopologyListRestart = VK_TRUE;
 
-        vk_hook(
-            device_features2,
-            vk_hook(vulkan1_2_features,
-                    vk_hook(vulkan1_3_features, vk_hook(index_uint8_features, vk_hook(primitive_restart_features)))));
+        vk_hook(device_features2,
+                vk_hook(vulkan1_2_features,
+                        vk_hook(vulkan1_3_features,
+                                vk_hook(shader_atomic_features,
+                                        vk_hook(index_uint8_features, vk_hook(primitive_restart_features))))));
 
         const VkDeviceCreateInfo device_create_info = {
             .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,

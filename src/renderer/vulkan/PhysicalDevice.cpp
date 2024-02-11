@@ -46,6 +46,8 @@ namespace
 
         physical_device.vulkan1_2_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
         physical_device.vulkan1_3_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
+        physical_device.shader_atomic_features.sType =
+            VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_ATOMIC_FLOAT_FEATURES_EXT;
         physical_device.index_uint8_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INDEX_TYPE_UINT8_FEATURES_EXT;
         physical_device.primitive_restart_features.sType =
             VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRIMITIVE_TOPOLOGY_LIST_RESTART_FEATURES_EXT;
@@ -53,8 +55,9 @@ namespace
         vk_hook(physical_device_features_2,
                 vk_hook(physical_device.vulkan1_2_features,
                         vk_hook(physical_device.vulkan1_3_features,
-                                vk_hook(physical_device.index_uint8_features,
-                                        vk_hook(physical_device.primitive_restart_features)))));
+                                vk_hook(physical_device.shader_atomic_features,
+                                        vk_hook(physical_device.index_uint8_features,
+                                                vk_hook(physical_device.primitive_restart_features))))));
 
         vkGetPhysicalDeviceFeatures2(handle, &physical_device_features_2);
 

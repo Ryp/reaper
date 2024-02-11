@@ -25,6 +25,7 @@ struct PhysicalDeviceInfo
     VkPhysicalDeviceFeatures                                features;
     VkPhysicalDeviceVulkan12Features                        vulkan1_2_features;
     VkPhysicalDeviceVulkan13Features                        vulkan1_3_features;
+    VkPhysicalDeviceShaderAtomicFloatFeaturesEXT            shader_atomic_features;
     VkPhysicalDeviceIndexTypeUint8FeaturesEXT               index_uint8_features;
     VkPhysicalDevicePrimitiveTopologyListRestartFeaturesEXT primitive_restart_features;
 
