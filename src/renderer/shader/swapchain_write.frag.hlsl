@@ -8,7 +8,8 @@
 
 VK_CONSTANT(0) const uint spec_transfer_function = 0;
 VK_CONSTANT(1) const uint spec_color_space = 0;
-VK_CONSTANT(2) const uint spec_tonemap_function = 0;
+VK_CONSTANT(2) const uint spec_dynamic_range = 0;
+VK_CONSTANT(3) const uint spec_tonemap_function = 0;
 
 VK_BINDING(0, 0) SamplerState linear_sampler;
 VK_BINDING(0, 1) Texture2D<float3> t_hdr_scene;
@@ -27,30 +28,24 @@ struct PS_OUTPUT
     float3 color : SV_Target0;
 };
 
-float3 apply_transfer_func(float3 color, uint transfer_function)
+float3 apply_sdr_transfer_func(float3 color_normalized, uint transfer_function)
 {
     if (transfer_function == TRANSFER_FUNC_LINEAR)
-        return color;
+        return color_normalized;
     else if (transfer_function == TRANSFER_FUNC_SRGB)
-        return srgb_eotf(color);
+        return srgb_eotf(color_normalized);
     else if (transfer_function == TRANSFER_FUNC_REC709)
-        return rec709_eotf(color);
-    else if (transfer_function == TRANSFER_FUNC_PQ)
-        return pq_eotf(color);
+        return rec709_eotf(color_normalized);
     else
         return 0.42; // Invalid
 }
 
-float3 apply_transfer_func_inverse(float3 color, uint transfer_function)
+float3 apply_hdr_transfer_func(float3 color_linear_nits, uint transfer_function)
 {
-    if (transfer_function == TRANSFER_FUNC_LINEAR)
-        return color;
-    else if (transfer_function == TRANSFER_FUNC_SRGB)
-        return srgb_eotf_inverse(color);
-    else if (transfer_function == TRANSFER_FUNC_REC709)
-        return rec709_eotf_inverse(color);
-    else if (transfer_function == TRANSFER_FUNC_PQ)
-        return pq_eotf_inverse(color);
+    if (transfer_function == TRANSFER_FUNC_PQ)
+        return pq_eotf(color_linear_nits / PQ_MAX_NITS);
+    else if (transfer_function == TRANSFER_FUNC_WINDOWS_SCRGB)
+        return color_linear_nits / 80.f;
     else
         return 0.42; // Invalid
 }
@@ -75,7 +70,7 @@ float3 apply_tonemapping_operator(float3 color, uint tonemap_function)
         return color;
     else if (tonemap_function == TONEMAP_FUNC_UNCHARTED2)
         return tonemapping_uncharted2(color);
-    else if (tonemap_function == TONEMAP_FUNC_ACES)
+    else if (tonemap_function == TONEMAP_FUNC_ACES_APPROX)
         return tonemapping_filmic_aces(color);
     else
         return 0.42; // Invalid
@@ -150,7 +145,21 @@ void main(in PS_INPUT input, out PS_OUTPUT output)
     }
 #endif
 
-    color = apply_transfer_func(color, spec_transfer_function);
+    // FIXME It's convenient to have 1.f mapped to 400 nits at this stage since it makes the GUI behave nicely without needing to properly support HDR.
+    // Normally we would get nits before tonemapping and without this ugly hack.
+    float3 color_linear_nits = color * 400.f;
 
-    output.color = color;
+    if (spec_dynamic_range == DYNAMIC_RANGE_SDR)
+    {
+        // FIXME I have to understand a bit more how Windows maps 1.f to SDR peak and if the curve is really linear.
+        // It appears at first glance that this matches the HDR path closely (when 'SDR brightness' is put to 100% in the options)
+        float SDR_DISPLAY_PEAK_NITS = 456.f;
+        float3 color_normalized = color_linear_nits / SDR_DISPLAY_PEAK_NITS;
+
+        output.color = apply_sdr_transfer_func(color_normalized, spec_transfer_function);
+    }
+    else if (spec_dynamic_range == DYNAMIC_RANGE_HDR)
+    {
+        output.color = apply_hdr_transfer_func(color_linear_nits, spec_transfer_function);
+    }
 }

@@ -30,7 +30,13 @@ namespace Reaper
 {
 namespace
 {
-    hlsl_uint get_transfer_function(VkSurfaceFormatKHR surface_format, VkFormat view_format)
+    struct TransferFunction
+    {
+        hlsl_uint function_index;
+        hlsl_uint dynamic_range;
+    };
+
+    TransferFunction get_transfer_function(VkSurfaceFormatKHR surface_format, VkFormat view_format)
     {
         switch (surface_format.colorSpace)
         {
@@ -40,10 +46,14 @@ namespace
             case VK_FORMAT_B8G8R8A8_SRGB:
             case VK_FORMAT_R8G8B8A8_SRGB:
             case VK_FORMAT_A8B8G8R8_SRGB_PACK32:
-                return TRANSFER_FUNC_LINEAR; // The EOTF is performed by the view format
-            case VK_FORMAT_R16G16B16A16_UNORM:
+                return {TRANSFER_FUNC_LINEAR, DYNAMIC_RANGE_SDR}; // The EOTF is performed by the view format
+            case VK_FORMAT_B8G8R8A8_UNORM:
+            case VK_FORMAT_R8G8B8A8_UNORM:
             case VK_FORMAT_A2R10G10B10_UNORM_PACK32:
-                return TRANSFER_FUNC_SRGB; // We have to manually apply the EOTF
+                // We have to manually apply the EOTF
+                // Note that this shouldn't happen in practice since we usually force a sRGB view to get the conversion
+                // for free
+                return {TRANSFER_FUNC_SRGB, DYNAMIC_RANGE_SDR};
             default:
                 break;
             }
@@ -52,19 +62,19 @@ namespace
             break;
         }
         case VK_COLOR_SPACE_BT709_LINEAR_EXT:
-            return TRANSFER_FUNC_LINEAR;
+            return {TRANSFER_FUNC_LINEAR, DYNAMIC_RANGE_SDR};
         case VK_COLOR_SPACE_BT709_NONLINEAR_EXT:
-            return TRANSFER_FUNC_REC709;
+            return {TRANSFER_FUNC_REC709, DYNAMIC_RANGE_SDR};
         case VK_COLOR_SPACE_HDR10_ST2084_EXT:
-            return TRANSFER_FUNC_PQ;
-        case VK_COLOR_SPACE_BT2020_LINEAR_EXT:
-            return TRANSFER_FUNC_LINEAR;
+            return {TRANSFER_FUNC_PQ, DYNAMIC_RANGE_HDR};
+        case VK_COLOR_SPACE_EXTENDED_SRGB_LINEAR_EXT:
+            return {TRANSFER_FUNC_WINDOWS_SCRGB, DYNAMIC_RANGE_HDR};
         default:
             break;
         }
 
         AssertUnreachable();
-        return 0;
+        return {};
     }
 
     hlsl_uint get_color_space(VkColorSpaceKHR color_space)
@@ -82,6 +92,8 @@ namespace
         case VK_COLOR_SPACE_HDR10_ST2084_EXT:
         case VK_COLOR_SPACE_HDR10_HLG_EXT:
             return COLOR_SPACE_REC2020;
+        case VK_COLOR_SPACE_EXTENDED_SRGB_LINEAR_EXT:
+            return COLOR_SPACE_SRGB;
         default:
             break;
         }
@@ -90,15 +102,32 @@ namespace
         return 0;
     }
 
+    struct SpecConstants
+    {
+        hlsl_uint transfer_function_index;
+        hlsl_uint color_space_index;
+        hlsl_uint dynamic_range;
+        hlsl_uint tonemap_function_index;
+    };
+
+    SpecConstants fill_spec_constants(VkSurfaceFormatKHR surface_format, VkFormat view_format,
+                                      VkColorSpaceKHR color_space)
+    {
+        TransferFunction transfer_function = get_transfer_function(surface_format, view_format);
+        return SpecConstants{
+            .transfer_function_index = transfer_function.function_index,
+            .color_space_index = get_color_space(color_space),
+            .dynamic_range = transfer_function.dynamic_range,
+            .tonemap_function_index = TONEMAP_FUNC_ACES_APPROX,
+        };
+    }
+
     VkPipeline create_swapchain_pipeline(VulkanBackend& backend, const ShaderModules& shader_modules,
                                          VkPipelineLayout pipelineLayout, VkFormat swapchain_format)
     {
-        struct SpecConstants
-        {
-            hlsl_uint transfer_function_index;
-            hlsl_uint color_space_index;
-            hlsl_uint tonemap_function_index;
-        };
+        SpecConstants spec_constants =
+            fill_spec_constants(backend.presentInfo.surface_format, backend.presentInfo.view_format,
+                                backend.presentInfo.surface_format.colorSpace);
 
         std::vector<VkSpecializationMapEntry> specialization_constants_entries = {
             VkSpecializationMapEntry{
@@ -113,16 +142,15 @@ namespace
             },
             VkSpecializationMapEntry{
                 2,
+                offsetof(SpecConstants, dynamic_range),
+                sizeof(SpecConstants::dynamic_range),
+            },
+            VkSpecializationMapEntry{
+                3,
                 offsetof(SpecConstants, tonemap_function_index),
                 sizeof(SpecConstants::tonemap_function_index),
             },
         };
-
-        SpecConstants spec_constants;
-        spec_constants.transfer_function_index =
-            get_transfer_function(backend.presentInfo.surface_format, backend.presentInfo.view_format);
-        spec_constants.color_space_index = get_color_space(backend.presentInfo.surface_format.colorSpace);
-        spec_constants.tonemap_function_index = TONEMAP_FUNC_NONE;
 
         VkSpecializationInfo specialization = {
             static_cast<u32>(specialization_constants_entries.size()), // uint32_t mapEntryCount;
