@@ -25,6 +25,8 @@ struct PresentationInfo
 {
     VkSurfaceKHR surface;
 
+    float sdr_peak_brightness_nits = 456.f;
+
     bool queue_swapchain_transition = false;
 
     // Split this in another struct

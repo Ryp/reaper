@@ -11,6 +11,8 @@ VK_CONSTANT(1) const uint spec_color_space = 0;
 VK_CONSTANT(2) const uint spec_dynamic_range = 0;
 VK_CONSTANT(3) const uint spec_tonemap_function = 0;
 
+VK_PUSH_CONSTANT_HELPER(SwapchainWriteParams) Consts;
+
 VK_BINDING(0, 0) SamplerState linear_sampler;
 VK_BINDING(0, 1) Texture2D<float3> t_hdr_scene;
 VK_BINDING(0, 2) Texture2D<float3> Lighting;
@@ -151,10 +153,7 @@ void main(in PS_INPUT input, out PS_OUTPUT output)
 
     if (spec_dynamic_range == DYNAMIC_RANGE_SDR)
     {
-        // FIXME I have to understand a bit more how Windows maps 1.f to SDR peak and if the curve is really linear.
-        // It appears at first glance that this matches the HDR path closely (when 'SDR brightness' is put to 100% in the options)
-        float SDR_DISPLAY_PEAK_NITS = 456.f;
-        float3 color_normalized = color_linear_nits / SDR_DISPLAY_PEAK_NITS;
+        float3 color_normalized = color_linear_nits / Consts.sdr_peak_brightness_nits;
 
         output.color = apply_sdr_transfer_func(color_normalized, spec_transfer_function);
     }

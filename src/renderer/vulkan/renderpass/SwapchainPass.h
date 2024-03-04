@@ -78,5 +78,5 @@ struct FrameGraphHelper;
 void record_swapchain_command_buffer(const FrameGraphHelper&          frame_graph_helper,
                                      const SwapchainFrameGraphRecord& pass_record, CommandBuffer& cmdBuffer,
                                      const SwapchainPassResources& pass_resources, VkImageView swapchain_buffer_view,
-                                     VkExtent2D swapchain_extent);
+                                     VkExtent2D swapchain_extent, float sdr_peak_brightness_nits);
 } // namespace Reaper

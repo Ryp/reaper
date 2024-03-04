@@ -200,7 +200,10 @@ SwapchainPassResources create_swapchain_pass_resources(VulkanBackend& backend, c
 
     resources.descriptorSetLayout = create_descriptor_set_layout(backend.device, descriptorSetLayoutBinding);
 
-    resources.pipelineLayout = create_pipeline_layout(backend.device, std::span(&resources.descriptorSetLayout, 1));
+    const VkPushConstantRange push_constant_range = {VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(SwapchainWriteParams)};
+
+    resources.pipelineLayout = create_pipeline_layout(backend.device, std::span(&resources.descriptorSetLayout, 1),
+                                                      std::span(&push_constant_range, 1));
     resources.pipeline =
         create_swapchain_pipeline(backend, shader_modules, resources.pipelineLayout, backend.presentInfo.view_format);
 
@@ -295,7 +298,7 @@ void update_swapchain_pass_descriptor_set(const FrameGraph::FrameGraph&    frame
 void record_swapchain_command_buffer(const FrameGraphHelper&          frame_graph_helper,
                                      const SwapchainFrameGraphRecord& pass_record, CommandBuffer& cmdBuffer,
                                      const SwapchainPassResources& pass_resources, VkImageView swapchain_buffer_view,
-                                     VkExtent2D swapchain_extent)
+                                     VkExtent2D swapchain_extent, float sdr_peak_brightness_nits)
 {
     REAPER_GPU_SCOPE(cmdBuffer, "Swapchain");
 
@@ -316,6 +319,12 @@ void record_swapchain_command_buffer(const FrameGraphHelper&          frame_grap
     const VkRenderingInfo rendering_info = default_rendering_info(pass_rect, &color_attachment);
 
     vkCmdBeginRendering(cmdBuffer.handle, &rendering_info);
+
+    SwapchainWriteParams push_constants;
+    push_constants.sdr_peak_brightness_nits = sdr_peak_brightness_nits;
+
+    vkCmdPushConstants(cmdBuffer.handle, pass_resources.pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0,
+                       sizeof(push_constants), &push_constants);
 
     vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, pass_resources.pipelineLayout, 0, 1,
                             &pass_resources.descriptor_set, 0, nullptr);

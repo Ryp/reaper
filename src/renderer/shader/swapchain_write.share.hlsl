@@ -28,4 +28,9 @@ static const hlsl_uint TONEMAP_FUNC_NONE = 0;
 static const hlsl_uint TONEMAP_FUNC_UNCHARTED2 = 1;
 static const hlsl_uint TONEMAP_FUNC_ACES_APPROX = 2;
 
+struct SwapchainWriteParams
+{
+    hlsl_float sdr_peak_brightness_nits;
+};
+
 #endif
