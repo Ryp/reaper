@@ -30,6 +30,40 @@ struct PS_OUTPUT
     float3 color : SV_Target0;
 };
 
+float3 composite_sdr_ui_in_hdr(float3 scene_color_hdr_nits, float4 sdr_gui_color, float sdr_ui_max_brightness_nits)
+{
+    // FIXME naive version
+    // This style of blending will burn the UI opacity gradient when the background is bright.
+    return lerp(scene_color_hdr_nits, sdr_gui_color.rgb * sdr_ui_max_brightness_nits, sdr_gui_color.a);
+}
+
+float3 apply_tonemapping_operator(float3 color_scene_nits, uint tonemap_function, float min_nits, float max_nits)
+{
+    // FIXME Use min_nits and make this a proper display mapping
+    if (tonemap_function == TONEMAP_FUNC_LINEAR)
+        return color_scene_nits;
+    else if (tonemap_function == TONEMAP_FUNC_UNCHARTED2)
+        return tonemapping_uncharted2(color_scene_nits / max_nits) * max_nits;
+    else if (tonemap_function == TONEMAP_FUNC_ACES_APPROX)
+        return tonemapping_filmic_aces(color_scene_nits / max_nits) * max_nits;
+    else
+        return 0.42; // Invalid
+}
+
+float3 apply_output_color_space_transform(float3 color_srgb, uint color_space)
+{
+    if (color_space == COLOR_SPACE_SRGB)
+        return color_srgb;
+    else if (color_space == COLOR_SPACE_REC709)
+        return srgb_to_rec709(color_srgb);
+    else if (color_space == COLOR_SPACE_DISPLAY_P3)
+        return srgb_to_display_p3(color_srgb);
+    else if (color_space == COLOR_SPACE_REC2020)
+        return srgb_to_rec2020(color_srgb);
+    else
+        return 0.4242; // Invalid
+}
+
 float3 apply_sdr_transfer_func(float3 color_normalized, uint transfer_function)
 {
     if (transfer_function == TRANSFER_FUNC_LINEAR)
@@ -52,32 +86,6 @@ float3 apply_hdr_transfer_func(float3 color_linear_nits, uint transfer_function)
         return 0.42; // Invalid
 }
 
-float3 apply_output_color_space_transform(float3 color_srgb, uint color_space)
-{
-    if (color_space == COLOR_SPACE_SRGB)
-        return color_srgb;
-    else if (color_space == COLOR_SPACE_REC709)
-        return srgb_to_rec709(color_srgb);
-    else if (color_space == COLOR_SPACE_DISPLAY_P3)
-        return srgb_to_display_p3(color_srgb);
-    else if (color_space == COLOR_SPACE_REC2020)
-        return srgb_to_rec2020(color_srgb);
-    else
-        return 0.4242; // Invalid
-}
-
-float3 apply_tonemapping_operator(float3 color, uint tonemap_function)
-{
-    if (tonemap_function == TONEMAP_FUNC_NONE)
-        return color;
-    else if (tonemap_function == TONEMAP_FUNC_UNCHARTED2)
-        return tonemapping_uncharted2(color);
-    else if (tonemap_function == TONEMAP_FUNC_ACES_APPROX)
-        return tonemapping_filmic_aces(color);
-    else
-        return 0.42; // Invalid
-}
-
 static const float exposure = 1.f; // FIXME
 
 void main(in PS_INPUT input, out PS_OUTPUT output)
@@ -92,27 +100,35 @@ void main(in PS_INPUT input, out PS_OUTPUT output)
     }
 
     color *= exposure;
-    color = apply_tonemapping_operator(color, spec_tonemap_function);
 
-    if (false)
-    {
-        // FIXME Blend in debug color
-        const float3 ldr_debug_color = t_ldr_debug.SampleLevel(linear_sampler, input.PositionUV, 0);
+    // Composite UI
+    float4 sdr_gui_color = t_ldr_gui.SampleLevel(linear_sampler, input.PositionUV, 0);
+    color = composite_sdr_ui_in_hdr(color, sdr_gui_color, Consts.sdr_ui_max_brightness_nits);
 
-        color = lerp(color, ldr_debug_color, 0.25);
-    }
+    // Apply tone mapping
+    color = apply_tonemapping_operator(color, spec_tonemap_function, Consts.tonemap_min_nits, Consts.tonemap_max_nits);
 
-    float4 ldr_gui_color = t_ldr_gui.SampleLevel(linear_sampler, input.PositionUV, 0);
+#define SHOW_DEBUG_TEXTURE 0
+#if SHOW_DEBUG_TEXTURE
+    // FIXME Blend in debug color
+    const float3 ldr_debug_color = t_ldr_debug.SampleLevel(linear_sampler, input.PositionUV, 0);
 
-    // Blend in GUI
-    // FIXME This is wrong:
-    // - dynamic range (SDR vs HDR and paperwhite constants)
-    // - alpha blending
-    // - probably more
-    color = lerp(color, ldr_gui_color.rgb, ldr_gui_color.a);
+    color = lerp(color, ldr_debug_color * Consts.sdr_peak_brightness_nits, 0.25);
+#endif
 
-    // Display transforms
     color = apply_output_color_space_transform(color, spec_color_space);
+
+    if (spec_dynamic_range == DYNAMIC_RANGE_SDR)
+    {
+        float3 color_normalized = color / Consts.sdr_peak_brightness_nits;
+
+        output.color = apply_sdr_transfer_func(color_normalized, spec_transfer_function);
+    }
+    else if (spec_dynamic_range == DYNAMIC_RANGE_HDR)
+    {
+        output.color = apply_hdr_transfer_func(color, spec_transfer_function);
+    }
+}
 
 #define DEBUG_CIE_DIAGRAM 0
 #if DEBUG_CIE_DIAGRAM
@@ -146,19 +162,3 @@ void main(in PS_INPUT input, out PS_OUTPUT output)
         color = 1.0 - input.PositionUV.y;
     }
 #endif
-
-    // FIXME It's convenient to have 1.f mapped to 400 nits at this stage since it makes the GUI behave nicely without needing to properly support HDR.
-    // Normally we would get nits before tonemapping and without this ugly hack.
-    float3 color_linear_nits = color * 400.f;
-
-    if (spec_dynamic_range == DYNAMIC_RANGE_SDR)
-    {
-        float3 color_normalized = color_linear_nits / Consts.sdr_peak_brightness_nits;
-
-        output.color = apply_sdr_transfer_func(color_normalized, spec_transfer_function);
-    }
-    else if (spec_dynamic_range == DYNAMIC_RANGE_HDR)
-    {
-        output.color = apply_hdr_transfer_func(color_linear_nits, spec_transfer_function);
-    }
-}

@@ -107,7 +107,11 @@ void backend_debug_ui(VulkanBackend& backend)
     {
         ImGui::Checkbox("Freeze culling [BROKEN]", &backend.options.freeze_meshlet_culling); // FIXME
         ImGui::Checkbox("Enable debug tile culling", &backend.options.enable_debug_tile_lighting);
-        ImGui::SliderFloat("SDR Peak Brightness (nits)", &backend.presentInfo.sdr_peak_brightness_nits, 80.f, 2000.f);
+        ImGui::SliderFloat("Tonemap min (nits)", &backend.presentInfo.tonemap_min_nits, 0.0001f, 1.f);
+        ImGui::SliderFloat("Tonemap max (nits)", &backend.presentInfo.tonemap_max_nits, 80.f, 2000.f);
+        ImGui::SliderFloat("SDR UI max brightness (nits)", &backend.presentInfo.sdr_ui_max_brightness_nits, 20.f,
+                           800.f);
+        ImGui::SliderFloat("SDR peak brightness (nits)", &backend.presentInfo.sdr_peak_brightness_nits, 80.f, 2000.f);
     }
     ImGui::End();
 }
@@ -458,10 +462,11 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         record_debug_geometry_draw_command_buffer(frame_graph_helper, debug_geometry_draw, cmdBuffer,
                                                   resources.pipeline_factory, resources.debug_geometry_resources);
 
-        record_swapchain_command_buffer(frame_graph_helper, swapchain, cmdBuffer, resources.swapchain_pass_resources,
-                                        backend.presentInfo.imageViews[current_swapchain_index],
-                                        backend.presentInfo.surface_extent,
-                                        backend.presentInfo.sdr_peak_brightness_nits);
+        record_swapchain_command_buffer(
+            frame_graph_helper, swapchain, cmdBuffer, resources.swapchain_pass_resources,
+            backend.presentInfo.imageViews[current_swapchain_index], backend.presentInfo.surface_extent,
+            backend.presentInfo.tonemap_min_nits, backend.presentInfo.tonemap_max_nits,
+            backend.presentInfo.sdr_ui_max_brightness_nits, backend.presentInfo.sdr_peak_brightness_nits);
 
         {
             REAPER_GPU_SCOPE(cmdBuffer, "Barrier");

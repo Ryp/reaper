@@ -25,7 +25,10 @@ struct PresentationInfo
 {
     VkSurfaceKHR surface;
 
-    float sdr_peak_brightness_nits = 456.f;
+    float tonemap_min_nits = 0.1f;
+    float tonemap_max_nits = 400.f;
+    float sdr_ui_max_brightness_nits = 200.f;
+    float sdr_peak_brightness_nits = 400.f;
 
     bool queue_swapchain_transition = false;
 
