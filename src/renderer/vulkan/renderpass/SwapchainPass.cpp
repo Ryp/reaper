@@ -298,8 +298,9 @@ void update_swapchain_pass_descriptor_set(const FrameGraph::FrameGraph&    frame
 void record_swapchain_command_buffer(const FrameGraphHelper&          frame_graph_helper,
                                      const SwapchainFrameGraphRecord& pass_record, CommandBuffer& cmdBuffer,
                                      const SwapchainPassResources& pass_resources, VkImageView swapchain_buffer_view,
-                                     VkExtent2D swapchain_extent, float tonemap_min_nits, float tonemap_max_nits,
-                                     float sdr_ui_max_brightness_nits, float sdr_peak_brightness_nits)
+                                     VkExtent2D swapchain_extent, float exposure_compensation_stops,
+                                     float tonemap_min_nits, float tonemap_max_nits, float sdr_ui_max_brightness_nits,
+                                     float sdr_peak_brightness_nits)
 {
     REAPER_GPU_SCOPE(cmdBuffer, "Swapchain");
 
@@ -322,6 +323,7 @@ void record_swapchain_command_buffer(const FrameGraphHelper&          frame_grap
     vkCmdBeginRendering(cmdBuffer.handle, &rendering_info);
 
     SwapchainWriteParams push_constants;
+    push_constants.exposure_compensation = exp2(exposure_compensation_stops);
     push_constants.tonemap_min_nits = tonemap_min_nits;
     push_constants.tonemap_max_nits = tonemap_max_nits;
     push_constants.sdr_ui_max_brightness_nits = sdr_ui_max_brightness_nits;

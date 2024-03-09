@@ -101,6 +101,8 @@ void main(in PS_INPUT input, out PS_OUTPUT output)
 
     color *= exposure;
 
+    color *= Consts.exposure_compensation;
+
     // Composite UI
     float4 sdr_gui_color = t_ldr_gui.SampleLevel(linear_sampler, input.PositionUV, 0);
     color = composite_sdr_ui_in_hdr(color, sdr_gui_color, Consts.sdr_ui_max_brightness_nits);

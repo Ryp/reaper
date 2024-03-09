@@ -112,6 +112,8 @@ void backend_debug_ui(VulkanBackend& backend)
         ImGui::SliderFloat("SDR UI max brightness (nits)", &backend.presentInfo.sdr_ui_max_brightness_nits, 20.f,
                            800.f);
         ImGui::SliderFloat("SDR peak brightness (nits)", &backend.presentInfo.sdr_peak_brightness_nits, 80.f, 2000.f);
+        ImGui::SliderFloat("Exposure compensation (stops)", &backend.presentInfo.exposure_compensation_stops, -5.f,
+                           5.f);
     }
     ImGui::End();
 }
@@ -465,8 +467,9 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         record_swapchain_command_buffer(
             frame_graph_helper, swapchain, cmdBuffer, resources.swapchain_pass_resources,
             backend.presentInfo.imageViews[current_swapchain_index], backend.presentInfo.surface_extent,
-            backend.presentInfo.tonemap_min_nits, backend.presentInfo.tonemap_max_nits,
-            backend.presentInfo.sdr_ui_max_brightness_nits, backend.presentInfo.sdr_peak_brightness_nits);
+            backend.presentInfo.exposure_compensation_stops, backend.presentInfo.tonemap_min_nits,
+            backend.presentInfo.tonemap_max_nits, backend.presentInfo.sdr_ui_max_brightness_nits,
+            backend.presentInfo.sdr_peak_brightness_nits);
 
         {
             REAPER_GPU_SCOPE(cmdBuffer, "Barrier");

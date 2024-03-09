@@ -25,6 +25,7 @@ struct PresentationInfo
 {
     VkSurfaceKHR surface;
 
+    float exposure_compensation_stops = 0.f; // FIXME Nothing to do here
     float tonemap_min_nits = 0.1f;
     float tonemap_max_nits = 400.f;
     float sdr_ui_max_brightness_nits = 200.f;

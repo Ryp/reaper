@@ -30,6 +30,7 @@ static const hlsl_uint TONEMAP_FUNC_ACES_APPROX = 2;
 
 struct SwapchainWriteParams
 {
+    hlsl_float exposure_compensation;
     hlsl_float tonemap_min_nits;
     hlsl_float tonemap_max_nits;
     hlsl_float sdr_ui_max_brightness_nits;
