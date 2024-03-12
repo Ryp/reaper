@@ -64,8 +64,8 @@ jobs:
         run: |
           export CXX='${{ matrix.config.compiler_invocation }}'
           cmake -H. -Bbuild \
-            -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} \
             -DCMAKE_INSTALL_PREFIX=install \
+            -DREAPER_DEBUG_BUILD=${{ matrix.cmake_build_type == 'Debug' && 'ON' || 'OFF'}} \
             -DBUILD_SHARED_LIBS=${{ matrix.cmake_build_shared_libs }} \
             -DREAPER_BUILD_WARNINGS_AS_ERRORS=ON \
             -DREAPER_GIT_HOOKS_AUTO_UPDATE=OFF \
@@ -133,6 +133,7 @@ jobs:
             -G "${{ matrix.cmake_generator }}" `
             -A "${{ matrix.cmake_arch }}" `
             -DCMAKE_INSTALL_PREFIX=install `
+            -DREAPER_DEBUG_BUILD=${{ matrix.cmake_build_type == 'Debug' && 'ON' || 'OFF'}} `
             -DBUILD_SHARED_LIBS=${{ matrix.cmake_build_shared_libs }} `
             -DREAPER_BUILD_WARNINGS_AS_ERRORS=ON `
             -DREAPER_GIT_HOOKS_AUTO_UPDATE=OFF `

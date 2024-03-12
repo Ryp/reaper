@@ -19,18 +19,27 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
         " $ cmake -H. -Bbuild")
 endif()
 
+# You can choose the build type here, and a build directory will only support either Debug or Release.
+option(REAPER_DEBUG_BUILD "Debug build" ON)
+
 get_property(REAPER_MULTI_CONFIG GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
 
+# CMake's support for multi-config generator sucks, so to avoid constant headaches I'm cutting down the feature myself.
+# NOTE: It's important to call this before project()
 if(REAPER_MULTI_CONFIG)
-    # Remove RelWithDebInfo and MinSizeRel configuration types (call this before project())
-    set(CMAKE_CONFIGURATION_TYPES "Debug;Release" CACHE STRING "" FORCE)
+    if(REAPER_DEBUG_BUILD)
+        set(CMAKE_CONFIGURATION_TYPES "Debug" CACHE STRING "" FORCE)
+    else()
+        set(CMAKE_CONFIGURATION_TYPES "Release" CACHE STRING "" FORCE)
+    endif()
 else()
     # Monoconfig generator
-    set(REAPER_DEFAULT_BUILD_TYPE "Debug")
-    if(NOT CMAKE_BUILD_TYPE)
-        message(STATUS "No build type provided, defaulting to: ${REAPER_DEFAULT_BUILD_TYPE}")
-        set(CMAKE_BUILD_TYPE ${REAPER_DEFAULT_BUILD_TYPE} CACHE STRING "" FORCE)
+    if(REAPER_DEBUG_BUILD)
+        set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "" FORCE)
+    else()
+        set(CMAKE_BUILD_TYPE "Release" CACHE STRING "" FORCE)
     endif()
+
     # Set the valid options for cmake-gui drop-down list
     set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug;Release")
     set_property(CACHE CMAKE_BUILD_TYPE PROPERTY HELPSTRING "Choose the type of build")
