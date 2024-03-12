@@ -32,15 +32,8 @@ namespace
 
 CrashpadContext create_crashpad_context(const CrashpadConfig& config)
 {
-    // FIXME
-#if defined(REAPER_PLATFORM_LINUX)
-    auto database_dir = base::FilePath("/tmp");
-    auto handler_path = base::FilePath("build/external/crashpad/crashpad_handler");
-#elif defined(REAPER_PLATFORM_WINDOWS)
-    auto database_dir = base::FilePath(L"C:\\tmp");
-    auto handler_path = base::FilePath(L"crashpad_handler.exe");
-#endif
-
+    auto database_dir = base::FilePath(config.dumps_path);
+    auto handler_path = base::FilePath(config.crash_handler_path);
     auto metrics_dir = database_dir;
 
     auto database = crashpad::CrashReportDatabase::Initialize(database_dir);

@@ -72,6 +72,14 @@ int main(int /*ac*/, char** /*av*/)
 
     CrashpadConfig crashpad_config = crashpad_parse_ini_config(config_filename);
 
+#    if defined(REAPER_PLATFORM_LINUX)
+    crashpad_config.dumps_path = "/tmp";
+    crashpad_config.crash_handler_path = "build/external/crashpad/crashpad_handler";
+#    elif defined(REAPER_PLATFORM_WINDOWS)
+    crashpad_config.dumps_path = "C:\\tmp";
+    crashpad_config.crash_handler_path = "crashpad_handler.exe";
+#    endif
+
     CrashpadContext crashpad_context = create_crashpad_context(crashpad_config);
     Assert(crashpad_context.is_started);
 #endif

@@ -26,7 +26,9 @@ struct CrashpadConfig
     bool        restartable = true;
     bool        asynchronous_start = false;
     // NOTE: Only for testing purposes
-    bool trigger_crash_at_startup = false; // Can be set in INI
+    bool        trigger_crash_at_startup = false; // Can be set in INI
+    std::string dumps_path;
+    std::string crash_handler_path;
 };
 
 struct CrashpadContext
