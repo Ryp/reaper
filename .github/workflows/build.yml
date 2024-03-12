@@ -129,7 +129,6 @@ jobs:
 
       - name: Configure CMake
         run: |
-          # FIXME Restore crashpad support on windows
           cmake .\ -Bbuild `
             -G "${{ matrix.cmake_generator }}" `
             -A "${{ matrix.cmake_arch }}" `
@@ -139,7 +138,6 @@ jobs:
             -DREAPER_GIT_HOOKS_AUTO_UPDATE=OFF `
             -DREAPER_RUN_CLANG_TIDY=OFF `
             -DREAPER_HEADLESS=ON `
-            -DREAPER_USE_GOOGLE_CRASHPAD=OFF `
             -DREAPER_USE_TRACY=OFF
 
       - name: Build

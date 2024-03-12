@@ -32,7 +32,10 @@ set(GOOGLE_CRASHPAD_GCLIENT_ENTRIES_FILE ${GOOGLE_PATH}/crashpad/.gclient_entrie
 add_custom_command(OUTPUT ${GOOGLE_CRASHPAD_GCLIENT_ENTRIES_FILE}
     COMMENT "Configure google crashpad repo"
     WORKING_DIRECTORY ${GOOGLE_PATH}/crashpad
-    COMMAND ${GOOGLE_DEPOT_TOOLS_GCLIENT} sync --nohooks)
+    COMMAND ${GOOGLE_DEPOT_TOOLS_GCLIENT} sync --nohooks
+    VERBATIM)
+
+add_custom_target(crashpad_configure_repo DEPENDS ${GOOGLE_CRASHPAD_GCLIENT_ENTRIES_FILE})
 
 set(GOOGLE_CRASHPAD_BINARY_DIR ${CMAKE_BINARY_DIR}/external/crashpad)
 
@@ -78,24 +81,26 @@ set(GOOGLE_CRASHPAD_NINJA_FILE ${GOOGLE_CRASHPAD_BINARY_DIR}/build.ninja)
 # For the sake simplicity, I'm not going to bother making that step bulletproof.
 add_custom_command(OUTPUT ${GOOGLE_CRASHPAD_NINJA_FILE}
     COMMENT "Configure google crashpad handler"
-    DEPENDS ${GOOGLE_CRASHPAD_GCLIENT_ENTRIES_FILE}
+    DEPENDS crashpad_configure_repo
     WORKING_DIRECTORY ${GOOGLE_CRASHPAD_PATH}
     COMMAND ${CMAKE_COMMAND} -E make_directory ${GOOGLE_CRASHPAD_BINARY_DIR}
     COMMAND ${GOOGLE_DEPOT_TOOLS_GN} gen ${GOOGLE_CRASHPAD_BINARY_DIR} "--args=is_debug=${GN_IS_DEBUG} extra_cflags=\"${GN_LINK_FLAG}\""
     VERBATIM)
 
+add_custom_target(crashpad_configure_handler DEPENDS ${GOOGLE_CRASHPAD_NINJA_FILE})
+
 add_custom_command(OUTPUT ${GOOGLE_CRASHPAD_CLIENT_LIBRARIES}
     COMMENT "Compile google crashpad handler"
-    DEPENDS ${GOOGLE_CRASHPAD_NINJA_FILE}
+    DEPENDS crashpad_configure_handler
     COMMAND ${EXE_NINJA} -C ${GOOGLE_CRASHPAD_BINARY_DIR} crashpad_handler
     VERBATIM)
 
-add_custom_target(crashpad_handler_compile DEPENDS ${GOOGLE_CRASHPAD_CLIENT_LIBRARIES})
+add_custom_target(crashpad_compile_handler DEPENDS ${GOOGLE_CRASHPAD_CLIENT_LIBRARIES})
 
 # Meta target
 add_library(google_crashpad_client INTERFACE)
 
-add_dependencies(google_crashpad_client crashpad_handler_compile)
+add_dependencies(google_crashpad_client crashpad_compile_handler)
 
 target_link_libraries(google_crashpad_client INTERFACE ${GOOGLE_CRASHPAD_CLIENT_LIBRARIES})
 
