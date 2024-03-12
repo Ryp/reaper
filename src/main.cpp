@@ -26,6 +26,10 @@
 #    include "BreakpadHandler.h"
 #endif
 
+#if defined(REAPER_PLATFORM_WINDOWS)
+#    include <shlobj.h>
+#endif
+
 namespace Reaper
 {
 namespace
@@ -73,11 +77,17 @@ int main(int /*ac*/, char** /*av*/)
     CrashpadConfig crashpad_config = crashpad_parse_ini_config(config_filename);
 
 #    if defined(REAPER_PLATFORM_LINUX)
-    crashpad_config.dumps_path = "/tmp";
     crashpad_config.crash_handler_path = "build/external/crashpad/crashpad_handler";
+    crashpad_config.dumps_path = "/tmp/neptune"; // FIXME
 #    elif defined(REAPER_PLATFORM_WINDOWS)
-    crashpad_config.dumps_path = "C:\\tmp";
-    crashpad_config.crash_handler_path = "crashpad_handler.exe";
+    crashpad_config.crash_handler_path = L"crashpad_handler.exe";
+
+    PWSTR   path = NULL;
+    HRESULT hr = SHGetKnownFolderPath(FOLDERID_LocalAppData, 0, nullptr, &path);
+    Assert(SUCCEEDED(hr));
+
+    crashpad_config.dumps_path = std::wstring(path) + L"/neptune"; // FIXME
+    CoTaskMemFree(path);
 #    endif
 
     CrashpadContext crashpad_context = create_crashpad_context(crashpad_config);

@@ -9,6 +9,7 @@
 
 #include <string>
 
+#include <core/Platform.h>
 #include <core/Types.h>
 
 namespace crashpad
@@ -26,9 +27,16 @@ struct CrashpadConfig
     bool        restartable = true;
     bool        asynchronous_start = false;
     // NOTE: Only for testing purposes
-    bool        trigger_crash_at_startup = false; // Can be set in INI
-    std::string dumps_path;
+    bool trigger_crash_at_startup = false; // Can be set in INI
+
+    // FIXME Handle Unicode strings better
+#if defined(REAPER_PLATFORM_LINUX)
     std::string crash_handler_path;
+    std::string dumps_path;
+#elif defined(REAPER_PLATFORM_WINDOWS)
+    std::wstring crash_handler_path;
+    std::wstring dumps_path;
+#endif
 };
 
 struct CrashpadContext
