@@ -7,7 +7,7 @@
 
 set(target reaper_vulkan_loader)
 
-add_library(${target} ${REAPER_BUILD_TYPE})
+add_library(${target} ${REAPER_LINKAGE_TYPE})
 
 # Choose windowing system
 if(WIN32)

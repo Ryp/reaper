@@ -7,7 +7,7 @@
 
 set(IMGUI_BIN imgui)
 
-add_library(${IMGUI_BIN} ${REAPER_BUILD_TYPE})
+add_library(${IMGUI_BIN} ${REAPER_LINKAGE_TYPE})
 
 set(REAPER_IMGUI_CONFIG imgui_config.reaper.h)
 target_compile_definitions(${IMGUI_BIN} PUBLIC IMGUI_USER_CONFIG="${REAPER_IMGUI_CONFIG}")

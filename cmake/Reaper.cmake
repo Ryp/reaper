@@ -94,7 +94,7 @@ endfunction()
 # NOTE: call this function AFTER target_sources() calls
 function(reaper_configure_target_common target project_label)
     target_include_directories(${target} PUBLIC ${CMAKE_SOURCE_DIR}/src)
-    target_compile_definitions(${target} PRIVATE REAPER_BUILD_${REAPER_BUILD_TYPE})
+    target_compile_definitions(${target} PRIVATE REAPER_BUILD_${REAPER_LINKAGE_TYPE})
 
     if(WIN32)
         target_compile_definitions(${target} PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX _CRT_SECURE_NO_WARNINGS _USE_MATH_DEFINES)

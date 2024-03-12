@@ -7,7 +7,7 @@
 
 set(target reaper_math)
 
-add_library(${target} ${REAPER_BUILD_TYPE})
+add_library(${target} ${REAPER_LINKAGE_TYPE})
 
 target_sources(${target} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/BasicMath.h
