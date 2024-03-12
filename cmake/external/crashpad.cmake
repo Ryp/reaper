@@ -37,75 +37,100 @@ add_custom_command(OUTPUT ${GOOGLE_CRASHPAD_GCLIENT_ENTRIES_FILE}
 
 add_custom_target(crashpad_configure_repo DEPENDS ${GOOGLE_CRASHPAD_GCLIENT_ENTRIES_FILE})
 
-set(GOOGLE_CRASHPAD_BINARY_DIR ${CMAKE_BINARY_DIR}/external/crashpad)
-
-#Lists of the expected output libraries
-if(WIN32)
-    list(APPEND GOOGLE_CRASHPAD_CLIENT_LIBRARIES
-        ${GOOGLE_CRASHPAD_BINARY_DIR}/obj/client/client.lib
-        ${GOOGLE_CRASHPAD_BINARY_DIR}/obj/client/common.lib
-        ${GOOGLE_CRASHPAD_BINARY_DIR}/obj/util/util.lib
-        ${GOOGLE_CRASHPAD_BINARY_DIR}/obj/third_party/mini_chromium/mini_chromium/base/base.lib)
-elseif(UNIX)
-    list(APPEND GOOGLE_CRASHPAD_CLIENT_LIBRARIES
-        ${GOOGLE_CRASHPAD_BINARY_DIR}/obj/client/libclient.a
-        ${GOOGLE_CRASHPAD_BINARY_DIR}/obj/client/libcommon.a
-        ${GOOGLE_CRASHPAD_BINARY_DIR}/obj/util/libutil.a
-        ${GOOGLE_CRASHPAD_BINARY_DIR}/obj/third_party/mini_chromium/mini_chromium/base/libbase.a)
-endif()
-
-set(GN_IS_DEBUG)
-set(GN_LINK_FLAG)
-
-# FIXME multi-config generators
-if(CMAKE_BUILD_TYPE STREQUAL Debug)
-    set(GN_IS_DEBUG true)
-else()
-    set(GN_IS_DEBUG false)
-endif()
-
-# FIXME multi-config generators
-if(MSVC)
-    if(CMAKE_BUILD_TYPE STREQUAL Debug)
-        set(GN_LINK_FLAG /MDd)
+# We need to have a debug and a release version of crashpad's code, this functions creates the proper dependency chain for this to happen.
+function(crashpad_create_project_dependencies target is_debug)
+    if(is_debug)
+        set(CONFIG_SUFFIX debug)
     else()
-        set(GN_LINK_FLAG /MD)
+        set(CONFIG_SUFFIX release)
     endif()
-endif()
 
-set(GOOGLE_CRASHPAD_NINJA_FILE ${GOOGLE_CRASHPAD_BINARY_DIR}/build.ninja)
+    set(GOOGLE_CRASHPAD_BINARY_DIR ${CMAKE_BINARY_DIR}/external/crashpad_${CONFIG_SUFFIX})
 
-# NOTE: Partial dependency checking.
-# It's not enough to mark the ninja file as the only byproduct,
-# as there's many more files needed by ninja after a configure step to produce a correct build.
-# For the sake simplicity, I'm not going to bother making that step bulletproof.
-add_custom_command(OUTPUT ${GOOGLE_CRASHPAD_NINJA_FILE}
-    COMMENT "Configure google crashpad handler"
-    DEPENDS crashpad_configure_repo
-    WORKING_DIRECTORY ${GOOGLE_CRASHPAD_PATH}
-    COMMAND ${CMAKE_COMMAND} -E make_directory ${GOOGLE_CRASHPAD_BINARY_DIR}
-    COMMAND ${GOOGLE_DEPOT_TOOLS_GN} gen ${GOOGLE_CRASHPAD_BINARY_DIR} "--args=is_debug=${GN_IS_DEBUG} extra_cflags=\"${GN_LINK_FLAG}\""
-    VERBATIM)
+    # Lists of the expected output libraries
+    if(WIN32)
+        list(APPEND GOOGLE_CRASHPAD_CLIENT_LIBRARIES
+            ${GOOGLE_CRASHPAD_BINARY_DIR}/obj/client/client.lib
+            ${GOOGLE_CRASHPAD_BINARY_DIR}/obj/client/common.lib
+            ${GOOGLE_CRASHPAD_BINARY_DIR}/obj/util/util.lib
+            ${GOOGLE_CRASHPAD_BINARY_DIR}/obj/third_party/mini_chromium/mini_chromium/base/base.lib)
+    elseif(UNIX)
+        list(APPEND GOOGLE_CRASHPAD_CLIENT_LIBRARIES
+            ${GOOGLE_CRASHPAD_BINARY_DIR}/obj/client/libclient.a
+            ${GOOGLE_CRASHPAD_BINARY_DIR}/obj/client/libcommon.a
+            ${GOOGLE_CRASHPAD_BINARY_DIR}/obj/util/libutil.a
+            ${GOOGLE_CRASHPAD_BINARY_DIR}/obj/third_party/mini_chromium/mini_chromium/base/libbase.a)
+    endif()
 
-add_custom_target(crashpad_configure_handler DEPENDS ${GOOGLE_CRASHPAD_NINJA_FILE})
+    set(GN_IS_DEBUG)
+    set(GN_LINK_FLAG)
 
-add_custom_command(OUTPUT ${GOOGLE_CRASHPAD_CLIENT_LIBRARIES}
-    COMMENT "Compile google crashpad handler"
-    DEPENDS crashpad_configure_handler
-    COMMAND ${EXE_NINJA} -C ${GOOGLE_CRASHPAD_BINARY_DIR} crashpad_handler
-    VERBATIM)
+    if(is_debug)
+        set(GN_IS_DEBUG true)
+    else()
+        set(GN_IS_DEBUG false)
+    endif()
 
-add_custom_target(crashpad_compile_handler DEPENDS ${GOOGLE_CRASHPAD_CLIENT_LIBRARIES})
+    if(MSVC)
+        if(is_debug)
+            set(GN_LINK_FLAG /MDd)
+        else()
+            set(GN_LINK_FLAG /MD)
+        endif()
+    endif()
 
-# Meta target
+    set(GOOGLE_CRASHPAD_NINJA_FILE ${GOOGLE_CRASHPAD_BINARY_DIR}/build.ninja)
+
+    # NOTE: Partial dependency checking.
+    # It's not enough to mark the ninja file as the only byproduct,
+    # as there's many more files needed by ninja after a configure step to produce a correct build.
+    # For the sake simplicity, I'm not going to bother making that step bulletproof.
+    add_custom_command(OUTPUT ${GOOGLE_CRASHPAD_NINJA_FILE}
+        COMMENT "Configure google crashpad handler"
+        DEPENDS crashpad_configure_repo
+        WORKING_DIRECTORY ${GOOGLE_CRASHPAD_PATH}
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${GOOGLE_CRASHPAD_BINARY_DIR}
+        COMMAND ${GOOGLE_DEPOT_TOOLS_GN} gen ${GOOGLE_CRASHPAD_BINARY_DIR} "--args=is_debug=${GN_IS_DEBUG} extra_cflags=\"${GN_LINK_FLAG}\""
+        VERBATIM)
+
+    set(crashpad_configure_handler_target crashpad_configure_handler_${CONFIG_SUFFIX})
+    add_custom_target(${crashpad_configure_handler_target} DEPENDS ${GOOGLE_CRASHPAD_NINJA_FILE})
+
+    add_custom_command(OUTPUT ${GOOGLE_CRASHPAD_CLIENT_LIBRARIES}
+        COMMENT "Compile google crashpad handler"
+        DEPENDS ${crashpad_configure_handler_target}
+        COMMAND ${EXE_NINJA} -C ${GOOGLE_CRASHPAD_BINARY_DIR} crashpad_handler
+        VERBATIM)
+
+    set(crashpad_compile_handler_target crashpad_compile_handler_${CONFIG_SUFFIX})
+    add_custom_target(${crashpad_compile_handler_target} DEPENDS ${GOOGLE_CRASHPAD_CLIENT_LIBRARIES})
+
+    # This CMake call doesn't support generator expressions, so in the case of multi-config project generators,
+    # we end up depending on both debug and release builds, but later we only link the one we use.
+    add_dependencies(${target} ${crashpad_compile_handler_target})
+
+    if(is_debug)
+        target_link_libraries(${target} INTERFACE $<$<CONFIG:Debug>:${GOOGLE_CRASHPAD_CLIENT_LIBRARIES}>)
+        target_include_directories(${target} SYSTEM INTERFACE $<$<CONFIG:Debug>:${GOOGLE_CRASHPAD_BINARY_DIR}/gen>)
+    else()
+        target_link_libraries(${target} INTERFACE $<$<CONFIG:Release>:${GOOGLE_CRASHPAD_CLIENT_LIBRARIES}>)
+        target_include_directories(${target} SYSTEM INTERFACE $<$<CONFIG:Release>:${GOOGLE_CRASHPAD_BINARY_DIR}/gen>)
+    endif()
+endfunction()
+
 add_library(google_crashpad_client INTERFACE)
-
-add_dependencies(google_crashpad_client crashpad_compile_handler)
-
-target_link_libraries(google_crashpad_client INTERFACE ${GOOGLE_CRASHPAD_CLIENT_LIBRARIES})
 
 target_include_directories(google_crashpad_client SYSTEM INTERFACE
     ${GOOGLE_CRASHPAD_PATH}
-    ${GOOGLE_CRASHPAD_PATH}/third_party/mini_chromium/mini_chromium
-    ${GOOGLE_CRASHPAD_BINARY_DIR}/gen
-)
+    ${GOOGLE_CRASHPAD_PATH}/third_party/mini_chromium/mini_chromium)
+
+if(REAPER_MULTI_CONFIG)
+    crashpad_create_project_dependencies(google_crashpad_client ON)
+    crashpad_create_project_dependencies(google_crashpad_client OFF)
+else()
+    if(CMAKE_BUILD_TYPE STREQUAL Debug)
+        crashpad_create_project_dependencies(google_crashpad_client ON)
+    else()
+        crashpad_create_project_dependencies(google_crashpad_client OFF)
+    endif()
+endif()
