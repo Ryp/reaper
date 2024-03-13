@@ -11,10 +11,6 @@ set(GOOGLE_BREAKPAD_PATH ${GOOGLE_PATH}/breakpad/src)
 set(GOOGLE_CRASHPAD_PATH ${GOOGLE_PATH}/crashpad/crashpad)
 set(GOOGLE_DEPOT_TOOLS_PATH ${GOOGLE_PATH}/depot_tools)
 
-# depot_tools used to contain the ninja binary but doesn't anymore, so we need
-# to make sure it's in the PATH instead of sourcing it from google's repo.
-find_program(EXE_NINJA ninja REQUIRED)
-
 list(APPEND CMAKE_PROGRAM_PATH ${GOOGLE_DEPOT_TOOLS_PATH})
 find_program(GOOGLE_DEPOT_TOOLS_GCLIENT gclient REQUIRED)
 find_program(GOOGLE_DEPOT_TOOLS_GN gn REQUIRED)
@@ -40,13 +36,18 @@ add_custom_target(crashpad_configure_repo DEPENDS ${GOOGLE_CRASHPAD_GCLIENT_ENTR
 set(GOOGLE_CRASHPAD_BINARY_DIR ${CMAKE_BINARY_DIR}/external/crashpad)
 
 # Lists of the expected output libraries
+# depot_tools used to contain the ninja binary but doesn't anymore, so we are
+# using crashpad's version as a fallback.
+# FIXME this file might only get available once gclient tools are called.
 if(WIN32)
+    set(GOOGLE_CRASHPAD_NINJA_EXE ${GOOGLE_CRASHPAD_PATH}/third_party/ninja/ninja.exe)
     list(APPEND GOOGLE_CRASHPAD_CLIENT_LIBRARIES
         ${GOOGLE_CRASHPAD_BINARY_DIR}/obj/client/client.lib
         ${GOOGLE_CRASHPAD_BINARY_DIR}/obj/client/common.lib
         ${GOOGLE_CRASHPAD_BINARY_DIR}/obj/util/util.lib
         ${GOOGLE_CRASHPAD_BINARY_DIR}/obj/third_party/mini_chromium/mini_chromium/base/base.lib)
 elseif(UNIX)
+    set(GOOGLE_CRASHPAD_NINJA_EXE ${GOOGLE_CRASHPAD_PATH}/third_party/ninja/ninja)
     list(APPEND GOOGLE_CRASHPAD_CLIENT_LIBRARIES
         ${GOOGLE_CRASHPAD_BINARY_DIR}/obj/client/libclient.a
         ${GOOGLE_CRASHPAD_BINARY_DIR}/obj/client/libcommon.a
@@ -96,7 +97,7 @@ endif()
 add_custom_command(OUTPUT ${GOOGLE_CRASHPAD_CLIENT_LIBRARIES} ${GOOGLE_CRASHPAD_HANDLER}
     COMMENT "Compile google crashpad handler"
     DEPENDS crashpad_configure_handler
-    COMMAND ${EXE_NINJA} -C ${GOOGLE_CRASHPAD_BINARY_DIR} crashpad_handler
+    COMMAND ${GOOGLE_CRASHPAD_NINJA_EXE} -C ${GOOGLE_CRASHPAD_BINARY_DIR} crashpad_handler
     VERBATIM)
 
 add_custom_target(crashpad_compile_handler DEPENDS ${GOOGLE_CRASHPAD_CLIENT_LIBRARIES})
