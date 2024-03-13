@@ -80,7 +80,7 @@ int main(int /*ac*/, char** /*av*/)
     crashpad_config.crash_handler_path = "build/external/crashpad/crashpad_handler";
     crashpad_config.dumps_path = "/tmp/neptune"; // FIXME
 #    elif defined(REAPER_PLATFORM_WINDOWS)
-    crashpad_config.crash_handler_path = L"crashpad_handler.exe";
+    crashpad_config.crash_handler_path = L"build/external/crashpad/crashpad_handler.exe";
 
     PWSTR   path = NULL;
     HRESULT hr = SHGetKnownFolderPath(FOLDERID_LocalAppData, 0, nullptr, &path);

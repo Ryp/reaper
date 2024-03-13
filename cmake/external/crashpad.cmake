@@ -87,7 +87,13 @@ add_custom_command(OUTPUT ${GOOGLE_CRASHPAD_NINJA_FILE}
 
 add_custom_target(crashpad_configure_handler DEPENDS ${GOOGLE_CRASHPAD_NINJA_FILE})
 
-add_custom_command(OUTPUT ${GOOGLE_CRASHPAD_CLIENT_LIBRARIES}
+if(WIN32)
+    set(GOOGLE_CRASHPAD_HANDLER ${GOOGLE_CRASHPAD_BINARY_DIR}/crashpad_handler.exe)
+else()
+    set(GOOGLE_CRASHPAD_HANDLER ${GOOGLE_CRASHPAD_BINARY_DIR}/crashpad_handler)
+endif()
+
+add_custom_command(OUTPUT ${GOOGLE_CRASHPAD_CLIENT_LIBRARIES} ${GOOGLE_CRASHPAD_HANDLER}
     COMMENT "Compile google crashpad handler"
     DEPENDS crashpad_configure_handler
     COMMAND ${EXE_NINJA} -C ${GOOGLE_CRASHPAD_BINARY_DIR} crashpad_handler
@@ -104,3 +110,6 @@ target_include_directories(google_crashpad_client SYSTEM INTERFACE
 add_dependencies(google_crashpad_client crashpad_compile_handler)
 target_link_libraries(google_crashpad_client INTERFACE ${GOOGLE_CRASHPAD_CLIENT_LIBRARIES})
 target_include_directories(google_crashpad_client SYSTEM INTERFACE ${GOOGLE_CRASHPAD_BINARY_DIR}/gen)
+
+# FIXME We probably shouldn't reference a build dir
+install(FILES ${GOOGLE_CRASHPAD_HANDLER} DESTINATION ${CMAKE_INSTALL_PREFIX}/build/external/crashpad)
