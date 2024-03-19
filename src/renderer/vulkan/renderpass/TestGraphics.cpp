@@ -92,18 +92,13 @@ void backend_debug_ui(VulkanBackend& backend)
 {
     static bool show_app_simple_overlay = true;
 
-    ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize
-                                    | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing
-                                    | ImGuiWindowFlags_NoNav;
-
-    const float          pad = 10.0f;
     const ImGuiViewport* viewport = ImGui::GetMainViewport();
-    ImVec2               work_pos = viewport->WorkPos; // Use work area to avoid menu-bar/task-bar, if any!
-    ImGui::SetNextWindowPos(ImVec2(work_pos.x + pad, work_pos.y + pad), ImGuiCond_Always);
-    window_flags |= ImGuiWindowFlags_NoMove;
+    ImVec2               work_pos = viewport->WorkPos;
 
-    ImGui::SetNextWindowBgAlpha(0.35f); // Transparent background
-    if (ImGui::Begin("Example: Simple overlay", &show_app_simple_overlay, window_flags))
+    ImGui::SetNextWindowPos(ImVec2(work_pos.x + 10.f, work_pos.y + 10.f), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowBgAlpha(0.35f);
+
+    if (ImGui::Begin("Rendering", &show_app_simple_overlay))
     {
         ImGui::Checkbox("Freeze culling [BROKEN]", &backend.options.freeze_meshlet_culling); // FIXME
         ImGui::Checkbox("Enable debug tile culling", &backend.options.enable_debug_tile_lighting);
