@@ -10,7 +10,6 @@ AlignTrailingComments: true
 AllowAllParametersOfDeclarationOnNextLine: true
 AllowShortBlocksOnASingleLine: false
 AllowShortCaseLabelsOnASingleLine: false
-AllowShortFunctionsOnASingleLine: false
 AllowShortFunctionsOnASingleLine: InlineOnly
 AllowShortLoopsOnASingleLine: false
 AlwaysBreakAfterReturnType: None
