@@ -100,10 +100,14 @@ void backend_debug_ui(VulkanBackend& backend)
 
     if (ImGui::Begin("Rendering", &show_app_simple_overlay))
     {
-        auto surface_format = backend.presentInfo.surface_format;
+        auto swapchain_format = backend.presentInfo.swapchain_format;
         ImGui::Text("Swapchain info:");
-        ImGui::Text("format = %s", vk_to_string(surface_format.format));
-        ImGui::Text("colorspace = %s", vk_to_string(surface_format.colorSpace));
+        ImGui::Text("format = %s", vk_to_string(swapchain_format.vk_format));
+        ImGui::Text("colorspace = %s", vk_to_string(swapchain_format.vk_color_space));
+        ImGui::Text("view format = %s", vk_to_string(swapchain_format.vk_view_format));
+        ImGui::BeginDisabled();
+        ImGui::Checkbox("HDR Swapchain", &swapchain_format.is_hdr);
+        ImGui::EndDisabled();
         ImGui::Checkbox("Freeze culling [BROKEN]", &backend.options.freeze_meshlet_culling); // FIXME
         ImGui::Checkbox("Enable debug tile culling", &backend.options.enable_debug_tile_lighting);
         ImGui::Checkbox("Enable MSAA-based visibility", &backend.options.enable_msaa_visibility);

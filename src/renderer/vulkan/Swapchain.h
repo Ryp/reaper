@@ -7,6 +7,9 @@
 
 #pragma once
 
+#include "renderer/ColorSpace.h"
+#include "renderer/TransferFunction.h"
+
 #include <vulkan_loader/Vulkan.h>
 
 namespace Reaper
@@ -21,6 +24,19 @@ struct SwapchainDescriptor
     VkSurfaceFormatKHR preferredFormat;     // Can fallback on supported format
     VkExtent2D         preferredExtent;     // Set this to the window's size if not used
 };
+
+struct SwapchainFormat
+{
+    VkFormat        vk_format;
+    VkColorSpaceKHR vk_color_space;
+    VkFormat        vk_view_format;
+
+    ColorSpace       color_space = ColorSpace::Unknown;
+    TransferFunction transfer_function = TransferFunction::Unknown;
+    bool             is_hdr = false;
+};
+
+SwapchainFormat create_surface_format(VkSurfaceFormatKHR surface_format);
 
 // Window Manager API
 void configure_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backend,

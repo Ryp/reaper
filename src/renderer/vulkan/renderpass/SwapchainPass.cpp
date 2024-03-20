@@ -30,115 +30,67 @@ namespace Reaper
 {
 namespace
 {
-    struct TransferFunction
-    {
-        hlsl_uint function_index;
-        hlsl_uint dynamic_range;
-    };
-
-    TransferFunction get_transfer_function(VkSurfaceFormatKHR surface_format, VkFormat view_format)
-    {
-        switch (surface_format.colorSpace)
-        {
-        case VK_COLOR_SPACE_SRGB_NONLINEAR_KHR: {
-            switch (view_format)
-            {
-            case VK_FORMAT_B8G8R8A8_SRGB:
-            case VK_FORMAT_R8G8B8A8_SRGB:
-            case VK_FORMAT_A8B8G8R8_SRGB_PACK32:
-                return {TRANSFER_FUNC_LINEAR, DYNAMIC_RANGE_SDR}; // The EOTF is performed by the view format
-            case VK_FORMAT_B8G8R8A8_UNORM:
-            case VK_FORMAT_R8G8B8A8_UNORM:
-            case VK_FORMAT_A2R10G10B10_UNORM_PACK32:
-                // We have to manually apply the EOTF
-                // Note that this shouldn't happen in practice since we usually force a sRGB view to get the conversion
-                // for free
-                return {TRANSFER_FUNC_SRGB, DYNAMIC_RANGE_SDR};
-            default:
-                break;
-            }
-
-            AssertUnreachable();
-            break;
-        }
-        case VK_COLOR_SPACE_BT709_LINEAR_EXT:
-            return {TRANSFER_FUNC_LINEAR, DYNAMIC_RANGE_SDR};
-        case VK_COLOR_SPACE_BT709_NONLINEAR_EXT:
-            return {TRANSFER_FUNC_REC709, DYNAMIC_RANGE_SDR};
-        case VK_COLOR_SPACE_HDR10_ST2084_EXT:
-            return {TRANSFER_FUNC_PQ, DYNAMIC_RANGE_HDR};
-        case VK_COLOR_SPACE_EXTENDED_SRGB_LINEAR_EXT:
-            return {TRANSFER_FUNC_WINDOWS_SCRGB, DYNAMIC_RANGE_HDR};
-        default:
-            break;
-        }
-
-        AssertUnreachable();
-        return {};
-    }
-
-    hlsl_uint get_color_space(VkColorSpaceKHR color_space)
-    {
-        switch (color_space)
-        {
-        case VK_COLOR_SPACE_SRGB_NONLINEAR_KHR:
-            return COLOR_SPACE_SRGB;
-        case VK_COLOR_SPACE_BT709_LINEAR_EXT:
-        case VK_COLOR_SPACE_BT709_NONLINEAR_EXT:
-            return COLOR_SPACE_REC709;
-        case VK_COLOR_SPACE_DISPLAY_P3_LINEAR_EXT:
-            return COLOR_SPACE_DISPLAY_P3;
-        case VK_COLOR_SPACE_BT2020_LINEAR_EXT:
-        case VK_COLOR_SPACE_HDR10_ST2084_EXT:
-        case VK_COLOR_SPACE_HDR10_HLG_EXT:
-            return COLOR_SPACE_REC2020;
-        case VK_COLOR_SPACE_EXTENDED_SRGB_LINEAR_EXT:
-            return COLOR_SPACE_SRGB;
-        default:
-            break;
-        }
-
-        AssertUnreachable();
-        return 0;
-    }
-
     struct SpecConstants
     {
-        hlsl_uint transfer_function_index;
         hlsl_uint color_space_index;
+        hlsl_uint transfer_function_index;
         hlsl_uint dynamic_range;
         hlsl_uint tonemap_function_index;
     };
 
-    SpecConstants fill_spec_constants(VkSurfaceFormatKHR surface_format, VkFormat view_format,
-                                      VkColorSpaceKHR color_space)
+    u32 get_color_space_index(ColorSpace color_space)
     {
-        TransferFunction transfer_function = get_transfer_function(surface_format, view_format);
-        return SpecConstants{
-            .transfer_function_index = transfer_function.function_index,
-            .color_space_index = get_color_space(color_space),
-            .dynamic_range = transfer_function.dynamic_range,
-            .tonemap_function_index = TONEMAP_FUNC_ACES_APPROX,
+        switch (color_space)
+        {
+        case ColorSpace::sRGB:
+            return COLOR_SPACE_SRGB;
+        case ColorSpace::Rec709:
+            return COLOR_SPACE_REC709;
+        case ColorSpace::DisplayP3:
+            return COLOR_SPACE_DISPLAY_P3;
+        case ColorSpace::Rec2020:
+            return COLOR_SPACE_REC2020;
+        case ColorSpace::Unknown:
+            AssertUnreachable();
         };
+
+        return 0;
+    }
+
+    u32 get_transfer_function_index(TransferFunction func)
+    {
+        switch (func)
+        {
+        case TransferFunction::Linear:
+            return TRANSFER_FUNC_LINEAR;
+        case TransferFunction::sRGB:
+            return TRANSFER_FUNC_SRGB;
+        case TransferFunction::Rec709:
+            return TRANSFER_FUNC_REC709;
+        case TransferFunction::PQ:
+            return TRANSFER_FUNC_PQ;
+        case TransferFunction::scRGB_Windows:
+            return TRANSFER_FUNC_WINDOWS_SCRGB;
+        case TransferFunction::Unknown:
+            AssertUnreachable();
+        };
+
+        return 0;
     }
 
     VkPipeline create_swapchain_pipeline(VulkanBackend& backend, const ShaderModules& shader_modules,
-                                         VkPipelineLayout pipelineLayout, VkFormat swapchain_format)
+                                         VkPipelineLayout pipelineLayout)
     {
-        SpecConstants spec_constants =
-            fill_spec_constants(backend.presentInfo.surface_format, backend.presentInfo.view_format,
-                                backend.presentInfo.surface_format.colorSpace);
-
         std::vector<VkSpecializationMapEntry> specialization_constants_entries = {
             VkSpecializationMapEntry{
                 0,
-                offsetof(SpecConstants, transfer_function_index),
-                sizeof(SpecConstants::transfer_function_index),
+                offsetof(SpecConstants, color_space_index),
+                sizeof(SpecConstants::color_space_index),
             },
             VkSpecializationMapEntry{
                 1,
-                offsetof(SpecConstants, color_space_index),
-                sizeof(SpecConstants::color_space_index),
+                offsetof(SpecConstants, transfer_function_index),
+                sizeof(SpecConstants::transfer_function_index),
             },
             VkSpecializationMapEntry{
                 2,
@@ -151,6 +103,14 @@ namespace
                 sizeof(SpecConstants::tonemap_function_index),
             },
         };
+
+        const SwapchainFormat& swapchain_format = backend.presentInfo.swapchain_format;
+
+        SpecConstants spec_constants;
+        spec_constants.color_space_index = get_color_space_index(swapchain_format.color_space);
+        spec_constants.transfer_function_index = get_transfer_function_index(swapchain_format.transfer_function);
+        spec_constants.dynamic_range = swapchain_format.is_hdr ? DYNAMIC_RANGE_HDR : DYNAMIC_RANGE_SDR;
+        spec_constants.tonemap_function_index = TONEMAP_FUNC_ACES_APPROX;
 
         VkSpecializationInfo specialization = {
             static_cast<u32>(specialization_constants_entries.size()), // uint32_t mapEntryCount;
@@ -172,7 +132,7 @@ namespace
         pipeline_properties.blend_state.pAttachments = &blend_attachment_state;
         pipeline_properties.pipeline_layout = pipelineLayout;
         pipeline_properties.pipeline_rendering.colorAttachmentCount = 1;
-        pipeline_properties.pipeline_rendering.pColorAttachmentFormats = &swapchain_format;
+        pipeline_properties.pipeline_rendering.pColorAttachmentFormats = &swapchain_format.vk_view_format;
 
         std::vector<VkDynamicState> dynamic_states = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
 
@@ -205,8 +165,7 @@ SwapchainPassResources create_swapchain_pass_resources(VulkanBackend& backend, c
 
     resources.pipelineLayout = create_pipeline_layout(backend.device, std::span(&resources.descriptorSetLayout, 1),
                                                       std::span(&push_constant_range, 1));
-    resources.pipeline =
-        create_swapchain_pipeline(backend, shader_modules, resources.pipelineLayout, backend.presentInfo.view_format);
+    resources.pipeline = create_swapchain_pipeline(backend, shader_modules, resources.pipelineLayout);
 
     allocate_descriptor_sets(backend.device, backend.global_descriptor_pool,
                              std::span(&resources.descriptorSetLayout, 1), std::span(&resources.descriptor_set, 1));
@@ -228,8 +187,7 @@ void reload_swapchain_pipeline(VulkanBackend& backend, const ShaderModules& shad
 
     vkDestroyPipeline(backend.device, resources.pipeline, nullptr);
 
-    resources.pipeline =
-        create_swapchain_pipeline(backend, shader_modules, resources.pipelineLayout, backend.presentInfo.view_format);
+    resources.pipeline = create_swapchain_pipeline(backend, shader_modules, resources.pipelineLayout);
 }
 
 SwapchainFrameGraphRecord

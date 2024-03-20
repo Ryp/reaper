@@ -8,6 +8,7 @@
 #pragma once
 
 #include "PhysicalDevice.h"
+#include "Swapchain.h"
 
 #include "core/DynamicLibrary.h"
 #include "renderer/Renderer.h"
@@ -35,8 +36,7 @@ struct PresentationInfo
 
     // Split this in another struct
     VkSurfaceCapabilitiesKHR      surface_caps;
-    VkSurfaceFormatKHR            surface_format;
-    VkFormat                      view_format;
+    SwapchainFormat               swapchain_format;
     u32                           image_count;
     VkPresentModeKHR              present_mode;
     VkExtent2D                    surface_extent;

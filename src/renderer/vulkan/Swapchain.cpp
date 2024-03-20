@@ -19,26 +19,11 @@
 #include "core/Assert.h"
 #include "profiling/Scope.h"
 
+#include <algorithm>
+#include <span>
+
 namespace
 {
-VkSurfaceFormatKHR vulkan_swapchain_choose_surface_format(std::vector<VkSurfaceFormat2KHR>& surface_formats,
-                                                          VkSurfaceFormatKHR                preferredFormat)
-{
-    // If the list contains only one entry with undefined format
-    // it means that there are no preferred surface formats and any can be chosen
-    if ((surface_formats.size() == 1) && (surface_formats[0].surfaceFormat.format == VK_FORMAT_UNDEFINED))
-        return preferredFormat;
-
-    for (const VkSurfaceFormat2KHR& surface_format2 : surface_formats)
-    {
-        const VkSurfaceFormatKHR& surface_format = surface_format2.surfaceFormat;
-        if (surface_format.format == preferredFormat.format && surface_format.colorSpace == preferredFormat.colorSpace)
-            return surface_format;
-    }
-
-    return surface_formats[0].surfaceFormat; // Return first available format
-}
-
 uint32_t clamp(uint32_t v, uint32_t min, uint32_t max)
 {
     if (v < min)
@@ -90,10 +75,10 @@ VkSurfaceTransformFlagBitsKHR vulkan_swapchain_choose_transform(const VkSurfaceC
     }
 }
 
-VkPresentModeKHR vulkan_swapchain_choose_present_mode(std::vector<VkPresentModeKHR>& present_modes)
+VkPresentModeKHR vulkan_swapchain_choose_present_mode(std::span<const VkPresentModeKHR> present_modes)
 {
     // Prefer MAILBOX over FIFO
-    for (VkPresentModeKHR& present_mode : present_modes)
+    for (VkPresentModeKHR present_mode : present_modes)
     {
         if (present_mode == VK_PRESENT_MODE_MAILBOX_KHR)
             return present_mode;
@@ -101,32 +86,133 @@ VkPresentModeKHR vulkan_swapchain_choose_present_mode(std::vector<VkPresentModeK
 
     return VK_PRESENT_MODE_FIFO_KHR;
 }
-
-// Overriding the view format lets us get the sRGB eotf for free in some cases.
-// This needs VK_KHR_swapchain_mutable_format to work
-VkFormat vulkan_swapchain_view_format_override(VkSurfaceFormatKHR surface_format)
-{
-    if (surface_format.colorSpace == VK_COLORSPACE_SRGB_NONLINEAR_KHR)
-    {
-        switch (surface_format.format)
-        {
-        case VK_FORMAT_B8G8R8A8_UNORM:
-            return VK_FORMAT_B8G8R8A8_SRGB;
-        case VK_FORMAT_R8G8B8A8_UNORM:
-            return VK_FORMAT_R8G8B8A8_SRGB;
-        case VK_FORMAT_A8B8G8R8_UNORM_PACK32:
-            return VK_FORMAT_A8B8G8R8_SRGB_PACK32;
-        default:
-            break;
-        }
-    }
-
-    return surface_format.format;
-}
 } // namespace
 
 namespace Reaper
 {
+namespace
+{
+    ColorSpace get_color_space(VkColorSpaceKHR color_space)
+    {
+        switch (color_space)
+        {
+        case VK_COLOR_SPACE_SRGB_NONLINEAR_KHR:
+        case VK_COLOR_SPACE_EXTENDED_SRGB_LINEAR_EXT: // Allows negative values
+            return ColorSpace::sRGB;
+        case VK_COLOR_SPACE_BT709_LINEAR_EXT:
+        case VK_COLOR_SPACE_BT709_NONLINEAR_EXT:
+            return ColorSpace::Rec709;
+        case VK_COLOR_SPACE_DISPLAY_P3_LINEAR_EXT:
+            return ColorSpace::DisplayP3;
+        case VK_COLOR_SPACE_BT2020_LINEAR_EXT:
+        case VK_COLOR_SPACE_HDR10_ST2084_EXT:
+        case VK_COLOR_SPACE_HDR10_HLG_EXT:
+            return ColorSpace::Rec2020;
+        default:
+            break;
+        }
+
+        AssertUnreachable();
+        return ColorSpace::Unknown;
+    }
+
+    SwapchainFormat create_surface_format(VkSurfaceFormatKHR surface_format)
+    {
+        SwapchainFormat sf;
+        sf.vk_format = surface_format.format;
+        sf.vk_color_space = surface_format.colorSpace;
+        sf.vk_view_format = surface_format.format;
+
+        sf.color_space = get_color_space(surface_format.colorSpace);
+
+        switch (surface_format.colorSpace)
+        {
+        case VK_COLOR_SPACE_SRGB_NONLINEAR_KHR:
+            sf.transfer_function = TransferFunction::sRGB;
+            sf.is_hdr = false;
+            break;
+        case VK_COLOR_SPACE_BT709_LINEAR_EXT:
+            sf.transfer_function = TransferFunction::Linear;
+            sf.is_hdr = false;
+            break;
+        case VK_COLOR_SPACE_BT709_NONLINEAR_EXT:
+            sf.transfer_function = TransferFunction::Rec709;
+            sf.is_hdr = false;
+            break;
+        case VK_COLOR_SPACE_HDR10_ST2084_EXT:
+            sf.transfer_function = TransferFunction::PQ;
+            sf.is_hdr = true;
+            break;
+        case VK_COLOR_SPACE_EXTENDED_SRGB_LINEAR_EXT:
+            sf.transfer_function = TransferFunction::scRGB_Windows;
+            sf.is_hdr = true;
+            break;
+        default:
+            break;
+        }
+
+        return sf;
+    }
+
+    SwapchainFormat choose_swapchain_format(ReaperRoot& root, std::span<const VkSurfaceFormat2KHR> formats,
+                                            VkSurfaceFormatKHR preferred_format)
+    {
+        std::vector<SwapchainFormat> supported_formats;
+
+        log_debug(root, "vulkan: swapchain supports {} formats", formats.size());
+        for (const auto& format : formats)
+        {
+            log_debug(root, "- format = {}, colorspace = {}", vk_to_string(format.surfaceFormat.format),
+                      vk_to_string(format.surfaceFormat.colorSpace));
+
+            const SwapchainFormat swapchain_format = create_surface_format(format.surfaceFormat);
+
+            // If we had a preferred format and found it, just return now
+            if (format.surfaceFormat.format == preferred_format.format
+                && format.surfaceFormat.colorSpace == preferred_format.colorSpace)
+            {
+                return swapchain_format;
+            }
+
+            // Some formats combinations are not handled, so we're filtering them out here
+            if (swapchain_format.color_space != ColorSpace::Unknown
+                && swapchain_format.transfer_function != TransferFunction::Unknown)
+            {
+                supported_formats.emplace_back(swapchain_format);
+            }
+        }
+
+        Assert(!supported_formats.empty());
+
+        // We sort formats with a heuristic that tries to make sense.
+        auto comparison_less_lambda = [](SwapchainFormat a, SwapchainFormat b) -> bool {
+            // if (a.is_hdr == b.is_hdr)
+            // {
+            //     return a_execute_before && b_execute_after;
+            // }
+
+            return a.is_hdr && !b.is_hdr;
+        };
+
+        std::sort(supported_formats.begin(), supported_formats.end(), comparison_less_lambda);
+
+        log_debug(root, "vulkan: choosing {} formats from this list", supported_formats.size());
+        for (const auto& format : supported_formats)
+        {
+            log_debug(root, "- format = {}, colorspace = {}", vk_to_string(format.vk_format),
+                      vk_to_string(format.vk_color_space));
+        }
+
+        SwapchainFormat swapchain_format = supported_formats.front();
+
+        log_debug(root, "vulkan: selecting swapchain format = {}, colorspace = {}",
+                  vk_to_string(swapchain_format.vk_format), vk_to_string(swapchain_format.vk_color_space));
+        log_debug(root, "vulkan: selecting swapchain view format = {}", vk_to_string(swapchain_format.vk_view_format));
+
+        return swapchain_format;
+    }
+} // namespace
+
 void configure_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backend,
                                    const SwapchainDescriptor& swapchainDesc, PresentationInfo& presentInfo)
 {
@@ -147,40 +233,43 @@ void configure_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backen
     presentInfo.surface_caps = surface_caps_2.surfaceCapabilities;
     const VkSurfaceCapabilitiesKHR& surface_caps = surface_caps_2.surfaceCapabilities;
 
+    uint32_t formats_count;
+    AssertVk(vkGetPhysicalDeviceSurfaceFormats2KHR(backend.physical_device.handle, &surface_info_2, &formats_count,
+                                                   nullptr));
+    Assert(formats_count > 0);
+
+    std::vector<VkSurfaceFormat2KHR> surface_formats(
+        formats_count,
+        VkSurfaceFormat2KHR{.sType = VK_STRUCTURE_TYPE_SURFACE_FORMAT_2_KHR, .pNext = nullptr, .surfaceFormat = {}});
+
+    AssertVk(vkGetPhysicalDeviceSurfaceFormats2KHR(backend.physical_device.handle, &surface_info_2, &formats_count,
+                                                   surface_formats.data()));
+
     // Choose surface format
-    VkSurfaceFormatKHR& surface_format = presentInfo.surface_format;
+    presentInfo.swapchain_format = choose_swapchain_format(root, surface_formats, swapchainDesc.preferredFormat);
+
+    if (presentInfo.swapchain_format.color_space == ColorSpace::sRGB)
     {
-        uint32_t formats_count;
-        AssertVk(vkGetPhysicalDeviceSurfaceFormats2KHR(backend.physical_device.handle, &surface_info_2, &formats_count,
-                                                       nullptr));
-        Assert(formats_count > 0);
+        // In the case of sRGB, the EOTF is usually done with the texture view already, so no need to apply it in
+        // the shader.
+        presentInfo.swapchain_format.transfer_function = TransferFunction::Linear;
 
-        std::vector<VkSurfaceFormat2KHR> surface_formats(
-            formats_count, VkSurfaceFormat2KHR{
-                               .sType = VK_STRUCTURE_TYPE_SURFACE_FORMAT_2_KHR, .pNext = nullptr, .surfaceFormat = {}});
-        AssertVk(vkGetPhysicalDeviceSurfaceFormats2KHR(backend.physical_device.handle, &surface_info_2, &formats_count,
-                                                       surface_formats.data()));
-
-        log_debug(root, "vulkan: swapchain supports {} formats", formats_count);
-        for (auto& format : surface_formats)
-            log_debug(root, "- format = {}, colorspace = {}", vk_to_string(format.surfaceFormat.format),
-                      vk_to_string(format.surfaceFormat.colorSpace));
-
-        surface_format = vulkan_swapchain_choose_surface_format(surface_formats, swapchainDesc.preferredFormat);
-
-        if (surface_format.format != swapchainDesc.preferredFormat.format
-            || surface_format.colorSpace != swapchainDesc.preferredFormat.colorSpace)
+        // Overriding the view format lets us get the sRGB eotf for free.
+        // This needs VK_KHR_swapchain_mutable_format to work
+        switch (presentInfo.swapchain_format.vk_format)
         {
-            log_warning(root, "vulkan: incompatible swapchain format: format = {}, colorspace = {}",
-                        vk_to_string(swapchainDesc.preferredFormat.format),
-                        vk_to_string(swapchainDesc.preferredFormat.colorSpace));
+        case VK_FORMAT_B8G8R8A8_UNORM:
+            presentInfo.swapchain_format.vk_view_format = VK_FORMAT_B8G8R8A8_SRGB;
+            break;
+        case VK_FORMAT_R8G8B8A8_UNORM:
+            presentInfo.swapchain_format.vk_view_format = VK_FORMAT_R8G8B8A8_SRGB;
+            break;
+        case VK_FORMAT_A8B8G8R8_UNORM_PACK32:
+            presentInfo.swapchain_format.vk_view_format = VK_FORMAT_A8B8G8R8_SRGB_PACK32;
+            break;
+        default:
+            break;
         }
-
-        presentInfo.view_format = vulkan_swapchain_view_format_override(surface_format);
-
-        log_debug(root, "vulkan: selecting swapchain format = {}, colorspace = {}", vk_to_string(surface_format.format),
-                  vk_to_string(surface_format.colorSpace));
-        log_debug(root, "vulkan: selecting swapchain view format = {}", vk_to_string(presentInfo.view_format));
     }
 
     // Image count
@@ -256,8 +345,8 @@ void create_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backend, 
     log_debug(root, "vulkan: creating wm swapchain");
 
     const std::vector<VkFormat> view_formats = {
-        presentInfo.surface_format.format, // Usual format if the swapchain was immutable
-        presentInfo.view_format,           // Format to use the mutable feature with
+        presentInfo.swapchain_format.vk_format,      // Usual format if the swapchain was immutable
+        presentInfo.swapchain_format.vk_view_format, // Format to use the mutable feature with
     };
 
     VkImageFormatListCreateInfo format_list = {
@@ -273,8 +362,8 @@ void create_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backend, 
         .flags = VK_SWAPCHAIN_CREATE_MUTABLE_FORMAT_BIT_KHR,
         .surface = presentInfo.surface,
         .minImageCount = presentInfo.image_count,
-        .imageFormat = presentInfo.surface_format.format,
-        .imageColorSpace = presentInfo.surface_format.colorSpace,
+        .imageFormat = presentInfo.swapchain_format.vk_format,
+        .imageColorSpace = presentInfo.swapchain_format.vk_color_space,
         .imageExtent = presentInfo.surface_extent,
         .imageArrayLayers = 1,
         .imageUsage = presentInfo.swapchain_usage_flags,
@@ -291,7 +380,8 @@ void create_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backend, 
     AssertVk(vkCreateSwapchainKHR(backend.device, &swap_chain_create_info, nullptr, &presentInfo.swapchain));
 
     log_info(root, "vulkan: swapchain created with format = {}, colorspace = {}",
-             vk_to_string(presentInfo.surface_format.format), vk_to_string(presentInfo.surface_format.colorSpace));
+             vk_to_string(presentInfo.swapchain_format.vk_format),
+             vk_to_string(presentInfo.swapchain_format.vk_color_space));
 
     u32 actualImageCount = 0;
     AssertVk(vkGetSwapchainImagesKHR(backend.device, presentInfo.swapchain, &actualImageCount, nullptr));
@@ -343,7 +433,8 @@ void resize_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backend, 
     // Reconfigure even if we know most of what we expect/need
     SwapchainDescriptor swapchainDesc;
     swapchainDesc.preferredImageCount = presentInfo.image_count;
-    swapchainDesc.preferredFormat = presentInfo.surface_format;
+    swapchainDesc.preferredFormat = {presentInfo.swapchain_format.vk_format,
+                                     presentInfo.swapchain_format.vk_color_space};
     swapchainDesc.preferredExtent = {extent.width, extent.height}; // New extent
 
     configure_vulkan_wm_swapchain(root, backend, swapchainDesc, presentInfo);
@@ -371,7 +462,7 @@ void create_swapchain_views(const VulkanBackend& backend, PresentationInfo& pres
     for (size_t i = 0; i < image_count; ++i)
     {
         const GPUTextureView view = {
-            .format = VulkanToPixelFormat(presentInfo.view_format),
+            .format = VulkanToPixelFormat(presentInfo.swapchain_format.vk_view_format),
             .subresource = default_texture_subresource_one_color_mip(),
         };
 
