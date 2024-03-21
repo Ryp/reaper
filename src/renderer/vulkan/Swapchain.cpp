@@ -248,7 +248,7 @@ void configure_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backen
     // Choose surface format
     presentInfo.swapchain_format = choose_swapchain_format(root, surface_formats, swapchainDesc.preferredFormat);
 
-    if (presentInfo.swapchain_format.color_space == ColorSpace::sRGB)
+    if (presentInfo.swapchain_format.transfer_function == TransferFunction::sRGB)
     {
         // In the case of sRGB, the EOTF is usually done with the texture view already, so no need to apply it in
         // the shader.
