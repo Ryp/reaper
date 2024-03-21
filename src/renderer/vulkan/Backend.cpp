@@ -551,9 +551,7 @@ void create_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& backend)
 
     SwapchainDescriptor swapchainDesc;
     swapchainDesc.preferredImageCount = 3;
-    swapchainDesc.preferredFormat = {VK_FORMAT_B8G8R8A8_SRGB, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR};
-    swapchainDesc.preferredFormat = {VK_FORMAT_A2R10G10B10_UNORM_PACK32, VK_COLOR_SPACE_HDR10_ST2084_EXT};
-
+    swapchainDesc.preferredFormat = {VK_FORMAT_UNDEFINED, VK_COLOR_SPACE_MAX_ENUM_KHR};
     swapchainDesc.preferredExtent = {windowDescriptor.width, windowDescriptor.height};
 
     configure_vulkan_wm_swapchain(root, backend, swapchainDesc, backend.presentInfo);

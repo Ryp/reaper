@@ -186,11 +186,21 @@ namespace
 
         // We sort formats with a heuristic that tries to make sense.
         auto comparison_less_lambda = [](SwapchainFormat a, SwapchainFormat b) -> bool {
-            // if (a.is_hdr == b.is_hdr)
-            // {
-            //     return a_execute_before && b_execute_after;
-            // }
+            if (a.is_hdr == b.is_hdr)
+            {
+                if (a.transfer_function == b.transfer_function)
+                {
+                    // Avoid 64-bit RTs if possible
+                    // NOTE: To be more precise we should have a function that returns the storage cost instead of just
+                    // handling one format.
+                    return a.vk_format != VK_FORMAT_R16G16B16A16_SFLOAT && b.vk_format == VK_FORMAT_R16G16B16A16_SFLOAT;
+                }
 
+                // Prefer PQ-encoded swapchains
+                return a.transfer_function == TransferFunction::PQ && b.transfer_function != TransferFunction::PQ;
+            }
+
+            // Prefer HDR swapchains
             return a.is_hdr && !b.is_hdr;
         };
 
