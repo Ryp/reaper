@@ -31,7 +31,10 @@ class btCollisionShape;
 class btScaledBvhTriangleMeshShape;
 class btTriangleIndexVertexArray;
 
+namespace Reaper
+{
 struct Mesh;
+}
 
 namespace Neptune
 {
@@ -137,8 +140,9 @@ NEPTUNE_SIM_API glm::fmat4x3 get_player_transform(PhysicsSim& sim);
 
 NEPTUNE_SIM_API
 void sim_create_static_collision_meshes(std::span<StaticMeshColliderHandle> handles, PhysicsSim& sim,
-                                        std::span<const Mesh> meshes, std::span<const glm::fmat4x3> transforms_no_scale,
-                                        std::span<const glm::fvec3> scales = std::span<const glm::fvec3>());
+                                        std::span<const Reaper::Mesh> meshes,
+                                        std::span<const glm::fmat4x3> transforms_no_scale,
+                                        std::span<const glm::fvec3>   scales = std::span<const glm::fvec3>());
 
 NEPTUNE_SIM_API
 void sim_destroy_static_collision_meshes(std::span<const StaticMeshColliderHandle> handles, PhysicsSim& sim);

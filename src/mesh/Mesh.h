@@ -7,11 +7,15 @@
 
 #pragma once
 
+#include "MeshExport.h"
+
 #include <core/Types.h>
 #include <vector>
 
 #include <glm/glm.hpp>
 
+namespace Reaper
+{
 struct Mesh
 {
     std::vector<u32> indexes;
@@ -22,3 +26,7 @@ struct Mesh
     std::vector<glm::fvec4> tangents; // GLTF uses w for the bitangent sign (-1.0 or 1.0)
     std::vector<glm::fvec2> uvs;
 };
+
+REAPER_MESH_API
+Mesh duplicate_mesh(const Mesh& mesh);
+} // namespace Reaper

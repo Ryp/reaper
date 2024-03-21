@@ -11,6 +11,8 @@
 
 TEST_CASE("Mesh Loading")
 {
+    using namespace Reaper;
+
     SUBCASE("Small OBJ files")
     {
         load_obj("res/model/quad.obj");

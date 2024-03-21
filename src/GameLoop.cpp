@@ -68,6 +68,9 @@ namespace
     Track create_game_track(const GenerationInfo& gen_info, Reaper::VulkanBackend& backend, PhysicsSim& sim,
                             Reaper::SceneGraph& scene, Reaper::SceneMaterialHandle material_handle)
     {
+        const std::string track_mesh_path("res/model/track_chunk_simple.obj");
+        Reaper::Mesh      unskinned_track_mesh = Reaper::load_obj(track_mesh_path);
+
         Track track;
 
         track.skeleton_nodes.resize(gen_info.length);
@@ -82,13 +85,12 @@ namespace
 
         generate_track_skinning(track.skeleton_nodes, track.splines_ms, track.skinning);
 
-        const std::string         assetFile("res/model/track_chunk_simple.obj");
         std::vector<glm::fmat4x3> chunk_transforms(gen_info.length);
-        std::vector<Mesh>         track_meshes;
+        std::vector<Reaper::Mesh> track_meshes;
 
         for (u32 i = 0; i < gen_info.length; i++)
         {
-            Mesh& track_mesh = track_meshes.emplace_back(load_obj(assetFile));
+            Reaper::Mesh& track_mesh = track_meshes.emplace_back(duplicate_mesh(unskinned_track_mesh));
 
             const TrackSkeletonNode& track_node = track.skeleton_nodes[i];
 

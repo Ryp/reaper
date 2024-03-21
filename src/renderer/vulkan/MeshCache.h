@@ -16,10 +16,9 @@
 #include "renderer/RendererExport.h"
 #include "renderer/ResourceHandle.h"
 
-struct Mesh;
-
 namespace Reaper
 {
+struct Mesh;
 struct MeshCache
 {
     static constexpr u32 MAX_INDEX_COUNT = 2000000;

@@ -289,7 +289,7 @@ namespace
     }
 } // namespace
 
-void skin_track_chunk_mesh(const TrackSkeletonNode& node, const TrackSkinning& track_skinning, Mesh& mesh,
+void skin_track_chunk_mesh(const TrackSkeletonNode& node, const TrackSkinning& track_skinning, Reaper::Mesh& mesh,
                            float meshLength)
 {
     const u32               vertex_count = static_cast<u32>(mesh.positions.size());

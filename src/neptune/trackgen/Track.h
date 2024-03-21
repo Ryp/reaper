@@ -18,12 +18,14 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
-namespace Reaper::Math
+namespace Reaper
 {
-struct Spline;
-}
-
 struct Mesh;
+namespace Math
+{
+    struct Spline;
+}
+} // namespace Reaper
 
 namespace Neptune
 {
@@ -81,6 +83,6 @@ void generate_track_skinning(std::span<const TrackSkeletonNode> skeleton_nodes,
 NEPTUNE_TRACKGEN_API
 void skin_track_chunk_mesh(const TrackSkeletonNode& node,
                            const TrackSkinning&     track_skinning,
-                           Mesh&                    mesh,
+                           Reaper::Mesh&            mesh,
                            float                    meshLength);
 } // namespace Neptune

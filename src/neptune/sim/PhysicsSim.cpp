@@ -141,8 +141,9 @@ glm::fmat4x3 get_player_transform(PhysicsSim& sim)
 }
 
 void sim_create_static_collision_meshes(std::span<StaticMeshColliderHandle> handles, PhysicsSim& sim,
-                                        std::span<const Mesh> meshes, std::span<const glm::fmat4x3> transforms_no_scale,
-                                        std::span<const glm::fvec3> scales)
+                                        std::span<const Reaper::Mesh> meshes,
+                                        std::span<const glm::fmat4x3> transforms_no_scale,
+                                        std::span<const glm::fvec3>   scales)
 {
     // FIXME Assert scale values
 #if defined(REAPER_USE_BULLET_PHYSICS)
@@ -152,7 +153,7 @@ void sim_create_static_collision_meshes(std::span<StaticMeshColliderHandle> hand
 
     for (u32 i = 0; i < meshes.size(); i++)
     {
-        const Mesh& mesh = meshes[i];
+        const Reaper::Mesh& mesh = meshes[i];
 
         // Insert a new struct and get a reference on it
         // It's crucial to avoid copies here because we give pointers to the mesh data to bullet

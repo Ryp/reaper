@@ -78,12 +78,12 @@ TEST_CASE("Track mesh generation")
 
     const std::string assetFile("res/model/track_chunk_simple.obj");
 
-    std::ofstream     outFile("test_skinned_track.obj");
-    std::vector<Mesh> meshes;
+    std::ofstream             outFile("test_skinned_track.obj");
+    std::vector<Reaper::Mesh> meshes;
 
     for (u32 i = 0; i < gen_info.length; i++)
     {
-        Mesh& mesh = meshes.emplace_back(load_obj(assetFile));
+        Reaper::Mesh& mesh = meshes.emplace_back(Reaper::load_obj(assetFile));
 
         skin_track_chunk_mesh(skeletonNodes[i], skinning[i], mesh, 10.0f);
     }

@@ -16,5 +16,8 @@
 
 #include "Mesh.h"
 
+namespace Reaper
+{
 REAPER_MESH_API Mesh load_obj(const std::string& filename);
 REAPER_MESH_API void save_obj(std::ostream& output, std::span<const Mesh> meshes);
+}; // namespace Reaper
