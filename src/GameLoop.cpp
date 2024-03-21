@@ -191,9 +191,9 @@ namespace
 
         const ImGuiViewport* viewport = ImGui::GetMainViewport();
         ImVec2               work_pos = viewport->WorkPos; // Use work area to avoid menu-bar/task-bar, if any!
-                                                           //
+
         ImGui::SetNextWindowPos(ImVec2(work_pos.x + 300.f, work_pos.y), ImGuiCond_FirstUseEver);
-        ImGui::SetNextWindowBgAlpha(0.35f);                // Transparent background
+        ImGui::SetNextWindowBgAlpha(0.35f); // Transparent background
 
         if (ImGui::Begin("Controller Axes", &show_window))
         {
@@ -751,9 +751,9 @@ void execute_game_loop(ReaperRoot& root)
             static bool          show_window = true;
             const ImGuiViewport* viewport = ImGui::GetMainViewport();
             ImVec2               work_pos = viewport->WorkPos; // Use work area to avoid menu-bar/task-bar, if any!
-                                                               //
+
             ImGui::SetNextWindowPos(ImVec2(work_pos.x, work_pos.y + 300.f), ImGuiCond_FirstUseEver);
-            ImGui::SetNextWindowBgAlpha(0.35f);                // Transparent background
+            ImGui::SetNextWindowBgAlpha(0.35f); // Transparent background
 
             if (ImGui::Begin("Physics", &show_window))
             {
