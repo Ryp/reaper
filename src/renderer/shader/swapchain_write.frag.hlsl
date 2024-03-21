@@ -1,7 +1,7 @@
 #include "lib/base.hlsl"
 
 #include "lib/color_space.hlsl"
-#include "lib/eotf.hlsl"
+#include "lib/tranfer_functions.hlsl"
 #include "lib/tonemapping.hlsl"
 
 #include "swapchain_write.share.hlsl"
@@ -70,9 +70,9 @@ float3 apply_sdr_transfer_func(float3 color_normalized, uint transfer_function)
     if (transfer_function == TRANSFER_FUNC_LINEAR)
         return color_normalized;
     else if (transfer_function == TRANSFER_FUNC_SRGB)
-        return srgb_eotf(color_normalized);
+        return linear_to_srgb(color_normalized);
     else if (transfer_function == TRANSFER_FUNC_REC709)
-        return rec709_eotf(color_normalized);
+        return linear_to_rec709(color_normalized);
     else
         return 0.42; // Invalid
 }
@@ -80,7 +80,7 @@ float3 apply_sdr_transfer_func(float3 color_normalized, uint transfer_function)
 float3 apply_hdr_transfer_func(float3 color_linear_nits, uint transfer_function)
 {
     if (transfer_function == TRANSFER_FUNC_PQ)
-        return pq_eotf(color_linear_nits / PQ_MAX_NITS);
+        return linear_to_pq(color_linear_nits / PQ_MAX_NITS);
     else if (transfer_function == TRANSFER_FUNC_WINDOWS_SCRGB)
         return color_linear_nits / 80.f;
     else

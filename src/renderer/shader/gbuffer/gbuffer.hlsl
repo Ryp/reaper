@@ -11,7 +11,7 @@
 #include "lib/format/unorm.hlsl"
 #include "lib/format/octahedral.hlsl"
 #include "lib/format/bitfield.hlsl"
-#include "lib/eotf.hlsl"
+#include "lib/tranfer_functions.hlsl"
 
 #include "material/standard.hlsl"
 
@@ -59,7 +59,7 @@ GBufferRaw encode_gbuffer(GBuffer gbuffer)
 {
     GBufferRaw gbuffer_raw;
 
-    gbuffer_raw.rt0 = rgba32_float_to_rgba8_unorm(float4(srgb_eotf_fast(gbuffer.albedo), gbuffer.roughness));
+    gbuffer_raw.rt0 = rgba32_float_to_rgba8_unorm(float4(linear_to_srgb_fast(gbuffer.albedo), gbuffer.roughness));
 
     gbuffer_raw.rt1 = encode_normal_hemi_octahedral(gbuffer.normal_vs, RT1_Normal_Bits / 2) << RT1_Normal_Offset |
          r32_float_to_unorm_generic(gbuffer.f0, RT1_FZero_Bits) << RT1_FZero_Offset |
@@ -74,7 +74,7 @@ GBuffer decode_gbuffer(GBufferRaw gbuffer_raw)
 
     const float4 packed_albedo_roughness = rgba8_unorm_to_rgba32_float(gbuffer_raw.rt0);
 
-    gbuffer.albedo = srgb_eotf_inverse_fast(packed_albedo_roughness.xyz);
+    gbuffer.albedo = srgb_to_linear_fast(packed_albedo_roughness.xyz);
     gbuffer.roughness = packed_albedo_roughness.w;
 
     const uint packed_normal_f0_ao = gbuffer_raw.rt1;
