@@ -247,8 +247,8 @@ namespace
         Assert(physical_device.subgroup_properties.supportedOperations & VK_SUBGROUP_FEATURE_SHUFFLE_BIT);
 
         // FIXME use MinWaveLaneCount from the shader code here
-        Assert(physical_device.subgroup_size_control_properties.minSubgroupSize >= 8);
-        Assert(physical_device.subgroup_size_control_properties.maxSubgroupSize <= 64);
+        Assert(physical_device.vulkan1_3_properties.minSubgroupSize >= 8);
+        Assert(physical_device.vulkan1_3_properties.maxSubgroupSize <= 64);
 
         // Supported Features
         Assert(physical_device.features.samplerAnisotropy == VK_TRUE);
@@ -330,8 +330,8 @@ namespace
                   physical_device.memory_properties.memoryTypeCount,
                   physical_device.memory_properties.memoryHeapCount);
 
-        log_debug(root, "- subgroup min size = {}", physical_device.subgroup_size_control_properties.minSubgroupSize);
-        log_debug(root, "- subgroup max size = {}", physical_device.subgroup_size_control_properties.maxSubgroupSize);
+        log_debug(root, "- subgroup min size = {}", physical_device.vulkan1_3_properties.minSubgroupSize);
+        log_debug(root, "- subgroup max size = {}", physical_device.vulkan1_3_properties.maxSubgroupSize);
 
         std::span<const VkMemoryHeap> memory_heaps(physical_device.memory_properties.memoryHeaps,
                                                    physical_device.memory_properties.memoryHeapCount);
