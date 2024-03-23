@@ -61,7 +61,6 @@ void main(uint3 gtid : SV_GroupThreadID,
         InterlockedAdd(lds_sum_luma_log2, sum_luma_log2);
         InterlockedAdd(lds_sum_weight, sum_weight);
 #else
-        // NOTE: Only valid with VK_PIPELINE_SHADER_STAGE_CREATE_REQUIRE_FULL_SUBGROUPS_BIT
         uint wave_index = gi / wave_lane_count;
         lds_luma_log2[wave_index] = sum_luma_log2;
         lds_weight[wave_index] = sum_weight;
@@ -133,7 +132,6 @@ void main(uint3 gtid : SV_GroupThreadID,
         InterlockedAdd(lds_sum_luma_log2, sum_luma_log2);
         InterlockedAdd(lds_sum_weight, sum_weight);
 #else
-        // NOTE: Only valid with VK_PIPELINE_SHADER_STAGE_CREATE_REQUIRE_FULL_SUBGROUPS_BIT
         uint wave_index = gi / wave_lane_count;
         lds_luma_log2[wave_index] = sum_luma_log2;
         lds_weight[wave_index] = sum_weight;

@@ -164,7 +164,7 @@ namespace
         vulkan1_3_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
         vulkan1_3_features.synchronization2 = VK_TRUE;
         vulkan1_3_features.dynamicRendering = VK_TRUE;
-        vulkan1_3_features.computeFullSubgroups = VK_TRUE;
+        vulkan1_3_features.subgroupSizeControl = VK_TRUE;
 
         VkPhysicalDeviceShaderAtomicFloatFeaturesEXT shader_atomic_features = {};
         shader_atomic_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_ATOMIC_FLOAT_FEATURES_EXT;
@@ -246,6 +246,10 @@ namespace
         Assert(physical_device.subgroup_properties.supportedOperations & VK_SUBGROUP_FEATURE_VOTE_BIT);
         Assert(physical_device.subgroup_properties.supportedOperations & VK_SUBGROUP_FEATURE_SHUFFLE_BIT);
 
+        // FIXME use MinWaveLaneCount from the shader code here
+        Assert(physical_device.subgroup_size_control_properties.minSubgroupSize >= 8);
+        Assert(physical_device.subgroup_size_control_properties.maxSubgroupSize <= 64);
+
         // Supported Features
         Assert(physical_device.features.samplerAnisotropy == VK_TRUE);
         Assert(physical_device.features.multiDrawIndirect == VK_TRUE);
@@ -263,7 +267,7 @@ namespace
         Assert(physical_device.vulkan1_2_features.shaderSampledImageArrayNonUniformIndexing == VK_TRUE);
         Assert(physical_device.vulkan1_3_features.synchronization2 == VK_TRUE);
         Assert(physical_device.vulkan1_3_features.dynamicRendering == VK_TRUE);
-        Assert(physical_device.vulkan1_3_features.computeFullSubgroups == VK_TRUE);
+        Assert(physical_device.vulkan1_3_features.subgroupSizeControl == VK_TRUE);
         Assert(physical_device.index_uint8_features.indexTypeUint8 == VK_TRUE);
         Assert(physical_device.primitive_restart_features.primitiveTopologyListRestart == VK_TRUE);
 
@@ -326,7 +330,8 @@ namespace
                   physical_device.memory_properties.memoryTypeCount,
                   physical_device.memory_properties.memoryHeapCount);
 
-        log_debug(root, "- subgroup size = {}", physical_device.subgroup_properties.subgroupSize);
+        log_debug(root, "- subgroup min size = {}", physical_device.subgroup_size_control_properties.minSubgroupSize);
+        log_debug(root, "- subgroup max size = {}", physical_device.subgroup_size_control_properties.maxSubgroupSize);
 
         std::span<const VkMemoryHeap> memory_heaps(physical_device.memory_properties.memoryHeaps,
                                                    physical_device.memory_properties.memoryHeapCount);

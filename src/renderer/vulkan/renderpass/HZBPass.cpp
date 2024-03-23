@@ -54,7 +54,7 @@ namespace
     {
         const VkPipelineShaderStageCreateInfo shader_stage = default_pipeline_shader_stage_create_info(
             VK_SHADER_STAGE_COMPUTE_BIT, shader_modules.hzb_reduce_cs, nullptr,
-            VK_PIPELINE_SHADER_STAGE_CREATE_REQUIRE_FULL_SUBGROUPS_BIT);
+            VK_PIPELINE_SHADER_STAGE_CREATE_ALLOW_VARYING_SUBGROUP_SIZE_BIT);
 
         return create_compute_pipeline(device, pipeline_layout, shader_stage);
     }

@@ -40,7 +40,7 @@ namespace
         // NOTE: You can leave that off when ENABLE_SHARED_FLOAT_ATOMICS is on.
         const VkPipelineShaderStageCreateInfo shader_stage = default_pipeline_shader_stage_create_info(
             VK_SHADER_STAGE_COMPUTE_BIT, shader_modules.reduce_exposure_cs, nullptr,
-            VK_PIPELINE_SHADER_STAGE_CREATE_REQUIRE_FULL_SUBGROUPS_BIT);
+            VK_PIPELINE_SHADER_STAGE_CREATE_ALLOW_VARYING_SUBGROUP_SIZE_BIT);
 
         return create_compute_pipeline(device, pipeline_layout, shader_stage);
     }
@@ -50,7 +50,7 @@ namespace
     {
         const VkPipelineShaderStageCreateInfo shader_stage = default_pipeline_shader_stage_create_info(
             VK_SHADER_STAGE_COMPUTE_BIT, shader_modules.reduce_exposure_tail_cs, nullptr,
-            VK_PIPELINE_SHADER_STAGE_CREATE_REQUIRE_FULL_SUBGROUPS_BIT);
+            VK_PIPELINE_SHADER_STAGE_CREATE_ALLOW_VARYING_SUBGROUP_SIZE_BIT);
 
         return create_compute_pipeline(device, pipeline_layout, shader_stage);
     }

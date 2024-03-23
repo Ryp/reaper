@@ -7,9 +7,11 @@
 #define MORTON 1
 
 // NOTE:
-// https://gitlab.freedesktop.org/mesa/mesa/-/issues/9039
-// https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/VkPipelineShaderStageCreateFlagBits.html
-// See: VK_PIPELINE_SHADER_STAGE_CREATE_REQUIRE_FULL_SUBGROUPS_BIT
+// See https://gitlab.freedesktop.org/mesa/mesa/-/issues/9039
+// When using SPIRV < 1.6, you might need to specify
+// VK_PIPELINE_SHADER_STAGE_CREATE_REQUIRE_FULL_SUBGROUPS_BIT or
+// VK_PIPELINE_SHADER_STAGE_CREATE_ALLOW_VARYING_SUBGROUP_SIZE_BIT
+// otherwise WaveGetLaneCount might not actually coincide with the number of threads in a subgroup.
 
 VK_PUSH_CONSTANT_HELPER(TileDepthConstants) consts;
 
@@ -82,7 +84,6 @@ void main(uint3 gtid : SV_GroupThreadID,
 
     if (WaveIsFirstLane())
     {
-        // NOTE: Only valid with VK_PIPELINE_SHADER_STAGE_CREATE_REQUIRE_FULL_SUBGROUPS_BIT
         uint wave_index = gi / wave_lane_count;
         lds_depth_min_max[wave_index] = float2(depth_min_cs, depth_max_cs);
     }

@@ -16,10 +16,11 @@ struct PhysicalDeviceInfo
     VkPhysicalDevice handle;
 
     // NOTE: Filled with fill_physical_device_properties()
-    VkPhysicalDeviceProperties         properties;
-    VkPhysicalDeviceDriverProperties   driver_properties;
-    VkPhysicalDeviceSubgroupProperties subgroup_properties;
-    VkPhysicalDeviceMemoryProperties   memory_properties;
+    VkPhysicalDeviceProperties                    properties;
+    VkPhysicalDeviceDriverProperties              driver_properties;
+    VkPhysicalDeviceSubgroupProperties            subgroup_properties;
+    VkPhysicalDeviceSubgroupSizeControlProperties subgroup_size_control_properties;
+    VkPhysicalDeviceMemoryProperties              memory_properties;
 
     // NOTE: Filled with fill_physical_device_supported_features()
     VkPhysicalDeviceFeatures                                features;

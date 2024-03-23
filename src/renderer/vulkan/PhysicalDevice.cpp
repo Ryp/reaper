@@ -27,9 +27,12 @@ namespace
 
         physical_device.driver_properties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRIVER_PROPERTIES;
         physical_device.subgroup_properties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SUBGROUP_PROPERTIES;
+        physical_device.subgroup_size_control_properties.sType =
+            VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SUBGROUP_SIZE_CONTROL_PROPERTIES;
 
         vk_hook(physical_device_properties_2,
-                vk_hook(physical_device.subgroup_properties, vk_hook(physical_device.driver_properties)));
+                vk_hook(physical_device.subgroup_size_control_properties,
+                        vk_hook(physical_device.subgroup_properties, vk_hook(physical_device.driver_properties))));
 
         vkGetPhysicalDeviceProperties2(handle, &physical_device_properties_2);
 
