@@ -533,7 +533,7 @@ void execute_game_loop(ReaperRoot& root)
 
             SceneLight& light = scene.scene_lights.emplace_back();
             light.color = glm::fvec3(0.03f, 0.21f, 0.61f);
-            light.intensity = 6.f;
+            light.intensity = 20.f;
             light.radius = 42.f;
             light.scene_node = create_scene_node(scene, light_transform, player_scene_node);
             light.shadow_map_size = glm::uvec2(1024, 1024);

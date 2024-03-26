@@ -88,6 +88,9 @@ void main(uint3 gtid : SV_GroupThreadID,
         lighting_accum.specular += lighting.specular * shadow_term;
     }
 
+    float3 ambient_term = 0.15f;
+    lighting_accum.diffuse += ambient_term;
+
     float3 lighting_sum = material.albedo * (lighting_accum.diffuse + lighting_accum.specular);
 
     if (spec_debug_mode == debug_mode_albedo)
@@ -106,7 +109,7 @@ void main(uint3 gtid : SV_GroupThreadID,
         if (depth_ndc == 0.0) // Far plane
         {
             // FIXME match forward clear
-            lighting_sum = 0.1;
+            lighting_sum = 0.04;
         }
 
         LightingOutput[position_ts] = float4(lighting_sum, 0.0);

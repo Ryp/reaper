@@ -86,6 +86,9 @@ void main(in PS_INPUT input, out PS_OUTPUT output)
         lighting_accum.specular += lighting.specular * shadow_term;
     }
 
+    float3 ambient_term = 0.15f;
+    lighting_accum.diffuse += ambient_term;
+
     float3 lighting_sum = material.albedo * (lighting_accum.diffuse + lighting_accum.specular);
 
     if (spec_debug_mode == debug_mode_albedo)

@@ -366,7 +366,7 @@ void record_forward_pass_command_buffer(const FrameGraphHelper&        frame_gra
     VkRenderingAttachmentInfo color_attachment =
         default_rendering_attachment_info(hdr_buffer.default_view_handle, hdr_buffer.image_layout);
     color_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    color_attachment.clearValue = VkClearColor({0.1f, 0.1f, 0.1f, 0.0f});
+    color_attachment.clearValue = VkClearColor({0.04f, 0.04f, 0.04f, 0.0f});
 
     VkRenderingAttachmentInfo depth_attachment =
         default_rendering_attachment_info(depth_buffer.default_view_handle, depth_buffer.image_layout);
