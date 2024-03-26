@@ -97,7 +97,6 @@ struct PhysicsSim
         int       max_simulation_substep_count;
         float     gravity_force_intensity;
         float     linear_friction;
-        float     quadratic_friction;
         float     angular_friction;
         bool      enable_suspension_forces;
         float     max_suspension_force;
@@ -105,6 +104,7 @@ struct PhysicsSim
         float     default_damper_friction_compression;
         float     default_damper_friction_extension;
         bool      enable_debug_geometry;
+        float     steer_force;
         ShipStats default_ship_stats;
     } vars;
 

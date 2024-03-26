@@ -234,11 +234,9 @@ namespace
         ImGui::SliderInt("max_simulation_substep_count", &sim.vars.max_simulation_substep_count, 1, 10);
         ImGui::SliderFloat("gravity_force_intensity", &sim.vars.gravity_force_intensity, 0.f, 100.f, "%.3f",
                            ImGuiSliderFlags_Logarithmic);
-        ImGui::SliderFloat("linear_friction", &sim.vars.linear_friction, 0.f, 100.f, "%.3f",
+        ImGui::SliderFloat("linear_friction", &sim.vars.linear_friction, 0.04f, 1.f, "%.3f",
                            ImGuiSliderFlags_Logarithmic);
-        ImGui::SliderFloat("quadratic_friction", &sim.vars.quadratic_friction, 0.f, 10.f, "%.3f",
-                           ImGuiSliderFlags_Logarithmic);
-        ImGui::SliderFloat("angular_friction", &sim.vars.angular_friction, 0.f, 100.f, "%.3f",
+        ImGui::SliderFloat("angular_friction", &sim.vars.angular_friction, 0.04f, 1.f, "%.3f",
                            ImGuiSliderFlags_Logarithmic);
         ImGui::Checkbox("enable_suspension_forces", &sim.vars.enable_suspension_forces);
         ImGui::SliderFloat("max_suspension_force", &sim.vars.max_suspension_force, 0.f, 100000.f, "%.3f",
@@ -256,6 +254,7 @@ namespace
         ImGui::SliderFloat("suspension ratio 2", &sim.raycast_suspensions[2].length_ratio_last, 0.0f, 1.f, "%.3f");
         ImGui::SliderFloat("suspension ratio 3", &sim.raycast_suspensions[3].length_ratio_last, 0.0f, 1.f, "%.3f");
         ImGui::EndDisabled();
+        ImGui::SliderFloat("steer_force", &sim.vars.steer_force, 0.01f, 100.f, "%.3f", ImGuiSliderFlags_Logarithmic);
         ImGui::SliderFloat("default_ship_stats.thrust", &sim.vars.default_ship_stats.thrust, 0.f, 1000.f);
         ImGui::SliderFloat("default_ship_stats.braking", &sim.vars.default_ship_stats.braking, 0.f, 100.f);
         ImGui::SliderFloat("default_ship_stats.handling", &sim.vars.default_ship_stats.handling, 0.1f, 10.f);

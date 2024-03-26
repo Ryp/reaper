@@ -134,7 +134,7 @@ namespace
         const glm::fvec3 player_forward_ws = player_transform * glm::vec4(forward(), 0.f);
         const glm::fvec3 player_up_ws = player_transform * glm::vec4(up(), 0.f);
         const glm::fvec3 player_linear_speed = toGlm(player_rigid_body->getLinearVelocity());
-        const glm::fvec3 player_angular_speed = toGlm(player_rigid_body->getAngularVelocity());
+        // const glm::fvec3 player_angular_speed = toGlm(player_rigid_body->getAngularVelocity());
 
         glm::fvec3 force_ws = {};
 
@@ -148,15 +148,10 @@ namespace
         force_ws += -glm::proj(player_linear_speed, player_forward_ws) * frame_data.input.brake
                     * sim.vars.default_ship_stats.braking;
 
-        // Friction force (FIXME might be better applied by bullet directly)
-        force_ws += -player_linear_speed * sim.vars.linear_friction;
-        force_ws += -player_linear_speed * glm::length(player_linear_speed) * sim.vars.quadratic_friction;
-
         glm::fvec3 torque_ws = {};
 
         // Turning torque
-        torque_ws += player_up_ws * -frame_data.input.steer;
-        // torque_ws += glm::eulerAngles(glm::angleAxis(frame_data.input.steer, player_up_ws));
+        torque_ws += player_up_ws * -frame_data.input.steer * sim.vars.steer_force;
 
         // Torque to orient the ship upright
         if (false) // FIXME
@@ -172,8 +167,7 @@ namespace
             torque_ws += torque;
         }
 
-        // Friction torque (FIXME might be better applied by bullet directly)
-        torque_ws += -player_angular_speed * sim.vars.angular_friction;
+        player_rigid_body->setDamping(sim.vars.linear_friction, sim.vars.angular_friction);
 
         player_rigid_body->applyTorque(toBt(torque_ws));
         player_rigid_body->applyCentralForce(toBt(force_ws));

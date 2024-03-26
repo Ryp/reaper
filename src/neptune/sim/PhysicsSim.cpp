@@ -38,16 +38,16 @@ PhysicsSim create_sim()
     sim.vars.simulation_substep_duration = 1.f / 60.f;
     sim.vars.max_simulation_substep_count = 3;
     sim.vars.gravity_force_intensity = 9.8331f;
-    sim.vars.linear_friction = 4.0f;
-    sim.vars.quadratic_friction = 0.01f;
-    sim.vars.angular_friction = 0.03f;
+    sim.vars.linear_friction = 0.4f;
+    sim.vars.angular_friction = 0.999f;
     sim.vars.enable_suspension_forces = true;
     sim.vars.max_suspension_force = 6000.f;
     sim.vars.default_spring_stiffness = 30.f;
     sim.vars.default_damper_friction_compression = 2.82f;
     sim.vars.default_damper_friction_extension = 0.22f;
     sim.vars.enable_debug_geometry = false;
-    sim.vars.default_ship_stats.thrust = 100.f;
+    sim.vars.steer_force = 2.f;
+    sim.vars.default_ship_stats.thrust = 20.f;
     sim.vars.default_ship_stats.braking = 10.f;
     sim.vars.default_ship_stats.handling = 0.4f;
 
