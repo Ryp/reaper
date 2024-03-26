@@ -472,9 +472,8 @@ void execute_game_loop(ReaperRoot& root)
 
 #if ENABLE_GAME_SCENE
     Neptune::GenerationInfo track_gen_info = {};
-    track_gen_info.length = 5;
-    track_gen_info.width = 12.0f;
-    track_gen_info.chaos = 0.0f;
+    track_gen_info.length = 100;
+    track_gen_info.chaos = 0.2f;
 
     const SceneMaterialHandle default_material_handle = alloc_scene_material(scene);
     scene.scene_materials[default_material_handle] = SceneMaterial{
@@ -761,7 +760,6 @@ void execute_game_loop(ReaperRoot& root)
                 ImGui::Separator();
                 ImGui::SliderScalar("length", ImGuiDataType_U32, &track_gen_info.length, &length_min, &length_max,
                                     "%u");
-                ImGui::SliderFloat("witdh", &track_gen_info.width, 1.f, 10.f);
                 ImGui::SliderFloat("chaos", &track_gen_info.chaos, 0.f, 1.f);
 
                 if (ImGui::Button("Generate new track"))

@@ -32,7 +32,6 @@ namespace Neptune
 struct GenerationInfo
 {
     u32   length;
-    float width;
     float chaos;
 };
 

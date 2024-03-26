@@ -24,7 +24,6 @@ TEST_CASE("Track generation")
 
     GenerationInfo gen_info = {};
     gen_info.length = 100;
-    gen_info.width = 12.0f;
     gen_info.chaos = 1.0f;
 
     SUBCASE("Generate skeleton")
@@ -65,7 +64,6 @@ TEST_CASE("Track mesh generation")
 
     GenerationInfo gen_info = {};
     gen_info.length = 10;
-    gen_info.width = 10.0f;
     gen_info.chaos = 1.0f;
 
     skeletonNodes.resize(gen_info.length);
