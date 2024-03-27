@@ -342,16 +342,15 @@ void execute_game_loop(ReaperRoot& root)
     Assert(cgltf_validate(data) == cgltf_result_success);
 
     std::span<cgltf_image>   gltf_images(data->images, data->images_count);
-    std::vector<std::string> png_filenames(gltf_images.size());
-    std::vector<u32>         png_srgb(gltf_images.size(), true);
+    std::vector<std::string> dds_filenames(gltf_images.size());
 
     for (u32 i = 0; i < gltf_images.size(); i++)
     {
-        png_filenames[i] = gltf_path + gltf_images[i].uri;
+        dds_filenames[i] = gltf_path + gltf_images[i].uri;
     }
 
-    const HandleSpan<TextureHandle> png_handle_span =
-        alloc_material_textures(backend.resources->material_resources, static_cast<u32>(png_filenames.size()));
+    const HandleSpan<TextureHandle> dds_handle_span =
+        alloc_material_textures(backend.resources->material_resources, static_cast<u32>(dds_filenames.size()));
 
     std::span<cgltf_material> gltf_materials(data->materials, data->materials_count);
 
@@ -371,16 +370,11 @@ void execute_game_loop(ReaperRoot& root)
         auto      ao_image = gltf_material.occlusion_texture.texture->image;
         const u64 ao_offset = ao_image - data->images;
 
-        png_srgb[base_color_offset] = true;
-        png_srgb[metallic_roughness_offset] = false;
-        png_srgb[normal_offset] = false;
-        png_srgb[ao_offset] = false;
-
         scene.scene_materials[scene_materials.offset + i] = SceneMaterial{
-            .base_color_texture = TextureHandle(png_handle_span.offset + base_color_offset),
-            .metal_roughness_texture = TextureHandle(png_handle_span.offset + metallic_roughness_offset),
-            .normal_map_texture = TextureHandle(png_handle_span.offset + normal_offset),
-            .ao_texture = TextureHandle(png_handle_span.offset + ao_offset),
+            .base_color_texture = TextureHandle(dds_handle_span.offset + base_color_offset),
+            .metal_roughness_texture = TextureHandle(dds_handle_span.offset + metallic_roughness_offset),
+            .normal_map_texture = TextureHandle(dds_handle_span.offset + normal_offset),
+            .ao_texture = TextureHandle(dds_handle_span.offset + ao_offset),
         };
     }
 
@@ -461,8 +455,7 @@ void execute_game_loop(ReaperRoot& root)
     cgltf_free(data);
 #endif
 
-    load_png_textures_to_staging(backend, backend.resources->material_resources, png_filenames, png_handle_span,
-                                 png_srgb);
+    load_dds_textures_to_staging(backend, backend.resources->material_resources, dds_filenames, dds_handle_span);
 
 #if ENABLE_TEST_SCENE
     // scene = create_test_scene_tiled_lighting(backend);

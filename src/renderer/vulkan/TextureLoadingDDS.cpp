@@ -44,6 +44,14 @@ namespace
             return PixelFormat::BC5_UNORM_BLOCK;
         case tinyddsloader::DDSFile::DXGIFormat::BC5_SNorm:
             return PixelFormat::BC5_SNORM_BLOCK;
+        case tinyddsloader::DDSFile::DXGIFormat::BC6H_SF16:
+            return PixelFormat::BC6H_SFLOAT_BLOCK;
+        case tinyddsloader::DDSFile::DXGIFormat::BC6H_UF16:
+            return PixelFormat::BC6H_UFLOAT_BLOCK;
+        case tinyddsloader::DDSFile::DXGIFormat::BC7_UNorm:
+            return PixelFormat::BC7_UNORM_BLOCK;
+        case tinyddsloader::DDSFile::DXGIFormat::BC7_UNorm_SRGB:
+            return PixelFormat::BC7_SRGB_BLOCK;
         case tinyddsloader::DDSFile::DXGIFormat::B8G8R8A8_UNorm:
             return PixelFormat::B8G8R8A8_UNORM;
         default:
