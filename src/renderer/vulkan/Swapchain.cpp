@@ -154,6 +154,22 @@ namespace
         return sf;
     }
 
+    // Welcome to the fun world of choosing a swapchain format for Vulkan, but especially - HDR formats!
+    // At the time of writing this there's several caveats:
+    //
+    // * Win11 SDR Mode + NVIDIA 551.81 + RGB10A2 + PQ
+    // In this specific combination, you have an HDR capable screen but windows is set to SDR mode.
+    // If you choose a RGB10+PQ swapchain, windows WON'T be switched to HDR mode and you'll get horrible banding if your
+    // display link was set to 8bits per channel (most users). This happens BOTH in borderless fullscreen as well as
+    // windowed. Note that this doesn't happen with scRGB swapchains, in that case the driver correctly switches windows
+    // in HDR mode.
+    // https://forums.developer.nvidia.com/t/bug-driver-switches-display-to-hdr-from-vulkan-pq-swapchain-but-keeps-8-bit-display-link-when-windows-is-in-sdr-mode/287197
+    //
+    // * Win11 + AMD
+    // AMD doesn't report HDR formats when Windows is not in HDR mode itself. Other than that it behaves consistently.
+    //
+    // * Linux and HDR
+    // Support is very limited right now, but efforts are underway. More patience needed.
     SwapchainFormat choose_swapchain_format(ReaperRoot& root, std::span<const VkSurfaceFormat2KHR> formats,
                                             VkSurfaceFormatKHR preferred_format)
     {
