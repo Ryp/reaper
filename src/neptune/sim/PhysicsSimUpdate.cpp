@@ -27,6 +27,7 @@
 
 #include <glm/gtc/matrix_access.hpp>
 #include <glm/gtc/quaternion.hpp>
+#include <glm/gtx/norm.hpp>
 #include <glm/gtx/projection.hpp>
 #include <glm/vec3.hpp>
 
@@ -34,8 +35,6 @@ namespace Neptune
 {
 namespace
 {
-    constexpr float RespawnDistanceGU = 6.f;
-
 #if defined(REAPER_USE_BULLET_PHYSICS)
     void reset_player_position(
         btRigidBody* rigid_body, std::span<RaycastSuspension> raycast_suspensions, const glm::fmat4x3& transform)
@@ -67,19 +66,18 @@ namespace
         // NOTE: We need to do this everyframe anyway, otherwise it's kept from last sim frame
         player_rigid_body->clearForces();
 
-        float                    min_dist_sq = 10000000.f;
+        float                    min_center_dist_sq = 10000000.f;
         const TrackSkeletonNode* closest_skeleton_node = nullptr;
 
         Assert(frame_data.skeleton_nodes.size() == sim.static_mesh_colliders.size());
 
         for (const auto& skeleton_node : frame_data.skeleton_nodes)
         {
-            const glm::fvec3 position_delta = player_position_ws - skeleton_node.center_ws;
-            const float      dist_sq = glm::dot(position_delta, position_delta);
+            const float player_to_center_distance_sq = glm::distance2(player_position_ws, skeleton_node.center_ws);
 
-            if (dist_sq < min_dist_sq)
+            if (player_to_center_distance_sq < min_center_dist_sq)
             {
-                min_dist_sq = dist_sq;
+                min_center_dist_sq = player_to_center_distance_sq;
                 closest_skeleton_node = &skeleton_node;
             }
         }
@@ -120,7 +118,9 @@ namespace
 
         if (closest_skeleton_node)
         {
-            if (min_dist_sq > RespawnDistanceGU * RespawnDistanceGU)
+            const float respawn_distance = closest_skeleton_node->radius * 2.f;
+            const float respawn_distance_sq = respawn_distance * respawn_distance;
+            if (min_center_dist_sq > respawn_distance_sq)
             {
                 glm::fmat4x3 new_player_transform = glm::mat4(closest_skeleton_node->in_transform_ms_to_ws)
                                                     * glm::translate(glm::identity<glm::mat4>(), up() * 1.f);
