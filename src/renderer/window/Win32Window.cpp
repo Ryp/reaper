@@ -81,6 +81,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     case WM_EXITSIZEMOVE:
         PostMessage(hWnd, REAPER_WM_UPDATE_SIZE, wParam, lParam);
         break;
+    // There's a delay between when we're showing the window for the first time and actually presenting to it.
+    // Windows paints the full background in white when that happens, resulting in very annoying flicker.
+    // As a workaround, we override the WM_ERASEBKGND message and pretend that it's taken care of.
+    case WM_ERASEBKGND:
+        return (LRESULT)1; // Say we handled it.
     case WM_KEYDOWN:
     case WM_CLOSE:
         PostMessage(hWnd, REAPER_WM_CLOSE, wParam, lParam);
