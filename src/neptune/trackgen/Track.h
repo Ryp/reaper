@@ -27,10 +27,15 @@ namespace Math
 
 namespace Neptune
 {
+constexpr float DefaultRadiusMinMeter = 100.0f;
+constexpr float DefaultRadiusMaxMeter = 200.0f;
+
 struct GenerationInfo
 {
-    u32   length;
-    float chaos;
+    u32   chunk_count = 10;
+    float radius_min_meter = DefaultRadiusMinMeter;
+    float radius_max_meter = DefaultRadiusMaxMeter;
+    float chaos = 0.2f;
 };
 
 struct TrackSkeletonNode

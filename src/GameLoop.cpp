@@ -73,22 +73,22 @@ namespace
 
         Track track;
 
-        track.skeleton_nodes.resize(gen_info.length);
+        track.skeleton_nodes.resize(gen_info.chunk_count);
 
         generate_track_skeleton(gen_info, track.skeleton_nodes);
 
-        track.splines_ms.resize(gen_info.length);
+        track.splines_ms.resize(gen_info.chunk_count);
 
         generate_track_splines(track.skeleton_nodes, track.splines_ms);
 
-        track.skinning.resize(gen_info.length);
+        track.skinning.resize(gen_info.chunk_count);
 
         generate_track_skinning(track.skeleton_nodes, track.splines_ms, track.skinning);
 
-        std::vector<glm::fmat4x3> chunk_transforms(gen_info.length);
+        std::vector<glm::fmat4x3> chunk_transforms(gen_info.chunk_count);
         std::vector<Reaper::Mesh> track_meshes;
 
-        for (u32 i = 0; i < gen_info.length; i++)
+        for (u32 i = 0; i < gen_info.chunk_count; i++)
         {
             Reaper::Mesh& track_mesh = track_meshes.emplace_back(duplicate_mesh(unskinned_track_mesh));
 
@@ -99,7 +99,7 @@ namespace
             skin_track_chunk_mesh(track_node, track.skinning[i], track_mesh.positions, 10.0f);
         }
 
-        track.sim_handles.resize(gen_info.length);
+        track.sim_handles.resize(gen_info.chunk_count);
 
         // NOTE: bullet will hold pointers to the original mesh data without copy
         sim_create_static_collision_meshes(track.sim_handles, sim, track_meshes, chunk_transforms);
@@ -108,7 +108,7 @@ namespace
         load_meshes(backend, backend.resources->mesh_cache, track_meshes, chunk_mesh_handles);
 
         // Place static track in the scene
-        for (u32 chunk_index = 0; chunk_index < gen_info.length; chunk_index++)
+        for (u32 chunk_index = 0; chunk_index < gen_info.chunk_count; chunk_index++)
         {
             Reaper::SceneMesh& scene_mesh = track.scene_meshes.emplace_back();
             scene_mesh.scene_node = create_scene_node(scene, chunk_transforms[chunk_index]);
@@ -464,8 +464,10 @@ void execute_game_loop(ReaperRoot& root)
 
 #if ENABLE_GAME_SCENE
     Neptune::GenerationInfo track_gen_info = {};
-    track_gen_info.length = 100;
-    track_gen_info.chaos = 0.2f;
+    track_gen_info.chunk_count = 100;
+    track_gen_info.radius_min_meter = 300.f;
+    track_gen_info.radius_max_meter = 700.f;
+    track_gen_info.chaos = 0.6f;
 
     const SceneMaterialHandle default_material_handle = alloc_scene_material(scene);
     scene.scene_materials[default_material_handle] = SceneMaterial{
@@ -750,8 +752,10 @@ void execute_game_loop(ReaperRoot& root)
             {
                 ImGui::InputFloat3("ship position", &player_translation[0], "%.3f", ImGuiInputTextFlags_ReadOnly);
                 ImGui::Separator();
-                ImGui::SliderScalar("length", ImGuiDataType_U32, &track_gen_info.length, &length_min, &length_max,
-                                    "%u");
+                ImGui::SliderScalar("chunk_count", ImGuiDataType_U32, &track_gen_info.chunk_count, &length_min,
+                                    &length_max, "%u");
+                ImGui::SliderFloat("radius_min_meter", &track_gen_info.radius_min_meter, 100.f, 2000.f);
+                ImGui::SliderFloat("radius_max_meter", &track_gen_info.radius_max_meter, 100.f, 2000.f);
                 ImGui::SliderFloat("chaos", &track_gen_info.chaos, 0.f, 1.f);
 
                 if (ImGui::Button("Generate new track"))

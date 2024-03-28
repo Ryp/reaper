@@ -22,23 +22,21 @@ TEST_CASE("Track generation")
     std::vector<Reaper::Math::Spline> splinesMS;
     std::vector<TrackSkinning>        skinning;
 
-    GenerationInfo gen_info = {};
-    gen_info.length = 100;
-    gen_info.chaos = 1.0f;
+    GenerationInfo gen_info;
 
     SUBCASE("Generate skeleton")
     {
-        skeletonNodes.resize(gen_info.length);
+        skeletonNodes.resize(gen_info.chunk_count);
 
         generate_track_skeleton(gen_info, skeletonNodes);
 
-        CHECK_EQ(skeletonNodes.size(), gen_info.length);
+        CHECK_EQ(skeletonNodes.size(), gen_info.chunk_count);
 
         SUBCASE("")
         {}
         SUBCASE("Generate splines")
         {
-            splinesMS.resize(gen_info.length);
+            splinesMS.resize(gen_info.chunk_count);
 
             generate_track_splines(skeletonNodes, splinesMS);
 
@@ -46,7 +44,7 @@ TEST_CASE("Track generation")
             {}
             SUBCASE("Generate bones")
             {
-                skinning.resize(gen_info.length);
+                skinning.resize(gen_info.chunk_count);
 
                 generate_track_skinning(skeletonNodes, splinesMS, skinning);
             }
@@ -62,13 +60,11 @@ TEST_CASE("Track mesh generation")
     std::vector<Reaper::Math::Spline> splinesMS;
     std::vector<TrackSkinning>        skinning;
 
-    GenerationInfo gen_info = {};
-    gen_info.length = 10;
-    gen_info.chaos = 1.0f;
+    GenerationInfo gen_info;
 
-    skeletonNodes.resize(gen_info.length);
-    splinesMS.resize(gen_info.length);
-    skinning.resize(gen_info.length);
+    skeletonNodes.resize(gen_info.chunk_count);
+    splinesMS.resize(gen_info.chunk_count);
+    skinning.resize(gen_info.chunk_count);
 
     generate_track_skeleton(gen_info, skeletonNodes);
     generate_track_splines(skeletonNodes, splinesMS);
@@ -79,7 +75,7 @@ TEST_CASE("Track mesh generation")
     std::ofstream             outFile("test_skinned_track.obj");
     std::vector<Reaper::Mesh> meshes;
 
-    for (u32 i = 0; i < gen_info.length; i++)
+    for (u32 i = 0; i < gen_info.chunk_count; i++)
     {
         Reaper::Mesh& mesh = meshes.emplace_back(Reaper::load_obj(assetFile));
 

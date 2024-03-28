@@ -34,8 +34,6 @@ constexpr float PhiMax = 1.0f * Math::Pi;
 constexpr float RollMax = 0.25f * Math::Pi;
 constexpr float WidthMin = 20.0f * MeterInGameUnits;
 constexpr float WidthMax = 50.0f * MeterInGameUnits;
-constexpr float RadiusMin = 100.0f * MeterInGameUnits;
-constexpr float RadiusMax = 200.0f * MeterInGameUnits;
 
 constexpr u32 MinLength = 3;
 constexpr u32 MaxLength = 1000;
@@ -97,7 +95,8 @@ namespace
                                     RNG& rng)
     {
         std::uniform_real_distribution<float> widthDistribution(WidthMin, WidthMax);
-        std::uniform_real_distribution<float> radiusDistribution(RadiusMin, RadiusMax);
+        std::uniform_real_distribution<float> radiusDistribution(gen_info.radius_min_meter * MeterInGameUnits,
+                                                                 gen_info.radius_max_meter * MeterInGameUnits);
 
         TrackSkeletonNode node;
 
@@ -138,9 +137,9 @@ namespace
 
 void generate_track_skeleton(const GenerationInfo& gen_info, std::span<TrackSkeletonNode> skeleton_nodes)
 {
-    Assert(gen_info.length >= MinLength);
-    Assert(gen_info.length <= MaxLength);
-    Assert(gen_info.length == skeleton_nodes.size());
+    Assert(gen_info.chunk_count >= MinLength);
+    Assert(gen_info.chunk_count <= MaxLength);
+    Assert(gen_info.chunk_count == skeleton_nodes.size());
 
     std::random_device rd;
     RNG                rng(rd());
@@ -148,7 +147,7 @@ void generate_track_skeleton(const GenerationInfo& gen_info, std::span<TrackSkel
     u32 tryCount = 0;
     u32 current_node_index = 0;
 
-    while (current_node_index < gen_info.length && tryCount < MaxTryCount)
+    while (current_node_index < gen_info.chunk_count && tryCount < MaxTryCount)
     {
         // Make span on generated nodes so far
         std::span<const TrackSkeletonNode> generated_nodes = std::span(skeleton_nodes.data(), current_node_index);
