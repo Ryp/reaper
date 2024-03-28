@@ -303,9 +303,16 @@ void skin_track_chunk_mesh(const TrackSkeletonNode& node, const TrackSkinning& t
 {
     REAPER_PROFILE_SCOPE_FUNC();
 
-    const u32 vertex_count = static_cast<u32>(vertices.size());
-    const u32 bone_count = 4; // FIXME choose if this is a hard limit or not
+    const u32                            bone_count = 4; // FIXME choose if this is a hard limit or not
+    std::array<glm::fmat4x3, bone_count> bone_transforms;
 
+    for (u32 bone_index = 0; bone_index < bone_count; bone_index++)
+    {
+        bone_transforms[bone_index] =
+            track_skinning.poseTransforms[bone_index] * glm::fmat4(track_skinning.invBindTransforms[bone_index]);
+    }
+
+    const u32 vertex_count = static_cast<u32>(vertices.size());
     Assert(vertex_count > 0);
 
     const float scaleX = node.radius / (mesh_length * 0.5f);
@@ -318,13 +325,11 @@ void skin_track_chunk_mesh(const TrackSkeletonNode& node, const TrackSkinning& t
         glm::fvec3 skinned_position(0.0f);
         float      weight_sum = 0.f;
 
-        for (u32 j = 0; j < bone_count; j++)
+        for (u32 bone_index = 0; bone_index < bone_count; bone_index++)
         {
-            const glm::fmat4x3 boneTransform =
-                track_skinning.poseTransforms[j] * glm::fmat4(track_skinning.invBindTransforms[j]);
-            float weight = boneWeights[j];
+            float weight = boneWeights[bone_index];
 
-            skinned_position += (boneTransform * glm::fvec4(vertex, 1.0f)) * weight;
+            skinned_position += (bone_transforms[bone_index] * glm::fvec4(vertex, 1.0f)) * weight;
             weight_sum += weight;
         }
 
