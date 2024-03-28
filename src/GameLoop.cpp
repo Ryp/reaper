@@ -96,7 +96,7 @@ namespace
 
             chunk_transforms[i] = track_node.in_transform_ms_to_ws;
 
-            skin_track_chunk_mesh(track_node, track.skinning[i], track_mesh, 10.0f);
+            skin_track_chunk_mesh(track_node, track.skinning[i], track_mesh.positions, 10.0f);
         }
 
         track.sim_handles.resize(gen_info.length);

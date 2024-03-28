@@ -20,7 +20,6 @@
 
 namespace Reaper
 {
-struct Mesh;
 namespace Math
 {
     struct Spline;
@@ -61,9 +60,9 @@ struct Bone
 
 struct TrackSkinning
 {
-    std::vector<Bone>       bones;
-    std::vector<glm::fmat4> invBindTransforms;
-    std::vector<glm::fmat4> poseTransforms;
+    std::vector<Bone>         bones;
+    std::vector<glm::fmat4x3> invBindTransforms;
+    std::vector<glm::fmat4x3> poseTransforms;
 };
 
 NEPTUNE_TRACKGEN_API
@@ -82,6 +81,7 @@ void generate_track_skinning(std::span<const TrackSkeletonNode> skeleton_nodes,
 NEPTUNE_TRACKGEN_API
 void skin_track_chunk_mesh(const TrackSkeletonNode& node,
                            const TrackSkinning&     track_skinning,
-                           Reaper::Mesh&            mesh,
-                           float                    meshLength);
+                           std::span<glm::fvec3>
+                                 vertices,
+                           float mesh_length);
 } // namespace Neptune

@@ -13,7 +13,7 @@
 #include <math/FloatComparison.h>
 #include <math/Spline.h>
 
-#include <mesh/Mesh.h>
+#include <profiling/Scope.h>
 
 #include "neptune/Constants.h"
 
@@ -175,6 +175,8 @@ void generate_track_skeleton(const GenerationInfo& gen_info, std::span<TrackSkel
 
 void generate_track_splines(std::span<const TrackSkeletonNode> skeleton_nodes, std::span<Reaper::Math::Spline> splines)
 {
+    REAPER_PROFILE_SCOPE_FUNC();
+
     Assert(skeleton_nodes.size() == splines.size());
 
     for (u32 chunk_index = 0; chunk_index < skeleton_nodes.size(); chunk_index++)
@@ -198,6 +200,8 @@ namespace
 {
     TrackSkinning generate_track_skinning_for_chunk(const TrackSkeletonNode& node, const Math::Spline& spline)
     {
+        REAPER_PROFILE_SCOPE_FUNC();
+
         TrackSkinning skinningInfo;
         skinningInfo.bones.resize(BoneCountPerChunk);
 
@@ -286,40 +290,50 @@ namespace
                                     1.0f - glm::abs(t - 2.5f),
                                     1.0f - glm::max(3.5f - t, 0.0f)),
                           0.0f, 1.0f);
+
+#if 0
+        const float debugSum = boneWeights.x + boneWeights.y + boneWeights.z + boneWeights.w;
+        Assert(Math::IsEqualWithEpsilon(debugSum, 1.0f));
+#endif
     }
 } // namespace
 
-void skin_track_chunk_mesh(const TrackSkeletonNode& node, const TrackSkinning& track_skinning, Reaper::Mesh& mesh,
-                           float meshLength)
+void skin_track_chunk_mesh(const TrackSkeletonNode& node, const TrackSkinning& track_skinning,
+                           std::span<glm::fvec3> vertices, float mesh_length)
 {
-    const u32               vertex_count = static_cast<u32>(mesh.positions.size());
-    const u32               bone_count = 4; // FIXME choose if this is a hard limit or not
-    std::vector<glm::fvec3> skinnedVertices(vertex_count);
+    REAPER_PROFILE_SCOPE_FUNC();
+
+    const u32 vertex_count = static_cast<u32>(vertices.size());
+    const u32 bone_count = 4; // FIXME choose if this is a hard limit or not
 
     Assert(vertex_count > 0);
 
-    const float scaleX = node.radius / (meshLength * 0.5f);
+    const float scaleX = node.radius / (mesh_length * 0.5f);
 
-    for (u32 i = 0; i < vertex_count; i++)
+    for (u32 vertex_index = 0; vertex_index < vertex_count; vertex_index++)
     {
-        const glm::fvec3 vertex = mesh.positions[i] * glm::fvec3(scaleX, 1.0f, 1.0f);
+        const glm::fvec3 vertex = vertices[vertex_index] * glm::fvec3(scaleX, 1.0f, 1.0f);
         const glm::fvec4 boneWeights = ComputeBoneWeights(vertex, node.radius);
 
-        const float debugSum = boneWeights.x + boneWeights.y + boneWeights.z + boneWeights.w;
-        Assert(Math::IsEqualWithEpsilon(debugSum, 1.0f));
+        glm::fvec3 skinned_position(0.0f);
+        float      weight_sum = 0.f;
 
-        glm::fvec4 skinnedVertex(0.0f);
         for (u32 j = 0; j < bone_count; j++)
         {
-            const glm::fmat4 boneTransform = track_skinning.poseTransforms[j] * track_skinning.invBindTransforms[j];
+            const glm::fmat4x3 boneTransform =
+                track_skinning.poseTransforms[j] * glm::fmat4(track_skinning.invBindTransforms[j]);
+            float weight = boneWeights[j];
 
-            skinnedVertex += (boneTransform * glm::fvec4(vertex, 1.0f)) * boneWeights[j];
+            skinned_position += (boneTransform * glm::fvec4(vertex, 1.0f)) * weight;
+            weight_sum += weight;
         }
-        if (glm::abs(skinnedVertex.w) > 0.0f)
-            skinnedVertices[i] = glm::fvec3(skinnedVertex) / skinnedVertex.w;
 
-        skinnedVertices[i] = skinnedVertices[i]; // FIXME
+        if (glm::abs(weight_sum) > 0.0f)
+        {
+            skinned_position /= weight_sum;
+        }
+
+        vertices[vertex_index] = skinned_position;
     }
-    mesh.positions = skinnedVertices;
 }
 } // namespace Neptune

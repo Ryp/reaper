@@ -83,7 +83,7 @@ TEST_CASE("Track mesh generation")
     {
         Reaper::Mesh& mesh = meshes.emplace_back(Reaper::load_obj(assetFile));
 
-        skin_track_chunk_mesh(skeletonNodes[i], skinning[i], mesh, 10.0f);
+        skin_track_chunk_mesh(skeletonNodes[i], skinning[i], mesh.positions, 10.0f);
     }
 
     save_obj(outFile, meshes);

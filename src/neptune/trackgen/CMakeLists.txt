@@ -19,6 +19,7 @@ target_link_libraries(${target} PUBLIC
     reaper_core
     reaper_math
     reaper_mesh
+    reaper_profiling
     glm
 )
 
