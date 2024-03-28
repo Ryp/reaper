@@ -45,7 +45,7 @@ constexpr u32 SplineOrder = 3;
 
 constexpr float SplineInnerWeight = 0.5f;
 
-constexpr u32 BoneCountPerChunk = 4;
+constexpr u32 BoneCountPerChunk = 2;
 
 using RNG = std::mt19937;
 
@@ -198,67 +198,52 @@ void generate_track_splines(std::span<const TrackSkeletonNode> skeleton_nodes, s
 
 namespace
 {
-    TrackSkinning generate_track_skinning_for_chunk(const TrackSkeletonNode& node, const Math::Spline& spline)
+    TrackSkinning generate_track_skinning_for_chunk(const TrackSkeletonNode& node)
     {
         REAPER_PROFILE_SCOPE_FUNC();
 
-        TrackSkinning skinningInfo;
-        skinningInfo.bones.resize(BoneCountPerChunk);
+        // NOTE: local transform origin is the 'in' node, not the sphere center
+        std::array<glm::vec3, BoneCountPerChunk + 1> bone_positions_ms;
+        bone_positions_ms[0] = glm::vec3(0.0f);
+        bone_positions_ms[1] = UnitXAxis * node.radius;
+        bone_positions_ms[2] = UnitXAxis * node.radius + node.end_transform * glm::fvec4(UnitXAxis * node.radius, 0.f);
 
         // Fill bone positions
-        skinningInfo.bones[0].root = spline_eval(spline, 0.0f);
-        skinningInfo.bones[BoneCountPerChunk - 1].end = spline_eval(spline, 1.0f);
+        TrackSkinning skinningInfo;
 
-        // Compute bone start and end positions
-        for (u32 i = 1; i < BoneCountPerChunk; i++)
+        skinningInfo.bones.resize(BoneCountPerChunk);
+
+        for (u32 bone_index = 0; bone_index < BoneCountPerChunk; bone_index++)
         {
-            const float     param = static_cast<float>(i) / static_cast<float>(BoneCountPerChunk);
-            const glm::vec3 anchorPos = spline_eval(spline, param);
-
-            skinningInfo.bones[i - 1].end = anchorPos;
-            skinningInfo.bones[i].root = anchorPos;
+            skinningInfo.bones[bone_index].root = bone_positions_ms[bone_index];
+            skinningInfo.bones[bone_index].end = bone_positions_ms[bone_index + 1];
         }
 
         skinningInfo.invBindTransforms.resize(BoneCountPerChunk);
 
         // Compute inverse bind pose matrix
-        for (u32 i = 0; i < BoneCountPerChunk; i++)
+        for (u32 bone_index = 0; bone_index < BoneCountPerChunk; bone_index++)
         {
-            const float     t = static_cast<float>(i) / static_cast<float>(BoneCountPerChunk);
+            const float     t = static_cast<float>(bone_index) / static_cast<float>(BoneCountPerChunk);
             const float     param = t * 2.0f - 1.0f;
             const glm::vec3 offset = UnitXAxis * (param * node.radius);
 
             // Inverse of a translation is the translation by the opposite vector
-            skinningInfo.invBindTransforms[i] = glm::translate(glm::mat4(1.0f), -offset);
+            skinningInfo.invBindTransforms[bone_index] = glm::translate(glm::mat4(1.0f), -offset);
         }
 
+        // Compute static pose matrix
         skinningInfo.poseTransforms.resize(BoneCountPerChunk);
 
-        // Compute current pose matrix by reconstructing an ortho-base
-        // We only have roll information at chunk boundary, so we have to
-        // use tricks to get the correct bone rotation
-        for (u32 i = 0; i < BoneCountPerChunk; i++)
+        for (u32 bone_index = 0; bone_index < BoneCountPerChunk; bone_index++)
         {
-            const float t = static_cast<float>(i) / static_cast<float>(BoneCountPerChunk);
-
-            const glm::fquat interpolatedOrientation =
-                glm::slerp(glm::identity<glm::quat>(), glm::toQuat(glm::fmat3(node.end_transform)), t); // FIXME
-
-            const Bone&      bone = skinningInfo.bones[i];
-            const glm::fvec3 plusX = glm::normalize(bone.end - bone.root);
-            const glm::fvec3 interpolatedPlusY = interpolatedOrientation * UnitYAxis;
-            const glm::fvec3 plusY = glm::normalize(
-                interpolatedPlusY
-                - glm::proj(interpolatedPlusY, plusX)); // Trick to get a correct-ish roll along the spline
-            const glm::fvec3 plusZ = glm::cross(plusX, plusY);
-
-            Assert(Math::IsEqualWithEpsilon(glm::length2(plusZ), 1.0f));
+            const Bone& bone = skinningInfo.bones[bone_index];
 
             // Convert to a matrix
-            const glm::fmat4 rotation = glm::fmat3(plusX, plusY, plusZ);
-            const glm::fmat4 translation = glm::translate(glm::identity<glm::fmat4>(), bone.root);
+            const glm::fmat3 rotation = bone_index == 0 ? glm::identity<glm::fmat3>() : glm::fmat3(node.end_transform);
+            const glm::fmat4x3 translation = glm::translate(glm::identity<glm::fmat4>(), bone.root);
 
-            skinningInfo.poseTransforms[i] = translation * rotation;
+            skinningInfo.poseTransforms[bone_index] = translation * glm::mat4(rotation);
         }
 
         return skinningInfo;
@@ -276,25 +261,22 @@ void generate_track_skinning(std::span<const TrackSkeletonNode> skeleton_nodes,
 
     for (u32 chunk_index = 0; chunk_index < splines.size(); chunk_index++)
     {
-        skinning[chunk_index] = generate_track_skinning_for_chunk(skeleton_nodes[chunk_index], splines[chunk_index]);
+        skinning[chunk_index] = generate_track_skinning_for_chunk(skeleton_nodes[chunk_index]);
     }
 }
 
 namespace
 {
-    glm::fvec4 ComputeBoneWeights(glm::vec3 position, float radius)
+    std::array<float, BoneCountPerChunk> compute_bone_weights(glm::vec3 position, float radius)
     {
-        const float t = (position.x / radius) * 2.0f + 2.0f;
-        return glm::clamp(glm::vec4(1.0f - glm::max(t - 0.5f, 0.0f),
-                                    1.0f - glm::abs(t - 1.5f),
-                                    1.0f - glm::abs(t - 2.5f),
-                                    1.0f - glm::max(3.5f - t, 0.0f)),
-                          0.0f, 1.0f);
+        const float                          t = (position.x / radius) * 0.5f + 0.5f; // FIXME
+        std::array<float, BoneCountPerChunk> weights = {1.f - t, t};
 
-#if 0
-        const float debugSum = boneWeights.x + boneWeights.y + boneWeights.z + boneWeights.w;
+#if 1
+        const float debugSum = weights[0] + weights[1];
         Assert(Math::IsEqualWithEpsilon(debugSum, 1.0f));
 #endif
+        return weights;
     }
 } // namespace
 
@@ -303,7 +285,7 @@ void skin_track_chunk_mesh(const TrackSkeletonNode& node, const TrackSkinning& t
 {
     REAPER_PROFILE_SCOPE_FUNC();
 
-    const u32                            bone_count = 4; // FIXME choose if this is a hard limit or not
+    const u32                            bone_count = BoneCountPerChunk;
     std::array<glm::fmat4x3, bone_count> bone_transforms;
 
     for (u32 bone_index = 0; bone_index < bone_count; bone_index++)
@@ -319,15 +301,15 @@ void skin_track_chunk_mesh(const TrackSkeletonNode& node, const TrackSkinning& t
 
     for (u32 vertex_index = 0; vertex_index < vertex_count; vertex_index++)
     {
-        const glm::fvec3 vertex = vertices[vertex_index] * glm::fvec3(scaleX, 1.0f, 1.0f);
-        const glm::fvec4 boneWeights = ComputeBoneWeights(vertex, node.radius);
+        const glm::fvec3                           vertex = vertices[vertex_index] * glm::fvec3(scaleX, 1.0f, 1.0f);
+        const std::array<float, BoneCountPerChunk> bone_weights = compute_bone_weights(vertex, node.radius);
 
         glm::fvec3 skinned_position(0.0f);
         float      weight_sum = 0.f;
 
         for (u32 bone_index = 0; bone_index < bone_count; bone_index++)
         {
-            float weight = boneWeights[bone_index];
+            float weight = bone_weights[bone_index];
 
             skinned_position += (bone_transforms[bone_index] * glm::fvec4(vertex, 1.0f)) * weight;
             weight_sum += weight;
