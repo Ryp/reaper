@@ -95,7 +95,7 @@ void renderer_execute_frame(ReaperRoot& root, const SceneGraph& scene, std::vect
     resize_swapchain(root, backend);
 
     const float near_plane_distance = 0.1f;
-    const float far_plane_distance = 100.f;
+    const float far_plane_distance = 1000.f;
     const float half_fov_horizontal_radian = glm::pi<float>() * 0.25f;
 
     const RendererViewport viewport =
