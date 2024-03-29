@@ -54,9 +54,8 @@ namespace Neptune
 {
 struct Track
 {
-    std::vector<TrackSkeletonNode>    skeleton_nodes;
-    std::vector<Reaper::Math::Spline> splines_ms;
-    std::vector<TrackSkinning>        skinning;
+    std::vector<TrackSkeletonNode> skeleton_nodes;
+    std::vector<TrackSkinning>     skinning;
 
     std::vector<StaticMeshColliderHandle> sim_handles;
     std::vector<Reaper::SceneMesh>        scene_meshes;
@@ -77,13 +76,9 @@ namespace
 
         generate_track_skeleton(gen_info, track.skeleton_nodes);
 
-        track.splines_ms.resize(gen_info.chunk_count);
-
-        generate_track_splines(track.skeleton_nodes, track.splines_ms);
-
         track.skinning.resize(gen_info.chunk_count);
 
-        generate_track_skinning(track.skeleton_nodes, track.splines_ms, track.skinning);
+        generate_track_skinning(track.skeleton_nodes, track.skinning);
 
         std::vector<glm::fmat4x3> chunk_transforms(gen_info.chunk_count);
         std::vector<Reaper::Mesh> track_meshes;
@@ -466,8 +461,8 @@ void execute_game_loop(ReaperRoot& root)
     Neptune::GenerationInfo track_gen_info = {};
     track_gen_info.chunk_count = 100;
     track_gen_info.radius_min_meter = 300.f;
-    track_gen_info.radius_max_meter = 700.f;
-    track_gen_info.chaos = 0.6f;
+    track_gen_info.radius_max_meter = 600.f;
+    track_gen_info.chaos = 0.4f;
 
     const SceneMaterialHandle default_material_handle = alloc_scene_material(scene);
     scene.scene_materials[default_material_handle] = SceneMaterial{

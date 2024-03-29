@@ -18,9 +18,8 @@ using namespace Neptune;
 
 TEST_CASE("Track generation")
 {
-    std::vector<TrackSkeletonNode>    skeletonNodes;
-    std::vector<Reaper::Math::Spline> splinesMS;
-    std::vector<TrackSkinning>        skinning;
+    std::vector<TrackSkeletonNode> skeletonNodes;
+    std::vector<TrackSkinning>     skinning;
 
     GenerationInfo gen_info;
 
@@ -34,20 +33,11 @@ TEST_CASE("Track generation")
 
         SUBCASE("")
         {}
-        SUBCASE("Generate splines")
+        SUBCASE("Generate bones")
         {
-            splinesMS.resize(gen_info.chunk_count);
+            skinning.resize(gen_info.chunk_count);
 
-            generate_track_splines(skeletonNodes, splinesMS);
-
-            SUBCASE("")
-            {}
-            SUBCASE("Generate bones")
-            {
-                skinning.resize(gen_info.chunk_count);
-
-                generate_track_skinning(skeletonNodes, splinesMS, skinning);
-            }
+            generate_track_skinning(skeletonNodes, skinning);
         }
     }
 }
@@ -56,19 +46,16 @@ TEST_CASE("Track generation")
 
 TEST_CASE("Track mesh generation")
 {
-    std::vector<TrackSkeletonNode>    skeletonNodes;
-    std::vector<Reaper::Math::Spline> splinesMS;
-    std::vector<TrackSkinning>        skinning;
+    std::vector<TrackSkeletonNode> skeletonNodes;
+    std::vector<TrackSkinning>     skinning;
 
     GenerationInfo gen_info;
 
     skeletonNodes.resize(gen_info.chunk_count);
-    splinesMS.resize(gen_info.chunk_count);
     skinning.resize(gen_info.chunk_count);
 
     generate_track_skeleton(gen_info, skeletonNodes);
-    generate_track_splines(skeletonNodes, splinesMS);
-    generate_track_skinning(skeletonNodes, splinesMS, skinning);
+    generate_track_skinning(skeletonNodes, skinning);
 
     const std::string assetFile("res/model/track_chunk_simple.obj");
 
