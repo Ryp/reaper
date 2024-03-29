@@ -46,7 +46,7 @@ else()
 endif()
 
 project(Reaper
-    VERSION 0.2.0
+    VERSION 0.2.1
     LANGUAGES C CXX
     DESCRIPTION "Tiny C++ Engine")
 
