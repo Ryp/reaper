@@ -478,7 +478,7 @@ void execute_game_loop(ReaperRoot& root)
     Neptune::Track game_track =
         Neptune::create_game_track(track_gen_info, backend, sim, scene, default_material_handle);
 
-    const glm::fmat4x3 player_initial_transform = glm::translate(glm::mat4(1.0f), glm::vec3(0.4f, 0.8f, 0.f));
+    const glm::fmat4x3 player_initial_transform = glm::translate(glm::mat4(1.0f), glm::vec3(1.1f, 0.8f, 0.f));
     Neptune::sim_create_player_rigid_body(sim, player_initial_transform);
 
     // Build scene
