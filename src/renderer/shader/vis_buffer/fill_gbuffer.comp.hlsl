@@ -65,11 +65,11 @@ void main(uint3 gtid : SV_GroupThreadID,
 
 #if defined(ENABLE_MSAA_VIS_BUFFER)
     uint sample_location = (position_ts.x & 1) + (position_ts.y & 1) * 2;
-    VisBufferRawType vis_buffer_raw = VisBufferMS.Load(uint3(position_ts / 2, 0), sample_location);
+    VisBufferRawType vis_buffer_raw = VisBufferMS.Load(uint2(position_ts / 2), sample_location);
 
 #if defined(ENABLE_MSAA_DEPTH_RESOLVE)
     // Resolve depth in this pass as well
-    const float depth = VisBufferDepthMS.Load(uint3(position_ts / 2, 0), sample_location);
+    const float depth = VisBufferDepthMS.Load(uint2(position_ts / 2), sample_location);
     ResolvedDepth[position_ts] = depth;
 #endif
 #else

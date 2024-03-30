@@ -43,7 +43,7 @@ void main(uint3 gtid : SV_GroupThreadID,
         // This introduces a small inaccuracy that I'm ignoring.
         // Hopefully none of those inaccuracies matter when using dynamic resolution.
         // FIXME This might matter for the tail!
-        float2 luma_weight = AvgLog2LuminanceInput.Sample(LinearClampSampler, position_uv);
+        float2 luma_weight = AvgLog2LuminanceInput.SampleLevel(LinearClampSampler, position_uv, 0);
 
         sum_luma_log2 = luma_weight.x;
         sum_weight = luma_weight.y;
