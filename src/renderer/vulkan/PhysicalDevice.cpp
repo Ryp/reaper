@@ -25,13 +25,13 @@ namespace
         VkPhysicalDeviceProperties2 physical_device_properties_2;
         physical_device_properties_2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
 
-        physical_device.driver_properties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRIVER_PROPERTIES;
-        physical_device.vulkan1_3_properties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_PROPERTIES;
+        physical_device.properties_vk_1_2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_PROPERTIES;
+        physical_device.properties_vk_1_3.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_PROPERTIES;
         physical_device.subgroup_properties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SUBGROUP_PROPERTIES;
 
         vk_hook(physical_device_properties_2,
-                vk_hook(physical_device.driver_properties,
-                        vk_hook(physical_device.vulkan1_3_properties, vk_hook(physical_device.subgroup_properties))));
+                vk_hook(physical_device.properties_vk_1_2,
+                        vk_hook(physical_device.properties_vk_1_3, vk_hook(physical_device.subgroup_properties))));
 
         vkGetPhysicalDeviceProperties2(handle, &physical_device_properties_2);
 

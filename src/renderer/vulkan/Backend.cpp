@@ -247,8 +247,8 @@ namespace
         Assert(physical_device.subgroup_properties.supportedOperations & VK_SUBGROUP_FEATURE_SHUFFLE_BIT);
 
         // FIXME use MinWaveLaneCount from the shader code here
-        Assert(physical_device.vulkan1_3_properties.minSubgroupSize >= 8);
-        Assert(physical_device.vulkan1_3_properties.maxSubgroupSize <= 64);
+        Assert(physical_device.properties_vk_1_3.minSubgroupSize >= 8);
+        Assert(physical_device.properties_vk_1_3.maxSubgroupSize <= 64);
 
         // Supported Features
         Assert(physical_device.features.samplerAnisotropy == VK_TRUE);
@@ -315,23 +315,23 @@ namespace
 
         log_debug(root, "- api version = {}.{}.{}", api_version.major, api_version.minor, api_version.patch);
 
-        const VkPhysicalDeviceDriverProperties& driver_properties = physical_device.driver_properties;
+        const VkPhysicalDeviceVulkan12Properties& properties_vk_1_2 = physical_device.properties_vk_1_2;
         const Version driver_version = vulkan_extract_version(physical_device.properties.driverVersion);
 
-        log_debug(root, "- driver '{}' version = {}.{}.{}", driver_properties.driverName, driver_version.major,
+        log_debug(root, "- driver '{}' version = {}.{}.{}", properties_vk_1_2.driverName, driver_version.major,
                   driver_version.minor, driver_version.patch);
 
-        log_debug(root, "- driver info '{}' conformance version = {}.{}.{}.{}", driver_properties.driverInfo,
-                  driver_properties.conformanceVersion.major, driver_properties.conformanceVersion.minor,
-                  driver_properties.conformanceVersion.subminor, driver_properties.conformanceVersion.patch);
+        log_debug(root, "- driver info '{}' conformance version = {}.{}.{}.{}", properties_vk_1_2.driverInfo,
+                  properties_vk_1_2.conformanceVersion.major, properties_vk_1_2.conformanceVersion.minor,
+                  properties_vk_1_2.conformanceVersion.subminor, properties_vk_1_2.conformanceVersion.patch);
 
         log_debug(root,
                   "- memory type count = {}, memory heap count = {}",
                   physical_device.memory_properties.memoryTypeCount,
                   physical_device.memory_properties.memoryHeapCount);
 
-        log_debug(root, "- subgroup min size = {}", physical_device.vulkan1_3_properties.minSubgroupSize);
-        log_debug(root, "- subgroup max size = {}", physical_device.vulkan1_3_properties.maxSubgroupSize);
+        log_debug(root, "- subgroup min size = {}", physical_device.properties_vk_1_3.minSubgroupSize);
+        log_debug(root, "- subgroup max size = {}", physical_device.properties_vk_1_3.maxSubgroupSize);
 
         std::span<const VkMemoryHeap> memory_heaps(physical_device.memory_properties.memoryHeaps,
                                                    physical_device.memory_properties.memoryHeapCount);

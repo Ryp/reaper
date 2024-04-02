@@ -17,8 +17,8 @@ struct PhysicalDeviceInfo
 
     // NOTE: Filled with fill_physical_device_properties()
     VkPhysicalDeviceProperties         properties;
-    VkPhysicalDeviceDriverProperties   driver_properties;
-    VkPhysicalDeviceVulkan13Properties vulkan1_3_properties;
+    VkPhysicalDeviceVulkan12Properties properties_vk_1_2;
+    VkPhysicalDeviceVulkan13Properties properties_vk_1_3;
     VkPhysicalDeviceSubgroupProperties subgroup_properties;
     VkPhysicalDeviceMemoryProperties   memory_properties;
 
