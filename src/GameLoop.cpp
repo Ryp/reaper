@@ -68,6 +68,7 @@ namespace
                             Reaper::SceneGraph& scene, Reaper::SceneMaterialHandle material_handle)
     {
         const std::string track_mesh_path("res/model/track_chunk_simple.obj");
+        const float       track_mesh_length = 10.0f;
         Reaper::Mesh      unskinned_track_mesh = Reaper::load_obj(track_mesh_path);
 
         Track track;
@@ -91,7 +92,7 @@ namespace
 
             chunk_transforms[i] = track_node.in_transform_ms_to_ws;
 
-            skin_track_chunk_mesh(track_node, track.skinning[i], track_mesh.positions, 10.0f);
+            skin_track_chunk_mesh(track_node, track.skinning[i], track_mesh.positions, track_mesh_length);
         }
 
         track.sim_handles.resize(gen_info.chunk_count);

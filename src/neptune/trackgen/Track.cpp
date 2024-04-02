@@ -201,8 +201,8 @@ namespace
         for (u32 bone_index = 0; bone_index < BoneCountPerChunk; bone_index++)
         {
             const float     t = static_cast<float>(bone_index) / static_cast<float>(BoneCountPerChunk - 1);
-            const float     param = t * 2.0f - 1.0f;
-            const glm::vec3 offset = UnitXAxis * (param * node.radius);
+            const float     param = t;
+            const glm::vec3 offset = UnitXAxis * (param * node.radius * 2.f);
 
             // Inverse of a translation is the translation by the opposite vector
             skinning.bind_pose_inv_transforms[bone_index] = glm::translate(glm::mat4(1.0f), -offset);
@@ -250,9 +250,11 @@ void generate_track_skinning(std::span<const TrackSkeletonNode> skeleton_nodes, 
 
 namespace
 {
-    std::array<float, BoneCountPerChunk> compute_bone_weights(glm::vec3 position, float radius)
+    std::array<float, BoneCountPerChunk> compute_track_bone_weights(float t)
     {
-        float t = (position.x / radius) * 0.5f + 0.5f;
+        Assert(t >= 0.f - Math::DefaultEpsilon);
+        Assert(t <= 1.f + Math::DefaultEpsilon);
+
         float debug_sum = 0.f;
 
         std::array<float, BoneCountPerChunk> weights;
@@ -290,12 +292,13 @@ void skin_track_chunk_mesh(const TrackSkeletonNode& node, const TrackSkinning& t
     const u32 vertex_count = static_cast<u32>(vertices.size());
     Assert(vertex_count > 0);
 
-    const float scaleX = node.radius / (mesh_length * 0.5f);
+    const float chunk_length = node.radius * 2.f;
+    const float scaleX = chunk_length / mesh_length;
 
     for (u32 vertex_index = 0; vertex_index < vertex_count; vertex_index++)
     {
         const glm::fvec3                           vertex = vertices[vertex_index] * glm::fvec3(scaleX, 1.0f, 1.0f);
-        const std::array<float, BoneCountPerChunk> bone_weights = compute_bone_weights(vertex, node.radius);
+        const std::array<float, BoneCountPerChunk> bone_weights = compute_track_bone_weights(vertex.x / chunk_length);
 
         glm::fvec3 skinned_position(0.0f);
         float      weight_sum = 0.f;

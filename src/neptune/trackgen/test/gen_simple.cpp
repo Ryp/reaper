@@ -58,6 +58,7 @@ TEST_CASE("Track mesh generation")
     generate_track_skinning(skeletonNodes, skinning);
 
     const std::string assetFile("res/model/track_chunk_simple.obj");
+    float             mesh_length = 10.f;
 
     std::ofstream             outFile("test_skinned_track.obj");
     std::vector<Reaper::Mesh> meshes;
@@ -66,7 +67,7 @@ TEST_CASE("Track mesh generation")
     {
         Reaper::Mesh& mesh = meshes.emplace_back(Reaper::load_obj(assetFile));
 
-        skin_track_chunk_mesh(skeletonNodes[i], skinning[i], mesh.positions, 10.0f);
+        skin_track_chunk_mesh(skeletonNodes[i], skinning[i], mesh.positions, mesh_length);
     }
 
     save_obj(outFile, meshes);
