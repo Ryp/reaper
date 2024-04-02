@@ -149,22 +149,22 @@ namespace
         device_features2.features.fillModeNonSolid = VK_TRUE;
         device_features2.features.geometryShader = VK_TRUE;
 
-        VkPhysicalDeviceVulkan12Features vulkan1_2_features = {};
-        vulkan1_2_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
-        vulkan1_2_features.drawIndirectCount = VK_TRUE;
-        vulkan1_2_features.imagelessFramebuffer = VK_TRUE;
-        vulkan1_2_features.separateDepthStencilLayouts = VK_TRUE;
-        vulkan1_2_features.descriptorIndexing = VK_TRUE;
-        vulkan1_2_features.runtimeDescriptorArray = VK_TRUE;
-        vulkan1_2_features.descriptorBindingPartiallyBound = VK_TRUE;
-        vulkan1_2_features.timelineSemaphore = VK_TRUE;
-        vulkan1_2_features.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
+        VkPhysicalDeviceVulkan12Features features_vk_1_2 = {};
+        features_vk_1_2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+        features_vk_1_2.drawIndirectCount = VK_TRUE;
+        features_vk_1_2.imagelessFramebuffer = VK_TRUE;
+        features_vk_1_2.separateDepthStencilLayouts = VK_TRUE;
+        features_vk_1_2.descriptorIndexing = VK_TRUE;
+        features_vk_1_2.runtimeDescriptorArray = VK_TRUE;
+        features_vk_1_2.descriptorBindingPartiallyBound = VK_TRUE;
+        features_vk_1_2.timelineSemaphore = VK_TRUE;
+        features_vk_1_2.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
 
-        VkPhysicalDeviceVulkan13Features vulkan1_3_features = {};
-        vulkan1_3_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
-        vulkan1_3_features.synchronization2 = VK_TRUE;
-        vulkan1_3_features.dynamicRendering = VK_TRUE;
-        vulkan1_3_features.subgroupSizeControl = VK_TRUE;
+        VkPhysicalDeviceVulkan13Features features_vk_1_3 = {};
+        features_vk_1_3.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
+        features_vk_1_3.synchronization2 = VK_TRUE;
+        features_vk_1_3.dynamicRendering = VK_TRUE;
+        features_vk_1_3.subgroupSizeControl = VK_TRUE;
 
         VkPhysicalDeviceShaderAtomicFloatFeaturesEXT shader_atomic_features = {};
         shader_atomic_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_ATOMIC_FLOAT_FEATURES_EXT;
@@ -179,8 +179,8 @@ namespace
         primitive_restart_features.primitiveTopologyListRestart = VK_TRUE;
 
         vk_hook(device_features2,
-                vk_hook(vulkan1_2_features,
-                        vk_hook(vulkan1_3_features,
+                vk_hook(features_vk_1_2,
+                        vk_hook(features_vk_1_3,
                                 vk_hook(shader_atomic_features,
                                         vk_hook(index_uint8_features, vk_hook(primitive_restart_features))))));
 
@@ -241,10 +241,10 @@ namespace
     {
         // Properties
         Assert(physical_device.properties.apiVersion >= REAPER_VK_API_VERSION, "Unsupported Vulkan version");
-        Assert(physical_device.subgroup_properties.supportedOperations & VK_SUBGROUP_FEATURE_BASIC_BIT);
-        Assert(physical_device.subgroup_properties.supportedOperations & VK_SUBGROUP_FEATURE_BALLOT_BIT);
-        Assert(physical_device.subgroup_properties.supportedOperations & VK_SUBGROUP_FEATURE_VOTE_BIT);
-        Assert(physical_device.subgroup_properties.supportedOperations & VK_SUBGROUP_FEATURE_SHUFFLE_BIT);
+        Assert(physical_device.properties_vk_1_1.subgroupSupportedOperations & VK_SUBGROUP_FEATURE_BASIC_BIT);
+        Assert(physical_device.properties_vk_1_1.subgroupSupportedOperations & VK_SUBGROUP_FEATURE_BALLOT_BIT);
+        Assert(physical_device.properties_vk_1_1.subgroupSupportedOperations & VK_SUBGROUP_FEATURE_VOTE_BIT);
+        Assert(physical_device.properties_vk_1_1.subgroupSupportedOperations & VK_SUBGROUP_FEATURE_SHUFFLE_BIT);
 
         // FIXME use MinWaveLaneCount from the shader code here
         Assert(physical_device.properties_vk_1_3.minSubgroupSize >= 8);
@@ -257,17 +257,17 @@ namespace
         Assert(physical_device.features.fragmentStoresAndAtomics == VK_TRUE);
         Assert(physical_device.features.fillModeNonSolid == VK_TRUE);
         Assert(physical_device.features.geometryShader == VK_TRUE);
-        Assert(physical_device.vulkan1_2_features.drawIndirectCount == VK_TRUE);
-        Assert(physical_device.vulkan1_2_features.imagelessFramebuffer == VK_TRUE);
-        Assert(physical_device.vulkan1_2_features.separateDepthStencilLayouts == VK_TRUE);
-        Assert(physical_device.vulkan1_2_features.descriptorIndexing == VK_TRUE);
-        Assert(physical_device.vulkan1_2_features.runtimeDescriptorArray == VK_TRUE);
-        Assert(physical_device.vulkan1_2_features.descriptorBindingPartiallyBound == VK_TRUE);
-        Assert(physical_device.vulkan1_2_features.timelineSemaphore == VK_TRUE);
-        Assert(physical_device.vulkan1_2_features.shaderSampledImageArrayNonUniformIndexing == VK_TRUE);
-        Assert(physical_device.vulkan1_3_features.synchronization2 == VK_TRUE);
-        Assert(physical_device.vulkan1_3_features.dynamicRendering == VK_TRUE);
-        Assert(physical_device.vulkan1_3_features.subgroupSizeControl == VK_TRUE);
+        Assert(physical_device.features_vk_1_2.drawIndirectCount == VK_TRUE);
+        Assert(physical_device.features_vk_1_2.imagelessFramebuffer == VK_TRUE);
+        Assert(physical_device.features_vk_1_2.separateDepthStencilLayouts == VK_TRUE);
+        Assert(physical_device.features_vk_1_2.descriptorIndexing == VK_TRUE);
+        Assert(physical_device.features_vk_1_2.runtimeDescriptorArray == VK_TRUE);
+        Assert(physical_device.features_vk_1_2.descriptorBindingPartiallyBound == VK_TRUE);
+        Assert(physical_device.features_vk_1_2.timelineSemaphore == VK_TRUE);
+        Assert(physical_device.features_vk_1_2.shaderSampledImageArrayNonUniformIndexing == VK_TRUE);
+        Assert(physical_device.features_vk_1_3.synchronization2 == VK_TRUE);
+        Assert(physical_device.features_vk_1_3.dynamicRendering == VK_TRUE);
+        Assert(physical_device.features_vk_1_3.subgroupSizeControl == VK_TRUE);
         Assert(physical_device.index_uint8_features.indexTypeUint8 == VK_TRUE);
         Assert(physical_device.primitive_restart_features.primitiveTopologyListRestart == VK_TRUE);
 
