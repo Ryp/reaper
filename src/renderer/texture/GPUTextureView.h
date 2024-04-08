@@ -44,8 +44,20 @@ inline GPUTextureSubresource default_texture_subresource_one_color_mip(u32 mip_i
     };
 }
 
+enum class GPUTextureViewType
+{
+    Tex1D,
+    Tex2D,
+    Tex3D,
+    TexCube,
+    Tex1DArray,
+    Tex2DArray,
+    TexCubeArray,
+};
+
 struct GPUTextureView
 {
+    GPUTextureViewType    type;
     PixelFormat           format;
     GPUTextureSubresource subresource;
 };

@@ -15,6 +15,13 @@
 
 namespace Reaper
 {
+enum class GPUTextureType
+{
+    Tex1D,
+    Tex2D,
+    Tex3D,
+};
+
 namespace GPUTextureUsage
 {
     enum Type : u32
@@ -42,15 +49,16 @@ namespace GPUTextureMisc
 
 struct GPUTextureProperties
 {
-    u32         width;
-    u32         height;
-    u32         depth;
-    PixelFormat format;
-    u32         mip_count;
-    u32         layer_count;
-    u32         sample_count;
-    u32         usage_flags;
-    u32         misc_flags;
+    GPUTextureType type;
+    u32            width;
+    u32            height;
+    u32            depth;
+    PixelFormat    format;
+    u32            mip_count;
+    u32            layer_count;
+    u32            sample_count;
+    u32            usage_flags;
+    u32            misc_flags;
 };
 
 REAPER_RENDERER_API

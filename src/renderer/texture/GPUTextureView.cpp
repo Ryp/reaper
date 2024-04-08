@@ -7,11 +7,13 @@
 
 #include "GPUTextureView.h"
 
+#include "core/Assert.h"
+
 namespace Reaper
 {
 namespace
 {
-    u32 get_default_view_aspect(PixelFormat format)
+    u32 default_view_aspect(PixelFormat format)
     {
         switch (format)
         {
@@ -29,12 +31,28 @@ namespace
             return ViewAspect::Color;
         }
     }
+
+    GPUTextureViewType default_texture_view_type(GPUTextureType type)
+    {
+        switch (type)
+        {
+        case GPUTextureType::Tex1D:
+            return GPUTextureViewType::Tex1D;
+        case GPUTextureType::Tex2D:
+            return GPUTextureViewType::Tex2D;
+        case GPUTextureType::Tex3D:
+            return GPUTextureViewType::Tex3D;
+        default:
+            AssertUnreachable();
+            return GPUTextureViewType::Tex1D;
+        }
+    }
 } // namespace
 
 GPUTextureSubresource default_texture_subresource(const GPUTextureProperties& properties)
 {
     return GPUTextureSubresource{
-        .aspect = get_default_view_aspect(properties.format),
+        .aspect = default_view_aspect(properties.format),
         .mip_offset = 0,
         .mip_count = properties.mip_count,
         .layer_offset = 0,
@@ -45,6 +63,7 @@ GPUTextureSubresource default_texture_subresource(const GPUTextureProperties& pr
 GPUTextureView default_texture_view(const GPUTextureProperties& properties)
 {
     return GPUTextureView{
+        .type = default_texture_view_type(properties.type),
         .format = properties.format,
         .subresource = default_texture_subresource(properties),
     };

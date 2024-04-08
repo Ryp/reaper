@@ -488,6 +488,7 @@ void create_swapchain_views(const VulkanBackend& backend, PresentationInfo& pres
     for (size_t i = 0; i < image_count; ++i)
     {
         const GPUTextureView view = {
+            .type = GPUTextureViewType::Tex2D,
             .format = VulkanToPixelFormat(presentInfo.swapchain_format.vk_view_format),
             .subresource = default_texture_subresource_one_color_mip(),
         };

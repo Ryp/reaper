@@ -12,6 +12,7 @@ namespace Reaper
 GPUTextureProperties default_texture_properties(u32 width, u32 height, PixelFormat format, u32 usage_flags)
 {
     return GPUTextureProperties{
+        .type = GPUTextureType::Tex2D,
         .width = width,
         .height = height,
         .depth = 1,

@@ -479,6 +479,49 @@ PixelFormat VulkanToPixelFormat(VkFormat format)
     return PixelFormat::Unknown;
 }
 
+namespace
+{
+    VkImageType texture_type_to_vulkan_image_type(GPUTextureType texture_type)
+    {
+        switch (texture_type)
+        {
+        case GPUTextureType::Tex1D:
+            return VK_IMAGE_TYPE_1D;
+        case GPUTextureType::Tex2D:
+            return VK_IMAGE_TYPE_2D;
+        case GPUTextureType::Tex3D:
+            return VK_IMAGE_TYPE_3D;
+        }
+
+        AssertUnreachable();
+        return VK_IMAGE_TYPE_1D;
+    }
+
+    VkImageViewType texture_view_type_to_vulkan_image_view_type(GPUTextureViewType texture_view_type)
+    {
+        switch (texture_view_type)
+        {
+        case GPUTextureViewType::Tex1D:
+            return VK_IMAGE_VIEW_TYPE_1D;
+        case GPUTextureViewType::Tex2D:
+            return VK_IMAGE_VIEW_TYPE_2D;
+        case GPUTextureViewType::Tex3D:
+            return VK_IMAGE_VIEW_TYPE_3D;
+        case GPUTextureViewType::TexCube:
+            return VK_IMAGE_VIEW_TYPE_CUBE;
+        case GPUTextureViewType::Tex1DArray:
+            return VK_IMAGE_VIEW_TYPE_1D_ARRAY;
+        case GPUTextureViewType::Tex2DArray:
+            return VK_IMAGE_VIEW_TYPE_2D_ARRAY;
+        case GPUTextureViewType::TexCubeArray:
+            return VK_IMAGE_VIEW_TYPE_CUBE_ARRAY;
+        }
+
+        AssertUnreachable();
+        return VK_IMAGE_VIEW_TYPE_1D;
+    }
+} // namespace
+
 VkFormat PixelFormatToVulkan(PixelFormat format)
 {
     switch (format)
@@ -1027,20 +1070,24 @@ GPUTexture create_image(VkDevice device, const char* debug_string, const GPUText
 {
     const VkExtent3D extent = {properties.width, properties.height, properties.depth};
 
-    const VkImageTiling tilingMode =
-        (properties.misc_flags & GPUTextureMisc::LinearTiling) ? VK_IMAGE_TILING_LINEAR : VK_IMAGE_TILING_OPTIMAL;
+    const bool has_linear_tiling = properties.misc_flags & GPUTextureMisc::LinearTiling;
+
+    Assert(!((properties.height > 1 || properties.depth > 1) && properties.type == GPUTextureType::Tex1D));
+    Assert(!(properties.depth > 1 && properties.type == GPUTextureType::Tex2D));
+
+    const VkImageTiling tiling_mode = has_linear_tiling ? VK_IMAGE_TILING_LINEAR : VK_IMAGE_TILING_OPTIMAL;
 
     const VkImageCreateInfo imageInfo = {
         .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
         .pNext = nullptr,
         .flags = GetVulkanCreateFlags(properties),
-        .imageType = VK_IMAGE_TYPE_2D,
+        .imageType = texture_type_to_vulkan_image_type(properties.type),
         .format = PixelFormatToVulkan(properties.format),
         .extent = extent,
         .mipLevels = properties.mip_count,
         .arrayLayers = properties.layer_count,
         .samples = SampleCountToVulkan(properties.sample_count),
-        .tiling = tilingMode,
+        .tiling = tiling_mode,
         .usage = GetVulkanUsageFlags(properties.usage_flags),
         .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
         .queueFamilyIndexCount = 0,
@@ -1073,7 +1120,7 @@ VkImageView create_image_view(VkDevice device, VkImage image, const GPUTextureVi
         .pNext = nullptr,
         .flags = VK_FLAGS_NONE,
         .image = image,
-        .viewType = VK_IMAGE_VIEW_TYPE_2D,
+        .viewType = texture_view_type_to_vulkan_image_view_type(view.type),
         .format = PixelFormatToVulkan(view.format),
         .components = {.r = VK_COMPONENT_SWIZZLE_IDENTITY,
                        .g = VK_COMPONENT_SWIZZLE_IDENTITY,
