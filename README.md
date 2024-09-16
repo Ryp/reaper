@@ -6,6 +6,6 @@ Reaper is a small C++ test engine.
 
 ```sh
 $ git submodule update --init
-$ cmake -H. -B./build
+$ cmake -S . -B build
 $ cmake --build build
 ```

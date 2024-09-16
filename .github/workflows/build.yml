@@ -63,7 +63,7 @@ jobs:
       - name: Configure CMake
         run: |
           export CXX='${{ matrix.config.compiler_invocation }}'
-          cmake -H. -Bbuild \
+          cmake -S . -B build \
             -DCMAKE_INSTALL_PREFIX=install \
             -DREAPER_DEBUG_BUILD=${{ matrix.cmake_build_type == 'Debug' && 'ON' || 'OFF'}} \
             -DBUILD_SHARED_LIBS=${{ matrix.cmake_build_shared_libs }} \
@@ -129,7 +129,7 @@ jobs:
 
       - name: Configure CMake
         run: |
-          cmake .\ -Bbuild `
+          cmake -S . -B build `
             -G "${{ matrix.cmake_generator }}" `
             -A "${{ matrix.cmake_arch }}" `
             -DCMAKE_INSTALL_PREFIX=install `

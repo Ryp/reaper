@@ -11,14 +11,6 @@
 
 cmake_minimum_required(VERSION 3.21 FATAL_ERROR)
 
-# Avoid source tree pollution
-if(CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
-    message(FATAL_ERROR
-        " In-source builds are discouraged. Tell CMake to use a separate folder:\n"
-        " $ rm -rf CMakeCache.txt CMakeFiles\n"
-        " $ cmake -H. -Bbuild")
-endif()
-
 # You can choose the build type here, and a build directory will only support either Debug or Release.
 option(REAPER_DEBUG_BUILD "Debug build" ON)
 
