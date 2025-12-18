@@ -54,7 +54,7 @@ jobs:
           sudo apt-get install -y ninja-build libcurl4-openssl-dev # For google crashpad
 
       - name: Prepare Vulkan SDK
-        uses: humbletim/setup-vulkan-sdk@v1.2.0
+        uses: humbletim/setup-vulkan-sdk@v1.2.1
         with:
           vulkan-query-version: ${{ env.vulkan_sdk_version }}
           vulkan-components: ${{ env.vulkan_sdk_modules }}
@@ -118,7 +118,7 @@ jobs:
           submodules: true
 
       - name: Prepare Vulkan SDK
-        uses: humbletim/setup-vulkan-sdk@v1.2.0
+        uses: humbletim/setup-vulkan-sdk@v1.2.1
         with:
           vulkan-query-version: ${{ env.vulkan_sdk_version }}
           vulkan-components: ${{ env.vulkan_sdk_modules }}
