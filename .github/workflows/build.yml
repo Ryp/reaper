@@ -86,7 +86,7 @@ jobs:
           tar -cvf linux_build.tar install
 
       - name: Upload package artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v6
         if: ${{ matrix.cmake_build_type == 'Release' && matrix.cmake_build_shared_libs == 'OFF' && !matrix.config.is_zig }}
         with:
           name: linux_build
@@ -154,7 +154,7 @@ jobs:
           tar -cvf windows_build.tar install
 
       - name: Upload package artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v6
         if: ${{ matrix.cmake_build_type == 'Release' && matrix.cmake_build_shared_libs == 'OFF' }}
         with:
           name: windows_build
