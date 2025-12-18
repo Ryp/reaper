@@ -8,31 +8,40 @@
 #include "FrameSync.h"
 
 #include "Backend.h"
+#include "Debug.h"
+#include "api/AssertHelper.h"
 
 namespace Reaper
 {
 FrameSyncResources create_frame_sync_resources(VulkanBackend& backend)
 {
-    // Create fence signaled by default, so we don't have to make it a special case when waiting for the last frame at
-    // the first frame
-    const VkFenceCreateInfo fenceInfo = {
-        .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+    const VkSemaphoreTypeCreateInfo semaphore_type_create_info = {
+        .sType = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO_KHR,
         .pNext = nullptr,
-        .flags = VK_FENCE_CREATE_SIGNALED_BIT,
+        .semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE_KHR,
+        .initialValue = 0,
     };
 
-    VkFence draw_fence = VK_NULL_HANDLE;
-    vkCreateFence(backend.device, &fenceInfo, nullptr, &draw_fence);
+    const VkSemaphoreCreateInfo timeline_semaphore_create_info = {
+        .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
+        .pNext = &semaphore_type_create_info,
+        .flags = VK_FLAGS_NONE,
+    };
+
+    VkSemaphore timeline_semaphore;
+    AssertVk(vkCreateSemaphore(backend.device, &timeline_semaphore_create_info, nullptr, &timeline_semaphore));
+
+    VulkanSetDebugName(backend.device, timeline_semaphore, "Main frame sync timeline semaphore");
 
     FrameSyncResources resources = {};
 
-    resources.draw_fence = draw_fence;
+    resources.timeline_semaphore = timeline_semaphore;
 
     return resources;
 }
 
 void destroy_frame_sync_resources(VulkanBackend& backend, const FrameSyncResources& resources)
 {
-    vkDestroyFence(backend.device, resources.draw_fence, nullptr);
+    vkDestroySemaphore(backend.device, resources.timeline_semaphore, nullptr);
 }
 } // namespace Reaper

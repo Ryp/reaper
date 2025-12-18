@@ -13,7 +13,7 @@ namespace Reaper
 {
 struct FrameSyncResources
 {
-    VkFence draw_fence;
+    VkSemaphore timeline_semaphore;
 };
 
 struct VulkanBackend;

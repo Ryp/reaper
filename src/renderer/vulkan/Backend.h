@@ -80,6 +80,8 @@ struct REAPER_RENDERER_API VulkanBackend
 
     VkExtent2D new_swapchain_extent = {0, 0};
 
+    u64 frame_index = 0;
+
     struct Options
     {
         bool freeze_meshlet_culling = false; // FIXME using the framegraph we can't have persistent resources yet

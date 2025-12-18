@@ -13,7 +13,6 @@
 #include "renderer/vulkan/BackendResources.h"
 #include "renderer/vulkan/Barrier.h"
 #include "renderer/vulkan/CommandBuffer.h"
-#include "renderer/vulkan/Debug.h"
 #include "renderer/vulkan/DescriptorSet.h"
 #include "renderer/vulkan/FrameSync.h"
 #include "renderer/vulkan/GpuProfile.h"
@@ -27,8 +26,6 @@
 #include "common/Log.h"
 #include "common/ReaperRoot.h"
 
-#include "core/BitTricks.h"
-#include "core/memory/Allocator.h"
 #include "profiling/Scope.h"
 
 #include <vulkan_loader/Vulkan.h>
@@ -129,31 +126,44 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     pipeline_factory_update(backend, resources.pipeline_factory, resources.shader_modules);
 
     {
-        VkFence draw_fence = resources.frame_sync_resources.draw_fence;
-
         VkResult waitResult;
-        log_debug(root, "vulkan: wait for fence");
+        log_debug(root, "vulkan: wait for timeline semaphore");
 
         do
         {
-            REAPER_PROFILE_SCOPE_COLOR("Wait for fence", Color::Red);
+            REAPER_PROFILE_SCOPE_COLOR("Wait for timeline semaphore", Color::Red);
 
             const u64 waitTimeoutNs = 1 * 1000 * 1000 * 1000;
-            waitResult = vkWaitForFences(backend.device, 1, &draw_fence, VK_TRUE, waitTimeoutNs);
+            const u64 frame_index_to_wait = backend.frame_index;
 
-            if (waitResult != VK_SUCCESS)
+            const VkSemaphoreWaitInfo timeline_semaphore_wait_info = {
+                .sType = VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO,
+                .pNext = nullptr,
+                .flags = VK_FLAGS_NONE,
+                .semaphoreCount = 1,
+                .pSemaphores = &resources.frame_sync_resources.timeline_semaphore,
+                .pValues = &frame_index_to_wait,
+            };
+
+            waitResult = vkWaitSemaphores(backend.device, &timeline_semaphore_wait_info, waitTimeoutNs);
+
+            if (waitResult == VK_TIMEOUT)
             {
-                log_debug(root, "- return result {}", vk_to_string(waitResult));
+                log_debug(root, "- timeout, retrying...");
             }
-        } while (waitResult != VK_SUCCESS);
+            else if (waitResult != VK_SUCCESS)
+            {
+                log_debug(root, "- error: {}", vk_to_string(waitResult));
+                AssertVk(waitResult);
+            }
+        } while (waitResult == VK_TIMEOUT);
 
 #if defined(REAPER_USE_TRACY)
         FrameMark;
 #endif
-
-        log_debug(root, "vulkan: reset fence");
-        AssertVk(vkResetFences(backend.device, 1, &draw_fence));
     }
+
+    backend.frame_index += 1;
 
     VkResult acquireResult;
     u64      acquireTimeoutUs = 1000000000;
@@ -541,14 +551,23 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
     // NOTE: VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT is used there
     // https://github.com/KhronosGroup/Vulkan-Docs/wiki/Synchronization-Examples
-    const VkSemaphoreSubmitInfo signal_semaphore_info = {
-        .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
-        .pNext = nullptr,
-        .semaphore = backend.semaphore_rendering_finished,
-        .value = 0, // NOTE: Only for timeline semaphores
-        .stageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
-        .deviceIndex = 0, // NOTE: Set to zero when not using device groups
-    };
+    const std::array<VkSemaphoreSubmitInfo, 2> signal_semaphore_info = {
+        VkSemaphoreSubmitInfo{
+            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+            .pNext = nullptr,
+            .semaphore = backend.semaphore_rendering_finished,
+            .value = 0, // NOTE: Only for timeline semaphores
+            .stageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+            .deviceIndex = 0, // NOTE: Set to zero when not using device groups
+        },
+        VkSemaphoreSubmitInfo{
+            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+            .pNext = nullptr,
+            .semaphore = resources.frame_sync_resources.timeline_semaphore,
+            .value = backend.frame_index,
+            .stageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+            .deviceIndex = 0, // NOTE: Set to zero when not using device groups
+        }};
 
     const VkSubmitInfo2 submit_info_2 = {
         .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
@@ -558,12 +577,12 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         .pWaitSemaphoreInfos = &wait_semaphore_info,
         .commandBufferInfoCount = 1,
         .pCommandBufferInfos = &command_buffer_info,
-        .signalSemaphoreInfoCount = 1,
-        .pSignalSemaphoreInfos = &signal_semaphore_info,
+        .signalSemaphoreInfoCount = static_cast<u32>(signal_semaphore_info.size()),
+        .pSignalSemaphoreInfos = signal_semaphore_info.data(),
     };
 
     log_debug(root, "vulkan: submit drawing commands");
-    AssertVk(vkQueueSubmit2(backend.graphics_queue, 1, &submit_info_2, resources.frame_sync_resources.draw_fence));
+    AssertVk(vkQueueSubmit2(backend.graphics_queue, 1, &submit_info_2, VK_NULL_HANDLE));
 
     log_debug(root, "vulkan: present");
 
