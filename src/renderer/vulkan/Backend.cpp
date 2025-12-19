@@ -38,7 +38,7 @@
 #endif
 
 // Version of the API to query when loading vulkan symbols
-#define REAPER_VK_API_VERSION VK_MAKE_VERSION(1, 3, 0)
+#define REAPER_VK_API_VERSION VK_MAKE_VERSION(1, 4, 0)
 
 // Decide which swapchain extension to use
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
@@ -166,12 +166,12 @@ namespace
         features_vk_1_3.dynamicRendering = VK_TRUE;
         features_vk_1_3.subgroupSizeControl = VK_TRUE;
 
+        VkPhysicalDeviceVulkan14Features features_vk_1_4 = {};
+        features_vk_1_4.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_4_FEATURES;
+        features_vk_1_4.indexTypeUint8 = VK_TRUE;
+
         VkPhysicalDeviceShaderAtomicFloatFeaturesEXT shader_atomic_features = {};
         shader_atomic_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_ATOMIC_FLOAT_FEATURES_EXT;
-
-        VkPhysicalDeviceIndexTypeUint8FeaturesEXT index_uint8_features = {};
-        index_uint8_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INDEX_TYPE_UINT8_FEATURES_EXT;
-        index_uint8_features.indexTypeUint8 = VK_TRUE;
 
         VkPhysicalDevicePrimitiveTopologyListRestartFeaturesEXT primitive_restart_features = {};
         primitive_restart_features.sType =
@@ -181,8 +181,8 @@ namespace
         vk_hook(device_features2,
                 vk_hook(features_vk_1_2,
                         vk_hook(features_vk_1_3,
-                                vk_hook(shader_atomic_features,
-                                        vk_hook(index_uint8_features, vk_hook(primitive_restart_features))))));
+                                vk_hook(features_vk_1_4,
+                                        vk_hook(shader_atomic_features, vk_hook(primitive_restart_features))))));
 
         const VkDeviceCreateInfo device_create_info = {
             .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
@@ -268,7 +268,7 @@ namespace
         Assert(physical_device.features_vk_1_3.synchronization2 == VK_TRUE);
         Assert(physical_device.features_vk_1_3.dynamicRendering == VK_TRUE);
         Assert(physical_device.features_vk_1_3.subgroupSizeControl == VK_TRUE);
-        Assert(physical_device.index_uint8_features.indexTypeUint8 == VK_TRUE);
+        Assert(physical_device.features_vk_1_4.indexTypeUint8 == VK_TRUE);
         Assert(physical_device.primitive_restart_features.primitiveTopologyListRestart == VK_TRUE);
 
         // Supported Queues
@@ -531,7 +531,6 @@ void create_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& backend)
         VK_KHR_SWAPCHAIN_EXTENSION_NAME,
         VK_KHR_SWAPCHAIN_MUTABLE_FORMAT_EXTENSION_NAME,
         VK_EXT_CALIBRATED_TIMESTAMPS_EXTENSION_NAME,
-        VK_EXT_INDEX_TYPE_UINT8_EXTENSION_NAME,
         VK_EXT_PRIMITIVE_TOPOLOGY_LIST_RESTART_EXTENSION_NAME,
         VK_EXT_SAMPLE_LOCATIONS_EXTENSION_NAME,
     };

@@ -30,7 +30,7 @@ target_sources(${target} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/SymbolHelper.inl
 )
 
-find_package(Vulkan 1.3 REQUIRED)
+find_package(Vulkan 1.4 REQUIRED)
 
 # Get the shared library name for each platform
 get_filename_component(REAPER_VK_LIB_NAME ${Vulkan_LIBRARY} NAME_WLE)
