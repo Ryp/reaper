@@ -5,6 +5,7 @@
 
 # user
 /.vscode/
+/.cache/
 /compile_commands.json
 
 # python
