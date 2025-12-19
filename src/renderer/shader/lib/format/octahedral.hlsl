@@ -95,7 +95,11 @@ float3 decode_normal_octahedral_white(float3 encoded_normal)
 // 2014 - https://knarkowicz.wordpress.com/2014/04/16/octahedron-normal-vector-encoding/
 float2 oct_wrap(float2 v)
 {
+#if defined(_DXC)
+    return (1.0 - abs(v.yx)) * select(v.xy >= 0.0, 1.0, -1.0);
+#else
     return (1.0 - abs(v.yx)) * (v.xy >= 0.0 ? 1.0 : -1.0);
+#endif
 }
 
 // Output is in [-1, 1]
@@ -113,7 +117,12 @@ float3 decode_normal_octahedral_stubbe(float2 f)
     // https://twitter.com/Stubbesaurus/status/937994790553227264
     float3 n = float3( f.x, f.y, 1.0 - abs( f.x ) - abs( f.y ) );
     float t = saturate( -n.z );
+
+#if defined(_DXC)
+    n.xy += select(n.xy >= 0.0, -t, t);
+#else
     n.xy += n.xy >= 0.0 ? -t : t;
+#endif
 
     return normalize(n);
 }

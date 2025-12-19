@@ -13,24 +13,40 @@
 
 float3 linear_to_srgb(float3 color_linear)
 {
+#if defined(_DXC)
+    return select((color_linear < 0.0031308), 12.92 * color_linear, 1.055 * pow(color_linear, 1.0 / 2.4) - 0.055);
+#else
     return (color_linear < 0.0031308) ? 12.92 * color_linear : 1.055 * pow(color_linear, 1.0 / 2.4) - 0.055;
+#endif
 }
 
 float3 srgb_to_linear(float3 color_srgb)
 {
+#if defined(_DXC)
+    return select((color_srgb < 0.04045), color_srgb / 12.92, pow((color_srgb + 0.055) / 1.055, 2.4));
+#else
     return (color_srgb < 0.04045) ? color_srgb / 12.92 : pow((color_srgb + 0.055) / 1.055, 2.4);
+#endif
 }
 
 // Replaces pow() with cheaper sqrt()
 // Error < 0.4%
 float3 linear_to_srgb_fast(float3 color_linear)
 {
+#if defined(_DXC)
+    return select((color_linear < 0.0031308), 12.92 * color_linear, 1.13005 * sqrt(color_linear - 0.00228) - 0.13448 * color_linear + 0.005719);
+#else
     return (color_linear < 0.0031308) ? 12.92 * color_linear : 1.13005 * sqrt(color_linear - 0.00228) - 0.13448 * color_linear + 0.005719;
+#endif
 }
 
 float3 srgb_to_linear_fast(float3 color_srgb)
 {
+#if defined(_DXC)
+    return select((color_srgb < 0.04045), color_srgb / 12.92, -7.43605 * color_srgb - 31.24297 * sqrt(-0.53792 * color_srgb + 1.279924) + 35.34864);
+#else
     return (color_srgb < 0.04045) ? color_srgb / 12.92 : -7.43605 * color_srgb - 31.24297 * sqrt(-0.53792 * color_srgb + 1.279924) + 35.34864;
+#endif
 }
 
 // -----------------------------------------------------------------------------
@@ -38,12 +54,20 @@ float3 srgb_to_linear_fast(float3 color_srgb)
 
 float3 linear_to_rec709(float3 color_linear)
 {
+#if defined(_DXC)
+    return select((color_linear < 0.0181), 4.5 * color_linear, 1.0993 * pow(color_linear, 0.45) - 0.0993);
+#else
     return (color_linear < 0.0181) ? 4.5 * color_linear : 1.0993 * pow(color_linear, 0.45) - 0.0993;
+#endif
 }
 
 float3 rec709_to_linear(float3 color_rec709)
 {
+#if defined(_DXC)
+    return select((color_rec709 < 0.08145), color_rec709 / 4.5, pow((color_rec709 + 0.0993) / 1.0993, 1.0 / 0.45));
+#else
     return (color_rec709 < 0.08145) ? color_rec709 / 4.5 : pow((color_rec709 + 0.0993) / 1.0993, 1.0 / 0.45);
+#endif
 }
 
 // -----------------------------------------------------------------------------

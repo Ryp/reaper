@@ -1,7 +1,7 @@
 #include "lib/base.hlsl"
 
 #include "lib/color_space.hlsl"
-#include "lib/tranfer_functions.hlsl"
+#include "lib/transfer_functions.hlsl"
 #include "lib/tonemapping.hlsl"
 
 #include "swapchain_write.share.hlsl"
