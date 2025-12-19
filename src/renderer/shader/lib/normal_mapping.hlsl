@@ -20,7 +20,7 @@ float3 compute_tangent_space_normal_map(float3 geometric_normal_vs, float3 tange
 {
     const float3 bitangent_vs = cross(geometric_normal_vs, tangent_vs) * bitangent_sign; // FIXME Normalize?
     const float3x3 tbn_matrix = float3x3(tangent_vs, bitangent_vs, geometric_normal_vs); // FIXME Ortho-normalize?
-    float3 normal_vs = tbn_matrix * normal_map_tangent_space;
+    float3 normal_vs = mul(transpose(tbn_matrix), normal_map_tangent_space);
 
     // FIXME Since we encode the GBuffer normal with hemi octahedral, we clamp the normal to stay consistent with forward
     normal_vs.z = saturate(normal_vs.z);
