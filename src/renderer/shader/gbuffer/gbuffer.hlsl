@@ -11,7 +11,7 @@
 #include "lib/format/unorm.hlsl"
 #include "lib/format/octahedral.hlsl"
 #include "lib/format/bitfield.hlsl"
-#include "lib/tranfer_functions.hlsl"
+#include "lib/transfer_functions.hlsl"
 
 #include "material/standard.hlsl"
 
