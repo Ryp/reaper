@@ -12,12 +12,7 @@ static const uint debug_mode_roughness = 3;
 static const uint debug_mode_metallic = 4;
 static const uint debug_mode_ao = 5;
 
-// https://github.com/microsoft/DirectXShaderCompiler/issues/2957
-#if defined(_DXC)
-VK_CONSTANT(0) const uint spec_debug_mode = 0;
-#else
 VK_CONSTANT(0) const uint spec_debug_mode = debug_mode_none;
-#endif
 VK_CONSTANT(1) const bool spec_debug_enable_shadows = true;
 
 VK_PUSH_CONSTANT_HELPER(TiledLightingPushConstants) push;
