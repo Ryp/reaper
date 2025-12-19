@@ -718,7 +718,7 @@ namespace
     constexpr VkIndexType get_vk_meshlet_index_type()
     {
         if constexpr (IndexSizeBytes == 1)
-            return VK_INDEX_TYPE_UINT8_EXT;
+            return VK_INDEX_TYPE_UINT8;
         else if constexpr (IndexSizeBytes == 2)
             return VK_INDEX_TYPE_UINT16;
         else if constexpr (IndexSizeBytes == 4)

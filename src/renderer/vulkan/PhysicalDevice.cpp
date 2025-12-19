@@ -28,10 +28,15 @@ namespace
         physical_device.properties_vk_1_1.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_PROPERTIES;
         physical_device.properties_vk_1_2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_PROPERTIES;
         physical_device.properties_vk_1_3.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_PROPERTIES;
+        physical_device.properties_vk_1_4.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_4_PROPERTIES;
+        physical_device.properties_vk_1_4.pCopySrcLayouts = nullptr;
+        physical_device.properties_vk_1_4.pCopyDstLayouts = nullptr;
 
-        vk_hook(physical_device_properties_2,
-                vk_hook(physical_device.properties_vk_1_1,
-                        vk_hook(physical_device.properties_vk_1_2, vk_hook(physical_device.properties_vk_1_3))));
+        vk_hook(
+            physical_device_properties_2,
+            vk_hook(physical_device.properties_vk_1_1,
+                    vk_hook(physical_device.properties_vk_1_2,
+                            vk_hook(physical_device.properties_vk_1_3, vk_hook(physical_device.properties_vk_1_4)))));
 
         vkGetPhysicalDeviceProperties2(handle, &physical_device_properties_2);
 
@@ -48,17 +53,17 @@ namespace
 
         physical_device.features_vk_1_2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
         physical_device.features_vk_1_3.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
+        physical_device.features_vk_1_4.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_4_FEATURES;
         physical_device.shader_atomic_features.sType =
             VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_ATOMIC_FLOAT_FEATURES_EXT;
-        physical_device.index_uint8_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INDEX_TYPE_UINT8_FEATURES_EXT;
         physical_device.primitive_restart_features.sType =
             VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRIMITIVE_TOPOLOGY_LIST_RESTART_FEATURES_EXT;
 
         vk_hook(physical_device_features_2,
                 vk_hook(physical_device.features_vk_1_2,
                         vk_hook(physical_device.features_vk_1_3,
-                                vk_hook(physical_device.shader_atomic_features,
-                                        vk_hook(physical_device.index_uint8_features,
+                                vk_hook(physical_device.features_vk_1_4,
+                                        vk_hook(physical_device.shader_atomic_features,
                                                 vk_hook(physical_device.primitive_restart_features))))));
 
         vkGetPhysicalDeviceFeatures2(handle, &physical_device_features_2);
