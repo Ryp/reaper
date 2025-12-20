@@ -46,6 +46,7 @@ namespace Forward::zero
         instance_params,
         visible_meshlets,
         buffer_position_ms,
+        buffer_attributes,
         buffer_normal_ms,
         buffer_tangent_ms,
         buffer_uv,
@@ -275,6 +276,8 @@ void update_forward_pass_descriptor_sets(VulkanBackend& backend, const FrameGrap
         write_helper.append(resources.descriptor_set, g_bindings[visible_meshlets], visible_meshlet_buffer.handle);
         write_helper.append(resources.descriptor_set, g_bindings[buffer_position_ms],
                             mesh_cache.vertexBufferPosition.handle);
+        write_helper.append(resources.descriptor_set, g_bindings[buffer_attributes],
+                            mesh_cache.vertexAttributesBuffer.handle);
         write_helper.append(resources.descriptor_set, g_bindings[buffer_normal_ms],
                             mesh_cache.vertexBufferNormal.handle);
         write_helper.append(resources.descriptor_set, g_bindings[buffer_tangent_ms],

@@ -23,10 +23,21 @@ MeshCache create_mesh_cache(VulkanBackend& backend)
 {
     MeshCache cache;
 
+    cache.indexBuffer = create_buffer(
+        backend.device, "Index buffer",
+        DefaultGPUBufferProperties(MeshCache::MAX_INDEX_COUNT, sizeof(int), GPUBufferUsage::StorageBuffer),
+        backend.vma_instance, MemUsage::CPU_To_GPU);
+
     cache.vertexBufferPosition = create_buffer(
         backend.device, "Position buffer",
         DefaultGPUBufferProperties(MeshCache::MAX_VERTEX_COUNT, 3 * sizeof(float), GPUBufferUsage::StorageBuffer),
         backend.vma_instance, MemUsage::CPU_To_GPU);
+
+    cache.vertexAttributesBuffer =
+        create_buffer(backend.device, "Vertex attributes",
+                      DefaultGPUBufferProperties(MeshCache::MAX_VERTEX_COUNT, (3 + 4 + 2) * sizeof(float),
+                                                 GPUBufferUsage::StorageBuffer),
+                      backend.vma_instance, MemUsage::CPU_To_GPU);
 
     cache.vertexBufferNormal = create_buffer(
         backend.device, "Normal buffer",
@@ -41,11 +52,6 @@ MeshCache create_mesh_cache(VulkanBackend& backend)
     cache.vertexBufferUV = create_buffer(
         backend.device, "UV buffer",
         DefaultGPUBufferProperties(MeshCache::MAX_VERTEX_COUNT, 2 * sizeof(float), GPUBufferUsage::StorageBuffer),
-        backend.vma_instance, MemUsage::CPU_To_GPU);
-
-    cache.indexBuffer = create_buffer(
-        backend.device, "Index buffer",
-        DefaultGPUBufferProperties(MeshCache::MAX_INDEX_COUNT, sizeof(int), GPUBufferUsage::StorageBuffer),
         backend.vma_instance, MemUsage::CPU_To_GPU);
 
     cache.meshletBuffer = create_buffer(
@@ -63,6 +69,8 @@ void destroy_mesh_cache(VulkanBackend& backend, const MeshCache& mesh_cache)
     vmaDestroyBuffer(backend.vma_instance, mesh_cache.indexBuffer.handle, mesh_cache.indexBuffer.allocation);
     vmaDestroyBuffer(backend.vma_instance, mesh_cache.vertexBufferPosition.handle,
                      mesh_cache.vertexBufferPosition.allocation);
+    vmaDestroyBuffer(backend.vma_instance, mesh_cache.vertexAttributesBuffer.handle,
+                     mesh_cache.vertexAttributesBuffer.allocation);
     vmaDestroyBuffer(backend.vma_instance, mesh_cache.vertexBufferUV.handle, mesh_cache.vertexBufferUV.allocation);
     vmaDestroyBuffer(backend.vma_instance, mesh_cache.vertexBufferNormal.handle,
                      mesh_cache.vertexBufferNormal.allocation);
@@ -75,11 +83,12 @@ void clear_meshes(MeshCache& mesh_cache)
 {
     mesh_cache.mesh2_instances.clear();
 
+    mesh_cache.current_index_offset = 0;
+    mesh_cache.current_position_offset = 0;
+    mesh_cache.current_attributes_offset = 0;
     mesh_cache.current_uv_offset = 0;
     mesh_cache.current_normal_offset = 0;
     mesh_cache.current_tangent_offset = 0;
-    mesh_cache.current_position_offset = 0;
-    mesh_cache.current_index_offset = 0;
     mesh_cache.current_meshlet_offset = 0;
 }
 
@@ -115,6 +124,7 @@ namespace
 
         mesh_cache.current_index_offset += index_count;
         mesh_cache.current_position_offset += position_count;
+        mesh_cache.current_attributes_offset += position_count;
         mesh_cache.current_uv_offset += uv_count;
         mesh_cache.current_normal_offset += normal_count;
         mesh_cache.current_tangent_offset += tangent_count;
@@ -122,6 +132,7 @@ namespace
 
         Assert(mesh_cache.current_index_offset < MeshCache::MAX_INDEX_COUNT);
         Assert(mesh_cache.current_position_offset < MeshCache::MAX_VERTEX_COUNT);
+        Assert(mesh_cache.current_attributes_offset < MeshCache::MAX_VERTEX_COUNT);
         Assert(mesh_cache.current_meshlet_offset < MeshCache::MAX_MESHLET_COUNT);
 
         return alloc;

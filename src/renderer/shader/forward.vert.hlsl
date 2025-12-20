@@ -9,9 +9,10 @@ VK_BINDING(0, 0) ConstantBuffer<ForwardPassParams> pass_params;
 VK_BINDING(0, 1) StructuredBuffer<MeshInstance> instance_params;
 VK_BINDING(0, 2) StructuredBuffer<VisibleMeshlet> visible_meshlets;
 VK_BINDING(0, 3) ByteAddressBuffer buffer_position_ms;
-VK_BINDING(0, 4) ByteAddressBuffer buffer_normal_ms;
-VK_BINDING(0, 5) ByteAddressBuffer buffer_tangent_ms;
-VK_BINDING(0, 6) ByteAddressBuffer buffer_uv;
+VK_BINDING(0, 4) ByteAddressBuffer buffer_attributes;
+VK_BINDING(0, 5) ByteAddressBuffer buffer_normal_ms;
+VK_BINDING(0, 6) ByteAddressBuffer buffer_tangent_ms;
+VK_BINDING(0, 7) ByteAddressBuffer buffer_uv;
 
 struct VS_INPUT
 {

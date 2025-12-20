@@ -16,12 +16,20 @@
 
 namespace Reaper
 {
+struct Attributes
+{
+    glm::fvec3 normals;
+    glm::fvec2 uvs;
+    glm::fvec4 tangents; // GLTF uses w for the bitangent sign (-1.0 or 1.0)
+};
+
 struct Mesh
 {
     std::vector<u32> indexes;
 
     // Vertex data
     std::vector<glm::fvec3> positions;
+    std::vector<Attributes> attributes;
     std::vector<glm::fvec3> normals;
     std::vector<glm::fvec4> tangents; // GLTF uses w for the bitangent sign (-1.0 or 1.0)
     std::vector<glm::fvec2> uvs;
