@@ -27,7 +27,7 @@ VK_BINDING(0, Slot_VisBuffer) Texture2D<VisBufferRawType> VisBuffer;
 
 #if defined(ENABLE_MSAA_DEPTH_RESOLVE)
 VK_BINDING(0, Slot_VisBufferDepthMS) Texture2DMS<float> VisBufferDepthMS;
-VK_BINDING(0, Slot_ResolvedDepth) RWTexture2D<float> ResolvedDepth;
+VK_BINDING(0, Slot_ResolvedDepth) [[spv::format_r16]] RWTexture2D<float> ResolvedDepth;
 #endif
 
 VK_BINDING(0, Slot_GBuffer0) RWTexture2D<GBuffer0Type> GBuffer0;
