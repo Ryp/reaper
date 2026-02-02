@@ -14,7 +14,7 @@
 // http://filmicworlds.com/blog/optimizing-ggx-shaders-with-dotlh/
 float G1V(float dotNV, float k)
 {
-    return 1.0f/(dotNV*(1.0f-k)+k);
+    return 1.0f / max(dotNV*(1.0f-k)+k, 0.00001);
 }
 
 float LightingFuncGGX_REF(float3 N, float3 V, float3 L, float roughness, float F0)
