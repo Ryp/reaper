@@ -92,9 +92,9 @@ namespace Reaper
 {
 namespace
 {
-    ColorSpace get_color_space(VkColorSpaceKHR color_space)
+    ColorSpace get_color_space(VkSurfaceFormatKHR surface_format)
     {
-        switch (color_space)
+        switch (surface_format.colorSpace)
         {
         case VK_COLOR_SPACE_SRGB_NONLINEAR_KHR:
         case VK_COLOR_SPACE_EXTENDED_SRGB_LINEAR_EXT: // Allows negative values
@@ -108,6 +108,17 @@ namespace
         case VK_COLOR_SPACE_HDR10_ST2084_EXT:
         case VK_COLOR_SPACE_HDR10_HLG_EXT:
             return ColorSpace::Rec2020;
+        case VK_COLOR_SPACE_DISPLAY_NATIVE_AMD:
+            switch (surface_format.format)
+            {
+            // See https://github.com/GPUOpen-LibrariesAndSDKs/FreesyncPremiumProSample/blob/master/readme.md
+            case VK_FORMAT_A2R10G10B10_UNORM_PACK32:
+                return ColorSpace::sRGB; // FIXME AGSDisplaySettings::Mode::Mode_Freesync2_Gamma22
+            case VK_FORMAT_R16G16B16A16_SFLOAT:
+                return ColorSpace::sRGB; // FIXME AGSDisplaySettings::Mode::Mode_Freesync2_scRGB
+            default:
+                break;
+            }
         default:
             break;
         }
@@ -123,7 +134,7 @@ namespace
         sf.vk_color_space = surface_format.colorSpace;
         sf.vk_view_format = surface_format.format;
 
-        sf.color_space = get_color_space(surface_format.colorSpace);
+        sf.color_space = get_color_space(surface_format);
 
         switch (surface_format.colorSpace)
         {
