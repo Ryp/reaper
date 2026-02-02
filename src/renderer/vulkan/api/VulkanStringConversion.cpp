@@ -146,6 +146,8 @@ const char* vk_to_string(VkPresentModeKHR presentMode)
         return "VK_PRESENT_MODE_FIFO_KHR";
     case VK_PRESENT_MODE_FIFO_RELAXED_KHR:
         return "VK_PRESENT_MODE_FIFO_RELAXED_KHR";
+    case VK_PRESENT_MODE_FIFO_LATEST_READY_EXT:
+        return "VK_PRESENT_MODE_FIFO_LATEST_READY_EXT";
     default:
         AssertUnreachable();
     }

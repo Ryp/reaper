@@ -994,9 +994,16 @@ VkSampleCountFlagBits SampleCountToVulkan(u32 sampleCount)
     return static_cast<VkSampleCountFlagBits>(sampleCount);
 }
 
-VkImageCreateFlags GetVulkanCreateFlags(const GPUTextureProperties& /*properties*/)
+VkImageCreateFlags GetVulkanCreateFlags(const GPUTextureProperties& properties)
 {
-    return VK_FLAGS_NONE;
+    u32 flags = 0;
+
+    if (properties.misc_flags & GPUTextureMisc::SampleLocationCompatible)
+    {
+        flags |= VK_IMAGE_CREATE_SAMPLE_LOCATIONS_COMPATIBLE_DEPTH_BIT_EXT;
+    }
+
+    return flags;
 }
 
 VkImageUsageFlags GetVulkanUsageFlags(u32 usageFlags)

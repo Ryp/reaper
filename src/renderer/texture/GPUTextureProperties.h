@@ -44,6 +44,7 @@ namespace GPUTextureMisc
     {
         None = 0,
         LinearTiling = bit(0),
+        SampleLocationCompatible = bit(1),
     };
 }
 

@@ -524,6 +524,7 @@ VisBufferFrameGraphRecord create_vis_buffer_pass_record(FrameGraph::Builder&    
             vis_depth_msaa_properties.width /= 2;
             vis_depth_msaa_properties.height /= 2;
             vis_depth_msaa_properties.sample_count = MSAASamples;
+            vis_depth_msaa_properties.misc_flags |= GPUTextureMisc::SampleLocationCompatible;
 
             visibility.depth = builder.create_texture(
                 visibility.pass_handle, "Visibility Depth MSAA", vis_depth_msaa_properties,
