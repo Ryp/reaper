@@ -11,7 +11,7 @@ VK_BINDING(0, 0) SamplerState LinearClampSampler;
 VK_BINDING(0, 1) Texture2D<float2> AvgLog2LuminanceInput;
 VK_BINDING(0, 2) RWByteAddressBuffer AvgLog2LuminanceBuffer;
 VK_BINDING(0, 3) globallycoherent RWByteAddressBuffer TailCounter;
-VK_BINDING(0, 4) globallycoherent RWTexture2D<float2> AvgLog2LuminanceTail;
+VK_BINDING(0, 4) [[spv::format_rg16f]] globallycoherent RWTexture2D<float2> AvgLog2LuminanceTail;
 
 static const uint ThreadCount = ExposureThreadCountX * ExposureThreadCountY;
 

@@ -14,7 +14,7 @@ VK_PUSH_CONSTANT_HELPER(ReduceExposurePassParams) Consts;
 
 VK_BINDING(0, 0) SamplerState LinearClampSampler;
 VK_BINDING(0, 1) Texture2D<float3> SceneHDR;
-VK_BINDING(0, 2) RWTexture2D<float2> AvgLog2Luminance;
+VK_BINDING(0, 2) [[spv::format_rg16f]] RWTexture2D<float2> AvgLog2Luminance;
 
 static const uint ThreadCount = ExposureThreadCountX * ExposureThreadCountY;
 

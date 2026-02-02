@@ -24,7 +24,7 @@ VK_BINDING(0, 3) Texture2D<GBuffer1Type> GBuffer1;
 VK_BINDING(0, 4) Texture2D<float> DepthNDC;
 VK_BINDING(0, 5) StructuredBuffer<PointLightProperties> point_lights;
 VK_BINDING(0, 6) SamplerComparisonState shadow_map_sampler;
-VK_BINDING(0, 7) RWTexture2D<float4> LightingOutput; // FIXME should be float3 but would trigger validation error
+VK_BINDING(0, 7) [[spv::format_r11fg11fb10f]] RWTexture2D<float3> LightingOutput;
 VK_BINDING(0, 8) RWStructuredBuffer<TileDebug> TileDebugOutput;
 VK_BINDING(0, 9) Texture2D<float> shadow_maps[ShadowMapMaxCount];
 
@@ -107,7 +107,7 @@ void main(uint3 gtid : SV_GroupThreadID,
             lighting_sum = 0.04;
         }
 
-        LightingOutput[position_ts] = float4(lighting_sum, 0.0);
+        LightingOutput[position_ts] = lighting_sum;
     }
 
     if (gi == 0)

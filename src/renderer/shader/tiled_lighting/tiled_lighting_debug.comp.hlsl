@@ -6,7 +6,7 @@
 VK_PUSH_CONSTANT_HELPER(TiledLightingDebugPushConstants) push;
 
 VK_BINDING(0, 0) StructuredBuffer<TileDebug> TileDebugBuffer;
-VK_BINDING(0, 1) RWTexture2D<float4> DebugTexture;
+VK_BINDING(0, 1) [[spv::format_rgba8]] RWTexture2D<float4> DebugTexture;
 
 [numthreads(TiledLightingThreadCountX, TiledLightingThreadCountY, 1)]
 void main(uint3 gtid : SV_GroupThreadID,
