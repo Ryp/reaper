@@ -139,6 +139,8 @@ target_sources(${target} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/TiledLightingPass.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/TiledRasterPass.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/TiledRasterPass.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/ToneMappingPass.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/ToneMappingPass.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/VisibilityBufferPass.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/renderpass/VisibilityBufferPass.h
 
@@ -182,6 +184,7 @@ set(REAPER_SHADER_SRCS
     ${REAPER_SHADER_DIR}/shadow/render_shadow.vert.hlsl
     ${REAPER_SHADER_DIR}/sound/oscillator.comp.hlsl
     ${REAPER_SHADER_DIR}/swapchain_write.frag.hlsl
+    ${REAPER_SHADER_DIR}/tone_mapping_bake_lut.comp.hlsl
     ${REAPER_SHADER_DIR}/tiled_lighting/classify_volume.comp.hlsl
     ${REAPER_SHADER_DIR}/tiled_lighting/rasterize_light_volume.frag.hlsl
     ${REAPER_SHADER_DIR}/tiled_lighting/rasterize_light_volume.vert.hlsl

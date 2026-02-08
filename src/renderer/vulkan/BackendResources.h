@@ -30,6 +30,7 @@
 #include "renderpass/SwapchainPass.h"
 #include "renderpass/TiledLightingPass.h"
 #include "renderpass/TiledRasterPass.h"
+#include "renderpass/ToneMappingPass.h"
 #include "renderpass/VisibilityBufferPass.h"
 
 #include <vulkan_loader/Vulkan.h>
@@ -58,6 +59,7 @@ struct BackendResources
     ExposurePassResources         exposure_pass_resources;
     HZBPassResources              hzb_pass_resources;
     GuiPassResources              gui_pass_resources;
+    ToneMapPassResources          tone_map_pass_resources;
     SwapchainPassResources        swapchain_pass_resources;
     FrameSyncResources            frame_sync_resources;
     AudioResources                audio_resources;

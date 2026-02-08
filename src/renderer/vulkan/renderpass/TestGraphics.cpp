@@ -250,12 +250,15 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
     const DebugGeometryDrawFrameGraphRecord debug_geometry_draw = create_debug_geometry_draw_pass_record(
         builder, debug_geometry_build_cmds, last_draw_count_handle, tiled_lighting.lighting, forward.depth);
 
+    const ToneMapPassRecord tone_map = create_tone_map_pass_record(builder);
+
     const SwapchainFrameGraphRecord swapchain = create_swapchain_pass_record(builder,
                                                                              forward.scene_hdr,
                                                                              debug_geometry_draw.scene_hdr,
                                                                              gui.output,
                                                                              histogram.histogram_buffer,
                                                                              exposure.reduce_tail.average_exposure,
+                                                                             tone_map.tone_map_lut,
                                                                              tiled_lighting_debug_record.output);
 
     const AudioFrameGraphRecord audio_pass = create_audio_frame_graph_record(builder);
@@ -321,6 +324,9 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
         update_debug_geometry_draw_pass_descriptor_sets(framegraph, resources.framegraph_resources, debug_geometry_draw,
                                                         descriptor_write_helper, resources.debug_geometry_resources);
+
+        update_tone_map_pass_descriptor_set(framegraph, resources.framegraph_resources, tone_map,
+                                            descriptor_write_helper, resources.tone_map_pass_resources);
 
         update_swapchain_pass_descriptor_set(framegraph, resources.framegraph_resources, swapchain,
                                              descriptor_write_helper, resources.swapchain_pass_resources,
@@ -495,6 +501,10 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
         record_debug_geometry_draw_command_buffer(frame_graph_helper, debug_geometry_draw, cmdBuffer,
                                                   resources.pipeline_factory, resources.debug_geometry_resources);
+
+        record_tone_map_command_buffer(frame_graph_helper, tone_map, cmdBuffer, resources.pipeline_factory,
+                                       resources.tone_map_pass_resources, backend.presentInfo.tonemap_min_nits,
+                                       backend.presentInfo.tonemap_max_nits);
 
         record_swapchain_command_buffer(
             frame_graph_helper, swapchain, cmdBuffer, resources.swapchain_pass_resources,

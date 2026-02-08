@@ -24,10 +24,6 @@ static const hlsl_uint TRANSFER_FUNC_WINDOWS_SCRGB = 4;
 static const hlsl_uint DYNAMIC_RANGE_SDR = 0;
 static const hlsl_uint DYNAMIC_RANGE_HDR = 1;
 
-static const hlsl_uint TONEMAP_FUNC_LINEAR = 0;
-static const hlsl_uint TONEMAP_FUNC_UNCHARTED2 = 1;
-static const hlsl_uint TONEMAP_FUNC_ACES_APPROX = 2;
-
 struct SwapchainWriteParams
 {
     hlsl_float exposure_compensation;
