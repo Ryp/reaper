@@ -75,6 +75,7 @@ void create_backend_resources(ReaperRoot& root, VulkanBackend& backend)
     resources.material_resources = create_material_resources(backend);
     resources.mesh_cache = create_mesh_cache(backend);
     resources.shadow_map_resources = create_shadow_map_resources(backend, resources.pipeline_factory);
+    resources.tone_map_pass_resources = create_tone_map_pass_resources(backend, resources.pipeline_factory);
     resources.swapchain_pass_resources = create_swapchain_pass_resources(backend, resources.shader_modules);
 }
 
@@ -103,6 +104,7 @@ void destroy_backend_resources(VulkanBackend& backend)
     destroy_material_resources(backend, resources.material_resources);
     destroy_mesh_cache(backend, resources.mesh_cache);
     destroy_shadow_map_resources(backend, resources.shadow_map_resources);
+    destroy_tone_map_pass_resources(backend, resources.tone_map_pass_resources);
     destroy_swapchain_pass_resources(backend, resources.swapchain_pass_resources);
 
 #if defined(REAPER_USE_TRACY)

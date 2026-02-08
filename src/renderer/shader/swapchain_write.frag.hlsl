@@ -5,11 +5,11 @@
 #include "lib/tonemapping.hlsl"
 
 #include "swapchain_write.share.hlsl"
+#include "tone_mapping_bake_lut.share.hlsl"
 
 VK_CONSTANT(0) const uint spec_color_space = 0;
 VK_CONSTANT(1) const uint spec_transfer_function = 0;
 VK_CONSTANT(2) const uint spec_dynamic_range = 0;
-VK_CONSTANT(3) const uint spec_tonemap_function = 0;
 
 VK_PUSH_CONSTANT_HELPER(SwapchainWriteParams) Consts;
 
@@ -18,7 +18,8 @@ VK_BINDING(0, 1) Texture2D<float3> t_hdr_scene;
 VK_BINDING(0, 2) Texture2D<float3> Lighting;
 VK_BINDING(0, 3) Texture2D<float4> t_ldr_gui;
 VK_BINDING(0, 4) ByteAddressBuffer AvgLog2Luminance;
-VK_BINDING(0, 5) Texture2D<float3> t_ldr_debug;
+VK_BINDING(0, 5) Texture1D<float> ToneMappingLUT;
+VK_BINDING(0, 6) Texture2D<float3> t_ldr_debug;
 
 struct PS_INPUT
 {
@@ -38,17 +39,33 @@ float3 composite_sdr_ui_in_hdr(float3 scene_color_hdr_nits, float4 sdr_gui_color
     return lerp(scene_color_hdr_nits, sdr_gui_color.rgb * sdr_ui_max_brightness_nits, sdr_gui_color.a);
 }
 
-float3 apply_tonemapping_operator(float3 color_scene_nits, uint tonemap_function, float min_nits, float max_nits)
+float3 apply_tonemapping_operator(float3 color_scene_nits, float min_nits, float max_nits)
 {
-    // FIXME Use min_nits and make this a proper display mapping
-    if (tonemap_function == TONEMAP_FUNC_LINEAR)
-        return color_scene_nits;
-    else if (tonemap_function == TONEMAP_FUNC_UNCHARTED2)
-        return tonemapping_uncharted2(color_scene_nits / max_nits) * max_nits;
-    else if (tonemap_function == TONEMAP_FUNC_ACES_APPROX)
-        return tonemapping_filmic_aces(color_scene_nits / max_nits) * max_nits;
-    else
-        return 0.42; // Invalid
+    float3 tonemapped_color = float3(
+        tonemapping_gran_turismo_2025(color_scene_nits.r, min_nits, max_nits),
+        tonemapping_gran_turismo_2025(color_scene_nits.g, min_nits, max_nits),
+        tonemapping_gran_turismo_2025(color_scene_nits.b, min_nits, max_nits)
+    );
+
+    float3 uv = float3(
+        remap_lut_input_range(color_scene_nits.r),
+        remap_lut_input_range(color_scene_nits.g),
+        remap_lut_input_range(color_scene_nits.b)
+    );
+
+    // Avoid sampling on LUT half texel borders
+    float lut_res = (float)ToneMappingBakeLUT_Res;
+    float lut_texel_size = 1.0 / lut_res;
+    uv = (uv * (lut_res - 1.0) + 0.5) * lut_texel_size;
+
+    float3 tonemapped_color_lut = float3(
+        ToneMappingLUT.Sample(linear_sampler, uv.r),
+        ToneMappingLUT.Sample(linear_sampler, uv.g),
+        ToneMappingLUT.Sample(linear_sampler, uv.b)
+    );
+
+    // return abs(tonemapped_color - tonemapped_color_lut) * 1000.f;
+    return tonemapped_color_lut;
 }
 
 float3 apply_output_color_space_transform(float3 color_srgb, uint color_space)
@@ -118,7 +135,7 @@ void main(in PS_INPUT input, out PS_OUTPUT output)
     color = composite_sdr_ui_in_hdr(color, sdr_gui_color, Consts.sdr_ui_max_brightness_nits);
 
     // Apply tone mapping
-    color = apply_tonemapping_operator(color, spec_tonemap_function, Consts.tonemap_min_nits, Consts.tonemap_max_nits);
+    color = apply_tonemapping_operator(color, Consts.tonemap_min_nits, Consts.tonemap_max_nits);
 
 #define SHOW_DEBUG_TEXTURE 0
 #if SHOW_DEBUG_TEXTURE

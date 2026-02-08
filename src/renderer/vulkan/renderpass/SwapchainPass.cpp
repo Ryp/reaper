@@ -35,7 +35,6 @@ namespace
         hlsl_uint color_space_index;
         hlsl_uint transfer_function_index;
         hlsl_uint dynamic_range;
-        hlsl_uint tonemap_function_index;
     };
 
     u32 get_color_space_index(ColorSpace color_space)
@@ -97,11 +96,6 @@ namespace
                 offsetof(SpecConstants, dynamic_range),
                 sizeof(SpecConstants::dynamic_range),
             },
-            VkSpecializationMapEntry{
-                3,
-                offsetof(SpecConstants, tonemap_function_index),
-                sizeof(SpecConstants::tonemap_function_index),
-            },
         };
 
         const SwapchainFormat& swapchain_format = backend.presentInfo.swapchain_format;
@@ -110,7 +104,6 @@ namespace
         spec_constants.color_space_index = get_color_space_index(swapchain_format.color_space);
         spec_constants.transfer_function_index = get_transfer_function_index(swapchain_format.transfer_function);
         spec_constants.dynamic_range = swapchain_format.is_hdr ? DYNAMIC_RANGE_HDR : DYNAMIC_RANGE_SDR;
-        spec_constants.tonemap_function_index = TONEMAP_FUNC_ACES_APPROX;
 
         VkSpecializationInfo specialization = {
             static_cast<u32>(specialization_constants_entries.size()), // uint32_t mapEntryCount;
@@ -161,6 +154,7 @@ SwapchainPassResources create_swapchain_pass_resources(VulkanBackend& backend, c
         {3, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
         {4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
         {5, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+        {6, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
     };
 
     resources.descriptorSetLayout = create_descriptor_set_layout(backend.device, descriptorSetLayoutBinding);
@@ -201,6 +195,7 @@ create_swapchain_pass_record(FrameGraph::Builder&            builder,
                              FrameGraph::ResourceUsageHandle gui_sdr_usage_handle,
                              FrameGraph::ResourceUsageHandle histogram_buffer_usage_handle,
                              FrameGraph::ResourceUsageHandle average_exposure_usage_handle,
+                             FrameGraph::ResourceUsageHandle tone_map_lut,
                              FrameGraph::ResourceUsageHandle tiled_debug_texture_overlay_usage_handle)
 {
     SwapchainFrameGraphRecord swapchain;
@@ -230,6 +225,11 @@ create_swapchain_pass_record(FrameGraph::Builder&            builder,
         builder.read_buffer(swapchain.pass_handle, average_exposure_usage_handle,
                             GPUBufferAccess{VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT});
 
+    swapchain.tone_map_lut =
+        builder.read_texture(swapchain.pass_handle, tone_map_lut,
+                             GPUTextureAccess{VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
+                                              VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL});
+
     swapchain.tile_debug =
         builder.read_texture(swapchain.pass_handle, tiled_debug_texture_overlay_usage_handle,
                              GPUTextureAccess{VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT,
@@ -253,6 +253,8 @@ void update_swapchain_pass_descriptor_set(const FrameGraph::FrameGraph&    frame
         get_frame_graph_buffer(frame_graph_resources, frame_graph, record.average_exposure);
     const FrameGraphTexture tile_lighting_debug_texture =
         get_frame_graph_texture(frame_graph_resources, frame_graph, record.tile_debug);
+    const FrameGraphTexture tone_map_lut =
+        get_frame_graph_texture(frame_graph_resources, frame_graph, record.tone_map_lut);
 
     write_helper.append(resources.descriptor_set, 0, sampler_resources.linear_black_border);
     write_helper.append(resources.descriptor_set, 1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
@@ -262,7 +264,9 @@ void update_swapchain_pass_descriptor_set(const FrameGraph::FrameGraph&    frame
     write_helper.append(resources.descriptor_set, 3, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, gui_texture.default_view_handle,
                         gui_texture.image_layout);
     write_helper.append(resources.descriptor_set, 4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, average_exposure.handle);
-    write_helper.append(resources.descriptor_set, 5, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+    write_helper.append(resources.descriptor_set, 5, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, tone_map_lut.default_view_handle,
+                        tone_map_lut.image_layout);
+    write_helper.append(resources.descriptor_set, 6, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
                         tile_lighting_debug_texture.default_view_handle, tile_lighting_debug_texture.image_layout);
 }
 
