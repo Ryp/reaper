@@ -77,7 +77,6 @@ ShaderModules create_shader_modules(VulkanBackend& backend)
     modules.tiled_lighting_cs = create_shader_module(backend.device, "tiled_lighting/tiled_lighting.comp.spv");
     modules.tiled_lighting_debug_cs =
         create_shader_module(backend.device, "tiled_lighting/tiled_lighting_debug.comp.spv");
-    modules.tone_mapping_bake_lut_cs = create_shader_module(backend.device, "tone_mapping_bake_lut.comp.spv");
     modules.vis_buffer_raster_fs = create_shader_module(backend.device, "vis_buffer/vis_buffer_raster.frag.spv");
     modules.vis_buffer_raster_vs = create_shader_module(backend.device, "vis_buffer/vis_buffer_raster.vert.spv");
     modules.vis_fill_gbuffer_cs = create_shader_module(backend.device, "vis_buffer/fill_gbuffer.comp.spv");
@@ -119,7 +118,6 @@ void destroy_shader_modules(VulkanBackend& backend, ShaderModules& shader_module
     vkDestroyShaderModule(backend.device, shader_modules.tile_depth_downsample_cs, nullptr);
     vkDestroyShaderModule(backend.device, shader_modules.tiled_lighting_cs, nullptr);
     vkDestroyShaderModule(backend.device, shader_modules.tiled_lighting_debug_cs, nullptr);
-    vkDestroyShaderModule(backend.device, shader_modules.tone_mapping_bake_lut_cs, nullptr);
     vkDestroyShaderModule(backend.device, shader_modules.vis_buffer_raster_fs, nullptr);
     vkDestroyShaderModule(backend.device, shader_modules.vis_buffer_raster_vs, nullptr);
     vkDestroyShaderModule(backend.device, shader_modules.vis_fill_gbuffer_cs, nullptr);
