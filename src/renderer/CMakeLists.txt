@@ -88,6 +88,8 @@ target_sources(${target} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/RenderPassHelpers.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/SamplerResources.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/SamplerResources.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Semaphore.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/Semaphore.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/ShaderModules.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/ShaderModules.h
     ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/StorageBufferAllocator.cpp

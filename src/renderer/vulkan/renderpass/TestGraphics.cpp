@@ -555,7 +555,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         VkSemaphoreSubmitInfo{
             .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
             .pNext = nullptr,
-            .semaphore = backend.semaphore_rendering_finished,
+            .semaphore = backend.presentInfo.semaphore_rendering_finished[current_swapchain_index],
             .value = 0, // NOTE: Only for timeline semaphores
             .stageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
             .deviceIndex = 0, // NOTE: Set to zero when not using device groups
@@ -590,7 +590,7 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
         .pNext = nullptr,
         .waitSemaphoreCount = 1,
-        .pWaitSemaphores = &backend.semaphore_rendering_finished,
+        .pWaitSemaphores = &backend.presentInfo.semaphore_rendering_finished[current_swapchain_index],
         .swapchainCount = 1,
         .pSwapchains = &backend.presentInfo.swapchain,
         .pImageIndices = &current_swapchain_index,

@@ -18,6 +18,7 @@
 #include "Debug.h"
 #include "DebugMessageCallback.h"
 #include "Display.h"
+#include "Semaphore.h"
 #include "Swapchain.h"
 
 #include <cstring>
@@ -396,17 +397,6 @@ namespace
         vulkan_print_physical_device_debug(root, backend.physical_device);
     }
 
-    VkSemaphore create_semaphore(VulkanBackend& backend, const char* debug_name,
-                                 const VkSemaphoreCreateInfo& create_info)
-    {
-        VkSemaphore semaphore;
-        AssertVk(vkCreateSemaphore(backend.device, &create_info, nullptr, &semaphore));
-
-        VulkanSetDebugName(backend.device, semaphore, debug_name);
-
-        return semaphore;
-    }
-
     VkDescriptorPool create_global_descriptor_pool(ReaperRoot& root, VulkanBackend& backend)
     {
         // Create descriptor pool
@@ -572,9 +562,7 @@ void create_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& backend)
     };
 
     backend.semaphore_swapchain_image_available =
-        create_semaphore(backend, "Semaphore image available", semaphore_create_info);
-    backend.semaphore_rendering_finished =
-        create_semaphore(backend, "Semaphore rendering finished", semaphore_create_info);
+        create_semaphore(backend, semaphore_create_info, "Semaphore image available");
 
     ImGui::CreateContext();
 
@@ -611,7 +599,6 @@ void destroy_vulkan_renderer_backend(ReaperRoot& root, VulkanBackend& backend)
     ImGui_ImplVulkan_Shutdown();
 
     vkDestroySemaphore(backend.device, backend.semaphore_swapchain_image_available, nullptr);
-    vkDestroySemaphore(backend.device, backend.semaphore_rendering_finished, nullptr);
 
     destroy_vulkan_wm_swapchain(root, backend, backend.presentInfo);
 

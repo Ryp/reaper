@@ -47,7 +47,4 @@ void destroy_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backend,
 
 void resize_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backend, PresentationInfo& presentInfo,
                                 VkExtent2D extent);
-
-void create_swapchain_views(const VulkanBackend& backend, PresentationInfo& presentInfo);
-void destroy_swapchain_views(const VulkanBackend& backend, PresentationInfo& presentInfo);
 } // namespace Reaper

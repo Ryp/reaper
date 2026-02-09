@@ -47,6 +47,7 @@ struct PresentationInfo
 
     std::vector<VkImage>     images;
     std::vector<VkImageView> imageViews;
+    std::vector<VkSemaphore> semaphore_rendering_finished;
 };
 
 struct BackendResources;
@@ -74,7 +75,6 @@ struct REAPER_RENDERER_API VulkanBackend
 
     // Timeline semaphores aren't supported for present operations at the time AFAIK.
     VkSemaphore semaphore_swapchain_image_available = VK_NULL_HANDLE;
-    VkSemaphore semaphore_rendering_finished = VK_NULL_HANDLE;
 
     VkDebugUtilsMessengerEXT debugMessenger = VK_NULL_HANDLE;
 

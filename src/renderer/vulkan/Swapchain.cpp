@@ -8,7 +8,9 @@
 #include "Swapchain.h"
 
 #include "Backend.h"
+#include "Debug.h"
 #include "Image.h"
+#include "Semaphore.h"
 
 #include "api/AssertHelper.h"
 #include "api/VulkanStringConversion.h"
@@ -86,10 +88,17 @@ VkPresentModeKHR vulkan_swapchain_choose_present_mode(std::span<const VkPresentM
 
     return VK_PRESENT_MODE_FIFO_KHR;
 }
+
 } // namespace
 
 namespace Reaper
 {
+void create_swapchain_views(const VulkanBackend& backend, PresentationInfo& presentInfo);
+void destroy_swapchain_views(const VulkanBackend& backend, PresentationInfo& presentInfo);
+
+void create_semaphores(const VulkanBackend& backend, PresentationInfo& presentInfo);
+void destroy_semaphores(const VulkanBackend& backend, PresentationInfo& presentInfo);
+
 namespace
 {
     ColorSpace get_color_space(VkSurfaceFormatKHR surface_format)
@@ -442,6 +451,8 @@ void create_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backend, 
 
     create_swapchain_views(backend, presentInfo);
 
+    create_semaphores(backend, presentInfo);
+
     presentInfo.queue_swapchain_transition = true;
 }
 
@@ -449,6 +460,8 @@ void destroy_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backend,
 {
     REAPER_PROFILE_SCOPE_FUNC();
     log_debug(root, "vulkan: destroying wm swapchain");
+
+    destroy_semaphores(backend, presentInfo);
 
     destroy_swapchain_views(backend, presentInfo);
 
@@ -464,6 +477,8 @@ void resize_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backend, 
 
     // Destroy what needs to be
     AssertVk(vkDeviceWaitIdle(backend.device));
+
+    destroy_semaphores(backend, presentInfo);
 
     destroy_swapchain_views(backend, presentInfo);
 
@@ -514,5 +529,36 @@ void destroy_swapchain_views(const VulkanBackend& backend, PresentationInfo& pre
         vkDestroyImageView(backend.device, presentInfo.imageViews[i], nullptr);
 
     presentInfo.imageViews.clear();
+}
+
+void create_semaphores(const VulkanBackend& backend, PresentationInfo& presentInfo)
+{
+    const size_t image_count = presentInfo.image_count;
+
+    Assert(image_count > 0);
+
+    VkSemaphoreCreateInfo semaphore_create_info = {
+        .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
+        .pNext = nullptr,
+        .flags = VK_FLAGS_NONE,
+    };
+
+    presentInfo.semaphore_rendering_finished.resize(image_count);
+
+    for (size_t i = 0; i < image_count; ++i)
+    {
+        presentInfo.semaphore_rendering_finished[i] =
+            create_semaphore(backend, semaphore_create_info, "Semaphore rendering finished N");
+    }
+}
+
+void destroy_semaphores(const VulkanBackend& backend, PresentationInfo& presentInfo)
+{
+    for (auto semaphore : presentInfo.semaphore_rendering_finished)
+    {
+        vkDestroySemaphore(backend.device, semaphore, nullptr);
+    }
+
+    presentInfo.semaphore_rendering_finished.clear();
 }
 } // namespace Reaper
