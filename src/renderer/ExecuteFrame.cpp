@@ -87,7 +87,7 @@ void renderer_stop(ReaperRoot& root, VulkanBackend& backend, IWindow* window)
     destroy_backend_resources(backend);
 }
 
-void renderer_execute_frame(ReaperRoot& root, const SceneGraph& scene, std::vector<u8>& audio_output,
+void renderer_execute_frame(ReaperRoot& root, const SceneGraph& scene,
                             std::span<DebugGeometryUserCommand> debug_draw_commands)
 {
     VulkanBackend& backend = *root.renderer->backend;
@@ -111,8 +111,7 @@ void renderer_execute_frame(ReaperRoot& root, const SceneGraph& scene, std::vect
         build_renderer_perspective_camera(main_camera_transform, perspective_projection, viewport);
 
     PreparedData prepared;
-    prepare_scene(scene, prepared, backend.resources->mesh_cache, main_camera,
-                  static_cast<u32>(audio_output.size() / 8));
+    prepare_scene(scene, prepared, backend.resources->mesh_cache, main_camera);
 
     prepared.debug_draw_commands = debug_draw_commands;
 
@@ -123,11 +122,5 @@ void renderer_execute_frame(ReaperRoot& root, const SceneGraph& scene, std::vect
 
     backend_execute_frame(root, backend, backend.resources->gfxCmdBuffer, prepared, tiled_lighting_frame,
                           *backend.resources, imgui_draw_data);
-
-    if (false) // Re-enable when we're playing with GPU-based sound again
-    {
-        const auto& gpu_audio_buffer = backend.resources->audio_resources.frame_audio_data;
-        audio_output.insert(audio_output.end(), gpu_audio_buffer.begin(), gpu_audio_buffer.end());
-    }
 }
 } // namespace Reaper

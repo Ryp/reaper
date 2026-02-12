@@ -258,8 +258,6 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
                                                                              exposure.reduce_tail.average_exposure,
                                                                              tiled_lighting_debug_record.output);
 
-    const AudioFrameGraphRecord audio_pass = create_audio_frame_graph_record(builder);
-
     builder.build();
     // DumpFrameGraph(framegraph);
 
@@ -325,9 +323,6 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         update_swapchain_pass_descriptor_set(framegraph, resources.framegraph_resources, swapchain,
                                              descriptor_write_helper, resources.swapchain_pass_resources,
                                              resources.samplers_resources);
-
-        update_audio_render_resources(backend, framegraph, resources.framegraph_resources, audio_pass,
-                                      descriptor_write_helper, prepared, resources.audio_resources);
 
         descriptor_write_helper.flush_descriptor_write_helper(backend.device);
     }
@@ -518,12 +513,6 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
 
             vkCmdPipelineBarrier2(cmdBuffer.handle, &dependencies);
         }
-
-        record_audio_render_command_buffer(frame_graph_helper, audio_pass.render, cmdBuffer, resources.pipeline_factory,
-                                           prepared, resources.audio_resources);
-
-        record_audio_copy_command_buffer(frame_graph_helper, audio_pass.staging_copy, cmdBuffer,
-                                         resources.audio_resources);
     }
 
 #if defined(REAPER_USE_TRACY)
@@ -639,7 +628,5 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         log_debug(root, "- total surviving meshlets = {}, triangles = {}, draw commands = {}",
                   total.surviving_meshlet_count, total.surviving_triangle_count, total.indirect_draw_command_count);
     }
-
-    read_gpu_audio_data(backend, resources.audio_resources);
 }
 } // namespace Reaper

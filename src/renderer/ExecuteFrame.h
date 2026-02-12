@@ -28,6 +28,6 @@ REAPER_RENDERER_API void renderer_stop(ReaperRoot& root, VulkanBackend& backend,
 struct SceneGraph;
 
 REAPER_RENDERER_API void
-renderer_execute_frame(ReaperRoot& root, const SceneGraph& scene, std::vector<u8>& audio_output,
+renderer_execute_frame(ReaperRoot& root, const SceneGraph& scene,
                        std::span<DebugGeometryUserCommand> debug_draw_commands = std::span<DebugGeometryUserCommand>());
 } // namespace Reaper

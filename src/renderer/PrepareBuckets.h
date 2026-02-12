@@ -156,5 +156,5 @@ struct MeshCache;
 struct RendererPerspectiveCamera;
 
 void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCache& mesh_cache,
-                   const RendererPerspectiveCamera& main_camera, u32 current_audio_frame);
+                   const RendererPerspectiveCamera& main_camera);
 } // namespace Reaper

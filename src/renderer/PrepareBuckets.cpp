@@ -117,7 +117,7 @@ namespace
 } // namespace
 
 void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCache& mesh_cache,
-                   const RendererPerspectiveCamera& main_camera, u32 current_audio_frame)
+                   const RendererPerspectiveCamera& main_camera)
 {
     REAPER_PROFILE_SCOPE_FUNC();
 
@@ -261,16 +261,6 @@ void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCa
 
             insert_cull_command(cull_pass, mesh_alloc, cull_instance_index, 1);
         }
-    }
-
-    // Audio pass
-    prepared.audio_push_constants.start_sample = current_audio_frame;
-    for (u32 i = 0; i < OscillatorCount; i++)
-    {
-        OscillatorInstance& instance = prepared.audio_instance_params.emplace_back();
-
-        instance.frequency = note(0.f + static_cast<float>(i) * 5.f);
-        instance.pan = -0.60f + static_cast<float>(i) * 0.4f;
     }
 }
 } // namespace Reaper

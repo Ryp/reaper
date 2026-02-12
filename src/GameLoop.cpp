@@ -301,7 +301,7 @@ void execute_game_loop(ReaperRoot& root)
 {
     IWindow*       window = root.renderer->window;
     VulkanBackend& backend = *root.renderer->backend;
-    AudioBackend&  audio_backend = *root.audio;
+    // AudioBackend&  audio_backend = *root.audio;
 
     renderer_start(root, backend, window);
 
@@ -842,9 +842,9 @@ void execute_game_loop(ReaperRoot& root)
                 0x0000FFFF));
         }
 
-        renderer_execute_frame(root, scene, audio_backend.audio_buffer, debug_draw_commands);
+        renderer_execute_frame(root, scene, debug_draw_commands);
 
-        audio_execute_frame(root, audio_backend);
+        // audio_execute_frame(root, audio_backend);
 
         if (saveMyLaptop)
         {
@@ -860,18 +860,18 @@ void execute_game_loop(ReaperRoot& root)
         last_controller_state = controller_state;
     }
 
-    const bool write_audio_to_file = false;
-    if (write_audio_to_file)
-    {
-        // Write recorded audio to filesystem
-        std::ofstream output_file("output.wav", std::ios::binary | std::ios::out);
-        Assert(output_file.is_open());
+    // const bool write_audio_to_file = false;
+    // if (write_audio_to_file)
+    //{
+    //     // Write recorded audio to filesystem
+    //     std::ofstream output_file("output.wav", std::ios::binary | std::ios::out);
+    //     Assert(output_file.is_open());
 
-        Audio::write_wav(output_file, audio_backend.audio_buffer.data(),
-                         static_cast<u32>(audio_backend.audio_buffer.size()), BitsPerChannel, SampleRate);
+    //    Audio::write_wav(output_file, audio_backend.audio_buffer.data(),
+    //                     static_cast<u32>(audio_backend.audio_buffer.size()), BitsPerChannel, SampleRate);
 
-        output_file.close();
-    }
+    //    output_file.close();
+    //}
 
 #if ENABLE_GAME_SCENE
     Neptune::destroy_game_track(game_track, backend, sim, scene);
