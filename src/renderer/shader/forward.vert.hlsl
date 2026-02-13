@@ -9,9 +9,7 @@ VK_BINDING(0, 0) ConstantBuffer<ForwardPassParams> pass_params;
 VK_BINDING(0, 1) StructuredBuffer<MeshInstance> instance_params;
 VK_BINDING(0, 2) StructuredBuffer<VisibleMeshlet> visible_meshlets;
 VK_BINDING(0, 3) ByteAddressBuffer buffer_position_ms;
-VK_BINDING(0, 4) ByteAddressBuffer buffer_normal_ms;
-VK_BINDING(0, 5) ByteAddressBuffer buffer_tangent_ms;
-VK_BINDING(0, 6) ByteAddressBuffer buffer_uv;
+VK_BINDING(0, 4) ByteAddressBuffer buffer_attributes;
 
 struct VS_INPUT
 {
@@ -44,9 +42,9 @@ void main(in VS_INPUT input, out VS_OUTPUT output)
     uint vertex_id = input.vertex_id + visible_meshlet.vertex_offset;
 
     const float3 position_ms = pull_position(buffer_position_ms, vertex_id);
-    const float3 normal_ms = pull_normal(buffer_normal_ms, vertex_id);
-    const float4 tangent_ms = pull_tangent(buffer_tangent_ms, vertex_id);
-    const float2 uv = pull_uv(buffer_uv, vertex_id);
+    const float3 normal_ms = pull_normal(buffer_attributes, vertex_id);
+    const float4 tangent_ms = pull_tangent(buffer_attributes, vertex_id);
+    const float2 uv = pull_uv(buffer_attributes, vertex_id);
 
     const MeshInstance instance_data = instance_params[visible_meshlet.mesh_instance_id];
 

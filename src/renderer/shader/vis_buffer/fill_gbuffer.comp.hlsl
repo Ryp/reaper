@@ -35,9 +35,7 @@ VK_BINDING(0, Slot_GBuffer1) RWTexture2D<GBuffer1Type> GBuffer1;
 VK_BINDING(0, Slot_instance_params) StructuredBuffer<MeshInstance> instance_params;
 VK_BINDING(0, Slot_visible_index_buffer) ByteAddressBuffer visible_index_buffer;
 VK_BINDING(0, Slot_buffer_position_ms) ByteAddressBuffer buffer_position_ms;
-VK_BINDING(0, Slot_buffer_normal_ms) ByteAddressBuffer buffer_normal_ms;
-VK_BINDING(0, Slot_buffer_tangent_ms) ByteAddressBuffer buffer_tangent_ms;
-VK_BINDING(0, Slot_buffer_uv) ByteAddressBuffer buffer_uv;
+VK_BINDING(0, Slot_buffer_attributes) ByteAddressBuffer buffer_attributes;
 VK_BINDING(0, Slot_visible_meshlets) StructuredBuffer<VisibleMeshlet> visible_meshlets;
 VK_BINDING(0, Slot_diffuse_map_sampler) SamplerState diffuse_map_sampler;
 VK_BINDING(0, Slot_material_maps) Texture2D<float3> material_maps[MaterialTextureMaxCount];
@@ -101,20 +99,20 @@ void main(uint3 gtid : SV_GroupThreadID,
     p1.position_ms = pull_position(buffer_position_ms, indices.y);
     p2.position_ms = pull_position(buffer_position_ms, indices.z);
 
-    p0.normal_ms = pull_normal(buffer_normal_ms, indices.x);
-    p1.normal_ms = pull_normal(buffer_normal_ms, indices.y);
-    p2.normal_ms = pull_normal(buffer_normal_ms, indices.z);
+    p0.normal_ms = pull_normal(buffer_attributes, indices.x);
+    p1.normal_ms = pull_normal(buffer_attributes, indices.y);
+    p2.normal_ms = pull_normal(buffer_attributes, indices.z);
 
-    const float4 p0_tangent = pull_tangent(buffer_tangent_ms, indices.x);
+    const float4 p0_tangent = pull_tangent(buffer_attributes, indices.x);
     const float p0_bitangent_sign = p0_tangent.w;
 
     p0.tangent_ms = p0_tangent.xyz;
-    p1.tangent_ms = pull_tangent(buffer_tangent_ms, indices.y).xyz;
-    p2.tangent_ms = pull_tangent(buffer_tangent_ms, indices.z).xyz;
+    p1.tangent_ms = pull_tangent(buffer_attributes, indices.y).xyz;
+    p2.tangent_ms = pull_tangent(buffer_attributes, indices.z).xyz;
 
-    p0.uv = pull_uv(buffer_uv, indices.x);
-    p1.uv = pull_uv(buffer_uv, indices.y);
-    p2.uv = pull_uv(buffer_uv, indices.z);
+    p0.uv = pull_uv(buffer_attributes, indices.x);
+    p1.uv = pull_uv(buffer_attributes, indices.y);
+    p2.uv = pull_uv(buffer_attributes, indices.z);
 
     MeshInstance instance_data = instance_params[visible_meshlet.mesh_instance_id];
     float4 p0_cs = mul(instance_data.ms_to_cs_matrix, float4(p0.position_ms, 1.0));

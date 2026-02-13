@@ -18,9 +18,9 @@ VK_CONSTANT(0) const uint spec_debug_mode = debug_mode_none;
 VK_CONSTANT(1) const bool spec_debug_enable_shadows = true;
 
 VK_BINDING(0, 0) ConstantBuffer<ForwardPassParams> pass_params;
-VK_BINDING(0, 7) StructuredBuffer<PointLightProperties> point_lights;
-VK_BINDING(0, 8) SamplerComparisonState shadow_map_sampler;
-VK_BINDING(0, 9) Texture2D<float> shadow_map_array[ShadowMapMaxCount];
+VK_BINDING(0, 5) StructuredBuffer<PointLightProperties> point_lights;
+VK_BINDING(0, 6) SamplerComparisonState shadow_map_sampler;
+VK_BINDING(0, 7) Texture2D<float> shadow_map_array[ShadowMapMaxCount];
 
 VK_BINDING(1, 0) SamplerState diffuse_map_sampler;
 VK_BINDING(1, 1) Texture2D<float3> material_maps[MaterialTextureMaxCount];

@@ -27,16 +27,12 @@ struct MeshCache
 
     GPUBuffer indexBuffer;
     GPUBuffer vertexBufferPosition;
-    GPUBuffer vertexBufferUV;
-    GPUBuffer vertexBufferNormal;
-    GPUBuffer vertexBufferTangent;
+    GPUBuffer vertexAttributesBuffer;
     GPUBuffer meshletBuffer;
 
-    u32 current_uv_offset;
-    u32 current_normal_offset;
-    u32 current_tangent_offset;
-    u32 current_position_offset;
     u32 current_index_offset;
+    u32 current_position_offset;
+    u32 current_attributes_offset;
     u32 current_meshlet_offset;
 
     std::vector<Mesh2> mesh2_instances;

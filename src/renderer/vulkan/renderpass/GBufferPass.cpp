@@ -81,9 +81,7 @@ GBufferPassResources create_gbuffer_pass_resources(VulkanBackend& backend, Pipel
         {Slot_instance_params, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
         {Slot_visible_meshlets, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
         {Slot_buffer_position_ms, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
-        {Slot_buffer_normal_ms, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
-        {Slot_buffer_tangent_ms, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
-        {Slot_buffer_uv, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
+        {Slot_buffer_attributes, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
         {Slot_diffuse_map_sampler, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
         {Slot_material_maps, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, MaterialTextureMaxCount, VK_SHADER_STAGE_FRAGMENT_BIT,
          nullptr},
@@ -140,12 +138,8 @@ void update_gbuffer_pass_descriptor_sets(DescriptorWriteHelper& write_helper, co
                         visible_meshlet_buffer.handle);
     write_helper.append(resources.descriptor_set, Slot_buffer_position_ms, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                         mesh_cache.vertexBufferPosition.handle);
-    write_helper.append(resources.descriptor_set, Slot_buffer_normal_ms, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                        mesh_cache.vertexBufferNormal.handle);
-    write_helper.append(resources.descriptor_set, Slot_buffer_tangent_ms, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                        mesh_cache.vertexBufferTangent.handle);
-    write_helper.append(resources.descriptor_set, Slot_buffer_uv, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                        mesh_cache.vertexBufferUV.handle);
+    write_helper.append(resources.descriptor_set, Slot_buffer_attributes, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                        mesh_cache.vertexAttributesBuffer.handle);
     write_helper.append(resources.descriptor_set, Slot_diffuse_map_sampler, sampler_resources.diffuse_map_sampler);
 
     if (!material_resources.textures.empty())

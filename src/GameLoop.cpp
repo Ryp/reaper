@@ -405,6 +405,10 @@ void execute_game_loop(ReaperRoot& root)
         Assert(gltf_primitive.indices->component_type == cgltf_component_type_r_32u);
         load_gltf_mesh_attribute(*gltf_primitive.indices, mesh.indexes);
 
+        std::vector<glm::fvec3> attributes_normals;
+        std::vector<glm::fvec4> attributes_tangents;
+        std::vector<glm::fvec2> attributes_uvs;
+
         for (u32 j = 0; j < attributes.size(); j++)
         {
             const cgltf_attribute& gltf_attribute = attributes[j];
@@ -424,24 +428,36 @@ void execute_game_loop(ReaperRoot& root)
             case cgltf_attribute_type_normal: {
                 Assert(attribute_data.type == cgltf_type_vec3);
                 // NOTE: Not necessary normalized;
-                load_gltf_mesh_attribute(attribute_data, mesh.normals);
+                load_gltf_mesh_attribute(attribute_data, attributes_normals);
                 break;
             }
             case cgltf_attribute_type_tangent: {
                 Assert(attribute_data.type == cgltf_type_vec4);
                 // NOTE: Not necessary normalized;
-                load_gltf_mesh_attribute(attribute_data, mesh.tangents);
+                load_gltf_mesh_attribute(attribute_data, attributes_tangents);
                 break;
             }
             case cgltf_attribute_type_texcoord: {
                 Assert(attribute_data.type == cgltf_type_vec2);
-                load_gltf_mesh_attribute(attribute_data, mesh.uvs);
+                load_gltf_mesh_attribute(attribute_data, attributes_uvs);
                 break;
             }
             default:
                 // FIXME Simply ignore the stream
                 break;
             }
+        }
+
+        mesh.attributes.resize(mesh.positions.size());
+
+        // FIXME handle missing streams with defaults
+        for (u32 j = 0; j < mesh.attributes.size(); j++)
+        {
+            mesh.attributes[j] = {
+                .normal = attributes_normals[j],
+                .uv = attributes_uvs[j],
+                .tangent = attributes_tangents[j],
+            };
         }
     }
 

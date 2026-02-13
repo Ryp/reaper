@@ -87,9 +87,7 @@ namespace FillGBuffer
         instance_params,
         visible_index_buffer,
         buffer_position_ms,
-        buffer_normal_ms,
-        buffer_tangent_ms,
-        buffer_uv,
+        buffer_attributes,
         visible_meshlets,
         diffuse_map_sampler,
         material_maps,
@@ -129,15 +127,7 @@ namespace FillGBuffer
          .count = 1,
          .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
          .stage_mask = VK_SHADER_STAGE_COMPUTE_BIT},
-        {.slot = Slot_buffer_normal_ms,
-         .count = 1,
-         .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-         .stage_mask = VK_SHADER_STAGE_COMPUTE_BIT},
-        {.slot = Slot_buffer_tangent_ms,
-         .count = 1,
-         .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-         .stage_mask = VK_SHADER_STAGE_COMPUTE_BIT},
-        {.slot = Slot_buffer_uv,
+        {.slot = Slot_buffer_attributes,
          .count = 1,
          .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
          .stage_mask = VK_SHADER_STAGE_COMPUTE_BIT},
@@ -718,11 +708,8 @@ void update_vis_buffer_pass_resources(const FrameGraph::FrameGraph&    frame_gra
                             visible_index_buffer_view.size_bytes);
         write_helper.append(resources.descriptor_set_fill, g_bindings[buffer_position_ms],
                             mesh_cache.vertexBufferPosition.handle);
-        write_helper.append(resources.descriptor_set_fill, g_bindings[buffer_normal_ms],
-                            mesh_cache.vertexBufferNormal.handle);
-        write_helper.append(resources.descriptor_set_fill, g_bindings[buffer_tangent_ms],
-                            mesh_cache.vertexBufferTangent.handle);
-        write_helper.append(resources.descriptor_set_fill, g_bindings[buffer_uv], mesh_cache.vertexBufferUV.handle);
+        write_helper.append(resources.descriptor_set_fill, g_bindings[buffer_attributes],
+                            mesh_cache.vertexAttributesBuffer.handle);
         write_helper.append(resources.descriptor_set_fill, g_bindings[visible_meshlets], visible_meshlet_buffer.handle);
         write_helper.append(resources.descriptor_set_fill, g_bindings[diffuse_map_sampler],
                             sampler_resources.diffuse_map_sampler);

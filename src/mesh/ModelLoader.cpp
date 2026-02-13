@@ -41,9 +41,7 @@ namespace
         // FIXME reserve() not at the right size
         Mesh mesh;
         mesh.positions.reserve(attrib.vertices.size());
-        mesh.normals.reserve(attrib.normals.size());
-        mesh.tangents.reserve(attrib.normals.size());
-        mesh.uvs.reserve(attrib.texcoords.size());
+        mesh.attributes.reserve(attrib.vertices.size());
 
         // Loop over shapes
         for (size_t s = 0; s < shapes.size(); s++)
@@ -67,24 +65,32 @@ namespace
                     tinyobj::real_t  vz = attrib.vertices[3 * indexInfo.vertex_index + 2];
                     const glm::fvec3 vertex(vx, vy, vz);
                     mesh.positions.push_back(vertex);
+                    auto& vertex_attributes = mesh.attributes.emplace_back();
 
                     if (!attrib.normals.empty())
                     {
-                        tinyobj::real_t  nx = attrib.normals[3 * indexInfo.normal_index + 0];
-                        tinyobj::real_t  ny = attrib.normals[3 * indexInfo.normal_index + 1];
-                        tinyobj::real_t  nz = attrib.normals[3 * indexInfo.normal_index + 2];
-                        const glm::fvec3 normal(nx, ny, nz);
-                        mesh.normals.push_back(normal);
-                        mesh.tangents.push_back(glm::fvec4(1.0, 0.0, 0.0, 1.0));
+                        tinyobj::real_t nx = attrib.normals[3 * indexInfo.normal_index + 0];
+                        tinyobj::real_t ny = attrib.normals[3 * indexInfo.normal_index + 1];
+                        tinyobj::real_t nz = attrib.normals[3 * indexInfo.normal_index + 2];
+                        vertex_attributes.normal = glm::fvec3(nx, ny, nz);
+                    }
+                    else
+                    {
+                        vertex_attributes.normal = glm::fvec3(0.0, 0.0, 1.0); // Dummy value
                     }
 
                     if (!attrib.texcoords.empty())
                     {
-                        tinyobj::real_t  tx = attrib.texcoords[2 * indexInfo.texcoord_index + 0];
-                        tinyobj::real_t  ty = attrib.texcoords[2 * indexInfo.texcoord_index + 1];
-                        const glm::fvec2 uv(tx, ty);
-                        mesh.uvs.push_back(uv);
+                        tinyobj::real_t tx = attrib.texcoords[2 * indexInfo.texcoord_index + 0];
+                        tinyobj::real_t ty = attrib.texcoords[2 * indexInfo.texcoord_index + 1];
+                        vertex_attributes.uv = glm::fvec2(tx, ty);
                     }
+                    else
+                    {
+                        vertex_attributes.uv = glm::fvec2(0.0, 0.0); // Dummy value
+                    }
+
+                    vertex_attributes.tangent = glm::fvec4(1.0, 0.0, 0.0, 1.0); // Dummy value
 
                     mesh.indexes.push_back(index);
                 }
@@ -110,12 +116,12 @@ void save_obj(std::ostream& output, std::span<const Mesh> meshes)
     for (u32 meshIndex = 0; meshIndex < meshes.size(); meshIndex++)
     {
         const Mesh& mesh = meshes[meshIndex];
-        const u32   vertexCount = static_cast<u32>(mesh.positions.size());
-        const u32   uvCount = static_cast<u32>(mesh.uvs.size());
-        const u32   normalCount = static_cast<u32>(mesh.normals.size());
         const u32   indexCount = static_cast<u32>(mesh.indexes.size());
+        const u32   vertexCount = static_cast<u32>(mesh.positions.size());
+        const u32   attributesCount = static_cast<u32>(mesh.attributes.size());
 
         Assert(indexCount % 3 == 0);
+        Assert(vertexCount == attributesCount);
 
         for (u32 i = 0; i < vertexCount; i++)
         {
@@ -125,19 +131,19 @@ void save_obj(std::ostream& output, std::span<const Mesh> meshes)
             output << std::endl;
         }
 
-        for (u32 i = 0; i < uvCount; i++)
+        for (u32 i = 0; i < attributesCount; i++)
         {
             output << "vt";
             for (u32 j = 0; j < 2; ++j)
-                output << ' ' << mesh.uvs[i][j];
+                output << ' ' << mesh.attributes[i].uv[j];
             output << std::endl;
         }
 
-        for (u32 i = 0; i < normalCount; i++)
+        for (u32 i = 0; i < attributesCount; i++)
         {
             output << "vn";
             for (u32 j = 0; j < 3; ++j)
-                output << ' ' << mesh.normals[i][j];
+                output << ' ' << mesh.attributes[i].normal[j];
             output << std::endl;
         }
 
@@ -157,8 +163,9 @@ void save_obj(std::ostream& output, std::span<const Mesh> meshes)
         }
 
         vertexOffset += vertexCount;
-        uvOffset += uvCount;
-        normalOffset += normalCount;
+
+        uvOffset += attributesCount;
+        normalOffset += attributesCount;
     }
 }
 } // namespace Reaper

@@ -46,9 +46,7 @@ namespace Forward::zero
         instance_params,
         visible_meshlets,
         buffer_position_ms,
-        buffer_normal_ms,
-        buffer_tangent_ms,
-        buffer_uv,
+        buffer_attributes,
         point_lights,
         shadow_map_sampler,
         shadow_map_array,
@@ -64,11 +62,9 @@ namespace Forward::zero
         {.slot = 2, .count = 1, .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, .stage_mask = VK_SHADER_STAGE_VERTEX_BIT},
         {.slot = 3, .count = 1, .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, .stage_mask = VK_SHADER_STAGE_VERTEX_BIT},
         {.slot = 4, .count = 1, .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, .stage_mask = VK_SHADER_STAGE_VERTEX_BIT},
-        {.slot = 5, .count = 1, .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, .stage_mask = VK_SHADER_STAGE_VERTEX_BIT},
-        {.slot = 6, .count = 1, .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, .stage_mask = VK_SHADER_STAGE_VERTEX_BIT},
-        {.slot = 7, .count = 1, .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, .stage_mask = VK_SHADER_STAGE_FRAGMENT_BIT},
-        {.slot = 8, .count = 1, .type = VK_DESCRIPTOR_TYPE_SAMPLER, .stage_mask = VK_SHADER_STAGE_FRAGMENT_BIT},
-        {.slot = 9,
+        {.slot = 5, .count = 1, .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, .stage_mask = VK_SHADER_STAGE_FRAGMENT_BIT},
+        {.slot = 6, .count = 1, .type = VK_DESCRIPTOR_TYPE_SAMPLER, .stage_mask = VK_SHADER_STAGE_FRAGMENT_BIT},
+        {.slot = 7,
          .count = ShadowMapMaxCount,
          .type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
          .stage_mask = VK_SHADER_STAGE_FRAGMENT_BIT},
@@ -275,11 +271,8 @@ void update_forward_pass_descriptor_sets(VulkanBackend& backend, const FrameGrap
         write_helper.append(resources.descriptor_set, g_bindings[visible_meshlets], visible_meshlet_buffer.handle);
         write_helper.append(resources.descriptor_set, g_bindings[buffer_position_ms],
                             mesh_cache.vertexBufferPosition.handle);
-        write_helper.append(resources.descriptor_set, g_bindings[buffer_normal_ms],
-                            mesh_cache.vertexBufferNormal.handle);
-        write_helper.append(resources.descriptor_set, g_bindings[buffer_tangent_ms],
-                            mesh_cache.vertexBufferTangent.handle);
-        write_helper.append(resources.descriptor_set, g_bindings[buffer_uv], mesh_cache.vertexBufferUV.handle);
+        write_helper.append(resources.descriptor_set, g_bindings[buffer_attributes],
+                            mesh_cache.vertexAttributesBuffer.handle);
         write_helper.append(resources.descriptor_set, g_bindings[point_lights],
                             lighting_resources.point_light_buffer_alloc.buffer,
                             lighting_resources.point_light_buffer_alloc.offset_bytes,

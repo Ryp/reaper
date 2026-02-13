@@ -7,8 +7,6 @@
 
 #pragma once
 
-#include <vector>
-
 #include <core/Types.h>
 
 namespace Reaper
@@ -22,9 +20,7 @@ struct MeshAlloc
     // Buffer offsets
     u32 index_offset;
     u32 position_offset;
-    u32 uv_offset;
-    u32 normal_offset;
-    u32 tangent_offset;
+    u32 attributes_offset;
     u32 meshlet_offset;
 };
 

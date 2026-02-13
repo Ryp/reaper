@@ -14,19 +14,24 @@ float3 pull_position(ByteAddressBuffer buffer_position, uint vertex_id)
     return asfloat(buffer_position.Load3(vertex_id * 3 * 4));
 }
 
-float3 pull_normal(ByteAddressBuffer buffer_normal, uint vertex_id)
+const uint AttributesSizeBytes = 12 * 4;
+const uint AttributesNormalOffsetBytes = 0;
+const uint AttributesUVOffsetBytes = 4 * 4;
+const uint AttributesTangentOffsetBytes = 8 * 4;
+
+float3 pull_normal(ByteAddressBuffer buffer_attributes, uint vertex_id)
 {
-    return asfloat(buffer_normal.Load3(vertex_id * 3 * 4));
+    return asfloat(buffer_attributes.Load3(vertex_id * AttributesSizeBytes + AttributesNormalOffsetBytes));
 }
 
-float4 pull_tangent(ByteAddressBuffer buffer_tangent, uint vertex_id)
+float4 pull_tangent(ByteAddressBuffer buffer_attributes, uint vertex_id)
 {
-    return asfloat(buffer_tangent.Load4(vertex_id * 4 * 4));
+    return asfloat(buffer_attributes.Load4(vertex_id * AttributesSizeBytes + AttributesTangentOffsetBytes));
 }
 
-float2 pull_uv(ByteAddressBuffer buffer_uv, uint vertex_id)
+float2 pull_uv(ByteAddressBuffer buffer_attributes, uint vertex_id)
 {
-    return asfloat(buffer_uv.Load2(vertex_id * 2 * 4));
+    return asfloat(buffer_attributes.Load2(vertex_id * AttributesSizeBytes + AttributesUVOffsetBytes));
 }
 
 #endif

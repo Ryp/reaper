@@ -23,30 +23,21 @@ MeshCache create_mesh_cache(VulkanBackend& backend)
 {
     MeshCache cache;
 
+    cache.indexBuffer = create_buffer(
+        backend.device, "Index buffer",
+        DefaultGPUBufferProperties(MeshCache::MAX_INDEX_COUNT, sizeof(int), GPUBufferUsage::StorageBuffer),
+        backend.vma_instance, MemUsage::CPU_To_GPU);
+
     cache.vertexBufferPosition = create_buffer(
         backend.device, "Position buffer",
         DefaultGPUBufferProperties(MeshCache::MAX_VERTEX_COUNT, 3 * sizeof(float), GPUBufferUsage::StorageBuffer),
         backend.vma_instance, MemUsage::CPU_To_GPU);
 
-    cache.vertexBufferNormal = create_buffer(
-        backend.device, "Normal buffer",
-        DefaultGPUBufferProperties(MeshCache::MAX_VERTEX_COUNT, 3 * sizeof(float), GPUBufferUsage::StorageBuffer),
-        backend.vma_instance, MemUsage::CPU_To_GPU);
-
-    cache.vertexBufferTangent = create_buffer(
-        backend.device, "Tangent buffer",
-        DefaultGPUBufferProperties(MeshCache::MAX_VERTEX_COUNT, 4 * sizeof(float), GPUBufferUsage::StorageBuffer),
-        backend.vma_instance, MemUsage::CPU_To_GPU);
-
-    cache.vertexBufferUV = create_buffer(
-        backend.device, "UV buffer",
-        DefaultGPUBufferProperties(MeshCache::MAX_VERTEX_COUNT, 2 * sizeof(float), GPUBufferUsage::StorageBuffer),
-        backend.vma_instance, MemUsage::CPU_To_GPU);
-
-    cache.indexBuffer = create_buffer(
-        backend.device, "Index buffer",
-        DefaultGPUBufferProperties(MeshCache::MAX_INDEX_COUNT, sizeof(int), GPUBufferUsage::StorageBuffer),
-        backend.vma_instance, MemUsage::CPU_To_GPU);
+    cache.vertexAttributesBuffer =
+        create_buffer(backend.device, "Vertex attributes",
+                      DefaultGPUBufferProperties(MeshCache::MAX_VERTEX_COUNT, sizeof(VertexAttributes),
+                                                 GPUBufferUsage::StorageBuffer),
+                      backend.vma_instance, MemUsage::CPU_To_GPU);
 
     cache.meshletBuffer = create_buffer(
         backend.device, "Meshlet buffer",
@@ -63,11 +54,8 @@ void destroy_mesh_cache(VulkanBackend& backend, const MeshCache& mesh_cache)
     vmaDestroyBuffer(backend.vma_instance, mesh_cache.indexBuffer.handle, mesh_cache.indexBuffer.allocation);
     vmaDestroyBuffer(backend.vma_instance, mesh_cache.vertexBufferPosition.handle,
                      mesh_cache.vertexBufferPosition.allocation);
-    vmaDestroyBuffer(backend.vma_instance, mesh_cache.vertexBufferUV.handle, mesh_cache.vertexBufferUV.allocation);
-    vmaDestroyBuffer(backend.vma_instance, mesh_cache.vertexBufferNormal.handle,
-                     mesh_cache.vertexBufferNormal.allocation);
-    vmaDestroyBuffer(backend.vma_instance, mesh_cache.vertexBufferTangent.handle,
-                     mesh_cache.vertexBufferTangent.allocation);
+    vmaDestroyBuffer(backend.vma_instance, mesh_cache.vertexAttributesBuffer.handle,
+                     mesh_cache.vertexAttributesBuffer.allocation);
     vmaDestroyBuffer(backend.vma_instance, mesh_cache.meshletBuffer.handle, mesh_cache.meshletBuffer.allocation);
 }
 
@@ -75,11 +63,9 @@ void clear_meshes(MeshCache& mesh_cache)
 {
     mesh_cache.mesh2_instances.clear();
 
-    mesh_cache.current_uv_offset = 0;
-    mesh_cache.current_normal_offset = 0;
-    mesh_cache.current_tangent_offset = 0;
-    mesh_cache.current_position_offset = 0;
     mesh_cache.current_index_offset = 0;
+    mesh_cache.current_position_offset = 0;
+    mesh_cache.current_attributes_offset = 0;
     mesh_cache.current_meshlet_offset = 0;
 }
 
@@ -91,15 +77,12 @@ namespace
 
         const u32 index_count = static_cast<u32>(mesh.indexes.size());
         const u32 position_count = static_cast<u32>(mesh.positions.size());
-        const u32 uv_count = static_cast<u32>(mesh.uvs.size());
-        const u32 normal_count = static_cast<u32>(mesh.normals.size());
-        const u32 tangent_count = static_cast<u32>(mesh.tangents.size());
+        const u32 attributes_count = static_cast<u32>(mesh.attributes.size());
         const u32 meshlet_count = static_cast<u32>(meshlets.size());
 
         Assert(index_count > 0);
         Assert(position_count > 0);
-        Assert(normal_count == position_count);
-        Assert(uv_count == position_count);
+        Assert(position_count == attributes_count);
         Assert(meshlet_count > 0);
 
         alloc.index_count = index_count;
@@ -108,20 +91,17 @@ namespace
 
         alloc.index_offset = mesh_cache.current_index_offset;
         alloc.position_offset = mesh_cache.current_position_offset;
-        alloc.uv_offset = mesh_cache.current_uv_offset;
-        alloc.normal_offset = mesh_cache.current_normal_offset;
-        alloc.tangent_offset = mesh_cache.current_tangent_offset;
+        alloc.attributes_offset = mesh_cache.current_attributes_offset;
         alloc.meshlet_offset = mesh_cache.current_meshlet_offset;
 
         mesh_cache.current_index_offset += index_count;
         mesh_cache.current_position_offset += position_count;
-        mesh_cache.current_uv_offset += uv_count;
-        mesh_cache.current_normal_offset += normal_count;
-        mesh_cache.current_tangent_offset += tangent_count;
+        mesh_cache.current_attributes_offset += position_count;
         mesh_cache.current_meshlet_offset += meshlet_count;
 
         Assert(mesh_cache.current_index_offset < MeshCache::MAX_INDEX_COUNT);
         Assert(mesh_cache.current_position_offset < MeshCache::MAX_VERTEX_COUNT);
+        Assert(mesh_cache.current_attributes_offset < MeshCache::MAX_VERTEX_COUNT);
         Assert(mesh_cache.current_meshlet_offset < MeshCache::MAX_MESHLET_COUNT);
 
         return alloc;
@@ -135,14 +115,10 @@ namespace
         upload_buffer_data_deprecated(backend.device, backend.vma_instance, mesh_cache.vertexBufferPosition,
                                       mesh.positions.data(), mesh.positions.size() * sizeof(mesh.positions[0]),
                                       mesh_alloc.position_offset);
-        upload_buffer_data_deprecated(backend.device, backend.vma_instance, mesh_cache.vertexBufferUV, mesh.uvs.data(),
-                                      mesh.uvs.size() * sizeof(mesh.uvs[0]), mesh_alloc.uv_offset);
-        upload_buffer_data_deprecated(backend.device, backend.vma_instance, mesh_cache.vertexBufferNormal,
-                                      mesh.normals.data(), mesh.normals.size() * sizeof(mesh.normals[0]),
-                                      mesh_alloc.normal_offset);
-        upload_buffer_data_deprecated(backend.device, backend.vma_instance, mesh_cache.vertexBufferTangent,
-                                      mesh.tangents.data(), mesh.tangents.size() * sizeof(mesh.tangents[0]),
-                                      mesh_alloc.tangent_offset);
+        upload_buffer_data_deprecated(backend.device, backend.vma_instance, mesh_cache.vertexAttributesBuffer,
+                                      mesh.attributes.data(), mesh.attributes.size() * sizeof(mesh.attributes[0]),
+                                      mesh_alloc.attributes_offset);
+
         upload_buffer_data_deprecated(backend.device, backend.vma_instance, mesh_cache.meshletBuffer, meshlets.data(),
                                       meshlets.size() * sizeof(meshlets[0]), mesh_alloc.meshlet_offset);
     }
@@ -158,16 +134,7 @@ void load_meshes(VulkanBackend& backend, MeshCache& mesh_cache, std::span<const 
         // NOTE: Deep copy to keep the input immutable
         Mesh mesh = meshes[mesh_index];
 
-        // FIXME Filling empty buffers with garbage to preserve correct index offsets
-        // This can be removed if we do vertex pulling with per-buffer offsets
-        if (mesh.normals.empty())
-            mesh.normals.resize(mesh.positions.size());
-
-        if (mesh.tangents.empty())
-            mesh.tangents.resize(mesh.positions.size());
-
-        if (mesh.uvs.empty())
-            mesh.uvs.resize(mesh.positions.size());
+        Assert(mesh.attributes.size() == mesh.positions.size());
 
         const size_t max_vertices = MeshletMaxTriangleCount * 3;
         const size_t max_triangles = MeshletMaxTriangleCount;
@@ -195,21 +162,17 @@ void load_meshes(VulkanBackend& backend, MeshCache& mesh_cache, std::span<const 
         const u32 meshlet_vertex_count = static_cast<u32>(meshlet_vertices.size());
         const u32 total_mesh_index_count = static_cast<u32>(meshlet_indices.size());
 
-        std::vector<u32>        optimized_index_buffer(total_mesh_index_count);
-        std::vector<glm::fvec3> optimized_position_buffer(meshlet_vertex_count);
-        std::vector<glm::fvec3> optimized_normal_buffer(meshlet_vertex_count);
-        std::vector<glm::fvec4> optimized_tangent_buffer(meshlet_vertex_count);
-        std::vector<glm::fvec2> optimized_uv_buffer(meshlet_vertex_count);
-        std::vector<Meshlet>    optimized_meshlets(meshlet_count);
+        std::vector<u32>              optimized_index_buffer(total_mesh_index_count);
+        std::vector<glm::fvec3>       optimized_position_buffer(meshlet_vertex_count);
+        std::vector<VertexAttributes> optimized_attributes_buffer(meshlet_vertex_count);
+        std::vector<Meshlet>          optimized_meshlets(meshlet_count);
 
         for (u32 i = 0; i < meshlet_vertex_count; i++)
         {
             const u32 index = meshlet_vertices[i];
 
             optimized_position_buffer[i] = mesh.positions[index];
-            optimized_normal_buffer[i] = mesh.normals[index];
-            optimized_tangent_buffer[i] = mesh.tangents[index];
-            optimized_uv_buffer[i] = mesh.uvs[index];
+            optimized_attributes_buffer[i] = mesh.attributes[index];
         }
 
         u32 index_output_offset = 0;
@@ -257,9 +220,7 @@ void load_meshes(VulkanBackend& backend, MeshCache& mesh_cache, std::span<const 
 
         std::swap(mesh.indexes, optimized_index_buffer);
         std::swap(mesh.positions, optimized_position_buffer);
-        std::swap(mesh.normals, optimized_normal_buffer);
-        std::swap(mesh.tangents, optimized_tangent_buffer);
-        std::swap(mesh.uvs, optimized_uv_buffer);
+        std::swap(mesh.attributes, optimized_attributes_buffer);
 
         const MeshHandle new_handle = static_cast<MeshHandle>(mesh_cache.mesh2_instances.size());
         Mesh2&           mesh2 = mesh_cache.mesh2_instances.emplace_back();
