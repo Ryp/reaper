@@ -386,8 +386,8 @@ void record_forward_pass_command_buffer(const FrameGraphHelper&        frame_gra
 
     const MeshletDrawParams meshlet_draw = get_meshlet_draw_params(prepared.main_culling_pass_index);
 
-    vkCmdBindIndexBuffer(cmdBuffer.handle, meshlet_visible_index_buffer.handle, meshlet_draw.index_buffer_offset,
-                         meshlet_draw.index_type);
+    vkCmdBindIndexBuffer2(cmdBuffer.handle, meshlet_visible_index_buffer.handle, meshlet_draw.index_buffer_offset,
+                          VK_WHOLE_SIZE, meshlet_draw.index_type);
 
     std::array<VkDescriptorSet, 2> pass_descriptors = {
         pass_resources.descriptor_set,

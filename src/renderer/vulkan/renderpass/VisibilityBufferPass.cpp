@@ -804,8 +804,8 @@ void record_vis_buffer_pass_command_buffer(const FrameGraphHelper&              
 
     const MeshletDrawParams meshlet_draw = get_meshlet_draw_params(prepared.main_culling_pass_index);
 
-    vkCmdBindIndexBuffer(cmdBuffer.handle, meshlet_visible_index_buffer.handle, meshlet_draw.index_buffer_offset,
-                         meshlet_draw.index_type);
+    vkCmdBindIndexBuffer2(cmdBuffer.handle, meshlet_visible_index_buffer.handle, meshlet_draw.index_buffer_offset,
+                          VK_WHOLE_SIZE, meshlet_draw.index_type);
 
     vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, pipe.pipelineLayout, 0, 1,
                             &pass_resources.descriptor_set, 0, nullptr);

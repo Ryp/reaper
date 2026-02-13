@@ -503,7 +503,8 @@ void record_debug_geometry_draw_command_buffer(const FrameGraphHelper&          
                             &resources.draw_descriptor_set, 0, nullptr);
 
     const u64 index_buffer_offset = 0;
-    vkCmdBindIndexBuffer(cmdBuffer.handle, resources.index_buffer.handle, index_buffer_offset, VK_INDEX_TYPE_UINT32);
+    vkCmdBindIndexBuffer2(cmdBuffer.handle, resources.index_buffer.handle, index_buffer_offset, VK_WHOLE_SIZE,
+                          VK_INDEX_TYPE_UINT32);
 
     const u32 command_buffer_offset = 0;
     const u32 counter_buffer_offset = 0;
