@@ -209,8 +209,8 @@ void record_shadow_map_command_buffer(const FrameGraphHelper&       frame_graph_
 
         const MeshletDrawParams meshlet_draw = get_meshlet_draw_params(shadow_pass.pass_index);
 
-        vkCmdBindIndexBuffer(cmdBuffer.handle, meshlet_visible_index_buffer.handle, meshlet_draw.index_buffer_offset,
-                             meshlet_draw.index_type);
+        vkCmdBindIndexBuffer2(cmdBuffer.handle, meshlet_visible_index_buffer.handle, meshlet_draw.index_buffer_offset,
+                              VK_WHOLE_SIZE, meshlet_draw.index_type);
 
         vkCmdBindDescriptorSets(cmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, resources.pipeline_layout, 0, 1,
                                 &resources.descriptor_sets[shadow_pass.pass_index], 0, nullptr);
