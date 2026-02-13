@@ -20,6 +20,7 @@
 #include "renderer/shader/forward.share.hlsl"
 #include "renderer/shader/lighting.share.hlsl"
 #include "renderer/shader/mesh_instance.share.hlsl"
+#include "renderer/shader/mesh_material.share.hlsl"
 #include "renderer/shader/meshlet/meshlet_culling.share.hlsl"
 #include "renderer/shader/shadow/shadow_map_pass.share.hlsl"
 #include "renderer/shader/sound/sound.share.hlsl"
@@ -134,6 +135,7 @@ struct PreparedData
     std::vector<CullMeshInstanceParams> cull_mesh_instance_params;
 
     std::vector<MeshInstance> mesh_instances;
+    std::vector<MeshMaterial> mesh_materials;
 
     u32               main_culling_pass_index;
     ForwardPassParams forward_pass_constants;

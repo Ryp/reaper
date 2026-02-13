@@ -19,10 +19,8 @@ struct MeshInstance
     hlsl_float4x4 ms_to_cs_matrix; // FIXME
     hlsl_float3x4 ms_to_ws_matrix;
     hlsl_float3x3 normal_ms_to_vs_matrix;
-    hlsl_uint     albedo_texture_index;
-    hlsl_uint     roughness_texture_index;
-    hlsl_uint     normal_texture_index;
-    hlsl_uint     ao_texture_index;
+    hlsl_uint3    _pad;
+    hlsl_uint     material_index;
 };
 
 #endif

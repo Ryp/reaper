@@ -89,6 +89,7 @@ namespace FillGBuffer
         buffer_position_ms,
         buffer_attributes,
         visible_meshlets,
+        mesh_materials,
         diffuse_map_sampler,
         material_maps,
         _count,
@@ -132,6 +133,10 @@ namespace FillGBuffer
          .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
          .stage_mask = VK_SHADER_STAGE_COMPUTE_BIT},
         {.slot = Slot_visible_meshlets,
+         .count = 1,
+         .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+         .stage_mask = VK_SHADER_STAGE_COMPUTE_BIT},
+        {.slot = Slot_mesh_materials,
          .count = 1,
          .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
          .stage_mask = VK_SHADER_STAGE_COMPUTE_BIT},
@@ -650,6 +655,11 @@ void update_vis_buffer_pass_resources(const FrameGraph::FrameGraph&    frame_gra
 
     upload_storage_buffer(frame_storage_allocator, mesh_instance_alloc, prepared.mesh_instances.data());
 
+    StorageBufferAlloc mesh_material_alloc =
+        allocate_storage(frame_storage_allocator, prepared.mesh_materials.size() * sizeof(MeshMaterial));
+
+    upload_storage_buffer(frame_storage_allocator, mesh_material_alloc, prepared.mesh_materials.data());
+
     {
         const FrameGraphBuffer visible_meshlet_buffer =
             get_frame_graph_buffer(frame_graph_resources, frame_graph, record.render.visible_meshlet_buffer);
@@ -711,6 +721,8 @@ void update_vis_buffer_pass_resources(const FrameGraph::FrameGraph&    frame_gra
         write_helper.append(resources.descriptor_set_fill, g_bindings[buffer_attributes],
                             mesh_cache.vertexAttributesBuffer.handle);
         write_helper.append(resources.descriptor_set_fill, g_bindings[visible_meshlets], visible_meshlet_buffer.handle);
+        write_helper.append(resources.descriptor_set_fill, g_bindings[mesh_materials], mesh_material_alloc.buffer,
+                            mesh_material_alloc.offset_bytes, mesh_material_alloc.size_bytes);
         write_helper.append(resources.descriptor_set_fill, g_bindings[diffuse_map_sampler],
                             sampler_resources.diffuse_map_sampler);
 

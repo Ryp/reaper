@@ -9,6 +9,7 @@
 #include "meshlet/meshlet.share.hlsl"
 #include "material/standard.hlsl"
 #include "mesh_instance.share.hlsl"
+#include "mesh_material.share.hlsl"
 
 #include "vis_buffer.hlsl"
 #include "fill_gbuffer.share.hlsl"
@@ -37,6 +38,7 @@ VK_BINDING(0, Slot_visible_index_buffer) ByteAddressBuffer visible_index_buffer;
 VK_BINDING(0, Slot_buffer_position_ms) ByteAddressBuffer buffer_position_ms;
 VK_BINDING(0, Slot_buffer_attributes) ByteAddressBuffer buffer_attributes;
 VK_BINDING(0, Slot_visible_meshlets) StructuredBuffer<VisibleMeshlet> visible_meshlets;
+VK_BINDING(0, Slot_mesh_materials) StructuredBuffer<MeshMaterial> mesh_materials;
 VK_BINDING(0, Slot_diffuse_map_sampler) SamplerState diffuse_map_sampler;
 VK_BINDING(0, Slot_material_maps) Texture2D<float3> material_maps[MaterialTextureMaxCount];
 
@@ -139,16 +141,17 @@ void main(uint3 gtid : SV_GroupThreadID,
     float3 tangent_ms = interpolate_barycentrics_simple_float3(barycentrics.lambda, p0.tangent_ms, p1.tangent_ms, p2.tangent_ms);
     float3 tangent_vs = normalize(mul(instance_data.normal_ms_to_vs_matrix, tangent_ms));
 
-    float3 normal_map_normal = decode_normal_map(material_maps[NonUniformResourceIndex(instance_data.normal_texture_index)].SampleGrad(diffuse_map_sampler, uv, uv_ddx, uv_ddy).xyz);
+    MeshMaterial mesh_material = mesh_materials[instance_data.material_index];
 
+    float3 normal_map_normal = decode_normal_map(material_maps[NonUniformResourceIndex(mesh_material.normal_texture_index)].SampleGrad(diffuse_map_sampler, uv, uv_ddx, uv_ddy).xyz);
     float3 normal_vs = compute_tangent_space_normal_map(geometric_normal_vs, tangent_vs, p0_bitangent_sign, normal_map_normal);
 
     StandardMaterial material;
-    material.albedo = material_maps[NonUniformResourceIndex(instance_data.albedo_texture_index)].SampleGrad(diffuse_map_sampler, uv, uv_ddx, uv_ddy).rgb;
+    material.albedo = material_maps[NonUniformResourceIndex(mesh_material.albedo_texture_index)].SampleGrad(diffuse_map_sampler, uv, uv_ddx, uv_ddy).rgb;
     material.normal_vs = normal_vs;
-    material.roughness = material_maps[NonUniformResourceIndex(instance_data.roughness_texture_index)].SampleGrad(diffuse_map_sampler, uv, uv_ddx, uv_ddy).z;
-    material.f0 = material_maps[NonUniformResourceIndex(instance_data.roughness_texture_index)].SampleGrad(diffuse_map_sampler, uv, uv_ddx, uv_ddy).y;
-    material.ao = material_maps[NonUniformResourceIndex(instance_data.ao_texture_index)].SampleGrad(diffuse_map_sampler, uv, uv_ddx, uv_ddy).x;
+    material.roughness = material_maps[NonUniformResourceIndex(mesh_material.roughness_texture_index)].SampleGrad(diffuse_map_sampler, uv, uv_ddx, uv_ddy).z;
+    material.f0 = material_maps[NonUniformResourceIndex(mesh_material.roughness_texture_index)].SampleGrad(diffuse_map_sampler, uv, uv_ddx, uv_ddy).y;
+    material.ao = material_maps[NonUniformResourceIndex(mesh_material.ao_texture_index)].SampleGrad(diffuse_map_sampler, uv, uv_ddx, uv_ddy).x;
 
     const GBuffer gbuffer = gbuffer_from_standard_material(material);
     const GBufferRaw gbuffer_raw = encode_gbuffer(gbuffer);

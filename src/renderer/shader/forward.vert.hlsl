@@ -7,9 +7,10 @@
 
 VK_BINDING(0, 0) ConstantBuffer<ForwardPassParams> pass_params;
 VK_BINDING(0, 1) StructuredBuffer<MeshInstance> instance_params;
-VK_BINDING(0, 2) StructuredBuffer<VisibleMeshlet> visible_meshlets;
-VK_BINDING(0, 3) ByteAddressBuffer buffer_position_ms;
-VK_BINDING(0, 4) ByteAddressBuffer buffer_attributes;
+
+VK_BINDING(0, 3) StructuredBuffer<VisibleMeshlet> visible_meshlets;
+VK_BINDING(0, 4) ByteAddressBuffer buffer_position_ms;
+VK_BINDING(0, 5) ByteAddressBuffer buffer_attributes;
 
 struct VS_INPUT
 {
@@ -26,10 +27,7 @@ struct VS_OUTPUT
     nointerpolation float bitangent_sign : TEXCOORD3;
     float2 UV           : TEXCOORD4;
     float3 PositionWS   : TEXCOORD5;
-    nointerpolation uint albedo_texture_index : TEXCOORD6;
-    nointerpolation uint roughness_texture_index : TEXCOORD7;
-    nointerpolation uint normal_texture_index : TEXCOORD8;
-    nointerpolation uint ao_texture_index : TEXCOORD9;
+    nointerpolation uint material_index : TEXCOORD6;
 };
 
 void main(in VS_INPUT input, out VS_OUTPUT output)
@@ -59,8 +57,5 @@ void main(in VS_INPUT input, out VS_OUTPUT output)
     output.bitangent_sign = tangent_ms.w;
     output.UV = uv;
     output.PositionWS = position_ws;
-    output.albedo_texture_index = instance_data.albedo_texture_index;
-    output.roughness_texture_index = instance_data.roughness_texture_index;
-    output.normal_texture_index = instance_data.normal_texture_index;
-    output.ao_texture_index = instance_data.ao_texture_index;
+    output.material_index = instance_data.material_index;
 }

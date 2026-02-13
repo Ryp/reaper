@@ -23,10 +23,7 @@ struct VS_OUTPUT
     float3 tangent_vs   : TEXCOORD1;
     nointerpolation float bitangent_sign : TEXCOORD2;
     float2 UV           : TEXCOORD3;
-    nointerpolation uint albedo_texture_index : TEXCOORD4;
-    nointerpolation uint roughness_texture_index : TEXCOORD5;
-    nointerpolation uint normal_texture_index : TEXCOORD6;
-    nointerpolation uint ao_texture_index : TEXCOORD7;
+    nointerpolation uint material_index : TEXCOORD4;
 };
 
 void main(in VS_INPUT input, out VS_OUTPUT output)
@@ -47,7 +44,5 @@ void main(in VS_INPUT input, out VS_OUTPUT output)
     output.tangent_vs = normalize(mul(instance_data.normal_ms_to_vs_matrix, tangent_ms.xyz));
     output.bitangent_sign = tangent_ms.w;
     output.UV = uv;
-    output.albedo_texture_index = instance_data.albedo_texture_index;
-    output.roughness_texture_index = instance_data.roughness_texture_index;
-    output.ao_texture_index = instance_data.ao_texture_index;
+    output.material_index = instance_data.material_index;
 }

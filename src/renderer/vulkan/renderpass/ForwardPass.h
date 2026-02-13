@@ -7,16 +7,12 @@
 
 #pragma once
 
-#include "renderer/ResourceHandle.h"
 #include "renderer/graph/FrameGraphBasicTypes.h"
 #include "renderer/vulkan/Buffer.h"
-#include "renderer/vulkan/Image.h"
 
 #include <vulkan_loader/Vulkan.h>
 
 #include <glm/vec2.hpp>
-
-#include <span>
 
 #include <vector>
 
@@ -75,6 +71,7 @@ ForwardFrameGraphRecord create_forward_pass_record(FrameGraph::Builder&         
                                                    VkExtent2D                          render_extent);
 
 struct FrameGraphResources;
+struct StorageBufferAllocator;
 struct MaterialResources;
 struct MeshCache;
 struct LightingPassResources;
@@ -85,8 +82,9 @@ struct SamplerResources;
 void update_forward_pass_descriptor_sets(VulkanBackend& backend, const FrameGraph::FrameGraph& frame_graph,
                                          const FrameGraphResources&     frame_graph_resources,
                                          const ForwardFrameGraphRecord& record, DescriptorWriteHelper& write_helper,
-                                         const PreparedData& prepared, const ForwardPassResources& resources,
-                                         const SamplerResources&  sampler_resources,
+                                         StorageBufferAllocator& frame_storage_allocator, const PreparedData& prepared,
+                                         const ForwardPassResources& resources,
+                                         const SamplerResources&     sampler_resources,
                                          const MaterialResources& material_resources, const MeshCache& mesh_cache,
                                          const LightingPassResources& lighting_resources);
 

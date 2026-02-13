@@ -217,11 +217,25 @@ void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCa
 
         prepared.main_culling_pass_index = cull_pass.pass_index;
 
+        prepared.mesh_materials.reserve(scene.scene_materials.size());
+
+        for (u32 i = 0; i < scene.scene_materials.size(); i++)
+        {
+            const SceneMaterial& scene_material = scene.scene_materials[i];
+
+            MeshMaterial& mesh_material = prepared.mesh_materials.emplace_back();
+            mesh_material.albedo_texture_index = scene_material.base_color_texture;
+            mesh_material.roughness_texture_index = scene_material.metal_roughness_texture;
+            mesh_material.normal_texture_index = scene_material.normal_map_texture;
+            mesh_material.ao_texture_index = scene_material.ao_texture;
+        }
+
+        prepared.mesh_instances.reserve(scene.scene_meshes.size());
+
         for (u32 i = 0; i < scene.scene_meshes.size(); i++)
         {
-            const SceneMesh&     scene_mesh = scene.scene_meshes[i];
-            const SceneMaterial& scene_material = scene.scene_materials[scene_mesh.material_handle];
-            const glm::fmat4x3   mesh_transform = get_scene_node_transform_slow(scene_mesh.scene_node);
+            const SceneMesh&   scene_mesh = scene.scene_meshes[i];
+            const glm::fmat4x3 mesh_transform = get_scene_node_transform_slow(scene_mesh.scene_node);
 
             // Assumption that our 3x3 submatrix is orthonormal (no skew/non-uniform scaling)
             // FIXME use 4x3 matrices directly
@@ -231,10 +245,7 @@ void prepare_scene(const SceneGraph& scene, PreparedData& prepared, const MeshCa
             mesh_instance.ms_to_cs_matrix = main_camera.ws_to_cs_matrix * glm::mat4(mesh_transform);
             mesh_instance.ms_to_ws_matrix = mesh_transform;
             mesh_instance.normal_ms_to_vs_matrix = glm::mat3(ms_to_vs_matrix);
-            mesh_instance.albedo_texture_index = scene_material.base_color_texture;
-            mesh_instance.roughness_texture_index = scene_material.metal_roughness_texture;
-            mesh_instance.normal_texture_index = scene_material.normal_map_texture;
-            mesh_instance.ao_texture_index = scene_material.ao_texture;
+            mesh_instance.material_index = static_cast<u32>(scene_mesh.material_handle);
 
             const u32               cull_instance_index = static_cast<u32>(prepared.cull_mesh_instance_params.size());
             CullMeshInstanceParams& cull_instance = prepared.cull_mesh_instance_params.emplace_back();

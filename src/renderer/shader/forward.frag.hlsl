@@ -5,6 +5,7 @@
 
 #include "forward.share.hlsl"
 #include "mesh_instance.share.hlsl"
+#include "mesh_material.share.hlsl"
 #include "lighting.share.hlsl"
 
 static const uint debug_mode_none = 0;
@@ -18,9 +19,12 @@ VK_CONSTANT(0) const uint spec_debug_mode = debug_mode_none;
 VK_CONSTANT(1) const bool spec_debug_enable_shadows = true;
 
 VK_BINDING(0, 0) ConstantBuffer<ForwardPassParams> pass_params;
-VK_BINDING(0, 5) StructuredBuffer<PointLightProperties> point_lights;
-VK_BINDING(0, 6) SamplerComparisonState shadow_map_sampler;
-VK_BINDING(0, 7) Texture2D<float> shadow_map_array[ShadowMapMaxCount];
+
+VK_BINDING(0, 2) StructuredBuffer<MeshMaterial> mesh_materials;
+
+VK_BINDING(0, 6) StructuredBuffer<PointLightProperties> point_lights;
+VK_BINDING(0, 7) SamplerComparisonState shadow_map_sampler;
+VK_BINDING(0, 8) Texture2D<float> shadow_map_array[ShadowMapMaxCount];
 
 VK_BINDING(1, 0) SamplerState diffuse_map_sampler;
 VK_BINDING(1, 1) Texture2D<float3> material_maps[MaterialTextureMaxCount];
@@ -34,10 +38,7 @@ struct PS_INPUT
     nointerpolation float bitangent_sign : TEXCOORD3;
     float2 UV           : TEXCOORD4;
     float3 PositionWS   : TEXCOORD5;
-    nointerpolation uint albedo_texture_index : TEXCOORD6;
-    nointerpolation uint roughness_texture_index : TEXCOORD7;
-    nointerpolation uint normal_texture_index : TEXCOORD8;
-    nointerpolation uint ao_texture_index : TEXCOORD9;
+    nointerpolation uint material_index : TEXCOORD6;
 };
 
 struct PS_OUTPUT
@@ -51,16 +52,17 @@ void main(in PS_INPUT input, out PS_OUTPUT output)
     const float3 geometric_normal_vs = normalize(input.NormalVS);
     const float3 tangent_vs = normalize(input.tangent_vs); // FIXME Normalize?
 
-    float3 normal_map_normal = decode_normal_map(material_maps[input.normal_texture_index].Sample(diffuse_map_sampler, input.UV).xyz);
+    MeshMaterial mesh_material = mesh_materials[input.material_index];
 
+    float3 normal_map_normal = decode_normal_map(material_maps[mesh_material.normal_texture_index].Sample(diffuse_map_sampler, input.UV).xyz);
     float3 normal_vs = compute_tangent_space_normal_map(geometric_normal_vs, tangent_vs, input.bitangent_sign, normal_map_normal);
 
     StandardMaterial material;
-    material.albedo = material_maps[input.albedo_texture_index].Sample(diffuse_map_sampler, input.UV).rgb;
+    material.albedo = material_maps[mesh_material.albedo_texture_index].Sample(diffuse_map_sampler, input.UV).rgb;
     material.normal_vs = normal_vs;
-    material.roughness = material_maps[input.roughness_texture_index].Sample(diffuse_map_sampler, input.UV).z;
-    material.f0 = material_maps[input.roughness_texture_index].Sample(diffuse_map_sampler, input.UV).y;
-    material.ao = material_maps[input.ao_texture_index].Sample(diffuse_map_sampler, input.UV).x;
+    material.roughness = material_maps[mesh_material.roughness_texture_index].Sample(diffuse_map_sampler, input.UV).z;
+    material.f0 = material_maps[mesh_material.roughness_texture_index].Sample(diffuse_map_sampler, input.UV).y;
+    material.ao = material_maps[mesh_material.ao_texture_index].Sample(diffuse_map_sampler, input.UV).x;
 
     LightOutput lighting_accum = (LightOutput)0;
 

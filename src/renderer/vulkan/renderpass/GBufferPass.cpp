@@ -25,6 +25,7 @@
 #include "renderer/vulkan/RenderPassHelpers.h"
 #include "renderer/vulkan/SamplerResources.h"
 #include "renderer/vulkan/ShaderModules.h"
+#include "renderer/vulkan/StorageBufferAllocator.h"
 #include "renderer/vulkan/renderpass/Constants.h"
 #include "renderer/vulkan/renderpass/GBufferPassConstants.h"
 
@@ -36,6 +37,49 @@ constexpr u32 GBufferInstanceCountMax = 512;
 
 namespace
 {
+    enum BindingIndex
+    {
+        instance_params,
+        visible_meshlets,
+        buffer_position_ms,
+        buffer_attributes,
+        mesh_materials,
+        diffuse_map_sampler,
+        material_maps,
+        _count,
+    };
+
+    std::array<DescriptorBinding, BindingIndex::_count> g_bindings = {
+        DescriptorBinding{.slot = Slot_instance_params,
+                          .count = 1,
+                          .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                          .stage_mask = VK_SHADER_STAGE_VERTEX_BIT},
+        {.slot = Slot_visible_meshlets,
+         .count = 1,
+         .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+         .stage_mask = VK_SHADER_STAGE_VERTEX_BIT},
+        {.slot = Slot_buffer_position_ms,
+         .count = 1,
+         .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+         .stage_mask = VK_SHADER_STAGE_VERTEX_BIT},
+        {.slot = Slot_buffer_attributes,
+         .count = 1,
+         .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+         .stage_mask = VK_SHADER_STAGE_VERTEX_BIT},
+        {.slot = Slot_mesh_materials,
+         .count = 1,
+         .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+         .stage_mask = VK_SHADER_STAGE_FRAGMENT_BIT},
+        {.slot = Slot_diffuse_map_sampler,
+         .count = 1,
+         .type = VK_DESCRIPTOR_TYPE_SAMPLER,
+         .stage_mask = VK_SHADER_STAGE_FRAGMENT_BIT},
+        {.slot = Slot_material_maps,
+         .count = MaterialTextureMaxCount,
+         .type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+         .stage_mask = VK_SHADER_STAGE_FRAGMENT_BIT},
+    };
+
     VkPipeline create_gbuffer_pipeline(VkDevice device, const ShaderModules& shader_modules,
                                        VkPipelineLayout pipeline_layout)
     {
@@ -77,18 +121,12 @@ GBufferPassResources create_gbuffer_pass_resources(VulkanBackend& backend, Pipel
 {
     GBufferPassResources resources = {};
 
-    std::vector<VkDescriptorSetLayoutBinding> bindings = {
-        {Slot_instance_params, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
-        {Slot_visible_meshlets, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
-        {Slot_buffer_position_ms, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
-        {Slot_buffer_attributes, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
-        {Slot_diffuse_map_sampler, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
-        {Slot_material_maps, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, MaterialTextureMaxCount, VK_SHADER_STAGE_FRAGMENT_BIT,
-         nullptr},
-    };
+    std::vector<VkDescriptorSetLayoutBinding> bindings(g_bindings.size());
+    fill_layout_bindings(bindings, g_bindings);
 
+    Assert(bindings[Slot_diffuse_map_sampler].binding == Slot_diffuse_map_sampler);
     std::vector<VkDescriptorBindingFlags> bindingFlags(bindings.size(), VK_FLAGS_NONE);
-    bindingFlags[6] = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT;
+    bindingFlags[Slot_diffuse_map_sampler] = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT;
 
     std::vector<VkDescriptorSetLayout> descriptorSetLayouts = {
         create_descriptor_set_layout(backend.device, bindings, bindingFlags),
@@ -127,11 +165,20 @@ void destroy_gbuffer_pass_resources(VulkanBackend& backend, GBufferPassResources
     vmaDestroyBuffer(backend.vma_instance, resources.instance_buffer.handle, resources.instance_buffer.allocation);
 }
 
-void update_gbuffer_pass_descriptor_sets(DescriptorWriteHelper& write_helper, const GBufferPassResources& resources,
-                                         const FrameGraphBuffer&  visible_meshlet_buffer,
-                                         const SamplerResources&  sampler_resources,
+void update_gbuffer_pass_descriptor_sets(DescriptorWriteHelper&  write_helper,
+                                         StorageBufferAllocator& frame_storage_allocator, const PreparedData& prepared,
+                                         const GBufferPassResources& resources,
+                                         const FrameGraphBuffer&     visible_meshlet_buffer,
+                                         const SamplerResources&     sampler_resources,
                                          const MaterialResources& material_resources, const MeshCache& mesh_cache)
 {
+    Assert(!prepared.mesh_materials.empty());
+
+    StorageBufferAlloc mesh_material_alloc =
+        allocate_storage(frame_storage_allocator, prepared.mesh_materials.size() * sizeof(MeshMaterial));
+
+    upload_storage_buffer(frame_storage_allocator, mesh_material_alloc, prepared.mesh_materials.data());
+
     write_helper.append(resources.descriptor_set, Slot_instance_params, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                         resources.instance_buffer.handle);
     write_helper.append(resources.descriptor_set, Slot_visible_meshlets, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
@@ -140,6 +187,8 @@ void update_gbuffer_pass_descriptor_sets(DescriptorWriteHelper& write_helper, co
                         mesh_cache.vertexBufferPosition.handle);
     write_helper.append(resources.descriptor_set, Slot_buffer_attributes, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                         mesh_cache.vertexAttributesBuffer.handle);
+    write_helper.append(resources.descriptor_set, g_bindings[mesh_materials], mesh_material_alloc.buffer,
+                        mesh_material_alloc.offset_bytes, mesh_material_alloc.size_bytes);
     write_helper.append(resources.descriptor_set, Slot_diffuse_map_sampler, sampler_resources.diffuse_map_sampler);
 
     if (!material_resources.textures.empty())

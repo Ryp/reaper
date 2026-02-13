@@ -44,18 +44,20 @@ GBufferPassResources create_gbuffer_pass_resources(VulkanBackend& backend, Pipel
 void                 destroy_gbuffer_pass_resources(VulkanBackend& backend, GBufferPassResources& resources);
 
 class DescriptorWriteHelper;
+struct StorageBufferAllocator;
+struct PreparedData;
 struct MaterialResources;
 struct MeshCache;
 struct SamplerResources;
 struct FrameGraphBuffer;
 struct FrameGraphTexture;
 
-void update_gbuffer_pass_descriptor_sets(DescriptorWriteHelper& write_helper, const GBufferPassResources& resources,
-                                         const FrameGraphBuffer&  visible_meshlet_buffer,
-                                         const SamplerResources&  sampler_resources,
+void update_gbuffer_pass_descriptor_sets(DescriptorWriteHelper&  write_helper,
+                                         StorageBufferAllocator& frame_storage_allocator, const PreparedData& prepared,
+                                         const GBufferPassResources& resources,
+                                         const FrameGraphBuffer&     visible_meshlet_buffer,
+                                         const SamplerResources&     sampler_resources,
                                          const MaterialResources& material_resources, const MeshCache& mesh_cache);
-
-struct PreparedData;
 
 void upload_gbuffer_pass_frame_resources(VulkanBackend& backend, const PreparedData& prepared,
                                          GBufferPassResources& pass_resources);

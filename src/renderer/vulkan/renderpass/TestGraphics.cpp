@@ -292,10 +292,10 @@ void backend_execute_frame(ReaperRoot& root, VulkanBackend& backend, CommandBuff
         update_hzb_pass_descriptor_set(framegraph, resources.framegraph_resources, hzb_reduce, descriptor_write_helper,
                                        resources.hzb_pass_resources, resources.samplers_resources);
 
-        update_forward_pass_descriptor_sets(backend, framegraph, resources.framegraph_resources, forward,
-                                            descriptor_write_helper, prepared, resources.forward_pass_resources,
-                                            resources.samplers_resources, resources.material_resources,
-                                            resources.mesh_cache, resources.lighting_resources);
+        update_forward_pass_descriptor_sets(
+            backend, framegraph, resources.framegraph_resources, forward, descriptor_write_helper,
+            resources.frame_storage_allocator, prepared, resources.forward_pass_resources, resources.samplers_resources,
+            resources.material_resources, resources.mesh_cache, resources.lighting_resources);
 
         update_tiled_lighting_pass_resources(backend, framegraph, resources.framegraph_resources, tiled_lighting,
                                              descriptor_write_helper, prepared, resources.lighting_resources,

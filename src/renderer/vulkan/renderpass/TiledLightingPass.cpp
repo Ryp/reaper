@@ -59,6 +59,8 @@ TiledLightingPassResources create_tiled_lighting_pass_resources(VulkanBackend&  
     TiledLightingPassResources resources = {};
 
     {
+        const u32 shadow_map_slot = 9;
+
         std::vector<VkDescriptorSetLayoutBinding> bindings0 = {
             {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
             {1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
@@ -69,11 +71,13 @@ TiledLightingPassResources create_tiled_lighting_pass_resources(VulkanBackend&  
             {6, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
             {7, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
             {8, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-            {9, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, ShadowMapMaxCount, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+            {shadow_map_slot, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, ShadowMapMaxCount, VK_SHADER_STAGE_COMPUTE_BIT,
+             nullptr},
         };
 
+        Assert(bindings0[shadow_map_slot].binding == shadow_map_slot);
         std::vector<VkDescriptorBindingFlags> bindingFlags0(bindings0.size(), VK_FLAGS_NONE);
-        bindingFlags0[9] = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT;
+        bindingFlags0[shadow_map_slot] = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT;
 
         std::vector<VkDescriptorSetLayout> descriptor_set_layouts = {
             create_descriptor_set_layout(backend.device, bindings0, bindingFlags0)};
