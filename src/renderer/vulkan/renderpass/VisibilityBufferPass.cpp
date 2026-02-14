@@ -51,11 +51,6 @@ static const std::array<VkSampleLocationEXT, MSAASamples> MSAA4XGridSampleLocati
     VkSampleLocationEXT{0.25f, 0.75f},
     VkSampleLocationEXT{0.75f, 0.75f},
 };
-// VkSampleLocationEXT{0.5f, 0.5f},
-// VkSampleLocationEXT{0.5f, 0.5f},
-// VkSampleLocationEXT{0.5f, 0.5f},
-// VkSampleLocationEXT{0.5f, 0.5f},
-// };
 
 namespace Render
 {
