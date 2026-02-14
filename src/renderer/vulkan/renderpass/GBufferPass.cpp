@@ -83,11 +83,14 @@ namespace
     VkPipeline create_gbuffer_pipeline(VkDevice device, const ShaderModules& shader_modules,
                                        VkPipelineLayout pipeline_layout)
     {
+        const VkShaderModuleCreateInfo module_create_info_vert =
+            shader_module_create_info(get_spirv_shader_module(shader_modules, "gbuffer/gbuffer_write_opaque.vert.spv"));
+        const VkShaderModuleCreateInfo module_create_info_frag =
+            shader_module_create_info(get_spirv_shader_module(shader_modules, "gbuffer/gbuffer_write_opaque.frag.spv"));
+
         std::vector<VkPipelineShaderStageCreateInfo> shader_stages = {
-            default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_VERTEX_BIT,
-                                                      shader_modules.gbuffer_write_opaque_vs),
-            default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_FRAGMENT_BIT,
-                                                      shader_modules.gbuffer_write_opaque_fs)};
+            default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_VERTEX_BIT, &module_create_info_vert),
+            default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_FRAGMENT_BIT, &module_create_info_frag)};
 
         std::vector<VkPipelineColorBlendAttachmentState> blend_attachment_state = {
             default_pipeline_color_blend_attachment_state(), default_pipeline_color_blend_attachment_state()};
@@ -124,9 +127,9 @@ GBufferPassResources create_gbuffer_pass_resources(VulkanBackend& backend, Pipel
     std::vector<VkDescriptorSetLayoutBinding> bindings(g_bindings.size());
     fill_layout_bindings(bindings, g_bindings);
 
-    Assert(bindings[Slot_diffuse_map_sampler].binding == Slot_diffuse_map_sampler);
+    Assert(bindings[Slot_material_maps].binding == Slot_material_maps);
     std::vector<VkDescriptorBindingFlags> bindingFlags(bindings.size(), VK_FLAGS_NONE);
-    bindingFlags[Slot_diffuse_map_sampler] = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT;
+    bindingFlags[Slot_material_maps] = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT;
 
     std::vector<VkDescriptorSetLayout> descriptorSetLayouts = {
         create_descriptor_set_layout(backend.device, bindings, bindingFlags),

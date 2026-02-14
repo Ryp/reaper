@@ -134,28 +134,31 @@ VkPipeline create_compute_pipeline(VkDevice device, VkPipelineLayout pipeline_la
     return pipeline;
 }
 
-VkPipeline create_compute_pipeline(VkDevice              device,
-                                   VkPipelineLayout      pipeline_layout,
-                                   VkShaderModule        compute_shader,
-                                   VkSpecializationInfo* specialization_info)
+VkShaderModuleCreateInfo shader_module_create_info(std::span<const u32> shader_spirv)
 {
-    VkPipelineShaderStageCreateInfo shader_stage =
-        default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_COMPUTE_BIT, compute_shader, specialization_info);
+    const VkShaderModuleCreateInfo create_info = {
+        .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+        .pNext = nullptr,
+        .flags = VK_FLAGS_NONE,
+        .codeSize = static_cast<u32>(shader_spirv.size() * 4),
+        .pCode = shader_spirv.data(),
+    };
 
-    return create_compute_pipeline(device, pipeline_layout, shader_stage);
+    return create_info;
 }
 
 VkPipelineShaderStageCreateInfo
-default_pipeline_shader_stage_create_info(VkShaderStageFlagBits stage_bit, VkShaderModule shader_module,
+default_pipeline_shader_stage_create_info(VkShaderStageFlagBits            stage_bit,
+                                          const VkShaderModuleCreateInfo*  shader_module_create_info,
                                           const VkSpecializationInfo*      specialization_info,
                                           VkPipelineShaderStageCreateFlags flags)
 {
     return VkPipelineShaderStageCreateInfo{
         .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-        .pNext = nullptr,
+        .pNext = shader_module_create_info,
         .flags = flags,
         .stage = stage_bit,
-        .module = shader_module,
+        .module = VK_NULL_HANDLE,
         .pName = default_entry_point(),
         .pSpecializationInfo = specialization_info,
     };

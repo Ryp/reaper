@@ -130,11 +130,14 @@ namespace
                                                        const ShaderModules& shader_modules,
                                                        VkPipelineLayout     pipeline_layout)
     {
+        const VkShaderModuleCreateInfo module_create_info_vert =
+            shader_module_create_info(get_spirv_shader_module(shader_modules, "fullscreen_triangle.vert.spv"));
+        const VkShaderModuleCreateInfo module_create_info_frag =
+            shader_module_create_info(get_spirv_shader_module(shader_modules, "copy_to_depth_from_hzb.frag.spv"));
+
         std::vector<VkPipelineShaderStageCreateInfo> shader_stages = {
-            default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_VERTEX_BIT,
-                                                      shader_modules.fullscreen_triangle_vs),
-            default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_FRAGMENT_BIT,
-                                                      shader_modules.copy_to_depth_from_hzb_fs),
+            default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_VERTEX_BIT, &module_create_info_vert),
+            default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_FRAGMENT_BIT, &module_create_info_frag),
         };
 
         GraphicsPipelineProperties pipeline_properties = default_graphics_pipeline_properties();
@@ -153,18 +156,26 @@ namespace
     VkPipeline create_tiled_raster_classify_pipeline(VkDevice device, const ShaderModules& shader_modules,
                                                      VkPipelineLayout pipeline_layout)
     {
-        return create_compute_pipeline(device, pipeline_layout, shader_modules.classify_volume_cs);
+        const VkShaderModuleCreateInfo module_create_info = shader_module_create_info(
+            get_spirv_shader_module(shader_modules, "tiled_lighting/classify_volume.comp.spv"));
+
+        const VkPipelineShaderStageCreateInfo shader_stage =
+            default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_COMPUTE_BIT, &module_create_info);
+
+        return create_compute_pipeline(device, pipeline_layout, shader_stage);
     }
 
     VkPipeline create_tiled_raster_pipeline(VkDevice device, const ShaderModules& shader_modules,
                                             VkPipelineLayout pipeline_layout)
     {
+        const VkShaderModuleCreateInfo module_create_info_vert = shader_module_create_info(
+            get_spirv_shader_module(shader_modules, "tiled_lighting/rasterize_light_volume.vert.spv"));
+        const VkShaderModuleCreateInfo module_create_info_frag = shader_module_create_info(
+            get_spirv_shader_module(shader_modules, "tiled_lighting/rasterize_light_volume.frag.spv"));
+
         std::vector<VkPipelineShaderStageCreateInfo> shader_stages = {
-            default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_VERTEX_BIT,
-                                                      shader_modules.rasterize_light_volume_vs),
-            default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_FRAGMENT_BIT,
-                                                      shader_modules.rasterize_light_volume_fs),
-        };
+            default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_VERTEX_BIT, &module_create_info_vert),
+            default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_FRAGMENT_BIT, &module_create_info_frag)};
 
         GraphicsPipelineProperties pipeline_properties = default_graphics_pipeline_properties();
         pipeline_properties.depth_stencil.depthTestEnable = VK_TRUE;

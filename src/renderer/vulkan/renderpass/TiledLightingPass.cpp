@@ -43,13 +43,25 @@ namespace
     VkPipeline create_lighting_pipeline(VkDevice device, const ShaderModules& shader_modules,
                                         VkPipelineLayout pipeline_layout)
     {
-        return create_compute_pipeline(device, pipeline_layout, shader_modules.tiled_lighting_cs);
+        const VkShaderModuleCreateInfo module_create_info = shader_module_create_info(
+            get_spirv_shader_module(shader_modules, "tiled_lighting/tiled_lighting.comp.spv"));
+
+        const VkPipelineShaderStageCreateInfo shader_stage =
+            default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_COMPUTE_BIT, &module_create_info);
+
+        return create_compute_pipeline(device, pipeline_layout, shader_stage);
     }
 
     VkPipeline create_lighting_debug_pipeline(VkDevice device, const ShaderModules& shader_modules,
                                               VkPipelineLayout pipeline_layout)
     {
-        return create_compute_pipeline(device, pipeline_layout, shader_modules.tiled_lighting_debug_cs);
+        const VkShaderModuleCreateInfo module_create_info = shader_module_create_info(
+            get_spirv_shader_module(shader_modules, "tiled_lighting/tiled_lighting_debug.comp.spv"));
+
+        const VkPipelineShaderStageCreateInfo shader_stage =
+            default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_COMPUTE_BIT, &module_create_info);
+
+        return create_compute_pipeline(device, pipeline_layout, shader_stage);
     }
 } // namespace
 

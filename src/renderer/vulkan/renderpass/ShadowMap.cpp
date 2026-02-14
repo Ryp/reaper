@@ -40,8 +40,11 @@ namespace
                                       VkPipelineLayout pipeline_layout)
 
     {
+        const VkShaderModuleCreateInfo module_create_info_vert =
+            shader_module_create_info(get_spirv_shader_module(shader_modules, "shadow/render_shadow.vert.spv"));
+
         std::vector<VkPipelineShaderStageCreateInfo> shader_stages = {
-            default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_VERTEX_BIT, shader_modules.render_shadow_vs)};
+            default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_VERTEX_BIT, &module_create_info_vert)};
 
         GraphicsPipelineProperties pipeline_properties = default_graphics_pipeline_properties();
         pipeline_properties.input_assembly.primitiveRestartEnable = VK_TRUE;

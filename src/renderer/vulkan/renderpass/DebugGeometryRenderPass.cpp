@@ -49,18 +49,26 @@ namespace
     VkPipeline create_build_cmds_pipeline(VkDevice device, const ShaderModules& shader_modules,
                                           VkPipelineLayout pipeline_layout)
     {
-        return create_compute_pipeline(device, pipeline_layout, shader_modules.debug_geometry_build_cmds_cs);
+        const VkShaderModuleCreateInfo module_create_info =
+            shader_module_create_info(get_spirv_shader_module(shader_modules, "debug_geometry/build_cmds.comp.spv"));
+
+        VkPipelineShaderStageCreateInfo shader_stage =
+            default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_COMPUTE_BIT, &module_create_info);
+
+        return create_compute_pipeline(device, pipeline_layout, shader_stage);
     }
 
     VkPipeline create_draw_pipeline(VkDevice device, const ShaderModules& shader_modules,
                                     VkPipelineLayout pipeline_layout)
     {
+        const VkShaderModuleCreateInfo module_create_info_vert =
+            shader_module_create_info(get_spirv_shader_module(shader_modules, "debug_geometry/draw.vert.spv"));
+        const VkShaderModuleCreateInfo module_create_info_frag =
+            shader_module_create_info(get_spirv_shader_module(shader_modules, "debug_geometry/draw.frag.spv"));
+
         std::vector<VkPipelineShaderStageCreateInfo> shader_stages = {
-            default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_VERTEX_BIT,
-                                                      shader_modules.debug_geometry_draw_vs),
-            default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_FRAGMENT_BIT,
-                                                      shader_modules.debug_geometry_draw_fs),
-        };
+            default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_VERTEX_BIT, &module_create_info_vert),
+            default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_FRAGMENT_BIT, &module_create_info_frag)};
 
         VkPipelineColorBlendAttachmentState blend_attachment_state = default_pipeline_color_blend_attachment_state();
 

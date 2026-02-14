@@ -54,6 +54,8 @@ if(UNIX)
     target_link_libraries(${target} PRIVATE ${CMAKE_DL_LIBS})
 endif()
 
+target_link_libraries(${target} PRIVATE fmt)
+
 reaper_configure_library(${target} "Core")
 
 reaper_add_tests(${target}

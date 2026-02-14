@@ -151,11 +151,14 @@ namespace
     VkPipeline create_vis_buffer_pipeline(VkDevice device, const ShaderModules& shader_modules,
                                           VkPipelineLayout pipeline_layout, bool enable_msaa)
     {
+        const VkShaderModuleCreateInfo module_create_info_vert =
+            shader_module_create_info(get_spirv_shader_module(shader_modules, "vis_buffer/vis_buffer_raster.vert.spv"));
+        const VkShaderModuleCreateInfo module_create_info_frag =
+            shader_module_create_info(get_spirv_shader_module(shader_modules, "vis_buffer/vis_buffer_raster.frag.spv"));
+
         std::vector<VkPipelineShaderStageCreateInfo> shader_stages = {
-            default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_VERTEX_BIT, shader_modules.vis_buffer_raster_vs),
-            default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_FRAGMENT_BIT,
-                                                      shader_modules.vis_buffer_raster_fs),
-        };
+            default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_VERTEX_BIT, &module_create_info_vert),
+            default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_FRAGMENT_BIT, &module_create_info_frag)};
 
         std::vector<VkPipelineColorBlendAttachmentState> blend_attachment_state = {
             default_pipeline_color_blend_attachment_state()};
@@ -232,31 +235,50 @@ namespace
     VkPipeline create_vis_buffer_fill_pipeline(VkDevice device, const ShaderModules& shader_modules,
                                                VkPipelineLayout pipeline_layout)
     {
-        return create_compute_pipeline(device, pipeline_layout, shader_modules.vis_fill_gbuffer_cs);
+        const VkShaderModuleCreateInfo module_create_info =
+            shader_module_create_info(get_spirv_shader_module(shader_modules, "vis_buffer/fill_gbuffer.comp.spv"));
+
+        const VkPipelineShaderStageCreateInfo shader_stage =
+            default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_COMPUTE_BIT, &module_create_info);
+
+        return create_compute_pipeline(device, pipeline_layout, shader_stage);
     }
 
     VkPipeline create_vis_buffer_fill_msaa_pipeline(VkDevice device, const ShaderModules& shader_modules,
                                                     VkPipelineLayout pipeline_layout)
     {
-        return create_compute_pipeline(device, pipeline_layout, shader_modules.vis_fill_gbuffer_msaa_cs);
+        const VkShaderModuleCreateInfo module_create_info =
+            shader_module_create_info(get_spirv_shader_module(shader_modules, "vis_buffer/fill_gbuffer_msaa.comp.spv"));
+
+        const VkPipelineShaderStageCreateInfo shader_stage =
+            default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_COMPUTE_BIT, &module_create_info);
+
+        return create_compute_pipeline(device, pipeline_layout, shader_stage);
     }
 
     VkPipeline create_vis_buffer_fill_msaa_with_resolve_pipeline(VkDevice device, const ShaderModules& shader_modules,
                                                                  VkPipelineLayout pipeline_layout)
     {
-        return create_compute_pipeline(device, pipeline_layout,
-                                       shader_modules.vis_fill_gbuffer_msaa_with_depth_resolve_cs);
+        const VkShaderModuleCreateInfo module_create_info = shader_module_create_info(
+            get_spirv_shader_module(shader_modules, "vis_buffer/fill_gbuffer_msaa_with_depth_resolve.comp.spv"));
+
+        const VkPipelineShaderStageCreateInfo shader_stage =
+            default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_COMPUTE_BIT, &module_create_info);
+
+        return create_compute_pipeline(device, pipeline_layout, shader_stage);
     }
 
     VkPipeline create_legacy_depth_resolve_pipeline(VkDevice device, const ShaderModules& shader_modules,
                                                     VkPipelineLayout pipeline_layout)
     {
+        const VkShaderModuleCreateInfo module_create_info_vert =
+            shader_module_create_info(get_spirv_shader_module(shader_modules, "fullscreen_triangle.vert.spv"));
+        const VkShaderModuleCreateInfo module_create_info_frag = shader_module_create_info(
+            get_spirv_shader_module(shader_modules, "vis_buffer/resolve_depth_legacy.frag.spv"));
+
         std::vector<VkPipelineShaderStageCreateInfo> shader_stages = {
-            default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_VERTEX_BIT,
-                                                      shader_modules.fullscreen_triangle_vs),
-            default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_FRAGMENT_BIT,
-                                                      shader_modules.vis_resolve_depth_legacy_fs),
-        };
+            default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_VERTEX_BIT, &module_create_info_vert),
+            default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_FRAGMENT_BIT, &module_create_info_frag)};
 
         GraphicsPipelineProperties pipeline_properties = default_graphics_pipeline_properties();
         pipeline_properties.depth_stencil.depthTestEnable = VK_TRUE;
