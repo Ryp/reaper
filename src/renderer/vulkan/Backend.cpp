@@ -170,6 +170,7 @@ namespace
         VkPhysicalDeviceVulkan14Features features_vk_1_4 = {};
         features_vk_1_4.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_4_FEATURES;
         features_vk_1_4.indexTypeUint8 = VK_TRUE;
+        features_vk_1_4.maintenance5 = VK_TRUE;
 
         VkPhysicalDeviceShaderAtomicFloatFeaturesEXT shader_atomic_features = {};
         shader_atomic_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_ATOMIC_FLOAT_FEATURES_EXT;
@@ -240,6 +241,16 @@ namespace
     bool vulkan_check_physical_device(const PhysicalDeviceInfo& physical_device,
                                       VkPhysicalDevice physical_device_handle, std::span<const char*> extensions)
     {
+        if (physical_device.properties.vendorID == 0x1002) // Disable AMD card
+        {
+            return false;
+        }
+
+        // if (physical_device.properties.vendorID == 0x10de) // Disable NVIDIA card
+        // {
+        //     return false;
+        // }
+
         // Properties
         Assert(physical_device.properties.apiVersion >= REAPER_VK_API_VERSION, "Unsupported Vulkan version");
         Assert(physical_device.properties_vk_1_1.subgroupSupportedOperations & VK_SUBGROUP_FEATURE_BASIC_BIT);
@@ -266,10 +277,13 @@ namespace
         Assert(physical_device.features_vk_1_2.descriptorBindingPartiallyBound == VK_TRUE);
         Assert(physical_device.features_vk_1_2.timelineSemaphore == VK_TRUE);
         Assert(physical_device.features_vk_1_2.shaderSampledImageArrayNonUniformIndexing == VK_TRUE);
+
         Assert(physical_device.features_vk_1_3.synchronization2 == VK_TRUE);
         Assert(physical_device.features_vk_1_3.dynamicRendering == VK_TRUE);
         Assert(physical_device.features_vk_1_3.subgroupSizeControl == VK_TRUE);
+
         Assert(physical_device.features_vk_1_4.indexTypeUint8 == VK_TRUE);
+        Assert(physical_device.features_vk_1_4.maintenance5 == VK_TRUE);
         Assert(physical_device.primitive_restart_features.primitiveTopologyListRestart == VK_TRUE);
 
         // Supported Queues

@@ -9,7 +9,6 @@
 
 #include "FrameGraphPass.h"
 #include "MeshletCulling.h"
-#include "ShadowConstants.h"
 #include "ShadowMap.h"
 
 #include "renderer/PrepareBuckets.h"
@@ -100,9 +99,14 @@ namespace
     VkPipeline create_forward_pipeline(VkDevice device, const ShaderModules& shader_modules,
                                        VkPipelineLayout pipeline_layout)
     {
+        const VkShaderModuleCreateInfo module_create_info_vert =
+            shader_module_create_info(get_spirv_shader_module(shader_modules, "forward.vert.spv"));
+        const VkShaderModuleCreateInfo module_create_info_frag =
+            shader_module_create_info(get_spirv_shader_module(shader_modules, "forward.frag.spv"));
+
         std::vector<VkPipelineShaderStageCreateInfo> shader_stages = {
-            default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_VERTEX_BIT, shader_modules.forward_vs),
-            default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_FRAGMENT_BIT, shader_modules.forward_fs)};
+            default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_VERTEX_BIT, &module_create_info_vert),
+            default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_FRAGMENT_BIT, &module_create_info_frag)};
 
         const VkPipelineColorBlendAttachmentState blend_attachment_state =
             default_pipeline_color_blend_attachment_state();

@@ -40,7 +40,13 @@ namespace
     VkPipeline create_audio_pipeline(VkDevice device, const ShaderModules& shader_modules,
                                      VkPipelineLayout pipeline_layout)
     {
-        return create_compute_pipeline(device, pipeline_layout, shader_modules.oscillator_cs);
+        const VkShaderModuleCreateInfo module_create_info =
+            shader_module_create_info(get_spirv_shader_module(shader_modules, "sound/oscillator.comp.spv"));
+
+        const VkPipelineShaderStageCreateInfo shader_stage =
+            default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_COMPUTE_BIT, &module_create_info);
+
+        return create_compute_pipeline(device, pipeline_layout, shader_stage);
     }
 } // namespace
 

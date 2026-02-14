@@ -83,11 +83,14 @@ namespace
     VkPipeline create_gbuffer_pipeline(VkDevice device, const ShaderModules& shader_modules,
                                        VkPipelineLayout pipeline_layout)
     {
+        const VkShaderModuleCreateInfo module_create_info_vert =
+            shader_module_create_info(get_spirv_shader_module(shader_modules, "gbuffer/gbuffer_write_opaque.vert.spv"));
+        const VkShaderModuleCreateInfo module_create_info_frag =
+            shader_module_create_info(get_spirv_shader_module(shader_modules, "gbuffer/gbuffer_write_opaque.frag.spv"));
+
         std::vector<VkPipelineShaderStageCreateInfo> shader_stages = {
-            default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_VERTEX_BIT,
-                                                      shader_modules.gbuffer_write_opaque_vs),
-            default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_FRAGMENT_BIT,
-                                                      shader_modules.gbuffer_write_opaque_fs)};
+            default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_VERTEX_BIT, &module_create_info_vert),
+            default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_FRAGMENT_BIT, &module_create_info_frag)};
 
         std::vector<VkPipelineColorBlendAttachmentState> blend_attachment_state = {
             default_pipeline_color_blend_attachment_state(), default_pipeline_color_blend_attachment_state()};

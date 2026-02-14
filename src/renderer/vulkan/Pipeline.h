@@ -41,12 +41,12 @@ VkPipelineLayout create_pipeline_layout(
 VkPipeline create_compute_pipeline(VkDevice device, VkPipelineLayout pipeline_layout,
                                    const VkPipelineShaderStageCreateInfo& shader_stage_create_info);
 
-// FIXME Deprecated
-VkPipeline create_compute_pipeline(VkDevice device, VkPipelineLayout pipeline_layout, VkShaderModule compute_shader,
-                                   VkSpecializationInfo* specialization_info = nullptr);
+VkShaderModuleCreateInfo shader_module_create_info(std::span<const u32> shader_spirv);
 
+// With maintenance5, we can pass VkShaderModuleCreateInfo in .pNext directly without specifying a module
 VkPipelineShaderStageCreateInfo
-default_pipeline_shader_stage_create_info(VkShaderStageFlagBits stage_bit, VkShaderModule shader_module,
+default_pipeline_shader_stage_create_info(VkShaderStageFlagBits            stage_bit,
+                                          const VkShaderModuleCreateInfo*  shader_module_create_info,
                                           const VkSpecializationInfo*      specialization_info = nullptr,
                                           VkPipelineShaderStageCreateFlags flags = VK_FLAGS_NONE);
 

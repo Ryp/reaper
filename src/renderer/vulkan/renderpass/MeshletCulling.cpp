@@ -127,19 +127,40 @@ namespace
     VkPipeline create_cull_meshlet_pipeline(VkDevice device, const ShaderModules& shader_modules,
                                             VkPipelineLayout pipeline_layout)
     {
-        return create_compute_pipeline(device, pipeline_layout, shader_modules.cull_meshlet_cs);
+        const VkShaderModuleCreateInfo module_create_info =
+            shader_module_create_info(get_spirv_shader_module(shader_modules, "meshlet/cull_meshlet.comp.spv"));
+
+        VkPipelineShaderStageCreateInfo shader_stage =
+            default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_COMPUTE_BIT, &module_create_info);
+
+        return create_compute_pipeline(device, pipeline_layout, shader_stage);
     }
+
     VkPipeline create_cull_triangle_prepare_pipeline(VkDevice device, const ShaderModules& shader_modules,
                                                      VkPipelineLayout pipeline_layout)
     {
-        return create_compute_pipeline(device, pipeline_layout, shader_modules.prepare_fine_culling_indirect_cs);
+        const VkShaderModuleCreateInfo module_create_info = shader_module_create_info(
+            get_spirv_shader_module(shader_modules, "meshlet/prepare_fine_culling_indirect.comp.spv"));
+
+        VkPipelineShaderStageCreateInfo shader_stage =
+            default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_COMPUTE_BIT, &module_create_info);
+
+        return create_compute_pipeline(device, pipeline_layout, shader_stage);
     }
+
     VkPipeline create_cull_triangle_pipeline(VkDevice device, const ShaderModules& shader_modules,
                                              VkPipelineLayout pipeline_layout)
     {
-        return create_compute_pipeline(device, pipeline_layout, shader_modules.cull_triangle_batch_cs);
+        const VkShaderModuleCreateInfo module_create_info =
+            shader_module_create_info(get_spirv_shader_module(shader_modules, "meshlet/cull_triangle_batch.comp.spv"));
+
+        VkPipelineShaderStageCreateInfo shader_stage =
+            default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_COMPUTE_BIT, &module_create_info);
+
+        return create_compute_pipeline(device, pipeline_layout, shader_stage);
     }
 } // namespace
+
 CullMeshletsFrameGraphRecord create_cull_meshlet_frame_graph_record(FrameGraph::Builder& builder)
 {
     CullMeshletsFrameGraphRecord::Clear clear;

@@ -31,11 +31,14 @@ namespace
     VkPipeline create_gui_pipeline(VkDevice device, const ShaderModules& shader_modules,
                                    VkPipelineLayout pipeline_layout)
     {
+        const VkShaderModuleCreateInfo module_create_info_vert =
+            shader_module_create_info(get_spirv_shader_module(shader_modules, "fullscreen_triangle.vert.spv"));
+        const VkShaderModuleCreateInfo module_create_info_frag =
+            shader_module_create_info(get_spirv_shader_module(shader_modules, "gui_write.frag.spv"));
+
         std::vector<VkPipelineShaderStageCreateInfo> shader_stages = {
-            default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_VERTEX_BIT,
-                                                      shader_modules.fullscreen_triangle_vs),
-            default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_FRAGMENT_BIT, shader_modules.gui_write_fs),
-        };
+            default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_VERTEX_BIT, &module_create_info_vert),
+            default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_FRAGMENT_BIT, &module_create_info_frag)};
 
         VkPipelineColorBlendAttachmentState blend_attachment_state = default_pipeline_color_blend_attachment_state();
 

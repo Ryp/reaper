@@ -52,9 +52,12 @@ namespace
     VkPipeline create_hzb_pipeline(VkDevice device, const ShaderModules& shader_modules,
                                    VkPipelineLayout pipeline_layout)
     {
-        const VkPipelineShaderStageCreateInfo shader_stage = default_pipeline_shader_stage_create_info(
-            VK_SHADER_STAGE_COMPUTE_BIT, shader_modules.hzb_reduce_cs, nullptr,
-            VK_PIPELINE_SHADER_STAGE_CREATE_ALLOW_VARYING_SUBGROUP_SIZE_BIT);
+        const VkShaderModuleCreateInfo module_create_info =
+            shader_module_create_info(get_spirv_shader_module(shader_modules, "hzb_reduce.comp.spv"));
+
+        const VkPipelineShaderStageCreateInfo shader_stage =
+            default_pipeline_shader_stage_create_info(VK_SHADER_STAGE_COMPUTE_BIT, &module_create_info, nullptr,
+                                                      VK_PIPELINE_SHADER_STAGE_CREATE_ALLOW_VARYING_SUBGROUP_SIZE_BIT);
 
         return create_compute_pipeline(device, pipeline_layout, shader_stage);
     }
