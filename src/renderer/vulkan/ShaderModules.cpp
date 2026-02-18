@@ -26,7 +26,7 @@ void create_shader_modules(ShaderModules& shader_modules, ReaperRoot& root)
         if (entry.is_regular_file() && entry.path().extension() == ".spv")
         {
             std::string       file_path = entry.path().string();
-            std::string       file_name = std::filesystem::relative(entry.path(), shader_folder).string();
+            std::string       file_name = std::filesystem::relative(entry.path(), shader_folder).generic_string();
             std::vector<char> file_contents = readWholeFile(file_path);
 
             std::size_t offset_bytes = shader_modules.code.size();
