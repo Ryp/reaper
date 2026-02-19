@@ -4,6 +4,7 @@
 /build
 
 # user
+/.vs/
 /.vscode/
 /.cache/
 /compile_commands.json
