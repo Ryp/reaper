@@ -1,20 +1,20 @@
 .{
     .name = .reaper,
     .version = "0.2.1",
-    .minimum_zig_version = "0.15.2",
+    .minimum_zig_version = "0.16.0-dev.2623+27eec9bd6",
     .fingerprint = 0xd7108290a41ba668,
     .dependencies = .{
         .clap = .{
-            .url = "https://github.com/Hejsil/zig-clap/archive/b7e3348ed60f99ba32c75aa707ff7c87adc31b36.zip",
-            .hash = "clap-0.11.0-oBajB-TnAQC7yPLnZRT5WzHZ_4Ly4dX2OILskli74b9H",
+            .url = "https://github.com/Hejsil/zig-clap/archive/27621cb7207643f914bae7b01902b22a8b5916e7.zip",
+            .hash = "clap-0.11.0-oBajBxDoAQChQCl4LRM4tyf-VChKLbhYilS806xxzxrQ",
         },
         .tracy = .{
             .url = "https://github.com/wolfpld/tracy/archive/67ba5b77277d565811aae1865a5966caef7e5b96.zip",
             .hash = "N-V-__8AAIOSKwGsrhE7fP-vBA8TPZWqr4U3MBdzjZmVwjqc",
         },
         .vulkan_zig = .{
-            .url = "https://github.com/Snektron/vulkan-zig/archive/c9c4dae70356766f0954ae7d2b8aba4d1dd53a2a.zip",
-            .hash = "vulkan-0.0.0-r7Ytx6hBAwBUnt0XA-uOkR2hda4fAHFhQITNTgJpnFkY",
+            .url = "https://github.com/Snektron/vulkan-zig/archive/30c3a9d582ae39dd7bfd8b44995e0864a442c7af.zip",
+            .hash = "vulkan-0.0.0-r7Ytx_9JAwCBoNziuwO4USPOo-kR-3Ss4bqSUMVgVpYS",
         },
         .vulkan_headers = .{
             .url = "https://github.com/KhronosGroup/Vulkan-Headers/archive/d1cd37e925510a167d4abef39340dbdea47d8989.zip",
