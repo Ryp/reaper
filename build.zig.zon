@@ -5,24 +5,29 @@
     .fingerprint = 0xd7108290a41ba668,
     .dependencies = .{
         .clap = .{
-            .url = "https://github.com/Hejsil/zig-clap/archive/27621cb7207643f914bae7b01902b22a8b5916e7.zip",
+            // Latest tag didn't have 0.16 support
+            .url = "https://github.com/Hejsil/zig-clap/archive/27621cb7207643f914bae7b01902b22a8b5916e7.tar.gz",
             .hash = "clap-0.11.0-oBajBxDoAQChQCl4LRM4tyf-VChKLbhYilS806xxzxrQ",
         },
         .tracy = .{
-            .url = "https://github.com/wolfpld/tracy/archive/67ba5b77277d565811aae1865a5966caef7e5b96.zip",
-            .hash = "N-V-__8AAIOSKwGsrhE7fP-vBA8TPZWqr4U3MBdzjZmVwjqc",
+            .url = "https://github.com/wolfpld/tracy/archive/v0.13.1.tar.gz",
+            .hash = "N-V-__8AAOncKwEm1F9c5LrT7HMNmRMYX8-fAoqpc6YyTu9X",
         },
         .vulkan_zig = .{
-            .url = "https://github.com/Snektron/vulkan-zig/archive/30c3a9d582ae39dd7bfd8b44995e0864a442c7af.zip",
+            .url = "https://github.com/Snektron/vulkan-zig/archive/30c3a9d582ae39dd7bfd8b44995e0864a442c7af.tar.gz",
             .hash = "vulkan-0.0.0-r7Ytx_9JAwCBoNziuwO4USPOo-kR-3Ss4bqSUMVgVpYS",
         },
         .vulkan_headers = .{
-            .url = "https://github.com/KhronosGroup/Vulkan-Headers/archive/d1cd37e925510a167d4abef39340dbdea47d8989.zip",
-            .hash = "N-V-__8AAESg9gHKzlANbo03d4Fcb5m_5aZXJXIhYbWzCe4G",
+            .url = "https://github.com/KhronosGroup/Vulkan-Headers/archive/v1.4.344.tar.gz",
+            .hash = "N-V-__8AALnKOwISs8TmtQCFcJgDTE9kRnMhQCrbaafF5DD0",
+        },
+        .amd_vma = .{
+            .url = "https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator/archive/v3.3.0.tar.gz",
+            .hash = "N-V-__8AAIutPgABk6NlXZhlJ5P8qVECvakZIKoO94h7xUOw",
         },
         .sdl = .{
-            .url = "git+https://github.com/castholm/SDL.git#1d4b8dcc03bd216712b55318b4ad2402b5511490",
-            .hash = "sdl-0.3.1+3.2.24-7uIn9L9AfwFQf90JcTh3Slw__ZA8SEomk6fQI9F8ItY0",
+            .url = "https://github.com/castholm/SDL/archive/v0.4.0+3.4.0.tar.gz",
+            .hash = "sdl-0.4.0+3.4.0-SDL--u6yowGyvoiJ5qkFm_T1-MpmvnHShh2q2mTZf1fo",
         },
     },
     .paths = .{

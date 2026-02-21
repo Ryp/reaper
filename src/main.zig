@@ -4,6 +4,10 @@ const clap = @import("clap");
 const tracy = @import("tracy.zig");
 const builtin = @import("builtin");
 
+const backend_module = @import("renderer/vulkan/Backend.zig");
+pub const VulkanBackend = backend_module.VulkanBackend;
+const sdl = backend_module.sdl;
+
 var debug_allocator: std.heap.DebugAllocator(.{}) = .init;
 var gpa_allocator = std.heap.GeneralPurposeAllocator(.{}){};
 
@@ -52,6 +56,35 @@ pub fn main_with_allocator(allocator: std.mem.Allocator, init: std.process.Init)
     if (res.args.help != 0) {
         return clap.usageToFile(init.io, .stdout(), clap.Help, &params);
     }
+
+    if (!sdl.SDL_Init(sdl.SDL_INIT_VIDEO)) {
+        std.debug.print("SDL_Init failed: {s}\n", .{sdl.SDL_GetError()});
+        return error.SDLInitFailed;
+    }
+    defer sdl.SDL_Quit();
+
+    const window_width: u32 = 1280;
+    const window_height: u32 = 720;
+
+    const window = sdl.SDL_CreateWindow(
+        "Reaper",
+        @intCast(window_width),
+        @intCast(window_height),
+        sdl.SDL_WINDOW_VULKAN,
+    ) orelse {
+        std.debug.print("SDL_CreateWindow failed: {s}\n", .{sdl.SDL_GetError()});
+        return error.SDLWindowCreationFailed;
+    };
+    defer sdl.SDL_DestroyWindow(window);
+
+    var backend = VulkanBackend.init(allocator, window, window_width, window_height) catch |err| {
+        std.debug.print("Failed to initialize Vulkan backend: {}\n", .{err});
+        return err;
+    };
+    defer backend.deinit();
+
+    // sleep for 10 seconds (placeholder until the main loop exists)
+    sdl.SDL_Delay(10_000);
 
     // try loop.run(&state, allocator);
 }

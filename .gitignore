@@ -3,6 +3,7 @@
 # zig
 /.zig-cache/
 /zig-out/
+/zig-pkg/
 
 # c++ build artefacts
 /build

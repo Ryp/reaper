@@ -1,5 +1,14 @@
 const std = @import("std");
 
+// Single source of truth for the Vulkan API version required by this project.
+const vulkan_api_major: u32 = 1;
+const vulkan_api_minor: u32 = 4;
+const vulkan_api_patch: u32 = 0;
+
+// Single source of truth for the app/engine version — read from build.zig.zon.
+const zon = @import("build.zig.zon");
+const app_semver = std.SemanticVersion.parse(zon.version) catch unreachable;
+
 pub fn build(b: *std.Build) void {
     const optimize = b.standardOptimizeOption(.{});
     const target = b.standardTargetOptions(.{});
@@ -17,6 +26,7 @@ pub fn build(b: *std.Build) void {
     exe.root_module.addImport("clap", clap.module("clap"));
 
     const enable_vulkan = true;
+    const enable_validation = b.option(bool, "validation", "Enable Vulkan validation layers") orelse (optimize == .Debug);
 
     const enable_tracy = b.option(bool, "tracy", "Enable Tracy support") orelse false;
     const tracy_callstack = b.option(bool, "tracy-callstack", "Include callstack information with Tracy data. Does nothing if -Dtracy is not provided") orelse enable_tracy;
@@ -28,6 +38,15 @@ pub fn build(b: *std.Build) void {
     const exe_options = b.addOptions();
 
     exe_options.addOption(bool, "enable_vulkan", enable_vulkan);
+    exe_options.addOption(bool, "enable_validation", enable_validation);
+
+    exe_options.addOption(u32, "vulkan_api_major", vulkan_api_major);
+    exe_options.addOption(u32, "vulkan_api_minor", vulkan_api_minor);
+    exe_options.addOption(u32, "vulkan_api_patch", vulkan_api_patch);
+
+    exe_options.addOption(u32, "app_version_major", @intCast(app_semver.major));
+    exe_options.addOption(u32, "app_version_minor", @intCast(app_semver.minor));
+    exe_options.addOption(u32, "app_version_patch", @intCast(app_semver.patch));
 
     exe_options.addOption(bool, "enable_tracy", enable_tracy);
     exe_options.addOption(bool, "enable_tracy_callstack", tracy_callstack);
@@ -45,7 +64,33 @@ pub fn build(b: *std.Build) void {
         exe.root_module.addImport("vulkan", vulkan);
 
         exe.root_module.link_libc = true;
-        exe.root_module.linkSystemLibrary("glfw", .{});
+        exe.root_module.link_libcpp = true;
+
+        // VMA: expose Vulkan headers and the VMA header for @cImport in Zig source.
+        const amd_vma = b.dependency("amd_vma", .{});
+        exe.root_module.addIncludePath(registry.path("include"));
+        exe.root_module.addIncludePath(amd_vma.path("include"));
+
+        // VMA: compile the single implementation translation unit.
+        // VMA is a C++14 header-only library, so we compile a .cpp TU.
+        const vma_version_flag = std.fmt.allocPrint(
+            b.allocator,
+            "-DVMA_VULKAN_VERSION={d}",
+            .{vulkan_api_major * 1_000_000 + vulkan_api_minor * 1_000 + vulkan_api_patch},
+        ) catch @panic("OOM");
+
+        exe.root_module.addCSourceFile(.{
+            .file = b.path("src/renderer/vulkan/vma_impl.cpp"),
+            .flags = &.{
+                "-std=c++17",
+                "-DVMA_IMPLEMENTATION",
+                "-DVMA_STATIC_VULKAN_FUNCTIONS=0",
+                "-DVMA_DYNAMIC_VULKAN_FUNCTIONS=1",
+                vma_version_flag,
+                // Suppress warnings from third-party code.
+                "-w",
+            },
+        });
 
         // compile_and_embed_hlsl_shader(b, exe.root_module, "./src/renderer/shaders/triangle.vert.hlsl", .Vertex, "triangle_vs") catch unreachable;
         // compile_and_embed_hlsl_shader(b, exe.root_module, "./src/renderer/shaders/triangle.frag.hlsl", .Fragment, "triangle_fs") catch unreachable;
