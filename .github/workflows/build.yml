@@ -1,11 +1,5 @@
 name: Build
-on:
-  push:
-    branches:
-      - master
-      - develop
-      - 'feature/**'
-      - 'bugfix/**'
+on: [push, pull_request]
 env:
   vulkan_sdk_version: '1.4.304.1'
   vulkan_sdk_modules: 'Vulkan-Headers Vulkan-Loader SPIRV-Tools Glslang'
@@ -195,3 +189,21 @@ jobs:
           # FIXME Get the exact value for the release string
           ./butler push --if-changed linux_build ${{ env.itch_io_project_url }}:linux-latest --userversion-file linux_version.txt
           ./butler push --if-changed windows_build ${{ env.itch_io_project_url }}:windows-latest --userversion-file windows_version.txt
+
+  build_zig:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{matrix.os}}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: mlugg/setup-zig@v2
+      - run: zig build
+      - run: zig build test
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: mlugg/setup-zig@v2
+      - run: zig fmt --check *.zig

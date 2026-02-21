@@ -1,0 +1,35 @@
+.{
+    .name = .reaper,
+    .version = "0.2.1",
+    .minimum_zig_version = "0.15.2",
+    .fingerprint = 0xd7108290a41ba668,
+    .dependencies = .{
+        .clap = .{
+            .url = "https://github.com/Hejsil/zig-clap/archive/b7e3348ed60f99ba32c75aa707ff7c87adc31b36.zip",
+            .hash = "clap-0.11.0-oBajB-TnAQC7yPLnZRT5WzHZ_4Ly4dX2OILskli74b9H",
+        },
+        .tracy = .{
+            .url = "https://github.com/wolfpld/tracy/archive/67ba5b77277d565811aae1865a5966caef7e5b96.zip",
+            .hash = "N-V-__8AAIOSKwGsrhE7fP-vBA8TPZWqr4U3MBdzjZmVwjqc",
+        },
+        .vulkan_zig = .{
+            .url = "https://github.com/Snektron/vulkan-zig/archive/c9c4dae70356766f0954ae7d2b8aba4d1dd53a2a.zip",
+            .hash = "vulkan-0.0.0-r7Ytx6hBAwBUnt0XA-uOkR2hda4fAHFhQITNTgJpnFkY",
+        },
+        .vulkan_headers = .{
+            .url = "https://github.com/KhronosGroup/Vulkan-Headers/archive/d1cd37e925510a167d4abef39340dbdea47d8989.zip",
+            .hash = "N-V-__8AAESg9gHKzlANbo03d4Fcb5m_5aZXJXIhYbWzCe4G",
+        },
+        .sdl = .{
+            .url = "git+https://github.com/castholm/SDL.git#1d4b8dcc03bd216712b55318b4ad2402b5511490",
+            .hash = "sdl-0.3.1+3.2.24-7uIn9L9AfwFQf90JcTh3Slw__ZA8SEomk6fQI9F8ItY0",
+        },
+    },
+    .paths = .{
+        "src",
+        "LICENSE",
+        "README.md",
+        "build.zig",
+        "build.zig.zon",
+    },
+}

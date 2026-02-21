@@ -1,9 +1,13 @@
 !.gitignore
 
-# build artefacts
+# zig
+/.zig-cache/
+/zig-out/
+
+# c++ build artefacts
 /build
 
-# user
+# c++ user tools
 /.vs/
 /.vscode/
 /.cache/
