@@ -256,9 +256,21 @@ exactly, which the test now asserts along with the worst-case sizing.
 
 `zig build test` is at 48 tests.
 
-**Remaining for M4a:** ForwardPass(411) with a constant default material, and SwapchainPass(317) as the real
-composite — plus driving the culling passes from the frame, which needs a scene to exist. The M4a gate does not
-close on its own; the plan pairs it with M4b for "lit, shadowed, textured helmet on screen".
+**ForwardPass done**, along with LightingPass (an allocation out of the frame storage allocator) and the main
+pass constants. One indexed indirect-count draw into an HDR target with depth; two descriptor sets.
+
+The shadow map array and the material textures are M4b, so those slots are deliberately left unwritten — which is
+what the `PARTIALLY_BOUND` flag on them is for. The pass asserts the shadow map list is empty rather than
+silently drawing with stale descriptors.
+
+`zig build test` is at 51 tests. The new ones pin the failure modes that are silent rather than loud: pipeline
+attachment formats matching what the frame graph creates, reverse-z pairing a `GREATER` compare op with a zero
+clear (getting one without the other loses all geometry), and descriptor slots being dense and in the order the
+shaders declare them.
+
+**Remaining for M4a:** SwapchainPass(317) as the real composite, and driving the whole chain from the frame —
+which needs a scene, so it overlaps M5. The M4a gate does not close on its own; the plan pairs it with M4b for
+"lit, shadowed, textured helmet on screen".
 
 ## Context
 
