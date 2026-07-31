@@ -174,6 +174,22 @@ namespace
         return sf;
     }
 
+    // Whether writing to a view of this format applies the sRGB OETF in hardware. Only the formats a swapchain
+    // view can actually end up with are listed; Vulkan has no generic query for this short of parsing the
+    // enumerant name.
+    bool is_srgb_format(VkFormat format)
+    {
+        switch (format)
+        {
+        case VK_FORMAT_B8G8R8A8_SRGB:
+        case VK_FORMAT_R8G8B8A8_SRGB:
+        case VK_FORMAT_A8B8G8R8_SRGB_PACK32:
+            return true;
+        default:
+            return false;
+        }
+    }
+
     // Welcome to the fun world of choosing a swapchain format for Vulkan, but especially - HDR formats!
     // At the time of writing this there's several caveats:
     //
@@ -296,10 +312,6 @@ void configure_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backen
 
     if (presentInfo.swapchain_format.transfer_function == TransferFunction::sRGB)
     {
-        // In the case of sRGB, the EOTF is usually done with the texture view already, so no need to apply it in
-        // the shader.
-        presentInfo.swapchain_format.transfer_function = TransferFunction::Linear;
-
         // Overriding the view format lets us get the sRGB eotf for free.
         // This needs VK_KHR_swapchain_mutable_format to work
         switch (presentInfo.swapchain_format.vk_format)
@@ -315,6 +327,16 @@ void configure_vulkan_wm_swapchain(ReaperRoot& root, const VulkanBackend& backen
             break;
         default:
             break;
+        }
+
+        // The EOTF has to be applied exactly once. When the view format above is an sRGB one the hardware does
+        // it for us on write, so the shader outputs linear. Otherwise nothing does it and the shader has to
+        // apply the OETF itself - the switch only covers the three 8-bit UNORM formats, and everything else
+        // falls through it unchanged. A Wayland surface hands us VK_FORMAT_R16G16B16A16_UNORM, which lands
+        // exactly there; claiming Linear for it left the whole frame markedly too dark.
+        if (is_srgb_format(presentInfo.swapchain_format.vk_view_format))
+        {
+            presentInfo.swapchain_format.transfer_function = TransferFunction::Linear;
         }
     }
 
