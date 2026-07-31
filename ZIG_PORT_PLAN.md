@@ -347,6 +347,26 @@ node. 4 culling passes (3 shadow + main), 10260 meshlets submitted, validation a
 - 3 casting lights + 1 main view is exactly `max_meshlet_culling_pass_count`, and exactly the 3 descriptor sets
   ShadowMap.cpp allocates. The scene sits right at both limits, as the C++ does.
 
+### M6 result — true split screen
+
+`vis_buffer.zig`, `hzb.zig`, `tiled_lighting_common.zig`, `tiled_raster.zig` and `tiled_lighting.zig` port the
+five remaining pass files (LightingPass was already done in M4a). The swapchain composite now samples the real
+tiled lighting output and tile debug view instead of cleared placeholders; only the GUI, histogram and exposure
+inputs are still stand-ins, which is M7. Validation and sync validation clean.
+
+- **Passes must be RECORDED in the order they were DECLARED.** The automatic barriers are placed against render
+  pass *indices*, so recording out of order leaves images in the wrong layout at submit time. The forward-only
+  frame had tolerated a mismatch (placeholders recorded early, nothing else touched them); adding M6 turned it
+  into `expects VkImage ... to be in ATTACHMENT_OPTIMAL — instead, current layout is UNDEFINED` plus a run of
+  `vkCmdSetEvent2 following vkCmdResetEvent2 without intervening execution barrier`. Both classes of error
+  vanished once the recording order matched. There is now a comment on the record sequence saying so.
+- `DescriptorWriteHelper` was sized 64/64/1; the C++ uses 200/200 and M6 needs it — the vis buffer and tiled
+  lighting sets alone overflow 64. It asserted rather than corrupting, which is what that assert is for.
+- `depth_buffer.zig` is deleted. It was an M3 stand-in for a pass the C++ does not have; the vis buffer pass owns
+  "Main Depth" now, and forward writes into it exactly as `create_forward_pass_record` does.
+- The MSAA raster/fill variants and the legacy depth resolve pass are ported but unreachable:
+  `enable_msaa_visibility` defaults to false and only the ImGui checkbox flips it, which is M7.
+
 ## Context
 
 Reaper is a ~30k-LOC C++20 Vulkan 1.4 engine (meshlet culling, visibility buffer, tiled deferred + forward split-screen, frame graph, HDR-aware swapchain) with a Neptune game layer. Goal: port it to Zig; the own C++ code + CMake get deleted **eventually, but NOT in v1** — v1 explicitly keeps both builds working side by side (user requirement). v1 success criterion (user, relaxed): the Zig binary brings up the same default scene — procedural track, SciFiHelmet player ship, 3 shadowed lights, split-screen forward/deferred composite, 3 ImGui windows — and **"we see the ship in the frame"**, judged by eyeball against a C++ screenshot. No determinism work, no C++ patches, no automated diff.

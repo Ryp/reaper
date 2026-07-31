@@ -139,7 +139,7 @@ pub fn prepareTileLightingFrame(
                 main_camera.cs_to_ws_matrix,
             )),
             .cs_to_vs = hlsl.float4x4(main_camera.perspective_projection.cs_to_vs_matrix),
-            .vs_to_ms = hlsl.float4x3(linalg.mat4x3FromMat4(linalg.mulMat4(
+            .vs_to_ms = hlsl.float3x4(linalg.mat4x3FromMat4(linalg.mulMat4(
                 linalg.mat4FromMat4x3(light_ws_to_ms),
                 linalg.mat4FromMat4x3(main_camera.vs_to_ws_matrix),
             ))), // FIXME
@@ -152,7 +152,7 @@ pub fn prepareTileLightingFrame(
 
         try frame.proxy_volumes.append(allocator, .{
             // FIXME mul order
-            .ms_to_vs_with_scale = hlsl.float4x3(linalg.mat4x3FromMat4(linalg.mulMat4(
+            .ms_to_vs_with_scale = hlsl.float3x4(linalg.mat4x3FromMat4(linalg.mulMat4(
                 linalg.mulMat4(linalg.mat4FromMat4x3(main_camera.ws_to_vs_matrix), linalg.mat4FromMat4x3(light_ms_to_ws)),
                 volume_scale,
             ))),

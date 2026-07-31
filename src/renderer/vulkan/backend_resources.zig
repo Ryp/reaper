@@ -13,6 +13,10 @@ const frame_sync = @import("frame_sync.zig");
 const forward = @import("renderpass/forward.zig");
 const lighting = @import("renderpass/lighting.zig");
 const shadow_map = @import("renderpass/shadow_map.zig");
+const tiled_lighting = @import("renderpass/tiled_lighting.zig");
+const tiled_raster = @import("renderpass/tiled_raster.zig");
+const vis_buffer = @import("renderpass/vis_buffer.zig");
+const hzb = @import("renderpass/hzb.zig");
 const meshlet_culling = @import("renderpass/meshlet_culling.zig");
 const swapchain_pass = @import("renderpass/swapchain_pass.zig");
 const tone_mapping = @import("renderpass/tone_mapping.zig");
@@ -33,6 +37,8 @@ pub const InitParams = struct {
     vma_instance: vma.VmaAllocator,
     max_draw_indirect_count: u32,
     min_storage_buffer_offset_alignment: u64,
+    /// The tiled raster pass loads its proxy volume mesh from disk at init.
+    io: std.Io,
 };
 
 /// Matches the C++ frame storage allocator size.
@@ -54,6 +60,10 @@ pub const BackendResources = struct {
     meshlet_culling_resources: meshlet_culling.MeshletCullingResources,
     forward_pass_resources: forward.ForwardPassResources,
     shadow_map_resources: shadow_map.ShadowMapResources,
+    vis_buffer_pass_resources: vis_buffer.VisibilityBufferPassResources,
+    hzb_pass_resources: hzb.HZBPassResources,
+    tiled_raster_resources: tiled_raster.TiledRasterResources,
+    tiled_lighting_pass_resources: tiled_lighting.TiledLightingPassResources,
     lighting_resources: lighting.LightingPassResources,
     swapchain_pass_resources: swapchain_pass.SwapchainPassResources,
     tone_map_pass_resources: tone_mapping.ToneMapPassResources,
@@ -149,6 +159,37 @@ pub const BackendResources = struct {
         );
         errdefer shadow_map_resources.deinit(vkd, device);
 
+        var vis_buffer_pass_resources = try vis_buffer.VisibilityBufferPassResources.init(
+            vkd,
+            device,
+            descriptor_pool,
+            &pipeline_factory,
+        );
+        errdefer vis_buffer_pass_resources.deinit(vkd, device);
+
+        var hzb_pass_resources = try hzb.HZBPassResources.init(vkd, device, descriptor_pool, &pipeline_factory);
+        errdefer hzb_pass_resources.deinit(vkd, device);
+
+        var tiled_raster_resources = try tiled_raster.TiledRasterResources.init(
+            vkd,
+            device,
+            descriptor_pool,
+            params.vma_instance,
+            &pipeline_factory,
+            allocator,
+            params.io,
+        );
+        errdefer tiled_raster_resources.deinit(vkd, device, params.vma_instance);
+
+        var tiled_lighting_pass_resources = try tiled_lighting.TiledLightingPassResources.init(
+            vkd,
+            device,
+            descriptor_pool,
+            params.vma_instance,
+            &pipeline_factory,
+        );
+        errdefer tiled_lighting_pass_resources.deinit(vkd, device, params.vma_instance);
+
         const swapchain_pass_resources = try swapchain_pass.SwapchainPassResources.init(
             vkd,
             device,
@@ -177,6 +218,10 @@ pub const BackendResources = struct {
             .meshlet_culling_resources = meshlet_culling_resources,
             .forward_pass_resources = forward_pass_resources,
             .shadow_map_resources = shadow_map_resources,
+            .vis_buffer_pass_resources = vis_buffer_pass_resources,
+            .hzb_pass_resources = hzb_pass_resources,
+            .tiled_raster_resources = tiled_raster_resources,
+            .tiled_lighting_pass_resources = tiled_lighting_pass_resources,
             .lighting_resources = .{},
             .swapchain_pass_resources = swapchain_pass_resources,
             .tone_map_pass_resources = tone_map_pass_resources,
@@ -189,6 +234,10 @@ pub const BackendResources = struct {
 
         self.tone_map_pass_resources.deinit(vkd, device);
         self.swapchain_pass_resources.deinit(vkd, device);
+        self.tiled_lighting_pass_resources.deinit(vkd, device, vma_instance);
+        self.tiled_raster_resources.deinit(vkd, device, vma_instance);
+        self.hzb_pass_resources.deinit(vkd, device);
+        self.vis_buffer_pass_resources.deinit(vkd, device);
         self.shadow_map_resources.deinit(vkd, device);
         self.forward_pass_resources.deinit(vkd, device, vma_instance);
         self.meshlet_culling_resources.deinit(vkd, device, vma_instance);

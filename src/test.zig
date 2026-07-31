@@ -21,6 +21,8 @@ comptime {
     _ = @import("renderer/vulkan/renderpass/shadow_map.zig");
     _ = @import("renderer/vulkan/renderpass/hzb.zig");
     _ = @import("renderer/vulkan/renderpass/tiled_lighting_common.zig");
+    _ = @import("renderer/vulkan/renderpass/tiled_lighting.zig");
+    _ = @import("renderer/vulkan/renderpass/tiled_raster.zig");
     _ = @import("renderer/vulkan/renderpass/vis_buffer.zig");
     _ = @import("renderer/vulkan/shader_modules.zig");
 

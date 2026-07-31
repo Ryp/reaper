@@ -267,8 +267,8 @@ pub fn recordCommandBuffer(
 
     const push_constants = hlsl_hzb.HZBReducePushConstants{
         .depth_extent_ts_inv = .{
-            1.0 / @as(f32, @floatFromInt(depth_extent.width)),
-            1.0 / @as(f32, @floatFromInt(depth_extent.height)),
+            .x = 1.0 / @as(f32, @floatFromInt(depth_extent.width)),
+            .y = 1.0 / @as(f32, @floatFromInt(depth_extent.height)),
         },
     };
 

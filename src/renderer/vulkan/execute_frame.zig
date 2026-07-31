@@ -10,13 +10,17 @@ const vk = @import("vulkan");
 const log = std.log.scoped(.vulkan);
 
 const barrier = @import("barrier.zig");
-const depth_buffer = @import("renderpass/depth_buffer.zig");
 const descriptor_set = @import("descriptor_set.zig");
 const fg = @import("../graph/frame_graph.zig");
 const forward = @import("renderpass/forward.zig");
 const frame_graph_pass = @import("renderpass/frame_graph_pass.zig");
 const lighting = @import("renderpass/lighting.zig");
+const hzb = @import("renderpass/hzb.zig");
 const shadow_map = @import("renderpass/shadow_map.zig");
+const tiled_lighting = @import("renderpass/tiled_lighting.zig");
+const tiled_lighting_common = @import("renderpass/tiled_lighting_common.zig");
+const tiled_raster = @import("renderpass/tiled_raster.zig");
+const vis_buffer = @import("renderpass/vis_buffer.zig");
 const material_resources_module = @import("material_resources.zig");
 const meshlet_culling = @import("renderpass/meshlet_culling.zig");
 const prepare_buckets = @import("../prepare_buckets.zig");
@@ -196,13 +200,25 @@ pub fn executeFrame(
         0,
     );
 
+    var tiled_lighting_frame = tiled_lighting_common.TiledLightingFrame{};
+    try tiled_lighting_common.prepareTileLightingFrame(
+        frame_allocator,
+        &scene.graph,
+        scene_module.buildCamera(scene, render_extent),
+        &tiled_lighting_frame,
+    );
+
+    const tile_extent = vk.Extent2D{
+        .width = tiled_lighting_frame.tile_count_x,
+        .height = tiled_lighting_frame.tile_count_y,
+    };
+
     // ---- Declare the frame graph ----
     var framegraph = fg.FrameGraph{};
     var builder = Builder.init(&framegraph, frame_allocator);
 
     const tone_map_record = try tone_mapping.createFrameGraphRecord(&builder, false);
     const meshlet_record = try meshlet_culling.createFrameGraphRecord(&builder);
-    const depth_record = try depth_buffer.createFrameGraphRecord(&builder, render_extent);
 
     const shadow_record = try shadow_map.createFrameGraphRecord(
         &builder,
@@ -211,12 +227,52 @@ pub fn executeFrame(
         &prepared,
     );
 
+    // MSAA is an ImGui toggle that defaults off, and nothing flips it yet.
+    const enable_msaa = false;
+    const support_shader_stores_to_depth = backend.physical_device.macro_features.compute_stores_to_depth;
+
+    const vis_buffer_record = try vis_buffer.createFrameGraphRecord(
+        &builder,
+        meshlet_record,
+        render_extent,
+        enable_msaa,
+        support_shader_stores_to_depth,
+    );
+
+    const hzb_record = try hzb.createFrameGraphRecord(
+        &builder,
+        frame_allocator,
+        vis_buffer_record.depth,
+        &tiled_lighting_frame,
+    );
+
+    const light_raster_record = try tiled_raster.createFrameGraphRecord(
+        &builder,
+        &tiled_lighting_frame,
+        hzb_record.hzb_properties,
+        hzb_record.hzb_texture,
+    );
+
+    const tiled_lighting_record = try tiled_lighting.createFrameGraphRecord(
+        &builder,
+        frame_allocator,
+        vis_buffer_record,
+        shadow_record,
+        light_raster_record,
+    );
+
+    const tiled_lighting_debug_record = try tiled_lighting.createDebugFrameGraphRecord(
+        &builder,
+        tiled_lighting_record,
+        render_extent,
+    );
+
     const forward_record = try forward.createFrameGraphRecord(
         &builder,
         frame_allocator,
         meshlet_record,
         shadow_record.shadow_maps,
-        depth_record.depth,
+        vis_buffer_record.depth,
         render_extent,
     );
 
@@ -225,7 +281,13 @@ pub fn executeFrame(
     const swapchain_record = try swapchain_pass.createFrameGraphRecord(
         &builder,
         forward_record.scene_hdr,
-        placeholders,
+        .{
+            .lighting_result = tiled_lighting_record.lighting,
+            .tile_debug = tiled_lighting_debug_record.output,
+            .gui = placeholders.gui,
+            .histogram = placeholders.histogram,
+            .average_exposure = placeholders.average_exposure,
+        },
         tone_map_record.tone_map_lut,
     );
 
@@ -242,7 +304,9 @@ pub fn executeFrame(
     lighting.uploadFrameResources(&resources.frame_storage_allocator, &prepared, &resources.lighting_resources);
 
     {
-        var write_helper = try descriptor_set.DescriptorWriteHelper.init(frame_allocator, 64, 64, 1);
+        // 200/200 matches the C++; the vis buffer and tiled lighting passes
+        // alone write more than the 64 the forward-only frame needed.
+        var write_helper = try descriptor_set.DescriptorWriteHelper.init(frame_allocator, 200, 200, 1);
         defer write_helper.deinit();
 
         tone_mapping.updateDescriptorSet(
@@ -285,6 +349,60 @@ pub fn executeFrame(
             &resources.material_resources,
             resources.lighting_resources,
             backend.vma_instance,
+        );
+
+        vis_buffer.updateDescriptorSets(
+            &write_helper,
+            &framegraph,
+            &resources.framegraph_resources,
+            vis_buffer_record,
+            &resources.frame_storage_allocator,
+            &resources.vis_buffer_pass_resources,
+            &prepared,
+            resources.sampler_resources,
+            &resources.material_resources,
+            &resources.mesh_cache,
+            enable_msaa,
+            support_shader_stores_to_depth,
+        );
+
+        hzb.updateDescriptorSet(
+            &write_helper,
+            &framegraph,
+            &resources.framegraph_resources,
+            hzb_record,
+            &resources.hzb_pass_resources,
+            resources.sampler_resources,
+        );
+
+        tiled_raster.updateDescriptorSets(
+            &write_helper,
+            &framegraph,
+            &resources.framegraph_resources,
+            light_raster_record,
+            &resources.frame_storage_allocator,
+            &resources.tiled_raster_resources,
+            &tiled_lighting_frame,
+        );
+
+        try tiled_lighting.updateDescriptorSets(
+            &write_helper,
+            &framegraph,
+            &resources.framegraph_resources,
+            tiled_lighting_record,
+            &prepared,
+            resources.lighting_resources,
+            &resources.tiled_lighting_pass_resources,
+            resources.sampler_resources,
+            backend.vma_instance,
+        );
+
+        tiled_lighting.updateDebugDescriptorSet(
+            &write_helper,
+            &framegraph,
+            &resources.framegraph_resources,
+            tiled_lighting_debug_record,
+            &resources.tiled_lighting_pass_resources,
         );
 
         swapchain_pass.updateDescriptorSet(
@@ -334,6 +452,9 @@ pub fn executeFrame(
         .resources = &resources.framegraph_resources,
     };
 
+    // NOTE: passes must be RECORDED in the order they were DECLARED. The
+    // automatic barriers are placed against render pass indices, so recording
+    // out of order leaves images in the wrong layout at submit time.
     tone_mapping.recordCommandBuffer(
         vkd,
         cmd_buffer,
@@ -344,8 +465,6 @@ pub fn executeFrame(
         backend.present_info.tonemap_min_nits,
         backend.present_info.tonemap_max_nits,
     );
-
-    recordPlaceholderInputs(vkd, cmd_buffer, frame_graph_helper, placeholders);
 
     meshlet_culling.recordClearCommandBuffer(vkd, cmd_buffer, frame_graph_helper, meshlet_record.clear);
     meshlet_culling.recordCullMeshletsCommandBuffer(
@@ -394,6 +513,101 @@ pub fn executeFrame(
         &resources.shadow_map_resources,
     );
 
+    vis_buffer.recordCommandBuffer(
+        vkd,
+        cmd_buffer,
+        frame_graph_helper,
+        &resources.pipeline_factory,
+        vis_buffer_record.render,
+        &prepared,
+        &resources.vis_buffer_pass_resources,
+        enable_msaa,
+    );
+
+    vis_buffer.recordFillGBufferCommandBuffer(
+        vkd,
+        cmd_buffer,
+        frame_graph_helper,
+        &resources.pipeline_factory,
+        vis_buffer_record.fill_gbuffer,
+        &resources.vis_buffer_pass_resources,
+        render_extent,
+        enable_msaa,
+        support_shader_stores_to_depth,
+    );
+
+    vis_buffer.recordLegacyDepthResolveCommandBuffer(
+        vkd,
+        cmd_buffer,
+        frame_graph_helper,
+        &resources.pipeline_factory,
+        vis_buffer_record.legacy_depth_resolve,
+        &resources.vis_buffer_pass_resources,
+        enable_msaa,
+        support_shader_stores_to_depth,
+    );
+
+    hzb.recordCommandBuffer(
+        vkd,
+        cmd_buffer,
+        frame_graph_helper,
+        &resources.pipeline_factory,
+        hzb_record,
+        &resources.hzb_pass_resources,
+        render_extent,
+        .{ .width = hzb_record.hzb_properties.width, .height = hzb_record.hzb_properties.height },
+    );
+
+    tiled_raster.recordDepthCopy(
+        vkd,
+        cmd_buffer,
+        frame_graph_helper,
+        &resources.pipeline_factory,
+        light_raster_record.tile_depth_copy,
+        &resources.tiled_raster_resources,
+    );
+
+    tiled_raster.recordLightClassifyCommandBuffer(
+        vkd,
+        cmd_buffer,
+        frame_graph_helper,
+        &resources.pipeline_factory,
+        light_raster_record.light_classify,
+        &tiled_lighting_frame,
+        &resources.tiled_raster_resources,
+    );
+
+    tiled_raster.recordLightRasterCommandBuffer(
+        vkd,
+        cmd_buffer,
+        frame_graph_helper,
+        &resources.pipeline_factory,
+        light_raster_record.light_raster,
+        resources.tiled_raster_resources.light_raster,
+    );
+
+    tiled_lighting.recordCommandBuffer(
+        vkd,
+        cmd_buffer,
+        frame_graph_helper,
+        &resources.pipeline_factory,
+        tiled_lighting_record,
+        &resources.tiled_lighting_pass_resources,
+        render_extent,
+        tile_extent,
+    );
+
+    tiled_lighting.recordDebugCommandBuffer(
+        vkd,
+        cmd_buffer,
+        frame_graph_helper,
+        &resources.pipeline_factory,
+        tiled_lighting_debug_record,
+        &resources.tiled_lighting_pass_resources,
+        render_extent,
+        tile_extent,
+    );
+
     forward.recordCommandBuffer(
         vkd,
         cmd_buffer,
@@ -403,6 +617,8 @@ pub fn executeFrame(
         &prepared,
         &resources.forward_pass_resources,
     );
+
+    recordPlaceholderInputs(vkd, cmd_buffer, frame_graph_helper, placeholders);
 
     swapchain_pass.recordCommandBuffer(
         vkd,
@@ -565,14 +781,14 @@ fn logCullingStats(backend: *VulkanBackend, resources: *BackendResources, pass_c
 }
 
 /// Clears the placeholder inputs the swapchain pass samples. They stand in for
-/// the tiled lighting, GUI, histogram and exposure passes until M6 and M7.
+/// the GUI, histogram and exposure passes until M7.
 fn recordPlaceholderInputs(
     vkd: anytype,
     cmd_buffer: vk.CommandBuffer,
     helper: frame_graph_pass.FrameGraphHelper,
     placeholders: swapchain_pass.PlaceholderInputs,
 ) void {
-    const pass_handle = fg.getResourceUsage(helper.frame_graph, placeholders.lighting_result).render_pass;
+    const pass_handle = fg.getResourceUsage(helper.frame_graph, placeholders.gui).render_pass;
 
     frame_graph_pass.beginBarrierScope(vkd, cmd_buffer, helper, pass_handle);
     defer frame_graph_pass.endBarrierScope(vkd, cmd_buffer, helper, pass_handle);
@@ -586,7 +802,7 @@ fn recordPlaceholderInputs(
         .layer_count = 1,
     }};
 
-    for ([_]fg.ResourceUsageHandle{ placeholders.lighting_result, placeholders.gui, placeholders.tile_debug }) |handle| {
+    for ([_]fg.ResourceUsageHandle{placeholders.gui}) |handle| {
         const texture = helper.resources.getTexture(helper.frame_graph, handle);
         vkd.cmdClearColorImage(cmd_buffer, texture.handle, texture.image_layout, &clear_color, &ranges);
     }

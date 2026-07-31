@@ -998,10 +998,10 @@ pub fn recordFillGBufferCommandBuffer(
     vkd.cmdBindPipeline(cmd_buffer, .compute, pipeline_factory.getPipeline(pipe.pipeline_index));
 
     const push_constants = hlsl_fill_gbuffer.FillGBufferPushConstants{
-        .extent_ts = .{ render_extent.width, render_extent.height },
+        .extent_ts = .{ .x = render_extent.width, .y = render_extent.height },
         .extent_ts_inv = .{
-            1.0 / @as(f32, @floatFromInt(render_extent.width)),
-            1.0 / @as(f32, @floatFromInt(render_extent.height)),
+            .x = 1.0 / @as(f32, @floatFromInt(render_extent.width)),
+            .y = 1.0 / @as(f32, @floatFromInt(render_extent.height)),
         },
     };
 

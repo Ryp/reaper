@@ -94,6 +94,7 @@ pub fn main_with_allocator(allocator: std.mem.Allocator, init: std.process.Init)
             .vma_instance = backend.vma_instance,
             .max_draw_indirect_count = backend.physical_device.properties.limits.max_draw_indirect_count,
             .min_storage_buffer_offset_alignment = backend.physical_device.properties.limits.min_storage_buffer_offset_alignment,
+            .io = init.io,
         },
         backend.present_info.swapchain_format,
         allocator,

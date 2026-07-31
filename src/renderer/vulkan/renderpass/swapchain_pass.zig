@@ -238,12 +238,21 @@ const read_storage = fg.GPUResourceAccess{
 
 /// The inputs the not-yet-ported passes would produce. Declared as real graph
 /// resources so every descriptor the fragment shader samples is bound.
-pub const PlaceholderInputs = struct {
+/// What the composite samples besides the forward pass's HDR target. The
+/// lighting result and the tile debug view come from the real M6 passes; the
+/// rest are still placeholders until M7 lands the GUI, histogram and exposure.
+pub const SwapchainInputs = struct {
     lighting_result: fg.ResourceUsageHandle,
     gui: fg.ResourceUsageHandle,
     histogram: fg.ResourceUsageHandle,
     average_exposure: fg.ResourceUsageHandle,
     tile_debug: fg.ResourceUsageHandle,
+};
+
+pub const PlaceholderInputs = struct {
+    gui: fg.ResourceUsageHandle,
+    histogram: fg.ResourceUsageHandle,
+    average_exposure: fg.ResourceUsageHandle,
 };
 
 /// Creates the placeholder resources in their own pass, so the graph keeps them
@@ -264,35 +273,9 @@ pub fn createPlaceholderInputs(builder: *Builder, extent: vk.Extent2D) !Placehol
         .image_layout = .undefined,
     };
 
-    const lighting_result = try builder.createTexture(
-        pass_handle,
-        "Placeholder Lighting",
-        gpu_texture_properties.defaultTextureProperties(
-            extent.width,
-            extent.height,
-            .b10g11r11_ufloat_pack32,
-            .{ .sampled = true, .transfer_dst = true },
-        ),
-        fg.toTextureAccess(sampled_write),
-        &.{},
-    );
-
     const gui = try builder.createTexture(
         pass_handle,
         "Placeholder GUI",
-        gpu_texture_properties.defaultTextureProperties(
-            extent.width,
-            extent.height,
-            .r8g8b8a8_unorm,
-            .{ .sampled = true, .transfer_dst = true },
-        ),
-        fg.toTextureAccess(sampled_write),
-        &.{},
-    );
-
-    const tile_debug = try builder.createTexture(
-        pass_handle,
-        "Placeholder Tile Debug",
         gpu_texture_properties.defaultTextureProperties(
             extent.width,
             extent.height,
@@ -320,18 +303,16 @@ pub fn createPlaceholderInputs(builder: *Builder, extent: vk.Extent2D) !Placehol
     );
 
     return .{
-        .lighting_result = lighting_result,
         .gui = gui,
         .histogram = histogram,
         .average_exposure = average_exposure,
-        .tile_debug = tile_debug,
     };
 }
 
 pub fn createFrameGraphRecord(
     builder: *Builder,
     scene_hdr_usage_handle: fg.ResourceUsageHandle,
-    placeholders: PlaceholderInputs,
+    inputs: SwapchainInputs,
     tone_map_lut: fg.ResourceUsageHandle,
 ) !SwapchainFrameGraphRecord {
     const pass_handle = try builder.createRenderPass("Swapchain", true);
@@ -339,13 +320,13 @@ pub fn createFrameGraphRecord(
     return .{
         .pass_handle = pass_handle,
         .scene_hdr = try builder.readTexture(pass_handle, scene_hdr_usage_handle, fg.toTextureAccess(read_sampled), &.{}),
-        .lighting_result = try builder.readTexture(pass_handle, placeholders.lighting_result, fg.toTextureAccess(read_sampled), &.{}),
-        .gui = try builder.readTexture(pass_handle, placeholders.gui, fg.toTextureAccess(read_sampled), &.{}),
+        .lighting_result = try builder.readTexture(pass_handle, inputs.lighting_result, fg.toTextureAccess(read_sampled), &.{}),
+        .gui = try builder.readTexture(pass_handle, inputs.gui, fg.toTextureAccess(read_sampled), &.{}),
         // FIXME just to hook the pass to the render graph
-        .histogram = try builder.readBuffer(pass_handle, placeholders.histogram, fg.toBufferAccess(read_storage), &.{}),
-        .average_exposure = try builder.readBuffer(pass_handle, placeholders.average_exposure, fg.toBufferAccess(read_storage), &.{}),
+        .histogram = try builder.readBuffer(pass_handle, inputs.histogram, fg.toBufferAccess(read_storage), &.{}),
+        .average_exposure = try builder.readBuffer(pass_handle, inputs.average_exposure, fg.toBufferAccess(read_storage), &.{}),
         .tone_map_lut = try builder.readTexture(pass_handle, tone_map_lut, fg.toTextureAccess(read_sampled), &.{}),
-        .tile_debug = try builder.readTexture(pass_handle, placeholders.tile_debug, fg.toTextureAccess(read_sampled), &.{}),
+        .tile_debug = try builder.readTexture(pass_handle, inputs.tile_debug, fg.toTextureAccess(read_sampled), &.{}),
     };
 }
 
