@@ -5,6 +5,9 @@
 
 comptime {
     _ = @import("math/linalg.zig");
+    _ = @import("mesh/mesh.zig");
+    _ = @import("renderer/camera.zig");
+    _ = @import("mesh/obj_loader.zig");
     _ = @import("renderer/graph/graph_test.zig");
     _ = @import("renderer/vulkan/shader_modules.zig");
 
