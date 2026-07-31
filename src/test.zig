@@ -8,6 +8,7 @@ comptime {
     _ = @import("mesh/mesh.zig");
     _ = @import("renderer/camera.zig");
     _ = @import("renderer/mesh2.zig");
+    _ = @import("renderer/prepare_buckets.zig");
     _ = @import("mesh/meshlet_builder.zig");
     _ = @import("mesh/obj_loader.zig");
     _ = @import("renderer/graph/graph_test.zig");
