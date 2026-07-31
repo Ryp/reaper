@@ -19,6 +19,9 @@ comptime {
     _ = @import("renderer/vulkan/renderpass/forward.zig");
     _ = @import("renderer/vulkan/renderpass/meshlet_culling.zig");
     _ = @import("renderer/vulkan/renderpass/shadow_map.zig");
+    _ = @import("renderer/vulkan/renderpass/hzb.zig");
+    _ = @import("renderer/vulkan/renderpass/tiled_lighting_common.zig");
+    _ = @import("renderer/vulkan/renderpass/vis_buffer.zig");
     _ = @import("renderer/vulkan/shader_modules.zig");
 
     // Importing every CPU/GPU shared-struct mirror runs its comptime layout
