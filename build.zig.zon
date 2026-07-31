@@ -1,0 +1,41 @@
+.{
+    .name = .reaper,
+    .version = "0.2.1",
+    .minimum_zig_version = "0.16.0",
+    .fingerprint = 0xd7108290a41ba668,
+    .dependencies = .{
+        .clap = .{
+            // Latest tag didn't have 0.16 support
+            .url = "https://github.com/Hejsil/zig-clap/archive/27621cb7207643f914bae7b01902b22a8b5916e7.tar.gz",
+            .hash = "clap-0.11.0-oBajBxDoAQChQCl4LRM4tyf-VChKLbhYilS806xxzxrQ",
+        },
+        .tracy = .{
+            .url = "https://github.com/wolfpld/tracy/archive/v0.13.1.tar.gz",
+            .hash = "N-V-__8AAOncKwEm1F9c5LrT7HMNmRMYX8-fAoqpc6YyTu9X",
+        },
+        .vulkan_zig = .{
+            // zig-0.16-compat branch tip: master requires 0.17.0-dev std APIs.
+            .url = "https://github.com/Snektron/vulkan-zig/archive/b496a6a561ffbbeb530b0f9ed4e059f88c0723a5.tar.gz",
+            .hash = "vulkan-0.0.0-r7Ytx7N9AwD7IZt5_XNHtkJ4G9qY0pCH-cpcOsbL8wzD",
+        },
+        .vulkan_headers = .{
+            .url = "https://github.com/KhronosGroup/Vulkan-Headers/archive/v1.4.344.tar.gz",
+            .hash = "N-V-__8AALnKOwISs8TmtQCFcJgDTE9kRnMhQCrbaafF5DD0",
+        },
+        .amd_vma = .{
+            .url = "https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator/archive/v3.3.0.tar.gz",
+            .hash = "N-V-__8AAIutPgABk6NlXZhlJ5P8qVECvakZIKoO94h7xUOw",
+        },
+        .sdl = .{
+            .url = "https://github.com/castholm/SDL/archive/v0.4.0+3.4.0.tar.gz",
+            .hash = "sdl-0.4.0+3.4.0-SDL--u6yowGyvoiJ5qkFm_T1-MpmvnHShh2q2mTZf1fo",
+        },
+    },
+    .paths = .{
+        "src",
+        "LICENSE",
+        "README.md",
+        "build.zig",
+        "build.zig.zon",
+    },
+}

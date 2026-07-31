@@ -3,6 +3,11 @@
 # build artefacts
 /build
 
+# zig build artefacts (disjoint from the cmake ones during coexistence)
+/zig-out/
+/.zig-cache/
+/zig-pkg/
+
 # user
 /.vs/
 /.vscode/
