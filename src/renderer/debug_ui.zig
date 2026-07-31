@@ -33,7 +33,12 @@ var show_rendering_window = true;
 pub fn backendDebugUi(backend: *VulkanBackend) void {
     const work_pos = imgui.getMainViewportWorkPos();
 
-    imgui.setNextWindowPos(.{ .x = work_pos.x + 10.0, .y = work_pos.y + 10.0 }, imgui.cond_first_use_ever);
+    const scale = imgui.dpiScale();
+
+    imgui.setNextWindowPos(
+        .{ .x = work_pos.x + 10.0 * scale, .y = work_pos.y + 10.0 * scale },
+        imgui.cond_first_use_ever,
+    );
     imgui.setNextWindowBgAlpha(0.35);
 
     if (imgui.begin("Rendering", &show_rendering_window)) {
@@ -108,7 +113,7 @@ fn drawGamepadAxis(size_px: f32, axis_x: f32, axis_y: f32) void {
             .x = pos.x + axis_x * half_size_px + half_size_px,
             .y = pos.y + axis_y * half_size_px + half_size_px,
         },
-        10,
+        10.0 * imgui.dpiScale(),
         imgui_white,
     );
 }
@@ -137,28 +142,34 @@ fn drawGamepadTrigger(w_px: f32, h_px: f32, trigger_axis: f32) void {
 pub fn controllerDebugUi(state: controller.State) void {
     const work_pos = imgui.getMainViewportWorkPos();
 
-    imgui.setNextWindowPos(.{ .x = work_pos.x + 300.0, .y = work_pos.y }, imgui.cond_first_use_ever);
+    const scale = imgui.dpiScale();
+
+    imgui.setNextWindowPos(
+        .{ .x = work_pos.x + 300.0 * scale, .y = work_pos.y },
+        imgui.cond_first_use_ever,
+    );
     imgui.setNextWindowBgAlpha(0.35); // Transparent background
 
     if (imgui.begin("Controller Axes", &show_controller_window)) {
-        const size_px: f32 = 200.0;
-        const w_px: f32 = 40.0;
+        const size_px: f32 = 200.0 * scale;
+        const w_px: f32 = 40.0 * scale;
+        const gap_px: f32 = 20.0 * scale;
 
         _ = imgui.beginChild("LeftStick", .{ .x = size_px, .y = size_px });
         drawGamepadAxis(size_px, state.get(.lsx), state.get(.lsy));
         imgui.endChild();
-        imgui.sameLine(size_px + 20.0);
+        imgui.sameLine(size_px + gap_px);
 
         _ = imgui.beginChild("LeftTrigger", .{ .x = w_px, .y = size_px });
         drawGamepadTrigger(w_px, size_px, state.get(.lt));
         imgui.endChild();
-        imgui.sameLine(size_px + w_px + 2.0 * 20.0);
+        imgui.sameLine(size_px + w_px + 2.0 * gap_px);
 
         // Right pad.
         _ = imgui.beginChild("RightStick", .{ .x = size_px, .y = size_px });
         drawGamepadAxis(size_px, state.get(.rsx), state.get(.rsy));
         imgui.endChild();
-        imgui.sameLine(size_px * 2.0 + w_px + 3.0 * 20.0);
+        imgui.sameLine(size_px * 2.0 + w_px + 3.0 * gap_px);
 
         _ = imgui.beginChild("RightTrigger", .{ .x = w_px, .y = size_px });
         drawGamepadTrigger(w_px, size_px, state.get(.rt));
@@ -254,7 +265,10 @@ pub fn physicsDebugUi(state: *PhysicsUiState) void {
 
     const work_pos = imgui.getMainViewportWorkPos();
 
-    imgui.setNextWindowPos(.{ .x = work_pos.x, .y = work_pos.y + 300.0 }, imgui.cond_first_use_ever);
+    imgui.setNextWindowPos(
+        .{ .x = work_pos.x, .y = work_pos.y + 300.0 * imgui.dpiScale() },
+        imgui.cond_first_use_ever,
+    );
     imgui.setNextWindowBgAlpha(0.35); // Transparent background
 
     if (imgui.begin("Physics", &show_physics_window)) {

@@ -112,7 +112,16 @@ pub const Window = struct {
         }
         errdefer sdl.SDL_Quit();
 
-        var flags: sdl.SDL_WindowFlags = sdl.SDL_WINDOW_VULKAN | sdl.SDL_WINDOW_RESIZABLE;
+        // HIGH_PIXEL_DENSITY asks for a backbuffer at the display's real pixel
+        // size rather than at the scaled logical size. Without it, a window on
+        // a scaled output gets a logical-sized swapchain that the compositor
+        // then upscales, and the whole frame is soft. The rest of the code is
+        // already in pixel space — getSizeInPixels() drives the swapchain and
+        // the resize path listens for PIXEL_SIZE_CHANGED — so this flag is the
+        // only thing that was missing. It is a no-op at scale 1.
+        var flags: sdl.SDL_WindowFlags = sdl.SDL_WINDOW_VULKAN |
+            sdl.SDL_WINDOW_RESIZABLE |
+            sdl.SDL_WINDOW_HIGH_PIXEL_DENSITY;
         if (desc.fullscreen) {
             flags |= sdl.SDL_WINDOW_FULLSCREEN;
         }
@@ -188,14 +197,30 @@ pub const Window = struct {
         };
     }
 
-    pub fn getMouseState(_: *Window) MouseState {
+    /// Mouse position in PIXELS, to match the swapchain and the ImGui display
+    /// size. SDL reports it in logical window coordinates, which differ from
+    /// pixels by exactly the pixel density once HIGH_PIXEL_DENSITY is on —
+    /// leaving it unscaled puts the cursor at half its true position on a 2x
+    /// display, so every ImGui hit test lands in the wrong place.
+    pub fn getMouseState(self: *Window) MouseState {
         var x: f32 = 0;
         var y: f32 = 0;
         _ = sdl.SDL_GetMouseState(&x, &y);
+
+        const density = self.getPixelDensity();
+
         return .{
-            .pos_x = @intFromFloat(x),
-            .pos_y = @intFromFloat(y),
+            .pos_x = @intFromFloat(x * density),
+            .pos_y = @intFromFloat(y * density),
         };
+    }
+
+    /// Pixel size divided by logical size: 1.0 unscaled, 2.0 on a 200% display.
+    /// SDL returns 0 on error, which would silently collapse the UI, so the
+    /// fallback is an unscaled 1.0.
+    pub fn getPixelDensity(self: *Window) f32 {
+        const density = sdl.SDL_GetWindowPixelDensity(self.handle);
+        return if (density > 0.0) density else 1.0;
     }
 
     /// Pixel size of the drawable area — this is what the swapchain wants.

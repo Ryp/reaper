@@ -25,6 +25,25 @@ void rimgui_create_context(void)
 {
     ImGui::CreateContext();
 }
+void rimgui_apply_dpi_scale(float scale)
+{
+    if (scale <= 1.0f)
+        return;
+
+    ImGuiIO& io = ImGui::GetIO();
+
+    // Default ProggyClean is 13px. Building the atlas at the scaled size keeps
+    // glyphs crisp; io.FontGlobalScale would magnify the 13px bitmap instead.
+    ImFontConfig font_config;
+    font_config.SizePixels = 13.0f * scale;
+    io.Fonts->Clear();
+    io.Fonts->AddFontDefault(&font_config);
+
+    // Padding, spacing, borders and the rest are in pixels too, so they need
+    // the same treatment or the widgets stay tiny around the bigger text.
+    ImGui::GetStyle().ScaleAllSizes(scale);
+}
+
 void rimgui_destroy_context(void)
 {
     ImGui::DestroyContext();

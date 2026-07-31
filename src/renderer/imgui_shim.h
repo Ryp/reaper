@@ -48,6 +48,11 @@ typedef struct RImGuiVulkanInitInfo
 
 // ---- Context lifetime ----
 void rimgui_create_context(void);
+/// Scales the UI for a high-DPI display. Must be called after
+/// rimgui_create_context() and BEFORE the font atlas is uploaded, because it
+/// rebuilds the default font at the scaled size rather than magnifying the
+/// bitmap one -- upscaling ProggyClean is legible but visibly soft.
+void rimgui_apply_dpi_scale(float scale);
 void rimgui_destroy_context(void);
 
 // ---- Vulkan backend ----

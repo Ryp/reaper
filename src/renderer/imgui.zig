@@ -38,6 +38,23 @@ pub fn createContext() void {
     c.rimgui_create_context();
 }
 
+var dpi_scale: f32 = 1.0;
+
+/// Rebuilds the font at the display's pixel density and scales the style to
+/// match. Call between createContext() and the font atlas upload.
+pub fn applyDpiScale(scale: f32) void {
+    dpi_scale = scale;
+    c.rimgui_apply_dpi_scale(scale);
+}
+
+/// ImGui's own ScaleAllSizes only reaches the style — padding, spacing,
+/// borders. Any pixel figure a caller passes in (a window position, a child
+/// region's size) is untouched by it and has to be scaled here, or the layout
+/// keeps its unscaled geometry around scaled text.
+pub fn dpiScale() f32 {
+    return dpi_scale;
+}
+
 pub fn destroyContext() void {
     c.rimgui_destroy_context();
 }

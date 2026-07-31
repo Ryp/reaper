@@ -310,9 +310,10 @@ pub const VulkanBackend = struct {
         // eighteen — so the driver in use is part of understanding any
         // swapchain format decision below.
         const display_hdr_enabled = window.isDisplayHdrEnabled();
-        log.info("video driver = {s}, display HDR = {}", .{
+        log.info("video driver = {s}, display HDR = {}, pixel density = {d:.2}", .{
             window.getVideoDriverName(),
             display_hdr_enabled,
+            window.getPixelDensity(),
         });
 
         const swapchain_desc = Swapchain.SwapchainDescriptor{
@@ -349,6 +350,11 @@ pub const VulkanBackend = struct {
         // ----------------------------------------------------------------
         imgui.createContext();
         errdefer imgui.destroyContext();
+
+        // Before the font atlas is uploaded, which main.zig does after this
+        // returns. The whole UI is specified in pixels, so on a scaled display
+        // it would otherwise render correctly but at half physical size.
+        imgui.applyDpiScale(window.getPixelDensity());
 
         // FIXMEs verbatim from the C++: the queue family, image counts and
         // sample count are all hardcoded there too.
