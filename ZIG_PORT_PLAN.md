@@ -193,13 +193,22 @@ allocator. Parameters are the planned 192 / 64 / 0.5.
 *Verification.* Meshlet counts, vertex counts, index offsets and the compacted index data match the C++ path
 **exactly** for every mesh in `res/model` (992 / 1089 / 1563 / 809 / 22 meshlets etc.).
 
-**Unresolved:** the bounds sphere *centre* differs by roughly 1e-4 on a unit-radius mesh — e.g. icosahedron
-centre `y` is `-0.000097` from C++ and `+0.000097` from Zig, while the radius (`1.000391`), cone axis, cone
-cutoff and cone apex all match to the printed digit. It is not a compiler difference: `g++ -O2`, `g++ -O0`,
-`g++ -ffp-contract=off` and `clang++ -O2` all agree with each other and disagree with Zig. Both values are
-~0.01% of the radius so culling is unaffected, but the cause is not understood and should be chased before
-trusting the bounds for anything tighter than sphere culling. Suspect the `meshopt_Bounds` return-by-value
-(48-byte struct, sret) through `@cImport`.
+*Bounds sphere centre — investigated and closed as harmless.* The centres differ from the C++ build by ~1e-4 on
+a unit-radius mesh. Chased to the bottom on a fixed 6-vertex / 4-triangle input, dumping all 48 bytes of
+`meshopt_Bounds` from both sides: **exactly one byte of 48 differs**, `center[2]` = `0x3e370340` (C++) vs
+`0x3e370341` (Zig) — a single ULP. Struct size, radius, cone axis, cone cutoff, cone apex and every other byte
+are identical, which rules out the `sret` return-by-value theory and any layout problem.
+
+The 1 ULP comes from **Zig's bundled clang**, not from the port: system `g++` and system `clang++` agree with
+each other at `-O0/-Os/-O2`, with and without `-march=native`, `-mfma`, `-mavx2` and `-ffp-contract=off`, and all
+of them disagree with Zig's clang at every Zig optimization level. On a whole mesh that single ULP is amplified
+by the iterative bounding-sphere fit, which is why a symmetric mesh whose true centre is the origin can come out
+with the residual's sign flipped (icosahedron centre `y`: `-0.000097` vs `+0.000097` — 1 ULP cannot flip a sign
+at that magnitude, the iteration does).
+
+Impact: none worth acting on. Meshlet membership, counts, offsets and compacted index data are byte-identical;
+only the culling sphere centre moves by ~0.01% of its radius, and the radius itself matches. Do not expect
+bit-identical bounds between the two builds.
 
 **Remaining for M4a:** PrepareBuckets(276), the MeshletCulling passes(770), ForwardPass(411) with a constant
 default material, SamplerResources, the ToneMapping LUT bake(138), and SwapchainPass(317) as the real composite.

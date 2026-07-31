@@ -15,6 +15,12 @@ const Mesh = mesh_module.Mesh;
 const Meshlet = hlsl_meshlet.Meshlet;
 const VertexAttributes = mesh_module.VertexAttributes;
 
+// NOTE: meshlet *bounds* are not bit-identical to the C++ build. Zig's bundled
+// clang computes one ULP differently from system gcc/clang inside
+// meshopt_computeMeshletBounds, and the iterative sphere fit amplifies that to
+// ~1e-4 of the radius. Membership, counts, offsets and index data all match
+// exactly; only the sphere centre drifts, which culling does not care about.
+
 /// Clusterizer parameters. MeshletMaxTriangleCount comes from the shared HLSL
 /// header, so CPU and GPU agree on the cluster size.
 pub const max_vertices: usize = hlsl_meshlet.MeshletMaxTriangleCount * 3;
