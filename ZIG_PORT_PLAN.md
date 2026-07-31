@@ -83,6 +83,33 @@ and empirically renders — do not "fix" the cull state on paper.
 **Descriptor sets** (`descriptor_set.zig`, `DescriptorWriteHelper`) and `pipeline_factory.zig` were not needed
 for this gate and move to M3, where the frame graph first needs them.
 
+### M2 result
+
+`src/math/linalg.zig` clones the glm subset the renderer uses, with glm's conventions intact (column-major
+`m.c[col][row]`, `Mat4x3` = 4 columns of 3 rows = HLSL `float3x4`). `perspectiveRhZo`, `lookAtRh` and
+`inverseMat4` are transliterated operation-for-operation rather than rewritten, so the floating point results
+track glm's. 13 golden tests cover ZO depth mapping (near→0, far→1), right-handedness, general-matrix inverse
+round-trips, quaternion composition, and the mat4x3↔mat4 conversions.
+
+`src/renderer/hlsl/types.zig` ports Types.inl + shared_types.hlsl, and all **21** `.share.hlsl` files have
+mirrors under `src/renderer/hlsl/` following the shader tree. The three C++ layout tests
+(`test/hlsl/{float_vector,float_matrix,struct}.cpp`) are ported directly.
+
+*Layout checking.* `assertLayout(T, size)` requires fields to sit back to back and the total to match — no
+implicit padding anywhere. `assertLayoutPadded(T, declared, size)` is for the four structs whose trailing
+padding is real (they end in a `uint2`, which forces 8-byte alignment); spelling out both numbers keeps the gap
+visible. This catches misordered fields, wrong field types, *and* dropped `_pad` members — the last one matters
+because removing a trailing pad usually leaves `@sizeOf` unchanged, so only the field sum notices. All three
+failure modes were verified by deliberately breaking a mirror and confirming the compile error.
+
+*Cross-validated against C++.* The asserts only prove the Zig mirrors are self-consistent, so both sides were
+compiled and diffed: a namespaced C++ probe including every `.share.hlsl` (they can't share a translation unit —
+three of them define `MinWaveLaneCount`) against an equivalent Zig probe. **All 40 sizes are identical**, which
+is what actually rules out a transcription error. Worth repeating if a `.share.hlsl` ever changes:
+`g++ -std=c++20 -I src -I src/renderer/shader -I external/glm -DGLM_FORCE_DEPTH_ZERO_TO_ONE`.
+
+*Gate:* `zig build test` green — 17 tests, no GPU needed.
+
 ## Context
 
 Reaper is a ~30k-LOC C++20 Vulkan 1.4 engine (meshlet culling, visibility buffer, tiled deferred + forward split-screen, frame graph, HDR-aware swapchain) with a Neptune game layer. Goal: port it to Zig; the own C++ code + CMake get deleted **eventually, but NOT in v1** — v1 explicitly keeps both builds working side by side (user requirement). v1 success criterion (user, relaxed): the Zig binary brings up the same default scene — procedural track, SciFiHelmet player ship, 3 shadowed lights, split-screen forward/deferred composite, 3 ImGui windows — and **"we see the ship in the frame"**, judged by eyeball against a C++ screenshot. No determinism work, no C++ patches, no automated diff.
