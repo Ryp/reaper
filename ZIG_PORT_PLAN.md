@@ -238,9 +238,27 @@ are not verified** — that needs either a frame-graph texture readback or the s
 
 `zig build test` is at 45 tests.
 
-**Remaining for M4a:** the MeshletCulling passes(770), ForwardPass(411) with a constant default material, and
-SwapchainPass(317) as the real composite. The M4a gate does not close on its own — the plan pairs it with M4b for
-"lit, shadowed, textured helmet on screen".
+**MeshletCulling + StorageBufferAllocator done.** All five passes (clear, cull meshlets, cull triangles prepare,
+cull triangles, counter readback) — resources, descriptor layouts, frame graph declarations and recording. They
+are not driven yet: that needs ForwardPass to consume what they produce.
+
+The storage allocator now aligns each allocation forward to `minStorageBufferOffsetAlignment`, fixing the C++
+FIXME ("Alignment is not handled at all at this time / You should get a validation error when we need to properly
+support this") rather than porting it.
+
+The test artifact now gets the VMA headers and implementation TU, so the Vulkan-typed modules are testable.
+Nothing there touches a device — the tests are offset arithmetic on the per-pass buffer slices.
+
+*A test caught my own misreading, not a bug.* `visible_index_buffer_size_bytes` folds in the pass count, which
+reads like the buffer is over-allocated 4x. It is not: that constant is the size of **one pass's slice**, because
+a single pass is provisioned for the worst case where nothing anywhere is culled. The four slices tile the buffer
+exactly, which the test now asserts along with the worst-case sizing.
+
+`zig build test` is at 48 tests.
+
+**Remaining for M4a:** ForwardPass(411) with a constant default material, and SwapchainPass(317) as the real
+composite — plus driving the culling passes from the frame, which needs a scene to exist. The M4a gate does not
+close on its own; the plan pairs it with M4b for "lit, shadowed, textured helmet on screen".
 
 ## Context
 
