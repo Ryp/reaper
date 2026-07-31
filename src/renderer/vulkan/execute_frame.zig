@@ -10,8 +10,12 @@ const vk = @import("vulkan");
 const log = std.log.scoped(.vulkan);
 
 const barrier = @import("barrier.zig");
+const debug_gradient = @import("renderpass/debug_gradient.zig");
+const descriptor_set = @import("descriptor_set.zig");
+const fg = @import("../graph/frame_graph.zig");
+const frame_graph_pass = @import("renderpass/frame_graph_pass.zig");
 const screenshot = @import("screenshot.zig");
-const swapchain_pass = @import("renderpass/swapchain_pass.zig");
+const Builder = @import("../graph/builder.zig").Builder;
 const Swapchain = @import("Swapchain.zig");
 const BackendResources = @import("backend_resources.zig").BackendResources;
 const VulkanBackend = @import("Backend.zig").VulkanBackend;
@@ -36,22 +40,18 @@ const swapchain_access_present = barrier.GPUTextureAccess{
     .image_layout = .present_src_khr,
 };
 
+// The frame graph's last pass blits into the swapchain image, so this is the
+// layout the swapchain has to be in while the graph runs. It goes back to
+// ATTACHMENT_OPTIMAL once the real swapchain pass renders into it.
 const swapchain_access_render = barrier.GPUTextureAccess{
-    .stage_mask = .{ .color_attachment_output_bit = true },
-    .access_mask = .{ .color_attachment_write_bit = true },
-    .image_layout = .attachment_optimal,
+    .stage_mask = .{ .blit_bit = true },
+    .access_mask = .{ .transfer_write_bit = true },
+    .image_layout = .transfer_dst_optimal,
 };
-
-// NOTE: M0 clears through an empty dynamic-rendering pass rather than
-// vkCmdClearColorImage. The latter would need VK_IMAGE_USAGE_TRANSFER_DST_BIT
-// on the swapchain, which the C++ backend never requests; going through an
-// attachment keeps the swapchain configuration and the barrier layouts above
-// identical to C++, and is the shape the real swapchain pass needs anyway.
-const clear_color = vk.ClearColorValue{ .float_32 = .{ 0.1, 0.2, 0.4, 1.0 } };
 
 /// Mirrors resize_swapchain(). This is the consumer of new_swapchain_extent —
 /// the old Zig port never called it, so the window could not be resized.
-pub fn resizeSwapchain(backend: *VulkanBackend, resources: *BackendResources) !void {
+pub fn resizeSwapchain(backend: *VulkanBackend) !void {
     if (backend.new_swapchain_extent.width == 0 and backend.new_swapchain_extent.height == 0) {
         return;
     }
@@ -73,14 +73,6 @@ pub fn resizeSwapchain(backend: *VulkanBackend, resources: *BackendResources) !v
     );
 
     backend.updateRenderExtent();
-
-    // Reconfiguring can hand back a different view format, which invalidates
-    // any pipeline built against the old one.
-    try resources.swapchain_pass_resources.reconfigure(
-        backend.vkd,
-        backend.device,
-        backend.present_info.swapchain_format.vk_view_format,
-    );
 
     backend.new_swapchain_extent = .{ .width = 0, .height = 0 };
 }
@@ -174,6 +166,51 @@ pub fn executeFrame(
     const subresource = barrier.defaultTextureSubresourceOneColorMip();
     const swapchain_image = backend.present_info.images[current_swapchain_index];
 
+    // ---- Declare the frame graph ----
+    //
+    // Rebuilt from the frame arena every frame, matching the C++ shape:
+    // declare, build, allocate volatile resources, update descriptors,
+    // schedule, then record.
+    const frame_allocator = resources.frame_arena.allocator();
+
+    var framegraph = fg.FrameGraph{};
+    var builder = Builder.init(&framegraph, frame_allocator);
+
+    const gradient_record = try debug_gradient.createFrameGraphRecord(
+        &builder,
+        backend.present_info.surface_extent,
+        .r8g8b8a8_unorm,
+    );
+
+    try builder.build();
+
+    try resources.framegraph_resources.allocateVolatileResources(
+        vkd,
+        device,
+        backend.vma_instance,
+        &framegraph,
+    );
+
+    {
+        var write_helper = try descriptor_set.DescriptorWriteHelper.init(frame_allocator, 8, 8, 1);
+        defer write_helper.deinit();
+
+        debug_gradient.updateDescriptorSet(
+            &write_helper,
+            &resources.debug_gradient_resources,
+            &resources.framegraph_resources,
+            &framegraph,
+            gradient_record,
+        );
+
+        write_helper.flush(vkd, device);
+    }
+
+    var schedule = try fg.computeSchedule(&framegraph, frame_allocator);
+    defer schedule.deinit(frame_allocator);
+
+    // ---- Record ----
+
     // An image straight out of a freshly created swapchain is in UNDEFINED
     // layout; every later frame gets it back in PRESENT_SRC.
     const pending_initial_transition = &backend.present_info.images_pending_initial_transition[current_swapchain_index];
@@ -189,51 +226,24 @@ pub fn executeFrame(
         vkd.cmdPipelineBarrier2(cmd_buffer, &dependencies);
     }
 
-    {
-        const color_attachments = [_]vk.RenderingAttachmentInfo{.{
-            .s_type = .rendering_attachment_info,
-            .p_next = null,
-            .image_view = backend.present_info.image_views[current_swapchain_index],
-            .image_layout = swapchain_access_render.image_layout,
-            .resolve_mode = .{},
-            .resolve_image_view = .null_handle,
-            .resolve_image_layout = .undefined,
-            .load_op = .clear,
-            .store_op = .store,
-            .clear_value = .{ .color = clear_color },
-        }};
+    debug_gradient.recordCommandBuffer(
+        vkd,
+        cmd_buffer,
+        .{
+            .frame_graph = &framegraph,
+            .schedule = &schedule,
+            .resources = &resources.framegraph_resources,
+        },
+        &resources.debug_gradient_resources,
+        gradient_record,
+        swapchain_image,
+    );
 
-        const rendering_info = vk.RenderingInfo{
-            .s_type = .rendering_info,
-            .p_next = null,
-            .flags = .{},
-            .render_area = .{
-                .offset = .{ .x = 0, .y = 0 },
-                .extent = backend.present_info.surface_extent,
-            },
-            .layer_count = 1,
-            .view_mask = 0,
-            .color_attachment_count = color_attachments.len,
-            .p_color_attachments = &color_attachments,
-            .p_depth_attachment = null,
-            .p_stencil_attachment = null,
-        };
-
-        vkd.cmdBeginRendering(cmd_buffer, &rendering_info);
-
-        swapchain_pass.record(
-            vkd,
-            cmd_buffer,
-            &resources.swapchain_pass_resources,
-            backend.present_info.surface_extent,
-        );
-
-        vkd.cmdEndRendering(cmd_buffer);
-    }
-
-    // The readback has to happen here, while the frame still owns the image:
-    // transitioning an image that has already been presented is invalid.
+    // Back to PRESENT_SRC before handing the image to the presentation engine.
     if (readback) |readback_target| {
+        // The readback has to happen here, while the frame still owns the
+        // image: transitioning an image that has already been presented is
+        // invalid.
         const to_copy = [_]vk.ImageMemoryBarrier2{
             barrier.getImageBarrierSameQueue(swapchain_image, subresource, swapchain_access_render, screenshot.access_copy),
         };
@@ -242,7 +252,6 @@ pub fn executeFrame(
         screenshot.recordCopy(vkd, cmd_buffer, swapchain_image, readback_target);
     }
 
-    // Back to PRESENT_SRC before handing the image to the presentation engine.
     {
         const src_layout = if (readback != null) screenshot.access_copy else swapchain_access_render;
 

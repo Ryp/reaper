@@ -86,14 +86,14 @@ pub fn main_with_allocator(allocator: std.mem.Allocator, init: std.process.Init)
         backend.vkd,
         backend.device,
         backend.physical_device.graphics_queue_family_index,
-        backend.present_info.swapchain_format.vk_view_format,
+        backend.global_descriptor_pool,
         allocator,
     );
     // Mirrors renderer_stop(): the GPU has to be done with the last frame
     // before any of its resources are torn down.
     defer {
         _ = backend.vkd.deviceWaitIdle(backend.device) catch {};
-        resources.deinit(backend.vkd, backend.device);
+        resources.deinit(backend.vkd, backend.device, backend.vma_instance);
     }
 
     try game_loop.run(allocator, init.io, &window, &backend, &resources, .{

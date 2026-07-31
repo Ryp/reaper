@@ -43,6 +43,14 @@ pub fn build(b: *std.Build) void {
     const enable_vulkan = true;
     const enable_validation = b.option(bool, "validation", "Enable Vulkan validation layers") orelse (optimize == .Debug);
 
+    // The frame graph schedules barriers automatically, so synchronization
+    // validation is the check that actually matters from M3 onwards.
+    const enable_sync_validation = b.option(
+        bool,
+        "sync-validation",
+        "Enable Vulkan synchronization validation",
+    ) orelse enable_validation;
+
     const enable_tracy = b.option(bool, "tracy", "Enable Tracy support") orelse false;
     const tracy_callstack = b.option(bool, "tracy-callstack", "Include callstack information with Tracy data. Does nothing if -Dtracy is not provided") orelse enable_tracy;
     const tracy_allocation = b.option(bool, "tracy-allocation", "Include allocation information with Tracy data. Does nothing if -Dtracy is not provided") orelse enable_tracy;
@@ -56,6 +64,7 @@ pub fn build(b: *std.Build) void {
 
     exe_options.addOption(bool, "enable_vulkan", enable_vulkan);
     exe_options.addOption(bool, "enable_validation", enable_validation);
+    exe_options.addOption(bool, "enable_sync_validation", enable_sync_validation);
 
     exe_options.addOption(u32, "vulkan_api_major", vulkan_api_major);
     exe_options.addOption(u32, "vulkan_api_minor", vulkan_api_minor);
@@ -252,6 +261,13 @@ const shader_sources = [_][]const u8{
     "vis_buffer/fill_gbuffer_msaa_with_depth_resolve.comp.hlsl",
 };
 
+/// Shaders that exist only on the Zig side. Kept separate so shader_sources
+/// above stays a verbatim copy of REAPER_SHADER_SRCS and the CMake build is
+/// left alone.
+const extra_shader_sources = [_][]const u8{
+    "debug_gradient.comp.hlsl",
+};
+
 pub const Shaders = struct {
     /// Import as "shaders"; keys are the C++ `code_map` keys.
     module: *std.Build.Module,
@@ -292,7 +308,7 @@ fn addShaders(b: *std.Build) Shaders {
 
     const shaders_module = b.createModule(.{});
 
-    for (shader_sources) |source| {
+    for (shader_sources ++ extra_shader_sources) |source| {
         // "meshlet/cull_meshlet.comp.hlsl" -> "meshlet/cull_meshlet.comp.spv",
         // which is exactly the key C++ builds from the build/shader/ layout.
         const key = std.mem.concat(b.allocator, u8, &.{

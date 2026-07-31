@@ -110,6 +110,46 @@ is what actually rules out a transcription error. Worth repeating if a `.share.h
 
 *Gate:* `zig build test` green — 17 tests, no GPU needed.
 
+### M3 result
+
+Ports FrameGraph, FrameGraphBuilder, the barrier scheduler, FrameGraphPass (the RAII barrier scope becomes
+explicit begin/end paired with `defer`), Image, Buffer, DescriptorSet and FrameGraphResources, plus the GPU
+resource property/view types. `PixelFormat` is skipped as planned — roughly 620 of Image.cpp's 800 lines are its
+conversion tables, and `vk.Format` replaces all of it.
+
+*Gate part 1 — graph tests, no GPU.* The C++ graph test builds a scene and asserts nothing, so it only ever
+caught crashes. The same scene is declared here and checked: the pass nothing depends on is pruned along with the
+texture it wrote, the schedule keeps declaration order, every used texture leaves UNDEFINED exactly once, and the
+barrier events partition cleanly per pass. Cycle detection and transitive closure get direct tests. 23 tests
+green.
+
+*Gate part 2 — demo, validation and sync-validation clean.* `renderpass/debug_gradient.zig` declares three
+passes with no scene behind them: compute writes a UV gradient into texture A, `vkCmdCopyImage` moves it to B,
+and B is blitted onto the swapchain. The readback is pixel-exact — corners `(0,0,0)`, `(255,0,0)`, `(0,255,0)`,
+`(255,255,0)`, centre `(128,128,0)`, blue always 0, exactly 65536 distinct colours (the full 8-bit R×G space) —
+so the gradient really did survive all three passes and the automatic barriers between them.
+
+Sync validation is now on by default in Debug (`-Dsync-validation`), chained into the instance as
+`VkValidationFeaturesEXT`. It immediately earned its keep: the first run reported a READ_AFTER_WRITE hazard
+because `vkCmdBlitImage` executes in the `BLIT` stage while the barrier only made the image available to `COPY`.
+Worth remembering — a transfer access is not one stage.
+
+Deviations, both fixing latent C++ bugs rather than porting them:
+* Image views are only created for textures whose usage has a view-capable bit. C++ creates them
+  unconditionally, which works there only because every texture it declares happens to be sampled or storage; a
+  transfer-only texture makes `vkCreateImageView` fail outright.
+* The `_b` copies of the texture arrays in FrameGraphResources are left out. The destroy pass runs *before* the
+  swap and only touches the non-`_b` set, so `_b` never holds live objects — it only carries vector capacity
+  across frames. Reinstate it if it ever becomes a real deferred-destroy for frames still in flight.
+
+One shader was added, `debug_gradient.comp.hlsl`, in a separate `extra_shader_sources` list so `shader_sources`
+stays a verbatim copy of `REAPER_SHADER_SRCS` and CMake is untouched. It uses the engine's own
+`[[spv::format_rgba8]]` convention; without it `RWTexture2D<float4>` compiles to `Rgba32f` and validation warns
+that every store is undefined.
+
+**Superseded:** the M1 fullscreen triangle. The swapchain is now a blit target rather than an attachment, so
+`swapchain_pass.zig` is unused until M4a wires up the real composite.
+
 ## Context
 
 Reaper is a ~30k-LOC C++20 Vulkan 1.4 engine (meshlet culling, visibility buffer, tiled deferred + forward split-screen, frame graph, HDR-aware swapchain) with a Neptune game layer. Goal: port it to Zig; the own C++ code + CMake get deleted **eventually, but NOT in v1** — v1 explicitly keeps both builds working side by side (user requirement). v1 success criterion (user, relaxed): the Zig binary brings up the same default scene — procedural track, SciFiHelmet player ship, 3 shadowed lights, split-screen forward/deferred composite, 3 ImGui windows — and **"we see the ship in the frame"**, judged by eyeball against a C++ screenshot. No determinism work, no C++ patches, no automated diff.

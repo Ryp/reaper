@@ -88,6 +88,55 @@ pub fn getImageBarrierSameQueue(
     );
 }
 
+pub fn getBufferBarrier(
+    handle: vk.Buffer,
+    view: @import("../buffer/gpu_buffer.zig").GPUBufferView,
+    src: GPUBufferAccess,
+    dst: GPUBufferAccess,
+    src_queue_family_index: u32,
+    dst_queue_family_index: u32,
+) vk.BufferMemoryBarrier2 {
+    return .{
+        .s_type = .buffer_memory_barrier_2,
+        .p_next = null,
+        .src_stage_mask = src.stage_mask,
+        .src_access_mask = src.access_mask,
+        .dst_stage_mask = dst.stage_mask,
+        .dst_access_mask = dst.access_mask,
+        .src_queue_family_index = src_queue_family_index,
+        .dst_queue_family_index = dst_queue_family_index,
+        .buffer = handle,
+        .offset = view.offset_bytes,
+        .size = view.size_bytes,
+    };
+}
+
+pub fn getBufferBarrierSameQueue(
+    handle: vk.Buffer,
+    view: @import("../buffer/gpu_buffer.zig").GPUBufferView,
+    src: GPUBufferAccess,
+    dst: GPUBufferAccess,
+) vk.BufferMemoryBarrier2 {
+    return getBufferBarrier(handle, view, src, dst, vk.QUEUE_FAMILY_IGNORED, vk.QUEUE_FAMILY_IGNORED);
+}
+
+pub fn getDependencyInfo(
+    image_barriers: []const vk.ImageMemoryBarrier2,
+    buffer_barriers: []const vk.BufferMemoryBarrier2,
+) vk.DependencyInfo {
+    return .{
+        .s_type = .dependency_info,
+        .p_next = null,
+        .dependency_flags = .{},
+        .memory_barrier_count = 0,
+        .p_memory_barriers = null,
+        .buffer_memory_barrier_count = @intCast(buffer_barriers.len),
+        .p_buffer_memory_barriers = buffer_barriers.ptr,
+        .image_memory_barrier_count = @intCast(image_barriers.len),
+        .p_image_memory_barriers = image_barriers.ptr,
+    };
+}
+
 pub fn getImageBarrierDependencyInfo(barriers: []const vk.ImageMemoryBarrier2) vk.DependencyInfo {
     return .{
         .s_type = .dependency_info,

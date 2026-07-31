@@ -90,7 +90,7 @@ pub fn run(
             continue;
         }
 
-        try execute_frame.resizeSwapchain(backend, resources);
+        try execute_frame.resizeSwapchain(backend);
 
         // The capture is recorded into the last frame's command buffer, so the
         // staging buffer has to exist before that frame starts.

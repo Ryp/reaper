@@ -22,16 +22,9 @@ const Window = @import("../window/window.zig").Window;
 pub const sdl = @import("../window/sdl.zig").c;
 
 // --------------------------------------------------------------------------
-// VMA – header-only C library compiled via vma_impl.c.
-// VK_NO_PROTOTYPES keeps static Vulkan function declarations out of the
-// header; we supply function pointers through VmaVulkanFunctions instead.
+// VMA – re-exported so callers share the exact same @cImport types.
 // --------------------------------------------------------------------------
-const vma = @cImport({
-    @cDefine("VK_NO_PROTOTYPES", "1");
-    @cDefine("VMA_STATIC_VULKAN_FUNCTIONS", "0");
-    @cDefine("VMA_DYNAMIC_VULKAN_FUNCTIONS", "1");
-    @cInclude("vk_mem_alloc.h");
-});
+pub const vma = @import("vma.zig").c;
 
 // --------------------------------------------------------------------------
 // Vulkan dispatch tables – pre-built by vulkan-zig from vk.xml at build time.
@@ -179,9 +172,26 @@ pub const VulkanBackend = struct {
             )),
         };
 
+        // Synchronization validation catches missing or wrong barriers, which
+        // is exactly the class of bug the frame graph's automatic barrier
+        // placement can introduce.
+        const enabled_validation_features = [_]vk.ValidationFeatureEnableEXT{.synchronization_validation_ext};
+
+        const validation_features = vk.ValidationFeaturesEXT{
+            .s_type = .validation_features_ext,
+            .p_next = null,
+            .enabled_validation_feature_count = enabled_validation_features.len,
+            .p_enabled_validation_features = &enabled_validation_features,
+            .disabled_validation_feature_count = 0,
+            .p_disabled_validation_features = null,
+        };
+
         const instance_create_info = vk.InstanceCreateInfo{
             .s_type = .instance_create_info,
-            .p_next = null,
+            .p_next = if (build_options.enable_validation and build_options.enable_sync_validation)
+                @as(?*const anyopaque, @ptrCast(&validation_features))
+            else
+                null,
             .flags = .{},
             .p_application_info = &app_info,
             .enabled_layer_count = @intCast(instance_layers.items.len),

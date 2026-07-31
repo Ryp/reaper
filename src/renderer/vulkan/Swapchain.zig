@@ -192,10 +192,14 @@ pub fn configureVulkanWmSwapchain(
     info.swapchain_usage_flags = .{ .color_attachment_bit = true };
 
     // Opt into transfer-src when the surface allows it so frames can be read
-    // back for screenshots. Every driver worth caring about supports this, but
-    // it is not guaranteed, hence the check.
+    // back for screenshots, and transfer-dst so passes can blit into the
+    // swapchain. Every driver worth caring about supports both, but neither is
+    // guaranteed, hence the checks.
     if (caps.supported_usage_flags.transfer_src_bit) {
         info.swapchain_usage_flags.transfer_src_bit = true;
+    }
+    if (caps.supported_usage_flags.transfer_dst_bit) {
+        info.swapchain_usage_flags.transfer_dst_bit = true;
     }
 
     // ---- Transform ----
