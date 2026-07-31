@@ -108,7 +108,10 @@ pub fn main_with_allocator(allocator: std.mem.Allocator, init: std.process.Init)
     var scene = try scene_module.createPlaceholderScene(
         allocator,
         init.io,
+        backend.vkd,
+        backend.device,
         &resources.mesh_cache,
+        &resources.material_resources,
         backend.vma_instance,
         res.args.mesh orelse "res/model/ship.obj",
     );

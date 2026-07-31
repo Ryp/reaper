@@ -35,6 +35,7 @@ const Builder = @import("../../graph/builder.zig").Builder;
 const DescriptorWriteHelper = descriptor_set.DescriptorWriteHelper;
 const FrameGraphResources = @import("../framegraph_resources.zig").FrameGraphResources;
 const LightingPassResources = @import("lighting.zig").LightingPassResources;
+const MaterialResources = @import("../material_resources.zig").MaterialResources;
 const MeshCache = @import("../mesh_cache.zig").MeshCache;
 const PipelineFactory = pipeline_factory_module.PipelineFactory;
 const SamplerResources = @import("../sampler_resources.zig").SamplerResources;
@@ -363,6 +364,7 @@ pub fn updateDescriptorSets(
     resources: *const ForwardPassResources,
     sampler_resources: SamplerResources,
     mesh_cache: *const MeshCache,
+    material_resources: *const MaterialResources,
     lighting_resources: LightingPassResources,
     vma_instance: vma.VmaAllocator,
 ) !void {
@@ -429,6 +431,23 @@ pub fn updateDescriptorSets(
         SetOne.diffuse_map_sampler,
         sampler_resources.diffuse_map_sampler,
     );
+
+    if (material_resources.textures.items.len > 0) {
+        var views_buffer: [hlsl_mesh_instance.MaterialTextureMaxCount]vk.ImageView = undefined;
+        const count = @min(material_resources.textures.items.len, views_buffer.len);
+
+        for (views_buffer[0..count], material_resources.textures.items[0..count]) |*view, texture| {
+            view.* = texture.default_view;
+        }
+
+        write_helper.appendTextureArray(
+            resources.material_descriptor_set,
+            SetOne.material_maps,
+            .sampled_image,
+            views_buffer[0..count],
+            .read_only_optimal,
+        );
+    }
 }
 
 // --------------------------------------------------------------------------

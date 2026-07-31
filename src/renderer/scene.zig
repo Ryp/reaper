@@ -11,6 +11,7 @@ const vk = @import("vulkan");
 const camera_module = @import("camera.zig");
 const linalg = @import("../math/linalg.zig");
 const mesh_module = @import("../mesh/mesh.zig");
+const material_resources_module = @import("vulkan/material_resources.zig");
 const mesh_cache_module = @import("vulkan/mesh_cache.zig");
 const mesh2 = @import("mesh2.zig");
 const obj_loader = @import("../mesh/obj_loader.zig");
@@ -40,10 +41,29 @@ pub const Scene = struct {
 };
 
 /// Loads one mesh and puts it in front of a fixed camera with a single light.
+/// The four maps the forward shader samples, in the order MeshMaterial expects.
+/// Only base colour is sRGB; the rest carry linear data.
+pub const MaterialTextureSet = struct {
+    base_color: []const u8,
+    metal_roughness: []const u8,
+    normal: []const u8,
+    ao: []const u8,
+};
+
+pub const sci_fi_helmet_textures = MaterialTextureSet{
+    .base_color = "res/model/sci_fi_helmet/SciFiHelmet_BaseColor.png",
+    .metal_roughness = "res/model/sci_fi_helmet/SciFiHelmet_MetallicRoughness.png",
+    .normal = "res/model/sci_fi_helmet/SciFiHelmet_Normal.png",
+    .ao = "res/model/sci_fi_helmet/SciFiHelmet_AmbientOcclusion.png",
+};
+
 pub fn createPlaceholderScene(
     allocator: std.mem.Allocator,
     io: std.Io,
+    vkd: anytype,
+    device: vk.Device,
     mesh_cache: *mesh_cache_module.MeshCache,
+    material_resources: *material_resources_module.MaterialResources,
     vma_instance: vma.VmaAllocator,
     mesh_path: []const u8,
 ) !Scene {
@@ -82,7 +102,29 @@ pub fn createPlaceholderScene(
         .material_handle = @enumFromInt(0),
     });
 
-    _ = try graph.allocSceneMaterial(allocator);
+    // ---- Material ----
+    const textures = sci_fi_helmet_textures;
+
+    const handle_span = try material_resources.allocMaterialTextures(4);
+
+    try material_resources.loadPngTextures(
+        vkd,
+        device,
+        vma_instance,
+        &.{ textures.base_color, textures.metal_roughness, textures.normal, textures.ao },
+        handle_span,
+        // Only base colour is sRGB-encoded; roughness/normal/AO are linear data
+        // and decoding them through the sRGB EOTF would be wrong.
+        &.{ true, false, false, false },
+    );
+
+    const material_handle = try graph.allocSceneMaterial(allocator);
+    graph.scene_materials.items[material_handle.index()] = .{
+        .base_color_texture = @enumFromInt(handle_span.offset + 0),
+        .metal_roughness_texture = @enumFromInt(handle_span.offset + 1),
+        .normal_map_texture = @enumFromInt(handle_span.offset + 2),
+        .ao_texture = @enumFromInt(handle_span.offset + 3),
+    };
 
     // A light off to one side, no shadow map — shadows are M4b.
     const light_node = try graph.createSceneNode(

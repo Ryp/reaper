@@ -288,8 +288,27 @@ Two things that cost time and are worth knowing:
   hardcoded frustum put the whole mesh past the far plane and rendered an empty frame. `scene.zig` now frames the
   camera from the mesh's bounding sphere. The real scene is M5.
 
-Geometry currently shades **black** — the material textures are M4b. That is the remaining gap before the M4a/M4b
-gate ("lit, shadowed, textured helmet on screen") closes.
+### M4b progress — materials and PNG textures done
+
+`material_resources.zig` ports MaterialResources.cpp + TextureLoadingPNG.cpp: textures are decoded on the CPU into
+one 512 MiB staging buffer, then uploaded in a single batch at the top of the next frame (one barrier + one
+buffer-to-image copy per texture, then one barrier moving all of them to READ_ONLY_OPTIMAL together). The queue is
+drained after recording, so calling it every frame is free once there is nothing left to upload.
+`DescriptorWriteHelper.appendTextureArray` writes the descriptor-indexing array the forward shader samples.
+
+Geometry now shades **textured and lit** — the ship renders in the left (forward) half; the right half stays black
+until the vis-buffer lands in M6.
+
+- **lodepng builds as C, not C++.** `lodepng.h` does not wrap its C API in `extern "C"`, so building `lodepng.cpp`
+  as C++ mangles the entry points `@cImport` declares unmangled — the link fails with
+  `undefined symbol: lodepng_decode32_file`. lodepng's own docs say the file is valid C once the C++ wrapper is
+  disabled, and Zig picks the language from the *extension*, so `-x c` in the flags is rejected
+  (`invalid argument '-std=c99' not allowed with 'C++'`). build.zig copies it to a `.c` name via
+  `addWriteFiles().addCopyFile()` and compiles that with `-DLODEPNG_NO_COMPILE_CPP`.
+- `PARTIALLY_BOUND` applies only to the *last* binding of each set, so the material sampler sitting beside the
+  texture array must still be written every frame or validation flags it.
+
+Remaining for the M4b gate: dds.zig (DX10/BC7 subset), the cgltf glue, and ShadowMap + the 3 hardcoded lights.
 
 ## Context
 

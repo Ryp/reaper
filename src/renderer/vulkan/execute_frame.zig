@@ -16,6 +16,7 @@ const fg = @import("../graph/frame_graph.zig");
 const forward = @import("renderpass/forward.zig");
 const frame_graph_pass = @import("renderpass/frame_graph_pass.zig");
 const lighting = @import("renderpass/lighting.zig");
+const material_resources_module = @import("material_resources.zig");
 const meshlet_culling = @import("renderpass/meshlet_culling.zig");
 const prepare_buckets = @import("../prepare_buckets.zig");
 const scene_module = @import("../scene.zig");
@@ -265,6 +266,7 @@ pub fn executeFrame(
             &resources.forward_pass_resources,
             resources.sampler_resources,
             &resources.mesh_cache,
+            &resources.material_resources,
             resources.lighting_resources,
             backend.vma_instance,
         );
@@ -302,6 +304,13 @@ pub fn executeFrame(
         const dependencies = barrier.getImageBarrierDependencyInfo(&image_barriers);
         vkd.cmdPipelineBarrier2(cmd_buffer, &dependencies);
     }
+
+    try material_resources_module.recordUploadCommandBuffer(
+        vkd,
+        cmd_buffer,
+        &resources.material_resources,
+        frame_allocator,
+    );
 
     const frame_graph_helper = frame_graph_pass.FrameGraphHelper{
         .frame_graph = &framegraph,

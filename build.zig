@@ -157,6 +157,9 @@ pub fn build(b: *std.Build) void {
     // agree between them. It becomes a zon package in the C++ removal phase.
     addMeshOptimizer(b, exe);
 
+    // lodepng, same deal: referenced by path so both builds decode identically.
+    addLodePng(b, exe);
+
     // Shaders are compiled unconditionally so that `zig build test` can check
     // the registry without a Vulkan device.
     const shaders = addShaders(b);
@@ -474,6 +477,39 @@ fn addMeshOptimizer(b: *std.Build, compile: *std.Build.Step.Compile) void {
             },
         });
     }
+
+    compile.root_module.link_libc = true;
+    compile.root_module.link_libcpp = true;
+}
+
+// --------------------------------------------------------------------------
+// lodepng
+// --------------------------------------------------------------------------
+
+const lodepng_root = "external/lodepng";
+
+fn addLodePng(b: *std.Build, compile: *std.Build.Step.Compile) void {
+    compile.root_module.addIncludePath(b.path(lodepng_root));
+
+    // lodepng.h does not wrap its C API in `extern "C"`, so building
+    // lodepng.cpp as C++ mangles the entry points that @cImport declares
+    // unmangled. lodepng's own docs say the file is valid C once the C++
+    // wrapper is disabled, and Zig picks the language from the extension — so
+    // it is copied to a .c name for the build.
+    const lodepng_c = b.addWriteFiles().addCopyFile(
+        b.path(b.pathJoin(&.{ lodepng_root, "lodepng.cpp" })),
+        "lodepng.c",
+    );
+
+    compile.root_module.addCSourceFile(.{
+        .file = lodepng_c,
+        .flags = &.{
+            "-std=c99",
+            "-DLODEPNG_NO_COMPILE_CPP",
+            // Suppress warnings from third-party code.
+            "-w",
+        },
+    });
 
     compile.root_module.link_libc = true;
     compile.root_module.link_libcpp = true;

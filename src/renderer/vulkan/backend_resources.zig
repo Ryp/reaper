@@ -17,6 +17,7 @@ const swapchain_pass = @import("renderpass/swapchain_pass.zig");
 const tone_mapping = @import("renderpass/tone_mapping.zig");
 const vma = @import("vma.zig").c;
 const FrameGraphResources = @import("framegraph_resources.zig").FrameGraphResources;
+const MaterialResources = @import("material_resources.zig").MaterialResources;
 const MeshCache = @import("mesh_cache.zig").MeshCache;
 const PipelineFactory = @import("pipeline_factory.zig").PipelineFactory;
 const SamplerResources = @import("sampler_resources.zig").SamplerResources;
@@ -47,6 +48,7 @@ pub const BackendResources = struct {
     sampler_resources: SamplerResources,
     frame_storage_allocator: StorageBufferAllocator,
     mesh_cache: MeshCache,
+    material_resources: MaterialResources,
     debug_gradient_resources: debug_gradient.Resources,
     meshlet_culling_resources: meshlet_culling.MeshletCullingResources,
     forward_pass_resources: forward.ForwardPassResources,
@@ -113,6 +115,9 @@ pub const BackendResources = struct {
         var mesh_cache = try MeshCache.init(params.vma_instance, allocator);
         errdefer mesh_cache.deinit(params.vma_instance);
 
+        var material_resources = try MaterialResources.init(params.vma_instance, allocator);
+        errdefer material_resources.deinit(vkd, device, params.vma_instance);
+
         const debug_gradient_resources = try debug_gradient.Resources.init(vkd, device, descriptor_pool);
 
         var meshlet_culling_resources = try meshlet_culling.MeshletCullingResources.init(
@@ -157,6 +162,7 @@ pub const BackendResources = struct {
             .sampler_resources = sampler_resources,
             .frame_storage_allocator = frame_storage_allocator,
             .mesh_cache = mesh_cache,
+            .material_resources = material_resources,
             .debug_gradient_resources = debug_gradient_resources,
             .meshlet_culling_resources = meshlet_culling_resources,
             .forward_pass_resources = forward_pass_resources,
@@ -175,6 +181,7 @@ pub const BackendResources = struct {
         self.forward_pass_resources.deinit(vkd, device, vma_instance);
         self.meshlet_culling_resources.deinit(vkd, device, vma_instance);
         self.debug_gradient_resources.deinit(vkd, device);
+        self.material_resources.deinit(vkd, device, vma_instance);
         self.mesh_cache.deinit(vma_instance);
         self.frame_storage_allocator.deinit(vma_instance);
         self.sampler_resources.deinit(vkd, device);

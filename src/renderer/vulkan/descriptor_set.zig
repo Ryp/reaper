@@ -216,6 +216,27 @@ pub const DescriptorWriteHelper = struct {
         self.writes.appendAssumeCapacity(createBufferDescriptorWrite(descriptor_set, binding, descriptor_type, infos));
     }
 
+    /// Writes a whole array binding in one go, which is what the partially-bound
+    /// texture arrays need: one write with N image infos, not N separate writes.
+    pub fn appendTextureArray(
+        self: *DescriptorWriteHelper,
+        descriptor_set_handle: vk.DescriptorSet,
+        binding: u32,
+        descriptor_type: vk.DescriptorType,
+        views: []const vk.ImageView,
+        layout: vk.ImageLayout,
+    ) void {
+        const infos = self.newImageInfos(views.len);
+
+        for (infos, views) |*info, view| {
+            info.* = createDescriptorImageInfo(view, layout);
+        }
+
+        self.writes.appendAssumeCapacity(
+            createImageDescriptorWrite(descriptor_set_handle, binding, descriptor_type, infos),
+        );
+    }
+
     pub fn flush(self: *DescriptorWriteHelper, vkd: anytype, device: vk.Device) void {
         if (self.writes.items.len > 0) {
             vkd.updateDescriptorSets(device, self.writes.items, null);
