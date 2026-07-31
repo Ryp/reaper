@@ -10,6 +10,8 @@ const vk = @import("vulkan");
 const CommandBuffer = @import("command_buffer.zig").CommandBuffer;
 const debug_gradient = @import("renderpass/debug_gradient.zig");
 const frame_sync = @import("frame_sync.zig");
+const forward = @import("renderpass/forward.zig");
+const lighting = @import("renderpass/lighting.zig");
 const meshlet_culling = @import("renderpass/meshlet_culling.zig");
 const tone_mapping = @import("renderpass/tone_mapping.zig");
 const vma = @import("vma.zig").c;
@@ -46,6 +48,8 @@ pub const BackendResources = struct {
     mesh_cache: MeshCache,
     debug_gradient_resources: debug_gradient.Resources,
     meshlet_culling_resources: meshlet_culling.MeshletCullingResources,
+    forward_pass_resources: forward.ForwardPassResources,
+    lighting_resources: lighting.LightingPassResources,
     tone_map_pass_resources: tone_mapping.ToneMapPassResources,
 
     /// Reset with .retain_capacity at the top of every frame; all
@@ -118,6 +122,15 @@ pub const BackendResources = struct {
         );
         errdefer meshlet_culling_resources.deinit(vkd, device, params.vma_instance);
 
+        var forward_pass_resources = try forward.ForwardPassResources.init(
+            vkd,
+            device,
+            descriptor_pool,
+            params.vma_instance,
+            &pipeline_factory,
+        );
+        errdefer forward_pass_resources.deinit(vkd, device, params.vma_instance);
+
         const tone_map_pass_resources = try tone_mapping.ToneMapPassResources.init(
             vkd,
             device,
@@ -136,6 +149,8 @@ pub const BackendResources = struct {
             .mesh_cache = mesh_cache,
             .debug_gradient_resources = debug_gradient_resources,
             .meshlet_culling_resources = meshlet_culling_resources,
+            .forward_pass_resources = forward_pass_resources,
+            .lighting_resources = .{},
             .tone_map_pass_resources = tone_map_pass_resources,
             .frame_arena = .init(allocator),
         };
@@ -145,6 +160,7 @@ pub const BackendResources = struct {
         self.frame_arena.deinit();
 
         self.tone_map_pass_resources.deinit(vkd, device);
+        self.forward_pass_resources.deinit(vkd, device, vma_instance);
         self.meshlet_culling_resources.deinit(vkd, device, vma_instance);
         self.debug_gradient_resources.deinit(vkd, device);
         self.mesh_cache.deinit(vma_instance);
