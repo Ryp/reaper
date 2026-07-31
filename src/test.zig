@@ -11,6 +11,7 @@ comptime {
     _ = @import("renderer/prepare_buckets.zig");
     _ = @import("mesh/meshlet_builder.zig");
     _ = @import("mesh/gltf_loader.zig");
+    _ = @import("neptune/trackgen.zig");
     _ = @import("mesh/obj_loader.zig");
     _ = @import("renderer/graph/graph_test.zig");
     _ = @import("renderer/vulkan/compute_helper.zig");

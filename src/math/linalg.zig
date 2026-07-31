@@ -160,6 +160,15 @@ pub fn mulMat4Vec4(m: Mat4, v: Vec4) Vec4 {
     return m.c[0] * x + m.c[1] * y + m.c[2] * z + m.c[3] * w;
 }
 
+/// glm's `fmat4x3 * fvec4`, which yields an fvec3. Equivalent to promoting to a
+/// mat4 (implicit bottom row 0,0,0,1) and dropping w.
+pub fn mulMat4x3Vec4(m: Mat4x3, v: Vec4) Vec3 {
+    return m.c[0] * splat(Vec3, v[0]) +
+        m.c[1] * splat(Vec3, v[1]) +
+        m.c[2] * splat(Vec3, v[2]) +
+        m.c[3] * splat(Vec3, v[3]);
+}
+
 pub fn mulMat3Vec3(m: Mat3, v: Vec3) Vec3 {
     const x: Vec3 = @splat(v[0]);
     const y: Vec3 = @splat(v[1]);
@@ -358,6 +367,30 @@ pub fn angleAxis(angle: f32, axis: Vec3) Quat {
         .z = axis[2] * s,
         .w = @cos(angle * 0.5),
     };
+}
+
+/// glm::qua operator*(qua, qua) — Hamilton product, `a` applied after `b`.
+pub fn mulQuat(a: Quat, b: Quat) Quat {
+    return .{
+        .w = a.w * b.w - a.x * b.x - a.y * b.y - a.z * b.z,
+        .x = a.w * b.x + a.x * b.w + a.y * b.z - a.z * b.y,
+        .y = a.w * b.y + a.y * b.w + a.z * b.x - a.x * b.z,
+        .z = a.w * b.z + a.z * b.w + a.x * b.y - a.y * b.x,
+    };
+}
+
+/// glm::qua operator*(qua, vec3) — rotates `v` by `q`.
+pub fn rotateVec3(q: Quat, v: Vec3) Vec3 {
+    const quat_vector = Vec3{ q.x, q.y, q.z };
+    const uv = cross(quat_vector, v);
+    const uuv = cross(quat_vector, uv);
+
+    return v + ((uv * splat(Vec3, q.w)) + uuv) * splat(Vec3, 2.0);
+}
+
+/// glm::rotate(mat4(1), angle, axis). glm normalizes the axis internally.
+pub fn rotate(angle: f32, axis: Vec3) Mat4 {
+    return quatToMat4(angleAxis(angle, normalize(axis)));
 }
 
 /// glm::mat3_cast

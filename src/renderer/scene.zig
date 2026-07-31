@@ -1,13 +1,10 @@
-// A minimal scene for the M4a/M4b gates.
+// The game scene — port of the ENABLE_GAME_SCENE + GLTF_TEST block of
+// GameLoop.cpp.
 //
-// The real scene — procedural track, player ship, chase camera, three lights —
-// is M5. This exists so the culling and forward passes have something to draw
-// before trackgen and the scene graph setup land, which is the only way to tell
-// whether they work.
-//
-// The asset side already matches GameLoop.cpp: the four default PNG maps every
-// untextured mesh falls back to, then the SciFiHelmet glTF with its four DDS
-// maps and the material table built from the document.
+// A hundred procedurally generated track chunks, the player node with the
+// helmet mesh and the chase camera parented to it, and three lights. The
+// physics sim is post-v1, so the player node keeps its initial transform
+// instead of being driven by Bullet.
 
 const std = @import("std");
 const vk = @import("vulkan");
@@ -21,7 +18,10 @@ const mesh_cache_module = @import("vulkan/mesh_cache.zig");
 const mesh2 = @import("mesh2.zig");
 const obj_loader = @import("../mesh/obj_loader.zig");
 const prepare_buckets = @import("prepare_buckets.zig");
+const trackgen = @import("../neptune/trackgen.zig");
 const vma = @import("vulkan/vma.zig").c;
+
+const Vec3 = linalg.Vec3;
 
 const log = std.log.scoped(.game);
 
@@ -39,17 +39,35 @@ const default_material_is_srgb = [_]bool{ true, false, false, false };
 
 const gltf_path = "res/model/sci_fi_helmet/SciFiHelmet.gltf";
 
+const track_mesh_path = "res/model/track_chunk_simple.obj";
+const track_mesh_length: f32 = 10.0;
+
+const track_gen_info = trackgen.GenerationInfo{
+    .chunk_count = 100,
+    .radius_min_meter = 300.0,
+    .radius_max_meter = 600.0,
+    .chaos = 0.4,
+};
+
+/// DEVIATION: the C++ seeds from std::random_device, so its track differs every
+/// run and cannot be matched. A fixed seed makes the Zig track reproducible,
+/// which is what makes screenshot comparison across runs meaningful at all.
+const track_seed: u64 = 0x5EED;
+
+const up_ws = Vec3{ 0, 1, 0 };
+
+/// The camera's near/far and every light's projection are hardcoded frusta, so
+/// these are fixed rather than derived from the scene bounds.
+const camera_near_plane: f32 = 0.1;
+const camera_far_plane: f32 = 100.0;
+
 pub const Scene = struct {
     graph: prepare_buckets.SceneGraph,
     mesh_allocs: std.ArrayList(mesh2.MeshAlloc) = .empty,
     camera_node: *prepare_buckets.SceneNode,
 
-    /// Derived from the loaded meshes so the near/far planes bracket them. The
-    /// assets vary wildly in scale — ship.obj is ~1500 units across and centred
-    /// 151 units off the ground, while the helmet is unit-sized — so a
-    /// hardcoded frustum shows nothing for most of them.
-    near_plane: f32,
-    far_plane: f32,
+    near_plane: f32 = camera_near_plane,
+    far_plane: f32 = camera_far_plane,
 
     allocator: std.mem.Allocator,
 
@@ -59,7 +77,7 @@ pub const Scene = struct {
     }
 };
 
-pub fn createPlaceholderScene(
+pub fn createGameScene(
     allocator: std.mem.Allocator,
     io: std.Io,
     vkd: anytype,
@@ -67,7 +85,6 @@ pub fn createPlaceholderScene(
     mesh_cache: *mesh_cache_module.MeshCache,
     material_resources: *material_resources_module.MaterialResources,
     vma_instance: vma.VmaAllocator,
-    mesh_path: []const u8,
 ) !Scene {
     var graph = prepare_buckets.SceneGraph.init(allocator);
     errdefer graph.deinit(allocator);
@@ -111,14 +128,7 @@ pub fn createPlaceholderScene(
             path.* = try gltf.imagePath(@intCast(i), allocator);
         }
 
-        try material_resources.loadDdsTextures(
-            vkd,
-            device,
-            vma_instance,
-            io,
-            image_paths,
-            gltf_texture_span,
-        );
+        try material_resources.loadDdsTextures(vkd, device, vma_instance, io, image_paths, gltf_texture_span);
     }
 
     const gltf_material_span = try graph.allocSceneMaterials(allocator, gltf.materialCount());
@@ -135,29 +145,29 @@ pub fn createPlaceholderScene(
     }
 
     // ---- Meshes ----
-    const obj_data = try std.Io.Dir.cwd().readFileAlloc(io, mesh_path, allocator, .limited(1 << 30));
-    defer allocator.free(obj_data);
-
-    var obj_mesh = try obj_loader.loadObjFromSlice(allocator, obj_data);
-    defer obj_mesh.deinit(allocator);
-
-    log.info("loaded '{s}': {} vertices, {} indices", .{
-        mesh_path,
-        obj_mesh.positions.items.len,
-        obj_mesh.indexes.items.len,
-    });
+    //
+    // Every mesh the scene will ever use is loaded in one batch, because
+    // MeshCache hands out allocations in load order and `mesh_allocs` is
+    // indexed by MeshHandle.
+    var meshes: std.ArrayList(mesh_module.Mesh) = .empty;
+    defer {
+        for (meshes.items) |*mesh| mesh.deinit(allocator);
+        meshes.deinit(allocator);
+    }
 
     var gltf_mesh = try gltf.loadMesh(0, allocator);
-    defer gltf_mesh.deinit(allocator);
+    {
+        errdefer gltf_mesh.deinit(allocator);
+        try meshes.append(allocator, gltf_mesh);
+    }
 
-    var handles: [2]mesh2.MeshHandle = undefined;
-    try mesh_cache_module.loadMeshes(
-        mesh_cache,
-        vma_instance,
-        allocator,
-        &.{ obj_mesh, gltf_mesh },
-        &handles,
-    );
+    var track = try generateTrack(allocator, io, &meshes);
+    defer track.deinit(allocator);
+
+    const mesh_handles = try allocator.alloc(mesh2.MeshHandle, meshes.items.len);
+    defer allocator.free(mesh_handles);
+
+    try mesh_cache_module.loadMeshes(mesh_cache, vma_instance, allocator, meshes.items, mesh_handles);
 
     var mesh_allocs: std.ArrayList(mesh2.MeshAlloc) = .empty;
     errdefer mesh_allocs.deinit(allocator);
@@ -166,140 +176,192 @@ pub fn createPlaceholderScene(
         try mesh_allocs.append(allocator, instance.lods_allocs[0]);
     }
 
-    // ---- Nodes ----
+    const helmet_mesh_handle = mesh_handles[0];
+    const track_mesh_handles = mesh_handles[1..];
+
+    // ---- Track in the scene ----
+    for (track.chunk_transforms, track_mesh_handles) |chunk_transform, mesh_handle| {
+        try graph.scene_meshes.append(allocator, .{
+            .scene_node = try graph.createSceneNode(chunk_transform, null),
+            .mesh_handle = mesh_handle,
+            .material_handle = default_material,
+        });
+    }
+
+    // ---- Player, camera, helmet ----
     //
-    // Both meshes are normalised into the world scale the engine assumes rather
-    // than placed at their authored size. `default_light_projection_matrix` is
-    // a hardcoded 0.1..100 frustum, so a scene the size of ship.obj (~1500
-    // units across, centred 151 units up) falls entirely outside every shadow
-    // map. The game scene is authored small enough for it; the placeholder has
-    // to be normalised to match. M5 replaces all of this with the real player
-    // node hierarchy.
-    const helmet_radius = 1.0;
-    const obj_radius = 3.0;
+    // One node carries the physics object and the mesh hangs off it as a child,
+    // so the mesh's authored orientation and scale stay out of the simulated
+    // transform.
+    const player_initial_transform = linalg.mat4x3FromMat4(linalg.translate(.{ 1.1, 0.8, 0.0 }));
+    const player_scene_node = try graph.createSceneNode(player_initial_transform, null);
 
-    // The helmet sits at the origin and the .obj well behind it, so the key
-    // light's shadow falls from one onto the other.
-    const helmet_center = linalg.Vec3{ 0, 0, 0 };
-    const obj_center = linalg.Vec3{ 0, 0, -obj_radius * 2.0 };
+    const camera_position = Vec3{ -2.0, 0.8, 0.0 };
+    const camera_local_target = Vec3{ 1.0, 0.4, 0.0 };
 
-    const obj_node = try graph.createSceneNode(
-        normalizeTransform(computeBounds(obj_mesh.positions.items), obj_center, obj_radius),
-        null,
-    );
+    const camera_local_transform = linalg.mat4x3FromMat4(linalg.inverseMat4(
+        linalg.lookAtRh(camera_position, camera_local_target, up_ws),
+    ));
 
-    try graph.scene_meshes.append(allocator, .{
-        .scene_node = obj_node,
-        .mesh_handle = handles[0],
-        .material_handle = default_material,
-    });
+    const camera_node = try graph.createSceneNode(camera_local_transform, player_scene_node);
+    graph.camera_node = camera_node;
 
-    const helmet_node = try graph.createSceneNode(
-        normalizeTransform(computeBounds(gltf_mesh.positions.items), helmet_center, helmet_radius),
-        null,
-    );
+    const mesh_local_transform = linalg.mat4x3FromMat4(linalg.mulMat4(
+        linalg.scale(@splat(0.4)),
+        linalg.rotate(std.math.pi * -0.5, up_ws),
+    ));
 
     try graph.scene_meshes.append(allocator, .{
-        .scene_node = helmet_node,
-        .mesh_handle = handles[1],
+        .scene_node = try graph.createSceneNode(mesh_local_transform, player_scene_node),
+        .mesh_handle = helmet_mesh_handle,
         .material_handle = @enumFromInt(gltf_material_span.offset),
     });
 
-    // ---- Camera ----
-    //
-    // Framed on the helmet, from far enough out that its bounding sphere fits
-    // the vertical FOV with some margin.
-    const distance = helmet_radius * 3.0;
-    const eye = helmet_center + linalg.Vec3{ 0, helmet_radius * 0.3, distance };
-
-    const camera_node = try graph.createSceneNode(
-        linalg.mat4x3FromMat4(linalg.inverseMat4(
-            linalg.lookAtRh(eye, helmet_center, .{ 0, 1, 0 }),
-        )),
-        null,
-    );
-    graph.camera_node = camera_node;
-
     // ---- Lights ----
     //
-    // The key light sits in front of the helmet so its shadow falls back onto
-    // the .obj behind. The three hardcoded game lights are M5.
-    const light_positions = [_]linalg.Vec3{
-        .{ 1.2, 1.6, 2.4 },
-        .{ -2.4, 0.8, 1.2 },
-        .{ 0.4, -1.8, 2.2 },
-    };
+    // Values verbatim from GameLoop.cpp. The first is parented to the player so
+    // it travels with the ship; the other two are static.
+    const light_target_ws = Vec3{ 0, 0, 0 };
 
-    const light_colors = [_]linalg.Vec3{
-        .{ 1.0, 1.0, 1.0 },
-        .{ 0.6, 0.7, 1.0 },
-        .{ 1.0, 0.8, 0.5 },
-    };
-
-    for (light_positions, light_colors, 0..) |position, color, i| {
-        // A shadow-casting light needs its whole view matrix, not just a
-        // position: the shadow pass renders through it.
-        const light_node = try graph.createSceneNode(
-            linalg.mat4x3FromMat4(linalg.inverseMat4(linalg.lookAtRh(position, helmet_center, .{ 0, 1, 0 }))),
-            null,
-        );
+    {
+        const light_position_ws = Vec3{ -1.0, 0.0, 0.0 };
+        const light_transform = linalg.mat4x3FromMat4(linalg.mulMat4(
+            linalg.translate(.{ 2.0, 0.0, 0.0 }),
+            linalg.inverseMat4(linalg.lookAtRh(light_position_ws, light_target_ws, up_ws)),
+        ));
 
         try graph.scene_lights.append(allocator, .{
-            .color = color,
-            .intensity = 6.0,
-            .radius = 20.0,
-            // Only the key light casts. A shadow map per light would need one
-            // culling pass each, and the culling output only has room for
-            // max_meshlet_culling_pass_count of them including the main view.
-            .shadow_map_size = if (i == 0) .{ 1024, 1024 } else .{ 0, 0 },
-            .scene_node = light_node,
+            .color = .{ 0.03, 0.21, 0.61 },
+            .intensity = 20.0,
+            .radius = 42.0,
+            .shadow_map_size = .{ 1024, 1024 },
+            .scene_node = try graph.createSceneNode(light_transform, player_scene_node),
         });
     }
+
+    {
+        const light_position_ws = Vec3{ 3.0, 3.0, 3.0 };
+        const light_transform = linalg.mat4x3FromMat4(linalg.inverseMat4(
+            linalg.lookAtRh(light_position_ws, light_target_ws, up_ws),
+        ));
+
+        try graph.scene_lights.append(allocator, .{
+            .color = .{ 1.0, 1.0, 1.0 },
+            .intensity = 16.0,
+            .radius = 42.0,
+            .shadow_map_size = .{ 512, 512 },
+            .scene_node = try graph.createSceneNode(light_transform, null),
+        });
+    }
+
+    {
+        const light_position_ws = Vec3{ 0.0, 3.0, -3.0 };
+        const light_transform = linalg.mat4x3FromMat4(linalg.inverseMat4(
+            linalg.lookAtRh(light_position_ws, light_target_ws, up_ws),
+        ));
+
+        try graph.scene_lights.append(allocator, .{
+            .color = .{ 0.03, 0.8, 0.21 },
+            .intensity = 6.0,
+            .radius = 42.0,
+            .shadow_map_size = .{ 256, 256 },
+            .scene_node = try graph.createSceneNode(light_transform, null),
+        });
+    }
+
+    log.info("scene: {} meshes, {} lights, {} materials", .{
+        graph.scene_meshes.items.len,
+        graph.scene_lights.items.len,
+        graph.scene_materials.items.len,
+    });
 
     return .{
         .graph = graph,
         .mesh_allocs = mesh_allocs,
         .camera_node = camera_node,
-        .near_plane = 0.1,
-        .far_plane = 100.0,
         .allocator = allocator,
     };
 }
 
-/// Maps a mesh's own bounding sphere onto `target_center` / `target_radius`, so
-/// assets authored at wildly different scales all land in the same world.
-fn normalizeTransform(bounds: Bounds, target_center: linalg.Vec3, target_radius: f32) linalg.Mat4x3 {
-    const factor = target_radius / @max(bounds.radius, 1e-6);
+const Track = struct {
+    skeleton_nodes: []trackgen.TrackSkeletonNode,
+    skinning: []trackgen.TrackSkinning,
+    /// Each chunk's mesh-to-world frame; the mesh itself is skinned into that
+    /// frame's local space.
+    chunk_transforms: []linalg.Mat4x3,
 
-    return linalg.mat4x3FromMat4(linalg.mulMat4(
-        linalg.mulMat4(linalg.translate(target_center), linalg.scale(@splat(factor))),
-        linalg.translate(-bounds.center),
-    ));
+    fn deinit(self: *Track, allocator: std.mem.Allocator) void {
+        allocator.free(self.skeleton_nodes);
+        allocator.free(self.skinning);
+        allocator.free(self.chunk_transforms);
+        self.* = undefined;
+    }
+};
+
+/// Generates the skeleton and appends one skinned copy of the chunk mesh per
+/// node to `meshes`. Ownership of the appended meshes passes to the caller.
+fn generateTrack(
+    allocator: std.mem.Allocator,
+    io: std.Io,
+    meshes: *std.ArrayList(mesh_module.Mesh),
+) !Track {
+    const chunk_count = track_gen_info.chunk_count;
+
+    const skeleton_nodes = try allocator.alloc(trackgen.TrackSkeletonNode, chunk_count);
+    errdefer allocator.free(skeleton_nodes);
+
+    var prng = std.Random.DefaultPrng.init(track_seed);
+    try trackgen.generateTrackSkeleton(track_gen_info, skeleton_nodes, prng.random());
+
+    const skinning = try allocator.alloc(trackgen.TrackSkinning, chunk_count);
+    errdefer allocator.free(skinning);
+
+    trackgen.generateTrackSkinning(skeleton_nodes, skinning);
+
+    const chunk_transforms = try allocator.alloc(linalg.Mat4x3, chunk_count);
+    errdefer allocator.free(chunk_transforms);
+
+    const track_data = try std.Io.Dir.cwd().readFileAlloc(io, track_mesh_path, allocator, .limited(1 << 30));
+    defer allocator.free(track_data);
+
+    var unskinned = try obj_loader.loadObjFromSlice(allocator, track_data);
+    defer unskinned.deinit(allocator);
+
+    log.info("loaded '{s}': {} vertices, {} indices", .{
+        track_mesh_path,
+        unskinned.positions.items.len,
+        unskinned.indexes.items.len,
+    });
+
+    try meshes.ensureUnusedCapacity(allocator, chunk_count);
+
+    for (skeleton_nodes, skinning, chunk_transforms) |node, chunk_skinning, *transform| {
+        transform.* = node.in_transform_ms_to_ws;
+
+        var chunk_mesh = try duplicateMesh(allocator, unskinned);
+        errdefer chunk_mesh.deinit(allocator);
+
+        trackgen.skinTrackChunkMesh(node, chunk_skinning, chunk_mesh.positions.items, track_mesh_length);
+
+        meshes.appendAssumeCapacity(chunk_mesh);
+    }
+
+    return .{
+        .skeleton_nodes = skeleton_nodes,
+        .skinning = skinning,
+        .chunk_transforms = chunk_transforms,
+    };
 }
 
-const Bounds = struct { center: linalg.Vec3, radius: f32 };
+fn duplicateMesh(allocator: std.mem.Allocator, source: mesh_module.Mesh) !mesh_module.Mesh {
+    var copy = mesh_module.Mesh{};
+    errdefer copy.deinit(allocator);
 
-fn computeBounds(positions: []const [3]f32) Bounds {
-    if (positions.len == 0) return .{ .center = .{ 0, 0, 0 }, .radius = 1 };
+    try copy.indexes.appendSlice(allocator, source.indexes.items);
+    try copy.positions.appendSlice(allocator, source.positions.items);
+    try copy.attributes.appendSlice(allocator, source.attributes.items);
 
-    var min_p = linalg.Vec3{ positions[0][0], positions[0][1], positions[0][2] };
-    var max_p = min_p;
-
-    for (positions) |p| {
-        const v = linalg.Vec3{ p[0], p[1], p[2] };
-        min_p = @min(min_p, v);
-        max_p = @max(max_p, v);
-    }
-
-    const center = (min_p + max_p) * linalg.Vec3{ 0.5, 0.5, 0.5 };
-
-    var radius: f32 = 0;
-    for (positions) |p| {
-        const v = linalg.Vec3{ p[0], p[1], p[2] };
-        radius = @max(radius, linalg.length(v - center));
-    }
-
-    return .{ .center = center, .radius = radius };
+    return copy;
 }
 
 pub fn buildCamera(scene: *const Scene, extent: vk.Extent2D) camera_module.RendererPerspectiveCamera {

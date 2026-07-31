@@ -329,6 +329,24 @@ were already general over `prepared.cull_passes`, so it only had to bind and dra
 - The helmet looked like it was sampling the wrong map when drawn small. It was not: the DDS files carry a single
   mip, so a 2048² texture minified to ~40px point-samples individual texels. Correct at size.
 
+### M5 result — the real scene is up
+
+`trackgen.zig` ports Track.cpp; `scene.zig` replaces the placeholder with the ENABLE_GAME_SCENE + GLTF_TEST block
+of GameLoop.cpp. On screen: 101 meshes (100 skinned track chunks + the helmet as the player mesh), 3 lights with
+the exact colours/intensities/shadow-map sizes from GameLoop.cpp:535-570, the chase camera parented to the player
+node. 4 culling passes (3 shadow + main), 10260 meshlets submitted, validation and sync validation clean.
+
+- **The RNG cannot be matched.** `generate_track_skeleton` seeds `std::mt19937` from `std::random_device`, so the
+  C++ track differs every run. `trackgen.zig` uses a seeded `std.Random.DefaultPrng` instead, which the plan
+  already sanctioned — and which is what makes Zig-side screenshot comparison across runs meaningful.
+- Everything downstream of the random angles *is* matched: a probe compiled against `Track.cpp` with the vendored
+  glm, fed a hand-built skeleton node, produced the `end_transform`, both bind poses, both pose transforms and all
+  five skinned vertices that the tests now assert to 1e-6.
+- `linalg.zig` gained `mulQuat`, `rotateVec3`, `rotate` and `mulMat4x3Vec4` — glm's `fmat4x3 * fvec4` yields an
+  fvec3, which trackgen leans on throughout.
+- 3 casting lights + 1 main view is exactly `max_meshlet_culling_pass_count`, and exactly the 3 descriptor sets
+  ShadowMap.cpp allocates. The scene sits right at both limits, as the C++ does.
+
 ## Context
 
 Reaper is a ~30k-LOC C++20 Vulkan 1.4 engine (meshlet culling, visibility buffer, tiled deferred + forward split-screen, frame graph, HDR-aware swapchain) with a Neptune game layer. Goal: port it to Zig; the own C++ code + CMake get deleted **eventually, but NOT in v1** — v1 explicitly keeps both builds working side by side (user requirement). v1 success criterion (user, relaxed): the Zig binary brings up the same default scene — procedural track, SciFiHelmet player ship, 3 shadowed lights, split-screen forward/deferred composite, 3 ImGui windows — and **"we see the ship in the frame"**, judged by eyeball against a C++ screenshot. No determinism work, no C++ patches, no automated diff.

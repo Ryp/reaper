@@ -105,7 +105,7 @@ pub fn main_with_allocator(allocator: std.mem.Allocator, init: std.process.Init)
         resources.deinit(backend.vkd, backend.device, backend.vma_instance);
     }
 
-    var scene = try scene_module.createPlaceholderScene(
+    var scene = try scene_module.createGameScene(
         allocator,
         init.io,
         backend.vkd,
@@ -113,7 +113,6 @@ pub fn main_with_allocator(allocator: std.mem.Allocator, init: std.process.Init)
         &resources.mesh_cache,
         &resources.material_resources,
         backend.vma_instance,
-        res.args.mesh orelse "res/model/ship.obj",
     );
     defer scene.deinit(allocator);
 
