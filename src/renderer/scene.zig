@@ -42,7 +42,9 @@ const gltf_path = "res/model/sci_fi_helmet/SciFiHelmet.gltf";
 const track_mesh_path = "res/model/track_chunk_simple.obj";
 const track_mesh_length: f32 = 10.0;
 
-const track_gen_info = trackgen.GenerationInfo{
+/// Public so the Physics window's sliders open on the values that actually
+/// produced the track on screen.
+pub const track_gen_info = trackgen.GenerationInfo{
     .chunk_count = 100,
     .radius_min_meter = 300.0,
     .radius_max_meter = 600.0,
@@ -65,6 +67,10 @@ pub const Scene = struct {
     graph: prepare_buckets.SceneGraph,
     mesh_allocs: std.ArrayList(mesh2.MeshAlloc) = .empty,
     camera_node: *prepare_buckets.SceneNode,
+    /// The ship. The physics sim that would drive it is post-v1, so this keeps
+    /// its initial transform — but the Physics window still reads it back, and
+    /// wiring the sim up later means writing here and nothing else.
+    player_node: *prepare_buckets.SceneNode,
 
     near_plane: f32 = camera_near_plane,
     far_plane: f32 = camera_far_plane,
@@ -279,8 +285,14 @@ pub fn createGameScene(
         .graph = graph,
         .mesh_allocs = mesh_allocs,
         .camera_node = camera_node,
+        .player_node = player_scene_node,
         .allocator = allocator,
     };
+}
+
+/// glm's `fmat4x3[3]`, which is the translation column.
+pub fn getPlayerTranslation(scene: *const Scene) [3]f32 {
+    return prepare_buckets.getSceneNodeTransformSlow(scene.player_node).c[3];
 }
 
 const Track = struct {

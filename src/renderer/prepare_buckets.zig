@@ -8,6 +8,7 @@
 const std = @import("std");
 
 const hlsl = @import("hlsl/types.zig");
+const hlsl_debug_geometry = @import("hlsl/debug_geometry/debug_geometry_public.zig");
 const hlsl_forward = @import("hlsl/forward.zig");
 const hlsl_lighting = @import("hlsl/lighting.zig");
 const hlsl_mesh_instance = @import("hlsl/mesh_instance.zig");
@@ -174,6 +175,10 @@ pub const PreparedData = struct {
 
     audio_push_constants: hlsl_sound.SoundPushConstants = .{},
     audio_instance_params: std.ArrayList(hlsl_sound.OscillatorInstance) = .empty,
+
+    /// Filled by the caller after prepare_scene, exactly like the C++ — it is
+    /// the game layer, not the scene graph, that decides what to draw.
+    debug_draw_commands: std.ArrayList(hlsl_debug_geometry.DebugGeometryUserCommand) = .empty,
 };
 
 // --------------------------------------------------------------------------

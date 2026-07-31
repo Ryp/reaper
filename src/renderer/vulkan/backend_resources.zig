@@ -8,9 +8,13 @@ const std = @import("std");
 const vk = @import("vulkan");
 
 const CommandBuffer = @import("command_buffer.zig").CommandBuffer;
+const debug_geometry = @import("renderpass/debug_geometry.zig");
 const debug_gradient = @import("renderpass/debug_gradient.zig");
+const exposure = @import("renderpass/exposure.zig");
 const frame_sync = @import("frame_sync.zig");
 const forward = @import("renderpass/forward.zig");
+const gui = @import("renderpass/gui.zig");
+const histogram = @import("renderpass/histogram.zig");
 const lighting = @import("renderpass/lighting.zig");
 const shadow_map = @import("renderpass/shadow_map.zig");
 const tiled_lighting = @import("renderpass/tiled_lighting.zig");
@@ -65,6 +69,10 @@ pub const BackendResources = struct {
     tiled_raster_resources: tiled_raster.TiledRasterResources,
     tiled_lighting_pass_resources: tiled_lighting.TiledLightingPassResources,
     lighting_resources: lighting.LightingPassResources,
+    histogram_pass_resources: histogram.HistogramPassResources,
+    exposure_pass_resources: exposure.ExposurePassResources,
+    debug_geometry_resources: debug_geometry.DebugGeometryPassResources,
+    gui_pass_resources: gui.GuiPassResources,
     swapchain_pass_resources: swapchain_pass.SwapchainPassResources,
     tone_map_pass_resources: tone_mapping.ToneMapPassResources,
 
@@ -190,6 +198,36 @@ pub const BackendResources = struct {
         );
         errdefer tiled_lighting_pass_resources.deinit(vkd, device, params.vma_instance);
 
+        var histogram_pass_resources = try histogram.HistogramPassResources.init(
+            vkd,
+            device,
+            descriptor_pool,
+            &pipeline_factory,
+        );
+        errdefer histogram_pass_resources.deinit(vkd, device);
+
+        var exposure_pass_resources = try exposure.ExposurePassResources.init(
+            vkd,
+            device,
+            descriptor_pool,
+            &pipeline_factory,
+        );
+        errdefer exposure_pass_resources.deinit(vkd, device);
+
+        var debug_geometry_resources = try debug_geometry.DebugGeometryPassResources.init(
+            vkd,
+            device,
+            descriptor_pool,
+            params.vma_instance,
+            &pipeline_factory,
+            allocator,
+            params.io,
+        );
+        errdefer debug_geometry_resources.deinit(vkd, device, params.vma_instance);
+
+        var gui_pass_resources = try gui.GuiPassResources.init(vkd, device, descriptor_pool, &pipeline_factory);
+        errdefer gui_pass_resources.deinit(vkd, device);
+
         const swapchain_pass_resources = try swapchain_pass.SwapchainPassResources.init(
             vkd,
             device,
@@ -223,6 +261,10 @@ pub const BackendResources = struct {
             .tiled_raster_resources = tiled_raster_resources,
             .tiled_lighting_pass_resources = tiled_lighting_pass_resources,
             .lighting_resources = .{},
+            .histogram_pass_resources = histogram_pass_resources,
+            .exposure_pass_resources = exposure_pass_resources,
+            .debug_geometry_resources = debug_geometry_resources,
+            .gui_pass_resources = gui_pass_resources,
             .swapchain_pass_resources = swapchain_pass_resources,
             .tone_map_pass_resources = tone_map_pass_resources,
             .frame_arena = .init(allocator),
@@ -234,6 +276,10 @@ pub const BackendResources = struct {
 
         self.tone_map_pass_resources.deinit(vkd, device);
         self.swapchain_pass_resources.deinit(vkd, device);
+        self.gui_pass_resources.deinit(vkd, device);
+        self.debug_geometry_resources.deinit(vkd, device, vma_instance);
+        self.exposure_pass_resources.deinit(vkd, device);
+        self.histogram_pass_resources.deinit(vkd, device);
         self.tiled_lighting_pass_resources.deinit(vkd, device, vma_instance);
         self.tiled_raster_resources.deinit(vkd, device, vma_instance);
         self.hzb_pass_resources.deinit(vkd, device);

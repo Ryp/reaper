@@ -1,20 +1,29 @@
 // Port of src/GameLoop.cpp — the v1 subset.
 //
-// M0 only carries the parts of the loop that exist without a scene: event
-// pumping, ESC-to-quit, resize forwarding, and one frame execution per
-// iteration. Scene setup, ImGui, and controller handling land in later
-// milestones.
+// Event pumping, ESC-to-quit, resize forwarding, the ImGui frame and its three
+// debug windows, and one frame execution per iteration.
+//
+// Not ported, all post-v1: the physics sim update, the free camera, and the
+// Linux evdev controller. The keyboard-to-axis mapping is kept because it is
+// what feeds the Controller Axes window — the axes just do not drive anything
+// downstream yet.
 
 const std = @import("std");
 const log = std.log.scoped(.game);
 
+const controller = @import("input/controller.zig");
+const debug_ui = @import("renderer/debug_ui.zig");
 const execute_frame = @import("renderer/vulkan/execute_frame.zig");
+const imgui = @import("renderer/imgui.zig");
 const scene_module = @import("renderer/scene.zig");
 const screenshot = @import("renderer/vulkan/screenshot.zig");
 const window_module = @import("renderer/window/window.zig");
 const BackendResources = @import("renderer/vulkan/backend_resources.zig").BackendResources;
 const VulkanBackend = @import("renderer/vulkan/Backend.zig").VulkanBackend;
 const Window = window_module.Window;
+
+/// ImGuiScrollMultiplier in GameLoop.cpp.
+const imgui_scroll_multiplier: f32 = 0.5;
 
 /// Milliseconds to idle for while the window is minimized. The swapchain
 /// extent is degenerate then, so there is nothing worth submitting.
@@ -51,7 +60,22 @@ pub fn run(
     var readback: ?screenshot.Readback = null;
     defer if (readback) |*r| r.deinit(backend.vkd, backend.device);
 
+    var controller_state = controller.State.neutral;
+    var physics_ui_state = debug_ui.PhysicsUiState{};
+
     while (!should_exit) {
+        // The mouse position is polled rather than event-driven, same as the
+        // C++; only buttons and the wheel arrive as events.
+        const mouse_state = window.getMouseState();
+        imgui.setDisplaySize(
+            @floatFromInt(backend.present_info.surface_extent.width),
+            @floatFromInt(backend.present_info.surface_extent.height),
+        );
+        imgui.addMousePosEvent(@floatFromInt(mouse_state.pos_x), @floatFromInt(mouse_state.pos_y));
+
+        imgui.vulkanNewFrame();
+        imgui.newFrame();
+
         events.clearRetainingCapacity();
         try window.pumpEvents(allocator, &events);
 
@@ -69,6 +93,27 @@ pub fn run(
                 // FIXME Do not set for duplicate events
                 backend.new_swapchain_extent = .{ .width = resize.width, .height = resize.height };
             },
+            .mouse_button => |mouse_button| {
+                log.debug("window: button = {s}, press = {}", .{
+                    window_module.getMouseButtonString(mouse_button.button),
+                    mouse_button.press,
+                });
+
+                switch (mouse_button.button) {
+                    .left => imgui.addMouseButtonEvent(0, mouse_button.press),
+                    .right => imgui.addMouseButtonEvent(1, mouse_button.press),
+                    .middle => imgui.addMouseButtonEvent(2, mouse_button.press),
+                    .invalid => {},
+                }
+            },
+            .mouse_wheel => |mouse_wheel| {
+                log.debug("window: mouse wheel event, x = {}, y = {}", .{ mouse_wheel.x_delta, mouse_wheel.y_delta });
+
+                imgui.addMouseWheelEvent(
+                    @as(f32, @floatFromInt(mouse_wheel.x_delta)) * imgui_scroll_multiplier,
+                    @as(f32, @floatFromInt(mouse_wheel.y_delta)) * imgui_scroll_multiplier,
+                );
+            },
             .key_press => |key_press| {
                 log.debug("window: key = {s}, press = {}, scancode = {}", .{
                     window_module.getKeyboardKeyString(key_press.key),
@@ -76,14 +121,42 @@ pub fn run(
                     key_press.internal_key_code,
                 });
 
-                if (key_press.press and key_press.key == .escape) {
+                const is_pressed = key_press.press;
+
+                if (is_pressed and key_press.key == .escape) {
                     log.warn("window: escape key press detected: now exiting...", .{});
                     should_exit = true;
+                } else switch (key_press.key) {
+                    // FIXME key auto-repeat would ruin this for us, which is
+                    // why window.zig drops repeats outright.
+                    .a => controller_state.set(.lsx, if (is_pressed) -1.0 else 0.0),
+                    .d => controller_state.set(.lsx, if (is_pressed) 1.0 else 0.0),
+                    .w => controller_state.set(.lsy, if (is_pressed) -1.0 else 0.0),
+                    .s => controller_state.set(.lsy, if (is_pressed) 1.0 else 0.0),
+                    .arrow_left => controller_state.set(.rsx, if (is_pressed) -1.0 else 0.0),
+                    .arrow_right => controller_state.set(.rsx, if (is_pressed) 1.0 else 0.0),
+                    .arrow_up => {
+                        controller_state.set(.rsy, if (is_pressed) -1.0 else 0.0);
+                        controller_state.set(.rt, if (is_pressed) 1.0 else -1.0);
+                    },
+                    .arrow_down => {
+                        controller_state.set(.rsy, if (is_pressed) 1.0 else 0.0);
+                        controller_state.set(.lt, if (is_pressed) 1.0 else -1.0);
+                    },
+                    else => {},
                 }
             },
-            // Mouse events only matter once ImGui is wired up.
-            .mouse_button, .mouse_wheel => {},
         };
+
+        debug_ui.controllerDebugUi(controller_state);
+        debug_ui.backendDebugUi(backend);
+
+        physics_ui_state.player_translation = scene_module.getPlayerTranslation(scene);
+        debug_ui.physicsDebugUi(&physics_ui_state);
+
+        // Everything above may have queued draw commands; from here on the
+        // draw data is what the GUI pass will consume.
+        imgui.render();
 
         if (should_exit) break;
 

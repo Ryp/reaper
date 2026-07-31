@@ -236,11 +236,8 @@ const read_storage = fg.GPUResourceAccess{
     .image_layout = .undefined,
 };
 
-/// The inputs the not-yet-ported passes would produce. Declared as real graph
-/// resources so every descriptor the fragment shader samples is bound.
-/// What the composite samples besides the forward pass's HDR target. The
-/// lighting result and the tile debug view come from the real M6 passes; the
-/// rest are still placeholders until M7 lands the GUI, histogram and exposure.
+/// What the composite samples besides the forward pass's HDR target. Every one
+/// of these now comes from a real pass.
 pub const SwapchainInputs = struct {
     lighting_result: fg.ResourceUsageHandle,
     gui: fg.ResourceUsageHandle,
@@ -248,66 +245,6 @@ pub const SwapchainInputs = struct {
     average_exposure: fg.ResourceUsageHandle,
     tile_debug: fg.ResourceUsageHandle,
 };
-
-pub const PlaceholderInputs = struct {
-    gui: fg.ResourceUsageHandle,
-    histogram: fg.ResourceUsageHandle,
-    average_exposure: fg.ResourceUsageHandle,
-};
-
-/// Creates the placeholder resources in their own pass, so the graph keeps them
-/// alive and transitions them exactly like the real ones. Delete this once M6
-/// and M7 provide the real inputs.
-pub fn createPlaceholderInputs(builder: *Builder, extent: vk.Extent2D) !PlaceholderInputs {
-    const pass_handle = try builder.createRenderPass("Swapchain Placeholder Inputs", false);
-
-    const sampled_write = fg.GPUResourceAccess{
-        .stage_mask = .{ .clear_bit = true },
-        .access_mask = .{ .transfer_write_bit = true },
-        .image_layout = .transfer_dst_optimal,
-    };
-
-    const storage_write = fg.GPUResourceAccess{
-        .stage_mask = .{ .clear_bit = true },
-        .access_mask = .{ .transfer_write_bit = true },
-        .image_layout = .undefined,
-    };
-
-    const gui = try builder.createTexture(
-        pass_handle,
-        "Placeholder GUI",
-        gpu_texture_properties.defaultTextureProperties(
-            extent.width,
-            extent.height,
-            .r8g8b8a8_unorm,
-            .{ .sampled = true, .transfer_dst = true },
-        ),
-        fg.toTextureAccess(sampled_write),
-        &.{},
-    );
-
-    const histogram = try builder.createBuffer(
-        pass_handle,
-        "Placeholder Histogram",
-        gpu_buffer.defaultBufferProperties(256, @sizeOf(u32), .{ .storage_buffer = true, .transfer_dst = true }),
-        fg.toBufferAccess(storage_write),
-        &.{},
-    );
-
-    const average_exposure = try builder.createBuffer(
-        pass_handle,
-        "Placeholder Average Exposure",
-        gpu_buffer.defaultBufferProperties(4, @sizeOf(u32), .{ .storage_buffer = true, .transfer_dst = true }),
-        fg.toBufferAccess(storage_write),
-        &.{},
-    );
-
-    return .{
-        .gui = gui,
-        .histogram = histogram,
-        .average_exposure = average_exposure,
-    };
-}
 
 pub fn createFrameGraphRecord(
     builder: *Builder,

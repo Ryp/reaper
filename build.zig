@@ -164,6 +164,9 @@ pub fn build(b: *std.Build) void {
     // both builds have to read the exact same bytes out of the .bin.
     addCgltf(b, exe);
 
+    // Dear ImGui, built from the same vendored submodule as the C++ target.
+    addImGui(b, exe);
+
     // Shaders are compiled unconditionally so that `zig build test` can check
     // the registry without a Vulkan device.
     const shaders = addShaders(b);
@@ -509,6 +512,92 @@ fn addCgltf(b: *std.Build, compile: *std.Build.Step.Compile) void {
     });
 
     compile.root_module.link_libc = true;
+}
+
+// --------------------------------------------------------------------------
+// Dear ImGui
+// --------------------------------------------------------------------------
+
+const imgui_root = "external/imgui";
+
+/// Verbatim copy of the source list in cmake/external/imgui.cmake.
+const imgui_sources = [_][]const u8{
+    "imgui.cpp",
+    "imgui_demo.cpp",
+    "imgui_draw.cpp",
+    "imgui_widgets.cpp",
+    "imgui_tables.cpp",
+    "backends/imgui_impl_vulkan.cpp",
+};
+
+/// Standard install locations, used when pkg-config is unavailable. A search
+/// path that does not exist is simply ignored by the linker, so adding all of
+/// them costs nothing.
+const vulkan_lib_dir_fallbacks = [_][]const u8{
+    "/usr/lib",
+    "/usr/lib/x86_64-linux-gnu",
+    "/usr/lib64",
+    "/usr/local/lib",
+};
+
+fn vulkanLibDirs(b: *std.Build) []const []const u8 {
+    if (b.option([]const u8, "vulkan-lib-dir", "Directory containing libvulkan, when it is somewhere unusual")) |dir| {
+        return b.dupeStrings(&.{dir});
+    }
+
+    var exit_code: u8 = undefined;
+    if (b.runAllowFail(
+        &.{ "pkg-config", "--variable=libdir", "vulkan" },
+        &exit_code,
+        .ignore,
+    )) |stdout| {
+        const trimmed = std.mem.trim(u8, stdout, " \r\n");
+        if (trimmed.len > 0) return b.dupeStrings(&.{trimmed});
+    } else |_| {}
+
+    return &vulkan_lib_dir_fallbacks;
+}
+
+fn addImGui(b: *std.Build, compile: *std.Build.Step.Compile) void {
+    compile.root_module.addIncludePath(b.path(imgui_root));
+    compile.root_module.addIncludePath(b.path("src/renderer"));
+
+    for (imgui_sources) |source| {
+        compile.root_module.addCSourceFile(.{
+            .file = b.path(b.pathJoin(&.{ imgui_root, source })),
+            .flags = &.{
+                "-std=c++17",
+                // Suppress warnings from third-party code.
+                "-w",
+            },
+        });
+    }
+
+    // The plain-C surface Zig talks to; see src/renderer/imgui_shim.h.
+    compile.root_module.addCSourceFile(.{
+        .file = b.path("src/renderer/imgui_shim.cpp"),
+        .flags = &.{"-std=c++17"},
+    });
+
+    // NOTE: the vendored imgui_impl_vulkan.cpp has both its function-pointer
+    // definitions and its IMGUI_VULKAN_FUNC_MAP loader body commented out, so
+    // IMGUI_IMPL_VULKAN_NO_PROTOTYPES does not actually compile there — and
+    // the map predates the project's dynamic-rendering patch, so it is missing
+    // vkCmdBeginRendering anyway. The C++ build resolves those symbols through
+    // its own dlopen-based reaper_vulkan_loader; here they come from the system
+    // loader instead. Everything else keeps going through the vulkan-zig
+    // dispatch tables, which are still loaded via SDL.
+    //
+    // The default target pins the glibc version (see default_target), which
+    // makes it non-native — so Zig does not add the host's library search
+    // paths and libvulkan has to be located explicitly.
+    for (vulkanLibDirs(b)) |lib_dir| {
+        compile.root_module.addLibraryPath(.{ .cwd_relative = lib_dir });
+    }
+    compile.root_module.linkSystemLibrary("vulkan", .{});
+
+    compile.root_module.link_libc = true;
+    compile.root_module.link_libcpp = true;
 }
 
 // --------------------------------------------------------------------------

@@ -15,6 +15,8 @@ const log = std.log.scoped(.vulkan);
 const PhysicalDevice = @import("PhysicalDevice.zig");
 const Swapchain = @import("Swapchain.zig");
 const Window = @import("../window/window.zig").Window;
+const gui_pass = @import("renderpass/gui.zig");
+const imgui = @import("../imgui.zig");
 
 // --------------------------------------------------------------------------
 // SDL3 – re-exported so callers share the exact same @cImport types.
@@ -320,6 +322,27 @@ pub const VulkanBackend = struct {
         const semaphore_swapchain_image_available = try vkd.createSemaphore(device, &sem_info, null);
         errdefer vkd.destroySemaphore(device, semaphore_swapchain_image_available, null);
 
+        // ----------------------------------------------------------------
+        // ImGui
+        // ----------------------------------------------------------------
+        imgui.createContext();
+        errdefer imgui.destroyContext();
+
+        // FIXMEs verbatim from the C++: the queue family, image counts and
+        // sample count are all hardcoded there too.
+        try imgui.vulkanInit(.{
+            .instance = instance,
+            .physical_device = physical_device_info.handle,
+            .device = device,
+            .queue_family = 0, // FIXME
+            .queue = graphics_queue,
+            .descriptor_pool = global_descriptor_pool,
+            .min_image_count = 3, // FIXME
+            .image_count = 3, // FIXME
+            .color_attachment_format = gui_pass.gui_format,
+        });
+        errdefer imgui.vulkanShutdown();
+
         log.info("ready", .{});
 
         return VulkanBackend{
@@ -349,6 +372,11 @@ pub const VulkanBackend = struct {
         log.info("destroying backend", .{});
 
         _ = self.vkd.deviceWaitIdle(self.device) catch {};
+
+        // Must come before the descriptor pool goes away: the ImGui backend
+        // allocated its font descriptor set out of it.
+        imgui.vulkanShutdown();
+        imgui.destroyContext();
 
         self.vkd.destroySemaphore(self.device, self.semaphore_swapchain_image_available, null);
 

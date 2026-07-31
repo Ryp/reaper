@@ -13,9 +13,14 @@ comptime {
     _ = @import("mesh/gltf_loader.zig");
     _ = @import("neptune/trackgen.zig");
     _ = @import("mesh/obj_loader.zig");
+    _ = @import("input/controller.zig");
     _ = @import("renderer/graph/graph_test.zig");
     _ = @import("renderer/vulkan/compute_helper.zig");
     _ = @import("renderer/vulkan/dds.zig");
+    _ = @import("renderer/vulkan/vk_string.zig");
+    _ = @import("renderer/vulkan/renderpass/debug_geometry.zig");
+    _ = @import("renderer/vulkan/renderpass/exposure.zig");
+    _ = @import("renderer/vulkan/renderpass/histogram.zig");
     _ = @import("renderer/vulkan/renderpass/forward.zig");
     _ = @import("renderer/vulkan/renderpass/meshlet_culling.zig");
     _ = @import("renderer/vulkan/renderpass/shadow_map.zig");

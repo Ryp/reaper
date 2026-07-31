@@ -4,6 +4,7 @@ const builtin = @import("builtin");
 const clap = @import("clap");
 const tracy = @import("tracy.zig");
 
+const execute_frame = @import("renderer/vulkan/execute_frame.zig");
 const game_loop = @import("game_loop.zig");
 const window_module = @import("renderer/window/window.zig");
 const BackendResources = @import("renderer/vulkan/backend_resources.zig").BackendResources;
@@ -105,6 +106,10 @@ pub fn main_with_allocator(allocator: std.mem.Allocator, init: std.process.Init)
         _ = backend.vkd.deviceWaitIdle(backend.device) catch {};
         resources.deinit(backend.vkd, backend.device, backend.vma_instance);
     }
+
+    // Mirrors renderer_start(): the font atlas has to be on the GPU before the
+    // first GUI pass records anything.
+    try execute_frame.uploadImGuiFonts(&backend, &resources);
 
     var scene = try scene_module.createGameScene(
         allocator,

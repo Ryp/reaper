@@ -10,10 +10,15 @@ const vk = @import("vulkan");
 const log = std.log.scoped(.vulkan);
 
 const barrier = @import("barrier.zig");
+const debug_geometry = @import("renderpass/debug_geometry.zig");
 const descriptor_set = @import("descriptor_set.zig");
+const exposure = @import("renderpass/exposure.zig");
 const fg = @import("../graph/frame_graph.zig");
 const forward = @import("renderpass/forward.zig");
 const frame_graph_pass = @import("renderpass/frame_graph_pass.zig");
+const gui = @import("renderpass/gui.zig");
+const imgui = @import("../imgui.zig");
+const histogram = @import("renderpass/histogram.zig");
 const lighting = @import("renderpass/lighting.zig");
 const hzb = @import("renderpass/hzb.zig");
 const shadow_map = @import("renderpass/shadow_map.zig");
@@ -60,6 +65,55 @@ const swapchain_access_render = barrier.GPUTextureAccess{
     .access_mask = .{ .color_attachment_write_bit = true },
     .image_layout = .attachment_optimal,
 };
+
+/// Mirrors the ImGui font upload in renderer_start() (ExecuteFrame.cpp): a
+/// one-shot command buffer that stages the font atlas, submitted and waited on
+/// synchronously before the first frame.
+pub fn uploadImGuiFonts(backend: *VulkanBackend, resources: *BackendResources) !void {
+    const device = backend.device;
+    const vkd = backend.vkd;
+    const cmd_buffer = resources.gfx_cmd_buffer.handle;
+
+    try vkd.resetCommandPool(device, resources.gfx_command_pool, .{});
+
+    const begin_info = vk.CommandBufferBeginInfo{
+        .s_type = .command_buffer_begin_info,
+        .p_next = null,
+        .flags = .{ .one_time_submit_bit = true },
+        .p_inheritance_info = null,
+    };
+
+    try vkd.beginCommandBuffer(cmd_buffer, &begin_info);
+
+    try imgui.vulkanCreateFontsTexture(cmd_buffer);
+
+    try vkd.endCommandBuffer(cmd_buffer);
+
+    const command_buffer_info = vk.CommandBufferSubmitInfo{
+        .s_type = .command_buffer_submit_info,
+        .p_next = null,
+        .command_buffer = cmd_buffer,
+        // NOTE: set to zero when not using device groups
+        .device_mask = 0,
+    };
+
+    const submit_info_2 = [_]vk.SubmitInfo2{.{
+        .s_type = .submit_info_2,
+        .p_next = null,
+        .flags = .{},
+        .wait_semaphore_info_count = 0,
+        .p_wait_semaphore_infos = undefined,
+        .command_buffer_info_count = 1,
+        .p_command_buffer_infos = @ptrCast(&command_buffer_info),
+        .signal_semaphore_info_count = 0,
+        .p_signal_semaphore_infos = undefined,
+    }};
+
+    try vkd.queueSubmit2(backend.graphics_queue, &submit_info_2, .null_handle);
+    try vkd.queueWaitIdle(backend.graphics_queue);
+
+    imgui.vulkanDestroyFontUploadObjects();
+}
 
 /// Mirrors resize_swapchain(). This is the consumer of new_swapchain_extent —
 /// the old Zig port never called it, so the window could not be resized.
@@ -220,6 +274,8 @@ pub fn executeFrame(
     const tone_map_record = try tone_mapping.createFrameGraphRecord(&builder, false);
     const meshlet_record = try meshlet_culling.createFrameGraphRecord(&builder);
 
+    const debug_geometry_start_record = try debug_geometry.createStartFrameGraphRecord(&builder);
+
     const shadow_record = try shadow_map.createFrameGraphRecord(
         &builder,
         frame_allocator,
@@ -227,8 +283,9 @@ pub fn executeFrame(
         &prepared,
     );
 
-    // MSAA is an ImGui toggle that defaults off, and nothing flips it yet.
-    const enable_msaa = false;
+    // Flipped by the "Enable MSAA-based visibility" checkbox in the Rendering
+    // window; defaults off.
+    const enable_msaa = backend.options.enable_msaa_visibility;
     const support_shader_stores_to_depth = backend.physical_device.macro_features.compute_stores_to_depth;
 
     const vis_buffer_record = try vis_buffer.createFrameGraphRecord(
@@ -276,17 +333,47 @@ pub fn executeFrame(
         render_extent,
     );
 
-    const placeholders = try swapchain_pass.createPlaceholderInputs(&builder, render_extent);
+    const gui_record = try gui.createFrameGraphRecord(&builder, backend.present_info.surface_extent);
+
+    const histogram_clear_record = try histogram.createClearFrameGraphRecord(&builder);
+    const histogram_record = try histogram.createFrameGraphRecord(
+        &builder,
+        histogram_clear_record,
+        forward_record.scene_hdr,
+    );
+
+    const exposure_record = try exposure.createFrameGraphRecord(&builder, forward_record.scene_hdr, render_extent);
+
+    // NOTE: if you have GPU passes that write debug commands, the last one
+    // should give its handles here.
+    const last_draw_count_handle = debug_geometry_start_record.draw_counter;
+    const last_user_commands_buffer_handle = debug_geometry_start_record.user_commands_buffer;
+
+    const debug_geometry_build_cmds_record = try debug_geometry.createComputeFrameGraphRecord(
+        &builder,
+        last_draw_count_handle,
+        last_user_commands_buffer_handle,
+    );
+
+    const debug_geometry_draw_record = try debug_geometry.createDrawFrameGraphRecord(
+        &builder,
+        debug_geometry_build_cmds_record,
+        last_draw_count_handle,
+        tiled_lighting_record.lighting,
+        forward_record.depth,
+    );
 
     const swapchain_record = try swapchain_pass.createFrameGraphRecord(
         &builder,
         forward_record.scene_hdr,
         .{
-            .lighting_result = tiled_lighting_record.lighting,
+            // The debug geometry draws over the lit image, so the composite
+            // samples its output rather than the tiled lighting pass's.
+            .lighting_result = debug_geometry_draw_record.scene_hdr,
             .tile_debug = tiled_lighting_debug_record.output,
-            .gui = placeholders.gui,
-            .histogram = placeholders.histogram,
-            .average_exposure = placeholders.average_exposure,
+            .gui = gui_record.output,
+            .histogram = histogram_record.histogram_buffer,
+            .average_exposure = exposure_record.reduce_tail.average_exposure,
         },
         tone_map_record.tone_map_lut,
     );
@@ -405,6 +492,48 @@ pub fn executeFrame(
             &resources.tiled_lighting_pass_resources,
         );
 
+        histogram.updateDescriptorSet(
+            &write_helper,
+            &framegraph,
+            &resources.framegraph_resources,
+            histogram_record,
+            &resources.histogram_pass_resources,
+            resources.sampler_resources,
+        );
+
+        exposure.updateDescriptorSets(
+            &write_helper,
+            &framegraph,
+            &resources.framegraph_resources,
+            exposure_record,
+            &resources.exposure_pass_resources,
+            resources.sampler_resources,
+        );
+
+        try debug_geometry.updateStartResources(
+            backend.vma_instance,
+            &prepared,
+            &resources.debug_geometry_resources,
+        );
+
+        try debug_geometry.updateBuildCmdsResources(
+            &write_helper,
+            &framegraph,
+            &resources.framegraph_resources,
+            debug_geometry_build_cmds_record,
+            &prepared,
+            &resources.debug_geometry_resources,
+            backend.vma_instance,
+        );
+
+        debug_geometry.updateDrawDescriptorSets(
+            &write_helper,
+            &framegraph,
+            &resources.framegraph_resources,
+            debug_geometry_draw_record,
+            &resources.debug_geometry_resources,
+        );
+
         swapchain_pass.updateDescriptorSet(
             &write_helper,
             &framegraph,
@@ -501,6 +630,15 @@ pub fn executeFrame(
         frame_graph_helper,
         meshlet_record.debug,
         &resources.meshlet_culling_resources,
+    );
+
+    debug_geometry.recordStartCommandBuffer(
+        vkd,
+        cmd_buffer,
+        frame_graph_helper,
+        debug_geometry_start_record,
+        &prepared,
+        &resources.debug_geometry_resources,
     );
 
     shadow_map.recordCommandBuffer(
@@ -618,7 +756,53 @@ pub fn executeFrame(
         &resources.forward_pass_resources,
     );
 
-    recordPlaceholderInputs(vkd, cmd_buffer, frame_graph_helper, placeholders);
+    gui.recordCommandBuffer(
+        vkd,
+        cmd_buffer,
+        frame_graph_helper,
+        &resources.pipeline_factory,
+        gui_record,
+        &resources.gui_pass_resources,
+    );
+
+    histogram.recordClearCommandBuffer(vkd, cmd_buffer, frame_graph_helper, histogram_clear_record);
+
+    histogram.recordCommandBuffer(
+        vkd,
+        cmd_buffer,
+        frame_graph_helper,
+        &resources.pipeline_factory,
+        histogram_record,
+        &resources.histogram_pass_resources,
+        render_extent,
+    );
+
+    exposure.recordCommandBuffer(
+        vkd,
+        cmd_buffer,
+        frame_graph_helper,
+        &resources.pipeline_factory,
+        exposure_record,
+        &resources.exposure_pass_resources,
+    );
+
+    debug_geometry.recordBuildCmdsCommandBuffer(
+        vkd,
+        cmd_buffer,
+        frame_graph_helper,
+        &resources.pipeline_factory,
+        debug_geometry_build_cmds_record,
+        &resources.debug_geometry_resources,
+    );
+
+    debug_geometry.recordDrawCommandBuffer(
+        vkd,
+        cmd_buffer,
+        frame_graph_helper,
+        &resources.pipeline_factory,
+        debug_geometry_draw_record,
+        &resources.debug_geometry_resources,
+    );
 
     swapchain_pass.recordCommandBuffer(
         vkd,
@@ -777,38 +961,5 @@ fn logCullingStats(backend: *VulkanBackend, resources: *BackendResources, pass_c
             s.surviving_triangle_count,
             s.indirect_draw_command_count,
         });
-    }
-}
-
-/// Clears the placeholder inputs the swapchain pass samples. They stand in for
-/// the GUI, histogram and exposure passes until M7.
-fn recordPlaceholderInputs(
-    vkd: anytype,
-    cmd_buffer: vk.CommandBuffer,
-    helper: frame_graph_pass.FrameGraphHelper,
-    placeholders: swapchain_pass.PlaceholderInputs,
-) void {
-    const pass_handle = fg.getResourceUsage(helper.frame_graph, placeholders.gui).render_pass;
-
-    frame_graph_pass.beginBarrierScope(vkd, cmd_buffer, helper, pass_handle);
-    defer frame_graph_pass.endBarrierScope(vkd, cmd_buffer, helper, pass_handle);
-
-    const clear_color = vk.ClearColorValue{ .float_32 = .{ 0, 0, 0, 0 } };
-    const ranges = [_]vk.ImageSubresourceRange{.{
-        .aspect_mask = .{ .color_bit = true },
-        .base_mip_level = 0,
-        .level_count = 1,
-        .base_array_layer = 0,
-        .layer_count = 1,
-    }};
-
-    for ([_]fg.ResourceUsageHandle{placeholders.gui}) |handle| {
-        const texture = helper.resources.getTexture(helper.frame_graph, handle);
-        vkd.cmdClearColorImage(cmd_buffer, texture.handle, texture.image_layout, &clear_color, &ranges);
-    }
-
-    for ([_]fg.ResourceUsageHandle{ placeholders.histogram, placeholders.average_exposure }) |handle| {
-        const buffer = helper.resources.getBuffer(helper.frame_graph, handle);
-        vkd.cmdFillBuffer(cmd_buffer, buffer.handle, 0, vk.WHOLE_SIZE, 0);
     }
 }

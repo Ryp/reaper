@@ -367,6 +367,60 @@ inputs are still stand-ins, which is M7. Validation and sync validation clean.
 - The MSAA raster/fill variants and the legacy depth resolve pass are ported but unreachable:
   `enable_msaa_visibility` defaults to false and only the ImGui checkbox flips it, which is M7.
 
+### M7 result — the v1 image
+
+`histogram.zig`, `exposure.zig`, `debug_geometry.zig` and `gui.zig` port the four remaining pass files;
+`imgui_shim.{h,cpp}` + `imgui.zig` + `debug_ui.zig` + `input/controller.zig` bring up ImGui and its three
+windows. Every placeholder input is gone — the swapchain composite now samples the real GUI texture, histogram
+buffer and average-exposure buffer. **Gate met:** the ship over the blue track with all three windows on top,
+and validation + sync validation are clean.
+
+**Deviation from the plan: no zgui.** ImGui is built straight from the vendored `external/imgui` submodule (the
+same sources `cmake/external/imgui.cmake` lists), so both builds link the identical 1.88-WIP fork with the
+project's dynamic-rendering patch. zgui would have pinned a different upstream version whose
+`ImGui_ImplVulkan_Init` signature and font-upload API both differ, which is a worse trade than writing the C
+surface by hand. That surface is `src/renderer/imgui_shim.h`: ~40 one-line `extern "C"` forwards, because
+@cImport cannot read imgui's C++ API. Vulkan handles cross it as raw values so the Vulkan C API never lands in
+the same translation unit as vulkan-zig.
+
+**The plan's sRGB→linear style-colour init loop does not exist in this C++ tree** — it was a property of the
+older fork. `GUIFormat` is `R8G8B8A8_SRGB` and ImGui's byte colours are written to it unconverted, so
+`IM_COL32(0, 30, 0, 255)` reads back as a mid-green rather than a near-black. Reproduced as-is; adding the loop
+would have been a change, not a port.
+
+- **`ForwardPass.cpp:220` under-declares its depth write and this is a real C++ bug.** It is the only depth
+  access in the tree that declares `EARLY_FRAGMENT_TESTS` alone; ShadowMap, VisibilityBuffer, TiledRaster and
+  DebugGeometry all declare `EARLY | LATE`. Depth is written at both stages, so the barrier the frame graph
+  derives under-covers the write. Nothing read `forward.depth` before M7, so it never showed; the debug geometry
+  draw pass is the first reader and sync validation immediately reported a WAW hazard on the layout transition.
+  Fixed in `forward.zig` with the deviation spelled out in a comment.
+- **`imgui_impl_vulkan.cpp` cannot be built with `IMGUI_IMPL_VULKAN_NO_PROTOTYPES`.** Both the function-pointer
+  definitions and the `ImGui_ImplVulkan_LoadFunctions` body are commented out in the vendored copy, and
+  `IMGUI_VULKAN_FUNC_MAP` predates the dynamic-rendering patch so it lacks `vkCmdBeginRendering` regardless. The
+  C++ resolves those symbols through its own dlopen-based `reaper_vulkan_loader`; the Zig build links the system
+  loader instead. Because `default_target` pins the glibc version — which makes the target non-native — Zig does
+  not add the host's library search paths, so `build.zig` locates libvulkan via `pkg-config --variable=libdir`
+  with a standard-paths fallback and a `-Dvulkan-lib-dir=` escape hatch.
+- **The exposure chain is verified live, not just validation-clean.** The composite ships with
+  `USE_AUTO_EXPOSURE 0`, so `average_exposure` has no visible effect by design. Flipping it to 1 produces a dim
+  but correctly structured image (mean 6.2/255, 18% non-black) rather than the near-black that a zeroed buffer
+  would give — `exp2(-0) * 0.18` against a manual key of 200 is a factor of ~1100. The reduce and reduce-tail
+  passes really do compute an average log2 luminance.
+- **The histogram has no consumer in either build.** `SwapchainPass` reads its buffer purely to keep the pass in
+  the graph (the C++ comment is "FIXME just to hook the pass to the render graph") and never binds it to a
+  descriptor. The passes run — the buffer is allocated, so neither is pruned, and both are recorded — but their
+  contents are unobservable without adding a readback neither build has. Stated rather than claimed verified.
+- **The MSAA visibility path now runs.** Defaulting `enable_msaa_visibility` to true renders correctly with no
+  new validation errors, which retires the M6 caveat that the MSAA raster/fill variants and the legacy depth
+  resolve were ported but unreachable. The default is back to false, matching the C++.
+- **`VulkanStringConversion.cpp` collapses to 45 lines.** `vk_string.zig` uppercases the vulkan-zig tag name and
+  prefixes it, replacing ~700 lines of hand-written switch. `std.enums.tagName` rather than `@tagName`, because
+  `vk.Format` is non-exhaustive and a value from a newer extension than the registry would otherwise panic.
+- **Stubbed rather than ported, and visible as such:** the Physics window drives a plain struct carrying
+  `PhysicsSim::Vars`' defaults (the sim is post-v1), and "Generate new track" is drawn disabled because
+  regenerating needs the mesh cache cleared and every renderer mesh rebuilt. The keyboard→axis mapping is ported
+  because it feeds the Controller Axes window, but the axes drive nothing downstream yet.
+
 ## Context
 
 Reaper is a ~30k-LOC C++20 Vulkan 1.4 engine (meshlet culling, visibility buffer, tiled deferred + forward split-screen, frame graph, HDR-aware swapchain) with a Neptune game layer. Goal: port it to Zig; the own C++ code + CMake get deleted **eventually, but NOT in v1** — v1 explicitly keeps both builds working side by side (user requirement). v1 success criterion (user, relaxed): the Zig binary brings up the same default scene — procedural track, SciFiHelmet player ship, 3 shadowed lights, split-screen forward/deferred composite, 3 ImGui windows — and **"we see the ship in the frame"**, judged by eyeball against a C++ screenshot. No determinism work, no C++ patches, no automated diff.

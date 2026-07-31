@@ -285,11 +285,18 @@ pub fn createFrameGraphRecord(
         &.{},
     );
 
+    // DEVIATION: ForwardPass.cpp:220 declares EARLY_FRAGMENT_TESTS only. Depth
+    // is written at LATE_FRAGMENT_TESTS too, so the barrier the graph derives
+    // from it under-covers the write — sync validation reports a WAW hazard as
+    // soon as anything reads this depth buffer back, which the debug geometry
+    // draw pass is the first to do. Every other depth access in the C++
+    // (ShadowMap, VisibilityBuffer, TiledRaster, DebugGeometry) declares
+    // EARLY | LATE, so the single-bit one is an oversight rather than intent.
     const depth = try builder.writeTexture(
         pass_handle,
         depth_buffer_usage_handle,
         .{
-            .stage_mask = .{ .early_fragment_tests_bit = true },
+            .stage_mask = .{ .early_fragment_tests_bit = true, .late_fragment_tests_bit = true },
             .access_mask = .{ .depth_stencil_attachment_write_bit = true },
             .image_layout = .attachment_optimal,
         },
