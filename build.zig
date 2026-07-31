@@ -160,6 +160,10 @@ pub fn build(b: *std.Build) void {
     // lodepng, same deal: referenced by path so both builds decode identically.
     addLodePng(b, exe);
 
+    // cgltf, likewise — the mesh data it hands back feeds the meshlet build, so
+    // both builds have to read the exact same bytes out of the .bin.
+    addCgltf(b, exe);
+
     // Shaders are compiled unconditionally so that `zig build test` can check
     // the registry without a Vulkan device.
     const shaders = addShaders(b);
@@ -221,6 +225,10 @@ pub fn build(b: *std.Build) void {
     // LLVM-backend workaround as the executable.
     addMeshOptimizer(b, tests);
     tests.use_llvm = use_llvm;
+
+    // gltf_loader.zig is pure asset parsing, so its tests run in the GPU-free
+    // suite too.
+    addCgltf(b, tests);
 
     // The Vulkan-typed modules @cImport the VMA header, so the test artifact
     // needs the include paths and the implementation TU to link. None of it
@@ -480,6 +488,27 @@ fn addMeshOptimizer(b: *std.Build, compile: *std.Build.Step.Compile) void {
 
     compile.root_module.link_libc = true;
     compile.root_module.link_libcpp = true;
+}
+
+// --------------------------------------------------------------------------
+// cgltf
+// --------------------------------------------------------------------------
+
+const cgltf_root = "external/cgltf";
+
+fn addCgltf(b: *std.Build, compile: *std.Build.Step.Compile) void {
+    compile.root_module.addIncludePath(b.path(cgltf_root));
+
+    compile.root_module.addCSourceFile(.{
+        .file = b.path("src/mesh/cgltf_impl.c"),
+        .flags = &.{
+            "-std=c99",
+            // Suppress warnings from third-party code.
+            "-w",
+        },
+    });
+
+    compile.root_module.link_libc = true;
 }
 
 // --------------------------------------------------------------------------

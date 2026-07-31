@@ -10,9 +10,11 @@ comptime {
     _ = @import("renderer/mesh2.zig");
     _ = @import("renderer/prepare_buckets.zig");
     _ = @import("mesh/meshlet_builder.zig");
+    _ = @import("mesh/gltf_loader.zig");
     _ = @import("mesh/obj_loader.zig");
     _ = @import("renderer/graph/graph_test.zig");
     _ = @import("renderer/vulkan/compute_helper.zig");
+    _ = @import("renderer/vulkan/dds.zig");
     _ = @import("renderer/vulkan/renderpass/forward.zig");
     _ = @import("renderer/vulkan/renderpass/meshlet_culling.zig");
     _ = @import("renderer/vulkan/shader_modules.zig");

@@ -10,6 +10,7 @@ const vk = @import("vulkan");
 
 const barrier_module = @import("barrier.zig");
 const buffer_module = @import("buffer.zig");
+const dds = @import("dds.zig");
 const gpu_buffer = @import("../buffer/gpu_buffer.zig");
 const gpu_texture_properties = @import("../texture/gpu_texture_properties.zig");
 const gpu_texture_view = @import("../texture/gpu_texture_view.zig");
@@ -103,6 +104,32 @@ pub const MaterialResources = struct {
 
         for (filenames, is_srgb, 0..) |filename, srgb, i| {
             var staging_entry = try copyPngToStagingArea(self, vma_instance, filename, srgb);
+
+            self.textures.items[handle_span.offset + i] = try createTextureResource(
+                self,
+                vkd,
+                device,
+                vma_instance,
+                &staging_entry,
+            );
+        }
+    }
+
+    /// Unlike PNG there is no sRGB flag: the DDS carries its own format, so
+    /// whether a map decodes through the sRGB EOTF is baked into the file.
+    pub fn loadDdsTextures(
+        self: *MaterialResources,
+        vkd: anytype,
+        device: vk.Device,
+        vma_instance: vma.VmaAllocator,
+        io: std.Io,
+        filenames: []const []const u8,
+        handle_span: mesh2.HandleSpan(mesh2.TextureHandle),
+    ) !void {
+        std.debug.assert(handle_span.count == filenames.len);
+
+        for (filenames, 0..) |filename, i| {
+            var staging_entry = try copyDdsToStagingArea(self, vma_instance, io, filename);
 
             self.textures.items[handle_span.offset + i] = try createTextureResource(
                 self,
@@ -211,6 +238,88 @@ fn copyPngToStagingArea(
         .texture_properties = properties,
         .copy_command_offset = command_offset,
         .copy_command_count = 1,
+        .target = .null_handle, // FIXME filled in by createTextureResource
+    };
+}
+
+/// Same as the PNG path, except every mip of every layer gets its own copy
+/// region and the pixel format comes from the file rather than a caller flag.
+fn copyDdsToStagingArea(
+    resources: *MaterialResources,
+    vma_instance: vma.VmaAllocator,
+    io: std.Io,
+    file_path: []const u8,
+) !StagingEntry {
+    const bytes = try std.Io.Dir.cwd().readFileAlloc(io, file_path, resources.allocator, .limited(1 << 30));
+    defer resources.allocator.free(bytes);
+
+    var file = try dds.parse(resources.allocator, bytes);
+    defer file.deinit(resources.allocator);
+
+    if (file.dimension != .texture_2d) return error.UnsupportedDdsDimension;
+    if (file.depth != 1) return error.UnsupportedDdsDepth;
+    if (file.array_size != 1) return error.UnsupportedDdsArraySize;
+
+    var properties = gpu_texture_properties.defaultTextureProperties(
+        file.width,
+        file.height,
+        file.format,
+        .{ .transfer_dst = true, .sampled = true },
+    );
+    properties.depth = file.depth;
+    properties.mip_count = file.mip_count;
+    properties.layer_count = file.array_size;
+
+    const staging = &resources.staging;
+    const command_offset: u32 = @intCast(staging.buffer_copy_regions.items.len);
+
+    for (0..file.array_size) |layer| {
+        for (0..file.mip_count) |mip| {
+            const image = file.imageData(@intCast(mip), @intCast(layer));
+
+            try buffer_module.uploadBufferData(
+                vma_instance,
+                staging.staging_buffer,
+                staging.buffer_properties,
+                image.data,
+                @intCast(staging.offset_bytes),
+            );
+
+            const subresource = gpu_texture_view.defaultTextureSubresourceOneColorMip(
+                @intCast(mip),
+                @intCast(layer),
+            );
+
+            try staging.buffer_copy_regions.append(resources.allocator, .{
+                .s_type = .buffer_image_copy_2,
+                .p_next = null,
+                .buffer_offset = staging.offset_bytes,
+                .buffer_row_length = 0,
+                .buffer_image_height = 0,
+                .image_subresource = image_module.getImageSubresourceLayers(subresource),
+                .image_offset = .{ .x = 0, .y = 0, .z = 0 },
+                .image_extent = .{ .width = image.width, .height = image.height, .depth = image.depth },
+            });
+
+            staging.offset_bytes += image.data.len;
+
+            // OOB
+            std.debug.assert(staging.offset_bytes < staging.buffer_properties.element_count);
+        }
+    }
+
+    log.debug("loaded texture '{s}': {}x{} {s}, {} mip(s)", .{
+        file_path,
+        file.width,
+        file.height,
+        @tagName(file.format),
+        file.mip_count,
+    });
+
+    return .{
+        .texture_properties = properties,
+        .copy_command_offset = command_offset,
+        .copy_command_count = file.mip_count * file.array_size,
         .target = .null_handle, // FIXME filled in by createTextureResource
     };
 }
