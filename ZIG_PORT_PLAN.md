@@ -150,6 +150,34 @@ that every store is undefined.
 **Superseded:** the M1 fullscreen triangle. The swapchain is now a blit target rather than an attachment, so
 `swapchain_pass.zig` is unused until M4a wires up the real composite.
 
+### M4a progress — asset loading and camera done, GPU passes remaining
+
+**Done.** `src/mesh/{mesh,obj_loader}.zig` and `src/renderer/camera.zig`.
+
+*The plan was wrong about n-gons.* It called for a fan; tinyobj actually runs its built-in **ear clipping**, and
+`track_chunk_simple.obj` has faces with up to **11 vertices**, so a fan would cover the notch on any concave
+one. The ear clipping is ported as-is including its quirks: projection axes come from the first corner with a
+non-degenerate cross product, and the loop gives up after a bounded number of unproductive iterations. Quads use
+the shorter-diagonal split, and there is no vertex dedup — every face corner becomes a fresh vertex, index buffer
+`0, 1, 2, ...`.
+
+*Verified against tinyobj itself,* not by inspection: a C++ probe linking tinyobjloader and an equivalent Zig
+probe hash the flattened positions, normals and UVs for all 8 meshes under `res/model`. **All hashes match** —
+including the 300k-vertex dragon, the quad-bearing asteroid and box, and the 11-gon track chunk. Rebuild with
+`g++ -std=c++17 -I external/tinyobjloader` if the loader ever changes.
+
+Camera keeps both quirks, and they are load-bearing for framing: the *horizontal* half-FOV is what reaches
+`glm::perspective`'s `fovy` slot (the vertical one is derived separately as `atan(tan(h) * aspect)`), and the
+viewport Y flip negates the whole of column 1 rather than `[1][1]` alone. Both have direct tests so a future
+"cleanup" cannot silently change the shot.
+
+`zig build test` is at 37 tests.
+
+**Remaining for M4a:** MeshCache + meshoptimizer meshlet build (192/64/0.5, needs the C library linked),
+PrepareBuckets(276), the MeshletCulling passes(770), ForwardPass(411) with a constant default material,
+SamplerResources, the ToneMapping LUT bake(138), and SwapchainPass(317) as the real composite. The M4a gate does
+not close on its own — the plan pairs it with M4b for "lit, shadowed, textured helmet on screen".
+
 ## Context
 
 Reaper is a ~30k-LOC C++20 Vulkan 1.4 engine (meshlet culling, visibility buffer, tiled deferred + forward split-screen, frame graph, HDR-aware swapchain) with a Neptune game layer. Goal: port it to Zig; the own C++ code + CMake get deleted **eventually, but NOT in v1** — v1 explicitly keeps both builds working side by side (user requirement). v1 success criterion (user, relaxed): the Zig binary brings up the same default scene — procedural track, SciFiHelmet player ship, 3 shadowed lights, split-screen forward/deferred composite, 3 ImGui windows — and **"we see the ship in the frame"**, judged by eyeball against a C++ screenshot. No determinism work, no C++ patches, no automated diff.
