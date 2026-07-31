@@ -10,6 +10,7 @@ const vk = @import("vulkan");
 const descriptor_set = @import("../descriptor_set.zig");
 const fg = @import("../../graph/frame_graph.zig");
 const frame_graph_pass = @import("frame_graph_pass.zig");
+const gpu_scope = @import("../gpu_scope.zig");
 const hlsl = @import("../../hlsl/tone_mapping_bake_lut.zig");
 const pipeline_module = @import("../pipeline.zig");
 const shader_modules = @import("../shader_modules.zig");
@@ -164,6 +165,9 @@ pub fn recordCommandBuffer(
     tonemap_min_nits: f32,
     tonemap_max_nits: f32,
 ) void {
+    const scope = gpu_scope.begin(vkd, cmd_buffer, @src(), "Tone Map Bake LUT");
+    defer scope.end(vkd, cmd_buffer);
+
     frame_graph_pass.beginBarrierScope(vkd, cmd_buffer, helper, record.pass_handle);
     defer frame_graph_pass.endBarrierScope(vkd, cmd_buffer, helper, record.pass_handle);
 

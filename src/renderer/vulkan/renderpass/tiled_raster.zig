@@ -24,6 +24,7 @@ const descriptor_set = @import("../descriptor_set.zig");
 const fg = @import("../../graph/frame_graph.zig");
 const frame_graph_pass = @import("frame_graph_pass.zig");
 const gpu_buffer = @import("../../buffer/gpu_buffer.zig");
+const gpu_scope = @import("../gpu_scope.zig");
 const gpu_texture_properties = @import("../../texture/gpu_texture_properties.zig");
 const gpu_texture_view = @import("../../texture/gpu_texture_view.zig");
 const mesh_module = @import("../../../mesh/mesh.zig");
@@ -763,6 +764,9 @@ pub fn recordDepthCopy(
     record: LightRasterFrameGraphRecord.TileDepthCopy,
     resources: *const TiledRasterResources,
 ) void {
+    const scope = gpu_scope.begin(vkd, cmd_buffer, @src(), "Tile Depth Copy");
+    defer scope.end(vkd, cmd_buffer);
+
     frame_graph_pass.beginBarrierScope(vkd, cmd_buffer, helper, record.pass_handle);
     defer frame_graph_pass.endBarrierScope(vkd, cmd_buffer, helper, record.pass_handle);
 
@@ -849,6 +853,9 @@ pub fn recordLightClassifyCommandBuffer(
     tiled_lighting_frame: *const tiled_lighting_common.TiledLightingFrame,
     resources: *const TiledRasterResources,
 ) void {
+    const scope = gpu_scope.begin(vkd, cmd_buffer, @src(), "Classify Light Volumes");
+    defer scope.end(vkd, cmd_buffer);
+
     frame_graph_pass.beginBarrierScope(vkd, cmd_buffer, helper, record.pass_handle);
     defer frame_graph_pass.endBarrierScope(vkd, cmd_buffer, helper, record.pass_handle);
 
@@ -893,6 +900,9 @@ pub fn recordLightRasterCommandBuffer(
     record: LightRasterFrameGraphRecord.RasterRecord,
     resources: TiledRasterResources.RasterResources,
 ) void {
+    const scope = gpu_scope.begin(vkd, cmd_buffer, @src(), "Rasterize Light Volumes");
+    defer scope.end(vkd, cmd_buffer);
+
     frame_graph_pass.beginBarrierScope(vkd, cmd_buffer, helper, record.pass_handle);
     defer frame_graph_pass.endBarrierScope(vkd, cmd_buffer, helper, record.pass_handle);
 

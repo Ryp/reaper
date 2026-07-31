@@ -10,6 +10,7 @@ const vk = @import("vulkan");
 
 const fg = @import("../../graph/frame_graph.zig");
 const frame_graph_pass = @import("frame_graph_pass.zig");
+const gpu_scope = @import("../gpu_scope.zig");
 const gpu_texture_properties = @import("../../texture/gpu_texture_properties.zig");
 const imgui = @import("../../imgui.zig");
 const pipeline_module = @import("../pipeline.zig");
@@ -139,6 +140,9 @@ pub fn recordCommandBuffer(
     record: GuiFrameGraphRecord,
     resources: *const GuiPassResources,
 ) void {
+    const scope = gpu_scope.begin(vkd, cmd_buffer, @src(), "GUI");
+    defer scope.end(vkd, cmd_buffer);
+
     frame_graph_pass.beginBarrierScope(vkd, cmd_buffer, helper, record.pass_handle);
     defer frame_graph_pass.endBarrierScope(vkd, cmd_buffer, helper, record.pass_handle);
 

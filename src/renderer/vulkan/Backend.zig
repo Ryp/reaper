@@ -9,6 +9,7 @@
 
 const std = @import("std");
 const vk = @import("vulkan");
+const debug_label = @import("debug_label.zig");
 const build_options = @import("build_options");
 const log = std.log.scoped(.vulkan);
 
@@ -139,9 +140,20 @@ pub const VulkanBackend = struct {
         try instance_extensions.append(allocator, "VK_KHR_get_surface_capabilities2");
         try instance_extensions.append(allocator, "VK_EXT_swapchain_colorspace");
 
-        if (build_options.enable_validation) {
+        // Requested whenever the driver has it, not only under validation.
+        // The debug messenger needs it, but so do the command-buffer labels
+        // that name scopes in a capture — and captures are normally taken
+        // against a Release build, which is exactly when unnamed scopes hurt.
+        // Optional rather than required: checkInstanceExtensions hard-errors on
+        // anything in the list, and a missing debug_utils should degrade to
+        // unnamed captures rather than refusing to start.
+        const debug_utils_available = try hasInstanceExtension(vkb, "VK_EXT_debug_utils", allocator);
+        if (debug_utils_available) {
             try instance_extensions.append(allocator, "VK_EXT_debug_utils");
+        } else {
+            log.warn("VK_EXT_debug_utils missing: capture scopes and object names are disabled", .{});
         }
+        debug_label.setAvailable(debug_utils_available);
 
         try checkInstanceExtensions(vkb, instance_extensions.items, allocator);
 
@@ -448,6 +460,22 @@ fn setRenderResolution(present_info: *const Swapchain.PresentationInfo) vk.Exten
     // The render extent tracks the surface extent; callers can apply
     // a scaling factor here in the future.
     return present_info.surface_extent;
+}
+
+/// Availability probe for extensions the backend can do without.
+fn hasInstanceExtension(vkb: BaseDispatch, name: []const u8, allocator: std.mem.Allocator) !bool {
+    var count: u32 = 0;
+    _ = try vkb.enumerateInstanceExtensionProperties(null, &count, null);
+
+    const props = try allocator.alloc(vk.ExtensionProperties, count);
+    defer allocator.free(props);
+    _ = try vkb.enumerateInstanceExtensionProperties(null, &count, props.ptr);
+
+    for (props) |p| {
+        if (std.mem.eql(u8, std.mem.sliceTo(&p.extension_name, 0), name)) return true;
+    }
+
+    return false;
 }
 
 fn checkInstanceExtensions(

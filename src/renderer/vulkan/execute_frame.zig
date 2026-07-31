@@ -16,6 +16,7 @@ const exposure = @import("renderpass/exposure.zig");
 const fg = @import("../graph/frame_graph.zig");
 const forward = @import("renderpass/forward.zig");
 const gbuffer = @import("renderpass/gbuffer.zig");
+const gpu_scope = @import("gpu_scope.zig");
 const frame_graph_pass = @import("renderpass/frame_graph_pass.zig");
 const gui = @import("renderpass/gui.zig");
 const imgui = @import("../imgui.zig");
@@ -234,6 +235,16 @@ pub fn executeFrame(
     };
 
     try vkd.beginCommandBuffer(cmd_buffer, &cmd_buffer_begin_info);
+
+    // Wraps every pass below, so a capture and a Tracy trace both open on one
+    // collapsible frame rather than a flat list of scopes.
+    //
+    // Closed explicitly rather than with `defer`: a defer here fires at
+    // function exit, which is AFTER vkEndCommandBuffer, and recording a label
+    // into an already-ended buffer is a validation error. An early error return
+    // does leave the label open, but that path abandons the command buffer
+    // without submitting it, so nothing ever sees the imbalance.
+    const frame_scope = gpu_scope.begin(vkd, cmd_buffer, @src(), "GPU Frame");
 
     const subresource = barrier.defaultTextureSubresourceOneColorMip();
     const swapchain_image = backend.present_info.images[current_swapchain_index];
@@ -589,6 +600,9 @@ pub fn executeFrame(
     pending_initial_transition.* = false;
 
     {
+        const scope = gpu_scope.begin(vkd, cmd_buffer, @src(), "Barrier");
+        defer scope.end(vkd, cmd_buffer);
+
         const image_barriers = [_]vk.ImageMemoryBarrier2{
             barrier.getImageBarrierSameQueue(swapchain_image, subresource, src_access, swapchain_access_render),
         };
@@ -876,6 +890,9 @@ pub fn executeFrame(
     }
 
     {
+        const scope = gpu_scope.begin(vkd, cmd_buffer, @src(), "Barrier");
+        defer scope.end(vkd, cmd_buffer);
+
         const src_layout = if (readback != null) screenshot.access_copy else swapchain_access_render;
 
         const image_barriers = [_]vk.ImageMemoryBarrier2{
@@ -885,6 +902,8 @@ pub fn executeFrame(
         const dependencies = barrier.getImageBarrierDependencyInfo(&image_barriers);
         vkd.cmdPipelineBarrier2(cmd_buffer, &dependencies);
     }
+
+    frame_scope.end(vkd, cmd_buffer);
 
     try vkd.endCommandBuffer(cmd_buffer);
 

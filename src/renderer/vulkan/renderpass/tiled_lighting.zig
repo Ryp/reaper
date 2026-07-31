@@ -16,6 +16,7 @@ const descriptor_set = @import("../descriptor_set.zig");
 const fg = @import("../../graph/frame_graph.zig");
 const frame_graph_pass = @import("frame_graph_pass.zig");
 const gpu_buffer = @import("../../buffer/gpu_buffer.zig");
+const gpu_scope = @import("../gpu_scope.zig");
 const gpu_texture_properties = @import("../../texture/gpu_texture_properties.zig");
 const pipeline_module = @import("../pipeline.zig");
 const pipeline_factory_module = @import("../pipeline_factory.zig");
@@ -514,6 +515,9 @@ pub fn recordCommandBuffer(
     render_extent: vk.Extent2D,
     tile_extent: vk.Extent2D,
 ) void {
+    const scope = gpu_scope.begin(vkd, cmd_buffer, @src(), "Tiled Lighting");
+    defer scope.end(vkd, cmd_buffer);
+
     frame_graph_pass.beginBarrierScope(vkd, cmd_buffer, helper, record.pass_handle);
     defer frame_graph_pass.endBarrierScope(vkd, cmd_buffer, helper, record.pass_handle);
 
@@ -558,6 +562,9 @@ pub fn recordDebugCommandBuffer(
     render_extent: vk.Extent2D,
     tile_extent: vk.Extent2D,
 ) void {
+    const scope = gpu_scope.begin(vkd, cmd_buffer, @src(), "Tiled Lighting Debug");
+    defer scope.end(vkd, cmd_buffer);
+
     frame_graph_pass.beginBarrierScope(vkd, cmd_buffer, helper, record.pass_handle);
     defer frame_graph_pass.endBarrierScope(vkd, cmd_buffer, helper, record.pass_handle);
 
