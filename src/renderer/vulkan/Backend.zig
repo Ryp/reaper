@@ -81,6 +81,11 @@ pub const VulkanBackend = struct {
 
     options: Options,
 
+    /// What the display actually reports, as opposed to what the swapchain
+    /// format implies. Queried once at init; the two are shown side by side in
+    /// the Rendering window because they can legitimately disagree.
+    display_hdr_enabled: bool,
+
     // --------------------------------------------------------------------------
     // Init / deinit
     // --------------------------------------------------------------------------
@@ -293,6 +298,16 @@ pub const VulkanBackend = struct {
         // ----------------------------------------------------------------
         var present_info = Swapchain.PresentationInfo{ .surface = surface };
 
+        // The WSI a surface was created through decides which formats it
+        // reports — RADV's X11 surface offers two where its Wayland one offers
+        // eighteen — so the driver in use is part of understanding any
+        // swapchain format decision below.
+        const display_hdr_enabled = window.isDisplayHdrEnabled();
+        log.info("video driver = {s}, display HDR = {}", .{
+            window.getVideoDriverName(),
+            display_hdr_enabled,
+        });
+
         const swapchain_desc = Swapchain.SwapchainDescriptor{
             .preferred_image_count = 3,
             .preferred_format = .{ .format = .undefined, .color_space = .srgb_nonlinear_khr },
@@ -364,6 +379,7 @@ pub const VulkanBackend = struct {
             .new_swapchain_extent = .{ .width = 0, .height = 0 },
             .frame_index = 0,
             .options = .{},
+            .display_hdr_enabled = display_hdr_enabled,
         };
     }
 

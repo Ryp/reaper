@@ -46,6 +46,10 @@ pub fn backendDebugUi(backend: *VulkanBackend) void {
 
         imgui.beginDisabled(true);
         _ = imgui.checkbox("HDR Swapchain", &swapchain_format.is_hdr);
+        // Inferred from the colour space above; the display's own answer can
+        // disagree, and the tone mapping sliders below are guesses either way.
+        var display_hdr = backend.display_hdr_enabled;
+        _ = imgui.checkbox("HDR Display (reported)", &display_hdr);
         imgui.endDisabled();
 
         _ = imgui.checkbox("Freeze culling [BROKEN]", &backend.options.freeze_meshlet_culling); // FIXME

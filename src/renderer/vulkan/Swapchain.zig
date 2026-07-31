@@ -151,14 +151,32 @@ pub fn configureVulkanWmSwapchain(
 
     info.swapchain_format = chooseSwapchainFormat(formats[0..format_count], desc.preferred_format);
 
-    // sRGB swapchains: delegate the EOTF to the image-view format, keep
-    // linear in the transfer function field so shaders don't double-apply it.
+    // sRGB swapchains: the OETF has to be applied exactly once, either by the
+    // image view or by the composite shader. Prefer the view — it is free —
+    // and only claim the shader can skip it once the view format actually is
+    // an sRGB one.
+    //
+    // DEVIATION from configure_vulkan_wm_swapchain, which sets the transfer
+    // function to Linear before attempting the override and never checks
+    // whether it took. srgbViewFormat only knows the three 8-bit UNORM
+    // formats; every other format falls through it unchanged, and the shader
+    // is then told to skip an OETF that nothing else applies. The result is
+    // linear values in a swapchain the compositor reads as sRGB-encoded — a
+    // markedly too-dark image. R16G16B16A16_UNORM, which is what the format
+    // heuristic picks on a Wayland surface, hits exactly that path.
     if (info.swapchain_format.transfer_function == .sRGB) {
-        info.swapchain_format.transfer_function = .Linear;
-
-        // Override view format to the sRGB variant (needs swapchain_mutable_format).
+        // Needs swapchain_mutable_format, which is requested unconditionally.
         info.swapchain_format.vk_view_format = srgbViewFormat(info.swapchain_format.vk_format);
+
+        if (isSrgbFormat(info.swapchain_format.vk_view_format)) {
+            info.swapchain_format.transfer_function = .Linear;
+        }
     }
+
+    log.info("swapchain transfer function = {t}, applied by {s}", .{
+        info.swapchain_format.transfer_function,
+        if (info.swapchain_format.transfer_function == .Linear) "the image view" else "the composite shader",
+    });
 
     // ---- Image count ----
     {
@@ -560,6 +578,16 @@ fn srgbViewFormat(fmt: vk.Format) vk.Format {
         .r8g8b8a8_unorm => .r8g8b8a8_srgb,
         .a8b8g8r8_unorm_pack32 => .a8b8g8r8_srgb_pack32,
         else => fmt,
+    };
+}
+
+/// Whether writing to a view of this format applies the sRGB OETF in hardware.
+/// Only the formats a swapchain can actually use are listed; there is no
+/// generic "is this sRGB" query in Vulkan short of parsing the enumerant name.
+fn isSrgbFormat(fmt: vk.Format) bool {
+    return switch (fmt) {
+        .b8g8r8a8_srgb, .r8g8b8a8_srgb, .a8b8g8r8_srgb_pack32 => true,
+        else => false,
     };
 }
 

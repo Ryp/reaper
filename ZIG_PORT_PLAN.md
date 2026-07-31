@@ -450,12 +450,36 @@ turned up three bugs, all of which were invisible until the two were put on the 
   `screenshot.zig` now derives the buffer size and the decode from the format, covering all nine of the
   swapchain-selectable ones, with tests over channel order and full-scale round-tripping.
 
-**Both builds render the scene too dark on Wayland, for the same reason, and the port reproduces it faithfully.**
-`configure_vulkan_wm_swapchain` sets `transfer_function = Linear` for any sRGB colour space on the assumption
-that the image view applies the EOTF, but the view-format override only knows the three 8-bit UNORM formats;
-`R16G16B16A16_UNORM` falls through `default: break;` with the view left linear. Nothing applies the sRGB OETF, so
-linear values are handed to a swapchain the compositor treats as sRGB-encoded. Not fixed — it is C++ behaviour,
-and patching it is out of v1's scope.
+### M8 follow-up — Wayland by default, and the OETF actually applied
+
+**SDL now prefers Wayland** (`SDL_HINT_VIDEO_DRIVER = "wayland,x11"`, set before `SDL_Init`), matching the C++
+window backend, with X11 as fallback and `SDL_VIDEO_DRIVER` in the environment still winning. This is not
+cosmetic: the WSI a surface is created through decides which formats it reports, so the backend choice changes
+what the swapchain heuristic can pick.
+
+**The too-dark image is fixed, and it was not really a format-table gap.** The colour space already *is* the
+statement of which EOTF the swapchain expects, and `getSurfaceFormat` maps it correctly. What was missing is
+that nothing checked whether the assumption made off the back of it held:
+`configure_vulkan_wm_swapchain` sets `transfer_function = Linear` — meaning "the image view will apply the
+OETF, shader outputs linear" — *before* attempting the view-format override, and never looks at whether the
+override took. `srgbViewFormat` only knows the three 8-bit UNORM formats; everything else falls through
+unchanged, and the shader is then told to skip an OETF nothing else applies. `R16G16B16A16_UNORM`, which is
+what the heuristic picks on a Wayland surface, hits exactly that.
+
+The transfer function is now derived from the view format that was actually obtained, so it is Linear only when
+the view really is an sRGB format and `.sRGB` (shader applies `linear_to_srgb`) otherwise. Both paths are
+exercised: Wayland lands on `R16G16B16A16_UNORM` → shader, X11 on `B8G8R8A8_SRGB` → view. Mean frame luma
+Wayland 20.3 → 56.3, against X11's 56.8. Deviation from the C++, which has the same bug; documented in
+`Swapchain.zig`.
+
+**What is still genuinely unqueried is luminance, not the EOTF.** `is_hdr` is inferred from the chosen colour
+space rather than from whether the display is in HDR mode, and `tonemap_min_nits` / `tonemap_max_nits` /
+`sdr_ui_max_brightness_nits` / `sdr_peak_brightness_nits` are hardcoded defaults in `PresentationInfo` — which
+is why they are sliders in the Rendering window. `SDL_PROP_DISPLAY_HDR_ENABLED_BOOLEAN` is now queried and shown
+next to the inferred value so the two can be compared, but nothing drives off it yet. SDL 3.4 exposes SDR white
+point and HDR headroom only on `SDL_Renderer`, which this project does not use; on Wayland that data comes from
+the `wp_color_manager_v1` protocol. Wiring real display luminance into tone mapping is a feature, not a port
+gap, and is left for later.
 
 Remaining explained differences between the two: the ship sits at its spawn point in the Zig build because the
 physics sim is post-v1 (C++: `1.641, 0.337, 0.701`; Zig: `1.100, 0.800, 0.000`), and the track differs because

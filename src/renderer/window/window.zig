@@ -97,6 +97,15 @@ pub const Window = struct {
 
     /// Initializes the SDL video subsystem and opens a Vulkan-capable window.
     pub fn init(desc: CreationDescriptor) !Window {
+        // Prefer Wayland, which is what the C++ window backend uses. This is
+        // not cosmetic: the WSI a surface is created through decides which
+        // formats it reports, and on RADV the X11 one offers two where the
+        // Wayland one offers eighteen — so the two builds would otherwise pick
+        // different swapchain formats and render differently. X11 stays as a
+        // fallback, and SDL_VIDEO_DRIVER in the environment still wins over
+        // this, since SDL_SetHint does not override an explicit user setting.
+        _ = sdl.SDL_SetHint(sdl.SDL_HINT_VIDEO_DRIVER, "wayland,x11");
+
         if (!sdl.SDL_Init(sdl.SDL_INIT_VIDEO)) {
             log.err("SDL_Init failed: {s}", .{sdl.SDL_GetError()});
             return error.WindowInitFailed;
@@ -204,6 +213,36 @@ pub const Window = struct {
     /// then and the frame must be skipped.
     pub fn isMinimized(self: *Window) bool {
         return (sdl.SDL_GetWindowFlags(self.handle) & sdl.SDL_WINDOW_MINIMIZED) != 0;
+    }
+
+    /// Whether the display this window is on is actually in HDR mode.
+    ///
+    /// Nothing in Vulkan answers this. A surface's VkColorSpaceKHR says which
+    /// colour space a swapchain would be interpreted in, not which one the
+    /// display is currently configured for — an HDR10 format is offered
+    /// whether or not the user has HDR switched on. The swapchain code infers
+    /// `is_hdr` from the colour space it picked, so this is the only way to
+    /// tell that inference apart from the truth.
+    ///
+    /// SDL 3.4 exposes the SDR white point and HDR headroom only on
+    /// SDL_Renderer, which this project does not use, so the luminance values
+    /// driving tone mapping stay hardcoded — see PresentationInfo.
+    pub fn isDisplayHdrEnabled(self: *Window) bool {
+        const display = sdl.SDL_GetDisplayForWindow(self.handle);
+        if (display == 0) return false;
+
+        return sdl.SDL_GetBooleanProperty(
+            sdl.SDL_GetDisplayProperties(display),
+            sdl.SDL_PROP_DISPLAY_HDR_ENABLED_BOOLEAN,
+            false,
+        );
+    }
+
+    /// The video backend SDL actually selected, for logging: which WSI a
+    /// surface goes through decides the swapchain formats on offer.
+    pub fn getVideoDriverName(_: *Window) []const u8 {
+        const name = sdl.SDL_GetCurrentVideoDriver() orelse return "unknown";
+        return std.mem.span(name);
     }
 };
 
