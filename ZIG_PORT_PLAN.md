@@ -308,7 +308,26 @@ until the vis-buffer lands in M6.
 - `PARTIALLY_BOUND` applies only to the *last* binding of each set, so the material sampler sitting beside the
   texture array must still be written every frame or validation flags it.
 
-Remaining for the M4b gate: dds.zig (DX10/BC7 subset), the cgltf glue, and ShadowMap + the 3 hardcoded lights.
+`dds.zig` replaces the vendored tinyddsloader, scoped to DX10-header files and to the exact format table
+`get_dds_pixel_format` maps. Verified against a probe built on the vendored header: every field of every image of
+the four shipped BC7 maps, plus a synthetic non-power-of-two mip chain and a three-layer array (neither of which
+the shipped assets exercise) — all 40 rows are baked into the tests.
+
+`gltf_loader.zig` wraps cgltf as GameLoop.cpp does: strided accessor reads, one primitive per mesh, four-texture
+material table recovered from the document's image order. `shadow_map.zig` ports ShadowMap.cpp; the culling passes
+were already general over `prepared.cull_passes`, so it only had to bind and draw.
+
+- **`default_light_projection_matrix` is a hardcoded 0.1..100 frustum**, so world scale is not a free choice: a
+  scene the size of `ship.obj` (~1500 units across, centred 151 units up) falls entirely outside every shadow map,
+  and shadows silently do nothing. The placeholder scene now normalises each mesh's bounding sphere into that
+  range. **M5's real scene has to respect the same bound.**
+- Screenshot eyeballing could not settle whether shadows were live — the shaded region is dim either way. What
+  settled it was an A/B: render with the key light's `shadow_map_size` zeroed, diff against the normal render, and
+  compare that to a same-build noise floor measured from two identical runs. Before normalising: 0.04% of pixels
+  differed against a 0.03% floor, i.e. nothing. After: 3.87%, in one coherent region on the light-occluded side of
+  the helmet. Two identical runs differ by ~0.03% of pixels, so any single-image comparison needs that margin.
+- The helmet looked like it was sampling the wrong map when drawn small. It was not: the DDS files carry a single
+  mip, so a 2048² texture minified to ~40px point-samples individual texels. Correct at size.
 
 ## Context
 

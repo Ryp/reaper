@@ -168,13 +168,25 @@ pub fn createPlaceholderScene(
 
     // ---- Nodes ----
     //
-    // The camera frames the .obj, so the helmet is scaled up beside it rather
-    // than left as a sub-pixel speck. M5 replaces all of this with the real
-    // player node hierarchy.
-    const obj_bounds = computeBounds(obj_mesh.positions.items);
-    const obj_radius = @max(obj_bounds.radius, 1e-3);
+    // Both meshes are normalised into the world scale the engine assumes rather
+    // than placed at their authored size. `default_light_projection_matrix` is
+    // a hardcoded 0.1..100 frustum, so a scene the size of ship.obj (~1500
+    // units across, centred 151 units up) falls entirely outside every shadow
+    // map. The game scene is authored small enough for it; the placeholder has
+    // to be normalised to match. M5 replaces all of this with the real player
+    // node hierarchy.
+    const helmet_radius = 1.0;
+    const obj_radius = 3.0;
 
-    const obj_node = try graph.createSceneNode(linalg.Mat4x3.identity, null);
+    // The helmet sits at the origin and the .obj well behind it, so the key
+    // light's shadow falls from one onto the other.
+    const helmet_center = linalg.Vec3{ 0, 0, 0 };
+    const obj_center = linalg.Vec3{ 0, 0, -obj_radius * 2.0 };
+
+    const obj_node = try graph.createSceneNode(
+        normalizeTransform(computeBounds(obj_mesh.positions.items), obj_center, obj_radius),
+        null,
+    );
 
     try graph.scene_meshes.append(allocator, .{
         .scene_node = obj_node,
@@ -182,13 +194,10 @@ pub fn createPlaceholderScene(
         .material_handle = default_material,
     });
 
-    const helmet_bounds = computeBounds(gltf_mesh.positions.items);
-    const helmet_scale = obj_radius * 0.25 / @max(helmet_bounds.radius, 1e-3);
-
-    const helmet_node = try graph.createSceneNode(linalg.mat4x3FromMat4(linalg.mulMat4(
-        linalg.translate(obj_bounds.center + linalg.Vec3{ obj_radius * 0.8, 0, obj_radius * 0.7 }),
-        linalg.scale(@splat(helmet_scale)),
-    )), null);
+    const helmet_node = try graph.createSceneNode(
+        normalizeTransform(computeBounds(gltf_mesh.positions.items), helmet_center, helmet_radius),
+        null,
+    );
 
     try graph.scene_meshes.append(allocator, .{
         .scene_node = helmet_node,
@@ -198,31 +207,27 @@ pub fn createPlaceholderScene(
 
     // ---- Camera ----
     //
-    // Pull back far enough that the bounding sphere fits the vertical FOV, with
-    // some margin, and look slightly down at the centre.
-    const distance = obj_radius * 2.5;
-    const eye = obj_bounds.center + linalg.Vec3{ 0, obj_radius * 0.35, distance };
+    // Framed on the helmet, from far enough out that its bounding sphere fits
+    // the vertical FOV with some margin.
+    const distance = helmet_radius * 3.0;
+    const eye = helmet_center + linalg.Vec3{ 0, helmet_radius * 0.3, distance };
 
     const camera_node = try graph.createSceneNode(
         linalg.mat4x3FromMat4(linalg.inverseMat4(
-            linalg.lookAtRh(eye, obj_bounds.center, .{ 0, 1, 0 }),
+            linalg.lookAtRh(eye, helmet_center, .{ 0, 1, 0 }),
         )),
         null,
     );
     graph.camera_node = camera_node;
 
-    log.info("mesh bounds: centre ({d:.2}, {d:.2}, {d:.2}) radius {d:.2}", .{
-        obj_bounds.center[0], obj_bounds.center[1], obj_bounds.center[2], obj_radius,
-    });
-
     // ---- Lights ----
     //
-    // Placed relative to the bounds so they actually reach the geometry. The
-    // three hardcoded game lights are M5.
-    const light_offsets = [_]linalg.Vec3{
-        .{ 1, 1, 1 },
-        .{ -1, 0.5, 0.8 },
-        .{ 0, -0.8, 1.2 },
+    // The key light sits in front of the helmet so its shadow falls back onto
+    // the .obj behind. The three hardcoded game lights are M5.
+    const light_positions = [_]linalg.Vec3{
+        .{ 1.2, 1.6, 2.4 },
+        .{ -2.4, 0.8, 1.2 },
+        .{ 0.4, -1.8, 2.2 },
     };
 
     const light_colors = [_]linalg.Vec3{
@@ -231,16 +236,22 @@ pub fn createPlaceholderScene(
         .{ 1.0, 0.8, 0.5 },
     };
 
-    for (light_offsets, light_colors) |offset, color| {
+    for (light_positions, light_colors, 0..) |position, color, i| {
+        // A shadow-casting light needs its whole view matrix, not just a
+        // position: the shadow pass renders through it.
         const light_node = try graph.createSceneNode(
-            linalg.mat4x3FromMat4(linalg.translate(obj_bounds.center + offset * @as(linalg.Vec3, @splat(obj_radius)))),
+            linalg.mat4x3FromMat4(linalg.inverseMat4(linalg.lookAtRh(position, helmet_center, .{ 0, 1, 0 }))),
             null,
         );
 
         try graph.scene_lights.append(allocator, .{
             .color = color,
-            .intensity = obj_radius * obj_radius,
-            .radius = obj_radius * 8.0,
+            .intensity = 6.0,
+            .radius = 20.0,
+            // Only the key light casts. A shadow map per light would need one
+            // culling pass each, and the culling output only has room for
+            // max_meshlet_culling_pass_count of them including the main view.
+            .shadow_map_size = if (i == 0) .{ 1024, 1024 } else .{ 0, 0 },
             .scene_node = light_node,
         });
     }
@@ -249,10 +260,21 @@ pub fn createPlaceholderScene(
         .graph = graph,
         .mesh_allocs = mesh_allocs,
         .camera_node = camera_node,
-        .near_plane = @max(obj_radius * 0.01, 1e-3),
-        .far_plane = distance + obj_radius * 4.0,
+        .near_plane = 0.1,
+        .far_plane = 100.0,
         .allocator = allocator,
     };
+}
+
+/// Maps a mesh's own bounding sphere onto `target_center` / `target_radius`, so
+/// assets authored at wildly different scales all land in the same world.
+fn normalizeTransform(bounds: Bounds, target_center: linalg.Vec3, target_radius: f32) linalg.Mat4x3 {
+    const factor = target_radius / @max(bounds.radius, 1e-6);
+
+    return linalg.mat4x3FromMat4(linalg.mulMat4(
+        linalg.mulMat4(linalg.translate(target_center), linalg.scale(@splat(factor))),
+        linalg.translate(-bounds.center),
+    ));
 }
 
 const Bounds = struct { center: linalg.Vec3, radius: f32 };

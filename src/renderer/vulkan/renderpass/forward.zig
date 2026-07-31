@@ -5,8 +5,8 @@
 // set 1 is the material texture array, which is partially bound because the
 // texture count is only known at runtime.
 //
-// The shadow map array and the material textures are M4b; until then the
-// corresponding descriptor slots are simply left unwritten, which is what the
+// The shadow map array and the material texture array are both sized for the
+// maximum and only filled as far as the scene goes, which is what the
 // PARTIALLY_BOUND flag on those bindings is for.
 
 const std = @import("std");
@@ -250,7 +250,7 @@ pub const ForwardFrameGraphRecord = struct {
     pass_handle: fg.RenderPassHandle,
     scene_hdr: fg.ResourceUsageHandle,
     depth: fg.ResourceUsageHandle,
-    /// Empty until ShadowMap lands in M4b.
+    /// One per shadow-casting light, in `prepared.shadow_passes` order.
     shadow_maps: []const fg.ResourceUsageHandle,
     meshlet_counters: fg.ResourceUsageHandle,
     meshlet_indirect_draw_commands: fg.ResourceUsageHandle,
@@ -420,11 +420,26 @@ pub fn updateDescriptorSets(
     );
     write_helper.appendSampler(set, SetZero.shadow_map_sampler, sampler_resources.shadow_map_sampler);
 
-    // The shadow map ARRAY is partially bound, so leaving it unwritten is
-    // legal. The samplers next to it are not: only the last binding of each set
-    // carries PARTIALLY_BOUND, so an unwritten sampler is a validation error
-    // even when nothing samples through it.
-    std.debug.assert(record.shadow_maps.len == 0);
+    // The shadow map ARRAY is partially bound, so a scene with no casting light
+    // leaves it unwritten. The samplers next to it are not: only the last
+    // binding of each set carries PARTIALLY_BOUND, so an unwritten sampler is a
+    // validation error even when nothing samples through it.
+    if (record.shadow_maps.len > 0) {
+        var views_buffer: [hlsl_mesh_instance.ShadowMapMaxCount]vk.ImageView = undefined;
+        const count = @min(record.shadow_maps.len, views_buffer.len);
+
+        for (views_buffer[0..count], record.shadow_maps[0..count]) |*view, usage_handle| {
+            view.* = frame_graph_resources.getTexture(framegraph, usage_handle).default_view_handle;
+        }
+
+        write_helper.appendTextureArray(
+            set,
+            SetZero.shadow_map_array,
+            .sampled_image,
+            views_buffer[0..count],
+            .read_only_optimal,
+        );
+    }
 
     write_helper.appendSampler(
         resources.material_descriptor_set,

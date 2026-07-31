@@ -12,6 +12,7 @@ const debug_gradient = @import("renderpass/debug_gradient.zig");
 const frame_sync = @import("frame_sync.zig");
 const forward = @import("renderpass/forward.zig");
 const lighting = @import("renderpass/lighting.zig");
+const shadow_map = @import("renderpass/shadow_map.zig");
 const meshlet_culling = @import("renderpass/meshlet_culling.zig");
 const swapchain_pass = @import("renderpass/swapchain_pass.zig");
 const tone_mapping = @import("renderpass/tone_mapping.zig");
@@ -52,6 +53,7 @@ pub const BackendResources = struct {
     debug_gradient_resources: debug_gradient.Resources,
     meshlet_culling_resources: meshlet_culling.MeshletCullingResources,
     forward_pass_resources: forward.ForwardPassResources,
+    shadow_map_resources: shadow_map.ShadowMapResources,
     lighting_resources: lighting.LightingPassResources,
     swapchain_pass_resources: swapchain_pass.SwapchainPassResources,
     tone_map_pass_resources: tone_mapping.ToneMapPassResources,
@@ -139,6 +141,14 @@ pub const BackendResources = struct {
         );
         errdefer forward_pass_resources.deinit(vkd, device, params.vma_instance);
 
+        var shadow_map_resources = try shadow_map.ShadowMapResources.init(
+            vkd,
+            device,
+            descriptor_pool,
+            &pipeline_factory,
+        );
+        errdefer shadow_map_resources.deinit(vkd, device);
+
         const swapchain_pass_resources = try swapchain_pass.SwapchainPassResources.init(
             vkd,
             device,
@@ -166,6 +176,7 @@ pub const BackendResources = struct {
             .debug_gradient_resources = debug_gradient_resources,
             .meshlet_culling_resources = meshlet_culling_resources,
             .forward_pass_resources = forward_pass_resources,
+            .shadow_map_resources = shadow_map_resources,
             .lighting_resources = .{},
             .swapchain_pass_resources = swapchain_pass_resources,
             .tone_map_pass_resources = tone_map_pass_resources,
@@ -178,6 +189,7 @@ pub const BackendResources = struct {
 
         self.tone_map_pass_resources.deinit(vkd, device);
         self.swapchain_pass_resources.deinit(vkd, device);
+        self.shadow_map_resources.deinit(vkd, device);
         self.forward_pass_resources.deinit(vkd, device, vma_instance);
         self.meshlet_culling_resources.deinit(vkd, device, vma_instance);
         self.debug_gradient_resources.deinit(vkd, device);

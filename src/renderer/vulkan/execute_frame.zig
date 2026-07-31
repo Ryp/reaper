@@ -16,6 +16,7 @@ const fg = @import("../graph/frame_graph.zig");
 const forward = @import("renderpass/forward.zig");
 const frame_graph_pass = @import("renderpass/frame_graph_pass.zig");
 const lighting = @import("renderpass/lighting.zig");
+const shadow_map = @import("renderpass/shadow_map.zig");
 const material_resources_module = @import("material_resources.zig");
 const meshlet_culling = @import("renderpass/meshlet_culling.zig");
 const prepare_buckets = @import("../prepare_buckets.zig");
@@ -203,11 +204,18 @@ pub fn executeFrame(
     const meshlet_record = try meshlet_culling.createFrameGraphRecord(&builder);
     const depth_record = try depth_buffer.createFrameGraphRecord(&builder, render_extent);
 
+    const shadow_record = try shadow_map.createFrameGraphRecord(
+        &builder,
+        frame_allocator,
+        meshlet_record,
+        &prepared,
+    );
+
     const forward_record = try forward.createFrameGraphRecord(
         &builder,
         frame_allocator,
         meshlet_record,
-        &.{}, // shadow maps arrive in M4b
+        shadow_record.shadow_maps,
         depth_record.depth,
         render_extent,
     );
@@ -254,6 +262,14 @@ pub fn executeFrame(
             &prepared,
             &resources.meshlet_culling_resources,
             &resources.mesh_cache,
+        );
+
+        shadow_map.updateDescriptorSets(
+            &write_helper,
+            &resources.frame_storage_allocator,
+            &prepared,
+            &resources.shadow_map_resources,
+            resources.mesh_cache.vertex_buffer_position.handle,
         );
 
         try forward.updateDescriptorSets(
@@ -366,6 +382,16 @@ pub fn executeFrame(
         frame_graph_helper,
         meshlet_record.debug,
         &resources.meshlet_culling_resources,
+    );
+
+    shadow_map.recordCommandBuffer(
+        vkd,
+        cmd_buffer,
+        frame_graph_helper,
+        &resources.pipeline_factory,
+        shadow_record,
+        &prepared,
+        &resources.shadow_map_resources,
     );
 
     forward.recordCommandBuffer(
