@@ -72,11 +72,17 @@ pub fn build(b: *std.Build) void {
 
     exe.root_module.addOptions("build_options", exe_options);
 
+    // vulkan-zig is pure Zig with no runtime dependency on a device, so the
+    // test artifact gets it too — the frame graph is typed in terms of Vulkan
+    // enums but is entirely testable on the CPU.
+    const vulkan_registry = b.dependency("vulkan_headers", .{});
+    const vulkan_module = b.dependency("vulkan_zig", .{
+        .registry = vulkan_registry.path("registry/vk.xml"),
+    }).module("vulkan-zig");
+
     if (enable_vulkan) {
-        const registry = b.dependency("vulkan_headers", .{});
-        const vulkan = b.dependency("vulkan_zig", .{
-            .registry = registry.path("registry/vk.xml"),
-        }).module("vulkan-zig");
+        const registry = vulkan_registry;
+        const vulkan = vulkan_module;
 
         exe.root_module.addImport("vulkan", vulkan);
 
@@ -177,6 +183,7 @@ pub fn build(b: *std.Build) void {
     });
 
     shaders.attachTo(tests);
+    tests.root_module.addImport("vulkan", vulkan_module);
 
     const tests_cmd = b.addRunArtifact(tests);
 
