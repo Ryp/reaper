@@ -582,7 +582,28 @@ C++ naming maps to namespaced fns: `create_forward_pass_record` → `forward.cre
 
 **Post-v1 — C++ removal (separate, user-triggered phase):** delete own C++ + CMake + cmake/, deregister submodules (glm, fmt, doctest, tinyobjloader, tinyddsloader, bullet3, crashpad/breakpad/depot_tools, inih, amd-rga, tracy, amd-vma, imgui; meshoptimizer/cgltf/lodepng after zon-tarball conversion at exact pinned commits; **keep `res/`**); full CI rewrite; itch.io linux deploy from `zig-out` (Windows channel pauses until a Windows milestone).
 
-**Post-v1 backlog (v2+):** GBufferPass port (dormant), Bullet physics, ALSA + GPU-audio readback, gamepad, Windows build via SDL3, DXC migration, native Wayland backend option, math-layer rework (user-flagged), imgui.ini persistence decisions.
+**Post-v1 backlog (v2+):** ~~GBufferPass port (dormant)~~ **done** — restored behind `--raster-gbuffer`, see
+below; ~~Bullet physics~~ **planned** — see `PHYSICS_PORT_PLAN.md`; ALSA + GPU-audio readback, gamepad,
+Windows build via SDL3, DXC migration, ~~native Wayland backend option~~ (SDL now prefers Wayland),
+math-layer rework (user-flagged), imgui.ini persistence decisions.
+
+### Post-v1 work done since the M8 signoff
+
+- **PNG screenshots** replace binary PPM. lodepng was already linked for texture loading; the encode goes to
+  memory so the write still goes through the caller's `std.Io`.
+- **The raster GBufferPass is restored** behind `--raster-gbuffer` / a Rendering checkbox, defaulting off.
+  It is not a missing piece of the frame: it and the visibility buffer's compute fill both end in the same
+  `encode_gbuffer` writing the same two `R32_UINT` targets for the same single consumer, so it *substitutes*
+  for the compute fill rather than coexisting with it. Verified by A/B — with the toggle on, the forward half
+  of the split screen is unchanged at the 0.01% noise floor and the deferred half differs by 0.93%, confined
+  to the ship's silhouette. That is the expected filtering difference: the raster path samples with hardware
+  derivatives, the compute path has no quad neighbours and computes them analytically. The pass takes a
+  private depth buffer rather than the visibility pass's, which the HZB and tiled lighting both read back.
+- **The C++ too-dark bug is fixed** in `Swapchain.cpp`, matching the Zig. Both builds now apply the sRGB OETF
+  exactly once on a Wayland surface.
+- **Physics port planned** in `PHYSICS_PORT_PLAN.md`. Headline: do not link Bullet. The sim is a hand-rolled
+  arcade vehicle controller — Bullet's own gravity is structurally cancelled by the pre-tick `clearForces()`,
+  there is no `btRaycastVehicle`, and everything except box-vs-trimesh contacts is 3–60 lines each.
 
 ## During coexistence
 
