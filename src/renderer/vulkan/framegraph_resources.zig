@@ -47,12 +47,10 @@ pub const FrameGraphResources = struct {
     default_texture_views: std.ArrayList(vk.ImageView) = .empty,
     additional_texture_views: std.ArrayList(vk.ImageView) = .empty,
 
-    // NOTE: C++ keeps a second copy of the texture arrays and swaps them at the
-    // top of allocate(). Because the destroy pass runs *before* the swap and
-    // only touches the non-_b set, the _b arrays never actually hold live
-    // objects — they only carry vector capacity across frames. They are left
-    // out here; reinstate them if this ever becomes a real deferred-destroy for
-    // frames still in flight.
+    // NOTE: C++ keeps a second copy of the texture arrays purely so they can be
+    // swapped at the top of allocate(). The destroy pass runs *before* that
+    // swap and only touches the non-_b set, so the swap moves empty arrays
+    // around and achieves nothing else. Left out here for that reason.
 
     allocator: std.mem.Allocator,
 

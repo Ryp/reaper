@@ -138,9 +138,9 @@ Deviations, both fixing latent C++ bugs rather than porting them:
 * Image views are only created for textures whose usage has a view-capable bit. C++ creates them
   unconditionally, which works there only because every texture it declares happens to be sampled or storage; a
   transfer-only texture makes `vkCreateImageView` fail outright.
-* The `_b` copies of the texture arrays in FrameGraphResources are left out. The destroy pass runs *before* the
-  swap and only touches the non-`_b` set, so `_b` never holds live objects — it only carries vector capacity
-  across frames. Reinstate it if it ever becomes a real deferred-destroy for frames still in flight.
+* The `_b` copies of the texture arrays in FrameGraphResources are left out. They exist only to be swappable
+  (confirmed by the author), and since the destroy pass runs *before* the swap and only touches the non-`_b`
+  set, the swap moves empty arrays around and achieves nothing else.
 
 One shader was added, `debug_gradient.comp.hlsl`, in a separate `extra_shader_sources` list so `shader_sources`
 stays a verbatim copy of `REAPER_SHADER_SRCS` and CMake is untouched. It uses the engine's own
