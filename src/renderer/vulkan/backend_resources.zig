@@ -13,6 +13,7 @@ const debug_gradient = @import("renderpass/debug_gradient.zig");
 const exposure = @import("renderpass/exposure.zig");
 const frame_sync = @import("frame_sync.zig");
 const forward = @import("renderpass/forward.zig");
+const gbuffer = @import("renderpass/gbuffer.zig");
 const gui = @import("renderpass/gui.zig");
 const histogram = @import("renderpass/histogram.zig");
 const lighting = @import("renderpass/lighting.zig");
@@ -63,6 +64,7 @@ pub const BackendResources = struct {
     debug_gradient_resources: debug_gradient.Resources,
     meshlet_culling_resources: meshlet_culling.MeshletCullingResources,
     forward_pass_resources: forward.ForwardPassResources,
+    gbuffer_pass_resources: gbuffer.GBufferPassResources,
     shadow_map_resources: shadow_map.ShadowMapResources,
     vis_buffer_pass_resources: vis_buffer.VisibilityBufferPassResources,
     hzb_pass_resources: hzb.HZBPassResources,
@@ -158,6 +160,15 @@ pub const BackendResources = struct {
             &pipeline_factory,
         );
         errdefer forward_pass_resources.deinit(vkd, device, params.vma_instance);
+
+        var gbuffer_pass_resources = try gbuffer.GBufferPassResources.init(
+            vkd,
+            device,
+            descriptor_pool,
+            params.vma_instance,
+            &pipeline_factory,
+        );
+        errdefer gbuffer_pass_resources.deinit(vkd, device, params.vma_instance);
 
         var shadow_map_resources = try shadow_map.ShadowMapResources.init(
             vkd,
@@ -255,6 +266,7 @@ pub const BackendResources = struct {
             .debug_gradient_resources = debug_gradient_resources,
             .meshlet_culling_resources = meshlet_culling_resources,
             .forward_pass_resources = forward_pass_resources,
+            .gbuffer_pass_resources = gbuffer_pass_resources,
             .shadow_map_resources = shadow_map_resources,
             .vis_buffer_pass_resources = vis_buffer_pass_resources,
             .hzb_pass_resources = hzb_pass_resources,
@@ -285,6 +297,7 @@ pub const BackendResources = struct {
         self.hzb_pass_resources.deinit(vkd, device);
         self.vis_buffer_pass_resources.deinit(vkd, device);
         self.shadow_map_resources.deinit(vkd, device);
+        self.gbuffer_pass_resources.deinit(vkd, device, vma_instance);
         self.forward_pass_resources.deinit(vkd, device, vma_instance);
         self.meshlet_culling_resources.deinit(vkd, device, vma_instance);
         self.debug_gradient_resources.deinit(vkd, device);

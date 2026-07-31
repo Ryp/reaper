@@ -51,6 +51,7 @@ pub fn main_with_allocator(allocator: std.mem.Allocator, init: std.process.Init)
         \\    --frame-count <u32>               Exit after presenting this many frames.
         \\    --screenshot <str>                Write the last presented frame to this PNG file.
         \\    --mesh <str>                      OBJ file to draw (placeholder scene until M5).
+        \\    --raster-gbuffer                  Rasterize the G-buffer instead of filling it from the vis-buffer.
     );
 
     // Initialize our diagnostics, which can be used for reporting useful errors.
@@ -121,6 +122,11 @@ pub fn main_with_allocator(allocator: std.mem.Allocator, init: std.process.Init)
         backend.vma_instance,
     );
     defer scene.deinit(allocator);
+
+    // Same switch as the Rendering window's checkbox; exposed on the command
+    // line so a screenshot gate can capture both producers without a human
+    // clicking anything.
+    backend.options.use_raster_gbuffer = res.args.@"raster-gbuffer" != 0;
 
     try game_loop.run(allocator, init.io, &window, &backend, &resources, &scene, .{
         .frame_count = res.args.@"frame-count",

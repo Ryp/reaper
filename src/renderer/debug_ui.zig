@@ -55,6 +55,7 @@ pub fn backendDebugUi(backend: *VulkanBackend) void {
         _ = imgui.checkbox("Freeze culling [BROKEN]", &backend.options.freeze_meshlet_culling); // FIXME
         _ = imgui.checkbox("Enable debug tile culling", &backend.options.enable_debug_tile_lighting);
         _ = imgui.checkbox("Enable MSAA-based visibility", &backend.options.enable_msaa_visibility);
+        _ = imgui.checkbox("Raster G-buffer (not vis-buffer fill)", &backend.options.use_raster_gbuffer);
 
         _ = imgui.sliderFloat("Tonemap min (nits)", &backend.present_info.tonemap_min_nits, 0.0001, 1.0);
         _ = imgui.sliderFloat("Tonemap max (nits)", &backend.present_info.tonemap_max_nits, 80.0, 2000.0);

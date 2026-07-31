@@ -15,6 +15,7 @@ const descriptor_set = @import("descriptor_set.zig");
 const exposure = @import("renderpass/exposure.zig");
 const fg = @import("../graph/frame_graph.zig");
 const forward = @import("renderpass/forward.zig");
+const gbuffer = @import("renderpass/gbuffer.zig");
 const frame_graph_pass = @import("renderpass/frame_graph_pass.zig");
 const gui = @import("renderpass/gui.zig");
 const imgui = @import("../imgui.zig");
@@ -296,6 +297,16 @@ pub fn executeFrame(
         support_shader_stores_to_depth,
     );
 
+    // Flipped by the "Raster G-buffer" checkbox. Read once: the declaration
+    // below and the record call further down have to agree, because the frame
+    // graph requires passes to be recorded in declaration order.
+    const use_raster_gbuffer = backend.options.use_raster_gbuffer;
+
+    const gbuffer_record: ?gbuffer.GBufferFrameGraphRecord = if (use_raster_gbuffer)
+        try gbuffer.createFrameGraphRecord(&builder, meshlet_record, vis_buffer_record, render_extent)
+    else
+        null;
+
     const hzb_record = try hzb.createFrameGraphRecord(
         &builder,
         frame_allocator,
@@ -314,6 +325,8 @@ pub fn executeFrame(
         &builder,
         frame_allocator,
         vis_buffer_record,
+        if (gbuffer_record) |record| record.gbuffer_rt0 else vis_buffer_record.fill_gbuffer.gbuffer_rt0,
+        if (gbuffer_record) |record| record.gbuffer_rt1 else vis_buffer_record.fill_gbuffer.gbuffer_rt1,
         shadow_record,
         light_raster_record,
     );
@@ -437,6 +450,22 @@ pub fn executeFrame(
             resources.lighting_resources,
             backend.vma_instance,
         );
+
+        if (gbuffer_record) |record| {
+            try gbuffer.updateDescriptorSets(
+                &write_helper,
+                &framegraph,
+                &resources.framegraph_resources,
+                record,
+                &resources.frame_storage_allocator,
+                &prepared,
+                &resources.gbuffer_pass_resources,
+                resources.sampler_resources,
+                &resources.mesh_cache,
+                &resources.material_resources,
+                backend.vma_instance,
+            );
+        }
 
         vis_buffer.updateDescriptorSets(
             &write_helper,
@@ -684,6 +713,18 @@ pub fn executeFrame(
         enable_msaa,
         support_shader_stores_to_depth,
     );
+
+    if (gbuffer_record) |record| {
+        gbuffer.recordCommandBuffer(
+            vkd,
+            cmd_buffer,
+            frame_graph_helper,
+            &resources.pipeline_factory,
+            record,
+            &prepared,
+            &resources.gbuffer_pass_resources,
+        );
+    }
 
     hzb.recordCommandBuffer(
         vkd,

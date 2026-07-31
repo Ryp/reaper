@@ -295,6 +295,12 @@ pub fn createFrameGraphRecord(
     builder: *Builder,
     allocator: std.mem.Allocator,
     vis_buffer_record: vis_buffer.VisBufferFrameGraphRecord,
+    /// Which producer's G-buffer to decode. Normally the visibility buffer's
+    /// compute fill, but the optional raster G-buffer pass writes the same two
+    /// textures and substitutes for it — hence a parameter rather than reaching
+    /// into vis_buffer_record directly.
+    gbuffer_rt0_source: fg.ResourceUsageHandle,
+    gbuffer_rt1_source: fg.ResourceUsageHandle,
     shadow: shadow_map.ShadowFrameGraphRecord,
     light_raster_record: tiled_raster.LightRasterFrameGraphRecord,
 ) !TiledLightingFrameGraphRecord {
@@ -319,8 +325,8 @@ pub fn createFrameGraphRecord(
         &.{},
     );
 
-    const gbuffer_rt0 = try builder.readTexture(pass_handle, vis_buffer_record.fill_gbuffer.gbuffer_rt0, compute_read, &.{});
-    const gbuffer_rt1 = try builder.readTexture(pass_handle, vis_buffer_record.fill_gbuffer.gbuffer_rt1, compute_read, &.{});
+    const gbuffer_rt0 = try builder.readTexture(pass_handle, gbuffer_rt0_source, compute_read, &.{});
+    const gbuffer_rt1 = try builder.readTexture(pass_handle, gbuffer_rt1_source, compute_read, &.{});
 
     const depth = try builder.readTexture(
         pass_handle,

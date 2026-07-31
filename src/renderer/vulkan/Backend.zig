@@ -45,6 +45,13 @@ pub const Options = struct {
     freeze_meshlet_culling: bool = false,
     enable_debug_tile_lighting: bool = true,
     enable_msaa_visibility: bool = false,
+
+    /// Rasterize the G-buffer directly instead of reconstructing it from the
+    /// visibility buffer with a compute shader. The two produce the same
+    /// encoding into the same targets, so this substitutes one producer for the
+    /// other; see renderpass/gbuffer.zig. Off by default — the C++ build has no
+    /// equivalent, so leaving it on would break every cross-build comparison.
+    use_raster_gbuffer: bool = false,
 };
 
 pub const VulkanBackend = struct {
