@@ -301,21 +301,41 @@ if(WIN32)
         ${CMAKE_CURRENT_SOURCE_DIR}/window/Win32Window.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/window/Win32Window.h)
 elseif(APPLE OR UNIX)
-    if(ON) # Prefer XCB
-        find_package(XCB COMPONENTS XKB REQUIRED)
-        target_link_libraries(${target} PUBLIC ${LIBXCB_LIBRARIES})
-        target_include_directories(${target} SYSTEM PUBLIC ${LIBXCB_INCLUDE_DIR})
-        target_sources(${target} PRIVATE
-            ${CMAKE_CURRENT_SOURCE_DIR}/window/XCBWindow.cpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/window/XCBWindow.h)
-    else()
-        find_package(X11 REQUIRED)
-        target_link_libraries(${target} PUBLIC ${X11_LIBRARIES})
-        target_include_directories(${target} SYSTEM PUBLIC ${X11_INCLUDE_DIR})
-        target_sources(${target} PRIVATE
-            ${CMAKE_CURRENT_SOURCE_DIR}/window/XLibWindow.cpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/window/XLibWindow.h)
-    endif()
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(WAYLAND_CLIENT REQUIRED wayland-client)
+    pkg_check_modules(XKBCOMMON REQUIRED xkbcommon)
+
+    find_program(WAYLAND_SCANNER_EXEC wayland-scanner REQUIRED)
+    pkg_get_variable(WAYLAND_PROTOCOLS_DIR wayland-protocols pkgdatadir)
+
+    set(XDG_SHELL_XML "${WAYLAND_PROTOCOLS_DIR}/stable/xdg-shell/xdg-shell.xml")
+    set(XDG_SHELL_HEADER "${CMAKE_CURRENT_BINARY_DIR}/xdg-shell-client-protocol.h")
+    set(XDG_SHELL_SOURCE "${CMAKE_CURRENT_BINARY_DIR}/xdg-shell-protocol.c")
+
+    add_custom_command(
+        OUTPUT ${XDG_SHELL_HEADER}
+        COMMAND ${WAYLAND_SCANNER_EXEC} client-header ${XDG_SHELL_XML} ${XDG_SHELL_HEADER}
+        DEPENDS ${XDG_SHELL_XML}
+        COMMENT "Generating xdg-shell client header"
+        VERBATIM)
+
+    add_custom_command(
+        OUTPUT ${XDG_SHELL_SOURCE}
+        COMMAND ${WAYLAND_SCANNER_EXEC} private-code ${XDG_SHELL_XML} ${XDG_SHELL_SOURCE}
+        DEPENDS ${XDG_SHELL_XML}
+        COMMENT "Generating xdg-shell protocol code"
+        VERBATIM)
+
+    target_sources(${target} PRIVATE
+        ${XDG_SHELL_HEADER}
+        ${XDG_SHELL_SOURCE}
+        ${CMAKE_CURRENT_SOURCE_DIR}/window/WaylandWindow.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/window/WaylandWindow.h)
+
+    target_link_libraries(${target} PUBLIC ${WAYLAND_CLIENT_LIBRARIES} ${XKBCOMMON_LIBRARIES})
+    target_include_directories(${target} SYSTEM PUBLIC ${WAYLAND_CLIENT_INCLUDE_DIRS} ${XKBCOMMON_INCLUDE_DIRS})
+    # Generated protocol headers live in the binary dir
+    target_include_directories(${target} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 else()
     # We could allow headless instances without problems though
     message(FATAL_ERROR "Could not detect platform!")

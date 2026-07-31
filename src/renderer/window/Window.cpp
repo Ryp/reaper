@@ -9,6 +9,8 @@
 
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
 #    include "Win32Window.h"
+#elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
+#    include "WaylandWindow.h"
 #elif defined(VK_USE_PLATFORM_XCB_KHR)
 #    include "XCBWindow.h"
 #elif defined(VK_USE_PLATFORM_XLIB_KHR)
@@ -21,6 +23,8 @@ IWindow* createWindow(const WindowCreationDescriptor& creationInfo)
 {
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
     return new Win32Window(creationInfo);
+#elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
+    return new WaylandWindow(creationInfo);
 #elif defined(VK_USE_PLATFORM_XCB_KHR)
     return new XCBWindow(creationInfo);
 #elif defined(VK_USE_PLATFORM_XLIB_KHR)

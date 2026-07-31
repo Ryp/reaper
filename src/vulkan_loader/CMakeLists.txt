@@ -13,11 +13,12 @@ add_library(${target} ${REAPER_LINKAGE_TYPE})
 if(WIN32)
     target_compile_definitions(${target} PUBLIC VK_USE_PLATFORM_WIN32_KHR)
 elseif(APPLE OR UNIX)
-    if(ON) # Prefer XCB
-        target_compile_definitions(${target} PUBLIC VK_USE_PLATFORM_XCB_KHR)
-    else()
-        target_compile_definitions(${target} PUBLIC VK_USE_PLATFORM_XLIB_KHR)
-    endif()
+    target_compile_definitions(${target} PUBLIC VK_USE_PLATFORM_WAYLAND_KHR)
+    # if(ON) # Prefer XCB
+    #     target_compile_definitions(${target} PUBLIC VK_USE_PLATFORM_XCB_KHR)
+    # else()
+    #     target_compile_definitions(${target} PUBLIC VK_USE_PLATFORM_XLIB_KHR)
+    # endif()
 else()
     # We could allow headless instances without problems though
     message(FATAL_ERROR "Could not detect platform!")

@@ -11,6 +11,8 @@
 
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
 #    include "renderer/window/Win32Window.h"
+#elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
+#    include "renderer/window/WaylandWindow.h"
 #elif defined(VK_USE_PLATFORM_XCB_KHR)
 #    include "renderer/window/XCBWindow.h"
 #elif defined(VK_USE_PLATFORM_XLIB_KHR)
@@ -36,6 +38,17 @@ void vulkan_create_presentation_surface(VkInstance instance, VkSurfaceKHR& prese
                                                        .hwnd = win32Window->m_handle};
 
     AssertVk(vkCreateWin32SurfaceKHR(instance, &surface_create_info, nullptr, &presentation_surface));
+#elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
+    WaylandWindow* waylandWindow = dynamic_cast<WaylandWindow*>(window);
+    Assert(waylandWindow != nullptr);
+
+    VkWaylandSurfaceCreateInfoKHR surface_create_info = {.sType = VK_STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR,
+                                                         .pNext = nullptr,
+                                                         .flags = VK_FLAGS_NONE,
+                                                         .display = waylandWindow->m_display,
+                                                         .surface = waylandWindow->m_surface};
+
+    AssertVk(vkCreateWaylandSurfaceKHR(instance, &surface_create_info, nullptr, &presentation_surface));
 #elif defined(VK_USE_PLATFORM_XCB_KHR)
     XCBWindow* xcbWindow = dynamic_cast<XCBWindow*>(window);
     Assert(xcbWindow != nullptr);
@@ -69,6 +82,11 @@ bool vulkan_queue_family_has_presentation_support(VkPhysicalDevice device, uint3
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
     static_cast<void>(window);
     return vkGetPhysicalDeviceWin32PresentationSupportKHR(device, queueFamilyIndex) == VK_TRUE;
+#elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
+    WaylandWindow* waylandWindow = dynamic_cast<WaylandWindow*>(window);
+    Assert(waylandWindow != nullptr);
+    return vkGetPhysicalDeviceWaylandPresentationSupportKHR(device, queueFamilyIndex, waylandWindow->m_display)
+           == VK_TRUE;
 #elif defined(VK_USE_PLATFORM_XCB_KHR)
     XCBWindow* xcbWindow = dynamic_cast<XCBWindow*>(window);
     Assert(xcbWindow != nullptr);
