@@ -210,10 +210,18 @@ Impact: none worth acting on. Meshlet membership, counts, offsets and compacted 
 only the culling sphere centre moves by ~0.01% of its radius, and the radius itself matches. Do not expect
 bit-identical bounds between the two builds.
 
-**Remaining for M4a:** PrepareBuckets(276), the MeshletCulling passes(770), ForwardPass(411) with a constant
-default material, SamplerResources, the ToneMapping LUT bake(138), and SwapchainPass(317) as the real composite.
-The M4a gate does not close on its own — the plan pairs it with M4b for "lit, shadowed, textured helmet on
-screen".
+**PrepareBuckets + scene graph done.** `src/renderer/prepare_buckets.zig`. Scene nodes come from an arena rather
+than individual `new`/`delete` — the C++ has a FIXME asking for a pool allocator and an arena is that pool.
+`prepareScene` takes the LOD-0 `MeshAlloc` array directly rather than the whole `MeshCache`, since that is all it
+reads, which keeps it free of any Vulkan dependency and testable. The light projection stays duplicated from
+Camera exactly as it is in C++: the two copies feed different values into the FOV slot, so merging them would
+move the shadow frusta.
+
+`zig build test` is at 44 tests.
+
+**Remaining for M4a:** the MeshletCulling passes(770), ForwardPass(411) with a constant default material,
+SamplerResources, the ToneMapping LUT bake(138), and SwapchainPass(317) as the real composite. The M4a gate does
+not close on its own — the plan pairs it with M4b for "lit, shadowed, textured helmet on screen".
 
 ## Context
 
