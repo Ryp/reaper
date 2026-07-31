@@ -9,14 +9,16 @@
 // and the transition back to PRESENT_SRC, because the image may only be
 // touched while the frame still owns it.
 //
-// Output is binary PPM (P6) because it needs no encoder. PNG via lodepng can
-// replace it once that translation unit is compiled in.
+// Output is PNG, encoded with the same lodepng the texture loader uses. The
+// encode goes to memory rather than through lodepng's own file I/O so the
+// write still goes through the caller's std.Io.
 
 const std = @import("std");
 const vk = @import("vulkan");
 const log = std.log.scoped(.vulkan);
 
 const barrier = @import("barrier.zig");
+const lodepng = @import("lodepng.zig").c;
 
 pub const access_copy = barrier.GPUTextureAccess{
     .stage_mask = .{ .copy_bit = true },
@@ -205,7 +207,7 @@ pub fn write(
 
     const pixels: [*]const u8 = @ptrCast(mapped.?);
 
-    try writePpm(
+    try writePng(
         allocator,
         io,
         path,
@@ -231,8 +233,8 @@ fn findMemoryType(
     return null;
 }
 
-/// Writes 8-bit RGB in binary PPM, whatever the swapchain's own texel format.
-fn writePpm(
+/// Converts the swapchain's texels to 8-bit RGB and writes them out as PNG.
+fn writePng(
     allocator: std.mem.Allocator,
     io: std.Io,
     path: []const u8,
@@ -240,21 +242,53 @@ fn writePpm(
     extent: vk.Extent2D,
     format: vk.Format,
 ) !void {
-    const layout = PixelLayout.get(format) orelse return error.UnsupportedScreenshotFormat;
-    const stride = layout.bytes_per_pixel;
+    const rgb = try decodeToRgb(allocator, pixels, extent, format);
+    defer allocator.free(rgb);
 
-    var out: std.ArrayList(u8) = .empty;
-    defer out.deinit(allocator);
+    // lodepng allocates the encoded buffer with its own allocator, so it has to
+    // come back through free() rather than the Zig allocator above.
+    var encoded_ptr: [*c]u8 = null;
+    var encoded_len: usize = 0;
 
-    try out.print(allocator, "P6\n{d} {d}\n255\n", .{ extent.width, extent.height });
-    try out.ensureUnusedCapacity(allocator, pixels.len / stride * 3);
+    const err = lodepng.lodepng_encode24(
+        &encoded_ptr,
+        &encoded_len,
+        rgb.ptr,
+        extent.width,
+        extent.height,
+    );
+    defer std.c.free(encoded_ptr);
 
-    var i: usize = 0;
-    while (i + stride <= pixels.len) : (i += stride) {
-        out.appendSliceAssumeCapacity(&layout.decode(pixels[i..][0..stride]));
+    if (err != 0) {
+        log.err("lodepng error {} encoding '{s}': {s}", .{ err, path, lodepng.lodepng_error_text(err) });
+        return error.PngEncodeFailed;
     }
 
-    try std.Io.Dir.cwd().writeFile(io, .{ .sub_path = path, .data = out.items });
+    try std.Io.Dir.cwd().writeFile(io, .{ .sub_path = path, .data = encoded_ptr[0..encoded_len] });
+}
+
+/// Unpacks whatever the swapchain format is into tightly packed 8-bit RGB,
+/// which is what both the PNG encoder and the layout tests work in.
+fn decodeToRgb(
+    allocator: std.mem.Allocator,
+    pixels: []const u8,
+    extent: vk.Extent2D,
+    format: vk.Format,
+) ![]u8 {
+    const layout = PixelLayout.get(format) orelse return error.UnsupportedScreenshotFormat;
+    const stride = layout.bytes_per_pixel;
+    const texel_count = @as(usize, extent.width) * @as(usize, extent.height);
+
+    if (pixels.len < texel_count * stride) return error.ScreenshotBufferTooSmall;
+
+    const rgb = try allocator.alloc(u8, texel_count * 3);
+    errdefer allocator.free(rgb);
+
+    for (0..texel_count) |i| {
+        rgb[i * 3 ..][0..3].* = layout.decode(pixels[i * stride ..][0..stride]);
+    }
+
+    return rgb;
 }
 
 // --------------------------------------------------------------------------
@@ -308,6 +342,26 @@ test "full scale stays full scale through every decoder" {
     var white_half: [8]u8 = undefined;
     for (0..4) |i| std.mem.writeInt(u16, white_half[i * 2 ..][0..2], @bitCast(@as(f16, 1.0)), .little);
     try testing.expectEqual([3]u8{ 255, 255, 255 }, decodeRgba16Sfloat(&white_half));
+}
+
+test "decodeToRgb packs tightly and drops the alpha channel" {
+    // Two BGRA texels; the output must be 6 bytes, not 8, or the PNG encoder
+    // reads past the end of the row and the image shears.
+    const texels = [_]u8{ 0x33, 0x22, 0x11, 0xFF, 0x66, 0x55, 0x44, 0xFF };
+
+    const rgb = try decodeToRgb(testing.allocator, &texels, .{ .width = 2, .height = 1 }, .b8g8r8a8_unorm);
+    defer testing.allocator.free(rgb);
+
+    try testing.expectEqualSlices(u8, &.{ 0x11, 0x22, 0x33, 0x44, 0x55, 0x66 }, rgb);
+}
+
+test "decodeToRgb rejects a buffer that cannot hold the extent" {
+    // The readback buffer is sized from the swapchain format, so a mismatch
+    // here means the two disagree — worth an error rather than a garbage image.
+    try testing.expectError(
+        error.ScreenshotBufferTooSmall,
+        decodeToRgb(testing.allocator, &[_]u8{0} ** 4, .{ .width = 2, .height = 1 }, .b8g8r8a8_unorm),
+    );
 }
 
 test "sfloat clamps out-of-range HDR values instead of wrapping" {

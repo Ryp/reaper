@@ -49,7 +49,7 @@ pub fn main_with_allocator(allocator: std.mem.Allocator, init: std.process.Init)
         \\    --height <u32>                    Window height in pixels.
         \\    --fullscreen                      Start in fullscreen mode.
         \\    --frame-count <u32>               Exit after presenting this many frames.
-        \\    --screenshot <str>                Write the last presented frame to this PPM file.
+        \\    --screenshot <str>                Write the last presented frame to this PNG file.
         \\    --mesh <str>                      OBJ file to draw (placeholder scene until M5).
     );
 

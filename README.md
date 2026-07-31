@@ -44,5 +44,5 @@ zig build run -- --width 1280 --height 720
 ```
 
 `--frame-count N` exits after N presented frames and `--screenshot <path>`
-writes the last one out as a binary PPM, which is what makes the port's
-milestone gates checkable without a human at the window.
+writes the last one out as a PNG, which is what makes the port's milestone
+gates checkable without a human at the window.
