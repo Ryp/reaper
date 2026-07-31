@@ -9,6 +9,7 @@ const std = @import("std");
 const log = std.log.scoped(.game);
 
 const execute_frame = @import("renderer/vulkan/execute_frame.zig");
+const scene_module = @import("renderer/scene.zig");
 const screenshot = @import("renderer/vulkan/screenshot.zig");
 const window_module = @import("renderer/window/window.zig");
 const BackendResources = @import("renderer/vulkan/backend_resources.zig").BackendResources;
@@ -34,6 +35,7 @@ pub fn run(
     window: *Window,
     backend: *VulkanBackend,
     resources: *BackendResources,
+    scene: *const scene_module.Scene,
     options: Options,
 ) !void {
     if (options.screenshot_path != null and options.frame_count == null) {
@@ -112,6 +114,7 @@ pub fn run(
         const presented_image_index = execute_frame.executeFrame(
             backend,
             resources,
+            scene,
             if (is_capture_frame) &readback.? else null,
         ) catch |err| blk: {
             log.err("frame execution failed: {}", .{err});

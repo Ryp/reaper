@@ -418,9 +418,17 @@ pub fn updateDescriptorSets(
     );
     write_helper.appendSampler(set, SetZero.shadow_map_sampler, sampler_resources.shadow_map_sampler);
 
-    // The shadow map array and the material set are written by M4b; leaving
-    // them unwritten is exactly what PARTIALLY_BOUND allows.
+    // The shadow map ARRAY is partially bound, so leaving it unwritten is
+    // legal. The samplers next to it are not: only the last binding of each set
+    // carries PARTIALLY_BOUND, so an unwritten sampler is a validation error
+    // even when nothing samples through it.
     std.debug.assert(record.shadow_maps.len == 0);
+
+    write_helper.appendSampler(
+        resources.material_descriptor_set,
+        SetOne.diffuse_map_sampler,
+        sampler_resources.diffuse_map_sampler,
+    );
 }
 
 // --------------------------------------------------------------------------

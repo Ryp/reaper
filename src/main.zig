@@ -8,6 +8,8 @@ const game_loop = @import("game_loop.zig");
 const window_module = @import("renderer/window/window.zig");
 const BackendResources = @import("renderer/vulkan/backend_resources.zig").BackendResources;
 
+const scene_module = @import("renderer/scene.zig");
+
 pub const VulkanBackend = @import("renderer/vulkan/Backend.zig").VulkanBackend;
 
 var debug_allocator: std.heap.DebugAllocator(.{}) = .init;
@@ -47,6 +49,7 @@ pub fn main_with_allocator(allocator: std.mem.Allocator, init: std.process.Init)
         \\    --fullscreen                      Start in fullscreen mode.
         \\    --frame-count <u32>               Exit after presenting this many frames.
         \\    --screenshot <str>                Write the last presented frame to this PPM file.
+        \\    --mesh <str>                      OBJ file to draw (placeholder scene until M5).
     );
 
     // Initialize our diagnostics, which can be used for reporting useful errors.
@@ -92,6 +95,7 @@ pub fn main_with_allocator(allocator: std.mem.Allocator, init: std.process.Init)
             .max_draw_indirect_count = backend.physical_device.properties.limits.max_draw_indirect_count,
             .min_storage_buffer_offset_alignment = backend.physical_device.properties.limits.min_storage_buffer_offset_alignment,
         },
+        backend.present_info.swapchain_format,
         allocator,
     );
     // Mirrors renderer_stop(): the GPU has to be done with the last frame
@@ -101,7 +105,16 @@ pub fn main_with_allocator(allocator: std.mem.Allocator, init: std.process.Init)
         resources.deinit(backend.vkd, backend.device, backend.vma_instance);
     }
 
-    try game_loop.run(allocator, init.io, &window, &backend, &resources, .{
+    var scene = try scene_module.createPlaceholderScene(
+        allocator,
+        init.io,
+        &resources.mesh_cache,
+        backend.vma_instance,
+        res.args.mesh orelse "res/model/ship.obj",
+    );
+    defer scene.deinit(allocator);
+
+    try game_loop.run(allocator, init.io, &window, &backend, &resources, &scene, .{
         .frame_count = res.args.@"frame-count",
         .screenshot_path = res.args.screenshot,
     });

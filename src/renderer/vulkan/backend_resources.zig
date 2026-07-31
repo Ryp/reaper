@@ -13,6 +13,7 @@ const frame_sync = @import("frame_sync.zig");
 const forward = @import("renderpass/forward.zig");
 const lighting = @import("renderpass/lighting.zig");
 const meshlet_culling = @import("renderpass/meshlet_culling.zig");
+const swapchain_pass = @import("renderpass/swapchain_pass.zig");
 const tone_mapping = @import("renderpass/tone_mapping.zig");
 const vma = @import("vma.zig").c;
 const FrameGraphResources = @import("framegraph_resources.zig").FrameGraphResources;
@@ -50,6 +51,7 @@ pub const BackendResources = struct {
     meshlet_culling_resources: meshlet_culling.MeshletCullingResources,
     forward_pass_resources: forward.ForwardPassResources,
     lighting_resources: lighting.LightingPassResources,
+    swapchain_pass_resources: swapchain_pass.SwapchainPassResources,
     tone_map_pass_resources: tone_mapping.ToneMapPassResources,
 
     /// Reset with .retain_capacity at the top of every frame; all
@@ -60,6 +62,7 @@ pub const BackendResources = struct {
         vkd: anytype,
         device: vk.Device,
         params: InitParams,
+        swapchain_format: @import("Swapchain.zig").SwapchainFormat,
         allocator: std.mem.Allocator,
     ) !BackendResources {
         const descriptor_pool = params.descriptor_pool;
@@ -131,6 +134,13 @@ pub const BackendResources = struct {
         );
         errdefer forward_pass_resources.deinit(vkd, device, params.vma_instance);
 
+        const swapchain_pass_resources = try swapchain_pass.SwapchainPassResources.init(
+            vkd,
+            device,
+            descriptor_pool,
+            swapchain_format,
+        );
+
         const tone_map_pass_resources = try tone_mapping.ToneMapPassResources.init(
             vkd,
             device,
@@ -151,6 +161,7 @@ pub const BackendResources = struct {
             .meshlet_culling_resources = meshlet_culling_resources,
             .forward_pass_resources = forward_pass_resources,
             .lighting_resources = .{},
+            .swapchain_pass_resources = swapchain_pass_resources,
             .tone_map_pass_resources = tone_map_pass_resources,
             .frame_arena = .init(allocator),
         };
@@ -160,6 +171,7 @@ pub const BackendResources = struct {
         self.frame_arena.deinit();
 
         self.tone_map_pass_resources.deinit(vkd, device);
+        self.swapchain_pass_resources.deinit(vkd, device);
         self.forward_pass_resources.deinit(vkd, device, vma_instance);
         self.meshlet_culling_resources.deinit(vkd, device, vma_instance);
         self.debug_gradient_resources.deinit(vkd, device);

@@ -396,7 +396,7 @@ pub fn createFrameGraphRecord(builder: *Builder) !CullMeshletsFrameGraphRecord {
             @sizeOf(u32),
             .{ .indirect_buffer = true, .transfer_src = true, .transfer_dst = true, .storage_buffer = true },
         ),
-        .{ .stage_mask = .{ .transfer_bit = true }, .access_mask = .{ .transfer_write_bit = true } },
+        .{ .stage_mask = .{ .all_transfer_bit = true }, .access_mask = .{ .transfer_write_bit = true } },
         &.{},
     );
 
@@ -525,7 +525,7 @@ pub fn createFrameGraphRecord(builder: *Builder) !CullMeshletsFrameGraphRecord {
     const debug_counters = try builder.readBuffer(
         debug_pass,
         cull_triangles_counters,
-        .{ .stage_mask = .{ .transfer_bit = true }, .access_mask = .{ .transfer_read_bit = true } },
+        .{ .stage_mask = .{ .all_transfer_bit = true }, .access_mask = .{ .transfer_read_bit = true } },
         &.{},
     );
 
@@ -997,7 +997,7 @@ pub fn recordDebugCommandBuffer(
     const buffer_barriers = [_]vk.BufferMemoryBarrier2{barrier_module.getBufferBarrierSameQueue(
         resources.counters_cpu_buffer.handle,
         gpu_buffer.defaultBufferView(resources.counters_cpu_properties),
-        .{ .stage_mask = .{ .transfer_bit = true }, .access_mask = .{ .transfer_write_bit = true } },
+        .{ .stage_mask = .{ .all_transfer_bit = true }, .access_mask = .{ .transfer_write_bit = true } },
         .{ .stage_mask = .{ .all_commands_bit = true }, .access_mask = .{} },
     )};
 
