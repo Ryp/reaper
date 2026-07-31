@@ -144,6 +144,11 @@ pub fn configureVulkanWmSwapchain(
     }
     _ = try vki.getPhysicalDeviceSurfaceFormats2KHR(physical_device, &surface_info2, &format_count, formats.ptr);
 
+    log.debug("swapchain supports {} formats", .{format_count});
+    for (formats[0..format_count]) |f| {
+        log.debug("- format = {t}, colorspace = {t}", .{ f.surface_format.format, f.surface_format.color_space });
+    }
+
     info.swapchain_format = chooseSwapchainFormat(formats[0..format_count], desc.preferred_format);
 
     // sRGB swapchains: delegate the EOTF to the image-view format, keep
@@ -455,7 +460,13 @@ fn getSurfaceFormat(sf: vk.SurfaceFormatKHR) SwapchainFormat {
             out.transfer_function = .scRGB_Windows;
             out.is_hdr = true;
         },
-        else => @panic("Unsupported color space"),
+        // Leaving the transfer function Unknown is how a format gets dropped by
+        // chooseSwapchainFormat's filter — this is a normal outcome, not an
+        // error. A Wayland surface on RADV offers nine VK_COLOR_SPACE_PASS_
+        // THROUGH_EXT formats that land here; an X11 surface offers none, which
+        // is why panicking here survived until the two builds were compared on
+        // the same windowing backend.
+        else => {},
     }
 
     return out;
@@ -518,16 +529,29 @@ fn chooseSwapchainFormat(
 }
 
 /// Returns whichever of `a` and `b` is preferred (HDR > SDR, PQ > others,
-/// avoid 64-bit RT). Mirrors the C++ sort comparator.
+/// avoid 64-bit RT). Mirrors the C++ sort comparator, where `a` is the new
+/// candidate and `b` the incumbent.
 fn betterFormat(a: SwapchainFormat, b: SwapchainFormat) SwapchainFormat {
     if (a.is_hdr != b.is_hdr) return if (a.is_hdr) a else b;
     if (a.transfer_function != b.transfer_function) {
         if (a.transfer_function == .PQ) return a;
         if (b.transfer_function == .PQ) return b;
     }
+
     // Avoid 64-bit RTs.
-    if (a.vk_format == .r16g16b16a16_sfloat) return b;
-    return a;
+    // NOTE: to be more precise we should have a function that returns the
+    // storage cost instead of just handling one format.
+    const a_is_64bit = a.vk_format == .r16g16b16a16_sfloat;
+    const b_is_64bit = b.vk_format == .r16g16b16a16_sfloat;
+    if (a_is_64bit != b_is_64bit) return if (a_is_64bit) b else a;
+
+    // Neither is strictly better, so keep the incumbent: the first format in
+    // the surface's enumeration order wins. The C++ sorts with this comparator
+    // and takes front(), which lands on the same one — though only because
+    // std::sort falls back to insertion sort for a list this short. Ranking
+    // equal formats by enumeration order is not something the standard
+    // guarantees there.
+    return b;
 }
 
 fn srgbViewFormat(fmt: vk.Format) vk.Format {

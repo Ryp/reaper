@@ -9,7 +9,10 @@ on:
 env:
   vulkan_sdk_version: '1.4.304.1'
   vulkan_sdk_modules: 'Vulkan-Headers Vulkan-Loader SPIRV-Tools Glslang'
+  # For the (currently disabled) `zig c++` CMake toolchain job.
   zig_version: 0.11.0
+  # For the Zig port. Keep in sync with minimum_zig_version in build.zig.zon.
+  zig_port_version: 0.16.0
 
 jobs:
   build_ubuntu:
@@ -159,6 +162,47 @@ jobs:
         with:
           name: windows_build
           path: windows_build.tar
+
+  # The Zig port builds the same sources as the CMake matrix above and is
+  # tracked separately while both live side by side. Deliberately not in
+  # deploy_on_itch_io's `needs`: it ships no package yet.
+  build_zig:
+    runs-on: ubuntu-latest
+    name: "Ubuntu Zig port"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # cgltf, imgui, lodepng and meshoptimizer are compiled out of
+          # external/ by build.zig, so the submodules are needed here too.
+          submodules: true
+
+      - name: Install Zig
+        uses: mlugg/setup-zig@v2
+        with:
+          # Must match minimum_zig_version in build.zig.zon.
+          version: ${{ env.zig_port_version }}
+
+      # Provides glslangValidator, spirv-opt and spirv-val for `zig build
+      # shaders`, and the loader that the vendored imgui_impl_vulkan links
+      # against. build.zig finds the latter through VULKAN_SDK.
+      - name: Prepare Vulkan SDK
+        uses: humbletim/setup-vulkan-sdk@v1.2.1
+        with:
+          vulkan-query-version: ${{ env.vulkan_sdk_version }}
+          vulkan-components: ${{ env.vulkan_sdk_modules }}
+          vulkan-use-cache: true
+
+      - name: Check formatting
+        run: zig fmt --check build.zig src
+
+      # Runs without a Vulkan device: the test root only pulls in GPU-free
+      # modules.
+      - name: Test
+        run: zig build test
+
+      - name: Build
+        run: zig build
 
   deploy_on_itch_io:
     runs-on: ubuntu-latest

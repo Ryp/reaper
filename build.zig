@@ -545,6 +545,12 @@ fn vulkanLibDirs(b: *std.Build) []const []const u8 {
         return b.dupeStrings(&.{dir});
     }
 
+    // Set by the Vulkan SDK's own setup scripts and by the CI action, where
+    // the loader is not in any system directory.
+    if (b.graph.environ_map.get("VULKAN_SDK")) |sdk| {
+        if (sdk.len > 0) return b.dupeStrings(&.{b.pathJoin(&.{ sdk, "lib" })});
+    }
+
     var exit_code: u8 = undefined;
     if (b.runAllowFail(
         &.{ "pkg-config", "--variable=libdir", "vulkan" },

@@ -31,8 +31,17 @@
             .hash = "sdl-0.4.0+3.4.0-SDL--u6yowGyvoiJ5qkFm_T1-MpmvnHShh2q2mTZf1fo",
         },
     },
+    // NOTE: build.zig compiles these four out of external/ by path rather than
+    // as zon packages, so they are part of this package's sources — a tarball
+    // without them does not build. The rest of external/ (bullet3, tracy,
+    // breakpad, …) belongs to the CMake build only. res/ is runtime data, not
+    // needed to build.
     .paths = .{
         "src",
+        "external/cgltf",
+        "external/imgui",
+        "external/lodepng",
+        "external/meshoptimizer",
         "LICENSE",
         "README.md",
         "build.zig",

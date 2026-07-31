@@ -8,6 +8,11 @@
 /.zig-cache/
 /zig-pkg/
 
+# imgui window layout, written by both builds at exit. Worth ignoring beyond
+# the usual tidiness: it persists window positions across runs, so a stale one
+# silently changes what a screenshot gate captures.
+/imgui.ini
+
 # user
 /.vs/
 /.vscode/

@@ -4,7 +4,7 @@
 
 ## CURRENT STATUS (2026-07-31, M0 implemented)
 
-- Milestones tracked in the Claude Code task list: **M0 done (pending one manual ESC check)**, M1–M8 pending.
+- Milestones tracked in the Claude Code task list: **M0–M8 all done**. v1 complete: both builds run side by side.
 - Local branch `zig-reference` (= dangling commit `4ddf766`) pins the old Zig port; origin/master was force-pushed after an intentional rebase — do NOT restore those commits, use `git show zig-reference:<path>` for reference only.
 - Tooling: RTK plugin installed (user scope). `zig-docs` MCP already in `.mcp.json`. Graphify was installed then **fully removed at user request — do not reinstall**.
 - Project `CLAUDE.md` does not exist currently; create it with build docs as the port progresses.
@@ -420,6 +420,54 @@ would have been a change, not a port.
   `PhysicsSim::Vars`' defaults (the sim is post-v1), and "Generate new track" is drawn disabled because
   regenerating needs the mesh cache cleared and every renderer mesh rebuilt. The keyboard→axis mapping is ported
   because it feeds the Controller Axes window, but the axes drive nothing downstream yet.
+
+### M8 result — v1 signoff
+
+Both builds run from the repo root against the same `res/`. The C++ (`cmake --build build`, then
+`./build/reaper`) and the Zig (`zig build`, then `./zig-out/bin/reaper`) bring up the same scene, the same
+split-screen composite and the same three ImGui windows. **Gate met** — but only after the comparison itself
+turned up three bugs, all of which were invisible until the two were put on the same footing.
+
+- **The two builds were not using the same windowing backend, and that changed the render.** The C++ creates a
+  native Wayland surface; SDL defaulted to X11 here (`DISPLAY` is set). RADV's Wayland WSI offers **18** surface
+  formats, its X11 WSI offers **2** — so the two builds were choosing from completely different lists, and every
+  earlier milestone screenshot was taken on the smaller one. `SDL_VIDEODRIVER=wayland` puts them on the same
+  list, after which both independently select `R16G16B16A16_UNORM` / `SRGB_NONLINEAR_KHR`. Not changed in code:
+  which backend SDL prefers is the user's call, not the port's.
+- **`getSurfaceFormat` panicked on unhandled colour spaces.** A Wayland surface offers nine
+  `VK_COLOR_SPACE_PASS_THROUGH_EXT` formats; the port's `@panic("Unsupported color space")` killed the process on
+  the first one. The C++ `AssertUnreachable()`s in the same place but its `AssertImpl` prints and *returns*, so
+  it falls through to `ColorSpace::Unknown` — which is exactly what the filter immediately below both versions
+  expects. This is the "asserts are stricter than the C++'s log-and-continue — intentional" decision being wrong
+  in one specific spot: returning Unknown here is the normal path, not an error. Now returns Unknown.
+- **`betterFormat`'s tie-break was inverted**, so the fold kept the *last* equally-ranked format where the C++'s
+  sort + `front()` keeps the *first*. With 18 formats to choose from this picked `R5G6B5_UNORM_PACK16` against
+  the C++'s `R16G16B16A16_UNORM`. Fixed, with a note that the C++ only lands on the first by way of `std::sort`
+  falling back to insertion sort at this length — ranking equal formats by enumeration order is not something
+  the standard guarantees there.
+- **The screenshot tool assumed 4 bytes per pixel.** True of every format an X11 surface offers, false of the
+  64-bit one the chooser lands on under Wayland — `vkCmdCopyImageToBuffer` overran the staging buffer by 2×.
+  `screenshot.zig` now derives the buffer size and the decode from the format, covering all nine of the
+  swapchain-selectable ones, with tests over channel order and full-scale round-tripping.
+
+**Both builds render the scene too dark on Wayland, for the same reason, and the port reproduces it faithfully.**
+`configure_vulkan_wm_swapchain` sets `transfer_function = Linear` for any sRGB colour space on the assumption
+that the image view applies the EOTF, but the view-format override only knows the three 8-bit UNORM formats;
+`R16G16B16A16_UNORM` falls through `default: break;` with the view left linear. Nothing applies the sRGB OETF, so
+linear values are handed to a swapchain the compositor treats as sRGB-encoded. Not fixed — it is C++ behaviour,
+and patching it is out of v1's scope.
+
+Remaining explained differences between the two: the ship sits at its spawn point in the Zig build because the
+physics sim is post-v1 (C++: `1.641, 0.337, 0.701`; Zig: `1.100, 0.800, 0.000`), and the track differs because
+the RNG cannot be seeded identically.
+
+**Housekeeping** (non-destructive, CMake matrix untouched): a `build_zig` CI job runs `zig fmt --check`,
+`zig build test` and `zig build` against the same pinned Vulkan SDK — deliberately outside
+`deploy_on_itch_io`'s `needs`, since it ships no package. `.paths` in `build.zig.zon` now lists the four
+`external/` libraries build.zig compiles by path, without which a package tarball does not build. README
+documents both builds. `imgui.ini` is gitignored: it persists window layout across runs, which silently changes
+what a screenshot gate captures — that is what produced a 20% pixel difference between two otherwise identical
+runs during this milestone.
 
 ## Context
 
