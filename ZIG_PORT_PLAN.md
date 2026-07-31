@@ -173,10 +173,38 @@ viewport Y flip negates the whole of column 1 rather than `[1][1]` alone. Both h
 
 `zig build test` is at 37 tests.
 
-**Remaining for M4a:** MeshCache + meshoptimizer meshlet build (192/64/0.5, needs the C library linked),
-PrepareBuckets(276), the MeshletCulling passes(770), ForwardPass(411) with a constant default material,
-SamplerResources, the ToneMapping LUT bake(138), and SwapchainPass(317) as the real composite. The M4a gate does
-not close on its own — the plan pairs it with M4b for "lit, shadowed, textured helmet on screen".
+**MeshCache + meshlet build done.** meshoptimizer is compiled from `external/meshoptimizer` by path, the same
+sources CMake uses. The clusterizer half lives in `src/mesh/meshlet_builder.zig` rather than the Vulkan layer,
+because it needs no device and belongs in the GPU-free suite; `mesh_cache.zig` keeps the buffers and the bump
+allocator. Parameters are the planned 192 / 64 / 0.5.
+
+> ### Zig 0.16 codegen bug — Debug builds now force the LLVM backend
+>
+> Zig 0.16's **self-hosted x86_64 backend**, which Debug builds default to, passes a trailing `float` argument
+> to a C function as garbage once **more than 8 integer/pointer arguments** precede it. Minimal repro: an
+> `extern fn` taking 8 `usize` then `f32` receives `0.0`; with 7 it is correct. `-fllvm` is correct in both
+> cases, and `-fno-llvm` reproduces it.
+>
+> `meshopt_buildMeshlets` is exactly that shape — 10 arguments then `cone_weight` — so it tripped the
+> clusterizer's own assert. Without the assert it would have silently clustered with the wrong cone weight.
+> `build.zig` now sets `use_llvm = true` on both artifacts (`-Dllvm=false` to override). **Anything else passing
+> floats to C is exposed to this**, so keep the workaround until Zig fixes the backend.
+
+*Verification.* Meshlet counts, vertex counts, index offsets and the compacted index data match the C++ path
+**exactly** for every mesh in `res/model` (992 / 1089 / 1563 / 809 / 22 meshlets etc.).
+
+**Unresolved:** the bounds sphere *centre* differs by roughly 1e-4 on a unit-radius mesh — e.g. icosahedron
+centre `y` is `-0.000097` from C++ and `+0.000097` from Zig, while the radius (`1.000391`), cone axis, cone
+cutoff and cone apex all match to the printed digit. It is not a compiler difference: `g++ -O2`, `g++ -O0`,
+`g++ -ffp-contract=off` and `clang++ -O2` all agree with each other and disagree with Zig. Both values are
+~0.01% of the radius so culling is unaffected, but the cause is not understood and should be chased before
+trusting the bounds for anything tighter than sphere culling. Suspect the `meshopt_Bounds` return-by-value
+(48-byte struct, sret) through `@cImport`.
+
+**Remaining for M4a:** PrepareBuckets(276), the MeshletCulling passes(770), ForwardPass(411) with a constant
+default material, SamplerResources, the ToneMapping LUT bake(138), and SwapchainPass(317) as the real composite.
+The M4a gate does not close on its own — the plan pairs it with M4b for "lit, shadowed, textured helmet on
+screen".
 
 ## Context
 
