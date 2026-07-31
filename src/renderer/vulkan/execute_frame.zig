@@ -11,6 +11,7 @@ const log = std.log.scoped(.vulkan);
 
 const barrier = @import("barrier.zig");
 const screenshot = @import("screenshot.zig");
+const swapchain_pass = @import("renderpass/swapchain_pass.zig");
 const Swapchain = @import("Swapchain.zig");
 const BackendResources = @import("backend_resources.zig").BackendResources;
 const VulkanBackend = @import("Backend.zig").VulkanBackend;
@@ -50,7 +51,7 @@ const clear_color = vk.ClearColorValue{ .float_32 = .{ 0.1, 0.2, 0.4, 1.0 } };
 
 /// Mirrors resize_swapchain(). This is the consumer of new_swapchain_extent —
 /// the old Zig port never called it, so the window could not be resized.
-pub fn resizeSwapchain(backend: *VulkanBackend) !void {
+pub fn resizeSwapchain(backend: *VulkanBackend, resources: *BackendResources) !void {
     if (backend.new_swapchain_extent.width == 0 and backend.new_swapchain_extent.height == 0) {
         return;
     }
@@ -72,6 +73,14 @@ pub fn resizeSwapchain(backend: *VulkanBackend) !void {
     );
 
     backend.updateRenderExtent();
+
+    // Reconfiguring can hand back a different view format, which invalidates
+    // any pipeline built against the old one.
+    try resources.swapchain_pass_resources.reconfigure(
+        backend.vkd,
+        backend.device,
+        backend.present_info.swapchain_format.vk_view_format,
+    );
 
     backend.new_swapchain_extent = .{ .width = 0, .height = 0 };
 }
@@ -180,7 +189,6 @@ pub fn executeFrame(
         vkd.cmdPipelineBarrier2(cmd_buffer, &dependencies);
     }
 
-    // A rendering scope with no draws in it: the LOAD_OP_CLEAR is the frame.
     {
         const color_attachments = [_]vk.RenderingAttachmentInfo{.{
             .s_type = .rendering_attachment_info,
@@ -212,6 +220,14 @@ pub fn executeFrame(
         };
 
         vkd.cmdBeginRendering(cmd_buffer, &rendering_info);
+
+        swapchain_pass.record(
+            vkd,
+            cmd_buffer,
+            &resources.swapchain_pass_resources,
+            backend.present_info.surface_extent,
+        );
+
         vkd.cmdEndRendering(cmd_buffer);
     }
 

@@ -42,7 +42,7 @@ Files added: `src/game_loop.zig`, `src/renderer/window/{sdl,window}.zig`,
 ESC-to-quit confirmed manually by the user (it cannot be automated here: `xdotool` does not reach the window under
 Wayland and `/dev/uinput` needs root). The M0 gate is fully closed.
 
-### M1 progress — shader chain done, pipeline/draw remaining
+### M1 result
 
 **Done.** `zig build shaders` compiles all 35 entry points through the CMake chain
 (`glslangValidator --target-env vulkan1.1 -D_GLSLANG -g -e main -V -D … -I<shader_dir>` → `spirv-opt
@@ -62,11 +62,26 @@ comparison ad hoc if the toolchain moves.
 `zig build test` covers the registry (SPIR-V magic number on all 35) and needs no GPU: the shader module is
 attached to the test artifact too, and the test step no longer depends on the install step.
 
-**Remaining for M1:** `pipeline.zig` (graphics subset), `descriptor_set.zig` (minimal), `pipeline_factory.zig`,
-and the actual `fullscreen_triangle.vert` + trivial fragment draw into the swapchain. The M0 clear already
-records through a dynamic-rendering scope, so the draw slots into `execute_frame.zig` where the empty
-`cmdBeginRendering`/`cmdEndRendering` pair currently sits. Verify with
-`--frame-count N --screenshot out.ppm`.
+**Pipeline + draw done.** `pipeline.zig` ports Pipeline.h/cpp field-for-field (all the `default_*` state
+constructors, `GraphicsPipelineProperties`, graphics/compute creation, dynamic-rendering helpers);
+`render_pass_helpers.zig` ports RenderPassHelpers.h. `renderpass/swapchain_pass.zig` is the M1 subset of
+SwapchainPass.cpp: same vertex shader, same default pipeline state, same dynamic viewport/scissor, same
+3-vertex draw, but paired with `gui_write.frag` — an existing shader that needs no descriptors and no push
+constants — so nothing had to be added to the HLSL tree. Its pipeline lives outside the (not yet ported)
+pipeline factory and rebuilds on `reconfigure()` when the swapchain view format changes.
+
+*Gate — machine-verified, stricter than the planned eyeball:* the frame is exactly two colours. The fragment
+shader's `float4(0.5, 0.2, 0.9, …)` reads back as sRGB `(188, 124, 243)` (exact), it covers exactly 1.00% of
+the frame (the shader's UV box is 0.1 × 0.1), and its bounding box maps to UV `[0.800, 0.900]` on both axes to
+the pixel. That confirms the triangle covers the full screen, UV interpolation is right, screen orientation is
+right, and the SPIR-V is real. Validation clean; `zig build test` and `zig fmt --check` green.
+
+Note: the fullscreen triangle survives the default `cullMode = BACK` / `frontFace = COUNTER_CLOCKWISE` state,
+which a naive signed-area reading of the Vulkan spec suggests it should not. It was ported faithfully from C++
+and empirically renders — do not "fix" the cull state on paper.
+
+**Descriptor sets** (`descriptor_set.zig`, `DescriptorWriteHelper`) and `pipeline_factory.zig` were not needed
+for this gate and move to M3, where the frame graph first needs them.
 
 ## Context
 

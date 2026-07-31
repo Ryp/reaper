@@ -9,6 +9,7 @@ const vk = @import("vulkan");
 
 const CommandBuffer = @import("command_buffer.zig").CommandBuffer;
 const frame_sync = @import("frame_sync.zig");
+const swapchain_pass = @import("renderpass/swapchain_pass.zig");
 const log = std.log.scoped(.vulkan);
 
 pub const BackendResources = struct {
@@ -16,12 +17,19 @@ pub const BackendResources = struct {
     gfx_cmd_buffer: CommandBuffer,
 
     frame_sync_resources: frame_sync.FrameSyncResources,
+    swapchain_pass_resources: swapchain_pass.SwapchainPassResources,
 
     /// Reset with .retain_capacity at the top of every frame; all
     /// frame-lifetime allocations come from here.
     frame_arena: std.heap.ArenaAllocator,
 
-    pub fn init(vkd: anytype, device: vk.Device, graphics_queue_family_index: u32, allocator: std.mem.Allocator) !BackendResources {
+    pub fn init(
+        vkd: anytype,
+        device: vk.Device,
+        graphics_queue_family_index: u32,
+        swapchain_view_format: vk.Format,
+        allocator: std.mem.Allocator,
+    ) !BackendResources {
         const pool_create_info = vk.CommandPoolCreateInfo{
             .s_type = .command_pool_create_info,
             .p_next = null,
@@ -50,16 +58,21 @@ pub const BackendResources = struct {
         const frame_sync_resources = try frame_sync.create(vkd, device);
         errdefer frame_sync.destroy(vkd, device, frame_sync_resources);
 
+        const swapchain_pass_resources = try swapchain_pass.SwapchainPassResources.init(vkd, device, swapchain_view_format);
+
         return .{
             .gfx_command_pool = gfx_command_pool,
             .gfx_cmd_buffer = .{ .handle = cmd_buffer_handle },
             .frame_sync_resources = frame_sync_resources,
+            .swapchain_pass_resources = swapchain_pass_resources,
             .frame_arena = .init(allocator),
         };
     }
 
     pub fn deinit(self: *BackendResources, vkd: anytype, device: vk.Device) void {
         self.frame_arena.deinit();
+
+        self.swapchain_pass_resources.deinit(vkd, device);
 
         frame_sync.destroy(vkd, device, self.frame_sync_resources);
 
