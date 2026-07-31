@@ -219,9 +219,28 @@ move the shadow frusta.
 
 `zig build test` is at 44 tests.
 
-**Remaining for M4a:** the MeshletCulling passes(770), ForwardPass(411) with a constant default material,
-SamplerResources, the ToneMapping LUT bake(138), and SwapchainPass(317) as the real composite. The M4a gate does
-not close on its own — the plan pairs it with M4b for "lit, shadowed, textured helmet on screen".
+**PipelineFactory, SamplerResources and the ToneMapping LUT bake done.** The factory keeps the C++ shape —
+register a creator, get a tracker index, build lazily on first update — with a function pointer rather than a
+closure so the registry stays a plain array.
+
+> **The frame graph pruned the tone map pass, and the first "clean" run proved nothing.** Nothing consumes the
+> LUT yet, so the DAG closure never reached the bake and it was dropped entirely — exactly the behaviour the M3
+> pruning test checks for. `createFrameGraphRecord` now takes `has_side_effects` so the demo can force it alive;
+> it goes back to `false` once SwapchainPass reads the LUT. Worth remembering when adding any pass ahead of its
+> consumer: a validation-clean run is not evidence the pass ran.
+
+Note `linear_clamp` and `linear_black_border` are byte-identical in the C++ despite the names — the second uses
+`CLAMP_TO_EDGE`, not `CLAMP_TO_BORDER`. Both are kept so the names stay available to the passes that reference
+them; changing the address mode would change what they sample outside `[0,1]`.
+
+Validation and sync validation stay clean with the compute dispatch into a 1D storage image. **The LUT contents
+are not verified** — that needs either a frame-graph texture readback or the swapchain pass consuming it.
+
+`zig build test` is at 45 tests.
+
+**Remaining for M4a:** the MeshletCulling passes(770), ForwardPass(411) with a constant default material, and
+SwapchainPass(317) as the real composite. The M4a gate does not close on its own — the plan pairs it with M4b for
+"lit, shadowed, textured helmet on screen".
 
 ## Context
 
