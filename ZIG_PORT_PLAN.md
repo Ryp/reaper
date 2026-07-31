@@ -268,9 +268,28 @@ attachment formats matching what the frame graph creates, reverse-z pairing a `G
 clear (getting one without the other loses all geometry), and descriptor slots being dense and in the order the
 shaders declare them.
 
-**Remaining for M4a:** SwapchainPass(317) as the real composite, and driving the whole chain from the frame —
-which needs a scene, so it overlaps M5. The M4a gate does not close on its own; the plan pairs it with M4b for
-"lit, shadowed, textured helmet on screen".
+**SwapchainPass done and the chain is driven end to end — geometry is on screen.** The composite bakes colour
+space, transfer function and dynamic range as specialization constants from the swapchain format, so the pipeline
+rebuilds on reconfigure (which is why it stays outside the pipeline factory).
+
+Four of the seven shader inputs come from passes that do not exist yet (tiled lighting in M6; GUI, histogram and
+exposure in M7). They are declared as **real placeholder graph resources and cleared each frame**, not left
+unbound — the fragment shader samples all of them unconditionally, so an unbound descriptor would be undefined
+behaviour rather than simply "off".
+
+*Numbers from a driven frame (`res/model/ship.obj`):* 809 meshlets built, **803 survive meshlet culling**, 18137
+triangles and 749 indirect draw commands, silhouette landing where the camera says it should. Validation and sync
+validation clean, 51 tests green.
+
+Two things that cost time and are worth knowing:
+* **Only the last binding of each set carries `PARTIALLY_BOUND`.** The material *array* may be left unwritten;
+  the sampler beside it may not. An unwritten sampler is a validation error even when nothing samples through it.
+* **Asset scale varies enormously.** `ship.obj` is ~1500 units across and centred 151 units up, so the first
+  hardcoded frustum put the whole mesh past the far plane and rendered an empty frame. `scene.zig` now frames the
+  camera from the mesh's bounding sphere. The real scene is M5.
+
+Geometry currently shades **black** — the material textures are M4b. That is the remaining gap before the M4a/M4b
+gate ("lit, shadowed, textured helmet on screen") closes.
 
 ## Context
 
