@@ -15,6 +15,7 @@ const descriptor_set = @import("descriptor_set.zig");
 const fg = @import("../graph/frame_graph.zig");
 const frame_graph_pass = @import("renderpass/frame_graph_pass.zig");
 const screenshot = @import("screenshot.zig");
+const tone_mapping = @import("renderpass/tone_mapping.zig");
 const Builder = @import("../graph/builder.zig").Builder;
 const Swapchain = @import("Swapchain.zig");
 const BackendResources = @import("backend_resources.zig").BackendResources;
@@ -87,6 +88,10 @@ pub fn executeFrame(
 ) !?u32 {
     const device = backend.device;
     const vkd = backend.vkd;
+
+    // Mirrors backend_execute_frame(): the factory builds any pipeline that
+    // has not been created yet before anything is recorded.
+    try resources.pipeline_factory.update(&vkd, device);
 
     // ---- Wait for the GPU to be done with frame N-1 ----
     {
@@ -176,6 +181,12 @@ pub fn executeFrame(
     var framegraph = fg.FrameGraph{};
     var builder = Builder.init(&framegraph, frame_allocator);
 
+    // The LUT bake needs no scene, so it can run alongside the gradient demo
+    // and exercise the pipeline factory before any real pass exists. It has to
+    // be marked side-effecting until the swapchain pass consumes the LUT,
+    // otherwise the graph correctly prunes it as unreachable.
+    const tone_map_record = try tone_mapping.createFrameGraphRecord(&builder, true);
+
     const gradient_record = try debug_gradient.createFrameGraphRecord(
         &builder,
         backend.present_info.surface_extent,
@@ -194,6 +205,14 @@ pub fn executeFrame(
     {
         var write_helper = try descriptor_set.DescriptorWriteHelper.init(frame_allocator, 8, 8, 1);
         defer write_helper.deinit();
+
+        tone_mapping.updateDescriptorSet(
+            &write_helper,
+            &framegraph,
+            &resources.framegraph_resources,
+            tone_map_record,
+            &resources.tone_map_pass_resources,
+        );
 
         debug_gradient.updateDescriptorSet(
             &write_helper,
@@ -226,14 +245,27 @@ pub fn executeFrame(
         vkd.cmdPipelineBarrier2(cmd_buffer, &dependencies);
     }
 
+    const frame_graph_helper = frame_graph_pass.FrameGraphHelper{
+        .frame_graph = &framegraph,
+        .schedule = &schedule,
+        .resources = &resources.framegraph_resources,
+    };
+
+    tone_mapping.recordCommandBuffer(
+        vkd,
+        cmd_buffer,
+        frame_graph_helper,
+        &resources.pipeline_factory,
+        tone_map_record,
+        &resources.tone_map_pass_resources,
+        backend.present_info.tonemap_min_nits,
+        backend.present_info.tonemap_max_nits,
+    );
+
     debug_gradient.recordCommandBuffer(
         vkd,
         cmd_buffer,
-        .{
-            .frame_graph = &framegraph,
-            .schedule = &schedule,
-            .resources = &resources.framegraph_resources,
-        },
+        frame_graph_helper,
         &resources.debug_gradient_resources,
         gradient_record,
         swapchain_image,

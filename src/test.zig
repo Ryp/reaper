@@ -12,6 +12,7 @@ comptime {
     _ = @import("mesh/meshlet_builder.zig");
     _ = @import("mesh/obj_loader.zig");
     _ = @import("renderer/graph/graph_test.zig");
+    _ = @import("renderer/vulkan/compute_helper.zig");
     _ = @import("renderer/vulkan/shader_modules.zig");
 
     // Importing every CPU/GPU shared-struct mirror runs its comptime layout

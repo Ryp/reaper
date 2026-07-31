@@ -10,8 +10,11 @@ const vk = @import("vulkan");
 const CommandBuffer = @import("command_buffer.zig").CommandBuffer;
 const debug_gradient = @import("renderpass/debug_gradient.zig");
 const frame_sync = @import("frame_sync.zig");
+const tone_mapping = @import("renderpass/tone_mapping.zig");
 const vma = @import("vma.zig").c;
 const FrameGraphResources = @import("framegraph_resources.zig").FrameGraphResources;
+const PipelineFactory = @import("pipeline_factory.zig").PipelineFactory;
+const SamplerResources = @import("sampler_resources.zig").SamplerResources;
 const log = std.log.scoped(.vulkan);
 
 pub const BackendResources = struct {
@@ -20,7 +23,10 @@ pub const BackendResources = struct {
 
     frame_sync_resources: frame_sync.FrameSyncResources,
     framegraph_resources: FrameGraphResources,
+    pipeline_factory: PipelineFactory,
+    sampler_resources: SamplerResources,
     debug_gradient_resources: debug_gradient.Resources,
+    tone_map_pass_resources: tone_mapping.ToneMapPassResources,
 
     /// Reset with .retain_capacity at the top of every frame; all
     /// frame-lifetime allocations come from here.
@@ -64,14 +70,30 @@ pub const BackendResources = struct {
         var framegraph_resources = try FrameGraphResources.init(vkd, device, allocator);
         errdefer framegraph_resources.deinit(vkd, device, null);
 
+        var pipeline_factory = PipelineFactory.init(allocator);
+        errdefer pipeline_factory.deinit(vkd, device);
+
+        var sampler_resources = try SamplerResources.init(vkd, device);
+        errdefer sampler_resources.deinit(vkd, device);
+
         const debug_gradient_resources = try debug_gradient.Resources.init(vkd, device, descriptor_pool);
+
+        const tone_map_pass_resources = try tone_mapping.ToneMapPassResources.init(
+            vkd,
+            device,
+            descriptor_pool,
+            &pipeline_factory,
+        );
 
         return .{
             .gfx_command_pool = gfx_command_pool,
             .gfx_cmd_buffer = .{ .handle = cmd_buffer_handle },
             .frame_sync_resources = frame_sync_resources,
             .framegraph_resources = framegraph_resources,
+            .pipeline_factory = pipeline_factory,
+            .sampler_resources = sampler_resources,
             .debug_gradient_resources = debug_gradient_resources,
+            .tone_map_pass_resources = tone_map_pass_resources,
             .frame_arena = .init(allocator),
         };
     }
@@ -79,7 +101,10 @@ pub const BackendResources = struct {
     pub fn deinit(self: *BackendResources, vkd: anytype, device: vk.Device, vma_instance: vma.VmaAllocator) void {
         self.frame_arena.deinit();
 
+        self.tone_map_pass_resources.deinit(vkd, device);
         self.debug_gradient_resources.deinit(vkd, device);
+        self.sampler_resources.deinit(vkd, device);
+        self.pipeline_factory.deinit(vkd, device);
         self.framegraph_resources.deinit(vkd, device, vma_instance);
 
         frame_sync.destroy(vkd, device, self.frame_sync_resources);
