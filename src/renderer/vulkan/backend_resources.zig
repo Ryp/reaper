@@ -10,11 +10,28 @@ const vk = @import("vulkan");
 const CommandBuffer = @import("command_buffer.zig").CommandBuffer;
 const debug_gradient = @import("renderpass/debug_gradient.zig");
 const frame_sync = @import("frame_sync.zig");
+const meshlet_culling = @import("renderpass/meshlet_culling.zig");
 const tone_mapping = @import("renderpass/tone_mapping.zig");
 const vma = @import("vma.zig").c;
 const FrameGraphResources = @import("framegraph_resources.zig").FrameGraphResources;
+const MeshCache = @import("mesh_cache.zig").MeshCache;
 const PipelineFactory = @import("pipeline_factory.zig").PipelineFactory;
 const SamplerResources = @import("sampler_resources.zig").SamplerResources;
+const StorageBufferAllocator = @import("storage_buffer.zig").StorageBufferAllocator;
+
+/// The device limits and handles BackendResources needs but does not own.
+/// Passed explicitly rather than taking the whole backend, so this stays
+/// independent of Backend.zig.
+pub const InitParams = struct {
+    graphics_queue_family_index: u32,
+    descriptor_pool: vk.DescriptorPool,
+    vma_instance: vma.VmaAllocator,
+    max_draw_indirect_count: u32,
+    min_storage_buffer_offset_alignment: u64,
+};
+
+/// Matches the C++ frame storage allocator size.
+const frame_storage_size_bytes: u64 = 1 << 20;
 const log = std.log.scoped(.vulkan);
 
 pub const BackendResources = struct {
@@ -25,7 +42,10 @@ pub const BackendResources = struct {
     framegraph_resources: FrameGraphResources,
     pipeline_factory: PipelineFactory,
     sampler_resources: SamplerResources,
+    frame_storage_allocator: StorageBufferAllocator,
+    mesh_cache: MeshCache,
     debug_gradient_resources: debug_gradient.Resources,
+    meshlet_culling_resources: meshlet_culling.MeshletCullingResources,
     tone_map_pass_resources: tone_mapping.ToneMapPassResources,
 
     /// Reset with .retain_capacity at the top of every frame; all
@@ -35,15 +55,15 @@ pub const BackendResources = struct {
     pub fn init(
         vkd: anytype,
         device: vk.Device,
-        graphics_queue_family_index: u32,
-        descriptor_pool: vk.DescriptorPool,
+        params: InitParams,
         allocator: std.mem.Allocator,
     ) !BackendResources {
+        const descriptor_pool = params.descriptor_pool;
         const pool_create_info = vk.CommandPoolCreateInfo{
             .s_type = .command_pool_create_info,
             .p_next = null,
             .flags = .{},
-            .queue_family_index = graphics_queue_family_index,
+            .queue_family_index = params.graphics_queue_family_index,
         };
 
         const gfx_command_pool = try vkd.createCommandPool(device, &pool_create_info, null);
@@ -76,7 +96,27 @@ pub const BackendResources = struct {
         var sampler_resources = try SamplerResources.init(vkd, device);
         errdefer sampler_resources.deinit(vkd, device);
 
+        var frame_storage_allocator = try StorageBufferAllocator.init(
+            params.vma_instance,
+            frame_storage_size_bytes,
+            params.min_storage_buffer_offset_alignment,
+        );
+        errdefer frame_storage_allocator.deinit(params.vma_instance);
+
+        var mesh_cache = try MeshCache.init(params.vma_instance, allocator);
+        errdefer mesh_cache.deinit(params.vma_instance);
+
         const debug_gradient_resources = try debug_gradient.Resources.init(vkd, device, descriptor_pool);
+
+        var meshlet_culling_resources = try meshlet_culling.MeshletCullingResources.init(
+            vkd,
+            device,
+            descriptor_pool,
+            params.vma_instance,
+            &pipeline_factory,
+            params.max_draw_indirect_count,
+        );
+        errdefer meshlet_culling_resources.deinit(vkd, device, params.vma_instance);
 
         const tone_map_pass_resources = try tone_mapping.ToneMapPassResources.init(
             vkd,
@@ -92,7 +132,10 @@ pub const BackendResources = struct {
             .framegraph_resources = framegraph_resources,
             .pipeline_factory = pipeline_factory,
             .sampler_resources = sampler_resources,
+            .frame_storage_allocator = frame_storage_allocator,
+            .mesh_cache = mesh_cache,
             .debug_gradient_resources = debug_gradient_resources,
+            .meshlet_culling_resources = meshlet_culling_resources,
             .tone_map_pass_resources = tone_map_pass_resources,
             .frame_arena = .init(allocator),
         };
@@ -102,7 +145,10 @@ pub const BackendResources = struct {
         self.frame_arena.deinit();
 
         self.tone_map_pass_resources.deinit(vkd, device);
+        self.meshlet_culling_resources.deinit(vkd, device, vma_instance);
         self.debug_gradient_resources.deinit(vkd, device);
+        self.mesh_cache.deinit(vma_instance);
+        self.frame_storage_allocator.deinit(vma_instance);
         self.sampler_resources.deinit(vkd, device);
         self.pipeline_factory.deinit(vkd, device);
         self.framegraph_resources.deinit(vkd, device, vma_instance);

@@ -85,8 +85,13 @@ pub fn main_with_allocator(allocator: std.mem.Allocator, init: std.process.Init)
     var resources = try BackendResources.init(
         backend.vkd,
         backend.device,
-        backend.physical_device.graphics_queue_family_index,
-        backend.global_descriptor_pool,
+        .{
+            .graphics_queue_family_index = backend.physical_device.graphics_queue_family_index,
+            .descriptor_pool = backend.global_descriptor_pool,
+            .vma_instance = backend.vma_instance,
+            .max_draw_indirect_count = backend.physical_device.properties.limits.max_draw_indirect_count,
+            .min_storage_buffer_offset_alignment = backend.physical_device.properties.limits.min_storage_buffer_offset_alignment,
+        },
         allocator,
     );
     // Mirrors renderer_stop(): the GPU has to be done with the last frame

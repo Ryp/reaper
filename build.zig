@@ -98,6 +98,7 @@ pub fn build(b: *std.Build) void {
     // test artifact gets it too — the frame graph is typed in terms of Vulkan
     // enums but is entirely testable on the CPU.
     const vulkan_registry = b.dependency("vulkan_headers", .{});
+    const amd_vma_dep = b.dependency("amd_vma", .{});
     const vulkan_module = b.dependency("vulkan_zig", .{
         .registry = vulkan_registry.path("registry/vk.xml"),
     }).module("vulkan-zig");
@@ -112,7 +113,7 @@ pub fn build(b: *std.Build) void {
         exe.root_module.link_libcpp = true;
 
         // VMA: expose Vulkan headers and the VMA header for @cImport in Zig source.
-        const amd_vma = b.dependency("amd_vma", .{});
+        const amd_vma = amd_vma_dep;
         exe.root_module.addIncludePath(registry.path("include"));
         exe.root_module.addIncludePath(amd_vma.path("include"));
 
@@ -217,6 +218,23 @@ pub fn build(b: *std.Build) void {
     // LLVM-backend workaround as the executable.
     addMeshOptimizer(b, tests);
     tests.use_llvm = use_llvm;
+
+    // The Vulkan-typed modules @cImport the VMA header, so the test artifact
+    // needs the include paths and the implementation TU to link. None of it
+    // touches a device: the tests here are offset arithmetic and layout checks.
+    tests.root_module.addIncludePath(vulkan_registry.path("include"));
+    tests.root_module.addIncludePath(amd_vma_dep.path("include"));
+    tests.root_module.addCSourceFile(.{
+        .file = b.path("src/renderer/vulkan/vma_impl.cpp"),
+        .flags = &.{
+            "-std=c++17",
+            "-DVMA_IMPLEMENTATION",
+            "-DVMA_STATIC_VULKAN_FUNCTIONS=0",
+            "-DVMA_DYNAMIC_VULKAN_FUNCTIONS=1",
+            "-DVMA_VULKAN_VERSION=1003000",
+            "-w",
+        },
+    });
 
     const tests_cmd = b.addRunArtifact(tests);
 
