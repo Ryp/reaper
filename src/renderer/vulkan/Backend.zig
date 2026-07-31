@@ -539,9 +539,12 @@ fn createDebugMessenger(vki: InstanceDispatch, instance: vk.Instance) !vk.DebugU
         .s_type = .debug_utils_messenger_create_info_ext,
         .p_next = null,
         .flags = .{},
+        // DEVIATION: DebugMessageCallback.cpp:150 also asks for VERBOSE and
+        // INFO. Those carry no correctness signal — on this setup INFO is
+        // almost entirely the loader narrating its own layer callstack — and
+        // they bury the messages that do. The callback still maps all four
+        // severities, so restoring a bit here is all it takes to get them back.
         .message_severity = .{
-            .verbose_bit_ext = true,
-            .info_bit_ext = true,
             .warning_bit_ext = true,
             .error_bit_ext = true,
         },
