@@ -60,6 +60,19 @@ pub fn build(b: *std.Build) void {
 
     exe.use_lld = b.option(bool, "lld", "Force the LLD linker on or off");
 
+    // Zig 0.16's self-hosted x86_64 backend, which Debug builds default to,
+    // passes a trailing `float` argument to a C function as garbage once more
+    // than 8 integer/pointer arguments precede it. Minimal repro: an extern fn
+    // taking 8 usize then f32 receives 0.0 instead of the value; with 7 it is
+    // fine, and -fllvm is correct in both cases.
+    //
+    // meshopt_buildMeshlets has exactly that shape (10 args then cone_weight),
+    // so the clusterizer would silently build meshlets with the wrong cone
+    // weight — or trip its own assert. Nothing here needs the self-hosted
+    // backend, so LLVM is used unless explicitly overridden.
+    const use_llvm = b.option(bool, "llvm", "Use the LLVM backend") orelse true;
+    exe.use_llvm = use_llvm;
+
     const exe_options = b.addOptions();
 
     exe_options.addOption(bool, "enable_vulkan", enable_vulkan);
@@ -138,6 +151,11 @@ pub fn build(b: *std.Build) void {
         exe.root_module.link_libcpp = true;
     }
 
+    // meshoptimizer stays C++ and is referenced by path during coexistence, so
+    // both builds compile the exact same sources — the meshlet layout has to
+    // agree between them. It becomes a zon package in the C++ removal phase.
+    addMeshOptimizer(b, exe);
+
     // Shaders are compiled unconditionally so that `zig build test` can check
     // the registry without a Vulkan device.
     const shaders = addShaders(b);
@@ -193,6 +211,12 @@ pub fn build(b: *std.Build) void {
 
     shaders.attachTo(tests);
     tests.root_module.addImport("vulkan", vulkan_module);
+
+    // The meshlet build is pure mesh processing, so it belongs in the GPU-free
+    // suite — but it does need meshoptimizer linked, and therefore the same
+    // LLVM-backend workaround as the executable.
+    addMeshOptimizer(b, tests);
+    tests.use_llvm = use_llvm;
 
     const tests_cmd = b.addRunArtifact(tests);
 
@@ -389,4 +413,50 @@ fn collectSharedShaderInputs(b: *std.Build) []const std.Build.LazyPath {
     }
 
     return inputs.items;
+}
+
+// --------------------------------------------------------------------------
+// meshoptimizer
+//
+// Only the clusterizer is actually used (meshopt_buildMeshlets and friends),
+// but the library is small and its translation units are independent, so all of
+// them are compiled rather than tracking which ones the linker happens to need.
+// --------------------------------------------------------------------------
+
+const meshoptimizer_root = "external/meshoptimizer/src";
+
+const meshoptimizer_sources = [_][]const u8{
+    "allocator.cpp",
+    "clusterizer.cpp",
+    "indexcodec.cpp",
+    "indexgenerator.cpp",
+    "overdrawanalyzer.cpp",
+    "overdrawoptimizer.cpp",
+    "simplifier.cpp",
+    "spatialorder.cpp",
+    "stripifier.cpp",
+    "vcacheanalyzer.cpp",
+    "vcacheoptimizer.cpp",
+    "vertexcodec.cpp",
+    "vertexfilter.cpp",
+    "vfetchanalyzer.cpp",
+    "vfetchoptimizer.cpp",
+};
+
+fn addMeshOptimizer(b: *std.Build, compile: *std.Build.Step.Compile) void {
+    compile.root_module.addIncludePath(b.path(meshoptimizer_root));
+
+    for (meshoptimizer_sources) |source| {
+        compile.root_module.addCSourceFile(.{
+            .file = b.path(b.pathJoin(&.{ meshoptimizer_root, source })),
+            .flags = &.{
+                "-std=c++11",
+                // Suppress warnings from third-party code.
+                "-w",
+            },
+        });
+    }
+
+    compile.root_module.link_libc = true;
+    compile.root_module.link_libcpp = true;
 }
