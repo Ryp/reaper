@@ -47,7 +47,6 @@ zig build run -- --width 1280 --height 720
 writes the last one out as a PNG, which is what makes the port's milestone
 gates checkable without a human at the window.
 
-HDR follows the display automatically; `--hdr` / `--no-hdr` force it. It needs
-the compositor set up for it, and it breaks the screenshot path and needs a
-custom RenderDoc build — see [HDR.md](HDR.md) for what works, what does not,
-and why.
+HDR follows the display automatically, with no flag. It needs the compositor
+set up for it, and it breaks the screenshot path and needs a custom RenderDoc
+build — see [HDR.md](HDR.md) for what works, what does not, and why.

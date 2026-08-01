@@ -10,14 +10,16 @@ build; the C++ build shares the swapchain logic but has none of the fixes.
 zig build run
 ```
 
-**Follows the display by default.** If the output is in HDR mode the format
-chooser takes `VK_COLOR_SPACE_HDR10_ST2084_EXT` and the composite shader
+**Follows the display; there is no flag.** If the output is in HDR mode the
+format chooser takes `VK_COLOR_SPACE_HDR10_ST2084_EXT` and the composite shader
 encodes PQ; otherwise HDR colour spaces are filtered out of the candidate list
-entirely. `--hdr` and `--no-hdr` force it either way.
+entirely.
 
 `--swapchain-format <name>` forces a specific format/colour-space pair through
 the preferred-format short-circuit, for comparing two of them on the same
-scene. See `parseForcedFormat` in `src/main.zig` for the table.
+scene. See `parseForcedFormat` in `src/main.zig` for the table. That
+short-circuit runs ahead of the HDR filter, so it is also the way to exercise a
+PQ swapchain while the output is in SDR mode.
 
 ## What the platform has to provide
 
@@ -78,16 +80,18 @@ display: has=true val=true
 it is not usable as a display-capability signal either — which is a shame,
 because it is otherwise exactly the number `tonemap_max_nits` wants.
 
-Verified across all four combinations:
+Verified by toggling `output DP-1 hdr` and restarting:
 
-| sway `hdr` | flags | result |
-|---|---|---|
-| on | none | HDR, `a2r10g10b10_unorm_pack32` / `HDR10_ST2084` |
-| on | `--no-hdr` | SDR, `b8g8r8a8_srgb` / `SRGB_NONLINEAR` |
-| off | none | SDR |
-| off | `--hdr` | HDR (forced; the compositor will tone-map it back down) |
+| sway `hdr` | swapchain |
+|---|---|
+| on | HDR — `a2r10g10b10_unorm_pack32` / `HDR10_ST2084` |
+| off | SDR — `b8g8r8a8_srgb` / `SRGB_NONLINEAR` |
 
 X11 reports SDR, correctly — there is no colour manager there at all.
+
+The state is read once at startup, so toggling the output while the app is
+running does not switch the swapchain. `SDL_EVENT_DISPLAY_*` would be the hook
+for that, and the swapchain would have to be rebuilt with a different format.
 
 **Vulkan still cannot answer.** A colour space says which transfer function the
 swapchain expects; nothing in Vulkan reports the display's peak luminance.
