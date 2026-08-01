@@ -94,6 +94,9 @@ pub const VulkanBackend = struct {
     /// the Rendering window because they can legitimately disagree.
     display_hdr_enabled: bool,
 
+    /// Whether an HDR swapchain was opted into; the resize path has to agree.
+    prefer_hdr: bool,
+
     // --------------------------------------------------------------------------
     // Init / deinit
     // --------------------------------------------------------------------------
@@ -104,6 +107,7 @@ pub const VulkanBackend = struct {
         window: *Window,
         window_width: u32,
         window_height: u32,
+        prefer_hdr: bool,
     ) !VulkanBackend {
         log.info("creating backend", .{});
 
@@ -332,6 +336,7 @@ pub const VulkanBackend = struct {
             .preferred_image_count = 3,
             .preferred_format = .{ .format = .undefined, .color_space = .srgb_nonlinear_khr },
             .preferred_extent = .{ .width = window_width, .height = window_height },
+            .prefer_hdr = prefer_hdr,
         };
 
         try Swapchain.configureVulkanWmSwapchain(
@@ -405,6 +410,7 @@ pub const VulkanBackend = struct {
             .frame_index = 0,
             .options = .{},
             .display_hdr_enabled = display_hdr_enabled,
+            .prefer_hdr = prefer_hdr,
         };
     }
 

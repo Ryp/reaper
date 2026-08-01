@@ -54,6 +54,18 @@ pub const SwapchainDescriptor = struct {
     preferred_image_count: u32,
     preferred_format: vk.SurfaceFormatKHR,
     preferred_extent: vk.Extent2D,
+    /// Opt in to an HDR swapchain. Off by default, and deliberately not
+    /// inferred: the compositor advertises PQ and BT2020 as soon as it can
+    /// *convert* them, whether or not the output is actually in HDR mode. Take
+    /// them while the output is SDR and the shader tone-maps to PQ only for the
+    /// compositor to tone-map back down — two passes, worse than sending sRGB.
+    ///
+    /// Auto-detection is not currently possible here. SDL derives its HDR
+    /// property from HDR_headroom (SDL_video.c:890) and its Wayland backend
+    /// never sets it, so the display always reads as SDR. Answering this
+    /// honestly means asking wp_color_manager_v1 for the surface's preferred
+    /// image description, which is its own project.
+    prefer_hdr: bool = false,
 };
 
 // --------------------------------------------------------------------------
@@ -149,7 +161,7 @@ pub fn configureVulkanWmSwapchain(
         log.debug("- format = {t}, colorspace = {t}", .{ f.surface_format.format, f.surface_format.color_space });
     }
 
-    info.swapchain_format = chooseSwapchainFormat(formats[0..format_count], desc.preferred_format);
+    info.swapchain_format = chooseSwapchainFormat(formats[0..format_count], desc.preferred_format, desc.prefer_hdr);
 
     // sRGB swapchains: the OETF has to be applied exactly once, either by the
     // image view or by the composite shader. Prefer the view — it is free —
@@ -340,6 +352,11 @@ pub fn resizeVulkanWmSwapchain(
             .color_space = info.swapchain_format.vk_color_space,
         },
         .preferred_extent = extent,
+        // Irrelevant in practice — the preferred_format short-circuit above
+        // re-picks the current format before ranking ever runs — but keeping it
+        // truthful means a future change to that short-circuit cannot silently
+        // drop the swapchain out of HDR on a resize.
+        .prefer_hdr = info.swapchain_format.is_hdr,
     };
 
     try configureVulkanWmSwapchain(vki, physical_device, desc, info, allocator);
@@ -509,6 +526,7 @@ fn getSurfaceFormat(sf: vk.SurfaceFormatKHR) SwapchainFormat {
 fn chooseSwapchainFormat(
     formats: []const vk.SurfaceFormat2KHR,
     preferred: vk.SurfaceFormatKHR,
+    prefer_hdr: bool,
 ) SwapchainFormat {
     // Short-circuit: exact preferred match.
     for (formats) |f| {
@@ -529,6 +547,19 @@ fn chooseSwapchainFormat(
     for (formats) |f| {
         const sf = getSurfaceFormat(f.surface_format);
         if (sf.color_space == .Unknown or sf.transfer_function == .Unknown) continue;
+
+        // Without the opt-in an HDR format is not a candidate at all, rather
+        // than a candidate that ranks low — betterFormat puts is_hdr first, so
+        // leaving them in would win outright.
+        if (sf.is_hdr and !prefer_hdr) continue;
+
+        // An _SRGB format makes the image view apply the sRGB OETF in hardware,
+        // so pairing one with any other transfer function double-encodes:
+        // sRGB(PQ(x)). That is a property of the candidate itself, not a
+        // preference between candidates, so it is rejected here rather than
+        // ranked in betterFormat — ranking it would also let a merely
+        // *different* colour space outrank sRGB, which is not the intent.
+        if (sf.transfer_function != .sRGB and isSrgbFormat(sf.vk_format)) continue;
 
         log.debug("- format = {}, colorspace = {}", .{ sf.vk_format, sf.vk_color_space });
 
@@ -556,6 +587,23 @@ fn betterFormat(a: SwapchainFormat, b: SwapchainFormat) SwapchainFormat {
         if (b.transfer_function == .PQ) return b;
     }
 
+    // DEVIATION: the C++ comparator
+    // (Swapchain.cpp) has no bit-depth rule, because until the compositor
+    // started offering HDR colour spaces every format was paired with
+    // SRGB_NONLINEAR and the question was moot. It is not moot now — on a
+    // Wayland surface with the colour manager up, the HDR10 list begins with
+    // 8-bit formats, which the plain first-wins tie-break would take.
+
+    // PQ distributes its code points over 0.005 to 10000 nits, so 8 bits per
+    // channel bands visibly — HDR10 is defined as 10-bit for this reason.
+    // Deliberately scoped to HDR: applying it to SDR would pull the choice up
+    // to r16g16b16a16_unorm and lose the free sRGB view conversion.
+    if (a.is_hdr) {
+        const a_deep = channelBits(a.vk_format) >= 10;
+        const b_deep = channelBits(b.vk_format) >= 10;
+        if (a_deep != b_deep) return if (a_deep) a else b;
+    }
+
     // Avoid 64-bit RTs.
     // NOTE: to be more precise we should have a function that returns the
     // storage cost instead of just handling one format.
@@ -578,6 +626,27 @@ fn srgbViewFormat(fmt: vk.Format) vk.Format {
         .r8g8b8a8_unorm => .r8g8b8a8_srgb,
         .a8b8g8r8_unorm_pack32 => .a8b8g8r8_srgb_pack32,
         else => fmt,
+    };
+}
+
+/// Bits per colour channel, for the formats a swapchain can offer. Alpha is
+/// ignored — it is the colour precision that decides banding. Returns 0 for
+/// anything unrecognised, which ranks it last rather than crashing.
+fn channelBits(fmt: vk.Format) u8 {
+    return switch (fmt) {
+        .r16g16b16a16_unorm, .r16g16b16a16_sfloat => 16,
+        .a2r10g10b10_unorm_pack32, .a2b10g10r10_unorm_pack32 => 10,
+        .b8g8r8a8_unorm,
+        .b8g8r8a8_srgb,
+        .r8g8b8a8_unorm,
+        .r8g8b8a8_srgb,
+        .a8b8g8r8_unorm_pack32,
+        .a8b8g8r8_srgb_pack32,
+        => 8,
+        .r5g6b5_unorm_pack16, .b5g6r5_unorm_pack16 => 5,
+        .r5g5b5a1_unorm_pack16, .b5g5r5a1_unorm_pack16, .a1r5g5b5_unorm_pack16 => 5,
+        .r4g4b4a4_unorm_pack16, .b4g4r4a4_unorm_pack16 => 4,
+        else => 0,
     };
 }
 
@@ -614,4 +683,82 @@ fn chooseTransform(caps: vk.SurfaceCapabilitiesKHR) vk.SurfaceTransformFlagsKHR 
         return .{ .identity_bit_khr = true };
     }
     return caps.current_transform;
+}
+
+// --------------------------------------------------------------------------
+// Tests
+// --------------------------------------------------------------------------
+
+const testing = std.testing;
+
+fn testFormat(fmt: vk.Format, cs: vk.ColorSpaceKHR) SwapchainFormat {
+    return getSurfaceFormat(.{ .format = fmt, .color_space = cs });
+}
+
+test "HDR beats SDR regardless of enumeration order" {
+    const hdr = testFormat(.a2r10g10b10_unorm_pack32, .hdr10_st2084_ext);
+    const sdr = testFormat(.b8g8r8a8_unorm, .srgb_nonlinear_khr);
+
+    try testing.expectEqual(hdr.vk_color_space, betterFormat(hdr, sdr).vk_color_space);
+    try testing.expectEqual(hdr.vk_color_space, betterFormat(sdr, hdr).vk_color_space);
+}
+
+test "a PQ swapchain never takes an 8-bit format" {
+    // This is the real case: with the Wayland colour manager up, the HDR10 list
+    // starts with b8g8r8a8_srgb, so a plain first-wins tie-break picks 8 bits
+    // for a transfer function that spans 0.005 to 10000 nits.
+    const deep = testFormat(.a2r10g10b10_unorm_pack32, .hdr10_st2084_ext);
+    const shallow = testFormat(.b8g8r8a8_unorm, .hdr10_st2084_ext);
+
+    try testing.expectEqual(deep.vk_format, betterFormat(deep, shallow).vk_format);
+    try testing.expectEqual(deep.vk_format, betterFormat(shallow, deep).vk_format);
+}
+
+test "an _SRGB format is rejected outright under a non-sRGB transfer function" {
+    // An _SRGB view applies the OETF in hardware; the shader is already
+    // encoding PQ, so this pairing double-encodes. It is filtered rather than
+    // ranked — as a ranking rule it also let bt709_linear outrank sRGB, which
+    // silently changed the SDR pick.
+    const bad = testFormat(.b8g8r8a8_srgb, .hdr10_st2084_ext);
+    try testing.expect(bad.transfer_function != .sRGB and isSrgbFormat(bad.vk_format));
+
+    // The same format under an sRGB colour space is the normal, correct case.
+    const good = testFormat(.b8g8r8a8_srgb, .srgb_nonlinear_khr);
+    try testing.expect(good.transfer_function == .sRGB);
+}
+
+test "the SDR pick is unchanged by the HDR rules" {
+    // Regression guard: with the Wayland colour manager up the surface offers
+    // bt709_linear and bt2020_linear alongside sRGB, and none of them may
+    // displace the first sRGB entry when HDR was not opted into.
+    const srgb = testFormat(.b8g8r8a8_srgb, .srgb_nonlinear_khr);
+    const bt709 = testFormat(.b8g8r8a8_unorm, .bt709_linear_ext);
+
+    try testing.expect(!srgb.is_hdr and !bt709.is_hdr);
+    try testing.expectEqual(srgb.vk_format, betterFormat(bt709, srgb).vk_format);
+}
+
+test "sRGB swapchains still prefer the first format offered" {
+    // The bit-depth rule is scoped to HDR on purpose: letting it reach SDR
+    // would pull the choice to r16g16b16a16_unorm and lose the free sRGB view.
+    const first = testFormat(.b8g8r8a8_srgb, .srgb_nonlinear_khr);
+    const deeper = testFormat(.r16g16b16a16_unorm, .srgb_nonlinear_khr);
+
+    try testing.expectEqual(first.vk_format, betterFormat(deeper, first).vk_format);
+}
+
+test "64-bit render targets stay the last resort among HDR formats" {
+    const packed_10 = testFormat(.a2b10g10r10_unorm_pack32, .hdr10_st2084_ext);
+    const wide = testFormat(.r16g16b16a16_sfloat, .hdr10_st2084_ext);
+
+    try testing.expectEqual(packed_10.vk_format, betterFormat(wide, packed_10).vk_format);
+    try testing.expectEqual(packed_10.vk_format, betterFormat(packed_10, wide).vk_format);
+}
+
+test "channelBits ranks every format the chooser can see" {
+    try testing.expectEqual(@as(u8, 10), channelBits(.a2r10g10b10_unorm_pack32));
+    try testing.expectEqual(@as(u8, 8), channelBits(.b8g8r8a8_srgb));
+    try testing.expectEqual(@as(u8, 16), channelBits(.r16g16b16a16_sfloat));
+    // Unknown formats rank last rather than tripping an assert.
+    try testing.expectEqual(@as(u8, 0), channelBits(.undefined));
 }

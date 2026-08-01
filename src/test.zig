@@ -21,6 +21,7 @@ comptime {
     _ = @import("renderer/vulkan/renderpass/debug_geometry.zig");
     _ = @import("renderer/vulkan/renderpass/exposure.zig");
     _ = @import("renderer/vulkan/renderpass/histogram.zig");
+    _ = @import("renderer/vulkan/Swapchain.zig");
     _ = @import("renderer/vulkan/renderpass/forward.zig");
     _ = @import("renderer/vulkan/renderpass/gbuffer.zig");
     _ = @import("renderer/vulkan/renderpass/meshlet_culling.zig");

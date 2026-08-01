@@ -53,6 +53,7 @@ pub fn main_with_allocator(allocator: std.mem.Allocator, init: std.process.Init)
         \\    --screenshot <str>                Write the last presented frame to this PNG file.
         \\    --mesh <str>                      OBJ file to draw (placeholder scene until M5).
         \\    --raster-gbuffer                  Rasterize the G-buffer instead of filling it from the vis-buffer.
+        \\    --hdr                             Request an HDR10 (PQ) swapchain. Needs the display in HDR mode.
     );
 
     // Initialize our diagnostics, which can be used for reporting useful errors.
@@ -85,7 +86,13 @@ pub fn main_with_allocator(allocator: std.mem.Allocator, init: std.process.Init)
     // window size on a scaled display.
     const pixel_size = window.getSizeInPixels();
 
-    var backend = try VulkanBackend.init(allocator, &window, pixel_size.width, pixel_size.height);
+    var backend = try VulkanBackend.init(
+        allocator,
+        &window,
+        pixel_size.width,
+        pixel_size.height,
+        res.args.hdr != 0,
+    );
     defer backend.deinit();
 
     var resources = try BackendResources.init(
