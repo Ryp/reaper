@@ -600,7 +600,15 @@ fn addImGui(b: *std.Build, compile: *std.Build.Step.Compile) void {
     for (vulkanLibDirs(b)) |lib_dir| {
         compile.root_module.addLibraryPath(.{ .cwd_relative = lib_dir });
     }
-    compile.root_module.linkSystemLibrary("vulkan", .{});
+
+    // The import library is named libvulkan.so on Linux but vulkan-1.lib on
+    // Windows (the Vulkan SDK's loader ships as vulkan-1.dll) — same split
+    // the CMake build gets for free via find_package(Vulkan)'s Vulkan_LIBRARY.
+    const vulkan_lib_name = if (compile.root_module.resolved_target.?.result.os.tag == .windows)
+        "vulkan-1"
+    else
+        "vulkan";
+    compile.root_module.linkSystemLibrary(vulkan_lib_name, .{});
 
     compile.root_module.link_libc = true;
     compile.root_module.link_libcpp = true;
