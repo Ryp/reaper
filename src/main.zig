@@ -112,14 +112,18 @@ pub fn main_with_allocator(allocator: std.mem.Allocator, init: std.process.Init)
         // RenderDoc only has a default capture path when it launched the
         // process itself. Started from the app there is none, so
         // EndFrameCapture reports success and silently writes nothing.
-        // RenderDoc keeps the pointer, so it has to outlive this scope: the
-        // arena is the allocator that lives as long as the process here.
+        // Freed immediately: RenderDoc copies the string rather than keeping
+        // the pointer. The C entry point takes a const char* and hands it to
+        // RenderDoc::SetCaptureFileTemplate(const rdcstr&), which
+        // copy-assigns into m_CaptureFileTemplate (core.cpp:2141).
         const template = try std.fmt.allocPrintSentinel(
             allocator,
             "{s}",
             .{res.args.@"capture-path" orelse "reaper"},
             0,
         );
+        defer allocator.free(template);
+
         renderdoc.setCapturePathTemplate(template);
     }
 
