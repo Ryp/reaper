@@ -20,6 +20,7 @@
 // mirror REAPER_USE_RENDERDOC.
 
 const std = @import("std");
+const builtin = @import("builtin");
 const vk = @import("vulkan");
 const log = std.log.scoped(.renderdoc);
 
@@ -27,7 +28,20 @@ const log = std.log.scoped(.renderdoc);
 /// version, so asking for 1.4.0 works against a newer library.
 const api_version_1_4_0: c_int = 10400;
 
-const library_name = "librenderdoc.so";
+const library_name = switch (builtin.os.tag) {
+    .windows => "renderdoc.dll",
+    else => "librenderdoc.so",
+};
+
+// std.DynLib has no Windows backend in this std version and its kernel32
+// bindings do not cover library loading, so the load goes through kernel32
+// externs directly.
+const win = struct {
+    const HMODULE = *opaque {};
+    extern "kernel32" fn GetModuleHandleA(name: ?[*:0]const u8) callconv(.winapi) ?HMODULE;
+    extern "kernel32" fn LoadLibraryA(name: [*:0]const u8) callconv(.winapi) ?HMODULE;
+    extern "kernel32" fn GetProcAddress(module: HMODULE, name: [*:0]const u8) callconv(.winapi) ?*const anyopaque;
+};
 
 /// RENDERDOC_API_1_4_0 from renderdoc_app.h. Field ORDER is the ABI — the
 /// entries this file never calls still have to be here, in place, or every
@@ -72,22 +86,46 @@ pub fn isAvailable() bool {
     return api != null;
 }
 
+// The library is deliberately never closed, on any platform. Unloading
+// RenderDoc after it has hooked the process crashes; see RenderDoc.cpp:63.
+fn loadGetApi() ?GetApiFn {
+    switch (builtin.os.tag) {
+        .windows => {
+            // When the app is launched through qrenderdoc the DLL is already
+            // injected, and GetModuleHandle finds it without a second load.
+            // Otherwise try a PATH search, then the default install location —
+            // the same directory FindRenderDoc's RENDERDOC_ROOT points at.
+            const module = win.GetModuleHandleA(library_name) orelse
+                win.LoadLibraryA(library_name) orelse
+                win.LoadLibraryA("C:\\Program Files\\RenderDoc\\renderdoc.dll") orelse {
+                log.warn("could not load {s}; in-app capture is unavailable", .{library_name});
+                return null;
+            };
+            const sym = win.GetProcAddress(module, "RENDERDOC_GetAPI") orelse {
+                log.warn("{s} has no RENDERDOC_GetAPI", .{library_name});
+                return null;
+            };
+            return @ptrCast(sym);
+        },
+        else => {
+            var lib = std.DynLib.open(library_name) catch |err| {
+                log.warn("could not load {s} ({t}); in-app capture is unavailable", .{ library_name, err });
+                return null;
+            };
+            return lib.lookup(GetApiFn, "RENDERDOC_GetAPI") orelse {
+                log.warn("{s} has no RENDERDOC_GetAPI", .{library_name});
+                return null;
+            };
+        },
+    }
+}
+
 /// Mirrors start_integration. Call before creating the Vulkan instance.
 /// Returns false when RenderDoc is not installed, which is not an error.
 pub fn startIntegration() bool {
     std.debug.assert(api == null);
 
-    var lib = std.DynLib.open(library_name) catch |err| {
-        log.warn("could not load {s} ({t}); in-app capture is unavailable", .{ library_name, err });
-        return false;
-    };
-    // Deliberately not closed, here or at shutdown. Unloading RenderDoc after
-    // it has hooked the process crashes; see RenderDoc.cpp:63.
-
-    const get_api = lib.lookup(GetApiFn, "RENDERDOC_GetAPI") orelse {
-        log.warn("{s} has no RENDERDOC_GetAPI", .{library_name});
-        return false;
-    };
+    const get_api = loadGetApi() orelse return false;
 
     var loaded: ?*Api = null;
     if (get_api(api_version_1_4_0, &loaded) != 1 or loaded == null) {
