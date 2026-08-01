@@ -328,7 +328,7 @@ pub const VulkanBackend = struct {
         // reports — RADV's X11 surface offers two where its Wayland one offers
         // eighteen — so the driver in use is part of understanding any
         // swapchain format decision below.
-        const display_hdr_enabled = window.isDisplayHdrEnabled();
+        const display_hdr_enabled = window.isHdrEnabled();
         log.info("video driver = {s}, display HDR = {}, pixel density = {d:.2}", .{
             window.getVideoDriverName(),
             display_hdr_enabled,

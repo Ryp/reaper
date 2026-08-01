@@ -7,12 +7,13 @@ build; the C++ build shares the swapchain logic but has none of the fixes.
 ## Using it
 
 ```bash
-zig build run -- --hdr
+zig build run
 ```
 
-Off by default. With `--hdr` the format chooser takes
-`VK_COLOR_SPACE_HDR10_ST2084_EXT` and the composite shader encodes PQ; without
-it, HDR colour spaces are filtered out of the candidate list entirely.
+**Follows the display by default.** If the output is in HDR mode the format
+chooser takes `VK_COLOR_SPACE_HDR10_ST2084_EXT` and the composite shader
+encodes PQ; otherwise HDR colour spaces are filtered out of the candidate list
+entirely. `--hdr` and `--no-hdr` force it either way.
 
 `--swapchain-format <name>` forces a specific format/colour-space pair through
 the preferred-format short-circuit, for comparing two of them on the same
@@ -47,33 +48,53 @@ it is the opposite. The Wayland WSI spec defines it as attaching *no* image
 description to the surface, so the compositor falls back to assuming sRGB. The
 format chooser filters those entries out and loses nothing by it.
 
-## Why it is opt-in rather than detected
+## Detecting whether the display is in HDR mode
 
-The compositor advertises PQ and BT.2020 as soon as it can **convert** them,
-not when the output is in HDR mode. Take them on an SDR output and the shader
-tone-maps to PQ purely so the compositor can tone-map back down — two passes,
-worse than sending sRGB. Since the ranking puts `is_hdr` first, HDR formats had
-to be filtered out rather than merely ranked below SDR.
+The colour-space list cannot answer this. The compositor advertises PQ and
+BT.2020 as soon as it can **convert** them, not when the output is in HDR mode.
+Take them on an SDR output and the shader tone-maps to PQ purely so the
+compositor can tone-map back down — two passes, worse than sending sRGB. Since
+the ranking puts `is_hdr` first, HDR formats are filtered out rather than merely
+ranked below SDR.
 
-So the opt-in is a policy choice, not a detection failure — which is a
-correction to an earlier version of this document.
+**SDL answers it, via the DISPLAY property.**
+`SDL_PROP_DISPLAY_HDR_ENABLED_BOOLEAN` is derived from `HDR_headroom > 1.0`
+(`SDL_video.c:890`), which SDL's Wayland backend fills from
+`wp_color_manager_v1`'s luminances event as `max_lum / reference_lum`
+(`SDL_waylandcolor.c:174`).
 
-**SDL can answer, on Wayland.** `SDL_PROP_DISPLAY_HDR_ENABLED_BOOLEAN` is
-derived from `HDR_headroom > 1.0` (`SDL_video.c:890`), and SDL's Wayland
-backend does populate it: `SDL_waylandcolor.c:174` sets it from
-`wp_color_manager_v1`'s luminances event as `max_lum / reference_lum`, and
-`SDL_waylandwindow.c:1688` does the same via the frog protocol at
-`max_luminance / 203.0`. Observed working: it reports false with `hdr off` on
-the output and true with `hdr on`. `window.isDisplayHdrEnabled()` is therefore
-usable as a gate, and `--hdr` could reasonably default to it.
+**Not the window property**, which looks like the better choice and is not.
+`SDL_PROP_WINDOW_HDR_ENABLED_BOOLEAN` reports what SDL has configured *that
+window's surface* for, and since the swapchain is driven through Vulkan
+directly SDL is never told we want HDR. Measured side by side with
+`output DP-1 hdr on`:
+
+```
+window:  has=true val=false headroom=1.000
+display: has=true val=true
+```
+
+`SDL_PROP_WINDOW_HDR_HEADROOM_FLOAT` is clamped to 1.0 for the same reason, so
+it is not usable as a display-capability signal either — which is a shame,
+because it is otherwise exactly the number `tonemap_max_nits` wants.
+
+Verified across all four combinations:
+
+| sway `hdr` | flags | result |
+|---|---|---|
+| on | none | HDR, `a2r10g10b10_unorm_pack32` / `HDR10_ST2084` |
+| on | `--no-hdr` | SDR, `b8g8r8a8_srgb` / `SRGB_NONLINEAR` |
+| off | none | SDR |
+| off | `--hdr` | HDR (forced; the compositor will tone-map it back down) |
+
+X11 reports SDR, correctly — there is no colour manager there at all.
 
 **Vulkan still cannot answer.** A colour space says which transfer function the
 swapchain expects; nothing in Vulkan reports the display's peak luminance.
 `VK_EXT_hdr_metadata` is write-only by design. For the actual nits, bind
-`wp_color_manager_v1` (live at v2 on a working setup) and call
-`get_surface_feedback` → `get_preferred` → `get_information` for
-`target_luminance`, `target_max_cll` and `target_max_fall` — or read SDL's
-headroom, which is that same data already parsed.
+`wp_color_manager_v1` and call `get_surface_feedback` → `get_preferred` →
+`get_information` for `target_luminance`, `target_max_cll` and
+`target_max_fall`.
 
 ## Format selection
 

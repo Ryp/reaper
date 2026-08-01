@@ -12,6 +12,7 @@ const window_module = @import("renderer/window/window.zig");
 const BackendResources = @import("renderer/vulkan/backend_resources.zig").BackendResources;
 
 const scene_module = @import("renderer/scene.zig");
+const log = std.log.scoped(.main);
 const vk_types = @import("vulkan");
 
 pub const VulkanBackend = @import("renderer/vulkan/Backend.zig").VulkanBackend;
@@ -80,7 +81,8 @@ pub fn main_with_allocator(allocator: std.mem.Allocator, init: std.process.Init)
         \\    --screenshot <str>                Write the last presented frame to this PNG file.
         \\    --mesh <str>                      OBJ file to draw (placeholder scene until M5).
         \\    --raster-gbuffer                  Rasterize the G-buffer instead of filling it from the vis-buffer.
-        \\    --hdr                             Request an HDR10 (PQ) swapchain. Needs the display in HDR mode.
+        \\    --hdr                             Force an HDR10 (PQ) swapchain, even if the display reports SDR.
+        \\    --no-hdr                          Force SDR, even if the display reports HDR.
         \\    --swapchain-format <str>          Debug: force a format/colorspace pair, e.g. "a2r10g10b10_pq".
         \\    --renderdoc                       Load RenderDoc in-process, enabling its capture keys.
         \\    --capture-frame <u32>             With --renderdoc, capture this frame and write a .rdc.
@@ -135,12 +137,33 @@ pub fn main_with_allocator(allocator: std.mem.Allocator, init: std.process.Init)
     // window size on a scaled display.
     const pixel_size = window.getSizeInPixels();
 
+    // Default to what the output is actually doing. The compositor offers PQ
+    // as soon as it can convert it, so picking HDR off the format list alone
+    // would tone-map to PQ on an SDR output purely for the compositor to
+    // tone-map back down. SDL fills this from wp_color_manager_v1.
+    const hdr_forced_on = res.args.hdr != 0;
+    const hdr_forced_off = res.args.@"no-hdr" != 0;
+
+    if (hdr_forced_on and hdr_forced_off) {
+        log.err("--hdr and --no-hdr are mutually exclusive", .{});
+        return error.ConflictingHdrFlags;
+    }
+
+    const display_hdr = window.isHdrEnabled();
+    const prefer_hdr = if (hdr_forced_on) true else if (hdr_forced_off) false else display_hdr;
+
+    log.info("display HDR = {} -> swapchain {s} ({s})", .{
+        display_hdr,
+        if (prefer_hdr) "HDR" else "SDR",
+        if (hdr_forced_on or hdr_forced_off) "forced" else "auto",
+    });
+
     var backend = try VulkanBackend.init(
         allocator,
         &window,
         pixel_size.width,
         pixel_size.height,
-        res.args.hdr != 0,
+        prefer_hdr,
         parseForcedFormat(res.args.@"swapchain-format"),
     );
     defer backend.deinit();

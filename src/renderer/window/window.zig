@@ -240,19 +240,28 @@ pub const Window = struct {
         return (sdl.SDL_GetWindowFlags(self.handle) & sdl.SDL_WINDOW_MINIMIZED) != 0;
     }
 
-    /// Whether the display this window is on is actually in HDR mode.
+    /// Whether this window's output is actually in HDR mode.
     ///
     /// Nothing in Vulkan answers this. A surface's VkColorSpaceKHR says which
     /// colour space a swapchain would be interpreted in, not which one the
-    /// display is currently configured for — an HDR10 format is offered
-    /// whether or not the user has HDR switched on. The swapchain code infers
-    /// `is_hdr` from the colour space it picked, so this is the only way to
-    /// tell that inference apart from the truth.
+    /// display is currently configured for — the compositor offers HDR10 as
+    /// soon as it can *convert* it, whether or not HDR is switched on.
     ///
-    /// SDL 3.4 exposes the SDR white point and HDR headroom only on
-    /// SDL_Renderer, which this project does not use, so the luminance values
-    /// driving tone mapping stay hardcoded — see PresentationInfo.
-    pub fn isDisplayHdrEnabled(self: *Window) bool {
+    /// SDL fills this in from wp_color_manager_v1's luminance range
+    /// (SDL_waylandcolor.c:174), so it does track the compositor. The
+    /// per-window property is used rather than the per-display one because it
+    /// is the window's own output that matters when they differ.
+    pub fn isHdrEnabled(self: *Window) bool {
+        // The DISPLAY property, not the window one. The window property
+        // reports what SDL has configured that window's surface for, and since
+        // the swapchain is driven through Vulkan directly SDL is never told we
+        // want HDR — it reads false with headroom 1.0 even on an output that
+        // is in HDR mode. Verified side by side: window has=true val=false,
+        // display has=true val=true, with `output DP-1 hdr on`.
+        //
+        // SDL fills the display property from wp_color_manager_v1's image
+        // description for the output (SDL_waylandcolor.c:174), which is
+        // exactly the question being asked here.
         const display = sdl.SDL_GetDisplayForWindow(self.handle);
         if (display == 0) return false;
 
@@ -260,6 +269,21 @@ pub const Window = struct {
             sdl.SDL_GetDisplayProperties(display),
             sdl.SDL_PROP_DISPLAY_HDR_ENABLED_BOOLEAN,
             false,
+        );
+    }
+
+    /// Reported HDR headroom for this window, or 1.0 when there is none.
+    ///
+    /// NOTE: this is window-scoped and shares the caveat above — SDL clamps it
+    /// to 1.0 for a window it has not put into an HDR colour space, which is
+    /// every window here. Kept because it is the shape the real number will
+    /// take once the luminance range is read from wp_color_manager_v1
+    /// directly, but it is not usable as a display-capability signal today.
+    pub fn getHdrHeadroom(self: *Window) f32 {
+        return sdl.SDL_GetFloatProperty(
+            sdl.SDL_GetWindowProperties(self.handle),
+            sdl.SDL_PROP_WINDOW_HDR_HEADROOM_FLOAT,
+            1.0,
         );
     }
 

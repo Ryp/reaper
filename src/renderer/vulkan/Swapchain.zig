@@ -61,7 +61,7 @@ pub const SwapchainDescriptor = struct {
     /// compositor to tone-map back down — two passes, worse than sending sRGB.
     ///
     /// Not auto-detected, but that is a policy choice rather than a limitation:
-    /// window.isDisplayHdrEnabled() does track the compositor (SDL fills it
+    /// window.isHdrEnabled() does track the compositor (SDL fills it
     /// from wp_color_manager_v1's luminance range, SDL_waylandcolor.c:174), so
     /// gating on it would work. Left explicit so a display capable of HDR does
     /// not silently change how the frame is encoded.
