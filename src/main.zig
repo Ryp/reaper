@@ -11,6 +11,7 @@ const window_module = @import("renderer/window/window.zig");
 const BackendResources = @import("renderer/vulkan/backend_resources.zig").BackendResources;
 
 const scene_module = @import("renderer/scene.zig");
+const vk_types = @import("vulkan");
 
 pub const VulkanBackend = @import("renderer/vulkan/Backend.zig").VulkanBackend;
 
@@ -38,6 +39,31 @@ pub fn main(init: std.process.Init) !void {
     }
 }
 
+/// Debug-only shorthands for --swapchain-format. Only the pairings worth
+/// A/B-ing are here; anything else is a startup error rather than a silent
+/// fallback, since a typo would otherwise look like the heuristic misbehaving.
+fn parseForcedFormat(name: ?[]const u8) ?vk_types.SurfaceFormatKHR {
+    const n = name orelse return null;
+
+    const table = .{
+        .{ "a2r10g10b10_pq", vk_types.Format.a2r10g10b10_unorm_pack32, vk_types.ColorSpaceKHR.hdr10_st2084_ext },
+        .{ "a2b10g10r10_pq", vk_types.Format.a2b10g10r10_unorm_pack32, vk_types.ColorSpaceKHR.hdr10_st2084_ext },
+        .{ "rgba16f_pq", vk_types.Format.r16g16b16a16_sfloat, vk_types.ColorSpaceKHR.hdr10_st2084_ext },
+        .{ "rgba16_pq", vk_types.Format.r16g16b16a16_unorm, vk_types.ColorSpaceKHR.hdr10_st2084_ext },
+        .{ "bgra8_pq", vk_types.Format.b8g8r8a8_unorm, vk_types.ColorSpaceKHR.hdr10_st2084_ext },
+        .{ "rgba16f_scrgb", vk_types.Format.r16g16b16a16_sfloat, vk_types.ColorSpaceKHR.bt2020_linear_ext },
+        .{ "bgra8_srgb", vk_types.Format.b8g8r8a8_srgb, vk_types.ColorSpaceKHR.srgb_nonlinear_khr },
+    };
+
+    inline for (table) |entry| {
+        if (std.mem.eql(u8, n, entry[0])) {
+            return .{ .format = entry[1], .color_space = entry[2] };
+        }
+    }
+
+    std.debug.panic("unknown --swapchain-format '{s}'", .{n});
+}
+
 pub fn main_with_allocator(allocator: std.mem.Allocator, init: std.process.Init) !void {
     const tr = tracy.trace(@src());
     defer tr.end();
@@ -54,6 +80,7 @@ pub fn main_with_allocator(allocator: std.mem.Allocator, init: std.process.Init)
         \\    --mesh <str>                      OBJ file to draw (placeholder scene until M5).
         \\    --raster-gbuffer                  Rasterize the G-buffer instead of filling it from the vis-buffer.
         \\    --hdr                             Request an HDR10 (PQ) swapchain. Needs the display in HDR mode.
+        \\    --swapchain-format <str>          Debug: force a format/colorspace pair, e.g. "a2r10g10b10_pq".
     );
 
     // Initialize our diagnostics, which can be used for reporting useful errors.
@@ -92,6 +119,7 @@ pub fn main_with_allocator(allocator: std.mem.Allocator, init: std.process.Init)
         pixel_size.width,
         pixel_size.height,
         res.args.hdr != 0,
+        parseForcedFormat(res.args.@"swapchain-format"),
     );
     defer backend.deinit();
 

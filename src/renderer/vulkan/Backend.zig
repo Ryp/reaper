@@ -108,6 +108,9 @@ pub const VulkanBackend = struct {
         window_width: u32,
         window_height: u32,
         prefer_hdr: bool,
+        /// Debug override: skips the heuristic entirely via the preferred-format
+        /// short-circuit, so a specific pairing can be compared against another.
+        forced_format: ?vk.SurfaceFormatKHR,
     ) !VulkanBackend {
         log.info("creating backend", .{});
 
@@ -334,7 +337,8 @@ pub const VulkanBackend = struct {
 
         const swapchain_desc = Swapchain.SwapchainDescriptor{
             .preferred_image_count = 3,
-            .preferred_format = .{ .format = .undefined, .color_space = .srgb_nonlinear_khr },
+            .preferred_format = forced_format orelse
+                .{ .format = .undefined, .color_space = .srgb_nonlinear_khr },
             .preferred_extent = .{ .width = window_width, .height = window_height },
             .prefer_hdr = prefer_hdr,
         };
