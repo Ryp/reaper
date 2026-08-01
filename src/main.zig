@@ -6,6 +6,7 @@ const tracy = @import("tracy.zig");
 
 const execute_frame = @import("renderer/vulkan/execute_frame.zig");
 const gpu_scope = @import("renderer/vulkan/gpu_scope.zig");
+const renderdoc = @import("renderer/renderdoc.zig");
 const game_loop = @import("game_loop.zig");
 const window_module = @import("renderer/window/window.zig");
 const BackendResources = @import("renderer/vulkan/backend_resources.zig").BackendResources;
@@ -81,6 +82,8 @@ pub fn main_with_allocator(allocator: std.mem.Allocator, init: std.process.Init)
         \\    --raster-gbuffer                  Rasterize the G-buffer instead of filling it from the vis-buffer.
         \\    --hdr                             Request an HDR10 (PQ) swapchain. Needs the display in HDR mode.
         \\    --swapchain-format <str>          Debug: force a format/colorspace pair, e.g. "a2r10g10b10_pq".
+        \\    --renderdoc                       Load RenderDoc in-process, enabling its capture keys.
+        \\    --capture-frame <u32>             With --renderdoc, capture this frame and write a .rdc.
     );
 
     // Initialize our diagnostics, which can be used for reporting useful errors.
@@ -99,6 +102,13 @@ pub fn main_with_allocator(allocator: std.mem.Allocator, init: std.process.Init)
 
     if (res.args.help != 0) {
         return clap.usageToFile(init.io, .stdout(), clap.Help, &params);
+    }
+
+    // Before VulkanBackend.init on purpose: RenderDoc inserts its capture layer
+    // at instance creation, so loading it afterwards yields a library that is
+    // present and hooked into nothing.
+    if (res.args.renderdoc != 0) {
+        _ = renderdoc.startIntegration();
     }
 
     var window = try window_module.Window.init(.{
@@ -183,5 +193,6 @@ pub fn main_with_allocator(allocator: std.mem.Allocator, init: std.process.Init)
     try game_loop.run(allocator, init.io, &window, &backend, &resources, &scene, .{
         .frame_count = res.args.@"frame-count",
         .screenshot_path = res.args.screenshot,
+        .capture_frame = res.args.@"capture-frame",
     });
 }

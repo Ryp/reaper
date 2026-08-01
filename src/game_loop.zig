@@ -17,6 +17,7 @@ const execute_frame = @import("renderer/vulkan/execute_frame.zig");
 const imgui = @import("renderer/imgui.zig");
 const scene_module = @import("renderer/scene.zig");
 const screenshot = @import("renderer/vulkan/screenshot.zig");
+const renderdoc = @import("renderer/renderdoc.zig");
 const window_module = @import("renderer/window/window.zig");
 const BackendResources = @import("renderer/vulkan/backend_resources.zig").BackendResources;
 const VulkanBackend = @import("renderer/vulkan/Backend.zig").VulkanBackend;
@@ -36,6 +37,10 @@ pub const Options = struct {
     /// Dump the last frame here before quitting. Requires frame_count, since
     /// the capture has to be recorded into that frame's command buffer.
     screenshot_path: ?[]const u8 = null,
+    /// Wrap this frame in a RenderDoc capture. 1-based, matching frame_count.
+    /// Needs --renderdoc, since the library has to be loaded before the Vulkan
+    /// instance exists and that decision is made long before this runs.
+    capture_frame: ?u32 = null,
 };
 
 pub fn run(
@@ -50,6 +55,11 @@ pub fn run(
     if (options.screenshot_path != null and options.frame_count == null) {
         log.err("--screenshot needs --frame-count to know which frame to capture", .{});
         return error.MissingFrameCount;
+    }
+
+    if (options.capture_frame != null and !renderdoc.isAvailable()) {
+        log.err("--capture-frame needs --renderdoc, and RenderDoc has to be installed", .{});
+        return error.RenderDocUnavailable;
     }
 
     var events: std.ArrayList(window_module.Event) = .empty;
@@ -181,6 +191,16 @@ pub fn run(
                 backend.present_info.swapchain_format.vk_view_format,
             );
         }
+
+        // Brackets the whole frame including the present, so the capture holds
+        // the swapchain image the compositor actually received.
+        const is_renderdoc_frame = options.capture_frame != null and
+            presented_frame_count + 1 == options.capture_frame.?;
+
+        if (is_renderdoc_frame) {
+            renderdoc.startCapture(backend.instance);
+        }
+        defer if (is_renderdoc_frame) renderdoc.endCapture(backend.instance);
 
         // A frame failing is not fatal: log it and try the next one, same as
         // the C++ loop's log-and-continue behavior.
