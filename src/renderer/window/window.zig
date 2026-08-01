@@ -5,6 +5,7 @@
 // renderer code (same split as IWindow / WaylandWindow on the C++ side).
 
 const std = @import("std");
+const builtin = @import("builtin");
 const sdl = @import("sdl.zig").c;
 const log = std.log.scoped(.window);
 
@@ -97,14 +98,19 @@ pub const Window = struct {
 
     /// Initializes the SDL video subsystem and opens a Vulkan-capable window.
     pub fn init(desc: CreationDescriptor) !Window {
-        // Prefer Wayland, which is what the C++ window backend uses. This is
-        // not cosmetic: the WSI a surface is created through decides which
-        // formats it reports, and on RADV the X11 one offers two where the
-        // Wayland one offers eighteen — so the two builds would otherwise pick
-        // different swapchain formats and render differently. X11 stays as a
-        // fallback, and SDL_VIDEO_DRIVER in the environment still wins over
-        // this, since SDL_SetHint does not override an explicit user setting.
-        _ = sdl.SDL_SetHint(sdl.SDL_HINT_VIDEO_DRIVER, "wayland,x11");
+        // On Linux, prefer Wayland, which is what the C++ window backend uses.
+        // This is not cosmetic: the WSI a surface is created through decides
+        // which formats it reports, and on RADV the X11 one offers two where
+        // the Wayland one offers eighteen — so the two builds would otherwise
+        // pick different swapchain formats and render differently. X11 stays
+        // as a fallback, and SDL_VIDEO_DRIVER in the environment still wins
+        // over this, since SDL_SetHint does not override an explicit user
+        // setting. Other platforms keep SDL's own driver choice: the hint is
+        // an allowlist, so naming only Unix drivers here would make SDL_Init
+        // fail outright on Windows.
+        if (builtin.os.tag == .linux) {
+            _ = sdl.SDL_SetHint(sdl.SDL_HINT_VIDEO_DRIVER, "wayland,x11");
+        }
 
         if (!sdl.SDL_Init(sdl.SDL_INIT_VIDEO)) {
             log.err("SDL_Init failed: {s}", .{sdl.SDL_GetError()});
