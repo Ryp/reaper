@@ -60,11 +60,11 @@ pub const SwapchainDescriptor = struct {
     /// them while the output is SDR and the shader tone-maps to PQ only for the
     /// compositor to tone-map back down — two passes, worse than sending sRGB.
     ///
-    /// Auto-detection is not currently possible here. SDL derives its HDR
-    /// property from HDR_headroom (SDL_video.c:890) and its Wayland backend
-    /// never sets it, so the display always reads as SDR. Answering this
-    /// honestly means asking wp_color_manager_v1 for the surface's preferred
-    /// image description, which is its own project.
+    /// Not auto-detected, but that is a policy choice rather than a limitation:
+    /// window.isDisplayHdrEnabled() does track the compositor (SDL fills it
+    /// from wp_color_manager_v1's luminance range, SDL_waylandcolor.c:174), so
+    /// gating on it would work. Left explicit so a display capable of HDR does
+    /// not silently change how the frame is encoded.
     prefer_hdr: bool = false,
 };
 

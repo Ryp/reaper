@@ -51,12 +51,13 @@ pub fn backendDebugUi(backend: *VulkanBackend) void {
 
         imgui.beginDisabled(true);
         _ = imgui.checkbox("HDR Swapchain", &swapchain_format.is_hdr);
-        // SDL derives this from HDR_headroom (SDL_video.c:890) and its Wayland
-        // backend never sets it, so on Wayland it is always false regardless of
-        // the compositor's actual state. Labelled as SDL's answer rather than
-        // the display's so it cannot be mistaken for ground truth.
+        // Whether the display is actually in HDR mode, which the swapchain's
+        // own is_hdr does not tell you — the compositor offers PQ as soon as it
+        // can convert it. SDL fills this from wp_color_manager_v1's luminance
+        // range on Wayland (SDL_waylandcolor.c:174), so it does track the
+        // compositor rather than being a stub.
         var display_hdr = backend.display_hdr_enabled;
-        _ = imgui.checkbox("HDR Display (per SDL; unreliable on Wayland)", &display_hdr);
+        _ = imgui.checkbox("HDR Display (reported)", &display_hdr);
         imgui.endDisabled();
 
         _ = imgui.checkbox("Freeze culling [BROKEN]", &backend.options.freeze_meshlet_culling); // FIXME

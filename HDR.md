@@ -55,22 +55,25 @@ tone-maps to PQ purely so the compositor can tone-map back down — two passes,
 worse than sending sRGB. Since the ranking puts `is_hdr` first, HDR formats had
 to be filtered out rather than merely ranked below SDR.
 
-Auto-detection is not currently possible:
+So the opt-in is a policy choice, not a detection failure — which is a
+correction to an earlier version of this document.
 
-- **SDL cannot answer.** `SDL_PROP_DISPLAY_HDR_ENABLED_BOOLEAN` is derived from
-  `HDR_headroom > 1.0` (`SDL_video.c:890`) and SDL's Wayland backend never sets
-  `HDR_headroom`. It reads false regardless of the compositor's actual state.
-  The Rendering window shows it, labelled as SDL's answer rather than the
-  display's, precisely so it is not mistaken for ground truth.
-- **Vulkan cannot answer.** A colour space says which transfer function the
-  swapchain expects; nothing in Vulkan reports the display's peak luminance.
-  `VK_EXT_hdr_metadata` is write-only by design.
+**SDL can answer, on Wayland.** `SDL_PROP_DISPLAY_HDR_ENABLED_BOOLEAN` is
+derived from `HDR_headroom > 1.0` (`SDL_video.c:890`), and SDL's Wayland
+backend does populate it: `SDL_waylandcolor.c:174` sets it from
+`wp_color_manager_v1`'s luminances event as `max_lum / reference_lum`, and
+`SDL_waylandwindow.c:1688` does the same via the frog protocol at
+`max_luminance / 203.0`. Observed working: it reports false with `hdr off` on
+the output and true with `hdr on`. `window.isDisplayHdrEnabled()` is therefore
+usable as a gate, and `--hdr` could reasonably default to it.
 
-The real answer means binding `wp_color_manager_v1` (live at v2 on a working
-setup) and calling `get_surface_feedback` → `get_preferred` →
-`get_information`, which returns `target_luminance`, `target_max_cll` and
-`target_max_fall`. That is a Wayland client alongside the Vulkan one, and is
-not written.
+**Vulkan still cannot answer.** A colour space says which transfer function the
+swapchain expects; nothing in Vulkan reports the display's peak luminance.
+`VK_EXT_hdr_metadata` is write-only by design. For the actual nits, bind
+`wp_color_manager_v1` (live at v2 on a working setup) and call
+`get_surface_feedback` → `get_preferred` → `get_information` for
+`target_luminance`, `target_max_cll` and `target_max_fall` — or read SDL's
+headroom, which is that same data already parsed.
 
 ## Format selection
 
@@ -187,34 +190,60 @@ off, capture, and toggle back. For this engine's own output the in-app readback
 above is the better path anyway — we control the swapchain format and know the
 transfer function a priori, so there is nothing to negotiate.
 
-### RenderDoc and HDR are mutually exclusive
+### RenderDoc needs a custom build, then it works
 
-RenderDoc's Vulkan layer has no `VK_KHR_wayland_surface`. Loading it — whether
-by launching from qrenderdoc or via `--renderdoc` — makes `SDL_CreateWindow`
-fail on a Wayland session:
+A **stock distro RenderDoc cannot capture on Wayland at all.** Its Vulkan layer
+is built without `VK_KHR_wayland_surface`, so loading it — whether by launching
+from qrenderdoc or via `--renderdoc` — makes `SDL_CreateWindow` fail:
 
 ```
 Installed Vulkan doesn't implement the VK_KHR_wayland_surface extension
 ```
 
-`SDL_VIDEODRIVER=x11` works and is how the RenderDoc integration was verified,
-but an X11 surface offers no HDR colour spaces — only sRGB. So captures are
-SDR-only.
+`SDL_VIDEODRIVER=x11` sidesteps that, but an X11 surface offers no HDR colour
+spaces, so captures are SDR-only that way.
 
-RenderDoc does have an opt-in Wayland build:
+The support exists behind an opt-in build flag:
 
 ```
 option(ENABLE_UNSUPPORTED_EXPERIMENTAL_POSSIBLY_BROKEN_WAYLAND
        "Enable EXPERIMENTAL, POSSIBLY BROKEN, UNSUPPORTED wayland windowing support" OFF)
 ```
 
-Default off, and Arch's `renderdoc` package does not set it — the installed
-library carries the "support is not compiled in" error strings and does not
-link `libwayland`. Building it locally with `-DENABLE_QRENDERDOC=OFF` and
-pointing `LD_LIBRARY_PATH` at the result would test it without replacing the
-system package, since `renderdoc.zig` resolves by soname. Whether the capture
-layer then handles an `HDR10_ST2084` swapchain is a separate question and
-untested.
+Arch's package does not set it — the installed library carries the "support is
+not compiled in" strings and does not link `libwayland`. Built locally it does
+work, including on an HDR10 swapchain:
+
+```sh
+cmake -S . -B build-wayland -G Ninja -DCMAKE_BUILD_TYPE=Release \
+  -DENABLE_UNSUPPORTED_EXPERIMENTAL_POSSIBLY_BROKEN_WAYLAND=ON \
+  -DENABLE_QRENDERDOC=OFF -DENABLE_PYRENDERDOC=OFF
+ninja -C build-wayland renderdoc
+```
+
+Then point both the loader and our `dlopen` at it. Copy
+`build-wayland/lib/renderdoc_capture.json` somewhere writable and edit
+`library_path` to the built `.so` — the generated one points at the install
+prefix, not the build tree:
+
+```sh
+VK_IMPLICIT_LAYER_PATH=<dir with the edited manifest> \
+ENABLE_VULKAN_RENDERDOC_CAPTURE=1 \
+LD_LIBRARY_PATH=<build-wayland/lib> \
+  ./zig-out/bin/reaper --hdr --renderdoc --capture-path /tmp/hdr \
+    --frame-count 20 --capture-frame 15
+```
+
+`VK_IMPLICIT_LAYER_PATH` replaces the implicit-layer search rather than adding
+to it, which is what keeps the system RenderDoc from also loading — two copies
+in one process is the failure mode to avoid. Verified: a 58 MB capture off an
+`a2r10g10b10_unorm_pack32` / `HDR10_ST2084` swapchain, carrying the pass debug
+labels.
+
+Note `--capture-path`. RenderDoc only has a default capture path when it
+launched the process itself; driven from the app there is none, and
+`EndFrameCapture` reports success while writing nothing. The C++ never set a
+template because it was always used via the launcher.
 
 ### The desktop is too bright, and that is not this engine
 

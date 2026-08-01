@@ -84,6 +84,7 @@ pub fn main_with_allocator(allocator: std.mem.Allocator, init: std.process.Init)
         \\    --swapchain-format <str>          Debug: force a format/colorspace pair, e.g. "a2r10g10b10_pq".
         \\    --renderdoc                       Load RenderDoc in-process, enabling its capture keys.
         \\    --capture-frame <u32>             With --renderdoc, capture this frame and write a .rdc.
+        \\    --capture-path <str>              Capture filename template; RenderDoc appends frame + .rdc.
     );
 
     // Initialize our diagnostics, which can be used for reporting useful errors.
@@ -107,8 +108,19 @@ pub fn main_with_allocator(allocator: std.mem.Allocator, init: std.process.Init)
     // Before VulkanBackend.init on purpose: RenderDoc inserts its capture layer
     // at instance creation, so loading it afterwards yields a library that is
     // present and hooked into nothing.
-    if (res.args.renderdoc != 0) {
-        _ = renderdoc.startIntegration();
+    if (res.args.renderdoc != 0 and renderdoc.startIntegration()) {
+        // RenderDoc only has a default capture path when it launched the
+        // process itself. Started from the app there is none, so
+        // EndFrameCapture reports success and silently writes nothing.
+        // RenderDoc keeps the pointer, so it has to outlive this scope: the
+        // arena is the allocator that lives as long as the process here.
+        const template = try std.fmt.allocPrintSentinel(
+            allocator,
+            "{s}",
+            .{res.args.@"capture-path" orelse "reaper"},
+            0,
+        );
+        renderdoc.setCapturePathTemplate(template);
     }
 
     var window = try window_module.Window.init(.{
