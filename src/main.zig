@@ -5,6 +5,7 @@ const clap = @import("clap");
 const tracy = @import("tracy.zig");
 
 const execute_frame = @import("renderer/vulkan/execute_frame.zig");
+const gpu_scope = @import("renderer/vulkan/gpu_scope.zig");
 const game_loop = @import("game_loop.zig");
 const window_module = @import("renderer/window/window.zig");
 const BackendResources = @import("renderer/vulkan/backend_resources.zig").BackendResources;
@@ -97,6 +98,8 @@ pub fn main_with_allocator(allocator: std.mem.Allocator, init: std.process.Init)
             .max_draw_indirect_count = backend.physical_device.properties.limits.max_draw_indirect_count,
             .min_storage_buffer_offset_alignment = backend.physical_device.properties.limits.min_storage_buffer_offset_alignment,
             .io = init.io,
+            .physical_device_properties = backend.physical_device.properties,
+            .graphics_queue_timestamp_valid_bits = backend.physical_device.graphics_queue_timestamp_valid_bits,
         },
         backend.present_info.swapchain_format,
         allocator,
@@ -111,6 +114,20 @@ pub fn main_with_allocator(allocator: std.mem.Allocator, init: std.process.Init)
     // Mirrors renderer_start(): the font atlas has to be on the GPU before the
     // first GUI pass records anything.
     try execute_frame.uploadImGuiFonts(&backend, &resources);
+
+    // Needs a real submit to read the GPU clock, so it goes after the device is
+    // up and before any frame is recorded. Registering the profiler is what
+    // switches the scopes in every pass from label-only to label + GPU zone.
+    try resources.gpu_profiler.createTracyContext(
+        backend.vkd,
+        backend.device,
+        backend.graphics_queue,
+        resources.gfx_cmd_buffer.handle,
+        resources.gfx_command_pool,
+        backend.physical_device.properties,
+    );
+    gpu_scope.setProfiler(&resources.gpu_profiler);
+    defer gpu_scope.setProfiler(null);
 
     var scene = try scene_module.createGameScene(
         allocator,

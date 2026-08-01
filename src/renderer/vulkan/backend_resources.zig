@@ -14,6 +14,7 @@ const exposure = @import("renderpass/exposure.zig");
 const frame_sync = @import("frame_sync.zig");
 const forward = @import("renderpass/forward.zig");
 const gbuffer = @import("renderpass/gbuffer.zig");
+const gpu_profiler_module = @import("gpu_profiler.zig");
 const gui = @import("renderpass/gui.zig");
 const histogram = @import("renderpass/histogram.zig");
 const lighting = @import("renderpass/lighting.zig");
@@ -44,6 +45,9 @@ pub const InitParams = struct {
     min_storage_buffer_offset_alignment: u64,
     /// The tiled raster pass loads its proxy volume mesh from disk at init.
     io: std.Io,
+    /// Both needed to size and validate the Tracy timestamp query pool.
+    physical_device_properties: vk.PhysicalDeviceProperties,
+    graphics_queue_timestamp_valid_bits: u32,
 };
 
 /// Matches the C++ frame storage allocator size.
@@ -53,6 +57,7 @@ const log = std.log.scoped(.vulkan);
 pub const BackendResources = struct {
     gfx_command_pool: vk.CommandPool,
     gfx_cmd_buffer: CommandBuffer,
+    gpu_profiler: gpu_profiler_module.GpuProfiler,
 
     frame_sync_resources: frame_sync.FrameSyncResources,
     framegraph_resources: FrameGraphResources,
@@ -117,6 +122,19 @@ pub const BackendResources = struct {
 
         const frame_sync_resources = try frame_sync.create(vkd, device);
         errdefer frame_sync.destroy(vkd, device, frame_sync_resources);
+
+        var gpu_profiler = try gpu_profiler_module.GpuProfiler.init(
+            vkd,
+            device,
+            params.physical_device_properties,
+            .{
+                .queue_flags = .{},
+                .queue_count = 0,
+                .timestamp_valid_bits = params.graphics_queue_timestamp_valid_bits,
+                .min_image_transfer_granularity = .{ .width = 0, .height = 0, .depth = 0 },
+            },
+        );
+        errdefer gpu_profiler.deinit(vkd, device);
 
         var framegraph_resources = try FrameGraphResources.init(vkd, device, allocator);
         errdefer framegraph_resources.deinit(vkd, device, null);
@@ -256,6 +274,7 @@ pub const BackendResources = struct {
         return .{
             .gfx_command_pool = gfx_command_pool,
             .gfx_cmd_buffer = .{ .handle = cmd_buffer_handle },
+            .gpu_profiler = gpu_profiler,
             .frame_sync_resources = frame_sync_resources,
             .framegraph_resources = framegraph_resources,
             .pipeline_factory = pipeline_factory,
@@ -284,6 +303,7 @@ pub const BackendResources = struct {
     }
 
     pub fn deinit(self: *BackendResources, vkd: anytype, device: vk.Device, vma_instance: vma.VmaAllocator) void {
+        self.gpu_profiler.deinit(vkd, device);
         self.frame_arena.deinit();
 
         self.tone_map_pass_resources.deinit(vkd, device);

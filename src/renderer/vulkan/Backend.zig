@@ -679,6 +679,10 @@ fn createDevice(
         .descriptor_binding_partially_bound = .true,
         .timeline_semaphore = .true,
         .shader_sampled_image_array_non_uniform_indexing = .true,
+        // Lets the GPU profiler recycle timestamp queries with vkResetQueryPool
+        // from the CPU, right after it has read their results, instead of
+        // needing a command buffer open just to reset them.
+        .host_query_reset = .true,
     };
 
     // PhysicalDeviceFeatures2 is the pNext chain head; pEnabledFeatures is null.

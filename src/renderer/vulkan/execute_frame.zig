@@ -185,6 +185,11 @@ pub fn executeFrame(
 
     _ = resources.frame_arena.reset(.retain_capacity);
 
+    // After the timeline wait, so the queries this reads are guaranteed
+    // resolved rather than still in flight. Never blocks: anything unresolved
+    // is left for the next frame.
+    resources.gpu_profiler.collect(vkd, device);
+
     // ---- Acquire ----
     var acquire = vk.DeviceWrapper.AcquireNextImageKHRResult{ .result = .not_ready, .image_index = 0 };
 

@@ -253,6 +253,130 @@ inline fn frameMarkEnd(comptime name: [:0]const u8) void {
 extern fn ___tracy_emit_frame_mark_start(name: [*:0]const u8) void;
 extern fn ___tracy_emit_frame_mark_end(name: [*:0]const u8) void;
 
+// --------------------------------------------------------------------------
+// GPU zones
+//
+// Tracy's Vulkan helper is TracyVulkan.hpp, which is C++ only — but everything
+// it does goes through these C entry points, so the Vulkan side lives in Zig
+// (renderer/vulkan/gpu_profiler.zig) and this file just binds the protocol.
+//
+// The structs are passed BY VALUE, matching the C declarations exactly. They
+// are `extern struct` so the field order and padding follow the C ABI rather
+// than Zig's.
+// --------------------------------------------------------------------------
+
+/// Matches GpuContextType in TracyQueue.hpp. Order is load-bearing — it also
+/// appears in saved traces.
+pub const GpuContextType = enum(u8) {
+    invalid = 0,
+    opengl = 1,
+    vulkan = 2,
+    opencl = 3,
+    direct3d12 = 4,
+    direct3d11 = 5,
+    metal = 6,
+    custom = 7,
+    cuda = 8,
+    rocprof = 9,
+};
+
+pub const GpuNewContextData = extern struct {
+    gpu_time: i64,
+    period: f32,
+    context: u8,
+    flags: u8,
+    type: u8,
+};
+
+pub const GpuZoneBeginData = extern struct {
+    srcloc: u64,
+    query_id: u16,
+    context: u8,
+};
+
+pub const GpuZoneEndData = extern struct {
+    query_id: u16,
+    context: u8,
+};
+
+pub const GpuContextNameData = extern struct {
+    context: u8,
+    name: [*]const u8,
+    len: u16,
+};
+
+pub const GpuTimeData = extern struct {
+    gpu_time: i64,
+    query_id: u16,
+    context: u8,
+};
+
+/// The source location a GPU zone points at. Tracy keeps the pointer, so it has
+/// to outlive the trace — always a comptime global.
+pub fn gpuSourceLocation(
+    comptime src: std.builtin.SourceLocation,
+    comptime name: [:0]const u8,
+) u64 {
+    const global = struct {
+        const loc: ___tracy_source_location_data = .{
+            .name = name.ptr,
+            .function = src.fn_name.ptr,
+            .file = src.file.ptr,
+            .line = src.line,
+            .color = 0,
+        };
+    };
+
+    return @intFromPtr(&global.loc);
+}
+
+/// `period` is VkPhysicalDeviceLimits.timestampPeriod — nanoseconds per tick.
+/// The server does the tick-to-time conversion, so every gpu_time below is a
+/// raw query value.
+pub fn gpuNewContext(context: u8, gpu_time: i64, period: f32) void {
+    if (!enable) return;
+
+    ___tracy_emit_gpu_new_context_serial(.{
+        .gpu_time = gpu_time,
+        .period = period,
+        .context = context,
+        // Not calibrated: no VK_EXT_calibrated_timestamps resync is emitted, so
+        // Tracy anchors the GPU timeline on this one sample. Durations stay
+        // exact either way; only long-run alignment against CPU zones can drift.
+        .flags = 0,
+        .type = @intFromEnum(GpuContextType.vulkan),
+    });
+}
+
+pub fn gpuContextName(context: u8, name: []const u8) void {
+    if (!enable) return;
+    ___tracy_emit_gpu_context_name_serial(.{ .context = context, .name = name.ptr, .len = @intCast(name.len) });
+}
+
+pub fn gpuZoneBegin(context: u8, query_id: u16, srcloc: u64) void {
+    if (!enable) return;
+    ___tracy_emit_gpu_zone_begin_serial(.{ .srcloc = srcloc, .query_id = query_id, .context = context });
+}
+
+pub fn gpuZoneEnd(context: u8, query_id: u16) void {
+    if (!enable) return;
+    ___tracy_emit_gpu_zone_end_serial(.{ .query_id = query_id, .context = context });
+}
+
+pub fn gpuTime(context: u8, query_id: u16, gpu_time: i64) void {
+    if (!enable) return;
+    ___tracy_emit_gpu_time_serial(.{ .gpu_time = gpu_time, .query_id = query_id, .context = context });
+}
+
+// The _serial variants are the ones TracyVulkan.hpp uses: GPU events arrive out
+// of order relative to the CPU thread that queued them, and the serial queue is
+// what keeps the server's view consistent.
+extern fn ___tracy_emit_gpu_new_context_serial(data: GpuNewContextData) void;
+extern fn ___tracy_emit_gpu_context_name_serial(data: GpuContextNameData) void;
+extern fn ___tracy_emit_gpu_zone_begin_serial(data: GpuZoneBeginData) void;
+extern fn ___tracy_emit_gpu_zone_end_serial(data: GpuZoneEndData) void;
+extern fn ___tracy_emit_gpu_time_serial(data: GpuTimeData) void;
+
 inline fn alloc(ptr: [*]u8, len: usize) void {
     if (!enable) return;
 

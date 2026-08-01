@@ -18,11 +18,25 @@ const vk = @import("vulkan");
 const debug_label = @import("debug_label.zig");
 const tracy = @import("../../tracy.zig");
 
+const GpuProfiler = @import("gpu_profiler.zig").GpuProfiler;
+
+/// The one profiler the scopes write into. A parameter would have to be
+/// threaded through every pass's record signature — 28 call sites across 14
+/// files — purely to reach a single process-wide object, which is what the C++
+/// macro avoided by closing over `command_buffer.tracy_ctx`.
+var profiler: ?*GpuProfiler = null;
+
+pub fn setProfiler(p: ?*GpuProfiler) void {
+    profiler = p;
+}
+
 pub const Scope = struct {
     cpu_zone: tracy.Ctx,
 
-    /// Closes the label and the CPU zone, in the reverse order they opened.
+    /// Closes the GPU zone, the label and the CPU zone, in the reverse order
+    /// they opened.
     pub fn end(self: Scope, vkd: anytype, cmd_buffer: vk.CommandBuffer) void {
+        if (profiler) |p| p.endZone(vkd, cmd_buffer);
         debug_label.end(vkd, cmd_buffer);
         self.cpu_zone.end();
     }
@@ -37,6 +51,10 @@ pub fn begin(
     comptime name: [:0]const u8,
 ) Scope {
     debug_label.begin(vkd, cmd_buffer, name.ptr);
+
+    if (profiler) |p| {
+        _ = p.beginZone(vkd, cmd_buffer, tracy.gpuSourceLocation(src, name));
+    }
 
     return .{ .cpu_zone = tracy.traceNamed(src, name) };
 }

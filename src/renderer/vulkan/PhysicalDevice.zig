@@ -35,6 +35,10 @@ pub const PhysicalDeviceInfo = struct {
     // Filled by fillQueues()
     // These can alias the same family index.
     graphics_queue_family_index: u32,
+    /// 0 means this queue cannot write timestamps, which disables GPU
+    /// profiling. Captured during family selection because the properties are
+    /// already in hand there.
+    graphics_queue_timestamp_valid_bits: u32 = 0,
     present_queue_family_index: u32,
 
     macro_features: MacroFeatures,
@@ -176,11 +180,13 @@ fn fillQueues(
         if (has_graphics) {
             if (info.graphics_queue_family_index == std.math.maxInt(u32)) {
                 info.graphics_queue_family_index = idx;
+                info.graphics_queue_timestamp_valid_bits = family.timestamp_valid_bits;
             }
 
             if (present_support == .true) {
                 // Combined family – ideal, return immediately.
                 info.graphics_queue_family_index = idx;
+                info.graphics_queue_timestamp_valid_bits = family.timestamp_valid_bits;
                 info.present_queue_family_index = idx;
                 return;
             }
