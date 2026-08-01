@@ -46,3 +46,7 @@ zig build run -- --width 1280 --height 720
 `--frame-count N` exits after N presented frames and `--screenshot <path>`
 writes the last one out as a PNG, which is what makes the port's milestone
 gates checkable without a human at the window.
+
+`--hdr` requests an HDR10 (PQ) swapchain. It needs the compositor set up for
+it, and it breaks both the screenshot path and RenderDoc — see
+[HDR.md](HDR.md) for what works, what does not, and why.

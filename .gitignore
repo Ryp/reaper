@@ -23,3 +23,6 @@
 __pycache__/
 *.py[cod]
 *$py.class
+
+# Upstream grim, cloned here for reference while investigating HDR capture.
+/grim/
